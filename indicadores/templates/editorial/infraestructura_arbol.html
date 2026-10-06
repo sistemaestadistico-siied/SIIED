@@ -1,0 +1,257 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Árbol de Infraestructura — Editorial SIIED{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+    <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+            <span class="bg-violet-100 text-violet-700 p-2.5 rounded-xl">
+                <i class="fas fa-sitemap"></i>
+            </span>
+            Árbol de Infraestructura
+        </h1>
+        <p class="mt-1 text-slate-500 ml-12">Gestión completa de la jerarquía: Áreas › Categorías › Subcategorías › Grupos › Documentos</p>
+    </div>
+    <div class="flex gap-2 flex-wrap">
+        <a href="{% url 'indicadores:editorial_infra_area_crear' %}" class="px-3 py-2 bg-violet-600 text-white rounded-lg font-medium text-sm hover:bg-violet-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-1"></i>Área
+        </a>
+        <a href="{% url 'indicadores:editorial_infra_categoria_crear' %}" class="px-3 py-2 bg-indigo-600 text-white rounded-lg font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-1"></i>Categoría
+        </a>
+        <a href="{% url 'indicadores:editorial_infra_subcategoria_crear' %}" class="px-3 py-2 bg-sky-600 text-white rounded-lg font-medium text-sm hover:bg-sky-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-1"></i>Subcategoría
+        </a>
+        <a href="{% url 'indicadores:editorial_infra_grupo_crear' %}" class="px-3 py-2 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-1"></i>Grupo
+        </a>
+        <a href="{% url 'indicadores:editorial_documento_crear' %}" class="px-3 py-2 bg-amber-600 text-white rounded-lg font-medium text-sm hover:bg-amber-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-1"></i>Documento
+        </a>
+    </div>
+</div>
+
+<!-- Leyenda de niveles -->
+<div class="mb-6 flex flex-wrap gap-3 text-xs">
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-violet-100 text-violet-700 rounded-full font-semibold"><i class="fas fa-circle text-[8px]"></i> Área (N1)</span>
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-full font-semibold"><i class="fas fa-circle text-[8px]"></i> Categoría (N2)</span>
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-100 text-sky-700 rounded-full font-semibold"><i class="fas fa-circle text-[8px]"></i> Subcategoría (N3)</span>
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-100 text-teal-700 rounded-full font-semibold"><i class="fas fa-circle text-[8px]"></i> Grupo (N4)</span>
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-semibold"><i class="fas fa-circle text-[8px]"></i> Documento (N5)</span>
+</div>
+
+<!-- Controles globales -->
+<div class="mb-4 flex gap-3">
+    <button onclick="toggleAll(true)" class="text-xs px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors font-medium">
+        <i class="fas fa-expand-alt mr-1"></i>Expandir todo
+    </button>
+    <button onclick="toggleAll(false)" class="text-xs px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors font-medium">
+        <i class="fas fa-compress-alt mr-1"></i>Colapsar todo
+    </button>
+</div>
+
+<!-- Árbol -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    {% if areas %}
+    <div class="divide-y divide-slate-100">
+        {% for area in areas %}
+        <!-- NIVEL 1: Área -->
+        <div class="tree-node">
+            <div class="flex items-center justify-between px-5 py-4 bg-violet-50/50 hover:bg-violet-50 transition-colors cursor-pointer group" onclick="toggleNode(this)">
+                <div class="flex items-center gap-3 min-w-0">
+                    <i class="fas fa-chevron-down text-xs text-violet-400 transition-transform tree-chevron"></i>
+                    <span class="w-2.5 h-2.5 rounded-full bg-violet-500 flex-shrink-0"></span>
+                    {% if area.icono %}<i class="{{ area.icono }} text-violet-600"></i>{% endif %}
+                    <span class="font-bold text-slate-900 text-sm">{{ area.nombre }}</span>
+                    {% if not area.activo %}<span class="text-xs bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Inactivo</span>{% endif %}
+                    <span class="text-xs text-slate-400">({{ area.categorias.count }} categorías)</span>
+                </div>
+                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a href="{% url 'indicadores:editorial_infra_categoria_crear' %}?area={{ area.pk }}" class="p-1.5 text-indigo-500 hover:bg-indigo-100 rounded-lg" title="Añadir categoría" onclick="event.stopPropagation()">
+                        <i class="fas fa-plus text-xs"></i>
+                    </a>
+                    <a href="{% url 'indicadores:editorial_infra_area_editar' area.pk %}" class="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg" title="Editar" onclick="event.stopPropagation()">
+                        <i class="fas fa-pencil-alt text-xs"></i>
+                    </a>
+                    <a href="{% url 'indicadores:editorial_infra_area_eliminar' area.pk %}" class="p-1.5 text-rose-400 hover:bg-rose-100 rounded-lg" title="Eliminar" onclick="event.stopPropagation()">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Hijos: Categorías -->
+            <div class="tree-children pl-6 border-l-2 border-violet-200 ml-5">
+                {% for cat in area.categorias.all %}
+                <!-- NIVEL 2: Categoría -->
+                <div class="tree-node">
+                    <div class="flex items-center justify-between px-4 py-3 hover:bg-indigo-50/50 transition-colors cursor-pointer group" onclick="toggleNode(this)">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <i class="fas fa-chevron-down text-xs text-indigo-400 transition-transform tree-chevron"></i>
+                            <span class="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0"></span>
+                            {% if cat.icono %}<i class="{{ cat.icono }} text-indigo-500 text-sm"></i>{% endif %}
+                            <span class="font-semibold text-slate-800 text-sm">{{ cat.nombre }}</span>
+                            {% if not cat.activo %}<span class="text-xs bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Inactivo</span>{% endif %}
+                            <span class="text-xs text-slate-400">({{ cat.subcategorias.count }})</span>
+                        </div>
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="{% url 'indicadores:editorial_infra_subcategoria_crear' %}?categoria={{ cat.pk }}" class="p-1.5 text-sky-500 hover:bg-sky-100 rounded-lg" title="Añadir subcategoría" onclick="event.stopPropagation()">
+                                <i class="fas fa-plus text-xs"></i>
+                            </a>
+                            <a href="{% url 'indicadores:editorial_infra_categoria_editar' cat.pk %}" class="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg" title="Editar" onclick="event.stopPropagation()">
+                                <i class="fas fa-pencil-alt text-xs"></i>
+                            </a>
+                            <a href="{% url 'indicadores:editorial_infra_categoria_eliminar' cat.pk %}" class="p-1.5 text-rose-400 hover:bg-rose-100 rounded-lg" title="Eliminar" onclick="event.stopPropagation()">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Hijos: Subcategorías -->
+                    <div class="tree-children pl-6 border-l-2 border-indigo-200 ml-5">
+                        {% for subcat in cat.subcategorias.all %}
+                        <!-- NIVEL 3: Subcategoría -->
+                        <div class="tree-node">
+                            <div class="flex items-center justify-between px-4 py-2.5 hover:bg-sky-50/50 transition-colors cursor-pointer group" onclick="toggleNode(this)">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <i class="fas fa-chevron-down text-xs text-sky-400 transition-transform tree-chevron"></i>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-sky-500 flex-shrink-0"></span>
+                                    {% if subcat.icono %}<i class="{{ subcat.icono }} text-sky-500 text-sm"></i>{% endif %}
+                                    <span class="font-medium text-slate-700 text-sm">{{ subcat.nombre }}</span>
+                                    {% if not subcat.activo %}<span class="text-xs bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Inactivo</span>{% endif %}
+                                    <span class="text-xs text-slate-400">({{ subcat.grupos_documentos.count }})</span>
+                                </div>
+                                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <a href="{% url 'indicadores:editorial_infra_grupo_crear' %}?subcategoria={{ subcat.pk }}" class="p-1.5 text-teal-500 hover:bg-teal-100 rounded-lg" title="Añadir grupo" onclick="event.stopPropagation()">
+                                        <i class="fas fa-plus text-xs"></i>
+                                    </a>
+                                    <a href="{% url 'indicadores:editorial_infra_subcategoria_editar' subcat.pk %}" class="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg" title="Editar" onclick="event.stopPropagation()">
+                                        <i class="fas fa-pencil-alt text-xs"></i>
+                                    </a>
+                                    <a href="{% url 'indicadores:editorial_infra_subcategoria_eliminar' subcat.pk %}" class="p-1.5 text-rose-400 hover:bg-rose-100 rounded-lg" title="Eliminar" onclick="event.stopPropagation()">
+                                        <i class="fas fa-trash-alt text-xs"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Hijos: Grupos -->
+                            <div class="tree-children pl-6 border-l-2 border-sky-200 ml-5">
+                                {% for grupo in subcat.grupos_documentos.all %}
+                                <!-- NIVEL 4: Grupo -->
+                                <div class="tree-node">
+                                    <div class="flex items-center justify-between px-4 py-2 hover:bg-teal-50/50 transition-colors cursor-pointer group" onclick="toggleNode(this)">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <i class="fas fa-chevron-down text-xs text-teal-400 transition-transform tree-chevron"></i>
+                                            <span class="w-1.5 h-1.5 rounded-full bg-teal-500 flex-shrink-0"></span>
+                                            {% if grupo.icono %}<i class="{{ grupo.icono }} text-teal-500 text-xs"></i>{% endif %}
+                                            <span class="text-sm text-slate-700">{{ grupo.nombre }}</span>
+                                            {% if not grupo.activo %}<span class="text-xs bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Inactivo</span>{% endif %}
+                                            <span class="text-xs text-slate-400">({{ grupo.documentos.count }} docs)</span>
+                                        </div>
+                                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <a href="{% url 'indicadores:editorial_documento_crear' %}?grupo={{ grupo.pk }}" class="p-1.5 text-amber-500 hover:bg-amber-100 rounded-lg" title="Añadir documento" onclick="event.stopPropagation()">
+                                                <i class="fas fa-plus text-xs"></i>
+                                            </a>
+                                            <a href="{% url 'indicadores:editorial_infra_grupo_editar' grupo.pk %}" class="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg" title="Editar" onclick="event.stopPropagation()">
+                                                <i class="fas fa-pencil-alt text-xs"></i>
+                                            </a>
+                                            <a href="{% url 'indicadores:editorial_infra_grupo_eliminar' grupo.pk %}" class="p-1.5 text-rose-400 hover:bg-rose-100 rounded-lg" title="Eliminar" onclick="event.stopPropagation()">
+                                                <i class="fas fa-trash-alt text-xs"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hijos: Documentos -->
+                                    <div class="tree-children pl-6 border-l-2 border-teal-200 ml-5">
+                                        {% for doc in grupo.documentos.all %}
+                                        <!-- NIVEL 5: Documento -->
+                                        <div class="flex items-center justify-between px-4 py-2 hover:bg-amber-50/50 transition-colors group">
+                                            <div class="flex items-center gap-3 min-w-0">
+                                                <span class="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0"></span>
+                                                {% if doc.icono %}<i class="{{ doc.icono }} text-amber-500 text-xs"></i>{% else %}<i class="fas fa-file text-amber-400 text-xs"></i>{% endif %}
+                                                <span class="text-sm text-slate-600 truncate">{{ doc.nombre }}</span>
+                                                {% if doc.estado == 'publicado' %}
+                                                <span class="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded font-medium">Pub</span>
+                                                {% elif doc.estado == 'borrador' %}
+                                                <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">Borr</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <a href="{% url 'indicadores:editorial_documento_editar' doc.pk %}" class="p-1.5 text-slate-500 hover:bg-slate-200 rounded-lg" title="Editar documento">
+                                                    <i class="fas fa-pencil-alt text-xs"></i>
+                                                </a>
+                                                <a href="{% url 'indicadores:editorial_documento_eliminar' doc.pk %}" class="p-1.5 text-rose-400 hover:bg-rose-100 rounded-lg" title="Eliminar">
+                                                    <i class="fas fa-trash-alt text-xs"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="px-4 py-2 text-xs text-slate-400 italic">Sin documentos</div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="px-4 py-2 text-xs text-slate-400 italic">Sin grupos</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="px-4 py-2 text-xs text-slate-400 italic">Sin subcategorías</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="px-4 py-3 text-xs text-slate-400 italic">Sin categorías</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-12 text-center">
+        <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-sitemap text-slate-300 text-3xl"></i>
+        </div>
+        <h3 class="text-slate-500 font-medium mb-2">No hay áreas de infraestructura</h3>
+        <p class="text-sm text-slate-400 mb-4">Comienza creando la primera área para organizar los documentos.</p>
+        <a href="{% url 'indicadores:editorial_infra_area_crear' %}" class="inline-flex items-center px-4 py-2.5 bg-violet-600 text-white rounded-xl font-medium text-sm hover:bg-violet-700 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Crear primera Área
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleNode(headerEl) {
+    const node = headerEl.closest('.tree-node');
+    const children = node.querySelector(':scope > .tree-children');
+    const chevron = headerEl.querySelector('.tree-chevron');
+    if (!children) return;
+    
+    if (children.classList.contains('hidden')) {
+        children.classList.remove('hidden');
+        chevron.style.transform = 'rotate(0deg)';
+    } else {
+        children.classList.add('hidden');
+        chevron.style.transform = 'rotate(-90deg)';
+    }
+}
+
+function toggleAll(expand) {
+    document.querySelectorAll('.tree-children').forEach(el => {
+        if (expand) {
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+    document.querySelectorAll('.tree-chevron').forEach(el => {
+        el.style.transform = expand ? 'rotate(0deg)' : 'rotate(-90deg)';
+    });
+}
+</script>
+
+{% endblock %}

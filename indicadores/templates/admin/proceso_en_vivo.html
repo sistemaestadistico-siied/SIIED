@@ -1,0 +1,155 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Proceso en vivo #{{ proceso.id }}{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  .live-container { background:#0b0f1a; color:#e6f1ff; padding:16px; border:1px solid #1f4068; border-radius:6px; }
+  .status { margin-bottom:10px; }
+  .status .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; margin-left:6px; }
+  .badge.pendiente { background:#666; }
+  .badge.procesando { background:#0066cc; }
+  .badge.completado { background:#2d7; }
+  .badge.error { background:#d33; }
+  pre.log { background:#000; color:#0f0; padding:12px; border:1px solid #0f0; max-height:500px; overflow-y:auto; white-space:pre-wrap; }
+  .controls { margin-top:10px; display:flex; gap:8px; }
+  .btn { border:1px solid #1f4068; background:#0b0f1a; color:#e6f1ff; padding:6px 10px; border-radius:4px; cursor:pointer; text-decoration:none; }
+  .btn:disabled { opacity:0.6; cursor:not-allowed; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  › <a href="{% url 'admin:indicadores_reglaextraccion_changelist' %}">Reglas de extracción</a>
+  › Proceso en vivo #{{ proceso.id }}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Proceso en vivo #{{ proceso.id }} — {{ proceso.indicador.nombre }}</h1>
+<div class="live-container">
+  <div class="status">
+    Estado: <span id="estado" class="badge {{ proceso.estado }}">{{ proceso.estado|capfirst }}</span>
+    <span id="exit_code"></span>
+  </div>
+  <pre id="log" class="log"></pre>
+  <div class="controls">
+    <button id="toggle" class="btn">Pausar</button>
+    <a id="volver" class="btn" href="{% url 'admin:indicadores_reglaextraccion_changelist' %}">Volver a Reglas</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  const procesoId = {{ proceso.id }};
+  let lastId = 0;
+  let running = true;
+  let completed = false;            // indica que el backend marcó completado/error
+  let targetLastId = 0;             // último ID de log anunciado por backend
+  let drainStableTicks = 0;         // cuántos ciclos seguidos estamos al día
+  let finalSummaryAppended = false; // para no duplicar el resumen final
+  let lastStatus = null;            // caché del último status recibido
+  const logEl = document.getElementById('log');
+  const estadoEl = document.getElementById('estado');
+  const exitCodeEl = document.getElementById('exit_code');
+  const toggleBtn = document.getElementById('toggle');
+
+
+  toggleBtn.addEventListener('click', () => {
+    running = !running;
+    toggleBtn.textContent = running ? 'Pausar' : 'Reanudar';
+  });
+
+  function appendLogs(logs){
+    if(!logs || !logs.length) return;
+    const atBottom = (logEl.scrollTop + logEl.clientHeight) >= (logEl.scrollHeight - 5);
+    for(const l of logs){
+      const line = `[${new Date(l.creado_en).toLocaleTimeString()}] ${l.nivel.padEnd(5)}: ${l.mensaje}`;
+      logEl.textContent += (logEl.textContent ? '\n' : '') + line;
+      lastId = Math.max(lastId, l.id);
+    }
+    if(atBottom) logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function fetchStatus(){
+    const res = await fetch(`{% url 'indicadores:api_proceso_status' 0 %}`.replace('/0/', `/${procesoId}/`));
+    if(!res.ok) return;
+    const data = await res.json();
+    if(data && data.locked) return; // DB bloqueada: mantener UI y reintentar en el siguiente tick
+    lastStatus = data;
+    estadoEl.textContent = (data.estado || '').charAt(0).toUpperCase() + (data.estado || '').slice(1);
+    estadoEl.className = `badge ${data.estado}`;
+    if(data.exit_code !== null && data.exit_code !== undefined){
+      exitCodeEl.textContent = ` (exit_code: ${data.exit_code})`;
+    }
+    // Al completar, no paramos inmediatamente: drenamos hasta alcanzar el último log publicado
+    if(data.estado === 'completado' || data.estado === 'error'){
+      completed = true;
+      targetLastId = data.last_log_id || targetLastId;
+      toggleBtn.disabled = true; // evitar confusión en modo drenado
+    }
+  }
+
+  async function fetchLogs(){
+    const url = new URL(window.location.origin + `{% url 'indicadores:api_proceso_logs' 0 %}`.replace('/0/', `/${procesoId}/`));
+    url.searchParams.set('last_id', String(lastId));
+    url.searchParams.set('limit', '500');
+    const res = await fetch(url.toString());
+    if(!res.ok) return;
+    const data = await res.json();
+    if(data && data.locked) return; // lock temporal: sin cambios
+    appendLogs(data.logs || []);
+  }
+
+  function appendFinalSummary(){
+    if(finalSummaryAppended || !lastStatus) return;
+    const estado = (lastStatus.estado || '').toUpperCase();
+    const exit = (lastStatus.exit_code === 0 || lastStatus.exit_code) ? lastStatus.exit_code : 'N/A';
+    let extra = '';
+    try{
+      const fin = lastStatus.finished_at ? new Date(lastStatus.finished_at) : null;
+      const ini = lastStatus.started_at ? new Date(lastStatus.started_at) : null;
+      if(fin && ini){
+        const dur = Math.round((fin - ini)/1000);
+        extra = ` — duración: ${dur}s`;
+      }
+    }catch(e){ /* ignore */ }
+    const line = `--- Proceso finalizado (${estado}, exit_code: ${exit})${extra} ---`;
+    logEl.textContent += (logEl.textContent ? '\n' : '') + line;
+    logEl.scrollTop = logEl.scrollHeight;
+    finalSummaryAppended = true;
+  }
+
+  async function tick(){
+    try{
+      if(running || completed){
+        await Promise.all([fetchStatus(), fetchLogs()]);
+      } else {
+        await fetchStatus();
+      }
+      // Lógica de drenado: si ya completó, seguimos hasta alcanzar el último log anunciado
+      if(completed){
+        if(lastId >= (targetLastId || 0)){
+          drainStableTicks += 1;
+        } else {
+          drainStableTicks = 0;
+        }
+        // Consideramos drenado tras 2 ciclos consecutivos al día
+        if(drainStableTicks >= 2){
+          appendFinalSummary();
+          completed = false;
+          running = false;
+        }
+      }
+    }catch(e){ /* ignore */ }
+    setTimeout(tick, 1000);
+  }
+
+  // Start
+  tick();
+})();
+</script>
+{% endblock %}

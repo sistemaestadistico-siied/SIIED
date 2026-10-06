@@ -1,0 +1,183 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Manual de Productos Académicos | SIIED{% endblock %}
+
+{% block extrastyle %}
+<style>
+  .manual-container { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+  .manual-header { border-bottom: 2px solid #1a4d8f; padding-bottom: 1rem; margin-bottom: 2rem; }
+  .manual-header h1 { color: #1a4d8f; margin: 0; font-size: 1.5rem; }
+  .manual-header p { color: #666; margin: 0.3rem 0 0; }
+
+  .manual-section { margin-bottom: 2.5rem; }
+  .manual-section h2 { color: #1a4d8f; font-size: 1.15rem; border-left: 4px solid #1a4d8f; padding-left: 0.75rem; margin-bottom: 1rem; }
+  .manual-section h3 { color: #333; font-size: 1rem; margin: 1.2rem 0 0.5rem; }
+
+  .manual-table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  .manual-table th { background: #e8f0fe; color: #1a4d8f; text-align: left; padding: 0.6rem; border: 1px solid #d0d7de; }
+  .manual-table td { padding: 0.6rem; border: 1px solid #d0d7de; vertical-align: top; }
+  .manual-table tr:nth-child(even) { background: #f8f9fa; }
+
+  .code-block { background: #f4f4f4; border: 1px solid #ddd; border-radius: 4px; padding: 0.6rem 0.8rem; font-family: monospace; font-size: 0.85rem; color: #333; margin: 0.5rem 0; }
+
+  .tip-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 0.8rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; }
+  .tip-box strong { color: #2e7d32; }
+
+  .warn-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: 0.8rem 1rem; margin: 1rem 0; border-radius: 0 4px 4px 0; }
+  .warn-box strong { color: #e65100; }
+
+  .back-link { display: inline-block; margin-bottom: 1rem; color: #1a4d8f; text-decoration: none; font-weight: 600; }
+  .back-link:hover { text-decoration: underline; }
+
+  ul.manual-list { padding-left: 1.2rem; }
+  ul.manual-list li { margin-bottom: 0.4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="manual-container">
+  <a href="{% url 'admin:indicadores_productoacademico_changelist' %}" class="back-link">← Volver a Productos Académicos</a>
+
+  <div class="manual-header">
+    <h1><i class="fas fa-book" style="margin-right:0.5rem;"></i>Manual de Productos Académicos</h1>
+    <p>Guía operativa para la creación y gestión de papers y productos estadísticos integrados</p>
+  </div>
+
+  <div class="manual-section">
+    <h2>1. ¿Qué es un Producto Académico?</h2>
+    <p>Un <strong>Producto Académico</strong> es un documento enriquecido que documenta el proceso de producción de indicadores estadísticos. Existen dos modos de visualización:</p>
+    <ul class="manual-list">
+      <li><strong>Paper académico clásico</strong>: sidebar con navegación por secciones, ideal para documentos metodológicos y papers de investigación.</li>
+      <li><strong>Producto estadístico integrado</strong>: layout tipo INEGI con pestañas (Presentación, Resultados, Documentación, Tabulados, etc.), ideal para censos, encuestas y operaciones estadísticas.</li>
+    </ul>
+    <div class="tip-box">
+      <strong>Consejo:</strong> Use <em>"Producto estadístico"</em> cuando el objetivo es presentar datos al público general. Use <em>"Paper clásico"</em> cuando el objetivo es documentar metodología para otros investigadores.
+    </div>
+  </div>
+
+  <div class="manual-section">
+    <h2>2. Tipos de sección y bloques de contenido</h2>
+    <p>Cada producto se compone de <strong>secciones</strong>. Cada sección tiene un <em>tipo de sección</em> (Introducción, Resultados, etc.) y un <em>tipo de bloque</em> (texto, gráfico, mapa, etc.).</p>
+
+    <h3>Tipos de sección disponibles</h3>
+    <table class="manual-table">
+      <tr><th>Tipo</th><th>Uso recomendado</th></tr>
+      <tr><td>Resumen</td><td>Abstract o síntesis ejecutiva (aparece antes de las pestañas en modo estadístico)</td></tr>
+      <tr><td>Introducción</td><td>Contexto, importancia y alcance del producto (aparece antes de las pestañas)</td></tr>
+      <tr><td>Antecedentes / Marco teórico</td><td>Revisión bibliográfica y fundamentación</td></tr>
+      <tr><td>Contexto / Condiciones del caso</td><td>Descripción del entorno geográfico, social o institucional</td></tr>
+      <tr><td>Metodología</td><td>Diseño muestral, instrumentos, procesos de recolección</td></tr>
+      <tr><td>Resultados / Validación</td><td>Tabulados, gráficos, mapas y análisis (se convierte en pestaña principal en modo estadístico)</td></tr>
+      <tr><td>Discusión</td><td>Interpretación de resultados y comparaciones</td></tr>
+      <tr><td>Conclusiones</td><td>Síntesis de hallazgos y recomendaciones</td></tr>
+      <tr><td>Referencias</td><td>Bibliografía y fuentes citadas</td></tr>
+      <tr><td>Anexo técnico</td><td>Tablas extensas, cuestionarios, glosarios</td></tr>
+    </table>
+
+    <h3>Tipos de bloque de contenido</h3>
+    <table class="manual-table">
+      <tr><th>Bloque</th><th>Recurso vinculado</th><th>Qué renderiza</th></tr>
+      <tr><td>Texto enriquecido</td><td>Ninguno (usa campo <em>Contenido</em>)</td><td>HTML libre con CKEditor (tablas, imágenes, fórmulas)</td></tr>
+      <tr><td>Gráfico dinámico de indicador</td><td>Indicador</td><td>Gráfico Plotly interactivo (barras, líneas, pirámide)</td></tr>
+      <tr><td>Mapa geográfico de indicador</td><td>Indicador</td><td>Mapa coroplético con capas GeoJSON del indicador</td></tr>
+      <tr><td>Tabla dinámica de datos de indicador</td><td>Indicador</td><td>Tabla HTML con datos cruzados + botón descarga CSV</td></tr>
+      <tr><td>Ficha técnica de indicador</td><td>Indicador</td><td>Ficha con definición, fórmula, fuente, periodicidad</td></tr>
+      <tr><td>Tabla de muestra de conjunto de datos</td><td>Conjunto de datos</td><td>Vista previa de registros de conjunto de datos + descarga CSV</td></tr>
+      <tr><td>Documento de infraestructura</td><td>DocumentoInfraestructura</td><td>Tarjeta con nombre, tipo, descripción y enlaces PDF/Word</td></tr>
+      <tr><td>Sistema / herramienta de información</td><td>SistemaInformacion</td><td>Tarjeta con badge de categoría y botón de acceso</td></tr>
+      <tr><td>Publicación relacionada</td><td>Productos Académicos (M2M)</td><td>Grid de tarjetas con título, autor y área temática</td></tr>
+      <tr><td>Resultado destacado (KPI)</td><td>Indicador</td><td>Número grande con valor más reciente, unidad y año</td></tr>
+      <tr><td>Bloque de fórmulas / LaTeX</td><td>Ninguno</td><td>HTML libre (usar MathJax si está habilitado)</td></tr>
+      <tr><td>Tabla de datos (HTML estático)</td><td>Ninguno</td><td>HTML libre con CKEditor (para tablas que no requieren datos dinámicos)</td></tr>
+    </table>
+  </div>
+
+  <div class="manual-section">
+    <h2>3. Cómo crear un producto estadístico tipo INEGI</h2>
+    <ol class="manual-list">
+      <li>Cree el <strong>Producto Académico</strong> y marque <em>"Es producto estadístico"</em>.</li>
+      <li>Complete los metadatos: operación estadística, cobertura geográfica, periodo de referencia.</li>
+      <li>Vincule <strong>Temas relacionados</strong> (aparecerán como chips debajo de las pestañas).</li>
+      <li>Cree las secciones en el orden deseado usando <em>número de orden</em> (1, 2, 3...).</li>
+      <li>Para la <strong>Presentación</strong>, use tipo de sección <em>Resumen</em> o <em>Introducción</em>. Estas aparecerán <strong>antes</strong> de las pestañas.</li>
+      <li>Para <strong>Resultados</strong>, use tipo de sección <em>Resultados</em> con bloques de gráfico, tabla o KPI.</li>
+    </ol>
+
+    <div class="warn-box">
+      <strong>Importante:</strong> El modo estadístico ignora las secciones de tipo <em>Resumen</em> e <em>Introducción</em> al construir las pestañas; las muestra como presentación colapsable encima de las pestañas.
+    </div>
+  </div>
+
+  <div class="manual-section">
+    <h2>4. Subnúmeros y sub-pestañas</h2>
+    <p>El campo <strong>Subnúmero</strong> permite agrupar secciones dentro de una misma pestaña. Use la notación <code>X.Y</code>:</p>
+    <div class="code-block">
+Sección 4.1 → Población total<br>
+Sección 4.2 → Indicadores sociodemográficos<br>
+Sección 4.3 → Vivienda
+    </div>
+    <p>En el modo estadístico, la pestaña <em>Resultados</em> mostrará <strong>sub-pestañas</strong>: <em>Población total | Indicadores sociodemográficos | Vivienda</em>.</p>
+    <div class="tip-box">
+      <strong>Consejo:</strong> Use subnúmeros solo cuando una pestaña tenga más de 3 secciones. Si hay 2 o menos, mantenga subnúmero vacío y el contenido aparecerá directamente en la pestaña.
+    </div>
+  </div>
+
+  <div class="manual-section">
+    <h2>5. Configuración de gráficos (JSON)</h2>
+    <p>El campo <em>Configuración del gráfico o mapa</em> acepta un objeto JSON para personalizar la visualización:</p>
+    <div class="code-block">
+{<br>
+&nbsp;&nbsp;"tipo": "barras",&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// barras | lineas | piramide | pastel<br>
+&nbsp;&nbsp;"anio_default": 2024,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Año preseleccionado en mapas/tablas<br>
+&nbsp;&nbsp;"mostrar_desagregaciones": true,<br>
+&nbsp;&nbsp;"tipo_mapa": "choropleth"&nbsp;&nbsp;// Solo para bloques de tipo mapa<br>
+}
+    </div>
+    <p>Si deja el campo vacío, el sistema usa valores por defecto.</p>
+  </div>
+
+  <div class="manual-section">
+    <h2>6. Flujo de publicación</h2>
+    <table class="manual-table">
+      <tr><th>Estado</th><th>Visible al público</th><th>Acción</th></tr>
+      <tr><td>Borrador</td><td>No</td><td>Edición libre por el autor</td></tr>
+      <tr><td>En revisión</td><td>No (solo staff con preview)</td><td>Revisión editorial y validación técnica</td></tr>
+      <tr><td>Publicado</td><td>Sí</td><td>Visible en el catálogo público</td></tr>
+    </table>
+    <div class="tip-box">
+      <strong>Preview:</strong> Los usuarios staff pueden previsualizar productos en estado <em>Borrador</em> o <em>En revisión</em> usando el botón "Ver en sitio" del admin. Aparecerá una insignia ámbar en la esquina superior derecha.
+    </div>
+  </div>
+
+  <div class="manual-section">
+    <h2>7. Checklist antes de publicar</h2>
+    <ul class="manual-list">
+      <li>¿Todas las secciones tienen <strong>número de orden</strong> único y secuencial?</li>
+      <li>¿Los bloques de <em>gráfico, mapa, tabla, ficha o KPI</em> tienen un <strong>indicador vinculado</strong>?</li>
+      <li>¿Los bloques de <em>conjunto de datos</em> tienen una <strong>conjunto de datos vinculada</strong>?</li>
+      <li>¿Los bloques de <em>documento</em> tienen un <strong>documento de infraestructura</strong> con archivo PDF o Word?</li>
+      <li>¿El campo <em>Configuración del gráfico</em> es JSON válido (si se usó)?</li>
+      <li>¿En modo estadístico, hay al menos una sección de tipo <em>Resumen</em> o <em>Introducción</em>?</li>
+      <li>¿Los <strong>temas relacionados</strong> están vinculados (para mostrar chips de navegación)?</li>
+    </ul>
+  </div>
+
+  <div class="manual-section">
+    <h2>8. Solución de problemas comunes</h2>
+    <table class="manual-table">
+      <tr><th>Síntoma</th><th>Causa probable</th><th>Solución</th></tr>
+      <tr><td>La página muestra "Indicador no vinculado"</td><td>El bloque requiere un indicador pero no se seleccionó</td><td>Edite la sección y seleccione el indicador en el campo correspondiente</td></tr>
+      <tr><td>El gráfico no carga</td><td>El indicador no tiene datos o no tiene gráficos configurados</td><td>Verifique que el indicador tenga datos y al menos un gráfico en el módulo de indicadores</td></tr>
+      <tr><td>Los tabs no aparecen</td><td>El producto no está marcado como <em>producto estadístico</em></td><td>Edite el producto y marque la casilla "Es producto estadístico"</td></tr>
+      <tr><td>Los sub-tabs no aparecen</td><td>Las secciones no usan subnúmeros con notación X.Y</td><td>Agregue subnúmeros como 4.1, 4.2...</td></tr>
+      <tr><td>El botón "Ver en sitio" da error 404</td><td>El producto está en borrador y el usuario no es staff</td><td>Inicie sesión como staff o cambie el estado a "Publicado"</td></tr>
+      <tr><td>El nombre del CSV descargado es "datos_.csv"</td><td>El indicador no tiene código indicador definido</td><td>Complete el campo "Código indicador" en el modelo Indicador</td></tr>
+    </table>
+  </div>
+
+  <div style="text-align:center; margin-top:3rem; padding-top:1.5rem; border-top:1px solid #d0d7de; color:#888; font-size:0.85rem;">
+    Sistema Integrado de Información Estadística Distrital (SIIED) — Subdirección de Desarrollo Integral
+  </div>
+</div>
+{% endblock %}

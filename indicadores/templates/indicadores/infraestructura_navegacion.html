@@ -1,0 +1,563 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Infraestructura de Información - SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+    .infraestructura-container {
+        display: flex;
+        min-height: calc(100vh - 200px);
+        gap: 0;
+    }
+    
+    .sidebar-nav {
+        width: 280px;
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        padding: 1.5rem 0;
+        position: sticky;
+        top: 0;
+        height: fit-content;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+    
+    .breadcrumb-custom {
+        background: #fff;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e9ecef;
+        margin-bottom: 0;
+    }
+    
+    .breadcrumb-custom a {
+        color: #0066cc;
+        text-decoration: none;
+    }
+    
+    .breadcrumb-custom a:hover {
+        text-decoration: underline;
+    }
+    
+    .sidebar-nav .nav-section {
+        margin-bottom: 0.5rem;
+    }
+    
+    .sidebar-nav .nav-title {
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #e9ecef;
+        margin-bottom: 0.5rem;
+        background: #e9ecef;
+    }
+    
+    .sidebar-nav .nav-item {
+        list-style: none;
+        margin: 0;
+    }
+    
+    .sidebar-nav .nav-link {
+        display: block;
+        padding: 0.75rem 1.5rem;
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border-left: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+    
+    .sidebar-nav .nav-link:hover {
+        background: #e9ecef;
+        color: #495057;
+        border-left-color: #0066cc;
+    }
+    
+    .sidebar-nav .nav-link.active {
+        background: #e3f2fd;
+        color: #0066cc;
+        border-left-color: #0066cc;
+        font-weight: 500;
+    }
+    
+    .sidebar-nav .nav-link.parent {
+        font-weight: 500;
+        color: #495057;
+        position: relative;
+        padding-right: 2.5rem;
+    }
+    
+    .sidebar-nav .nav-link.parent.active {
+        background: #f0f0f0;
+        color: #0066cc;
+    }
+    
+    .sidebar-nav .nav-link.parent .accordion-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        transition: transform 0.3s ease;
+        color: #6c757d;
+        font-size: 0.75rem;
+    }
+    
+    .sidebar-nav .nav-link.parent.expanded .accordion-icon {
+        transform: translateY(-50%) rotate(180deg);
+    }
+    
+    .sidebar-nav .nav-link.parent:hover .accordion-icon {
+        color: #0066cc;
+    }
+    
+    .sidebar-nav .nav-link.child {
+        padding: 0.75rem 1.5rem 0.75rem 2.5rem;
+        font-size: 0.85rem;
+        position: relative;
+        padding-right: 2.5rem;
+    }
+    
+    .sidebar-nav .nav-link.child .accordion-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        transition: transform 0.3s ease;
+        color: #6c757d;
+        font-size: 0.75rem;
+    }
+    
+    .sidebar-nav .nav-link.child.expanded .accordion-icon {
+        transform: translateY(-50%) rotate(180deg);
+    }
+    
+    .sidebar-nav .nav-link.child:hover .accordion-icon {
+        color: #0066cc;
+    }
+    
+    .sidebar-nav .nav-link.grandchild {
+        padding: 0.75rem 1.5rem 0.75rem 3.5rem;
+        font-size: 0.8rem;
+        position: relative;
+        padding-right: 2.5rem;
+    }
+    
+    .sidebar-nav .nav-link.grandchild .accordion-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        transition: transform 0.3s ease;
+        color: #6c757d;
+        font-size: 0.75rem;
+    }
+    
+    .sidebar-nav .nav-link.grandchild.expanded .accordion-icon {
+        transform: translateY(-50%) rotate(180deg);
+    }
+    
+    .sidebar-nav .nav-link.grandchild:hover .accordion-icon {
+        color: #0066cc;
+    }
+    
+    .sidebar-nav .nav-link.great-grandchild {
+        padding: 0.75rem 1.5rem 0.75rem 4.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .sidebar-nav .nav-link i.item-icon {
+        margin-right: 0.5rem;
+        width: 16px;
+        text-align: center;
+    }
+    
+    /* Ocultar/mostrar hijos sin re-renderizar HTML */
+    .nav-children {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+    
+    .nav-children.expanded {
+        max-height: 2000px;
+        transition: max-height 0.5s ease-in;
+    }
+    
+    .content-area {
+        flex: 1;
+        padding: 0;
+        background: #fff;
+    }
+    
+    .content-header {
+        padding: 2rem 2.5rem;
+        border-bottom: 1px solid #e9ecef;
+        background: #fff;
+    }
+    
+    .content-body {
+        padding: 2rem 2.5rem;
+    }
+    
+    .category-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    
+    .category-header {
+        padding: 2rem 2.5rem;
+        background: linear-gradient(135deg,rgb(49, 162, 255) 0%,rgb(152, 205, 255) 100%);
+        color: white;
+    }
+    
+    .category-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .subcategory-list {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+    
+    .subcategory-item {
+        border-bottom: 1px solid #f8f9fa;
+        transition: background-color 0.2s ease;
+    }
+    
+    .subcategory-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .subcategory-item:last-child {
+        border-bottom: none;
+    }
+    
+    .subcategory-link {
+        display: block;
+        padding: 1.25rem 1.5rem;
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .subcategory-name {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+    
+    .subcategory-description {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin: 0;
+    }
+    
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #6c757d;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        margin-bottom: 1rem;
+    }
+    
+    .back-button:hover {
+        background: #e9ecef;
+        color: #495057;
+        text-decoration: none;
+    }
+    
+    .back-button i {
+        margin-right: 0.5rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .infraestructura-container {
+            flex-direction: column;
+        }
+        
+        .sidebar-nav {
+            width: 100%;
+            position: relative;
+            max-height: none;
+        }
+        
+        .content-area {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-custom">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'indicadores:home' %}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'indicadores:infraestructura_index' %}">Infraestructura de información</a></li>
+            {% if area %}
+                <li class="breadcrumb-item"><a href="{% url 'indicadores:infraestructura_area' area.slug %}">{{ area.nombre }}</a></li>
+            {% endif %}
+            {% if categoria %}
+                <li class="breadcrumb-item"><a href="{% url 'indicadores:infraestructura_categoria' area.slug categoria.slug %}">{{ categoria.nombre }}</a></li>
+            {% endif %}
+            {% if subcategoria %}
+                <li class="breadcrumb-item"><a href="{% url 'indicadores:infraestructura_subcategoria' area.slug categoria.slug subcategoria.slug %}">{{ subcategoria.nombre }}</a></li>
+            {% endif %}
+            {% if grupo_documento %}
+                <li class="breadcrumb-item active" aria-current="page">{{ grupo_documento.nombre }}</li>
+            {% endif %}
+        </ol>
+    </nav>
+</div>
+
+<div class="infraestructura-container">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar-nav">
+        {% for nav_area in areas %}
+            <div class="nav-section">
+                <div class="nav-title">{{ nav_area.nombre }}</div>
+                <ul class="nav flex-column">
+                    {% for nav_categoria in nav_area.categorias_activas %}
+                        <li class="nav-item">
+                            <a class="nav-link parent {% if categoria and categoria.id == nav_categoria.id %}active expanded{% endif %}" 
+                               href="{% url 'indicadores:infraestructura_categoria' nav_area.slug nav_categoria.slug %}"
+                               {% if nav_categoria.subcategorias_activas %}data-has-children="true"{% endif %}>
+                                <i class="item-icon {{ nav_categoria.icono|default:'fas fa-folder' }}"></i>
+                                {{ nav_categoria.nombre }}
+                                {% if nav_categoria.subcategorias_activas %}
+                                    <i class="fas fa-chevron-down accordion-icon"></i>
+                                {% endif %}
+                            </a>
+                            
+                            {% if nav_categoria.subcategorias_activas %}
+                            <div class="nav-children {% if categoria and categoria.id == nav_categoria.id %}expanded{% endif %}">
+                            {% if categoria and categoria.id == nav_categoria.id %}
+                                {% for nav_subcategoria in nav_categoria.subcategorias_activas %}
+                                    <a class="nav-link child {% if subcategoria and subcategoria.id == nav_subcategoria.id %}active expanded{% endif %}" 
+                                       href="{% url 'indicadores:infraestructura_subcategoria' nav_area.slug nav_categoria.slug nav_subcategoria.slug %}"
+                                       {% if nav_subcategoria.grupos_documentos.all %}data-has-children="true"{% endif %}>
+                                        <i class="item-icon {{ nav_subcategoria.icono|default:'fas fa-file-alt' }}"></i>
+                                        {{ nav_subcategoria.nombre }}
+                                        {% if nav_subcategoria.grupos_documentos.all %}
+                                            <i class="fas fa-chevron-down accordion-icon"></i>
+                                        {% endif %}
+                                    </a>
+                                    
+                                    {% if nav_subcategoria.grupos_documentos.all %}
+                                    <div class="nav-children {% if subcategoria and subcategoria.id == nav_subcategoria.id %}expanded{% endif %}">
+                                    {% if subcategoria and subcategoria.id == nav_subcategoria.id %}
+                                        {% for grupo in nav_subcategoria.grupos_documentos.all %}
+                                            {% if grupo.activo %}
+                                                <a class="nav-link grandchild {% if current_grupo and current_grupo.id == grupo.id %}active expanded{% endif %}" 
+                                                   href="{% url 'indicadores:infraestructura_grupo' nav_area.slug nav_categoria.slug nav_subcategoria.slug grupo.slug %}"
+                                                   {% if grupo.documentos.all %}data-has-children="true"{% endif %}>
+                                                    <i class="item-icon {{ grupo.icono|default:'fas fa-folder-open' }}"></i>
+                                                    {{ grupo.nombre }}
+                                                    {% if grupo.documentos.all %}
+                                                        <i class="fas fa-chevron-down accordion-icon"></i>
+                                                    {% endif %}
+                                                </a>
+                                                
+                                                {% if grupo.documentos.all %}
+                                                <div class="nav-children {% if current_grupo and current_grupo.id == grupo.id %}expanded{% endif %}">
+                                                {% if current_grupo and current_grupo.id == grupo.id %}
+                                                    {% for documento in grupo.documentos.all %}
+                                                        {% if documento.activo %}
+                                                            <a class="nav-link great-grandchild {% if current_documento and current_documento.id == documento.id %}active{% endif %}" 
+                                                               href="{% url 'indicadores:infraestructura_documento' nav_area.slug nav_categoria.slug nav_subcategoria.slug grupo.slug documento.slug %}">
+                                                                <i class="item-icon {{ documento.icono|default:'fas fa-file-text' }}"></i>
+                                                                {{ documento.nombre }}
+                                                            </a>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
+                                                </div>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                            </div>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+        {% block infraestructura_content %}
+            <div class="content-header">
+                <h1 class="h2 mb-3">
+                    <i class="fas fa-network-wired me-3 text-primary"></i>
+                    Infraestructura de Información
+                </h1>
+                <p class="lead text-muted mb-0">
+                    Documentación técnica, procesos, metodologías y herramientas que conforman la infraestructura de información estadística del Distrito de Santiago de Cali.
+                </p>
+            </div>
+            
+            <div class="content-body">
+                {% if not area %}
+                    <!-- Vista principal - Mostrar áreas -->
+                    {% for main_area in areas %}
+                        <div class="category-card">
+                            <div class="category-header">
+                                <div class="category-icon">
+                                    <i class="{{ main_area.icono|default:'fas fa-folder' }}"></i>
+                                </div>
+                                <h3 class="mb-2">{{ main_area.nombre }}</h3>
+                                {% if main_area.descripcion %}
+                                    <p class="mb-0 opacity-75">{{ main_area.descripcion }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            {% if main_area.categorias_activas %}
+                                <ul class="subcategory-list">
+                                    {% for cat in main_area.categorias_activas %}
+                                        <li class="subcategory-item">
+                                            <a href="{% url 'indicadores:infraestructura_categoria' main_area.slug cat.slug %}" class="subcategory-link">
+                                                <div class="subcategory-name">
+                                                    <i class="{{ cat.icono|default:'fas fa-folder' }} me-2"></i>
+                                                    {{ cat.nombre }}
+                                                </div>
+                                                {% if cat.descripcion %}
+                                                    <p class="subcategory-description">{{ cat.descripcion|truncatewords:15 }}</p>
+                                                {% endif %}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endblock %}
+    </main>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejo de acordeones sin re-hidratación del DOM
+    const parentLinks = document.querySelectorAll('.sidebar-nav .nav-link[data-has-children="true"]');
+    
+    parentLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            // Solo prevenir navegación si se hace clic en el ícono de acordeón
+            const clickedIcon = e.target.classList.contains('accordion-icon');
+            
+            if (clickedIcon) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle expanded class en el link
+                this.classList.toggle('expanded');
+                
+                // Toggle expanded class en el contenedor de hijos
+                const childrenContainer = this.nextElementSibling;
+                if (childrenContainer && childrenContainer.classList.contains('nav-children')) {
+                    childrenContainer.classList.toggle('expanded');
+                }
+            }
+            // Si no se hace clic en el ícono, permitir navegación normal
+        });
+        
+        // También permitir toggle al hacer clic en el área del ícono
+        const accordionIcon = link.querySelector('.accordion-icon');
+        if (accordionIcon) {
+            accordionIcon.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle en el link padre
+                link.classList.toggle('expanded');
+                
+                // Toggle en el contenedor de hijos
+                const childrenContainer = link.nextElementSibling;
+                if (childrenContainer && childrenContainer.classList.contains('nav-children')) {
+                    childrenContainer.classList.toggle('expanded');
+                }
+            });
+        }
+    });
+    
+    // Mantener el estado de expansión en sessionStorage para persistencia
+    const saveAccordionState = () => {
+        const expandedItems = [];
+        document.querySelectorAll('.sidebar-nav .nav-link.expanded').forEach(link => {
+            const href = link.getAttribute('href');
+            if (href) {
+                expandedItems.push(href);
+            }
+        });
+        sessionStorage.setItem('infraestructura_accordion_state', JSON.stringify(expandedItems));
+    };
+    
+    const restoreAccordionState = () => {
+        const savedState = sessionStorage.getItem('infraestructura_accordion_state');
+        if (savedState) {
+            try {
+                const expandedItems = JSON.parse(savedState);
+                expandedItems.forEach(href => {
+                    const link = document.querySelector(`.sidebar-nav .nav-link[href="${href}"]`);
+                    if (link && link.hasAttribute('data-has-children')) {
+                        link.classList.add('expanded');
+                        const childrenContainer = link.nextElementSibling;
+                        if (childrenContainer && childrenContainer.classList.contains('nav-children')) {
+                            childrenContainer.classList.add('expanded');
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Error restoring accordion state:', e);
+            }
+        }
+    };
+    
+    // Restaurar estado al cargar
+    restoreAccordionState();
+    
+    // Guardar estado cuando cambia
+    parentLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            setTimeout(saveAccordionState, 100);
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

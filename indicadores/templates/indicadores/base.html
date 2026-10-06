@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema Integrado de Información Estadística Distrital{% endblock %}</title>
+    <link rel="icon" href="{% static 'indicadores/images/icono oscuros.png' %}">
+
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#ebf5ff',
+                            100: '#e1effe',
+                            200: '#c3ddfd',
+                            300: '#a4cafe',
+                            400: '#76a9fa',
+                            500: '#4299e1', /* Color institucional */
+                            600: '#3182ce',
+                            700: '#2b6cb0',
+                            800: '#2c5282',
+                            900: '#2a4365',
+                        },
+                        gov: {
+                            100:'#3366CC',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    	
+    <script type="text/javascript">
+        var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+        (function(){
+        var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+        s1.async=true;
+        s1.src='https://embed.tawk.to/68c8fed4dc3fe719243dfca1/1j58i6rgf';
+        s1.charset='UTF-8';
+        s1.setAttribute('crossorigin','*');
+        s0.parentNode.insertBefore(s1,s0);
+        })();
+        </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css">
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7fafc;
+        }
+        #map { height: 75vh; }
+        .leaflet-container { z-index: 1 !important; }
+
+        /* Animaciones y efectos */
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #4299e1;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+
+        
+        /* Floating chat icon */
+        .floating-chat {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            transition: all 0.3s ease-in-out;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .floating-chat a {
+            display: block;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            box-shadow: 0 4px 20px rgba(66, 153, 225, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .floating-chat img {
+            width: 60%;
+            height: 60%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .floating-chat a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            transform: scale(0);
+            border-radius: 50%;
+            transition: transform 0.5s ease-out;
+        }
+        
+        .floating-chat a:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(66, 153, 225, 0.4);
+        }
+        
+        .floating-chat a:hover::before {
+            transform: scale(2);
+            opacity: 0;
+        }
+        
+        .floating-chat a:hover img {
+            transform: rotate(10deg) scale(1.1);
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    <div class="floating-chat">
+        <a href="{% url 'indicadores:chat' %}" title="Chatea con Don Datico">
+            <img src="{% static 'indicadores/images/don datico.png' %}" alt="Chat con Don Datico">
+        </a>
+    </div>
+    <!-- Header con diseño moderno -->
+    <header class="bg-white text-white shadow-xl relative z-[100]">
+        <div class="md:h-20 bg-gov-100 w-full items-center">
+            <div class="grid grid-cols-2 container mx-auto px-4 py-2 items-center">
+                <div class="place-self-start py-2">
+                    <a href="https://www.gov.co" class="block">
+                        <img src="https://cdnwordpresstest-f0ekdgevcngegudb.z01.azurefd.net/es/wp-content/themes/theme_alcaldia/img/logo_gov.png" 
+                             alt="gov.co" 
+                             class="h-8 md:h-10 w-auto object-contain">
+                    </a>
+                </div>
+                <div class="place-self-end py-2 flex items-center gap-2 md:gap-4">
+                <a class="text-white text-lg md:text-2xl font-bold hover:text-gray-200 transition duration-200" href="https://www.cali.gov.co/participacion/publicaciones/43/oficina-de-atencin-al-ciudadano/">PQRSD</a>
+                <div class="h-6 md:h-8 w-px bg-white opacity-50"></div>
+                <a class="text-white text-lg md:text-2xl hover:text-gray-200 transition duration-200" href="{% url 'indicadores:acceso_modulos' %}" title="Acceso a Módulos">
+                    <i class="fas fa-sign-in-alt"></i>
+                </a>
+            </div>
+
+            </div>
+        </div>
+        <div class="container mx-auto px-4 py-3 relative z-50">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center space-x-4 md:space-x-6">
+                    <!-- Logo Alcaldía -->
+                    <div class="flex items-center space-x-4 flex-shrink-0">
+                        <a href="https://www.cali.gov.co/" target="_blank" rel="noopener noreferrer" class="block">
+                            <img src="{% static 'indicadores/images/alcaldia color.png' %}" 
+                                 alt="Alcaldía de Santiago de Cali"
+                                 class="h-12 sm:h-14 md:h-16 lg:h-20 w-auto object-contain"
+                                 onerror="this.style.display='none'">
+                        </a>
+                    </div>
+                    <div class="h-10 sm:h-12 md:h-14 w-px bg-sky-900 flex-shrink-0"></div>
+    
+                    
+                    <!-- Nombre de la plataforma -->
+                    <div class="flex items-center space-x-4">
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-bold text-sky-900 leading-tight">Sistema Integrado</h1>
+                            <h1 class="text-xl md:text-2xl font-bold text-sky-900 leading-tight">de Información Estadística Distrital</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buscador Semántico en Header -->
+                <div class="w-full lg:w-auto flex-grow max-w-xl relative group">
+                    <div class="relative flex items-center">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-magic text-sky-500"></i>
+                        </div>
+                        <input type="text" id="header-semantic-search-input" 
+                               class="w-full pl-10 pr-12 py-2.5 rounded-full border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm shadow-sm bg-gray-50 text-gray-800 transition-all" 
+                               placeholder="Buscador Inteligente de Indicadores...">
+                        <button id="header-semantic-search-btn" class="absolute right-1 top-1/2 -translate-y-1/2 bg-sky-600 hover:bg-sky-700 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+                            <i class="fas fa-search text-sm"></i>
+                        </button>
+                    </div>
+
+                    <!-- Contenedor de Resultados (Flotante) -->
+                    <div id="header-semantic-search-results" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 hidden z-[9999] max-h-[80vh] overflow-hidden flex-col" style="transform: translateZ(0);">
+                        <div class="p-3 border-b bg-gray-50 flex justify-between items-center text-gray-800">
+                            <h4 class="font-semibold text-sm">Resultados IA</h4>
+                            <span id="header-search-status" class="text-xs text-gray-500"></span>
+                            <button id="header-search-close" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div id="header-results-container" class="overflow-y-auto p-2 space-y-2 text-gray-800 text-sm max-h-[60vh] custom-scrollbar">
+                            <!-- Resultados aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navegación moderna con efecto hover -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <ul class="flex flex-wrap justify-around md:justify-center space-x-0 md:space-x-8">
+                <li class="py-4">
+                    <a href="{% url 'indicadores:home' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'inicio' %}text-primary-600 active{% endif %}">
+                        Inicio
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:dominios' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'dominios' %}text-primary-600 active{% endif %}">
+                        Dominios
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:proyectos_informacion' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'proyectos' %}text-primary-600 active{% endif %}">
+                        Productos
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:sistemas_informacion' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'sistemas' %}text-primary-600 active{% endif %}">
+                        Sistemas
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'catalogo_consulta' %}text-primary-600 active{% endif %}">
+                        Catálogos
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:infraestructura_index' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'infraestructura' %}text-primary-600 active{% endif %}">
+                        Infraestructura
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <!-- Contenido principal con más espacio y padding -->
+    <main class="container mx-auto px-4 py-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Sección de Aliados - TEMPORALMENTE OCULTA - Mostrar meses después de salir a producción -->
+    <!--
+    {% load static %}
+    {% load aliados_tags %}
+    {% get_aliados as aliados %}
+    {% if aliados %}
+    <div class="sponsors-section" style="background: rgba(var(--color-primary-rgb), 0.05); padding: 30px 0; margin-top: 40px;">
+        <div class="container mx-auto px-4">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <h3 class="mb-4" style="color: var(--color-text-primary); font-size: 1.2rem; font-weight: 600;">Aliados</h3>
+                    <div class="sponsors-logos-wrapper" style="display: flex; justify-content: center; width: 100%;">
+                        <div class="sponsors-logos" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); justify-items: center; align-items: center; gap: 2rem; width: 100%; max-width: 1200px; padding: 0 20px;">
+                        {% for aliado in aliados %}
+                            <div class="sponsor-logo-container">
+                                <a href="{% url 'indicadores:aliado_detalle' aliado.slug %}" 
+                                   class="sponsor-logo-link" 
+                                   title="{{ aliado.nombre }}"
+                                    style="display: block; transition: all 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                                    {% if aliado.logo_url %}
+                                        <img src="{{ aliado.logo_url }}" 
+                                             alt="{{ aliado.nombre }}" 
+                                             class="sponsor-logo"
+                                             style="max-height: 70px; max-width: 140px; width: auto; height: auto; object-fit: contain; display: block; margin: 0 auto;">
+                                    {% endif %}
+                                </a>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+    .sponsor-logo-link:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+        background: rgba(255, 255, 255, 0.9) !important;
+    }
+    
+    .sponsor-logo-link:hover .sponsor-logo {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+    </style>
+    {% endif %}
+    -->
+
+
+    <!-- Footer moderno con gradiente y efecto de onda -->
+    <footer class="bg-gradient-to-r from-primary-700 to-primary-800 text-white py-12 relative overflow-hidden">
+        <div class="absolute inset-0 bg-footer-wave opacity-10"></div>
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">SIIED</h3>
+                    <p class="text-blue-100">Sistema Integrado de Información Estadística Distrital</p>
+                    <p class="text-blue-100">Subdirección de Desarrollo Integral</p>
+                    <p class="text-blue-100">Departamento Administrativo de Planeación Municipal</p>
+                    <p class="text-blue-100">Alcaldía de Santiago de Cali</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Contacto</h3>
+                    <p class="text-blue-100"><i class="fas fa-map-marker-alt mr-2"></i>Centro Administrativo Municipal (CAM) — Piso 10</p>
+                    <p class="text-blue-100"><i class="fas fa-phone mr-2"></i>(602) 886 2700</p>
+                    <p class="text-blue-100"><i class="fas fa-envelope mr-2"></i>sistemaestadistico@cali.gov.co</p>
+                    <p class="text-blue-100"><i class="fas fa-envelope mr-2"></i>planestadistico@cali.gov.co</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4">Enlaces</h3>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'indicadores:home' %}" class="text-blue-100 hover:text-white transition duration-300">Inicio</a></li>
+                        <li><a href="#" class="text-blue-100 hover:text-white transition duration-300">Política de Privacidad</a></li>
+                        <li><a href="#" class="text-blue-100 hover:text-white transition duration-300">Términos de Uso</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-primary-600 text-center text-blue-200">
+                <p>&copy; {% now "Y" %} Alcaldía de Santiago de Cali. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+    {% load static %}
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'indicadores/js/main.js' %}"></script>
+    <!-- LIBRERÍA DE GRÁFICOS PLOTLY -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    <!-- Locale español para Plotly (para usar coma como separador decimal) -->
+    <script src="https://cdn.plot.ly/plotly-locale-es.js"></script>
+    <script>
+        if (window.Plotly && typeof Plotly.setPlotConfig === 'function') {
+            Plotly.setPlotConfig({ locale: 'es' });
+        }
+    </script>
+    
+    <!-- LIBRERÍAS DE UNIVER -->
+    <!-- React dependencies (required for Univer) -->
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <!-- RxJS (required for Univer) -->
+    <script src="https://unpkg.com/rxjs/dist/bundles/rxjs.umd.min.js"></script>
+    
+    <!-- Univer core libraries -->
+    <script src="https://unpkg.com/@univerjs/presets/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/preset-sheets-core/lib/umd/index.js"></script>
+    <script src="https://unpkg.com/@univerjs/preset-sheets-core/lib/umd/locales/en-US.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-sheets-core/lib/index.css" />
+
+    <!-- BLOQUE PARA SCRIPTS ADICIONALES DE PÁGINAS HIJAS -->
+    {% block extra_js %}
+    {% endblock %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Lógica de búsqueda semántica en el Header
+        const headerSearchInput = document.getElementById('header-semantic-search-input');
+        const headerSearchBtn = document.getElementById('header-semantic-search-btn');
+        const headerResultsContainer = document.getElementById('header-semantic-search-results');
+        const headerResultsList = document.getElementById('header-results-container');
+        const headerSearchStatus = document.getElementById('header-search-status');
+        const headerSearchClose = document.getElementById('header-search-close');
+
+        if (headerSearchInput && headerSearchBtn) {
+            function performHeaderSearch() {
+                const query = headerSearchInput.value.trim();
+                if (!query) {
+                    headerResultsContainer.classList.add('hidden');
+                    return;
+                }
+
+                // UI Feedback
+                headerSearchBtn.disabled = true;
+                headerSearchBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
+                headerResultsContainer.classList.remove('hidden');
+                headerResultsList.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-magic fa-spin text-xl mb-2 text-sky-500"></i><p class="text-xs">Consultando a la Inteligencia Artificial...</p></div>';
+                headerSearchStatus.textContent = '';
+
+                fetch(`{% url 'indicadores:api_buscar_indicadores' %}?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        headerResultsList.innerHTML = '';
+                        
+                        if (!data.success || !data.resultados || data.resultados.length === 0) {
+                            headerResultsList.innerHTML = `
+                                <div class="text-center py-4 text-gray-500">
+                                    <i class="fas fa-search-minus text-2xl mb-2 text-gray-300"></i>
+                                    <p class="text-xs">No encontramos indicadores para esta búsqueda.</p>
+                                </div>`;
+                            headerSearchStatus.textContent = '0 resultados';
+                            return;
+                        }
+
+                        headerSearchStatus.textContent = `${data.total} resultados`;
+                        
+                        data.resultados.forEach(ind => {
+                            const urlEstandar = `{% url 'indicadores:subtema_detalle' 'DOM_SLUG' 'TEMA_SLUG' 'SUB_SLUG' %}?indicador=${ind.id}`
+                                .replace('DOM_SLUG', ind.dominio_slug)
+                                .replace('TEMA_SLUG', ind.tema_slug)
+                                .replace('SUB_SLUG', ind.subtema_slug);
+                                
+                            const url3D = `{% url 'indicadores:subtema_detalle_3d' 'DOM_SLUG' 'TEMA_SLUG' 'SUB_SLUG' %}?indicador=${ind.id}`
+                                .replace('DOM_SLUG', ind.dominio_slug)
+                                .replace('TEMA_SLUG', ind.tema_slug)
+                                .replace('SUB_SLUG', ind.subtema_slug);
+
+                            // Determinar el color de relevancia
+                            let relevanceColor = 'bg-gray-100 text-gray-600';
+                            let relevanceText = 'Relacionado';
+                            
+                            if (ind.similitud > 0.75) {
+                                relevanceColor = 'bg-green-100 text-green-700';
+                                relevanceText = 'Muy Relevante';
+                            } else if (ind.similitud > 0.6) {
+                                relevanceColor = 'bg-blue-100 text-blue-700';
+                                relevanceText = 'Relevante';
+                            }
+
+                            const resultHtml = `
+                                <div class="p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors group">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h5 class="text-sm font-bold text-gray-800 group-hover:text-sky-700 transition-colors">${ind.nombre}</h5>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ml-2 ${relevanceColor}">${relevanceText}</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mb-2 flex items-center flex-wrap gap-1">
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100"><i class="fas fa-layer-group mr-1"></i>${ind.dominio_nombre}</span>
+                                        <i class="fas fa-chevron-right text-gray-300 text-[8px]"></i>
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100">${ind.tema_nombre}</span>
+                                        <i class="fas fa-chevron-right text-gray-300 text-[8px]"></i>
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100">${ind.subtema_nombre}</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <a href="${urlEstandar}" class="inline-flex items-center px-2 py-1 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white rounded text-xs font-medium transition-colors">
+                                            <i class="fas fa-chart-bar mr-1"></i> Ver Tablero
+                                        </a>
+                                        <a href="${url3D}" class="inline-flex items-center px-2 py-1 bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white rounded text-xs font-medium transition-colors">
+                                            <i class="fas fa-cube mr-1"></i> Ver en 3D
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                            headerResultsList.insertAdjacentHTML('beforeend', resultHtml);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error en búsqueda:', error);
+                        headerResultsList.innerHTML = `<div class="text-center py-3 text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>Ocurrió un error al buscar.</div>`;
+                    })
+                    .finally(() => {
+                        headerSearchBtn.disabled = false;
+                        headerSearchBtn.innerHTML = '<i class="fas fa-search text-sm"></i>';
+                    });
+            }
+
+            headerSearchBtn.addEventListener('click', performHeaderSearch);
+            headerSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performHeaderSearch();
+                }
+            });
+
+            // Cerrar resultados
+            if (headerSearchClose) {
+                headerSearchClose.addEventListener('click', () => {
+                    headerResultsContainer.classList.add('hidden');
+                });
+            }
+
+            // Cerrar al hacer clic fuera
+            document.addEventListener('click', function(event) {
+                if (!headerSearchInput.contains(event.target) && !headerResultsContainer.contains(event.target) && !headerSearchBtn.contains(event.target)) {
+                    headerResultsContainer.classList.add('hidden');
+                }
+            });
+        }
+    });
+    </script>
+</body>
+</html>

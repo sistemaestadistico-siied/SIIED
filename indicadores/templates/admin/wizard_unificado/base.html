@@ -1,0 +1,119 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/forms.css' %}">
+<!-- Wizard CSS -->
+<link rel="stylesheet" href="{% static 'indicadores/css/wizard.css' %}">
+<!-- Univer.js CSS -->
+<link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-sheets-core/lib/index.css">
+<style>
+.wizard-alert-box {
+  background: var(--selected-row, #fef3c7);
+  border: 1px solid var(--border-color, #fcd34d);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.wizard-alert-box strong { color: var(--body-fg, #92400e); }
+.wizard-alert-box span { color: var(--body-fg, #78350f); }
+.wizard-alert-box .meta { color: var(--body-quiet-color, #64748b); margin-left: 8px; }
+.wizard-alert-box .error { color: #dc2626; margin-left: 8px; }
+.wizard-alert-box a { background: var(--button-bg, #f59e0b); color: var(--button-fg, #fff); padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; text-decoration: none; font-weight: 600; white-space: nowrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Forzar carga de CSS aquí como workaround -->
+<link rel="stylesheet" href="{% static 'indicadores/css/wizard.css' %}">
+<div class="wizard-container">
+  <!-- Header -->
+  <div class="wizard-header">
+    <h1>
+      <i class="fas fa-magic"></i>
+      Wizard de Procesamiento de Indicadores
+    </h1>
+    <p>Asistente inteligente que te guía paso a paso en el procesamiento de datos</p>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="wizard-progress">
+    <div class="progress-steps">
+      <div class="progress-line">
+        <div class="progress-line-fill" style="width: 0%;"></div>
+      </div>
+      
+      {% for step_name in wizard.steps.all %}
+      <div class="progress-step {% if step_name == wizard.steps.current %}active{% elif forloop.counter < wizard.steps.step1 %}completed{% endif %}">
+        <div class="step-circle">
+          {% if forloop.counter < wizard.steps.step1 %}
+            <i class="fas fa-check"></i>
+          {% else %}
+            {{ forloop.counter }}
+          {% endif %}
+        </div>
+        <div class="step-label">
+          Paso {{ forloop.counter }}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Carga activa — panel persistente (pasos > 1) -->
+  {% if carga_serie and wizard.steps.step1 > 1 %}
+  <div class="wizard-alert-box">
+    <div style="font-size:0.85rem;">
+      <strong><i class="fas fa-file-import"></i> Carga activa:</strong>
+      <span>{{ carga_serie.codigo_evidencia }}</span>
+      {% if carga_serie.indicador %}— {{ carga_serie.indicador.nombre|truncatewords:6 }}{% endif %}
+      {% if carga_serie.registros_procesados %}
+        <span class="meta">({{ carga_serie.registros_procesados }} regs.)</span>
+      {% endif %}
+      {% if carga_serie.mensaje_error %}
+        <span class="error"><i class="fas fa-exclamation-circle"></i> Tiene errores previos</span>
+      {% endif %}
+    </div>
+    <a href="{% url 'wizard_solicitar_correccion' carga_id=carga_serie.id %}">
+      <i class="fas fa-undo-alt"></i> Devolver al recolector
+    </a>
+  </div>
+  {% elif carga_conjunto_datos and wizard.steps.step1 > 1 %}
+  <div class="wizard-alert-box">
+    <div style="font-size:0.85rem;">
+      <strong><i class="fas fa-file-import"></i> Carga activa:</strong>
+      <span>{{ carga_conjunto_datos.codigo_evidencia }}</span>
+      {% if carga_conjunto_datos.conjunto_datos %}— {{ carga_conjunto_datos.conjunto_datos.nombre|truncatewords:6 }}{% endif %}
+      {% if carga_conjunto_datos.registros_procesados %}
+        <span class="meta">({{ carga_conjunto_datos.registros_procesados }} regs.)</span>
+      {% endif %}
+      {% if carga_conjunto_datos.mensaje_error %}
+        <span class="error"><i class="fas fa-exclamation-circle"></i> Tiene errores previos</span>
+      {% endif %}
+    </div>
+    <a href="{% url 'wizard_solicitar_correccion' carga_id=carga_conjunto_datos.id %}">
+      <i class="fas fa-undo-alt"></i> Devolver al recolector
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- Content -->
+  <div class="wizard-content">
+    {% block wizard_content %}
+    <!-- El contenido específico de cada paso va aquí -->
+    {% endblock %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<!-- Univer.js Loader -->
+<script src="{% static 'indicadores/js/univer_loader.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "indicadores/base.html" %}
+{% load static %}
+{% load json_filters %}
+
+{% block title %}{{ producto.titulo }} — SIIED Educativo{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+/* ================================================================
+   PRODUCTO EDUCATIVO INFANTIL (6-11 años)
+   Paleta: Aventura (naranja, cyan, amarillo)
+   ================================================================ */
+
+:root {
+    --infantil-primary: #ff6b35;      /* Naranja vibrante */
+    --infantil-secondary: #06d6a0;    /* Cyan/verde agua */
+    --infantil-accent: #ffd23f;       /* Amarillo brillante */
+    --infantil-bg: #fff8f0;           /* Fondo cálido */
+    --infantil-text: #2d3748;
+}
+
+.producto-educativo-infantil {
+    background: var(--infantil-bg);
+    font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Header con personaje guía */
+.header-infantil {
+    background: linear-gradient(135deg, var(--infantil-primary), var(--infantil-secondary));
+    border-radius: 24px;
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+    color: white;
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(255, 107, 53, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.header-infantil::before {
+    content: '🦜';
+    position: absolute;
+    top: -20px;
+    right: 20px;
+    font-size: 8rem;
+    opacity: 0.2;
+    transform: rotate(15deg);
+}
+
+.header-infantil h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+.header-infantil .personaje-guia {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255,255,255,0.2);
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    margin-top: 1rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.personaje-guia .emoji {
+    font-size: 3rem;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Secciones educativas */
+.seccion-educativa {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 8px solid var(--infantil-primary);
+    transition: transform 0.3s ease;
+}
+
+.seccion-educativa:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.seccion-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.seccion-icono {
+    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+    background: var(--infantil-accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(255, 210, 63, 0.4);
+}
+
+.seccion-titulo {
+    flex: 1;
+}
+
+.seccion-titulo h2 {
+    font-size: 2rem;
+    color: var(--infantil-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.seccion-contenido {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--infantil-text);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-infantil h1 {
+        font-size: 1.8rem;
+    }
+    
+    .seccion-header {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="producto-educativo-infantil">
+    <!-- Header con personaje guía -->
+    <div class="header-infantil">
+        <h1>{{ producto.titulo }}</h1>
+        <div class="personaje-guia">
+            <span class="emoji">🦜</span>
+            <span>¡Hola! Soy Don Datico, tu compañero en esta exploración</span>
+        </div>
+    </div>
+
+    <!-- Secciones -->
+    {% for seccion in secciones %}
+    <div class="seccion-educativa">
+        <div class="seccion-header">
+            <div class="seccion-icono">
+                {{ seccion.icono_emoji|default:"📚" }}
+            </div>
+            <div class="seccion-titulo">
+                <h2>{{ seccion.titulo }}</h2>
+            </div>
+        </div>
+        <div class="seccion-contenido">
+            {% include "indicadores/_seccion_educativa.html" with seccion=seccion %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

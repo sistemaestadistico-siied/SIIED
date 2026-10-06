@@ -1,0 +1,598 @@
+  {% extends 'indicadores/base.html' %}
+    {% load static %}
+
+    {% block title %}¡Gracias por su calificación!{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .emoji-grande {
+            font-size: 120px;
+            animation: bounce 1s ease;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        /* Diseño matricial compacto */
+        .matriz-satisfaccion {
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+        
+        .matriz-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #2563eb;
+        }
+        
+        .matriz-header-texto {
+            flex: 0 0 70%;
+            font-weight: 600;
+            color: #1e40af;
+            font-size: 0.95rem;
+        }
+        
+        .matriz-header-calificacion {
+            flex: 0 0 30%;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.25rem;
+            align-items: center;
+            font-weight: 600;
+            color: #1e40af;
+            font-size: 0.75rem;
+        }
+        
+        .matriz-header-calificacion span {
+            width: 36px;
+            text-align: center;
+            justify-self: center;
+        }
+        
+        .pregunta-fila {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px dotted #cbd5e1;
+            transition: background-color 0.2s ease;
+        }
+        
+        .pregunta-fila:hover {
+            background-color: #f8fafc;
+        }
+
+        .seccion-texto {
+            flex: 0 0 70%;
+            padding-right: 1rem;
+            font-size: 1.1rem;
+            color: #334155;
+            line-height: 1.4;
+        }
+        
+        .seccion-texto strong {
+            color: #1e293b;
+            margin-right: 0.5rem;
+        }
+        
+        .pregunta-texto {
+            flex: 0 0 70%;
+            padding-right: 1rem;
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.4;
+        }
+        
+        .pregunta-texto strong {
+            color: #1e293b;
+            margin-right: 0.5rem;
+        }
+        
+        .rating-options-matriz {
+            flex: 0 0 30%;
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.25rem;
+            align-items: center;
+        }
+        
+        .radio-box {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            justify-self: center;
+            cursor: pointer;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.25rem;
+            background-color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .radio-box:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            transform: scale(1.05);
+        }
+        
+        .radio-box input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .radio-box-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #64748b;
+            pointer-events: none;
+        }
+        
+        .radio-box.selected {
+            border-width: 2px;
+        }
+        
+        .radio-box.selected .radio-box-label {
+            color: white;
+            font-weight: 700;
+        }
+        
+        .radio-box.selected.rating-1 {
+            background-color: #dc2626;
+            border-color: #991b1b;
+        }
+        
+        .radio-box.selected.rating-2 {
+            background-color: #ea580c;
+            border-color: #c2410c;
+        }
+        
+        .radio-box.selected.rating-3 {
+            background-color: #eab308;
+            border-color: #a16207;
+        }
+        
+        .radio-box.selected.rating-3 .radio-box-label {
+            color: #1e293b;
+        }
+        
+        .radio-box.selected.rating-4 {
+            background-color: #16a34a;
+            border-color: #15803d;
+        }
+        
+        .radio-box.selected.rating-5 {
+            background-color: #059669;
+            border-color: #047857;
+        }
+        
+        @media (max-width: 768px) {
+            .pregunta-fila {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+            .pregunta-texto {
+                flex: 1 1 100%;
+            }
+            .rating-options-matriz {
+                flex: 1 1 100%;
+                width: 100%;
+                justify-content: space-between;
+            }
+            .matriz-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .matriz-header-calificacion {
+                width: 100%;
+            }
+        }
+    </style>
+    {% endblock %}
+
+    {% block content %}
+        <div class="max-w-6xl mx-auto">
+            <div class="bg-green-50 border border-green-200 rounded-lg px-4 py-2 mb-4 flex items-center justify-center gap-2 text-sm text-green-800">
+                <span>
+                    {% if calificacion == 1 %}😞
+                    {% elif calificacion == 2 %}😕
+                    {% elif calificacion == 3 %}😐
+                    {% elif calificacion == 4 %}🙂
+                    {% else %}😄
+                    {% endif %}
+                </span>
+                <span><strong>Gracias.</strong> Calificó nuestra atención como <strong>{{ calificacion_texto }}</strong>. Por favor, complete la breve evaluación a continuación:</span>
+            </div>
+        </div>
+        
+        <!-- Formulario Completo Embebido -->
+        <div class="max-w-6xl mx-auto mt-8 " >
+             <div class="bg-white rounded-xl shadow-lg mb-6 overflow-hidden">
+            <div class="bg-gradient-to-r from-primary-700 to-primary-800 text-white text-center py-8 px-4">
+                <div class="flex justify-center mb-4">
+                    <img src="{% static 'indicadores/images/alcaldia color.png' %}" alt="Escudo Cali" class="h-16 object-contain" onerror="this.style.display='none'">
+                </div>
+                <h1 class="text-3xl font-bold mb-2">ENCUESTA DE SATISFACCIÓN DE LOS DIFERENTES TIPOS DE USUARIOS EXTERNOS DE INFORMACIÓN ESTADÍSTICA</h1>
+            </div>
+            <div class="p-6">
+                <div class="bg-blue-50 border-l-4 border-primary-500 p-4 mb-4 rounded" id="satisfaccionInicial">
+                 <p class="text-gray-700">Tu opinión es fundamental para seguir mejorando nuestro servicio. En la Alcaldía de Santiago de Cali trabajamos para ti, y queremos conocer tu experiencia.
+Por favor, selecciona la opción que mejor refleje tu percepción en cada enunciado.</p>
+                </div>
+        
+            </div>
+        </div>
+            
+            <!-- Formulario -->
+            <form method="post" action="{% url 'indicadores:satisfaccion_formulario' organismo.codigo %}" id="satisfaccionForm">
+                {% csrf_token %}
+                <input type="hidden" name="respuesta_rapida_id" value="{{ respuesta_rapida_id }}">
+                <input type="hidden" name="from_gracias_rapida" value="true">
+                
+                <!-- Sección 1: Información inicial -->
+                <div class="bg-white rounded-xl shadow-lg mb-6 overflow-hidden">
+                  
+                    <div class="p-6">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">1. Seleccione el organismo que suministro la respuesta a su solicitud de información:</label>
+                                <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50" value="{{ organismo.nombre }}" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                    <strong>2. Digite la fecha en la que realizó la solicitud de información estadística:</strong>
+                                </label>
+                                <input type="date" name="fecha_respuesta_solicitud" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección 2: Módulo de Satisfacción -->
+                <div class="bg-white rounded-xl shadow-lg mb-6 overflow-hidden">
+                    <div class="bg-gray-100 px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-xl font-bold text-gray-800">A. Módulo de satisfacción del usuario</h3>
+                    </div>
+                    <div class="p-6">
+                        <!-- Leyenda compacta -->
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+                            <p class="text-sm text-gray-700">
+                                 <strong>Evalúe los siguientes ítems referentes a la información estadística y el proceso para obtenerla, seleccionando la opción que mejor refleje su experiencia. Para esto, tenga en cuenta la siguiente escala de menor a mayor:</strong><br>
+                                Muy insatisfecho(a) = <strong>1</strong>, 
+                                Insatisfecho(a) = <strong>2</strong>, 
+                                Neutral = <strong>3</strong>, 
+                                Satisfecho(a) = <strong>4</strong> y 
+                                Muy satisfecho(a) = <strong>5</strong>
+                            </p>
+                        </div>
+                        
+                        
+                        <!-- Matriz de preguntas -->
+                        <div class="matriz-satisfaccion">
+                            <!-- Cabecera de la matriz -->
+                            <div class="matriz-header">
+                                <div class="matriz-header-texto">
+                                    <strong>Qué tan satisfecho(a) se encuentra frente a los siguientes aspectos:</strong>
+                                </div>
+                                <div class="matriz-header-calificacion">
+                       
+                                    <span>1</span>
+                                    <span>2</span>
+                                    <span>3</span>
+                                    <span>4</span>
+                                    <span>5</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Pregunta 2.1 -->
+
+                              <div class="seccion-texto">
+                                    <strong>3. UTILIDAD</strong> 
+                                </div>
+                            <div class="pregunta-fila" data-field="utilidad_tiempo_respuesta">
+
+                              
+                                <div class="pregunta-texto">
+                                    <strong>3.1</strong> {{ form.utilidad_tiempo_respuesta.label }}
+                                    <span class="error-indicator" style="display: none; color: #dc2626; font-weight: bold; margin-left: 8px;">⚠️ Requerido</span>
+                                </div>
+                                <div class="rating-options-matriz">
+                                    {% for radio in form.utilidad_tiempo_respuesta %}
+                                    <div class="radio-box" data-value="{{ radio.data.value }}">
+                                        {{ radio.tag }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <!-- Pregunta 2.2 -->
+                            <div class="pregunta-fila" data-field="utilidad_claridad">
+                                <div class="pregunta-texto">
+                                    <strong>3.2</strong> {{ form.utilidad_claridad.label }}
+                                    <span class="error-indicator" style="display: none; color: #dc2626; font-weight: bold; margin-left: 8px;">⚠️ Requerido</span>
+                                </div>
+                                <div class="rating-options-matriz">
+                                    {% for radio in form.utilidad_claridad %}
+                                    <div class="radio-box" data-value="{{ radio.data.value }}">
+                                        {{ radio.tag }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="seccion-texto">
+                                    <strong>4. RELEVANCIA</strong> 
+                                </div>
+                            
+                            <!-- Pregunta 3.1 -->
+                            <div class="pregunta-fila" data-field="relevancia_periodicidad">
+
+                                
+                                <div class="pregunta-texto">
+                                    <strong>4.1</strong> {{ form.relevancia_periodicidad.label }}
+                                    <span class="error-indicator" style="display: none; color: #dc2626; font-weight: bold; margin-left: 8px;">⚠️ Requerido</span>
+                                </div>
+                                <div class="rating-options-matriz">
+                                    {% for radio in form.relevancia_periodicidad %}
+                                    <div class="radio-box" data-value="{{ radio.data.value }}">
+                                        {{ radio.tag }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <!-- Pregunta 3.2 -->
+                            <div class="pregunta-fila" data-field="relevancia_concordancia">
+                                <div class="pregunta-texto">
+                                    <strong>4.2</strong> {{ form.relevancia_concordancia.label }}
+                                    <span class="error-indicator" style="display: none; color: #dc2626; font-weight: bold; margin-left: 8px;">⚠️ Requerido</span>
+                                </div>
+                                <div class="rating-options-matriz">
+                                    {% for radio in form.relevancia_concordancia %}
+                                    <div class="radio-box" data-value="{{ radio.data.value }}">
+                                        {{ radio.tag }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                               <div class="seccion-texto">
+                                    <strong>5. ACCESIBILIDAD</strong> 
+                                </div>
+                            
+                            <!-- Pregunta 4.1 -->
+                            <div class="pregunta-fila" data-field="accesibilidad_canal">
+
+                             
+                                <div class="pregunta-texto">
+                                    <strong>5.1</strong> {{ form.accesibilidad_canal.label|safe }}
+                                    <span class="error-indicator" style="display: none; color: #dc2626; font-weight: bold; margin-left: 8px;">⚠️ Requerido</span>
+                                </div>
+                                <div class="rating-options-matriz">
+                                    {% for radio in form.accesibilidad_canal %}
+                                    <div class="radio-box" data-value="{{ radio.data.value }}">
+                                        {{ radio.tag }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <!-- Pregunta 4.2 -->
+                            <div class="pregunta-fila" data-field="accesibilidad_formato">
+                                <div class="pregunta-texto">
+                                    <strong>5.2</strong> {{ form.accesibilidad_formato.label }}
+                                    <span class="error-indicator" style="display: none; color: #dc2626; font-weight: bold; margin-left: 8px;">⚠️ Requerido</span>
+                                </div>
+                                <div class="rating-options-matriz">
+                                    {% for radio in form.accesibilidad_formato %}
+                                    <div class="radio-box" data-value="{{ radio.data.value }}">
+                                        {{ radio.tag }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Comentarios -->
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-6 rounded">
+       
+                            <p class="text-sm text-gray-600 mb-3"> <strong>6.</strong> Si en los ítems evaluados anteriormente, usted seleccionó la opción 1 (muy insatisfecho), opción 2  (Insatisfecho), o la opción 3 (Neutral), por favor, indique la razón principal de su valoración:</p>
+                            <textarea 
+                                name="razon_insatisfaccion" 
+                                id="razon_insatisfaccion"
+                                rows="4" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                placeholder="Este campo se habilitará automáticamente si selecciona 1, 2 o 3 en alguna pregunta"
+                                disabled
+                            ></textarea>
+                            <p class="text-xs text-gray-500 mt-2">
+                                <i class="fas fa-info-circle"></i> Este campo se habilita automáticamente cuando selecciona calificaciones bajas (1-3)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botones -->
+                <div class="text-center mb-8">
+                    <button type="submit" class="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold py-4 px-8 rounded-lg shadow-lg transform transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                        <i class="fas fa-paper-plane mr-2"></i> Enviar Evaluación Completa
+                    </button>
+                </div>
+            </form>
+        </div>
+    {% endblock %}
+
+    {% block extra_js %}
+    <script>
+        // Función para actualizar estilos visuales de los radio boxes
+        function actualizarEstilosRating() {
+            const radioBoxes = document.querySelectorAll('.radio-box');
+            radioBoxes.forEach(function(box) {
+                const radio = box.querySelector('input[type="radio"]');
+                // Limpiar clases previas
+                box.classList.remove('selected', 'rating-1', 'rating-2', 'rating-3', 'rating-4', 'rating-5');
+                
+                if (radio && radio.checked) {
+                    box.classList.add('selected', 'rating-' + radio.value);
+                }
+            });
+        }
+        
+        // Función para verificar si alguna calificación es 1, 2 o 3
+        function verificarCalificacionesBajas() {
+            const camposCalificacion = [
+                'utilidad_tiempo_respuesta',
+                'utilidad_claridad',
+                'relevancia_periodicidad',
+                'relevancia_concordancia',
+                'accesibilidad_canal',
+                'accesibilidad_formato'
+            ];
+            
+            let hayCalificacionBaja = false;
+            
+            camposCalificacion.forEach(function(nombreCampo) {
+                const radios = document.getElementsByName(nombreCampo);
+                for (let i = 0; i < radios.length; i++) {
+                    if (radios[i].checked) {
+                        const valor = parseInt(radios[i].value);
+                        if (valor <= 3) {
+                            hayCalificacionBaja = true;
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            // Habilitar o deshabilitar el campo de razón
+            const campoRazon = document.getElementById('razon_insatisfaccion');
+            if (campoRazon) {
+                if (hayCalificacionBaja) {
+                    campoRazon.disabled = false;
+                    campoRazon.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                    campoRazon.classList.add('bg-white');
+                    campoRazon.placeholder = 'Por favor, explique la razón de su valoración...';
+                } else {
+                    campoRazon.disabled = true;
+                    campoRazon.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    campoRazon.classList.remove('bg-white');
+                    campoRazon.value = '';
+                    campoRazon.placeholder = 'Este campo se habilitará automáticamente si selecciona 1, 2 o 3 en alguna pregunta';
+                }
+            }
+        }
+        
+        // Agregar listeners y validación cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Manejar clicks en los contenedores .radio-box para mayor área de click
+            const radioBoxes = document.querySelectorAll('.radio-box');
+            radioBoxes.forEach(function(box) {
+                box.addEventListener('click', function(e) {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio && e.target !== radio) {
+                        radio.checked = true;
+                        radio.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            });
+            
+            // Listener para cambios en radios
+            const todosLosRadios = document.querySelectorAll('input[type="radio"]');
+            todosLosRadios.forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    actualizarEstilosRating();
+                    verificarCalificacionesBajas();
+                    
+                    // Limpiar indicador de error cuando se responde
+                    const fieldName = this.name;
+                    const fila = document.querySelector(`.pregunta-fila[data-field="${fieldName}"]`);
+                    if (fila) {
+                        const errorIndicator = fila.querySelector('.error-indicator');
+                        if (errorIndicator) {
+                            errorIndicator.style.display = 'none';
+                        }
+                        fila.style.border = '';
+                        fila.style.backgroundColor = '';
+                        fila.style.padding = '';
+                        fila.style.marginBottom = '';
+                    }
+                });
+            });
+            
+            // Verificar al cargar
+            actualizarEstilosRating();
+            verificarCalificacionesBajas();
+            
+            // Validación del formulario
+            const form = document.getElementById('satisfaccionForm');
+            if (form && !form.dataset.validationAttached) {
+                form.dataset.validationAttached = 'true';
+                
+                form.addEventListener('submit', function(e) {
+                    const requiredRadios = [
+                        'utilidad_tiempo_respuesta',
+                        'utilidad_claridad',
+                        'relevancia_periodicidad',
+                        'relevancia_concordancia',
+                        'accesibilidad_canal',
+                        'accesibilidad_formato'
+                    ];
+                    
+                    let allFilled = true;
+                    let camposSinResponder = [];
+                    
+                    requiredRadios.forEach(function(name) {
+                        const radios = document.querySelectorAll(`input[name="${name}"]`);
+                        if (radios.length > 0) {
+                            let checked = Array.from(radios).some(radio => radio.checked);
+                            if (!checked) {
+                                allFilled = false;
+                                camposSinResponder.push(name);
+                            }
+                        }
+                    });
+                    
+                    if (!allFilled) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        // Mostrar indicadores de error en cada pregunta sin responder
+                        camposSinResponder.forEach(function(fieldName) {
+                            const fila = document.querySelector(`.pregunta-fila[data-field="${fieldName}"]`);
+                            if (fila) {
+                                const errorIndicator = fila.querySelector('.error-indicator');
+                                if (errorIndicator) {
+                                    errorIndicator.style.display = 'inline';
+                                }
+                                // Agregar borde rojo a la fila
+                                fila.style.border = '2px solid #dc2626';
+                                fila.style.backgroundColor = '#fef2f2';
+                                fila.style.borderRadius = '8px';
+                                fila.style.padding = '12px';
+                                fila.style.marginBottom = '8px';
+                            }
+                        });
+                        
+                        // Scroll a la primera pregunta sin responder
+                        const primeraFila = document.querySelector(`.pregunta-fila[data-field="${camposSinResponder[0]}"]`);
+                        if (primeraFila) {
+                            primeraFila.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        
+                        alert(`⚠️ Por favor, responda todas las preguntas de calificación.\n\nFaltan ${camposSinResponder.length} pregunta(s) por responder (marcadas en rojo).`);
+                        return false;
+                    }
+                    
+                    return true;
+                }, { once: false });
+            }
+        });
+    </script>
+    {% endblock %}

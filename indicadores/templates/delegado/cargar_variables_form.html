@@ -1,0 +1,239 @@
+{% extends 'delegado/base_delegado.html' %}
+{% load static %}
+
+{% block delegado_content %}
+<div class="max-w-5xl mx-auto">
+  <div class="mb-6 flex items-center gap-3">
+    <div class="w-10 h-10 bg-violet-100 rounded-lg flex items-center justify-center">
+      <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 11h16M4 15h10"/>
+      </svg>
+    </div>
+    <div>
+      <h2 class="text-xl font-bold text-slate-800">Metadata de Variables (Inline)</h2>
+      <p class="text-sm text-slate-500">Define las variables de tu conjunto de datos — la carga pasará a validación del SIIED</p>
+    </div>
+  </div>
+
+  {% if cargas_sin_variables %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-100 bg-amber-50">
+      <h3 class="font-semibold text-amber-800 text-sm">Adjuntar a carga de conjunto de datos existente (opcional)</h3>
+    </div>
+    <div class="px-6 py-4">
+      <select id="sel-carga"
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+        <option value="">— Crear nueva carga independiente —</option>
+        {% for c in cargas_sin_variables %}
+        <option value="{{ c.id }}">{{ c.codigo_evidencia }} — {{ c.fecha_carga|date:"d/m/Y" }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" id="form-variables">
+    {% csrf_token %}
+    <input type="hidden" name="carga_id" id="hidden-carga-id">
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <label class="block text-sm text-slate-600 mb-1">Conjunto de datos asociada (opcional)</label>
+        <select name="conjunto_datos_id"
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400">
+          <option value="">— Sin conjunto de datos seleccionada —</option>
+          {% for m in conjuntos_datos %}
+          <option value="{{ m.id }}" {% if conjunto_datos_pre and conjunto_datos_pre.id == m.id %}selected{% endif %}>{{ m.nombre }}</option>
+          {% endfor %}
+        </select>
+        {% if organismo %}<p class="text-xs text-slate-400 mt-1">Mostrando conjuntos de datos de: <strong>{{ organismo.nombre }}</strong></p>{% endif %}
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <h3 class="font-semibold text-slate-700">Variables</h3>
+        <button type="button" id="btn-add-var"
+                class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Añadir variable
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs" id="tabla-vars">
+          <thead>
+            <tr class="bg-slate-50 text-slate-500 uppercase tracking-wide">
+              <th class="px-3 py-3 text-left w-8">#</th>
+              <th class="px-3 py-3 text-left min-w-28">Código <span class="text-red-400">*</span></th>
+              <th class="px-3 py-3 text-left min-w-36">Nombre</th>
+              <th class="px-3 py-3 text-left min-w-44">Definición</th>
+              <th class="px-3 py-3 text-left min-w-24">Tipo</th>
+              <th class="px-3 py-3 text-left min-w-24">Unidad</th>
+              <th class="px-3 py-3 text-left min-w-24">Periodicidad</th>
+              <th class="px-3 py-3 text-left min-w-32">Fuente</th>
+              <th class="px-3 py-3 text-left min-w-28">Organismo</th>
+              <th class="px-3 py-3 text-left min-w-32">Observaciones</th>
+              <th class="px-3 py-3 text-center w-10">×</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-vars">
+            {% if variables_pre %}
+              {% for v in variables_pre %}
+              <tr class="border-t border-slate-100 fila-var">
+                <td class="px-3 py-2 text-slate-400 num-var">{{ forloop.counter }}</td>
+                <td class="px-3 py-2"><input type="text" name="Codigo_Variable[]" value="{{ v.codigo_variable|default:'' }}" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Nombre_Variable[]" value="{{ v.nombre_variable|default:'' }}" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Definicion_Conceptual[]" value="{{ v.definicion_conceptual|default:'' }}" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2">
+                  <select name="Tipo_Dato[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400">
+                    <option value="">—</option>
+                    <option {% if v.tipo_dato == 'Numérico' %}selected{% endif %}>Numérico</option>
+                    <option {% if v.tipo_dato == 'Texto' %}selected{% endif %}>Texto</option>
+                    <option {% if v.tipo_dato == 'Fecha' %}selected{% endif %}>Fecha</option>
+                    <option {% if v.tipo_dato == 'Booleano' %}selected{% endif %}>Booleano</option>
+                    <option {% if v.tipo_dato == 'Categórico' %}selected{% endif %}>Categórico</option>
+                  </select>
+                </td>
+                <td class="px-3 py-2"><input type="text" name="Unidad_Medida[]" value="{{ v.unidad_medida|default:'' }}" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2">
+                  <select name="Periodicidad[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400">
+                    <option value="">—</option>
+                    <option {% if v.periodicidad == 'Anual' %}selected{% endif %}>Anual</option>
+                    <option {% if v.periodicidad == 'Semestral' %}selected{% endif %}>Semestral</option>
+                    <option {% if v.periodicidad == 'Trimestral' %}selected{% endif %}>Trimestral</option>
+                    <option {% if v.periodicidad == 'Mensual' %}selected{% endif %}>Mensual</option>
+                    <option {% if v.periodicidad == 'Puntual' %}selected{% endif %}>Puntual</option>
+                  </select>
+                </td>
+                <td class="px-3 py-2"><input type="text" name="Fuente_Datos[]" value="{{ v.fuente_datos|default:'' }}" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Organismo_Productor[]" value="{{ v.organismo_productor|default:'' }}" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Observaciones[]" value="{{ v.observaciones|default:'' }}" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2 text-center">
+                  <button type="button" onclick="quitarVar(this)" class="text-slate-300 hover:text-red-500 transition-colors">✕</button>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              {% for i in "123" %}
+              <tr class="border-t border-slate-100 fila-var">
+                <td class="px-3 py-2 text-slate-400 num-var">{{ forloop.counter }}</td>
+                <td class="px-3 py-2"><input type="text" name="Codigo_Variable[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Nombre_Variable[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Definicion_Conceptual[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2">
+                  <select name="Tipo_Dato[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400">
+                    <option value="">—</option>
+                    <option>Numérico</option><option>Texto</option><option>Fecha</option>
+                    <option>Booleano</option><option>Categórico</option>
+                  </select>
+                </td>
+                <td class="px-3 py-2"><input type="text" name="Unidad_Medida[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2">
+                  <select name="Periodicidad[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400">
+                    <option value="">—</option>
+                    <option>Anual</option><option>Semestral</option><option>Trimestral</option>
+                    <option>Mensual</option><option>Puntual</option>
+                  </select>
+                </td>
+                <td class="px-3 py-2"><input type="text" name="Fuente_Datos[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Organismo_Productor[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2"><input type="text" name="Observaciones[]" class="w-full border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400"></td>
+                <td class="px-3 py-2 text-center">
+                  <button type="button" onclick="quitarVar(this)" class="text-slate-300 hover:text-red-500 transition-colors">✕</button>
+                </td>
+              </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Acción -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-4 mb-6">
+      <h3 class="font-semibold text-slate-700 mb-3">¿Qué deseas hacer?</h3>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <label class="flex-1 flex items-start gap-3 border border-slate-200 rounded-lg p-4 cursor-pointer has-[:checked]:border-amber-400 has-[:checked]:bg-amber-50 transition-colors">
+          <input type="radio" name="accion" value="borrador" checked class="mt-0.5">
+          <div>
+            <div class="font-medium text-slate-700 text-sm">Guardar como borrador</div>
+            <div class="text-xs text-slate-500 mt-0.5">Puedes añadir el archivo de conjunto de datos después</div>
+          </div>
+        </label>
+        <label class="flex-1 flex items-start gap-3 border border-slate-200 rounded-lg p-4 cursor-pointer has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-50 transition-colors">
+          <input type="radio" name="accion" value="enviar" class="mt-0.5">
+          <div>
+            <div class="font-medium text-slate-700 text-sm">Enviar a validación (si ya tiene conjunto de datos)</div>
+            <div class="text-xs text-slate-500 mt-0.5">Solo aplica si ya adjuntaste el archivo de conjuntos de datos</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex gap-3 justify-end">
+      <a href="{% url 'indicadores:delegado_dashboard' %}"
+         class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+        Cancelar
+      </a>
+      <button type="submit"
+              class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Guardar variables
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const filaBase = document.querySelector('#tbody-vars .fila-var');
+  let contVar = {{ variables_pre|length|default:3 }};
+
+  document.getElementById('btn-add-var').addEventListener('click', () => {
+    contVar++;
+    const tr = filaBase.cloneNode(true);
+    tr.querySelector('.num-var').textContent = contVar;
+    tr.querySelectorAll('input, select').forEach(el => { el.value = ''; });
+    document.getElementById('tbody-vars').appendChild(tr);
+    tr.querySelector('input').focus();
+    renumerarVars();
+  });
+
+  function quitarVar(btn) {
+    const filas = document.querySelectorAll('.fila-var');
+    if (filas.length > 1) { btn.closest('tr').remove(); renumerarVars(); }
+  }
+
+  function renumerarVars() {
+    document.querySelectorAll('.num-var').forEach((td, i) => td.textContent = i + 1);
+  }
+
+  const selCarga = document.getElementById('sel-carga');
+  const hiddenCarga = document.getElementById('hidden-carga-id');
+  if (selCarga && hiddenCarga) {
+    selCarga.addEventListener('change', () => hiddenCarga.value = selCarga.value);
+  }
+
+  // Al escoger un conjunto de datos, recargar con ?conjunto_datos_id= para que la vista
+  // precargue sus variables existentes.
+  const selConjuntoDatos = document.querySelector('select[name="conjunto_datos_id"]');
+  if (selConjuntoDatos) {
+    selConjuntoDatos.dataset.actual = selConjuntoDatos.value;
+    selConjuntoDatos.addEventListener('change', function () {
+      const hayDatos = Array.from(document.querySelectorAll('#tbody-vars input'))
+        .some(i => i.value.trim());
+      if (hayDatos && !confirm('Cambiar de conjunto de datos recargará la página y se perderán las variables ingresadas. ¿Continuar?')) {
+        this.value = this.dataset.actual;
+        return;
+      }
+      const url = new URL(window.location.href);
+      if (this.value) url.searchParams.set('conjunto_datos_id', this.value);
+      else url.searchParams.delete('conjunto_datos_id');
+      window.location.href = url.toString();
+    });
+  }
+</script>
+{% endblock %}

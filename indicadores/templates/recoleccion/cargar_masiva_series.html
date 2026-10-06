@@ -1,0 +1,339 @@
+{% extends 'recoleccion/base_recoleccion.html' %}
+{% load static %}
+
+{% block title %}Carga Masiva de Series{% endblock %}
+
+{% block recoleccion_content %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 px-8 py-6">
+            <h1 class="text-2xl font-serif font-bold text-white">Carga Masiva de Series</h1>
+            <p class="text-emerald-50 mt-1">Suba un archivo maestro con datos y/o metadata de múltiples indicadores.</p>
+        </div>
+
+        <div class="p-8">
+            <!-- Botones de plantillas -->
+            <div class="flex flex-wrap gap-3 mb-6">
+                <a href="{% url 'indicadores:descargar_plantilla_masiva_datos' %}"
+                   class="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Plantilla Datos Masivos
+                </a>
+                <a href="{% url 'indicadores:descargar_plantilla_masiva_metadata' %}"
+                   class="inline-flex items-center px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white text-sm font-medium rounded-lg transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Plantilla Metadata Masiva
+                </a>
+            </div>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="text-sm text-amber-800">
+                        <p class="font-semibold mb-1">Requisitos de los archivos:</p>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Ambos archivos deben contener la columna <code class="bg-amber-100 px-1 rounded">codigo_indicador</code> (obligatoria).</li>
+                            <li>Para <strong>datos</strong>: cada fila es un dato de serie (se agrupa por <code class="bg-amber-100 px-1 rounded">codigo_indicador</code>).</li>
+                            <li>Para <strong>metadata</strong>: cada fila es un indicador con sus campos de ficha técnica.</li>
+                            <li>Formatos soportados: <strong>.xlsx, .xls, .csv</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de referencia: Dominios e Indicadores existentes -->
+            <details id="panel-referencia" class="bg-blue-50 border border-blue-200 rounded-xl mb-6 group" data-search-url="{% url 'indicadores:buscar_indicadores_masiva' %}">
+                <summary class="px-4 py-3 cursor-pointer flex items-center gap-2 text-sm font-semibold text-blue-800 select-none">
+                    <svg class="w-5 h-5 text-blue-600 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    Referencia: Dominios de desagregación e indicadores existentes
+                </summary>
+                <div class="px-4 pb-4 space-y-4">
+                    <!-- Dominios geográficos -->
+                    {% if dominios_geo_info %}
+                    <div>
+                        <h4 class="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Dominios Geográficos ({{ dominios_geo_info|length }})</h4>
+                        <div class="space-y-2">
+                            {% for d in dominios_geo_info %}
+                            <div class="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                                    <span class="text-xs font-semibold text-blue-800">{{ d.nombre }}</span>
+                                    <span class="text-[10px] text-blue-400">({{ d.total }} desagregación{{ d.total|pluralize }})</span>
+                                </div>
+                                <div class="mt-1 flex flex-wrap gap-1">
+                                    {% for des in d.desagregaciones %}
+                                    <span class="inline-block px-1.5 py-0.5 bg-white text-blue-700 text-[10px] rounded border border-blue-100">{{ des }}</span>
+                                    {% endfor %}
+                                    {% if d.total > 10 %}<span class="text-[10px] text-blue-400 italic">+{{ d.total|add:'-10' }} más</span>{% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="text-xs text-blue-600 mt-1.5">Use estos nombres exactos como encabezado de columna para reutilizar dominios existentes.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Dominios temáticos -->
+                    {% if dominios_tem_info %}
+                    <div>
+                        <h4 class="text-xs font-bold text-teal-700 uppercase tracking-wider mb-2">Dominios Temáticos ({{ dominios_tem_info|length }})</h4>
+                        <div class="space-y-2">
+                            {% for d in dominios_tem_info %}
+                            <div class="bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
+                                <div class="flex items-center gap-1.5">
+                                    <svg class="w-3 h-3 text-teal-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                                    <span class="text-xs font-semibold text-teal-800">{{ d.nombre }}</span>
+                                    <span class="text-[10px] text-teal-400">({{ d.total }} desagregación{{ d.total|pluralize }})</span>
+                                </div>
+                                <div class="mt-1 flex flex-wrap gap-1">
+                                    {% for des in d.desagregaciones %}
+                                    <span class="inline-block px-1.5 py-0.5 bg-white text-teal-700 text-[10px] rounded border border-teal-100">{{ des }}</span>
+                                    {% endfor %}
+                                    {% if d.total > 10 %}<span class="text-[10px] text-teal-400 italic">+{{ d.total|add:'-10' }} más</span>{% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <p class="text-xs text-teal-600 mt-1.5">Use estos nombres exactos como encabezado de columna para reutilizar dominios existentes.</p>
+                    </div>
+                    {% endif %}
+
+                    {% if not dominios_geo_info and not dominios_tem_info %}
+                    <p class="text-xs text-blue-600 italic">No hay dominios de desagregación creados aún. Se crearán automáticamente desde las columnas de su archivo.</p>
+                    {% endif %}
+
+                    <!-- Indicadores disponibles (buscador) -->
+                    <div class="border-t border-blue-200 pt-3 mt-3 space-y-3" data-indicadores-panel>
+                        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+                            <div class="flex-1">
+                                <label for="indicadores-buscador" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Buscar indicador</label>
+                                <div class="relative">
+                                    <input id="indicadores-buscador" type="text" placeholder="Escriba código (ej: ICET_SAL_...) o nombre" class="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-400 focus:ring focus:ring-blue-100" autocomplete="off">
+                                    <svg class="w-4 h-4 text-blue-500 absolute right-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                                    </svg>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-1">Encuentre rápidamente el código oficial para la columna <code class="bg-slate-100 px-1 rounded">codigo_indicador</code>.</p>
+                            </div>
+                            <a href="{% url 'indicadores:descargar_catalogo_dominios' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors" target="_blank" rel="noopener">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                                </svg>
+                                Descargar catálogo de dominios
+                            </a>
+                        </div>
+
+                        <div id="indicadores-resultados" class="max-h-48 overflow-y-auto bg-white rounded-lg border border-blue-100 divide-y divide-blue-50 text-xs text-slate-600">
+                            <div class="px-3 py-2 text-slate-500 text-center">Empiece a escribir para ver resultados...</div>
+                        </div>
+                        <button type="button" id="indicadores-load-more" class="hidden w-full text-xs font-semibold text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg py-2 transition-colors">Ver más resultados</button>
+                    </div>
+                </div>
+            </details>
+
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+
+                <div>
+                    <label for="{{ form.tipo_carga.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        {{ form.tipo_carga.label }}
+                    </label>
+                    {{ form.tipo_carga }}
+                    {% if form.tipo_carga.errors %}
+                        <p class="text-red-600 text-sm mt-1">{{ form.tipo_carga.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-xs text-slate-500 mt-1">{{ form.tipo_carga.help_text }}</p>
+                </div>
+
+                <div id="campo-datos" class="transition-opacity duration-300">
+                    <label for="{{ form.archivo_maestro_datos.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        {{ form.archivo_maestro_datos.label }}
+                    </label>
+                    {{ form.archivo_maestro_datos }}
+                    {% if form.archivo_maestro_datos.errors %}
+                        <p class="text-red-600 text-sm mt-1">{{ form.archivo_maestro_datos.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-xs text-slate-500 mt-1">{{ form.archivo_maestro_datos.help_text }}</p>
+                </div>
+
+                <div id="campo-metadata" class="transition-opacity duration-300">
+                    <label for="{{ form.archivo_maestro_metadata.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                        {{ form.archivo_maestro_metadata.label }}
+                    </label>
+                    {{ form.archivo_maestro_metadata }}
+                    {% if form.archivo_maestro_metadata.errors %}
+                        <p class="text-red-600 text-sm mt-1">{{ form.archivo_maestro_metadata.errors.0 }}</p>
+                    {% endif %}
+                    <p class="text-xs text-slate-500 mt-1">{{ form.archivo_maestro_metadata.help_text }}</p>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                    <a href="{% url 'indicadores:recoleccion_dashboard' %}"
+                       class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors">
+                        Cancelar
+                    </a>
+                    <button type="submit"
+                            class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Procesar archivo
+                    </button>
+                </div>
+            </form>
+
+            <script>
+                (function() {
+                    const tipoSelect = document.getElementById('id_tipo_carga');
+                    const campoDatos = document.getElementById('campo-datos');
+                    const campoMetadata = document.getElementById('campo-metadata');
+
+                    function actualizarVisibilidad() {
+                        const tipo = tipoSelect.value;
+                        if (tipo === 'datos') {
+                            campoDatos.style.display = 'block';
+                            campoMetadata.style.display = 'none';
+                        } else if (tipo === 'metadata') {
+                            campoDatos.style.display = 'none';
+                            campoMetadata.style.display = 'block';
+                        } else {
+                            campoDatos.style.display = 'block';
+                            campoMetadata.style.display = 'block';
+                        }
+                    }
+
+                    tipoSelect.addEventListener('change', actualizarVisibilidad);
+                    actualizarVisibilidad();
+
+                    const panelReferencia = document.getElementById('panel-referencia');
+                    if (!panelReferencia) {
+                        return;
+                    }
+
+                    const searchUrl = panelReferencia.dataset.searchUrl;
+                    const searchInput = document.getElementById('indicadores-buscador');
+                    const resultsContainer = document.getElementById('indicadores-resultados');
+                    const loadMoreBtn = document.getElementById('indicadores-load-more');
+                    if (!searchUrl || !searchInput || !resultsContainer || !loadMoreBtn) {
+                        return;
+                    }
+
+                    let currentPage = 1;
+                    let currentQuery = '';
+                    let isLoading = false;
+                    let initialized = false;
+                    let debounceTimer = null;
+
+                    function setResultsContent(html) {
+                        resultsContainer.innerHTML = html;
+                    }
+
+                    function renderResults(items, append) {
+                        const fragment = document.createDocumentFragment();
+                        items.forEach(item => {
+                            const row = document.createElement('div');
+                            row.className = 'px-3 py-1.5 flex items-center gap-2 text-xs hover:bg-blue-50';
+                            row.innerHTML = `
+                                <code class="font-mono text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded shrink-0">${item.codigo || 'Sin código'}</code>
+                                <span class="text-slate-600 truncate">${item.nombre || 'Sin nombre'}</span>
+                            `;
+                            fragment.appendChild(row);
+                        });
+
+                        if (!append) {
+                            resultsContainer.innerHTML = '';
+                        }
+                        resultsContainer.appendChild(fragment);
+                    }
+
+                    async function fetchResultados(page, query, append = false) {
+                        if (isLoading) {
+                            return;
+                        }
+                        isLoading = true;
+                        if (!append) {
+                            setResultsContent('<div class="px-3 py-2 text-slate-500 text-center">Cargando indicadores...</div>');
+                        } else {
+                            loadMoreBtn.disabled = true;
+                            loadMoreBtn.textContent = 'Cargando...';
+                        }
+
+                        const params = new URLSearchParams({ page: page.toString() });
+                        if (query) {
+                            params.append('q', query);
+                        }
+
+                        try {
+                            const response = await fetch(`${searchUrl}?${params.toString()}`, {
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            if (!response.ok) {
+                                throw new Error('Respuesta no válida');
+                            }
+                            const data = await response.json();
+
+                            if (data.results && data.results.length) {
+                                renderResults(data.results, append);
+                            } else if (!append) {
+                                setResultsContent('<div class="px-3 py-2 text-slate-500 text-center">Sin resultados. Ajuste la búsqueda.</div>');
+                            }
+
+                            currentPage = data.page || page;
+                            currentQuery = data.query || query;
+
+                            if (data.has_next) {
+                                loadMoreBtn.classList.remove('hidden');
+                                loadMoreBtn.disabled = false;
+                                loadMoreBtn.textContent = 'Ver más resultados';
+                            } else {
+                                loadMoreBtn.classList.add('hidden');
+                            }
+                        } catch (error) {
+                            if (!append) {
+                                setResultsContent('<div class="px-3 py-2 text-red-500 text-center">Error consultando indicadores.</div>');
+                            }
+                            console.error('Error fetching indicadores masiva:', error);
+                        } finally {
+                            isLoading = false;
+                        }
+                    }
+
+                    function solicitarResultados(query, append = false) {
+                        const page = append ? currentPage + 1 : 1;
+                        fetchResultados(page, query, append);
+                    }
+
+                    function manejarBusqueda() {
+                        const query = searchInput.value.trim();
+                        solicitarResultados(query, false);
+                    }
+
+                    searchInput.addEventListener('input', () => {
+                        clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(manejarBusqueda, 300);
+                    });
+
+                    loadMoreBtn.addEventListener('click', () => {
+                        solicitarResultados(currentQuery, true);
+                    });
+
+                    panelReferencia.addEventListener('toggle', () => {
+                        if (panelReferencia.open && !initialized) {
+                            initialized = true;
+                            solicitarResultados('', false);
+                        }
+                    });
+                })();
+            </script>
+        </div>
+    </div>
+</div>
+{% endblock %}

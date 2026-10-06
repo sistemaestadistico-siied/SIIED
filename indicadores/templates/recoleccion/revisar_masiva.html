@@ -1,0 +1,231 @@
+{% extends "recoleccion/base_recoleccion.html" %}
+{% load static %}
+
+{% block title %}Revisión de Carga Masiva{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto p-6">
+  <h1 class="text-2xl font-bold text-slate-800 mb-2">
+    <svg class="w-6 h-6 inline mr-2 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Informe de Validación — {{ carga_masiva.codigo_evidencia }}
+  </h1>
+  <p class="text-slate-500 mb-6">Revise el resultado del parseo antes de continuar.</p>
+
+  <!-- ADVERTENCIAS -->
+  {% if advertencias %}
+  <div class="bg-amber-50 border border-amber-300 rounded-xl p-4 mb-6">
+    <h3 class="font-semibold text-amber-800 mb-2">
+      <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+      </svg>
+      Advertencias ({{ advertencias|length }})
+    </h3>
+    <ul class="text-sm text-amber-700 space-y-1">
+      {% for adv in advertencias %}
+      <li>• {{ adv }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- ERRORES -->
+  {% if errores %}
+  <div class="bg-red-50 border border-red-300 rounded-xl p-4 mb-6">
+    <h3 class="font-semibold text-red-800 mb-2">
+      <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Errores ({{ errores|length }})
+    </h3>
+    <ul class="text-sm text-red-700 space-y-1">
+      {% for err in errores %}
+      <li>• {{ err }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- RESUMEN DE DETECCIÓN -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white rounded-xl shadow p-4 text-center">
+      <div class="text-3xl font-bold text-emerald-600">{{ indicadores|length }}</div>
+      <div class="text-sm text-slate-500">Indicadores válidos</div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4 text-center">
+      <div class="text-3xl font-bold {% if indicadores_no_encontrados %}text-red-500{% else %}text-slate-400{% endif %}">{{ indicadores_no_encontrados|length }}</div>
+      <div class="text-sm text-slate-500">No encontrados</div>
+    </div>
+    <div class="bg-white rounded-xl shadow p-4 text-center">
+      <div class="text-3xl font-bold text-blue-600">{{ dominios_detectados|length }}</div>
+      <div class="text-sm text-slate-500">Dominios de desagregación</div>
+    </div>
+  </div>
+
+  <!-- COLUMNAS DETECTADAS -->
+  <div class="bg-white rounded-xl shadow p-4 mb-6">
+    <h3 class="font-semibold text-slate-700 mb-3">Columnas detectadas automáticamente</h3>
+    <div class="flex flex-wrap gap-3 text-sm">
+      <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+        Fecha: <strong>{{ col_fecha|default:"No detectada ⚠️" }}</strong>
+      </span>
+      <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+        Valor: <strong>{{ col_valor|default:"No detectada ⚠️" }}</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- DOMINIOS DE DESAGREGACIÓN DETECTADOS -->
+  {% if dominios_detectados %}
+  <div class="bg-white rounded-xl shadow p-4 mb-6">
+    <h3 class="font-semibold text-slate-700 mb-3">Dominios de desagregación detectados</h3>
+    <p class="text-xs text-slate-500 mb-3">Clasifique cada dominio como <strong>Geográfica</strong> (departamento, municipio, etc.) o <strong>Temática</strong> (sexo, edad, sector, etc.).</p>
+    <div class="space-y-3">
+      {% for dom in dominios_detectados %}
+      <div class="flex items-center gap-3 p-3 rounded-lg {% if dom.existe %}bg-blue-50 border border-blue-200{% else %}bg-slate-50 border border-slate-200{% endif %}">
+        <span class="text-xs font-mono bg-slate-200 px-2 py-0.5 rounded shrink-0">{{ dom.columna }}</span>
+        <span class="text-sm font-medium text-slate-700 shrink-0">→ {{ dom.nombre_dominio }}</span>
+        <div class="ml-auto flex items-center gap-4">
+          <label class="inline-flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="tipo_dominio_{{ forloop.counter0 }}"
+                   value="geografica"
+                   {% if dom.tipo_sugerido == 'geografica' %}checked{% endif %}
+                   class="accent-green-600">
+            <span class="text-xs font-medium text-green-700">Geográfica</span>
+          </label>
+          <label class="inline-flex items-center gap-1 cursor-pointer">
+            <input type="radio" name="tipo_dominio_{{ forloop.counter0 }}"
+                   value="tematica"
+                   {% if dom.tipo_sugerido == 'tematica' %}checked{% endif %}
+                   class="accent-purple-600">
+            <span class="text-xs font-medium text-purple-700">Temática</span>
+          </label>
+          <label class="inline-flex items-center gap-1">
+            <span class="text-xs text-slate-500">Padre:</span>
+            <select name="padre_dominio_{{ forloop.counter0 }}"
+                    class="text-xs border border-slate-300 rounded px-1.5 py-1 bg-white max-w-[140px]">
+              <option value="">— Ninguno —</option>
+              {% for otro in dominios_detectados %}
+                {% if otro.columna != dom.columna %}
+                <option value="col:{{ otro.columna }}"
+                        {% if dom.padre_sugerido == 'col:'|add:otro.columna %}selected{% endif %}>
+                  {{ otro.nombre_dominio }}
+                </option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </label>
+          {% if dom.existe %}
+          <span class="text-xs px-2 py-0.5 rounded-full bg-blue-200 text-blue-800 font-semibold shrink-0">
+            ✓ Ya existe
+          </span>
+          {% else %}
+          <span class="text-xs px-2 py-0.5 rounded-full bg-amber-200 text-amber-800 font-semibold shrink-0">
+            Nuevo
+          </span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- INDICADORES DETECTADOS -->
+  <div class="bg-white rounded-xl shadow p-4 mb-6">
+    <h3 class="font-semibold text-slate-700 mb-3">Indicadores detectados ({{ indicadores|length }})</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="text-left p-2 font-medium text-slate-600">Código</th>
+            <th class="text-left p-2 font-medium text-slate-600">Nombre</th>
+            <th class="text-right p-2 font-medium text-slate-600">Registros</th>
+            <th class="text-center p-2 font-medium text-slate-600">Metadata</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for ind in indicadores %}
+          <tr>
+            <td class="p-2 font-mono text-xs text-slate-600">{{ ind.codigo }}</td>
+            <td class="p-2 text-slate-800">{{ ind.nombre }}</td>
+            <td class="p-2 text-right text-slate-600">{{ ind.registros|default:"—" }}</td>
+            <td class="p-2 text-center">
+              {% if ind.metadata_actualizada %}
+              <span class="text-emerald-500">✓</span>
+              {% else %}
+              <span class="text-slate-300">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- INDICADORES NO ENCONTRADOS -->
+  {% if indicadores_no_encontrados %}
+  <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+    <h3 class="font-semibold text-red-700 mb-2">Indicadores no encontrados en el sistema</h3>
+    <p class="text-xs text-red-600 mb-2">Estos códigos no serán procesados. Verifique que estén creados previamente.</p>
+    <div class="flex flex-wrap gap-2">
+      {% for codigo in indicadores_no_encontrados %}
+      <span class="px-2 py-1 bg-red-200 text-red-800 rounded text-xs font-mono">{{ codigo }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ACCIONES -->
+  <div class="flex justify-between items-center mt-8 pt-6 border-t border-slate-200">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="cancelar">
+      <button type="submit" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition">
+        Cancelar carga
+      </button>
+    </form>
+
+    <button type="submit" form="form-continuar" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow transition"
+            {% if not indicadores %}disabled{% endif %}>
+      Continuar → Configurar gráficos
+    </button>
+  </div>
+</div>
+
+<!-- Form oculto que captura los radios de dominios -->
+<form method="post" id="form-continuar" class="hidden">
+  {% csrf_token %}
+  <input type="hidden" name="accion" value="continuar">
+  {% for dom in dominios_detectados %}
+  <input type="hidden" name="dominio_columna_{{ forloop.counter0 }}" value="{{ dom.columna }}">
+  {% endfor %}
+</form>
+
+<script>
+// Sincronizar los radios del paso de dominios al form hidden antes de submit
+document.getElementById('form-continuar').addEventListener('submit', function(e) {
+  const form = this;
+  // Limpiar inputs dinámicos previos
+  form.querySelectorAll('input[name^="tipo_dominio_"], input[name^="padre_dominio_"]').forEach(el => el.remove());
+  // Copiar valores de radios al form
+  document.querySelectorAll('input[name^="tipo_dominio_"]:checked').forEach(function(radio) {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = radio.name;
+    hidden.value = radio.value;
+    form.appendChild(hidden);
+  });
+  // Copiar selects de dominio padre al form
+  document.querySelectorAll('select[name^="padre_dominio_"]').forEach(function(sel) {
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = sel.name;
+    hidden.value = sel.value;
+    form.appendChild(hidden);
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Catálogo de Consulta</h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Directorios y listados de referencia del distrito: instituciones,
+            establecimientos, capacidad instalada y nomencladores territoriales.
+        </p>
+    </div>
+
+    {% if dominios_data %}
+        {% for item in dominios_data %}
+        <div class="mb-10">
+            <h2 class="text-2xl font-bold text-primary-800 mb-4 border-b-2 border-primary-200 pb-2">
+                {{ item.dominio.nombre }}
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for conjunto in item.conjuntos %}
+                <a href="{% url 'indicadores:catalogo_consulta_detalle' conjunto.pk %}"
+                   class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 border border-gray-200 hover:border-teal-400">
+                    <div class="flex items-start gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-book-open text-teal-600 text-xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ conjunto.nombre }}</h3>
+                            {% if conjunto.descripcion %}
+                            <p class="text-sm text-gray-600 line-clamp-2">{{ conjunto.descripcion }}</p>
+                            {% endif %}
+                            <p class="text-xs text-gray-400 mt-2">
+                                <i class="fas fa-tag mr-1"></i>{{ conjunto.get_tipo_consulta_display }}
+                                · {{ conjunto.total_filas }} registros
+                                · Actualizado {{ conjunto.fecha_actualizacion|date:"d/m/Y" }}
+                            </p>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center py-16 bg-gray-50 rounded-lg">
+            <i class="fas fa-book-open text-5xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">Aún no hay conjuntos publicados en el catálogo de consulta.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

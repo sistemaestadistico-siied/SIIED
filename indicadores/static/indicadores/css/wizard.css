@@ -1,0 +1,383 @@
+/* Wizard Unificado - Estilos */
+
+:root {
+  /* Wizard brand colors (siempre visibles) */
+  --wizard-primary: #06b6d4;
+  --wizard-primary-dark: #0891b2;
+  --wizard-primary-light: #22d3ee;
+  --wizard-success: #10b981;
+
+  /* Mapeo a variables nativas de Django admin */
+  --admin-panel: var(--body-bg, #ffffff);
+  --admin-panel-2: var(--darkened-bg, #f8f9fa);
+  --admin-border: var(--border-color, #e5e7eb);
+  --admin-text: var(--body-fg, #1f2937);
+  --admin-muted: var(--body-quiet-color, #6b7280);
+}
+
+.wizard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.wizard-header {
+  background: linear-gradient(135deg, var(--wizard-primary), var(--wizard-primary-dark));
+  color: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 20px -5px rgba(6, 182, 212, 0.3);
+}
+
+.wizard-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: white;
+}
+
+.wizard-header p {
+  margin: 0;
+  opacity: 0.95;
+  font-size: 1rem;
+  color: white;
+}
+
+.wizard-progress {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.progress-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.step-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--admin-panel-2);
+  border: 3px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--admin-muted);
+  transition: all 0.3s;
+}
+
+.progress-step.active .step-circle {
+  background: linear-gradient(135deg, var(--wizard-primary), var(--wizard-primary-dark));
+  border-color: var(--wizard-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+}
+
+.progress-step.completed .step-circle {
+  background: var(--wizard-success);
+  border-color: var(--wizard-success);
+  color: white;
+}
+
+.step-label {
+  font-size: 0.875rem;
+  color: var(--admin-muted);
+  text-align: center;
+  font-weight: 500;
+}
+
+.progress-step.active .step-label {
+  color: var(--wizard-primary);
+  font-weight: 600;
+}
+
+.progress-step.completed .step-label {
+  color: var(--wizard-success);
+}
+
+.progress-line {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--admin-border);
+  z-index: 1;
+}
+
+.progress-line-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--wizard-primary), var(--wizard-primary-light));
+  transition: width 0.3s;
+}
+
+.wizard-content {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.wizard-form {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section h3,
+.form-section h4 {
+  color: var(--admin-text);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--admin-border);
+}
+
+.form-section h4 {
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.info-box {
+  background: rgba(6, 182, 212, 0.1);
+  border-left: 4px solid var(--wizard-primary);
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.info-box i {
+  color: var(--wizard-primary);
+  font-size: 1.25rem;
+  margin-top: 0.125rem;
+}
+
+.warning-box {
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 4px solid #f59e0b;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.warning-box i {
+  color: #f59e0b;
+  font-size: 1.25rem;
+  margin-top: 0.125rem;
+}
+
+.error-box {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 4px solid #ef4444;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.error-box i {
+  color: #ef4444;
+  font-size: 1.25rem;
+  margin-top: 0.125rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--admin-text);
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  min-height: 45px;
+}
+
+.form-group select {
+  min-height: 50px;
+  line-height: 1.5;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--wizard-primary);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.form-group small {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--admin-muted);
+}
+
+.form-group .errorlist {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+}
+
+.form-group .errorlist li {
+  color: var(--error-fg, #ef4444);
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  background: var(--message-error-bg, rgba(239, 68, 68, 0.1));
+  border-radius: 6px;
+  margin-top: 0.25rem;
+}
+
+.wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--wizard-primary), var(--wizard-primary-dark));
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(6, 182, 212, 0.3);
+}
+
+.btn-secondary {
+  background: var(--admin-panel-2);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+}
+
+.btn-secondary:hover {
+  background: var(--admin-border);
+}
+
+.btn-success {
+  background: var(--wizard-success);
+  color: white;
+}
+
+.btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-warning:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .wizard-container {
+    padding: 1rem;
+  }
+  
+  .wizard-header {
+    padding: 1.5rem;
+  }
+  
+  .wizard-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .progress-steps {
+    flex-wrap: wrap;
+  }
+  
+  .step-circle {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .step-label {
+    font-size: 0.75rem;
+  }
+  
+  .wizard-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

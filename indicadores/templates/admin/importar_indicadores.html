@@ -1,0 +1,258 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.import-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.preview-section {
+    background: var(--admin-panel);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.preview-section h3 {
+    color: var(--admin-text);
+    margin-bottom: 15px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: var(--admin-panel-2);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--admin-primary);
+}
+
+.stat-label {
+    color: var(--admin-muted);
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background: var(--admin-bg-soft);
+    color: var(--admin-text);
+    padding: 12px;
+    text-align: left;
+    border: 1px solid var(--admin-border);
+}
+
+.table td {
+    padding: 10px;
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text);
+}
+
+.alert {
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.alert-warning {
+    background: rgba(255, 193, 7, 0.1);
+    border-left: 4px solid #ffc107;
+    color: var(--admin-text);
+}
+
+.alert-info {
+    background: rgba(33, 150, 243, 0.1);
+    border-left: 4px solid #2196f3;
+    color: var(--admin-text);
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: var(--admin-primary);
+    color: white;
+}
+
+.btn-success {
+    background: var(--admin-success);
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--admin-muted);
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.help-section {
+    background: var(--admin-panel-2);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.help-section h4 {
+    color: var(--admin-text);
+    margin-bottom: 10px;
+}
+
+.help-section ul {
+    color: var(--admin-text);
+    line-height: 1.8;
+}
+
+.help-section code {
+    background: var(--admin-bg-soft);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <h1>📥 {{ title }}</h1>
+    
+    {% if not preview %}
+    <!-- Formulario de carga -->
+    <div class="preview-section">
+        <h3>Seleccionar Archivo CSV</h3>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">📤 Cargar y Previsualizar</button>
+                <a href="{% url 'admin:indicadores_indicador_changelist' %}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Ayuda sobre formato CSV -->
+    <div class="help-section">
+        <h4>📋 Formato del Archivo CSV</h4>
+        <p><strong>Columnas requeridas:</strong></p>
+        <ul>
+            <li><code>nombre</code> - Nombre del indicador (requerido)</li>
+            <li><code>subtema</code> - ID o nombre del subtema (requerido)</li>
+        </ul>
+        
+        <p><strong>Columnas opcionales:</strong></p>
+        <ul>
+            <li><code>descripcion</code> - Descripción del indicador</li>
+            <li><code>definicion_operacional</code> - Definición operacional</li>
+            <li><code>unidad_medida</code> - Unidad de medida (ej: "Porcentaje", "Número")</li>
+            <li><code>fuente_datos</code> - Fuente de los datos</li>
+            <li><code>entidad_responsable</code> - Entidad responsable del indicador</li>
+            <li><code>periodicidad</code> - Periodicidad de actualización</li>
+            <li><code>fecha_publicacion_metadatos</code> - Fecha de publicación de metadatos MSD (formato: YYYY-MM-DD)</li>
+            <li><code>notas</code> - Notas adicionales</li>
+            <li><code>operacion</code> - ID o nombre de la operación estadística</li>
+            <li><code>activo</code> - True/False, 1/0, Si/No</li>
+            <li><code>orden</code> - Número para ordenar (entero)</li>
+            <li><code>mostrar_mapa</code> - True/False, 1/0, Si/No</li>
+            <li><code>dominios_tematicos</code> - IDs o nombres separados por coma</li>
+            <li><code>dominios_geograficos</code> - IDs o nombres separados por coma</li>
+        </ul>
+        
+        <p><strong>Ejemplo de archivo CSV:</strong></p>
+        <pre style="background: var(--admin-bg-soft); padding: 10px; border-radius: 4px; overflow-x: auto;">
+nombre,subtema,descripcion,unidad_medida,activo,orden
+"Tasa de Desempleo",1,"Porcentaje de población desempleada","Porcentaje",True,1
+"Población Total",2,"Número total de habitantes","Número",True,2
+        </pre>
+    </div>
+    
+    {% else %}
+    <!-- Preview de datos -->
+    <div class="alert alert-info">
+        <strong>📊 Vista Previa de Datos</strong><br>
+        Revisa los datos antes de confirmar la importación. Se mostrarán las primeras 10 filas.
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_filas }}</div>
+            <div class="stat-label">Total de Filas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ columnas|length }}</div>
+            <div class="stat-label">Columnas Detectadas</div>
+        </div>
+    </div>
+    
+    <div class="preview-section">
+        <h3>Columnas Detectadas</h3>
+        <p>{{ columnas|join:", " }}</p>
+    </div>
+    
+    <div class="preview-section">
+        <h3>Primeras 10 Filas</h3>
+        <div class="table-wrapper">
+            {{ df_head|safe }}
+        </div>
+    </div>
+    
+    {% if eliminar_existentes %}
+    <div class="alert alert-warning">
+        <strong>⚠️ Advertencia:</strong> Se eliminarán TODOS los indicadores existentes antes de importar.
+    </div>
+    {% endif %}
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" name="confirmar" value="1">
+        <div class="btn-group">
+            <button type="submit" class="btn btn-success">✅ Confirmar Importación</button>
+            <a href="{% url 'admin:importar_indicadores' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "recoleccion/base_recoleccion.html" %}
+{% load static %}
+
+{% block title %}Confirmar Envío — Carga Masiva{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+  <h1 class="text-2xl font-bold text-slate-800 mb-2">
+    <svg class="w-6 h-6 inline mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Confirmar Envío — {{ carga_masiva.codigo_evidencia }}
+  </h1>
+  <p class="text-slate-500 mb-6">
+    Revise el resumen final. Al confirmar, las tareas serán enviadas al administrador para su procesamiento.
+  </p>
+
+  <!-- RESUMEN GENERAL -->
+  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 mb-6">
+    <h3 class="font-semibold text-emerald-800 mb-3">Resumen de envío</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="text-center">
+        <div class="text-2xl font-bold text-emerald-700">{{ cargas_individuales|length }}</div>
+        <div class="text-xs text-emerald-600">Tareas a enviar</div>
+      </div>
+      <div class="text-center">
+        <div class="text-2xl font-bold text-blue-700">{{ dominios_detectados|length }}</div>
+        <div class="text-xs text-blue-600">Dominios detectados</div>
+      </div>
+      <div class="text-center">
+        <div class="text-2xl font-bold text-purple-700">
+          {{ resumen.indicadores_no_encontrados|length|default:"0" }}
+        </div>
+        <div class="text-xs text-purple-600">Indicadores omitidos</div>
+      </div>
+      <div class="text-center">
+        <div class="text-2xl font-bold text-slate-600">
+          {{ resumen.advertencias|length|default:"0" }}
+        </div>
+        <div class="text-xs text-slate-500">Advertencias</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETALLE POR INDICADOR -->
+  <div class="bg-white rounded-xl shadow p-4 mb-6">
+    <h3 class="font-semibold text-slate-700 mb-3">Tareas individuales que se enviarán al administrador</h3>
+    <div class="space-y-2">
+      {% for carga in cargas_individuales %}
+      <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+        <div class="flex-1">
+          <span class="font-mono text-xs text-slate-500">{{ carga.codigo_evidencia }}</span>
+          <p class="text-sm font-medium text-slate-800">
+            {{ carga.indicador.codigo_indicador }} — {{ carga.indicador.nombre|truncatewords:8 }}
+          </p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-500">{{ carga.registros_procesados }} registros</span>
+          {% if carga.preferencias_grafico %}
+          <br><span class="text-xs text-emerald-600">Gráfico: {{ carga.preferencias_grafico.tipo_grafico }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- INFO SOBRE QUÉ PASA DESPUÉS -->
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+    <h3 class="font-semibold text-blue-800 mb-2">
+      <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      ¿Qué sucede al confirmar?
+    </h3>
+    <ul class="text-sm text-blue-700 space-y-1">
+      <li>• Cada indicador se envía como tarea individual al administrador.</li>
+      <li>• El administrador procesará cada tarea en el wizard (creando datos, dominios, gráficos).</li>
+      <li>• Recibirá una notificación cuando cada tarea sea procesada o si se le solicitan correcciones.</li>
+      <li>• Podrá ver el estado de sus cargas en el historial de series.</li>
+    </ul>
+  </div>
+
+  <!-- ACCIONES -->
+  <div class="flex justify-between items-center mt-8 pt-6 border-t border-slate-200">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="cancelar">
+      <button type="submit" class="px-5 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg transition">
+        Cancelar todo
+      </button>
+    </form>
+
+    <div class="flex gap-3">
+      <a href="{% url 'indicadores:revisar_masiva' carga_masiva_id=carga_masiva.id %}"
+         class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition">
+        ← Volver a revisión
+      </a>
+      <form method="post" class="inline">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="confirmar">
+        <button type="submit" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow transition">
+          Confirmar y enviar al administrador
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

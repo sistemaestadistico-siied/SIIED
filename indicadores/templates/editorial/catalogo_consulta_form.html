@@ -1,0 +1,173 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}{{ titulo_form }} — Editorial SIIED{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <a href="{% url 'indicadores:editorial_catalogo_consulta' %}" class="text-sm text-indigo-600 hover:text-indigo-800 mb-2 inline-block">
+        <i class="fas fa-arrow-left mr-1"></i> Volver al listado
+    </a>
+    <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <span class="bg-teal-100 text-teal-700 p-2.5 rounded-xl">
+            <i class="fas fa-book-open"></i>
+        </span>
+        {{ titulo_form }}
+    </h1>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+
+    <!-- Columna izquierda: metadata + archivo -->
+    <div>
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+                <i class="fas fa-edit text-teal-600"></i> Datos del conjunto
+            </h2>
+
+            <form method="post" enctype="multipart/form-data" class="space-y-5">
+                {% csrf_token %}
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Nombre *</label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.nombre.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Descripción</label>
+                    {{ form.descripcion }}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de consulta *</label>
+                        {{ form.tipo_consulta }}
+                        <p class="mt-1 text-xs text-slate-400">Clasificación técnica del conjunto</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Dominio *</label>
+                        {{ form.dominio }}
+                        <p class="mt-1 text-xs text-slate-400">Dominio visible donde se publica</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Archivo de datos (CSV / Excel)</label>
+                    {{ form.archivo }}
+                    {% if form.archivo.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.archivo.errors.0 }}</p>{% endif %}
+                    {% if catalogo and catalogo.archivo %}
+                    <p class="mt-1 text-xs text-slate-400">
+                        Actual: {{ catalogo.archivo.name|slice:"18:" }} · subir otro archivo reemplaza las {{ catalogo.total_filas }} filas
+                    </p>
+                    {% else %}
+                    <p class="mt-1 text-xs text-slate-400">Al guardar se importan las filas del archivo al cuadro de consulta.</p>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">Orden</label>
+                        {{ form.orden }}
+                    </div>
+                    <div class="flex items-end pb-2">
+                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                            {{ form.activo }} Activo (visible al público)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-100">
+                    <button type="submit" class="w-full px-5 py-3 bg-teal-600 text-white rounded-xl font-semibold text-sm hover:bg-teal-700 transition-colors shadow-sm">
+                        <i class="fas fa-save mr-2"></i>Guardar conjunto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Columna derecha: preview + enlaces (solo si el conjunto ya existe) -->
+    <div>
+        {% if catalogo %}
+
+        <!-- Preview del cuadro -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-table text-teal-600"></i> Vista previa
+                <span class="text-xs font-normal text-slate-400">({{ catalogo.total_filas }} filas · mostrando {{ preview_filas|length }})</span>
+            </h2>
+            {% if catalogo.columnas %}
+            <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-72 overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 sticky top-0">
+                        <tr>
+                            {% for col in catalogo.columnas %}
+                            <th class="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase whitespace-nowrap">{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for fila in preview_filas %}
+                        <tr>
+                            {% for valor in fila %}
+                            <td class="px-3 py-2 text-slate-600 whitespace-nowrap">{{ valor|default:"—" }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400 italic">Sin datos: sube un archivo para poblar el cuadro.</p>
+            {% endif %}
+        </div>
+
+        <!-- Enlaces a indicadores -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                <i class="fas fa-link text-indigo-600"></i> Indicadores enlazados
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">
+                Un indicador enlazado conserva su metadata y su lugar en la taxonomía,
+                pero al consultarlo el usuario ve este cuadro de consulta en lugar de
+                sus datos estadísticos.
+            </p>
+
+            {% if catalogo.indicadores_enlazados.all %}
+            <div class="mb-4 space-y-1">
+                {% for ind in catalogo.indicadores_enlazados.all %}
+                <div class="flex items-center gap-2 text-sm bg-indigo-50 text-indigo-800 rounded-lg px-3 py-1.5">
+                    <i class="fas fa-link text-xs"></i>
+                    <span>{{ ind.nombre }}</span>
+                    {% if ind.subtema %}<span class="text-xs text-indigo-400 ml-auto">{{ ind.subtema.tema.dominio.nombre }}</span>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Enlazar / desenlazar indicadores
+                    <span class="font-normal text-slate-400">(del dominio "{{ catalogo.dominio.nombre }}" + CEC)</span>
+                </label>
+                {{ enlaces_form.indicadores }}
+                <p class="mt-1 text-xs text-slate-400">Ctrl/Cmd + clic para seleccionar varios. Deseleccionar desenlaza.</p>
+                <button type="submit" name="guardar_enlaces" value="1" class="mt-4 w-full px-5 py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors shadow-sm">
+                    <i class="fas fa-link mr-2"></i>Guardar enlaces
+                </button>
+            </form>
+        </div>
+
+        {% else %}
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-sm text-slate-500">
+            <i class="fas fa-info-circle mr-2"></i>
+            Guarda el conjunto primero para poder previsualizar sus filas y enlazar indicadores.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,819 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-tags"></i>
+      Asignar Clasificaciones del Indicador
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Selecciona las clasificaciones para este indicador.</strong>
+      {% if tipo_flujo == 'flujo_b' %}
+        El wizard verificará que las columnas correspondientes existan en el CSV cargado.
+      {% else %}
+        El wizard verificará que las columnas correspondientes existan en el conjunto de datos cargada.
+      {% endif %}
+      <a href="{% url 'indicadores:descargar_catalogo_dominios' %}" class="btn btn-sm btn-secondary" target="_blank" style="float:right; margin-top:-4px;">
+        <i class="fas fa-download"></i> Descargar catálogo de dominios
+      </a>
+    </div>
+  </div>
+
+  <!-- CATÁLOGO DE DOMINIOS EXISTENTES -->
+  <div class="form-section" style="margin-top:1rem;">
+    <details class="catalogo-dominios-panel">
+      <summary style="cursor:pointer; font-weight:600; color:var(--link-fg, #2563eb);">
+        <i class="fas fa-book-open"></i> Ver catálogo de dominios existentes ({{ catalogo_dominios|length }})
+      </summary>
+      <div style="margin-top:0.75rem; max-height:240px; overflow-y:auto; border:1px solid var(--border-color, #e2e8f0); border-radius:0.5rem; padding:0.75rem; background:var(--darkened-bg, #f8fafc);">
+        {% regroup catalogo_dominios by tipo as dominios_por_tipo %}
+        {% for grupo in dominios_por_tipo %}
+        <div style="margin-bottom:0.75rem;">
+          <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; color:var(--body-quiet-color, #64748b); margin-bottom:0.25rem;">
+            {{ grupo.grouper|capfirst }}
+          </p>
+          <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+            {% for dom in grupo.list %}
+            <span style="display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.5rem; background:var(--darkened-bg, #e2e8f0); border-radius:9999px; font-size:0.75rem; color:var(--body-fg, #334155);">
+              {{ dom.nombre }}
+              <span style="background:var(--border-color, #cbd5e1); color:var(--body-fg, #1e293b); padding:0.05rem 0.35rem; border-radius:9999px; font-size:0.65rem; font-weight:600;">{{ dom.num_desagregaciones }}</span>
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% empty %}
+        <p style="font-size:0.8rem; color:var(--body-quiet-color, #64748b);">No hay dominios registrados aún.</p>
+        {% endfor %}
+      </div>
+    </details>
+  </div>
+
+  <!-- SIMULADOR DE SERIES DEL GRÁFICO -->
+  <div id="simulador-series" class="simulador-box">
+    <h4><i class="fas fa-chart-line"></i> Simulador de Series del Gráfico</h4>
+    <div id="simulador-resultado">
+      <span class="simulador-numero" id="sim-total">1</span>
+      <span class="simulador-label">serie de gráfico</span>
+      <span class="simulador-detalle">(Total — sin desagregaciones)</span>
+    </div>
+    <div id="simulador-desglose" style="display:none;">
+      <table class="simulador-tabla">
+        <thead><tr><th>Dominio</th><th>Tipo</th><th># Valores</th></tr></thead>
+        <tbody id="sim-desglose-body"></tbody>
+      </table>
+    </div>
+    <div id="simulador-alerta" class="alerta-verde">
+      <i class="fas fa-check-circle"></i> <span id="sim-alerta-texto">Número razonable de series</span>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="wizard-form-desag">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+
+    {% if columnas_restantes %}
+    <!-- ═══════════ DETECCIÓN DE COLUMNAS COMO DOMINIOS (Flujo B) ═══════════ -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-magic"></i>
+        Columnas Detectadas como Posibles Desagregaciones
+      </h4>
+      
+      <div class="info-box">
+        <i class="fas fa-lightbulb"></i>
+        <strong>Columnas restantes del archivo:</strong>
+        Las siguientes columnas no fueron asignadas como Fecha o Valor.
+        Indica si alguna es un dominio de desagregación para que el wizard lo cree/asocie automáticamente.
+      </div>
+      
+      <div class="columnas-deteccion-grid">
+        {% for col_info in columnas_restantes %}
+        <div class="columna-card" data-columna="{{ col_info.columna }}">
+          <div class="columna-header">
+            <span class="columna-nombre">
+              <i class="fas fa-columns"></i>
+              <strong>{{ col_info.columna }}</strong>
+            </span>
+            <span class="columna-valores-count">{{ col_info.total_valores }} valores únicos</span>
+          </div>
+          
+          <div class="columna-valores-preview">
+            {% for val in col_info.valores_unicos|slice:":10" %}
+            <span class="valor-tag">{{ val }}</span>
+            {% endfor %}
+            {% if col_info.total_valores > 10 %}
+            <span class="valor-tag valor-tag-more">+{{ col_info.total_valores|add:"-10" }} más</span>
+            {% endif %}
+          </div>
+          
+          {% if col_info.dominio_existente %}
+          <!-- Dominio existente encontrado -->
+          <div class="columna-match-info match-found">
+            <i class="fas fa-check-circle"></i>
+            <span>Dominio encontrado: <strong>{{ col_info.dominio_existente }}</strong> ({{ col_info.tipo_dominio }})</span>
+          </div>
+          {% if col_info.desagregaciones_faltantes %}
+          <div class="columna-match-info match-partial">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ col_info.desagregaciones_faltantes|length }} desagregaciones nuevas se crearán: 
+              {% for v in col_info.desagregaciones_faltantes|slice:":5" %}
+              <code>{{ v }}</code>{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+              {% if col_info.desagregaciones_faltantes|length > 5 %}...{% endif %}
+            </span>
+          </div>
+          {% endif %}
+          {% else %}
+          <!-- No se encontró dominio -->
+          <div class="columna-match-info match-new">
+            <i class="fas fa-plus-circle"></i>
+            <span>No existe dominio con este nombre. Se creará automáticamente si lo marcas.</span>
+          </div>
+          {% endif %}
+          
+          <!-- Selector de acción -->
+          <div class="columna-accion">
+            <label class="accion-radio">
+              <input type="radio" 
+                     name="col_accion_{{ forloop.counter0 }}" 
+                     value="usar" 
+                     class="col-accion-input"
+                     data-columna="{{ col_info.columna }}"
+                     data-dominio-id="{{ col_info.dominio_id|default:'' }}"
+                     data-dominio-nombre="{{ col_info.dominio_existente|default:'' }}"
+                     {% if col_info.dominio_existente %}checked{% endif %}>
+              <span class="accion-label">
+                {% if col_info.dominio_existente %}
+                  <i class="fas fa-link"></i> Usar como desagregación (asociar dominio existente)
+                {% else %}
+                  <i class="fas fa-plus"></i> Crear como nuevo dominio de desagregación
+                {% endif %}
+              </span>
+            </label>
+            <label class="accion-radio">
+              <input type="radio" 
+                     name="col_accion_{{ forloop.counter0 }}" 
+                     value="ignorar" 
+                     class="col-accion-input"
+                     data-columna="{{ col_info.columna }}"
+                     {% if not col_info.dominio_existente %}checked{% endif %}>
+              <span class="accion-label">
+                <i class="fas fa-ban"></i> Ignorar esta columna
+              </span>
+            </label>
+            
+            <!-- Selector de tipo de dominio -->
+            <div class="tipo-dominio-selector" data-columna="{{ col_info.columna }}">
+              <label><small>Tipo de dominio:</small></label>
+              {% if col_info.dominio_existente %}
+              <select class="tipo-dominio-select" name="tipo_dominio_{{ forloop.counter0 }}" data-columna="{{ col_info.columna }}" disabled>
+                <option value="{{ col_info.tipo_dominio }}" selected>{{ col_info.tipo_dominio|title }}</option>
+              </select>
+              <input type="hidden" name="tipo_dominio_{{ forloop.counter0 }}" value="{{ col_info.tipo_dominio }}">
+              {% else %}
+              <select class="tipo-dominio-select" name="tipo_dominio_{{ forloop.counter0 }}" data-columna="{{ col_info.columna }}">
+                <option value="tematica">Temática (Sexo, Edad, Grupo...)</option>
+                <option value="geografica">Geográfica (Municipio, Departamento...)</option>
+              </select>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Dominios Geográficos -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-map-marker-alt"></i>
+        {{ wizard.form.dominios_desagregacion_geografica.label }}
+      </h4>
+      
+      <div class="form-group">
+        {{ wizard.form.dominios_desagregacion_geografica }}
+        {% if wizard.form.dominios_desagregacion_geografica.help_text %}
+        <span class="helptext">{{ wizard.form.dominios_desagregacion_geografica.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.dominios_desagregacion_geografica.errors }}
+      </div>
+      
+      {% if verificacion_geo %}
+      <div class="verificacion-box">
+        <h5>
+          <i class="fas fa-check-circle"></i>
+          {% if tipo_flujo == 'flujo_b' %}Verificación de Columnas del CSV{% else %}Verificación de Columnas de la Conjunto de datos{% endif %}
+        </h5>
+        <div class="verificacion-grid">
+          <div class="verificacion-column">
+            <h6>✅ Columnas encontradas{% if tipo_flujo == 'flujo_b' %} en CSV{% else %} en conjunto de datos{% endif %}:</h6>
+            <ul class="verificacion-list">
+              {% for col in verificacion_geo.dominios_en_columna %}
+              <li class="verificacion-item success"><i class="fas fa-columns"></i> {{ col }} (Formato Largo)</li>
+              {% endfor %}
+              {% for col in verificacion_geo.columnas_encontradas %}
+              <li class="verificacion-item success">{{ col }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="verificacion-column">
+            <h6>⚠️ Clasificaciones sin columna{% if tipo_flujo == 'flujo_b' %} en CSV{% else %} en conjunto de datos{% endif %}:</h6>
+            <ul class="verificacion-list">
+              {% if not verificacion_geo.dominios_en_columna %}
+                {% for desag in verificacion_geo.desagregaciones_sin_columna %}
+                <li class="verificacion-item warning">{{ desag }}</li>
+                {% endfor %}
+              {% else %}
+                <li class="verificacion-item success"><i>No aplica (Formato Largo)</i></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% if verificacion_geo.errores and not verificacion_geo.dominios_en_columna %}
+        <div class="warning-box" style="margin-top: 1rem;">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Atención:</strong> Algunas clasificaciones no tienen columna correspondiente
+          {% if tipo_flujo == 'flujo_b' %}en el CSV{% else %}en el conjunto de datos{% endif %}.
+          Verifica que los nombres de las columnas coincidan.
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    
+    <!-- Dominios Temáticos -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-layer-group"></i>
+        {{ wizard.form.dominios_desagregacion_tematica.label }}
+      </h4>
+      
+      <div class="form-group">
+        {{ wizard.form.dominios_desagregacion_tematica }}
+        {% if wizard.form.dominios_desagregacion_tematica.help_text %}
+        <span class="helptext">{{ wizard.form.dominios_desagregacion_tematica.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.dominios_desagregacion_tematica.errors }}
+      </div>
+      
+      {% if verificacion_tematica %}
+      <div class="verificacion-box">
+        <h5>
+          <i class="fas fa-check-circle"></i>
+          {% if tipo_flujo == 'flujo_b' %}Verificación de Columnas del CSV{% else %}Verificación de Columnas de la Conjunto de datos{% endif %}
+        </h5>
+        <div class="verificacion-grid">
+          <div class="verificacion-column">
+            <h6>✅ Columnas encontradas{% if tipo_flujo == 'flujo_b' %} en CSV{% else %} en conjunto de datos{% endif %}:</h6>
+            <ul class="verificacion-list">
+              {% for col in verificacion_tematica.dominios_en_columna %}
+              <li class="verificacion-item success"><i class="fas fa-columns"></i> {{ col }} (Formato Largo)</li>
+              {% endfor %}
+              {% for col in verificacion_tematica.columnas_encontradas %}
+              <li class="verificacion-item success">{{ col }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="verificacion-column">
+            <h6>⚠️ Clasificaciones sin columna{% if tipo_flujo == 'flujo_b' %} en CSV{% else %} en conjunto de datos{% endif %}:</h6>
+            <ul class="verificacion-list">
+              {% if not verificacion_tematica.dominios_en_columna %}
+                {% for desag in verificacion_tematica.desagregaciones_sin_columna %}
+                <li class="verificacion-item warning">{{ desag }}</li>
+                {% endfor %}
+              {% else %}
+                <li class="verificacion-item success"><i>No aplica (Formato Largo)</i></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% if verificacion_tematica.errores and not verificacion_tematica.dominios_en_columna %}
+        <div class="warning-box" style="margin-top: 1rem;">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Atención:</strong> Algunas clasificaciones no tienen columna correspondiente
+          {% if tipo_flujo == 'flujo_b' %}en el CSV{% else %}en el conjunto de datos{% endif %}.
+          Verifica que los nombres de las columnas coincidan.
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    
+    <!-- Opción de crear automáticamente -->
+    <div class="form-section">
+      <div class="form-group">
+        {{ wizard.form.crear_faltantes_auto }}
+        <label for="{{ wizard.form.crear_faltantes_auto.id_for_label }}">
+          {{ wizard.form.crear_faltantes_auto.label }}
+        </label>
+        {% if wizard.form.crear_faltantes_auto.help_text %}
+        <span class="helptext">{{ wizard.form.crear_faltantes_auto.help_text }}</span>
+        {% endif %}
+      </div>
+      
+      {{ wizard.form.analisis_geograficas_json }}
+      {{ wizard.form.analisis_tematicas_json }}
+      {{ wizard.form.columnas_csv_json }}
+      {{ wizard.form.columnas_desagregacion_json }}
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.verificacion-box {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.verificacion-box h5 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.verificacion-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.verificacion-column h6 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.verificacion-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.verificacion-item {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.verificacion-item.success {
+  background: rgba(16, 185, 129, 0.1);
+  border-left: 3px solid #10b981;
+  color: var(--admin-text);
+}
+
+.verificacion-item.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 3px solid #f59e0b;
+  color: var(--admin-text);
+}
+
+@media (max-width: 768px) {
+  .verificacion-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+div[id$="dominios_desagregacion_geografica"],
+div[id$="dominios_desagregacion_tematica"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+}
+
+div[id$="dominios_desagregacion_geografica"] label,
+div[id$="dominios_desagregacion_tematica"] label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+div[id$="dominios_desagregacion_geografica"] label:hover,
+div[id$="dominios_desagregacion_tematica"] label:hover {
+  background: var(--admin-hover);
+}
+
+/* DETECCIÓN DE COLUMNAS */
+.columnas-deteccion-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.columna-card {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.columna-card.card-activa {
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+.columna-card.card-ignorada {
+  opacity: 0.6;
+}
+
+.columna-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.columna-nombre i {
+  color: var(--wizard-primary);
+  margin-right: 0.4rem;
+}
+
+.columna-valores-count {
+  font-size: 0.8rem;
+  color: var(--admin-muted);
+  background: var(--admin-bg);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+.columna-valores-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.valor-tag {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--admin-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  color: var(--admin-text);
+}
+
+.valor-tag-more {
+  font-style: italic;
+  color: var(--admin-muted);
+}
+
+.columna-match-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.match-found {
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.match-partial {
+  background: rgba(245, 158, 11, 0.08);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.match-new {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.columna-accion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.accion-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.accion-radio input[type="radio"] {
+  margin: 0;
+}
+
+.accion-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tipo-dominio-selector,
+.padre-dominio-selector {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tipo-dominio-selector {
+  margin-left: auto;
+}
+
+.tipo-dominio-selector.visible,
+.padre-dominio-selector.visible {
+  display: flex;
+}
+
+.tipo-dominio-select,
+.padre-dominio-select {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid var(--admin-border);
+  max-width: 220px;
+}
+
+.match-found code, .match-partial code {
+  background: rgba(0,0,0,0.05);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+/* SIMULADOR DE SERIES */
+.simulador-box {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.simulador-box h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--admin-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#simulador-resultado {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.simulador-numero {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+}
+.simulador-label {
+  font-size: 1rem;
+  color: var(--admin-text);
+}
+.simulador-detalle {
+  font-size: 0.875rem;
+  color: var(--admin-text-secondary);
+}
+.simulador-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+.simulador-tabla th, .simulador-tabla td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--admin-border);
+  text-align: left;
+}
+.simulador-tabla th {
+  font-weight: 600;
+  background: rgba(0,0,0,0.03);
+}
+#simulador-alerta {
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.alerta-verde  { background: rgba(16,185,129,0.12); color: #059669; border: 1px solid #10b981; }
+.alerta-amarilla { background: rgba(245,158,11,0.12); color: #d97706; border: 1px solid #f59e0b; }
+.alerta-naranja { background: rgba(249,115,22,0.12); color: #c2410c; border: 1px solid #f97316; }
+.alerta-roja   { background: rgba(239,68,68,0.12); color: #dc2626; border: 1px solid #ef4444; }
+</style>
+
+<script>
+(function() {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+  const ALERTA_TEXTOS = {
+    verde:    { clase: 'alerta-verde',    texto: 'Número razonable de series', icono: 'fa-check-circle' },
+    amarillo: { clase: 'alerta-amarilla', texto: 'Muchas series — verifique que todas sean necesarias', icono: 'fa-exclamation-circle' },
+    naranja:  { clase: 'alerta-naranja',  texto: 'Número alto de series — puede afectar el rendimiento', icono: 'fa-exclamation-triangle' },
+    rojo:     { clase: 'alerta-roja',     texto: 'Cantidad excesiva de series — revise su selección', icono: 'fa-times-circle' }
+  };
+
+  function obtenerSeleccionados() {
+    const geo = Array.from(document.querySelectorAll(
+      'input[name$="dominios_desagregacion_geografica"]:checked'
+    )).map(cb => cb.value);
+    const tem = Array.from(document.querySelectorAll(
+      'input[name$="dominios_desagregacion_tematica"]:checked'
+    )).map(cb => cb.value);
+    return { geo, tem };
+  }
+
+  async function recalcular() {
+    const { geo, tem } = obtenerSeleccionados();
+    try {
+      const res = await fetch('/api/wizard/contar-series-grafico/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ dominios_geo: geo, dominios_tem: tem })
+      });
+      const data = await res.json();
+      if (data.error) { console.error(data.error); return; }
+
+      // Actualizar número total
+      document.getElementById('sim-total').textContent = data.total_series;
+      const detalle = document.querySelector('.simulador-detalle');
+      if (data.geo_count > 0 && data.tem_count > 0) {
+        detalle.textContent = `(${data.geo_count} geográficas × ${data.tem_count} temáticas)`;
+      } else if (data.geo_count > 0) {
+        detalle.textContent = `(${data.geo_count} geográficas)`;
+      } else if (data.tem_count > 0) {
+        detalle.textContent = `(${data.tem_count} temáticas)`;
+      } else {
+        detalle.textContent = '(Total — sin desagregaciones)';
+      }
+
+      // Actualizar desglose
+      const tbody = document.getElementById('sim-desglose-body');
+      const desgloseDiv = document.getElementById('simulador-desglose');
+      if (data.desglose && data.desglose.length > 0) {
+        tbody.innerHTML = data.desglose.map(d =>
+          `<tr><td>${d.nombre}</td><td>${d.tipo === 'geografica' ? 'Geo' : 'Tem'}</td><td>${d.valores}</td></tr>`
+        ).join('');
+        desgloseDiv.style.display = 'block';
+      } else {
+        desgloseDiv.style.display = 'none';
+      }
+
+      // Actualizar alerta
+      const alerta = ALERTA_TEXTOS[data.alerta] || ALERTA_TEXTOS.verde;
+      const alertaDiv = document.getElementById('simulador-alerta');
+      alertaDiv.className = alerta.clase;
+      alertaDiv.innerHTML = `<i class="fas ${alerta.icono}"></i> <span>${alerta.texto}</span>`;
+    } catch (err) {
+      console.error('Error recalculando simulador:', err);
+    }
+  }
+
+  // Escuchar cambios en todos los checkboxes de dominios
+  document.querySelectorAll(
+    'input[name$="dominios_desagregacion_geografica"], input[name$="dominios_desagregacion_tematica"]'
+  ).forEach(cb => cb.addEventListener('change', recalcular));
+
+  // Calcular inicial al cargar la página
+  recalcular();
+})();
+
+// ═══════════ DETECCIÓN DE COLUMNAS COMO DOMINIOS ═══════════
+(function() {
+  const radios = document.querySelectorAll('.col-accion-input');
+  if (!radios.length) return; // No estamos en flujo B
+
+  // Buscar el hidden field por su name (termina en columnas_desagregacion_json)
+  const hiddenField = document.querySelector('input[name$="columnas_desagregacion_json"]');
+  if (!hiddenField) return;
+
+  function syncToHidden() {
+    const decisiones = [];
+    const cards = document.querySelectorAll('.columna-card');
+    
+    cards.forEach((card, idx) => {
+      const columna = card.getAttribute('data-columna');
+      const radioUsarEl = card.querySelector(`input[value="usar"]`);
+      const radioIgnorarEl = card.querySelector(`input[value="ignorar"]`);
+      const tipoSelect = card.querySelector('.tipo-dominio-select');
+      const tipoSelector = card.querySelector('.tipo-dominio-selector');
+      const padreSelect = card.querySelector('.padre-dominio-select');
+      const padreSelector = card.querySelector('.padre-dominio-selector');
+
+      const accion = radioUsarEl && radioUsarEl.checked ? 'usar' : 'ignorar';
+
+      // Visual feedback
+      card.classList.toggle('card-activa', accion === 'usar');
+      card.classList.toggle('card-ignorada', accion === 'ignorar');
+
+      // Mostrar/ocultar selectores de tipo y padre
+      if (tipoSelector) {
+        tipoSelector.classList.toggle('visible', accion === 'usar');
+      }
+      if (padreSelector) {
+        padreSelector.classList.toggle('visible', accion === 'usar');
+      }
+
+      if (accion === 'usar') {
+        const dominioId = radioUsarEl.getAttribute('data-dominio-id') || '';
+        const dominioNombre = radioUsarEl.getAttribute('data-dominio-nombre') || '';
+        const tipo = tipoSelect ? tipoSelect.value : (card.querySelector('.match-found') ? '' : 'tematica');
+        const padre = padreSelect ? padreSelect.value : '';
+
+        decisiones.push({
+          columna: columna,
+          accion: dominioId ? 'asociar' : 'crear',
+          dominio_id: dominioId ? parseInt(dominioId) : null,
+          dominio_nombre: dominioNombre || columna,
+          tipo: tipo || null,
+          padre: padre || null
+        });
+      } else {
+        decisiones.push({
+          columna: columna,
+          accion: 'ignorar',
+          dominio_id: null,
+          dominio_nombre: null,
+          tipo: null,
+          padre: null
+        });
+      }
+    });
+    
+    hiddenField.value = JSON.stringify(decisiones);
+  }
+
+  // Escuchar cambios en radios y selects de tipo/padre
+  radios.forEach(r => r.addEventListener('change', syncToHidden));
+  document.querySelectorAll('.tipo-dominio-select').forEach(s => s.addEventListener('change', syncToHidden));
+  document.querySelectorAll('.padre-dominio-select').forEach(s => s.addEventListener('change', syncToHidden));
+
+  // Sincronizar ANTES de enviar el formulario
+  const wizardForm = document.getElementById('wizard-form-desag') || document.querySelector('form');
+  if (wizardForm) {
+    wizardForm.addEventListener('submit', function(e) {
+      syncToHidden();
+      console.log('[SIIED] columnas_desagregacion_json enviado:', hiddenField.value);
+    });
+  }
+
+  // Sincronizar estado inicial
+  syncToHidden();
+  console.log('[SIIED] columnas_desagregacion_json inicial:', hiddenField.value);
+})();
+</script>
+{% endblock %}

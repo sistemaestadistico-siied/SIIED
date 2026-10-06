@@ -1,0 +1,161 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-list-alt"></i>
+      Metadata de Variables
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Variables Detectadas:</strong> Se encontraron las siguientes variables en el archivo metadata_variables.csv
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Variables detectadas -->
+    {% if variables_detectadas %}
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-check-circle" style="color: #10b981;"></i>
+        Variables Encontradas ({{ variables_detectadas|length }})
+      </h4>
+      
+      <div class="variables-table-container">
+        <table class="variables-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre Variable</th>
+              <th>Etiqueta</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for var in variables_detectadas %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td><code>{{ var.nombre }}</code></td>
+              <td>{{ var.etiqueta|default:"Sin etiqueta" }}</td>
+              <td>
+                <span class="badge-tipo">{{ var.tipo|default:"texto" }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="form-group" style="margin-top: 1.5rem;">
+        {{ wizard.form.cargar_automaticamente }}
+        <label for="{{ wizard.form.cargar_automaticamente.id_for_label }}">
+          {{ wizard.form.cargar_automaticamente.label }}
+        </label>
+        {% if wizard.form.cargar_automaticamente.help_text %}
+        <span class="helptext">{{ wizard.form.cargar_automaticamente.help_text }}</span>
+        {% endif %}
+      </div>
+      
+      {{ wizard.form.variables_detectadas_json }}
+    </div>
+    {% else %}
+    <div class="warning-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>No se encontró metadata_variables.csv</strong> o el archivo está vacío. 
+      Las variables se crearán manualmente más tarde.
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.variables-table-container {
+  overflow-x: auto;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.variables-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--admin-panel-2);
+}
+
+.variables-table thead {
+  background: var(--wizard-primary);
+  color: white;
+}
+
+.variables-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.variables-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  color: var(--admin-text);
+  font-size: 0.9rem;
+}
+
+.variables-table tbody tr:hover {
+  background: rgba(6, 182, 212, 0.05);
+}
+
+.variables-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.variables-table code {
+  background: rgba(6, 182, 212, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--wizard-primary);
+}
+
+.badge-tipo {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: var(--admin-border);
+  color: var(--admin-text);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends 'delegado/base_delegado.html' %}
+{% block title %}Completar Carga de Serie — {{ carga.codigo_evidencia }}{% endblock %}
+
+{% block delegado_content %}
+<div class="max-w-2xl mx-auto">
+
+  <!-- Breadcrumb -->
+  <nav class="text-sm text-slate-500 mb-4">
+    <a href="{% url 'indicadores:delegado_dashboard' %}" class="hover:text-slate-700">Inicio</a>
+    <span class="mx-2">/</span>
+    <a href="{% url 'indicadores:delegado_detalle_serie' carga.id %}" class="hover:text-slate-700">{{ carga.codigo_evidencia }}</a>
+    <span class="mx-2">/</span>
+    <span class="text-slate-700">Completar carga</span>
+  </nav>
+
+  <!-- Estado actual de la carga -->
+  <div class="bg-amber-50 border border-amber-200 rounded-3xl p-4 mb-6">
+    <div class="flex items-start gap-3">
+      <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <div>
+        <p class="font-semibold text-amber-800">Esta carga está incompleta</p>
+        <p class="text-sm text-amber-700 mt-1">
+          Indicador: <strong>{{ carga.indicador }}</strong> &mdash; Código: <strong>{{ carga.codigo_evidencia }}</strong>
+        </p>
+        <div class="mt-2 flex gap-4 text-sm">
+          <span class="flex items-center gap-1">
+            {% if carga.tiene_datos %}
+              <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span class="text-emerald-700">Datos ✓</span>
+            {% else %}
+              <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              <span class="text-red-700">Datos faltantes</span>
+            {% endif %}
+          </span>
+          <span class="flex items-center gap-1">
+            {% if carga.tiene_metadata %}
+              <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span class="text-emerald-700">Metadata ✓</span>
+            {% else %}
+              <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              <span class="text-red-700">Metadata faltante</span>
+            {% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="bg-white border border-slate-200 rounded-3xl shadow-sm">
+    <div class="px-6 py-4 border-b border-slate-200">
+      <h1 class="text-lg font-semibold text-slate-800">Agregar archivos faltantes</h1>
+      <p class="text-sm text-slate-500 mt-1">Solo sube los archivos que faltan. Los que ya están no se reemplazarán a menos que subas uno nuevo.</p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="p-6 space-y-6">
+      {% csrf_token %}
+
+      <!-- Archivo de datos -->
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">
+          Archivo de datos de la serie
+          {% if carga.tiene_datos %}
+            <span class="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Ya cargado — puedes reemplazarlo</span>
+          {% else %}
+            <span class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Faltante</span>
+          {% endif %}
+        </label>
+        {% if carga.tiene_datos %}
+          <p class="text-xs text-slate-500 mb-2">
+            Archivo actual: <code class="bg-slate-100 px-1 rounded">{{ carga.archivo_datos_xlsx.name|slice:"30:" }}</code>
+          </p>
+        {% endif %}
+        <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-emerald-400 transition-colors">
+          <input type="file" name="archivo_datos" accept=".xlsx,.xls,.csv" class="hidden" id="id_archivo_datos"
+                 onchange="mostrarArchivo(this, 'nombre_datos')">
+          <label for="id_archivo_datos" class="cursor-pointer">
+            <svg class="mx-auto w-8 h-8 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-sm text-slate-600">Haz clic para seleccionar o arrastra el archivo aquí</p>
+            <p class="text-xs text-slate-400 mt-1">Solo Excel: .xlsx o .xls</p>
+            <p id="nombre_datos" class="text-sm text-emerald-600 mt-2 hidden font-medium"></p>
+          </label>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">
+          <a href="{% url 'indicadores:delegado_plantillas' %}" class="text-emerald-500 hover:text-emerald-600 hover:underline">
+            ¿Necesitas la plantilla? Descárgala aquí
+          </a>
+        </p>
+      </div>
+
+      <!-- Archivo de metadata -->
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">
+          Archivo de metadata del indicador
+          {% if carga.tiene_metadata %}
+            <span class="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Ya cargado — puedes reemplazarlo</span>
+          {% else %}
+            <span class="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Faltante</span>
+          {% endif %}
+        </label>
+        <div class="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-violet-400 transition-colors">
+          <input type="file" name="archivo_metadata" accept=".xlsx,.xls,.csv" class="hidden" id="id_archivo_metadata"
+                 onchange="mostrarArchivo(this, 'nombre_metadata')">
+          <label for="id_archivo_metadata" class="cursor-pointer">
+            <svg class="mx-auto w-8 h-8 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-sm text-slate-600">Haz clic para seleccionar o arrastra el archivo aquí</p>
+            <p class="text-xs text-slate-400 mt-1">Solo Excel: .xlsx o .xls</p>
+            <p id="nombre_metadata" class="text-sm text-slate-600 mt-2 hidden font-medium"></p>
+          </label>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">
+          <a href="{% url 'indicadores:delegado_plantillas' %}" class="text-emerald-500 hover:text-emerald-600 hover:underline">
+            ¿Necesitas la plantilla? Descárgala aquí
+          </a>
+        </p>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
+        <button type="submit" name="accion" value="guardar"
+                class="flex-1 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm">
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V2"></path>
+          </svg>Guardar como borrador
+        </button>
+        <button type="submit" name="accion" value="enviar"
+                class="flex-1 bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"
+                onclick="return confirmarEnvio()">
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>Guardar y enviar a validación
+        </button>
+        <a href="{% url 'indicadores:delegado_detalle_serie' carga.id %}"
+           class="flex-1 text-center border border-slate-300 text-slate-600 hover:bg-slate-50 font-medium py-2.5 px-4 rounded-lg transition-colors text-sm">
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Nota recordatorio -->
+  <div class="mt-4 text-xs text-slate-400 text-center">
+    <svg class="inline w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    Para enviar a validación necesitas tener AMBOS archivos: datos y metadata.
+  </div>
+</div>
+
+<script>
+function mostrarArchivo(input, idParrafo) {
+  const p = document.getElementById(idParrafo);
+  if (input.files && input.files[0]) {
+    p.textContent = '✓ ' + input.files[0].name;
+    p.classList.remove('hidden');
+  }
+}
+function confirmarEnvio() {
+  return confirm('¿Estás seguro de enviar esta carga a validación?\nUna vez enviada, no podrás modificarla hasta recibir respuesta del equipo SIIED.');
+}
+</script>
+{% endblock %}

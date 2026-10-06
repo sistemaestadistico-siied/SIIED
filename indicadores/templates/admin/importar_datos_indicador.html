@@ -1,0 +1,242 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.import-container {
+    max-width: 900px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.import-section {
+    background: var(--admin-panel, #fff);
+    border: 1px solid var(--admin-border, #ddd);
+    border-radius: 8px;
+    padding: 25px;
+    margin: 20px 0;
+}
+
+.import-section h3 {
+    color: var(--admin-text, #333);
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.help-box {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+}
+
+.help-box h4 {
+    margin-top: 0;
+    color: #1976d2;
+}
+
+.help-box code {
+    background: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+    color: #d32f2f;
+}
+
+.example-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.example-table th,
+.example-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+.example-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+}
+
+.form-row {
+    margin: 20px 0;
+}
+
+.form-row label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--admin-text, #333);
+}
+
+.form-row input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.form-row input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #2196f3;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1976d2;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-secondary {
+    background: #757575;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #616161;
+}
+
+.warning-box {
+    background: #fff3e0;
+    border-left: 4px solid #ff9800;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 4px;
+}
+
+.warning-box strong {
+    color: #e65100;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <h1>📥 Importar Datos desde CSV</h1>
+    <p style="color: #666; margin-bottom: 20px;">
+        <strong>Indicador:</strong> {{ indicador.nombre }}
+    </p>
+    
+    <!-- Formulario de carga -->
+    <div class="import-section">
+        <h3>Seleccionar Archivo CSV</h3>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <label for="archivo_csv">Archivo CSV:</label>
+                <input type="file" name="archivo_csv" id="archivo_csv" accept=".csv" required>
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    Selecciona un archivo CSV con los datos del indicador
+                </small>
+            </div>
+            
+            <div class="form-row">
+                <label>
+                    <input type="checkbox" name="eliminar_existentes" id="eliminar_existentes">
+                    Eliminar datos existentes antes de importar
+                </label>
+                <small style="color: #666; display: block; margin-left: 28px;">
+                    ⚠️ Esta acción eliminará todos los datos actuales del indicador
+                </small>
+            </div>
+            
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">📤 Importar Datos</button>
+                <a href="../../{{ indicador.id }}/change/" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Ayuda sobre formato CSV -->
+    <div class="help-box">
+        <h4>📋 Formato del Archivo CSV</h4>
+        
+        <p><strong>Columnas requeridas:</strong></p>
+        <ul>
+            <li><code>fecha_dato</code> - Fecha del dato (formato: YYYY-MM-DD o solo YYYY para año)</li>
+            <li><code>valor_dato</code> - Valor numérico del dato</li>
+        </ul>
+        
+        <p><strong>Columnas opcionales:</strong></p>
+        <ul>
+            <li><code>desagregaciones_geograficas</code> - Nombres de desagregaciones geográficas separadas por coma</li>
+            <li><code>desagregaciones_tematicas</code> - Nombres de desagregaciones temáticas separadas por coma</li>
+        </ul>
+        
+        <p><strong>Ejemplo de archivo CSV:</strong></p>
+        <table class="example-table">
+            <thead>
+                <tr>
+                    <th>fecha_dato</th>
+                    <th>valor_dato</th>
+                    <th>desagregaciones_geograficas</th>
+                    <th>desagregaciones_tematicas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2023</td>
+                    <td>15.5</td>
+                    <td>Comuna 1</td>
+                    <td>Hombres</td>
+                </tr>
+                <tr>
+                    <td>2023</td>
+                    <td>12.3</td>
+                    <td>Comuna 1</td>
+                    <td>Mujeres</td>
+                </tr>
+                <tr>
+                    <td>2024-01-01</td>
+                    <td>18.7</td>
+                    <td>Comuna 2</td>
+                    <td>Hombres</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p><strong>Notas importantes:</strong></p>
+        <ul>
+            <li>Las fechas pueden ser solo el año (YYYY) o fecha completa (YYYY-MM-DD)</li>
+            <li>Los valores deben ser numéricos (usar punto como separador decimal)</li>
+            <li>Los nombres de desagregaciones deben coincidir con los existentes en la base de datos</li>
+            <li>Si una desagregación no se encuentra, se omitirá sin generar error</li>
+        </ul>
+    </div>
+    
+    <div class="warning-box">
+        <strong>⚠️ Importante:</strong> Asegúrate de que el formato del CSV sea correcto antes de importar. 
+        Si marcas "Eliminar datos existentes", todos los datos actuales del indicador serán eliminados permanentemente.
+    </div>
+</div>
+{% endblock %}

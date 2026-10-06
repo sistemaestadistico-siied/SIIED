@@ -1,0 +1,384 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Resultado ICED — {{ formulario.organismo.nombre }} — SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --iced-primary: #000866;
+        --iced-accent: #d97706;
+        --iced-success: #059669;
+        --iced-bg: #f8fafc;
+        --iced-card: #ffffff;
+        --iced-border: #e2e8f0;
+        --iced-text: #0f172a;
+        --iced-muted: #64748b;
+    }
+
+    .iced-result {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .iced-breadcrumb {
+        font-size: 0.85rem;
+        color: var(--iced-muted);
+        margin-bottom: 1.5rem;
+    }
+    .iced-breadcrumb a {
+        color: var(--iced-muted);
+        text-decoration: none;
+    }
+    .iced-breadcrumb a:hover {
+        color: var(--iced-primary);
+    }
+
+    .iced-result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .iced-result-title {
+        font-family: Georgia, serif;
+        font-size: 2rem;
+        color: var(--iced-text);
+        margin-bottom: 0.5rem;
+    }
+    .iced-result-meta {
+        font-size: 0.85rem;
+        color: var(--iced-muted);
+    }
+
+    .iced-score-big {
+        text-align: center;
+        padding: 2rem;
+        border: 2px solid var(--iced-border);
+        border-radius: 1rem;
+        background: white;
+        min-width: 200px;
+    }
+    .iced-score-big .score-value {
+        font-family: Georgia, serif;
+        font-size: 3.5rem;
+        color: var(--iced-primary);
+        font-weight: 700;
+        line-height: 1;
+    }
+    .iced-score-big .score-label {
+        font-size: 0.85rem;
+        color: var(--iced-muted);
+        margin-top: 0.25rem;
+    }
+    .iced-nivel-badge {
+        display: inline-block;
+        padding: 0.4rem 1.25rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        margin-top: 0.75rem;
+        color: white;
+    }
+    .iced-nivel-badge.muy_alto { background: #064e3b; }
+    .iced-nivel-badge.alto { background: #059669; }
+    .iced-nivel-badge.medio { background: #d97706; }
+    .iced-nivel-badge.bajo { background: #dc2626; }
+
+    .iced-dims-detail {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2.5rem;
+    }
+    .iced-dim-detail-card {
+        background: white;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .iced-dim-detail-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+    .iced-dim-detail-card.dim-1::before { background: #3b82f6; }
+    .iced-dim-detail-card.dim-2::before { background: #8b5cf6; }
+    .iced-dim-detail-card.dim-3::before { background: #f59e0b; }
+    .iced-dim-detail-card.dim-4::before { background: #10b981; }
+
+    .iced-dim-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    .iced-dim-name {
+        font-weight: 600;
+        color: var(--iced-text);
+        font-size: 0.95rem;
+    }
+    .iced-dim-peso-tag {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: var(--iced-muted);
+    }
+    .iced-dim-score-value {
+        font-family: Georgia, serif;
+        font-size: 2rem;
+        color: var(--iced-primary);
+        font-weight: 700;
+    }
+    .iced-dim-bar {
+        background: #f1f5f9;
+        border-radius: 999px;
+        height: 8px;
+        margin-top: 0.75rem;
+        overflow: hidden;
+    }
+    .iced-dim-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.5s ease;
+    }
+    .iced-dim-bar-fill.dim-1 { background: #3b82f6; }
+    .iced-dim-bar-fill.dim-2 { background: #8b5cf6; }
+    .iced-dim-bar-fill.dim-3 { background: #f59e0b; }
+    .iced-dim-bar-fill.dim-4 { background: #10b981; }
+
+    .iced-formula {
+        background: white;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .iced-formula-title {
+        font-weight: 600;
+        color: var(--iced-text);
+        margin-bottom: 0.75rem;
+    }
+    .iced-formula-code {
+        font-family: monospace;
+        font-size: 0.9rem;
+        background: #f1f5f9;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        color: var(--iced-text);
+        line-height: 1.6;
+    }
+
+    .iced-niveles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+    .iced-nivel-card {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        font-size: 0.85rem;
+        font-weight: 600;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+    .iced-nivel-card.active { opacity: 1; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .iced-nivel-card.muy_alto { background: #d1fae5; color: #064e3b; }
+    .iced-nivel-card.alto { background: #d1fae5; color: #065f46; }
+    .iced-nivel-card.medio { background: #fef3c7; color: #92400e; }
+    .iced-nivel-card.bajo { background: #fee2e2; color: #991b1b; }
+
+    .iced-info-card {
+        background: white;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .iced-info-title {
+        font-weight: 600;
+        color: var(--iced-text);
+        margin-bottom: 0.75rem;
+        font-size: 1.1rem;
+    }
+    .iced-info-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .iced-info-table th,
+    .iced-info-table td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.85rem;
+        text-align: left;
+    }
+    .iced-info-table th {
+        color: var(--iced-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+    }
+
+    .iced-btn {
+        padding: 0.7rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    .iced-btn-outline {
+        background: white;
+        color: var(--iced-primary);
+        border: 1px solid var(--iced-primary);
+    }
+    .iced-btn-outline:hover {
+        background: #f0f1ff;
+        color: var(--iced-primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="iced-result">
+
+    <!-- Breadcrumb -->
+    <div class="iced-breadcrumb">
+        <a href="{% url 'indicadores:iced_landing' %}">← ICED</a>
+        &nbsp;/&nbsp; Resultado {{ formulario.periodo }}
+    </div>
+
+    <!-- Header -->
+    <div class="iced-result-header">
+        <div>
+            <h1 class="iced-result-title">{{ formulario.organismo.nombre }}</h1>
+            <div class="iced-result-meta">
+                ICED Vigencia {{ formulario.periodo }}
+                &bull; Estado: {{ formulario.get_estado_display }}
+                {% if formulario.fecha_envio %}
+                    &bull; Enviado: {{ formulario.fecha_envio|date:"d/m/Y H:i" }}
+                {% endif %}
+            </div>
+        </div>
+        <div class="iced-score-big">
+            <div class="score-value">{{ resultado.puntaje_global|floatformat:1 }}</div>
+            <div class="score-label">ICED (0-100)</div>
+            <div class="iced-nivel-badge {{ resultado.nivel_codigo }}">
+                {{ resultado.nivel_nombre }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Escala de niveles -->
+    <div class="iced-niveles">
+        <div class="iced-nivel-card bajo {% if resultado.nivel_codigo == 'bajo' %}active{% endif %}">
+            Bajo<br><small>0-59</small>
+        </div>
+        <div class="iced-nivel-card medio {% if resultado.nivel_codigo == 'medio' %}active{% endif %}">
+            Medio<br><small>60-74</small>
+        </div>
+        <div class="iced-nivel-card alto {% if resultado.nivel_codigo == 'alto' %}active{% endif %}">
+            Alto<br><small>75-89</small>
+        </div>
+        <div class="iced-nivel-card muy_alto {% if resultado.nivel_codigo == 'muy_alto' %}active{% endif %}">
+            Muy Alto<br><small>90-100</small>
+        </div>
+    </div>
+
+    <!-- Detalle por dimensión -->
+    <div class="iced-dims-detail">
+        {% for dim_key, dim in resultado.detalle.items %}
+        <div class="iced-dim-detail-card dim-{{ dim_key|lower }}">
+            <div class="iced-dim-header">
+                <div class="iced-dim-name">{{ dim_key }}. {{ dim.nombre }}</div>
+                <span class="iced-dim-peso-tag">Peso {{ dim.peso }}</span>
+            </div>
+            <div class="iced-dim-score-value">{{ dim.puntaje|floatformat:1 }}</div>
+            <div class="iced-dim-bar">
+                <div class="iced-dim-bar-fill dim-{{ dim_key|lower }}" id="bar-{{ dim_key|lower }}"></div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--iced-muted); margin-top: 0.5rem;">
+                Nivel: {{ dim.nivel.1 }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Fórmula -->
+    <div class="iced-formula">
+        <div class="iced-formula-title">Cálculo del ICED</div>
+        <div class="iced-formula-code">
+            ICED = (D1 + D2 + D3 + D4) × 0.25<br>
+            ICED = ({{ resultado.puntaje_b|floatformat:1 }} + {{ resultado.puntaje_c|floatformat:1 }} + {{ resultado.puntaje_d|floatformat:1 }} + {{ resultado.puntaje_e|floatformat:1 }}) × 0.25<br>
+            <strong>ICED = {{ resultado.puntaje_global|floatformat:1 }}</strong>
+        </div>
+    </div>
+
+    <!-- Info del formulario -->
+    <div class="iced-info-card">
+        <h3 class="iced-info-title">Información del formulario</h3>
+        <table class="iced-info-table">
+            <tr>
+                <th>Organismo</th>
+                <td>{{ formulario.organismo.nombre }}</td>
+            </tr>
+            <tr>
+                <th>Período</th>
+                <td>{{ formulario.periodo }}</td>
+            </tr>
+            <tr>
+                <th>Estado</th>
+                <td>{{ formulario.get_estado_display }}</td>
+            </tr>
+            <tr>
+                <th>Diligenciado por</th>
+                <td>{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username|default:"—" }}</td>
+            </tr>
+            <tr>
+                <th>Fecha de envío</th>
+                <td>{{ formulario.fecha_envio|date:"d/m/Y H:i"|default:"—" }}</td>
+            </tr>
+            <tr>
+                <th>Fecha de validación</th>
+                <td>{{ formulario.fecha_validacion|date:"d/m/Y H:i"|default:"Pendiente" }}</td>
+            </tr>
+            {% if formulario.observaciones_validador %}
+            <tr>
+                <th>Observaciones del validador</th>
+                <td>{{ formulario.observaciones_validador }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{% url 'indicadores:iced_landing' %}" class="iced-btn iced-btn-outline">
+            ← Volver al módulo ICED
+        </a>
+    </div>
+
+</div>
+<script>
+(function(){
+    var dims = {{ resultado_json|safe }};
+    ['1','2','3','4'].forEach(function(k){
+        var bar = document.getElementById('bar-'+k);
+        if(bar && dims[k]) bar.style.width = dims[k].puntaje + '%';
+    });
+})();
+</script>
+{% endblock %}

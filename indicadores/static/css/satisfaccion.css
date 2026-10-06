@@ -1,0 +1,284 @@
+/* ============================================================================
+   ESTILOS PARA SISTEMA DE SATISFACCIÓN CIUDADANA
+   ============================================================================ */
+
+/* Estilos generales */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header del formulario */
+.card-header.bg-primary {
+    background: linear-gradient(135deg, #003366 0%, #0056b3 100%) !important;
+}
+
+/* Preguntas de satisfacción */
+.pregunta-satisfaccion {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    transition: all 0.3s ease;
+}
+
+.pregunta-satisfaccion:hover {
+    background-color: #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.pregunta-satisfaccion label {
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* Opciones de calificación (radio buttons) */
+.rating-options {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.rating-options .form-check {
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+    padding: 15px 10px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: white;
+}
+
+.rating-options .form-check:hover {
+    border-color: #007bff;
+    background-color: #f0f8ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,123,255,0.2);
+}
+
+.rating-options .form-check input[type="radio"] {
+    display: none;
+}
+
+.rating-options .form-check input[type="radio"]:checked + label {
+    font-weight: bold;
+}
+
+.rating-options .form-check:has(input[type="radio"]:checked) {
+    border-color: #007bff;
+    background-color: #007bff;
+    color: white;
+}
+
+.rating-options .form-check:has(input[type="radio"]:checked) label {
+    color: white;
+}
+
+.rating-options .form-check label {
+    cursor: pointer;
+    margin: 0;
+    font-size: 14px;
+    display: block;
+}
+
+/* Colores por calificación */
+.rating-options .form-check:nth-child(1):has(input:checked) {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.rating-options .form-check:nth-child(2):has(input:checked) {
+    background-color: #fd7e14;
+    border-color: #fd7e14;
+}
+
+.rating-options .form-check:nth-child(3):has(input:checked) {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #333 !important;
+}
+
+.rating-options .form-check:nth-child(3):has(input:checked) label {
+    color: #333 !important;
+}
+
+.rating-options .form-check:nth-child(4):has(input:checked) {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.rating-options .form-check:nth-child(5):has(input:checked) {
+    background-color: #20c997;
+    border-color: #20c997;
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .rating-options {
+        flex-direction: column;
+    }
+    
+    .rating-options .form-check {
+        min-width: 100%;
+    }
+}
+
+/* Alertas personalizadas */
+.alert-info {
+    background-color: #e7f3ff;
+    border-left: 4px solid #007bff;
+    color: #004085;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+}
+
+/* Botones */
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    padding: 12px 30px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.4);
+}
+
+/* Campos de formulario */
+.form-control:focus,
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+/* Secciones de dimensiones */
+h6.text-primary {
+    padding: 10px 15px;
+    background-color: #e7f3ff;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+}
+
+/* Tabla de escala */
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #dee2e6;
+    padding: 10px;
+}
+
+.table-light {
+    background-color: #f8f9fa;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Estilos para página de agradecimiento */
+.emoji-grande {
+    font-size: 120px;
+    animation: bounce 1s ease;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+/* Checkmark animado */
+.checkmark {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: block;
+    stroke-width: 3;
+    stroke: #4CAF50;
+    stroke-miterlimit: 10;
+    margin: 10% auto;
+    box-shadow: inset 0px 0px 0px #4CAF50;
+    animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+}
+
+.checkmark__circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke-width: 3;
+    stroke-miterlimit: 10;
+    stroke: #4CAF50;
+    fill: none;
+    animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark__check {
+    transform-origin: 50% 50%;
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+}
+
+@keyframes stroke {
+    100% { stroke-dashoffset: 0; }
+}
+
+@keyframes scale {
+    0%, 100% { transform: none; }
+    50% { transform: scale3d(1.1, 1.1, 1); }
+}
+
+@keyframes fill {
+    100% { box-shadow: inset 0px 0px 0px 30px #4CAF50; }
+}
+
+/* Estilos para template de error */
+.error-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.error-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    padding: 40px;
+    text-align: center;
+    max-width: 500px;
+}
+
+/* Print styles */
+@media print {
+    .btn,
+    .card-header,
+    .alert {
+        display: none;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+}

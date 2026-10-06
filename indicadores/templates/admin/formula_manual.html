@@ -1,0 +1,213 @@
+{% load static %}
+<div class="formula-manual" style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; padding: 20px; margin: 15px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: var(--admin-shadow);">
+    <h3 style="color: var(--admin-text); margin-top: 0; border-bottom: 2px solid var(--admin-primary); padding-bottom: 10px;">
+        📋 Manual de Fórmulas para Extracción de Datos
+    </h3>
+    
+    <div style="margin-bottom: 20px;">
+        <p style="color: var(--admin-text);"><strong>Las fórmulas permiten calcular valores finales a partir de los datos del CSV usando el algoritmo cartesiano de extracción.</strong></p>
+    </div>
+
+    <div class="formula-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-success); margin-bottom: 10px;">🔧 Tipos de Fórmulas Soportadas</h4>
+        
+        <div style="margin-left: 15px;">
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">1. Fórmula Simple (valor_celda)</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">valor_celda</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Usa directamente el valor de la columna correspondiente a la combinación de desagregaciones.</p>
+            </div>
+
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">2. Operaciones Aritméticas</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">valor_celda * 100</code><br>
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">valor_celda / 1000</code><br>
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">valor_celda + 50</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Operadores soportados: <strong>+, -, *, /, //, %, **</strong> (también <strong>^</strong> para potencia)</p>
+            </div>
+
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">3. Referencias a Columnas Específicas</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">hombres_0_4 + mujeres_0_4</code><br>
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">col("Hombres 0-4") + col("Mujeres 0-4")</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">
+                    • <strong>Variables sanitizadas:</strong> Los nombres de columnas se convierten automáticamente (espacios → _, sin acentos)<br>
+                    • <strong>Función col():</strong> Para nombres exactos con espacios o caracteres especiales
+                </p>
+            </div>
+
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">4. Funciones Matemáticas</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">abs(valor_celda)</code><br>
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">max(hombres_total, mujeres_total)</code><br>
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">round(valor_celda / poblacion_total * 100, 2)</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Funciones disponibles: <strong>abs, min, max, round, pow</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="formula-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-error); margin-bottom: 10px;">⚠️ Cómo Funciona el Algoritmo Cartesiano</h4>
+        
+        <div style="margin-left: 15px; background: var(--admin-panel-2); border: 1px solid var(--admin-warning); padding: 15px; border-radius: 5px; border-left: 4px solid var(--admin-warning);">
+            <p style="margin: 0 0 10px 0; color: var(--admin-text);"><strong>El algoritmo genera automáticamente todas las combinaciones posibles de desagregaciones temáticas:</strong></p>
+            <ul style="margin: 0; padding-left: 20px; color: var(--admin-text);">
+                <li>Para cada fila del CSV, identifica las desagregaciones geográficas y temáticas</li>
+                <li>Crea el producto cartesiano de todas las desagregaciones temáticas posibles</li>
+                <li>Para cada combinación, busca la columna correspondiente o calcula el valor</li>
+                <li>Si la combinación incluye "Total", suma las otras desagregaciones del mismo dominio</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="formula-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-accent); margin-bottom: 10px;">📊 Ejemplos Prácticos</h4>
+        
+        <div style="margin-left: 15px;">
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-accent); padding: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid var(--admin-accent);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Ejemplo 1: Datos de Población</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>CSV:</strong> Columnas como "Hombres_0_4", "Mujeres_0_4", "Hombres_5_9", etc.</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Fórmula:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">valor_celda</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> Para la combinación (Hombres, 0-4), usa el valor de "Hombres_0_4"</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-success); padding: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid var(--admin-success);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Ejemplo 2: Tasa por 1000 habitantes</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>CSV:</strong> Columna "Nacimientos" con valores absolutos</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Fórmula:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">valor_celda / poblacion_total * 1000</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> Convierte números absolutos a tasa por mil</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-error); padding: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid var(--admin-error);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Ejemplo 3: Suma de Grupos de Edad</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>CSV:</strong> "Edad_0_14", "Edad_15_64", "Edad_65_mas"</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Fórmula:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">edad_0_14 + edad_15_64 + edad_65_mas</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> Suma grupos para obtener totales por otras desagregaciones</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="formula-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-primary-2); margin-bottom: 10px;">🎯 Casos Especiales</h4>
+        
+        <div style="margin-left: 15px;">
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 12px; border-radius: 5px; margin-bottom: 10px;">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Cálculo Automático de Totales</h6>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);">
+                    Cuando una combinación incluye una desagregación "Total", el algoritmo automáticamente suma 
+                    todas las otras desagregaciones del mismo dominio. <strong>No necesitas escribir fórmulas especiales para esto.</strong>
+                </p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 12px; border-radius: 5px; margin-bottom: 10px;">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Manejo de Rangos de Edad</h6>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);">
+                    Si defines rangos en las desagregaciones (ej: 0-4, 5-9), el algoritmo automáticamente 
+                    suma las columnas que caen dentro de cada rango.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="formula-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--admin-warning); margin-bottom: 10px;">🚫 Restricciones de Seguridad</h4>
+        
+        <div style="margin-left: 15px; background: var(--admin-panel-2); border: 1px solid var(--admin-warning); padding: 12px; border-radius: 5px; border-left: 4px solid var(--admin-warning);">
+            <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--admin-text);"><strong>Por seguridad, las fórmulas NO pueden:</strong></p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--admin-text);">
+                <li>Ejecutar código arbitrario o importar módulos</li>
+                <li>Acceder a archivos o bases de datos</li>
+                <li>Usar bucles o estructuras de control complejas</li>
+                <li>Llamar funciones no autorizadas</li>
+            </ul>
+            <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--admin-text);"><strong>Solo se permiten:</strong> operaciones matemáticas, referencias a columnas y las funciones listadas arriba.</p>
+        </div>
+    </div>
+
+    <div class="formula-section">
+        <h4 style="color: var(--admin-success); margin-bottom: 10px;">💡 Consejos de Uso</h4>
+        
+        <div style="margin-left: 15px;">
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; color: var(--admin-text);">
+                <li><strong>Empieza simple:</strong> Usa <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">valor_celda</code> para la mayoría de casos</li>
+                <li><strong>Prueba paso a paso:</strong> Usa el botón "Procesar Datos" para validar tus fórmulas</li>
+                <li><strong>Revisa los logs:</strong> Con verbosity alta (--verbosity=3) puedes ver cómo se evalúan las fórmulas</li>
+                <li><strong>Nombres de columnas:</strong> "Hombres 0-4" se convierte en <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">hombres_0_4</code> automáticamente</li>
+                <li><strong>Para nombres complejos:</strong> Usa <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">col("Nombre Exacto")</code> con comillas</li>
+                <li><strong>Valores faltantes:</strong> Se tratan como 0 en los cálculos</li>
+            </ul>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 10px; background: var(--admin-bg-soft); border: 1px solid var(--admin-border); border-radius: 5px; text-align: center;">
+        <small style="color: var(--admin-muted);">
+            📖 Este manual está basado en el algoritmo real implementado en 
+            <code style="color: var(--admin-primary); background: var(--admin-panel); padding: 2px 6px; border-radius: 3px;">procesar_conjunto_datos_cartesiano.py</code>
+        </small>
+    </div>
+</div>
+
+<style>
+/* Estilos responsivos para el manual */
+@media (max-width: 768px) {
+    .formula-manual {
+        padding: 15px !important;
+        margin: 10px 0 !important;
+    }
+    
+    .formula-manual code {
+        word-break: break-all;
+    }
+    
+    .formula-manual div[style*="margin-left: 15px"] {
+        margin-left: 10px !important;
+    }
+}
+
+/* Mejoras de accesibilidad y compatibilidad con temas */
+.formula-manual h3, .formula-manual h4, .formula-manual h5, .formula-manual h6 {
+    font-weight: 600;
+}
+
+.formula-manual ul li {
+    margin-bottom: 4px;
+}
+
+/* Transiciones suaves para cambios de tema */
+.formula-manual, 
+.formula-manual div, 
+.formula-manual code {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Asegurar que el manual se adapte correctamente a todos los temas */
+[data-theme] .formula-manual {
+    background: var(--admin-panel) !important;
+    border-color: var(--admin-border) !important;
+    color: var(--admin-text) !important;
+}
+
+[data-theme] .formula-manual h3,
+[data-theme] .formula-manual h4,
+[data-theme] .formula-manual h5,
+[data-theme] .formula-manual h6,
+[data-theme] .formula-manual p,
+[data-theme] .formula-manual li,
+[data-theme] .formula-manual small {
+    color: var(--admin-text) !important;
+}
+
+[data-theme] .formula-manual code {
+    color: var(--admin-primary) !important;
+    background: var(--admin-bg-soft) !important;
+}
+
+/* Ajustes específicos para tema oscuro */
+[data-theme="dark"] .formula-manual {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"] .formula-manual code {
+    background: var(--admin-panel-2) !important;
+}
+</style>

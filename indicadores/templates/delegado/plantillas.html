@@ -1,0 +1,323 @@
+{% extends 'delegado/base_delegado.html' %}
+{% block title %}Plantillas de Formatos — Portal de Organismos{% endblock %}
+
+{% block delegado_content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-serif font-bold text-slate-900">Plantillas y formatos oficiales</h1>
+    <p class="text-slate-500 mt-1">Descarga las plantillas Excel que debes usar para entregar tus datos. No uses otros formatos.</p>
+  </div>
+
+  <!-- Aviso importante -->
+  <div class="bg-red-50 border border-red-200 rounded-3xl p-4 mb-8">
+    <div class="flex items-start gap-3">
+      <svg class="w-5 h-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <div class="text-sm">
+        <p class="font-semibold text-red-800">Regla fundamental: usa siempre estas plantillas oficiales</p>
+        <ul class="text-red-700 mt-1 space-y-0.5 list-disc list-inside ml-2">
+          <li>No cambies los nombres de las columnas.</li>
+          <li>No agregues hojas adicionales al archivo.</li>
+          <li>No combines celdas ni apliques formatos especiales.</li>
+          <li>Los años deben ser valores numéricos (ej: <code class="bg-red-100 px-1 rounded">2024</code>).</li>
+          <li>Los números no deben llevar puntos de miles ni símbolos de moneda.</li>
+          <li>Usa punto (<code class="bg-red-100 px-1 rounded">.</code>) como separador decimal, no coma.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grupo 1: Serie de indicador -->
+  <div class="mb-8">
+    <h2 class="text-base font-serif font-bold text-slate-700 mb-3 flex items-center gap-2">
+      <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+      Archivos para series de indicadores
+    </h2>
+    <p class="text-sm text-slate-500 mb-4">Para cargar una serie debes subir <strong>dos archivos</strong>: los datos y la metadata del indicador.</p>
+    <div class="space-y-4">
+
+      <!-- Plantilla 1: Datos de serie -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-2xl">📊</span>
+              <h3 class="font-semibold text-slate-800">Archivo 1 de 2: Datos de la serie</h3>
+              <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Obligatorio</span>
+            </div>
+            <p class="text-sm text-slate-600 mb-3">Registra los valores numéricos del indicador por año y desagregación.</p>
+            <!-- Preview columnas reales -->
+            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3 overflow-x-auto">
+              <div class="grid gap-1" style="grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 560px;">
+                <span class="font-bold text-slate-800 truncate">Codigo_Indicador</span>
+                <span class="font-bold text-slate-800 truncate">Nombre_Indicador</span>
+                <span class="font-bold text-slate-800">Año</span>
+                <span class="font-bold text-slate-800 truncate">Desagregacion_Geografica</span>
+                <span class="font-bold text-slate-800 truncate">Desagregacion_Tematica_1</span>
+                <span class="font-bold text-slate-800 truncate">Desagregacion_Tematica_2</span>
+                <span class="font-bold text-slate-800">Valor</span>
+              </div>
+              <div class="grid gap-1 text-slate-500 border-t border-slate-200 pt-1 mt-1" style="grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 560px;">
+                <span class="truncate">ICET_SAL_DEM_MOR_02</span>
+                <span class="truncate">Tasa mortalidad...</span>
+                <span>2022</span>
+                <span class="truncate">Comuna 1</span>
+                <span>Hombre</span>
+                <span>0-1 años</span>
+                <span>10.89</span>
+              </div>
+              <div class="grid gap-1 text-slate-500" style="grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 560px;">
+                <span class="truncate">ICET_SAL_DEM_MOR_02</span>
+                <span class="truncate">Tasa mortalidad...</span>
+                <span>2022</span>
+                <span class="truncate">Comuna 2</span>
+                <span>Mujer</span>
+                <span>0-1 años</span>
+                <span>11.25</span>
+              </div>
+            </div>
+            <details class="text-sm">
+              <summary class="text-emerald-600 cursor-pointer hover:text-emerald-700 hover:underline">Ver descripción de cada columna</summary>
+              <div class="mt-2 space-y-1 text-slate-600 text-xs">
+                <p><code class="bg-slate-100 px-1 rounded">Codigo_Indicador</code> — Código oficial del indicador (ej: ICET_SAL_DEM_MOR_02). El equipo SIIED te lo indicará.</p>
+                <p><code class="bg-slate-100 px-1 rounded">Nombre_Indicador</code> — Nombre completo del indicador.</p>
+                <p><code class="bg-slate-100 px-1 rounded">Año</code> — Año de la medición como número entero (2022, 2023…).</p>
+                <p><code class="bg-slate-100 px-1 rounded">Desagregacion_Geografica</code> — Nombre del área geográfica (ej: Comuna 1, Barrio Centro). Déjalo vacío si no aplica.</p>
+                <p><code class="bg-slate-100 px-1 rounded">Desagregacion_Tematica_1</code> — Primera categoría de análisis (ej: Hombre, Mujer). Déjalo vacío si no aplica.</p>
+                <p><code class="bg-slate-100 px-1 rounded">Desagregacion_Tematica_2</code> — Segunda categoría (ej: 0-1 años, 2-5 años). Déjalo vacío si no aplica.</p>
+                <p><code class="bg-slate-100 px-1 rounded">Valor</code> — Valor numérico. Sin texto, sin unidades, sin % ni $. Usa punto decimal.</p>
+              </div>
+            </details>
+          </div>
+          <a href="{% url 'indicadores:descargar_plantilla_serie_datos' %}"
+             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Descargar
+          </a>
+        </div>
+      </div>
+
+      <!-- Plantilla 2: Metadata del indicador -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-2xl">📋</span>
+              <h3 class="font-semibold text-slate-800">Archivo 2 de 2: Metadata del indicador</h3>
+              <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Obligatorio</span>
+            </div>
+            <p class="text-sm text-slate-600 mb-3">Describe el indicador: qué mide, cómo se calcula, fuentes, periodicidad, etc. Una sola fila por indicador.</p>
+            <!-- Preview columnas reales (formato vertical campo-valor) -->
+            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3">
+              <div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Campo</span>
+                <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Ejemplo</span>
+                <span class="text-slate-600">Codigo_Indicador</span><span class="text-slate-500">ICET_SAL_DEM_MOR_02</span>
+                <span class="text-slate-600">Nombre_Indicador</span><span class="text-slate-500">Tasa de mortalidad menores 5 años</span>
+                <span class="text-slate-600">Sigla</span><span class="text-slate-500">TMM5</span>
+                <span class="text-slate-600">Unidad_Medida</span><span class="text-slate-500">Muertes por cada 1.000 nac. vivos</span>
+                <span class="text-slate-600">Periodicidad</span><span class="text-slate-500">Anual</span>
+                <span class="text-slate-600">Formula</span><span class="text-slate-500">TMM5 = (V₁ / V₂) × 1.000</span>
+                <span class="text-slate-600">Fuente_Datos</span><span class="text-slate-500">Cálculos propios - DANE</span>
+                <span class="text-slate-600 italic">… y 16 campos más</span><span class="text-slate-400 italic">ver plantilla</span>
+              </div>
+            </div>
+            <details class="text-sm">
+              <summary class="text-emerald-600 cursor-pointer hover:text-emerald-700 hover:underline">Ver todos los campos del archivo</summary>
+              <div class="mt-2 text-slate-600 text-xs columns-2 gap-4 space-y-0.5">
+                <p><code class="bg-slate-100 px-1 rounded">Grupo_Indicador</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Dominio</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Tema</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Subtema</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Codigo_Indicador</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Nombre_Indicador</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Sigla</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Definiciones_Conceptos</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Objetivo</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Justificacion</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Metodo_Medicion</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Formula</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Variables</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Unidad_Medida</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Valores_Referencia</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Desagregacion_Tematica</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Desagregacion_Geografica</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Linea_Base</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Periodicidad</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Fuente_Datos</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Responsable</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Observaciones</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Fecha_Elaboracion</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Fecha_Actualizacion</code></p>
+              </div>
+            </details>
+          </div>
+          <a href="{% url 'indicadores:descargar_plantilla_metadata_indicador' %}"
+             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Descargar
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grupo 2: Conjunto de datos -->
+  <div class="mb-8">
+    <h2 class="text-base font-serif font-bold text-slate-700 mb-3 flex items-center gap-2">
+      <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4-8 4m0 0c0 2.21 3.582 4 8 4"/>
+      </svg>
+      Archivos para conjuntos de datos
+    </h2>
+    <p class="text-sm text-slate-500 mb-4">Para cargar conjuntos de datos debes subir <strong>dos archivos</strong>: los datos (tabla de conjuntos de datos) y la metadata de sus variables.</p>
+    <div class="space-y-4">
+
+      <!-- Plantilla 3: Conjuntos de datos -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-2xl">🗃️</span>
+              <h3 class="font-semibold text-slate-800">Archivo 1 de 2: Conjuntos de datos</h3>
+              <span class="text-xs bg-violet-100 text-slate-700 px-2 py-0.5 rounded-full font-medium">Si aplica</span>
+            </div>
+            <p class="text-sm text-slate-600 mb-3">Tabla con los datos fuente del indicador. El sistema acepta dos formatos: <strong>Largo</strong> y <strong>Ancho</strong>. La plantilla incluye ambos como hojas separadas.</p>
+
+            <!-- Formato Largo -->
+            <p class="text-xs font-semibold text-slate-700 mb-1">Formato Largo — desagregaciones en columnas (datos con pocas categorías)</p>
+            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3 overflow-x-auto">
+              <div class="grid gap-1 min-w-max" style="grid-template-columns: auto auto auto auto;">
+                <span class="font-bold text-slate-800 pr-4">Año</span>
+                <span class="font-bold text-slate-800 pr-4">Grupos de edad</span>
+                <span class="font-bold text-slate-800 pr-4">Nacimientos</span>
+                <span class="font-bold text-slate-800">Poblacion_Mujeres</span>
+              </div>
+              <div class="grid gap-1 text-slate-500 border-t border-slate-200 pt-1 mt-1 min-w-max" style="grid-template-columns: auto auto auto auto;">
+                <span class="pr-4">2022</span><span class="pr-4">15-19</span><span class="pr-4">5500</span><span>93000</span>
+              </div>
+              <div class="grid gap-1 text-slate-500 min-w-max" style="grid-template-columns: auto auto auto auto;">
+                <span class="pr-4">2022</span><span class="pr-4">20-24</span><span class="pr-4">7800</span><span>91000</span>
+              </div>
+            </div>
+
+            <!-- Formato Ancho -->
+            <p class="text-xs font-semibold text-slate-700 mb-1">Formato Ancho — desagregaciones en encabezados (tablas demográficas, muchas categorías)</p>
+            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3 overflow-x-auto">
+              <div class="grid gap-1 min-w-max" style="grid-template-columns: auto auto auto auto auto auto auto;">
+                <span class="font-bold text-slate-800 pr-3">AÑO</span>
+                <span class="font-bold text-slate-800 pr-3">ÁREA GEOGRÁFICA</span>
+                <span class="font-bold text-slate-800 pr-3">Hombres_0</span>
+                <span class="font-bold text-slate-800 pr-3">Hombres_1</span>
+                <span class="font-bold text-slate-800 pr-3">Mujeres_0</span>
+                <span class="font-bold text-slate-800 pr-3">Mujeres_1</span>
+                <span class="font-bold text-slate-800">Total_0</span>
+              </div>
+              <div class="grid gap-1 text-slate-500 border-t border-slate-200 pt-1 mt-1 min-w-max" style="grid-template-columns: auto auto auto auto auto auto auto;">
+                <span class="pr-3">2022</span><span class="pr-3">Cabecera</span><span class="pr-3">17722</span><span class="pr-3">17603</span><span class="pr-3">16677</span><span class="pr-3">16595</span><span>34399</span>
+              </div>
+            </div>
+
+            <details class="text-sm">
+              <summary class="text-emerald-600 cursor-pointer hover:text-emerald-700 hover:underline">¿Cuándo usar cada formato?</summary>
+              <div class="mt-2 space-y-2 text-slate-600 text-xs">
+                <p><strong>Formato Largo:</strong> úsalo cuando tus datos tengan pocas categorías de desagregación o cuando ya existen en formato de tabla larga. La columna <code class="bg-slate-100 px-1 rounded">Año</code> es obligatoria; el encabezado de desagregación debe coincidir exactamente con el nombre del dominio configurado en el sistema.</p>
+                <p><strong>Formato Ancho:</strong> úsalo para datos demográficos o tablas cruzadas con muchas combinaciones. Las columnas de datos van en el patrón <code class="bg-slate-100 px-1 rounded">Categoría_Índice</code> (ej: <code class="bg-slate-100 px-1 rounded">Hombres_0</code>). La columna <code class="bg-slate-100 px-1 rounded">AÑO</code> es obligatoria.</p>
+                <p><strong>Ambos formatos</strong> deben usar punto decimal, sin símbolos de moneda ni texto en columnas numéricas.</p>
+              </div>
+            </details>
+          </div>
+          <a href="{% url 'indicadores:descargar_plantilla_conjunto_datos' %}"
+             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Descargar
+          </a>
+        </div>
+      </div>
+
+      <!-- Plantilla 4: Metadata de variables -->
+      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-2xl">🏷️</span>
+              <h3 class="font-semibold text-slate-800">Archivo 2 de 2: Metadata de variables</h3>
+              <span class="text-xs bg-violet-100 text-slate-700 px-2 py-0.5 rounded-full font-medium">Si hay conjuntos de datos</span>
+            </div>
+            <p class="text-sm text-slate-600 mb-3">Describe cada variable del archivo de conjuntos de datos: qué representa, su tipo, unidad de medida y fuente. Una fila por variable.</p>
+            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3">
+              <div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Campo</span>
+                <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Ejemplo</span>
+                <span class="text-slate-600">Codigo_Variable</span><span class="text-slate-500">V1</span>
+                <span class="text-slate-600">Nombre_Variable</span><span class="text-slate-500">Ingresos totales</span>
+                <span class="text-slate-600">Definicion_Conceptual</span><span class="text-slate-500">Suma de todos los ingresos…</span>
+                <span class="text-slate-600">Tipo_Dato</span><span class="text-slate-500">Numérico continuo</span>
+                <span class="text-slate-600">Unidad_Medida</span><span class="text-slate-500">Millones de pesos</span>
+                <span class="text-slate-600">Fuente_Datos</span><span class="text-slate-500">DNP - CIFFIT</span>
+                <span class="text-slate-600 italic">… y 11 campos más</span><span class="text-slate-400 italic">ver plantilla</span>
+              </div>
+            </div>
+            <details class="text-sm">
+              <summary class="text-emerald-600 cursor-pointer hover:text-emerald-700 hover:underline">Ver todos los campos del archivo</summary>
+              <div class="mt-2 text-slate-600 text-xs columns-2 gap-4 space-y-0.5">
+                <p><code class="bg-slate-100 px-1 rounded">Codigo_Indicador</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Nombre_Indicador</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Codigo_Variable</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Nombre_Variable</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Definicion_Conceptual</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Poblacion_Objetivo</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Cobertura_Geografica</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Desagregacion_Geografica</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Desagregacion_Tematica</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Tipo_Dato</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Dominio_Dato</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Unidad_Medida</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Tipo_Variable_Estadistica</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Fuente_Datos</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Periodicidad</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Observaciones</code></p>
+                <p><code class="bg-slate-100 px-1 rounded">Organismo_Productor</code></p>
+              </div>
+            </details>
+          </div>
+          <a href="{% url 'indicadores:descargar_plantilla_metadata_variables' %}"
+             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Descargar
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enlace al manual -->
+  <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 flex items-center justify-between">
+    <div>
+      <p class="font-semibold text-emerald-800 text-sm flex items-center">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>¿Tienes dudas sobre cómo llenar las plantillas?
+      </p>
+      <p class="text-emerald-700 text-xs mt-0.5">El manual explica cada archivo, el proceso completo y los estados de tus cargas.</p>
+    </div>
+    <a href="{% url 'indicadores:delegado_manual' %}"
+       class="shrink-0 text-sm font-semibold text-emerald-700 border border-emerald-400 px-4 py-2 rounded-lg hover:bg-emerald-100 transition-colors">
+      Ver manual
+    </a>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "delegado/base_delegado.html" %}
+{% block title %}Cargar Conjuntos de datos{% endblock %}
+{% block delegado_content %}
+<div class="max-w-3xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'indicadores:delegado_dashboard' %}" class="text-sm text-emerald-600 hover:text-emerald-700 hover:underline">← Inicio</a>
+        <h1 class="text-2xl font-serif font-bold text-slate-900 mt-2">Cargar Conjuntos de datos</h1>
+        <p class="text-slate-500 text-sm mt-1">
+            Sube el archivo de conjuntos de datos y su metadata de variables. Necesitas dos archivos Excel.
+        </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-4 mb-6">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-4">
+            <h3 class="font-semibold text-emerald-800 text-sm mb-2 flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                </svg>Archivo 1: Conjuntos de datos
+            </h3>
+            <ul class="text-xs text-emerald-700 space-y-1 list-disc list-inside">
+                <li>Formato Excel (.xlsx o .xls)</li>
+                <li>Una fila por registro / caso</li>
+                <li>Una columna por variable</li>
+            </ul>
+            <a href="{% url 'indicadores:descargar_plantilla_conjunto_datos' %}"
+               class="inline-block mt-3 text-xs text-emerald-600 hover:text-emerald-700 hover:underline">
+                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>Descargar plantilla de ejemplo
+            </a>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-3xl p-4">
+            <h3 class="font-semibold text-slate-800 text-sm mb-2 flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>Archivo 2: Metadata de variables
+            </h3>
+            <ul class="text-xs text-slate-700 space-y-1 list-disc list-inside">
+                <li>Formato Excel (.xlsx o .xls)</li>
+                <li>Describe cada variable del archivo anterior</li>
+                <li>Nombre, tipo, descripción, categorías</li>
+            </ul>
+            <a href="{% url 'indicadores:descargar_plantilla_metadata_variables' %}"
+               class="inline-block mt-3 text-xs text-slate-600 hover:text-slate-700 hover:underline">
+                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>Descargar plantilla de ejemplo
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <!-- Tipo de Carga -->
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-slate-700 mb-3">
+                    Paso 1 — Tipo de carga
+                </label>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex items-center p-4 border-2 border-emerald-200 rounded-xl cursor-pointer hover:bg-emerald-50 transition bg-emerald-50">
+                        <input type="radio" name="tipo_carga" value="nueva" checked class="mr-3 text-emerald-600">
+                        <div>
+                            <div class="font-semibold text-slate-800 text-sm">Crear nuevo conjunto</div>
+                            <div class="text-xs text-slate-600">Para indicadores sin conjunto de datos existente</div>
+                        </div>
+                    </label>
+                    <label class="flex items-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                        <input type="radio" name="tipo_carga" value="actualizacion" class="mr-3 text-emerald-600">
+                        <div>
+                            <div class="font-semibold text-slate-800 text-sm">Actualizar existente</div>
+                            <div class="text-xs text-slate-600">Reemplazar archivo de conjunto de datos</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- IDs de Indicadores (para nueva creación) -->
+            <div id="campo-indicadores" class="mb-6">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Paso 2 — Indicadores Relacionados
+                </label>
+                <input type="hidden" name="indicadores_ids" id="inp-indicadores-ids" required>
+
+                <!-- Buscador -->
+                <div class="relative mb-3">
+                    <input type="text" id="buscar-indicador"
+                           placeholder="Buscar por código o nombre..."
+                           class="w-full border border-slate-300 rounded-lg px-4 py-3 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+
+                <!-- Lista de checkboxes -->
+                <div id="lista-indicadores" class="max-h-64 overflow-y-auto border border-slate-200 rounded-xl bg-white p-2 space-y-1">
+                    {% for ind in indicadores %}
+                    <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition" data-search="{{ ind.codigo_indicador|default:'' }} {{ ind.nombre|lower }}">
+                        <input type="checkbox" value="{{ ind.id }}" class="indicador-check w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-slate-800 truncate">
+                                {% if ind.codigo_indicador %}<code class="text-xs bg-slate-100 px-1 rounded mr-1">{{ ind.codigo_indicador }}</code>{% endif %}
+                                {{ ind.nombre }}
+                            </p>
+                            <p class="text-xs text-slate-400">ID: {{ ind.id }}</p>
+                        </div>
+                    </label>
+                    {% empty %}
+                    <p class="text-sm text-slate-400 text-center py-4">No hay indicadores asignados a tu organismo.</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Resumen seleccionados -->
+                <div id="resumen-seleccion" class="mt-3 text-sm text-emerald-700 font-medium hidden">
+                    <span id="contador-seleccion">0</span> indicador(es) seleccionado(s)
+                </div>
+
+                <p class="text-xs text-slate-500 mt-1">Selecciona los indicadores que alimenta esta conjunto de datos. Máximo 6.</p>
+            </div>
+
+            <!-- Conjunto de datos Existente (para actualización) -->
+            <div id="campo-conjunto-datos" class="mb-6" style="display:none;">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Paso 2 — Conjunto de datos a actualizar
+                </label>
+                <select name="conjunto_datos_id" required
+                        class="w-full border border-slate-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="">— Selecciona el conjunto de datos —</option>
+                    {% for md in conjuntos_datos %}
+                    <option value="{{ md.id }}">{{ md.nombre }}</option>
+                    {% endfor %}
+                </select>
+                {% if not conjuntos_datos %}
+                <p class="text-xs text-red-500 mt-1">No hay conjuntos de datos existentes para actualizar.</p>
+                {% endif %}
+                <p class="text-xs text-slate-500 mt-1">Se reemplazará el archivo actual de conjunto de datos con el nuevo archivo que subas.</p>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Paso 3 — Archivo Excel con los conjuntos de datos
+                </label>
+                <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-emerald-400 transition">
+                    <input type="file" name="archivo_conjunto_datos" accept=".xlsx,.xls,.csv" required class="hidden" id="inp-md">
+                    <button type="button" onclick="document.getElementById('inp-md').click()"
+                            class="text-sm text-emerald-600 border border-emerald-300 px-4 py-2 rounded-lg hover:bg-emerald-50 transition">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>Seleccionar archivo de conjuntos de datos
+                    </button>
+                    <p class="text-xs text-slate-400 mt-2" id="nom-md">Ningún archivo seleccionado</p>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">
+                    Paso 4 — Archivo Excel con la metadata de las variables
+                </label>
+                <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-violet-400 transition">
+                    <input type="file" name="archivo_metadata_variables" accept=".xlsx,.xls,.csv" required class="hidden" id="inp-vars">
+                    <button type="button" onclick="document.getElementById('inp-vars').click()"
+                            class="text-sm text-slate-600 border border-violet-300 px-4 py-2 rounded-lg hover:bg-violet-50 transition">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>Seleccionar archivo de metadata
+                    </button>
+                    <p class="text-xs text-slate-400 mt-2" id="nom-vars">Ningún archivo seleccionado</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button type="submit" name="accion" value="borrador"
+                        class="flex-1 border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 font-semibold py-3 rounded-lg transition text-sm">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V2"></path>
+                    </svg>Guardar como borrador
+                </button>
+                <button type="submit" name="accion" value="enviar"
+                        class="flex-1 bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white font-semibold py-3 rounded-lg transition text-sm">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>Guardar y enviar para validación
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    document.getElementById('inp-md').addEventListener('change', function() {
+        document.getElementById('nom-md').textContent = this.files[0]?.name || 'Ningún archivo';
+    });
+    document.getElementById('inp-vars').addEventListener('change', function() {
+        document.getElementById('nom-vars').textContent = this.files[0]?.name || 'Ningún archivo';
+    });
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const radioButtons = document.querySelectorAll('input[name="tipo_carga"]');
+    const campoIndicadores = document.getElementById('campo-indicadores');
+    const campoConjuntoDatos = document.getElementById('campo-conjunto-datos');
+    const indicadoresInput = document.getElementById('inp-indicadores-ids');
+    const conjuntoDatosSelect = document.querySelector('select[name="conjunto_datos_id"]');
+
+    function toggleCampos() {
+        const tipoSeleccionado = document.querySelector('input[name="tipo_carga"]:checked').value;
+        
+        if (tipoSeleccionado === 'nueva') {
+            campoIndicadores.style.display = 'block';
+            campoConjuntoDatos.style.display = 'none';
+            indicadoresInput.required = true;
+            conjuntoDatosSelect.required = false;
+        } else {
+            campoIndicadores.style.display = 'none';
+            campoConjuntoDatos.style.display = 'block';
+            indicadoresInput.required = false;
+            conjuntoDatosSelect.required = true;
+        }
+    }
+
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', toggleCampos);
+    });
+
+    // Initialize
+    toggleCampos();
+
+    // --- Selector multi-check de indicadores ---
+    const buscarInput = document.getElementById('buscar-indicador');
+    const listaIndicadores = document.getElementById('lista-indicadores');
+    const resumenSeleccion = document.getElementById('resumen-seleccion');
+    const contadorSeleccion = document.getElementById('contador-seleccion');
+
+    function actualizarSeleccion() {
+        const checks = document.querySelectorAll('.indicador-check:checked');
+        const ids = Array.from(checks).map(c => c.value).join(',');
+        indicadoresInput.value = ids;
+        contadorSeleccion.textContent = checks.length;
+        resumenSeleccion.classList.toggle('hidden', checks.length === 0);
+    }
+
+    document.querySelectorAll('.indicador-check').forEach(chk => {
+        chk.addEventListener('change', actualizarSeleccion);
+    });
+
+    if (buscarInput && listaIndicadores) {
+        buscarInput.addEventListener('input', function() {
+            const q = this.value.toLowerCase().trim();
+            listaIndicadores.querySelectorAll('label[data-search]').forEach(lbl => {
+                const txt = lbl.getAttribute('data-search') || '';
+                lbl.style.display = txt.includes(q) ? '' : 'none';
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Catálogo de Consulta — Editorial SIIED{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+    <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+            <span class="bg-teal-100 text-teal-700 p-2.5 rounded-xl">
+                <i class="fas fa-book-open"></i>
+            </span>
+            Catálogo de Consulta
+        </h1>
+        <p class="mt-1 text-slate-500 ml-12">Directorios y listados de referencia (ex-anuario Cali en Cifras)</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'indicadores:editorial_catalogo_consulta_crear' %}" class="px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium text-sm hover:bg-teal-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-2"></i>Nuevo Conjunto
+        </a>
+    </div>
+</div>
+
+<!-- Filtros por dominio -->
+<div class="mb-6 flex flex-wrap gap-2">
+    <a href="{% url 'indicadores:editorial_catalogo_consulta' %}" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if not dominio_filtro %}bg-teal-100 text-teal-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">
+        Todos
+    </a>
+    {% for dom in dominios %}
+    <a href="?dominio={{ dom.id }}" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if dominio_filtro == dom.id|stringformat:'d' %}bg-teal-100 text-teal-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">
+        {{ dom.nombre }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Tabla de conjuntos -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Conjunto</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Dominio</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                    <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Filas</th>
+                    <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Indicadores</th>
+                    <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for conjunto in conjuntos %}
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-900">{{ conjunto.nombre }}</div>
+                        {% if conjunto.archivo %}
+                        <div class="text-xs text-slate-400 mt-0.5">
+                            <i class="fas fa-file-{% if conjunto.extension == 'csv' %}csv{% else %}excel{% endif %} mr-1"></i>{{ conjunto.extension|upper }} · {{ conjunto.fecha_actualizacion|date:"d/m/Y" }}
+                        </div>
+                        {% else %}
+                        <div class="text-xs text-amber-500 mt-0.5"><i class="fas fa-exclamation-circle mr-1"></i>Sin archivo cargado</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ conjunto.dominio.nombre }}</td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ conjunto.get_tipo_consulta_display }}</td>
+                    <td class="px-6 py-4 text-center text-sm text-slate-600">{{ conjunto.total_filas }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if conjunto.n_indicadores %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">{{ conjunto.n_indicadores }}</span>
+                        {% else %}
+                        <span class="text-xs text-slate-400">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        {% if conjunto.activo %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Activo</span>
+                        {% else %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        {% if conjunto.activo %}
+                        <a href="{% url 'indicadores:catalogo_consulta_detalle' conjunto.pk %}" target="_blank" class="text-slate-500 hover:text-slate-700 text-sm font-medium mr-3" title="Ver público">
+                            <i class="fas fa-external-link-alt"></i>
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'indicadores:editorial_catalogo_consulta_editar' conjunto.pk %}" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium mr-3">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'indicadores:editorial_catalogo_consulta_eliminar' conjunto.pk %}" class="text-rose-500 hover:text-rose-700 text-sm font-medium">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-16 text-center">
+                        <i class="fas fa-book-open text-4xl text-slate-300 mb-3 block"></i>
+                        <p class="text-slate-500">Aún no hay conjuntos en el catálogo de consulta.</p>
+                        <p class="text-sm text-slate-400 mt-1">Crea el primero con el botón "Nuevo Conjunto".</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

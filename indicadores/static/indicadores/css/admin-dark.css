@@ -1,0 +1,86 @@
+/* Dark theme for Django Admin - SIIED Cali */
+:root{
+  --bg: #0b0f1a;
+  --bg-soft: #101725;
+  --panel: #141c2b;
+  --panel-2: #0f1624;
+  --text: #e6f1ff;
+  --muted: #9fb3c8;
+  --primary: #4299e1;
+  --primary-2: #2b6cb0;
+  --accent: #76a9fa;
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #f59e0b;
+  --border: #1f4068;
+  --border-soft: #1b2a44;
+  --shadow: 0 6px 20px rgba(0,0,0,.45);
+}
+
+/* Global */
+html, body{ background:var(--bg); color:var(--text); }
+#content, .content{ color:var(--text); }
+a{ color:var(--accent); }
+a:hover{ color:var(--primary); }
+
+/* Header */
+#header{ background: linear-gradient(90deg, #0e1626, #0a1322); border-bottom:1px solid var(--border); box-shadow: var(--shadow); }
+#header #branding, #header .siied-branding{ display:flex; align-items:center; gap:12px; }
+#header #site-name, #header .siied-branding #site-name{ color:var(--text); font-weight:700; font-size:16px; margin:0; }
+.siied-logo{ height:36px; width:auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,.35)); }
+#user-tools, #user-tools a{ color:var(--muted); }
+#user-tools a:hover{ color:var(--text); }
+
+/* Breadcrumbs */
+#breadcrumbs, .breadcrumbs{ background: var(--panel-2); border-bottom:1px solid var(--border-soft); color:var(--muted); }
+#breadcrumbs a, .breadcrumbs a{ color:var(--accent); }
+
+/* Modules / Panels */
+.module, .app-*, .inline-group, .change-form, .change-list, .dashboard .module{ background:var(--panel); border:1px solid var(--border-soft); box-shadow: var(--shadow); }
+fieldset{ border-color: var(--border-soft); }
+legend{ color: var(--text); }
+
+/* Tables */
+.table, table, .results{ color:var(--text); background:var(--panel); border-color:var(--border-soft); }
+th, td{ border-color: var(--border-soft) !important; }
+th{ background: var(--bg-soft); }
+tr:nth-child(odd){ background: rgba(255,255,255,0.02); }
+tr:hover{ background: rgba(66,153,225,0.08); }
+
+/* Forms */
+input, select, textarea{ background:var(--panel-2); color:var(--text); border:1px solid var(--border-soft); }
+input:focus, select:focus, textarea:focus{ outline:2px solid rgba(66,153,225,.35); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(66,153,225,.15); }
+.help, .help *{ color: var(--muted) !important; }
+
+/* Buttons */
+.button, input[type=submit], .submit-row input, .object-tools a{ background:linear-gradient(180deg, #1b2640, #14203a); color:var(--text); border:1px solid var(--border); border-radius:6px; }
+.button:hover, input[type=submit]:hover, .submit-row input:hover, .object-tools a:hover{ background:linear-gradient(180deg, #233055, #1a2a4c); border-color: var(--primary); color:#fff; }
+.button.default, .submit-row input.default{ background:linear-gradient(180deg, #225a96, #1c4b7c); border-color:#2b6cb0; }
+.button.default:hover, .submit-row input.default:hover{ background:linear-gradient(180deg, #2f76c4, #2463a8); }
+.deletelink, .button.deletelink{ background: linear-gradient(180deg, #7a1f24, #5c161a); border-color:#8b2c31; }
+.deletelink:hover{ background: linear-gradient(180deg, #9a272e, #6f1b21); }
+
+/* Messages */
+ul.messagelist li{ background:var(--panel); border-left:4px solid var(--primary); color:var(--text); box-shadow: var(--shadow); }
+ul.messagelist li.success{ border-left-color: var(--success); }
+ul.messagelist li.error{ border-left-color: var(--error); }
+
+/* Paginator & Filters */
+.paginator, .filters{ background:var(--panel-2); border:1px solid var(--border-soft); color:var(--muted); }
+
+/* Login */
+body.login{ background: radial-gradient(1200px 600px at 20% 10%, #162542 0%, #0b0f1a 60%); }
+.login #header{ background: transparent; border:none; box-shadow: none; }
+.login .submit-row{ background: transparent; }
+
+/* Footer */
+#footer{ background: var(--bg-soft); color: var(--muted); border-top: 1px solid var(--border-soft); }
+
+/* Custom badges used in live logs page */
+.badge.pendiente{ background:#666; color:#fff; }
+.badge.procesando{ background:#0066cc; color:#fff; }
+.badge.completado{ background:#22c55e; color:#001b0c; }
+.badge.error{ background:#ef4444; color:#3b0a0a; }
+
+/* Pre elements (logs) */
+pre.log{ background:#000; color:#0f0; border:1px solid #0f0; }

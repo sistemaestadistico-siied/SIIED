@@ -1,0 +1,288 @@
+{% extends "indicadores/base.html" %}
+{% load static %}
+
+{% block title %}Workspace SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+  .workspace-hero {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 1px solid #cbd5e1;
+    margin-bottom: 2rem;
+  }
+  .workspace-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  .workspace-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+  }
+  .workspace-card .icon {
+    width: 3rem; height: 3rem;
+    border-radius: 0.75rem;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+  }
+  .workspace-card h3 {
+    font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.25rem;
+  }
+  .workspace-card p {
+    font-size: 0.875rem; color: #64748b; flex: 1; margin-bottom: 1rem;
+  }
+  .workspace-card .stat {
+    font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem;
+  }
+  .workspace-card .btn-link {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 0.875rem; font-weight: 600; text-decoration: none;
+    padding: 0.5rem 1rem; border-radius: 0.5rem;
+    transition: background 0.15s;
+  }
+  .role-badge {
+    display: inline-block; padding: 0.25rem 0.75rem;
+    border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    background: #e0e7ff; color: #3730a3;
+    margin-left: 0.5rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<div class="workspace-hero">
+  <div class="container mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-slate-900">Workspace SIIED</h1>
+        <p class="text-slate-600 mt-1">
+          Bienvenido, <span class="font-semibold">{{ user.get_full_name|default:user.username }}</span>
+          {% if rol %}<span class="role-badge">{{ perfil.get_rol_display|default:rol }}</span>{% endif %}
+        </p>
+      </div>
+      {% if perfil.institucion %}
+      <div class="text-right">
+        <p class="text-sm text-slate-500">Institución</p>
+        <p class="text-lg font-semibold text-slate-800">{{ perfil.institucion }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container mx-auto px-6 pb-12">
+
+  <!-- Recolección -->
+  {% if puede_recoleccion %}
+  <div class="mb-10">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span>
+      Módulo de Recolección
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#ecfdf5;color:#059669;"><i class="fas fa-chart-line"></i></div>
+        <h3>Cargar Serie</h3>
+        <p>Sube datos y metadata de un indicador.</p>
+        {% if stats.mis_series is not None %}<div class="stat" style="color:#059669;">{{ stats.mis_series }}</div>{% endif %}
+        <a href="{% url 'indicadores:cargar_serie_indicador' %}" class="btn-link" style="background:#ecfdf5;color:#059669;">Ir a cargar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0f9ff;color:#0284c7;"><i class="fas fa-database"></i></div>
+        <h3>Cargar Conjunto de datos</h3>
+        <p>Sube conjuntos de datos con metadata de variables.</p>
+        {% if stats.mis_conjuntos_datos is not None %}<div class="stat" style="color:#0284c7;">{{ stats.mis_conjuntos_datos }}</div>{% endif %}
+        <a href="{% url 'indicadores:cargar_conjunto_datos' %}" class="btn-link" style="background:#f0f9ff;color:#0284c7;">Ir a cargar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#fffbeb;color:#d97706;"><i class="fas fa-history"></i></div>
+        <h3>Historial</h3>
+        <p>Revisa el estado de tus cargas anteriores.</p>
+        {% if stats.series_pendientes is not None %}
+        <div class="stat" style="color:#d97706;">{{ stats.series_pendientes }}</div>
+        <p style="font-size:0.75rem;margin-top:-0.5rem;">cargas pendientes</p>
+        {% endif %}
+        <a href="{% url 'indicadores:recoleccion_dashboard' %}" class="btn-link" style="background:#fffbeb;color:#d97706;">Ver historial <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-table"></i></div>
+        <h3>Carga Inline</h3>
+        <p>Ingresa datos directamente sin subir archivo.</p>
+        <a href="{% url 'indicadores:cargar_serie_inline' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Ir a inline <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Reportes -->
+  {% if puede_reportes %}
+  <div class="mb-10">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span>
+      Módulo de Reportes
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#ede9fe;color:#7c3aed;"><i class="fas fa-chart-bar"></i></div>
+        <h3>Reportes Indicadores</h3>
+        <p>Genera reportes y descarga datos de indicadores.</p>
+        {% if stats.total_indicadores is not None %}<div class="stat" style="color:#7c3aed;">{{ stats.total_indicadores }}</div>{% endif %}
+        <a href="{% url 'indicadores:reportes_indicadores' %}" class="btn-link" style="background:#ede9fe;color:#7c3aed;">Ir a reportes <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0f9ff;color:#0284c7;"><i class="fas fa-database"></i></div>
+        <h3>Reportes Conjunto de datos</h3>
+        <p>Explora y descarga conjuntos de datos disponibles.</p>
+        <a href="{% url 'indicadores:reportes_conjuntos_datos' %}" class="btn-link" style="background:#f0f9ff;color:#0284c7;">Ir a conjunto de datos <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#ecfdf5;color:#059669;"><i class="fas fa-map"></i></div>
+        <h3>Visor Comparativo</h3>
+        <p>Compara indicadores entre territorios y períodos.</p>
+        <a href="{% url 'indicadores:visor_comparativo' %}" class="btn-link" style="background:#ecfdf5;color:#059669;">Abrir visor <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-exchange-alt"></i></div>
+        <h3>Trazabilidad</h3>
+        <p>Revisa cambios por organismo y período.</p>
+        <a href="{% url 'indicadores:reportes_trazabilidad' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Ver trazabilidad <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Delegado -->
+  {% if es_delegado %}
+  <div class="mb-10">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
+      Portal del Delegado
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-upload"></i></div>
+        <h3>Cargar Serie</h3>
+        <p>Sube datos de indicadores asignados a tu organismo.</p>
+        {% if stats.delegado_series is not None %}<div class="stat" style="color:#b45309;">{{ stats.delegado_series }}</div>{% endif %}
+        <a href="{% url 'indicadores:delegado_cargar_serie' %}" class="btn-link" style="background:#fef3c7;color:#b45309;">Ir a cargar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-database"></i></div>
+        <h3>Cargar Conjunto de datos</h3>
+        <p>Sube conjuntos de datos para indicadores de tu organismo.</p>
+        {% if stats.delegado_conjunto_datos is not None %}<div class="stat" style="color:#b45309;">{{ stats.delegado_conjunto_datos }}</div>{% endif %}
+        <a href="{% url 'indicadores:delegado_cargar_conjunto_datos' %}" class="btn-link" style="background:#fef3c7;color:#b45309;">Ir a cargar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#fffbeb;color:#d97706;"><i class="fas fa-inbox"></i></div>
+        <h3>Mis Cargas</h3>
+        <p>Revisa el estado de tus cargas enviadas.</p>
+        <a href="{% url 'indicadores:delegado_dashboard' %}" class="btn-link" style="background:#fffbeb;color:#d97706;">Ver dashboard <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Validador -->
+  {% if es_validador %}
+  <div class="mb-10">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
+      Panel de Validación
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#fee2e2;color:#991b1b;"><i class="fas fa-clipboard-check"></i></div>
+        <h3>Validar Series</h3>
+        <p>Revisa cargas de series pendientes de aprobación.</p>
+        {% if stats.validar_series is not None %}<div class="stat" style="color:#991b1b;">{{ stats.validar_series }}</div>{% endif %}
+        <a href="{% url 'indicadores:validacion_dashboard' %}" class="btn-link" style="background:#fee2e2;color:#991b1b;">Ir a validación <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#fee2e2;color:#991b1b;"><i class="fas fa-database"></i></div>
+        <h3>Validar Conjunto de datos</h3>
+        <p>Revisa cargas de conjunto de datos pendientes.</p>
+        {% if stats.validar_conjunto_datos is not None %}<div class="stat" style="color:#991b1b;">{{ stats.validar_conjunto_datos }}</div>{% endif %}
+        <a href="{% url 'indicadores:validacion_dashboard' %}" class="btn-link" style="background:#fee2e2;color:#991b1b;">Ir a validación <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Editorial -->
+  {% if puede_editorial %}
+  <div class="mb-10">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#9333ea;display:inline-block;"></span>
+      Editorial
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3e8ff;color:#7e22ce;"><i class="fas fa-pen-fancy"></i></div>
+        <h3>Dashboard Editorial</h3>
+        <p>Gestiona productos, eventos, noticias y calendario de difusión.</p>
+        {% if stats.productos_count is not None %}<div class="stat" style="color:#7e22ce;">{{ stats.productos_count }}</div>{% endif %}
+        <a href="{% url 'indicadores:editorial_dashboard' %}" class="btn-link" style="background:#f3e8ff;color:#7e22ce;">Abrir editorial <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#faf5ff;color:#a855f7;"><i class="fas fa-file-alt"></i></div>
+        <h3>Documentos Infra.</h3>
+        <p>Gestiona la jerarquía completa de documentos de infraestructura.</p>
+        <a href="{% url 'indicadores:editorial_infraestructura_arbol' %}" class="btn-link" style="background:#faf5ff;color:#a855f7;">Ver árbol <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#faf5ff;color:#a855f7;"><i class="fas fa-server"></i></div>
+        <h3>Sistemas de Info.</h3>
+        <p>Administra sistemas y categorías de información.</p>
+        <a href="{% url 'indicadores:editorial_sistemas' %}" class="btn-link" style="background:#faf5ff;color:#a855f7;">Gestionar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#faf5ff;color:#a855f7;"><i class="fas fa-project-diagram"></i></div>
+        <h3>Productos de Info.</h3>
+        <p>Administra productos de información y categorías.</p>
+        <a href="{% url 'indicadores:editorial_proyectos_info' %}" class="btn-link" style="background:#faf5ff;color:#a855f7;">Gestionar <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Admin / Staff -->
+  {% if es_staff %}
+  <div class="mb-10">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#6366f1;display:inline-block;"></span>
+      Administración
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#e0e7ff;color:#4338ca;"><i class="fas fa-magic"></i></div>
+        <h3>Wizard Unificado</h3>
+        <p>Procesa cargas pendientes y actualiza indicadores.</p>
+        <a href="{% url 'wizard_dashboard' %}" class="btn-link" style="background:#e0e7ff;color:#4338ca;">Abrir wizard <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-cogs"></i></div>
+        <h3>Procesos Activos</h3>
+        <p>Monitorea extracciones y cargas en ejecución.</p>
+        {% if stats.procesos_activos is not None %}<div class="stat" style="color:#4b5563;">{{ stats.procesos_activos }}</div>{% endif %}
+        <a href="{% url 'indicadores:admin_procesos_dashboard' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Ver procesos <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-users-cog"></i></div>
+        <h3>Panel Django</h3>
+        <p>Administra usuarios, indicadores y configuración.</p>
+        <a href="{% url 'admin:index' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Ir al admin <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

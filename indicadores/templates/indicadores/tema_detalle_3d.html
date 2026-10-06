@@ -1,0 +1,166 @@
+{% extends 'indicadores/base.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+    .storybook-wrapper { background: radial-gradient(circle at top, #fff6e8 0%, #fef3f2 35%, #f4fbf7 100%); }
+    .storybook-panel { background: linear-gradient(135deg, rgba(221, 214, 254, 0.55), rgba(255, 255, 255, 0.8)); border: 1px solid rgba(168, 85, 247, 0.2); }
+    .storybook-font { font-family: 'Baloo 2', 'Nunito', system-ui; }
+</style>
+
+<!-- Fondo tipo libro de cuentos -->
+<div class="min-h-screen relative overflow-hidden storybook-wrapper">
+    <div class="absolute inset-0 opacity-10" style="background-image: url('data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23c084fc\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'6\'/%3E%3Ccircle cx=\'110\' cy=\'70\' r=\'4\'/%3E%3Ccircle cx=\'160\' cy=\'140\' r=\'5\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+    
+    <div class="container mx-auto px-4 py-8 relative z-10">
+        <!-- Encabezado de sección -->
+        <div class="storybook-panel rounded-[28px] shadow-xl p-6 mb-8">
+            <div class="flex items-center gap-5">
+                <div class="bg-white rounded-2xl p-4 border border-purple-100">
+                    <svg class="w-12 h-12 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <p class="uppercase text-xs font-semibold text-purple-600 tracking-wide">Sección temática</p>
+                    <h1 class="storybook-font text-3xl font-extrabold text-slate-900">{{ tema_actual.nombre }}</h1>
+                    <p class="text-slate-600 text-base mt-1">Explora las historias y retos disponibles dentro de esta sección del capítulo.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Breadcrumb -->
+        <nav class="mb-8 flex items-center gap-2 flex-wrap text-sm font-semibold text-slate-500">
+            <a href="{% url 'indicadores:home' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">🏠 Inicio</a>
+            <a href="{% url 'indicadores:dominios_3d' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">📚 Capítulos</a>
+            <a href="{% url 'indicadores:dominio_detalle_3d' dominio.slug %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">{{ dominio.nombre }}</a>
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-slate-100 text-slate-500">{{ tema_actual.nombre }}</span>
+        </nav>
+
+        <!-- Layout tipo libro abierto -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Página izquierda: Navegación de secciones -->
+            <aside class="lg:col-span-1">
+                <div class="bg-white rounded-3xl shadow-xl p-6 border border-purple-100 sticky top-8">
+                    <div class="w-28 h-28 rounded-[26px] bg-gradient-to-br from-purple-400 to-pink-400 mx-auto flex items-center justify-center mb-4">
+                        {% if tema_actual.imagen_url %}
+                            <img src="{{ tema_actual.imagen_url }}" alt="{{ tema_actual.nombre }}" class="h-20 w-20 object-cover rounded-2xl">
+                        {% elif tema_actual.icono %}
+                            <i class="{{ tema_actual.icono }} text-5xl text-white"></i>
+                        {% else %}
+                            <img src="https://i.ibb.co/gZH2yJLd/Chat-GPT-Image-15-mar-2026-02-18-16-p-m.png" alt="Decoración" class="h-20 w-20 object-contain" loading="lazy">
+                        {% endif %}
+                    </div>
+                    <h2 class="storybook-font text-2xl font-bold text-slate-900 text-center">{{ tema_actual.nombre }}</h2>
+                    <p class="text-xs text-slate-500 text-center">Selecciona una sección</p>
+
+                    <div class="text-left mt-6">
+                        <h3 class="text-sm font-semibold text-purple-600 mb-3">Índice de secciones</h3>
+                        <nav class="flex flex-col space-y-2">
+                            {% for tema in temas_del_dominio %}
+                                <a href="{% url 'indicadores:tema_detalle_3d' dominio.slug tema.slug %}" 
+                                   class="px-3 py-2 rounded-xl text-sm font-semibold transition-all
+                                          {% if tema.slug == tema_actual.slug %}
+                                              bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200 shadow-sm
+                                          {% else %}
+                                              bg-white text-slate-600 border border-slate-100 hover:border-purple-200 hover:text-purple-700
+                                          {% endif %}">
+                                    {{ tema.nombre }}
+                                </a>
+                            {% endfor %}
+                        </nav>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Página derecha: Contenido de historias -->
+            <main class="lg:col-span-3">
+                <div class="relative">
+                    <!-- Sombra de página -->
+                    <div class="absolute -inset-1 bg-gray-400 rounded-2xl transform translate-x-2 translate-y-2"></div>
+                    
+                    <!-- Página principal -->
+                    <div class="relative bg-white rounded-2xl shadow-2xl p-8 border-4 border-purple-700" style="box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);">
+                        <!-- Líneas de cuaderno -->
+                        <div class="absolute inset-0 opacity-5 rounded-2xl" style="background-image: repeating-linear-gradient(transparent, transparent 35px, #8B4513 35px, #8B4513 36px);"></div>
+                        
+                        <div class="relative">
+                            {% if tema_actual.descripcion %}
+                                <!-- Caja de historia -->
+                                <div class="mb-8 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-6 border-4 border-pink-300 shadow-inner">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <span class="text-3xl">📖</span>
+                                        <h3 class="text-xl font-black text-pink-800" style="font-family: 'Comic Sans MS', cursive;">
+                                            La Historia de Esta Sección
+                                        </h3>
+                                    </div>
+                                    <div class="prose max-w-none text-gray-700" style="font-family: 'Comic Sans MS', cursive; font-size: 1.1rem;">
+                                        {{ tema_actual.descripcion|safe }}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Título de historias -->
+                            <div class="mb-6 text-center">
+                                <h2 class="text-4xl font-black text-purple-900 mb-2" style="font-family: 'Comic Sans MS', cursive; text-shadow: 2px 2px 0px #FFB6C1;">
+                                    🎪 Historias para Descubrir
+                                </h2>
+                                <p class="text-lg text-purple-700 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                                    ¡Cada historia tiene datos increíbles!
+                                </p>
+                            </div>
+                            
+                            {% if subtemas %}
+                                <!-- Grid de historias como tarjetas ilustradas -->
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+                                    {% for subtema in subtemas %}
+                                        <a href="{% url 'indicadores:subtema_detalle_3d' dominio.slug tema_actual.slug subtema.slug %}" class="group block">
+                                            <div class="bg-white rounded-2xl border border-cyan-50 shadow-md hover:shadow-xl transition p-4 text-center flex flex-col items-center">
+                                                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center mb-3">
+                                                    {% if subtema.imagen_url %}
+                                                        <img src="{{ subtema.imagen_url }}" alt="{{ subtema.nombre }}" class="h-14 w-14 object-contain">
+                                                    {% elif subtema.icono %}
+                                                        <i class="{{ subtema.icono }} text-3xl text-white"></i>
+                                                    {% else %}
+                                                        <svg class="h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                        </svg>
+                                                    {% endif %}
+                                                </div>
+                                                <h3 class="text-sm font-semibold text-slate-900 group-hover:text-teal-600 transition-colors">{{ subtema.nombre }}</h3>
+                                                <span class="mt-2 text-xs text-slate-400">ver historia</span>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="bg-yellow-100 rounded-2xl p-8 text-center border-4 border-yellow-400">
+                                    <span class="text-6xl mb-4 block">📚</span>
+                                    <p class="text-xl text-gray-600 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                                        No hay historias disponibles en esta sección todavía
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Esquina doblada -->
+                        <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[35px] border-l-transparent border-b-[35px] border-b-gray-300"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Decoración inferior -->
+        <div class="mt-12 text-center">
+            <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-xl border-3 border-purple-600">
+                <span class="text-4xl">🎭</span>
+                <p class="text-lg font-bold text-purple-900" style="font-family: 'Comic Sans MS', cursive;">
+                    ¡Descubre datos mágicos en cada historia!
+                </p>
+                <span class="text-4xl">🌟</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

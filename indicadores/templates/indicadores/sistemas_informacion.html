@@ -1,0 +1,145 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Sistemas de Consulta</h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Accede a los sistemas de consulta, visualizadores de datos, geovisores y herramientas 
+            analíticas del Sistema Integrado de Información Estadística Distrital de Santiago de Cali.
+        </p>
+    </div>
+
+    <!-- Grid de Categorías -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {% for categoria in categorias %}
+        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <!-- Header de la categoría -->
+            <div class="p-6 text-center" style="background: linear-gradient(135deg, {{ categoria.color|default:'#3b82f6' }}22, {{ categoria.color|default:'#3b82f6' }}11);">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" 
+                     style="background-color: {{ categoria.color|default:'#3b82f6' }};">
+                    {% if categoria.icono %}
+                        <i class="{{ categoria.icono }} text-2xl text-white"></i>
+                    {% else %}
+                        <i class="fas fa-folder text-2xl text-white"></i>
+                    {% endif %}
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ categoria.nombre }}</h3>
+                {% if categoria.descripcion %}
+                    <p class="text-sm text-gray-600">{{ categoria.descripcion|truncatewords:15 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Lista de sistemas -->
+            <div class="p-4">
+                {% for sistema in categoria.sistemas.all %}
+                    {% if sistema.activo %}
+                    <a href="{{ sistema.url }}" 
+                       {% if sistema.abrir_nueva_ventana %}target="_blank"{% endif %}
+                       class="block p-3 mb-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
+                        <div class="flex items-center">
+                            {% if sistema.icono %}
+                                <i class="{{ sistema.icono }} text-gray-500 group-hover:text-blue-600 mr-3"></i>
+                            {% else %}
+                                <i class="fas fa-link text-gray-500 group-hover:text-blue-600 mr-3"></i>
+                            {% endif %}
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                                    {{ sistema.nombre }}
+                                    {% if sistema.abrir_nueva_ventana %}
+                                        <i class="fas fa-external-link-alt text-xs ml-1"></i>
+                                    {% endif %}
+                                </div>
+                                {% if sistema.descripcion %}
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ sistema.descripcion|truncatewords:8 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    {% endif %}
+                {% empty %}
+                    <div class="text-center py-4 text-gray-500 text-sm">
+                        <i class="fas fa-info-circle mb-2"></i>
+                        <p>No hay sistemas disponibles en esta categoría</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Footer con contador -->
+            {% if categoria.sistemas.all %}
+            <div class="px-4 pb-4">
+                <div class="text-xs text-gray-400 text-center">
+                    {{ categoria.sistemas.all|length }} sistema{{ categoria.sistemas.all|length|pluralize }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+            <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-600 mb-2">No hay categorías configuradas</h3>
+            <p class="text-gray-500">Las categorías de sistemas de información se configuran desde el panel de administración.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Información adicional -->
+    <div class="mt-16 bg-blue-50 rounded-lg p-8">
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-blue-900 mb-4">¿Necesitas ayuda?</h2>
+            <p class="text-blue-700 mb-6">
+                Si tienes problemas para acceder a algún sistema o necesitas información adicional, 
+                contacta al equipo de soporte técnico.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="mailto:soporte@cali.gov.co" 
+                   class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-envelope mr-2"></i>
+                    Contactar Soporte
+                </a>
+                <a href="{% url 'indicadores:api_documentation' %}" 
+                   class="inline-flex items-center px-6 py-3 bg-white text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+                    <i class="fas fa-book mr-2"></i>
+                    Documentación API
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos adicionales para mejorar la presentación */
+.categoria-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.categoria-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Animación suave para los enlaces de sistemas */
+.sistema-link {
+    position: relative;
+    overflow: hidden;
+}
+
+.sistema-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.sistema-link:hover::before {
+    left: 100%;
+}
+</style>
+{% endblock %}

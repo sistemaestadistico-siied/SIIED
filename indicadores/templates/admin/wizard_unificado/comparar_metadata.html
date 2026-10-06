@@ -1,0 +1,259 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-code-compare"></i>
+      Comparar Metadata
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Comparación de Cambios:</strong> Revisa las diferencias entre la metadata actual y la nueva.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Comparación de metadata -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-exchange-alt"></i>
+        Cambios Detectados
+      </h4>
+      
+      <div class="diff-viewer">
+        <!-- Nombre -->
+        {% if metadata_diff.nombre %}
+        <div class="diff-item">
+          <div class="diff-header">
+            <strong>Nombre</strong>
+            <div class="form-group-inline">
+              {{ wizard.form.actualizar_nombre }}
+              <label for="{{ wizard.form.actualizar_nombre.id_for_label }}">
+                {{ wizard.form.actualizar_nombre.label }}
+              </label>
+            </div>
+          </div>
+          <div class="diff-content">
+            <div class="diff-old">
+              <span class="label">Actual:</span>
+              <span>{{ metadata_diff.nombre.actual }}</span>
+            </div>
+            <div class="diff-arrow">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+            <div class="diff-new">
+              <span class="label">Nuevo:</span>
+              <span>{{ metadata_diff.nombre.nuevo }}</span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- Descripción -->
+        {% if metadata_diff.descripcion %}
+        <div class="diff-item">
+          <div class="diff-header">
+            <strong>Descripción</strong>
+            <div class="form-group-inline">
+              {{ wizard.form.actualizar_descripcion }}
+              <label for="{{ wizard.form.actualizar_descripcion.id_for_label }}">
+                {{ wizard.form.actualizar_descripcion.label }}
+              </label>
+            </div>
+          </div>
+          <div class="diff-content">
+            <div class="diff-old">
+              <span class="label">Actual:</span>
+              <span>{{ metadata_diff.descripcion.actual|truncatewords:20 }}</span>
+            </div>
+            <div class="diff-arrow">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+            <div class="diff-new">
+              <span class="label">Nuevo:</span>
+              <span>{{ metadata_diff.descripcion.nuevo|truncatewords:20 }}</span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- Fórmula -->
+        {% if metadata_diff.formula %}
+        <div class="diff-item">
+          <div class="diff-header">
+            <strong>Fórmula</strong>
+            <div class="form-group-inline">
+              {{ wizard.form.actualizar_formula }}
+              <label for="{{ wizard.form.actualizar_formula.id_for_label }}">
+                {{ wizard.form.actualizar_formula.label }}
+              </label>
+            </div>
+          </div>
+          <div class="diff-content">
+            <div class="diff-old">
+              <span class="label">Actual:</span>
+              <code>{{ metadata_diff.formula.actual }}</code>
+            </div>
+            <div class="diff-arrow">
+              <i class="fas fa-arrow-right"></i>
+            </div>
+            <div class="diff-new">
+              <span class="label">Nuevo:</span>
+              <code>{{ metadata_diff.formula.nuevo }}</code>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        
+        {% if not metadata_diff %}
+        <div class="warning-box">
+          <i class="fas fa-info-circle"></i>
+          <strong>No se detectaron cambios en la metadata.</strong>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.diff-viewer {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.diff-item {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.diff-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.diff-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.diff-header strong {
+  color: var(--admin-text);
+  font-size: 1rem;
+}
+
+.form-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group-inline label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--admin-muted);
+}
+
+.diff-content {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.diff-old, .diff-new {
+  padding: 1rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.diff-old {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.diff-new {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.diff-old .label {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.diff-new .label {
+  color: #10b981;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.diff-old span:last-child,
+.diff-new span:last-child {
+  color: var(--admin-text);
+  font-size: 0.9rem;
+}
+
+.diff-old code,
+.diff-new code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.diff-arrow {
+  color: var(--wizard-primary);
+  font-size: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .diff-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .diff-arrow {
+    transform: rotate(90deg);
+  }
+}
+</style>
+{% endblock %}

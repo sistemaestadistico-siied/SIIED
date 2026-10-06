@@ -1,0 +1,3292 @@
+{% extends 'indicadores/base.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+    .storybook-wrapper { background: radial-gradient(circle at top, #fff6e8 0%, #fef3f2 35%, #f4fbf7 100%); }
+    .storybook-panel { background: linear-gradient(135deg, rgba(164, 230, 255, 0.55), rgba(255, 255, 255, 0.8)); border: 1px solid rgba(59, 130, 246, 0.2); }
+    .storybook-font { font-family: 'Baloo 2', 'Nunito', system-ui; }
+</style>
+
+<!-- Fondo tipo libro de cuentos -->
+<div class="min-h-screen relative overflow-hidden storybook-wrapper">
+    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%230ea5e9\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'5\'/%3E%3Ccircle cx=\'110\' cy=\'70\' r=\'4\'/%3E%3Ccircle cx=\'150\' cy=\'140\' r=\'5\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+    
+    <div class="container mx-auto px-4 py-6 relative z-10">
+        <!-- Encabezado de historia -->
+        <div class="storybook-panel rounded-[26px] shadow-xl p-5 lg:p-7 mb-6">
+            <div class="flex items-center gap-4">
+                <div class="bg-white rounded-2xl p-4 border border-cyan-100">
+                    <svg class="w-12 h-12 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z"></path>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <p class="uppercase text-xs font-semibold text-cyan-600 tracking-wide">Subtema</p>
+                    <h1 class="storybook-font text-2xl lg:text-3xl font-extrabold text-slate-900">
+                        {{ subtema_actual.nombre }}
+                    </h1>
+                    <p class="text-slate-600 text-sm lg:text-base mt-1">Descubre los datos mágicos de esta historia dentro del capítulo seleccionado.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Breadcrumb -->
+        <nav class="mb-6 flex items-center gap-2 flex-wrap text-xs lg:text-sm font-semibold text-slate-500">
+            <a href="{% url 'indicadores:home' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">🏠 Inicio</a>
+            <a href="{% url 'indicadores:dominios_3d' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">📚 Capítulos</a>
+            <a href="{% url 'indicadores:dominio_detalle_3d' dominio.slug %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">{{ dominio.nombre|truncatewords:2 }}</a>
+            <a href="{% url 'indicadores:tema_detalle_3d' dominio.slug tema.slug %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">{{ tema.nombre|truncatewords:2 }}</a>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-slate-100 text-slate-500">{{ subtema_actual.nombre|truncatewords:3 }}</span>
+        </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
+        <!-- Sidebar de indicadores - estilo índice de libro -->
+        <aside class="lg:col-span-1">
+            <div class="bg-white rounded-3xl shadow-xl p-5 border border-cyan-100 sticky top-8">
+                <div class="text-center mb-4">
+                    <div class="w-24 h-24 rounded-[24px] bg-gradient-to-br from-cyan-400 to-sky-500 mx-auto flex items-center justify-center">
+                        {% if subtema_actual.imagen_url %}
+                            <img src="{{ subtema_actual.imagen_url }}" alt="{{ subtema_actual.nombre }}" class="h-16 w-16 object-contain">
+                        {% elif subtema_actual.icono %}
+                            <i class="{{ subtema_actual.icono }} text-4xl text-white"></i>
+                        {% else %}
+                            <img src="https://i.ibb.co/gZH2yJLd/Chat-GPT-Image-15-mar-2026-02-18-16-p-m.png" alt="Decoración" class="h-16 w-16 object-contain" loading="lazy">
+                        {% endif %}
+                    </div>
+                    <h2 class="storybook-font text-xl font-bold text-slate-900 mt-3">{{ subtema_actual.nombre }}</h2>
+                    <p class="text-xs text-slate-500">Selecciona un dato para visualizar</p>
+                </div>
+
+                <nav id="indicadores-nav" class="flex flex-col space-y-1 text-left">
+                        {% for indicador in indicadores %}
+                            <a href="#" data-indicador-id="{{ indicador.id }}" data-indicador-nombre="{{ indicador.nombre }}" data-mostrar-mapa="{{ indicador.mostrar_mapa|yesno:'true,false' }}"
+                               class="indicador-link px-2 py-2 rounded-lg text-xs font-bold transition-all transform hover:translate-x-2 hover:scale-105 bg-gradient-to-r from-yellow-50 to-orange-50 text-gray-700 hover:from-cyan-100 hover:to-teal-100 border-2 border-amber-300"
+                               style="font-family: 'Comic Sans MS', cursive;">
+                                <span>{{ indicador.nombre }}</span>
+                            </a>
+                        {% empty %}
+                            <p class="text-xs text-gray-500 px-2 py-2" style="font-family: 'Comic Sans MS', cursive;">No hay datos disponibles.</p>
+                        {% endfor %}
+                    </nav>
+                    
+                    <!-- Esquina doblada -->
+                    <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[20px] border-l-transparent border-b-[20px] border-b-gray-300"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Contenido principal - GRÁFICO MÁS GRANDE -->
+        <main class="lg:col-span-4">
+            <div class="relative">
+                <!-- Sombra de página -->
+                <div class="absolute -inset-1 bg-gray-400 rounded-2xl transform translate-x-2 translate-y-2"></div>
+                
+                <!-- Página principal con gráfico -->
+                <div class="relative bg-white rounded-2xl shadow-2xl p-4 lg:p-6 border-4 border-cyan-700" style="box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- Líneas de cuaderno -->
+                    <div class="absolute inset-0 opacity-5 rounded-2xl" style="background-image: repeating-linear-gradient(transparent, transparent 30px, #8B4513 30px, #8B4513 31px);"></div>
+                    
+                    <div class="relative">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                            <h1 id="indicador-titulo" class="text-xl lg:text-2xl font-black text-cyan-900" style="font-family: 'Comic Sans MS', cursive; text-shadow: 2px 2px 0px rgba(0,255,255,0.2);">🎯 Selecciona un dato mágico</h1>
+                        </div>
+
+                        <!-- Filtros de Desagregaciones - estilo cuadro de colores (colapsable) -->
+                        <button id="toggle-filtros-globales" type="button"
+                                class="mb-3 px-4 py-2 bg-gradient-to-r from-amber-300 to-orange-300 text-amber-900 rounded-full font-black shadow-md hover:scale-105 transition-all text-sm"
+                                style="font-family: 'Comic Sans MS', cursive;">
+                            🎨 Filtros Mágicos <span id="toggle-filtros-icon">▼</span>
+                        </button>
+                        <div id="filtros-globales-panel" class="hidden mb-4 p-3 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl shadow-inner border-3 border-yellow-400">
+                            <!-- Un control de filtro por cada dominio de desagregación -->
+                            <div id="filtro-dominios" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div id="filtro-desagregaciones-geograficas">
+                                    <label class="block text-xs font-black text-gray-700 mb-1" style="font-family: 'Comic Sans MS', cursive;">🗺️ Lugares</label>
+                                    <select id="desagregaciones-geograficas" multiple class="w-full p-2 border-2 border-blue-400 rounded-lg shadow-md focus:ring-2 focus:ring-blue-400 bg-white text-sm" style="font-family: 'Comic Sans MS', cursive;"></select>
+                                </div>
+                                <div id="filtro-desagregaciones-tematicas">
+                                    <label class="block text-xs font-black text-gray-700 mb-1" style="font-family: 'Comic Sans MS', cursive;">🎯 Categorías</label>
+                                    <select id="desagregaciones-tematicas" multiple class="w-full p-2 border-2 border-purple-400 rounded-lg shadow-md focus:ring-2 focus:ring-purple-400 bg-white text-sm" style="font-family: 'Comic Sans MS', cursive;"></select>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button id="aplicar-filtros" class="px-4 py-2 bg-gradient-to-r from-green-400 to-blue-400 text-white rounded-full hover:from-green-500 hover:to-blue-500 font-black shadow-lg transform hover:scale-110 transition-all text-sm" style="font-family: 'Comic Sans MS', cursive;">
+                                    ✅ Aplicar
+                                </button>
+                                <button id="limpiar-filtros" class="px-4 py-2 bg-gradient-to-r from-red-400 to-pink-400 text-white rounded-full hover:from-red-500 hover:to-pink-500 font-black shadow-lg transform hover:scale-110 transition-all text-sm" style="font-family: 'Comic Sans MS', cursive;">
+                                    🗑️ Limpiar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Contenedor para los gráficos 3D - MÁS GRANDE Y PROMINENTE -->
+                        <div class="mt-4 p-4 bg-gradient-to-br from-cyan-50 to-teal-50 rounded-2xl shadow-2xl border-4 border-cyan-400">
+                            <div class="flex items-center gap-2 mb-3">
+                                <div class="bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full p-2">
+                                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"></path>
+                                        <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"></path>
+                                        <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z"></path>
+                                    </svg>
+                                </div>
+                                <h2 class="text-xl lg:text-2xl font-black text-cyan-900" style="font-family: 'Comic Sans MS', cursive; text-shadow: 2px 2px 0px rgba(0,255,255,0.2);">🏙️ Ciudad Virtual de Datos</h2>
+                            </div>
+                            <!-- Gráfico 3D con altura aumentada -->
+                            <div id="graficos-container" class="min-h-[600px]"></div>
+                        </div>
+
+                        <!-- Controles de años (se crean dinámicamente) -->
+                        <div id="controles-anos" class="mt-4 p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl shadow-md border-3 border-pink-400"></div>
+
+                        <!-- Metadatos -->
+                        <div id="metadatos-container" class="mt-4"></div>
+                    </div>
+                    
+                    <!-- Esquina doblada -->
+                    <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[30px] border-l-transparent border-b-[30px] border-b-gray-300"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Decoración inferior -->
+    <div class="mt-8 text-center pb-6">
+        <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-xl border-3 border-cyan-600">
+            <span class="text-3xl">🎪</span>
+            <p class="text-base font-bold text-cyan-900" style="font-family: 'Comic Sans MS', cursive;">
+                ¡Explora la ciudad de datos en 3D!
+            </p>
+            <span class="text-3xl">🌟</span>
+        </div>
+    </div>
+</div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Import map con Three.js y OrbitControls (ESM) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+  }
+}
+</script>
+
+<!-- 3D visualizer script (module) -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Variables y referencias (mismo flujo que template original) ---
+    const nav = document.getElementById('indicadores-nav');
+    const indicadorTitulo = document.getElementById('indicador-titulo');
+    const graficosContainer = document.getElementById('graficos-container');
+    const desagregacionesGeograficasSelect = document.getElementById('desagregaciones-geograficas');
+    const desagregacionesTematicasSelect = document.getElementById('desagregaciones-tematicas');
+    const aplicarFiltrosBtn = document.getElementById('aplicar-filtros');
+    const limpiarFiltrosBtn = document.getElementById('limpiar-filtros');
+
+    // ---- FILTROS POR DOMINIO DE DESAGREGACIÓN ----
+    let dominiosData = [];
+    const filtroDominiosSelects = {};
+
+    function renderFiltrosDominios(container, dominios, selectsMap, onChange) {
+        container.innerHTML = '';
+        Object.keys(selectsMap).forEach(k => delete selectsMap[k]);
+        if (!dominios || dominios.length === 0) return false;
+        dominios.forEach(dom => {
+            const wrap = document.createElement('div');
+            if (dom.dominio_padre) wrap.className = 'pl-3 border-l-2 border-amber-300';
+            const label = document.createElement('label');
+            label.className = 'block text-xs font-black text-gray-700 mb-1';
+            label.style.fontFamily = "'Comic Sans MS', cursive";
+            label.textContent = dom.nombre;
+            wrap.appendChild(label);
+            const sel = document.createElement('select');
+            sel.multiple = true;
+            sel.dataset.dominioId = dom.id;
+            sel.dataset.dominioTipo = dom.tipo;
+            sel.dataset.dominioPadre = dom.dominio_padre || '';
+            sel.className = 'w-full p-2 border-2 border-teal-400 rounded-lg shadow-md bg-white text-sm';
+            sel.style.fontFamily = "'Comic Sans MS', cursive";
+            (dom.desagregaciones || []).forEach(d => {
+                const o = document.createElement('option');
+                o.value = d.id; o.textContent = d.nombre;
+                o.dataset.padre = d.desagregacion_padre || '';
+                o.selected = d.predeterminada || false;
+                sel.appendChild(o);
+            });
+            sel.addEventListener('change', () => {
+                actualizarCascadaDominios(selectsMap);
+                if (onChange) onChange();
+            });
+            wrap.appendChild(sel);
+            container.appendChild(wrap);
+            selectsMap[dom.id] = sel;
+        });
+        actualizarCascadaDominios(selectsMap);
+        return true;
+    }
+
+    function actualizarCascadaDominios(selectsMap) {
+        Object.values(selectsMap).forEach(sel => {
+            const padreId = sel.dataset.dominioPadre;
+            if (!padreId || !selectsMap[padreId]) return;
+            const padresSel = new Set(Array.from(selectsMap[padreId].selectedOptions).map(o => o.value));
+            Array.from(sel.options).forEach(o => {
+                if (!o.dataset.padre) return;
+                const habilitar = padresSel.size === 0 || padresSel.has(o.dataset.padre);
+                o.disabled = !habilitar;
+                if (!habilitar && o.selected) o.selected = false;
+            });
+        });
+    }
+
+    function sincronizarSelectsMaestros() {
+        const geoSet = new Set(), temSet = new Set();
+        Object.values(filtroDominiosSelects).forEach(sel => {
+            const target = sel.dataset.dominioTipo === 'geografica' ? geoSet : temSet;
+            Array.from(sel.selectedOptions).forEach(o => target.add(o.value));
+        });
+        Array.from(desagregacionesGeograficasSelect.options).forEach(o => { o.selected = geoSet.has(o.value); });
+        Array.from(desagregacionesTematicasSelect.options).forEach(o => { o.selected = temSet.has(o.value); });
+    }
+    const controlesAniosContainer = document.getElementById('controles-anos');
+    const metadatosContainer = document.getElementById('metadatos-container');
+
+    let indicadorActual = null;
+    let rangoAnios = { min: new Date().getFullYear()-10, max: new Date().getFullYear(), min_disponible: new Date().getFullYear()-10, max_disponible: new Date().getFullYear() };
+    let graficoAbortController = null;
+
+    // Tooltip DOM para hover en 3D
+    const tooltip = document.createElement('div');
+    tooltip.style.cssText = 'position:fixed;pointer-events:none;padding:8px;background:rgba(0,0,0,0.75);color:white;border-radius:6px;font-size:13px;display:none;z-index:9999;';
+    document.body.appendChild(tooltip);
+
+    // Map of active Three renderers per grafico (to dispose when re-render)
+    const threeRenderers = new Map();
+    
+    // 🔊 Estado global del audio (preservar entre renders)
+    let estadoAudioGlobal = {
+        audioIniciado: false,
+        sonidoActivo: false
+    };
+
+    // Helpers: color scale (simple)
+    function valueToColor(v, vmin, vmax) {
+        if (v === null || v === undefined || isNaN(v)) return 0x999999;
+        const t = (v - vmin) / (vmax - vmin || 1);
+        // gradient blue -> green -> yellow -> red
+        const col = new THREE.Color();
+        if (t <= 0.25) col.setHSL(0.6 - (t * 0.4 / 0.25), 0.8, 0.45);
+        else if (t <= 0.5) col.setHSL(0.5 - ((t-0.25) * 0.2 / 0.25), 0.8, 0.45);
+        else if (t <= 0.75) col.setHSL(0.4 - ((t-0.5) * 0.2 / 0.25), 0.8, 0.45);
+        else col.setHSL(0.2 - ((t-0.75) * 0.2 / 0.25), 0.8, 0.45);
+        return col.getHex();
+    }
+
+    // 🧹 Función de limpieza completa de la escena 3D
+    function limpiarEscena3D(containerId) {
+        if (threeRenderers.has(containerId)) {
+            const old = threeRenderers.get(containerId);
+            
+            // 1. Detener y limpiar audio COMPLETAMENTE
+            if (old.sonidoAmbiente) {
+                try {
+                    if (old.sonidoAmbiente.isPlaying) {
+                        old.sonidoAmbiente.stop();
+                    }
+                    if (old.sonidoAmbiente.source) {
+                        old.sonidoAmbiente.source.disconnect();
+                    }
+                    old.sonidoAmbiente.disconnect();
+                } catch(e) {
+                    console.warn('Error deteniendo sonido ambiente:', e);
+                }
+            }
+            if (old.sonidoRecoleccion) {
+                try {
+                    if (old.sonidoRecoleccion.isPlaying) {
+                        old.sonidoRecoleccion.stop();
+                    }
+                    if (old.sonidoRecoleccion.source) {
+                        old.sonidoRecoleccion.source.disconnect();
+                    }
+                    old.sonidoRecoleccion.disconnect();
+                } catch(e) {
+                    console.warn('Error deteniendo sonido recolección:', e);
+                }
+            }
+            if (old.audioListener) {
+                try {
+                    // Detener TODOS los sonidos del listener
+                    old.audioListener.clear();
+                    // Cerrar el contexto de audio si es posible
+                    if (old.audioListener.context && old.audioListener.context.state !== 'closed') {
+                        old.audioListener.context.suspend();
+                    }
+                } catch(e) {
+                    console.warn('Error limpiando audioListener:', e);
+                }
+            }
+            
+            // 2. Detener animación
+            if (old.animationId) {
+                cancelAnimationFrame(old.animationId);
+            }
+            
+            // 3. Limpiar eventos
+            if (old.renderer && old.renderer.domElement) {
+                if (old.clickHandler) {
+                    old.renderer.domElement.removeEventListener('click', old.clickHandler);
+                }
+                if (old.mousemoveHandler) {
+                    old.renderer.domElement.removeEventListener('mousemove', old.mousemoveHandler);
+                }
+            }
+            if (old.resizeHandler) {
+                window.removeEventListener('resize', old.resizeHandler);
+                document.removeEventListener('fullscreenchange', old.resizeHandler);
+                document.removeEventListener('webkitfullscreenchange', old.resizeHandler);
+            }
+            if (old.resizeObserver) {
+                old.resizeObserver.disconnect();
+            }
+            
+            // 4. Limpiar controles
+            if (old.controls) {
+                old.controls.dispose();
+            }
+            
+            // 5. Limpiar geometrías y materiales de la escena
+            if (old.scene) {
+                old.scene.traverse((obj) => {
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) {
+                        if (Array.isArray(obj.material)) {
+                            obj.material.forEach(mat => mat.dispose());
+                        } else {
+                            obj.material.dispose();
+                        }
+                    }
+                    if (obj.texture) obj.texture.dispose();
+                });
+                
+                // Limpiar todos los hijos de la escena
+                while(old.scene.children.length > 0) {
+                    old.scene.remove(old.scene.children[0]);
+                }
+            }
+            
+            // 6. Limpiar renderer
+            if (old.renderer) {
+                old.renderer.domElement.remove();
+                old.renderer.dispose();
+                old.renderer.forceContextLoss();
+            }
+            
+            // 7. Eliminar del mapa
+            threeRenderers.delete(containerId);
+            
+            console.log('🧹 Escena 3D limpiada completamente');
+        }
+    }
+
+    // FUNCION PRINCIPAL: renderizar un "grafico" 3D a partir del objeto grafico del backend
+    // 🏙️ renderGrafico3D — Barrio de Santiago de Cali
+function renderGrafico3D(containerId, grafico) {
+    // Limpiar render previo completamente
+    limpiarEscena3D(containerId);
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // 📱 Detectar si es dispositivo móvil
+    const esMobil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    
+    // 📱 En móviles, mostrar botón para activar experiencia 3D
+    if (esMobil) {
+        container.innerHTML = `
+            <div id="mobile-placeholder-${containerId}" style="
+                width: 100%;
+                height: 500px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 15px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                text-align: center;
+                padding: 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                font-family: 'Comic Sans MS', cursive;
+            ">
+                <div style="font-size: 5em; margin-bottom: 20px; animation: bounce 1s infinite;">🦜</div>
+                <h3 style="font-size: 1.8em; font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    ¡Juega con Don Datico!
+                </h3>
+                <p style="font-size: 1.1em; margin-bottom: 30px; opacity: 0.95;">
+                    Vuela y recolecta chontaduros 🍑
+                </p>
+                <button id="btn-activar-3d-${containerId}" style="
+                    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+                    color: #333;
+                    font-size: 1.4em;
+                    font-weight: bold;
+                    padding: 18px 45px;
+                    border: 4px solid white;
+                    border-radius: 50px;
+                    cursor: pointer;
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+                    transition: all 0.3s;
+                    font-family: 'Comic Sans MS', cursive;
+                    text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+                " ontouchstart="this.style.transform='scale(0.95)'" ontouchend="this.style.transform='scale(1)'">
+                    🎮 ¡JUGAR AHORA!
+                </button>
+                <p style="font-size: 0.9em; margin-top: 20px; opacity: 0.8;">
+                    ✨ Experiencia en pantalla completa
+                </p>
+            </div>
+        `;
+        
+        // Evento para activar el 3D cuando el usuario haga clic
+        document.getElementById(`btn-activar-3d-${containerId}`).addEventListener('click', async () => {
+            container.innerHTML = '';
+            
+            // Intentar activar pantalla completa ANTES de iniciar el juego
+            try {
+                if (container.requestFullscreen) {
+                    await container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    await container.webkitRequestFullscreen();
+                } else if (container.mozRequestFullScreen) {
+                    await container.mozRequestFullScreen();
+                } else if (container.msRequestFullscreen) {
+                    await container.msRequestFullscreen();
+                }
+            } catch (err) {
+                console.log('No se pudo activar pantalla completa:', err);
+            }
+            
+            // Iniciar experiencia después de un pequeño delay
+            setTimeout(() => {
+                iniciarExperiencia3D(container, containerId, grafico, esMobil);
+            }, 100);
+            
+            // 📱 Listener para detectar salida de fullscreen en móviles
+            const handleFullscreenExit = () => {
+                if (!document.fullscreenElement && !document.webkitFullscreenElement && 
+                    !document.mozFullScreenElement && !document.msFullscreenElement) {
+                    // Salió de fullscreen, volver a mostrar el botón
+                    container.innerHTML = '';
+                    renderGrafico3D(containerId, grafico);
+                    
+                    // Remover listeners
+                    document.removeEventListener('fullscreenchange', handleFullscreenExit);
+                    document.removeEventListener('webkitfullscreenchange', handleFullscreenExit);
+                    document.removeEventListener('mozfullscreenchange', handleFullscreenExit);
+                    document.removeEventListener('msfullscreenchange', handleFullscreenExit);
+                }
+            };
+            
+            document.addEventListener('fullscreenchange', handleFullscreenExit);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenExit);
+            document.addEventListener('mozfullscreenchange', handleFullscreenExit);
+            document.addEventListener('msfullscreenchange', handleFullscreenExit);
+        });
+        
+        return; // No renderizar inmediatamente
+    }
+    
+    // Desktop: renderizar inmediatamente
+    container.innerHTML = '';
+    iniciarExperiencia3D(container, containerId, grafico, esMobil);
+}
+
+// 🎮 Función principal para iniciar la experiencia 3D
+function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
+
+    // Detectar tipo de gráfico y modo
+    const tipoGrafico = (grafico?.tipo_grafico || grafico?.tipo || 'bar').toLowerCase();
+    const modoNocturno = (tipoGrafico.includes('line') || tipoGrafico.includes('area'));
+
+    // medidas base - AUMENTADAS para mayor protagonismo
+    // En móviles usar toda la pantalla, en desktop usar altura fija
+    const width = esMobil ? window.innerWidth : (container.clientWidth || 1000);
+    const height = esMobil ? window.innerHeight : 700;
+
+    // escena 3D
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB); // cielo diurno
+    scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+
+    // cámara - Posicionada desde el río mirando hacia las montañas
+    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
+    camera.position.set(0, 15, 60); // Desde el río (sur), mirando hacia las montañas (norte)
+
+    // renderizador
+    const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false }); // sin antialias = más pixelado
+    renderer.setSize(width, height);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+    // Crear wrapper para el canvas y controles (importante para móviles)
+    const canvasWrapper = document.createElement('div');
+    canvasWrapper.style.cssText = `
+        position: relative;
+        width: ${esMobil ? '100vw' : '100%'};
+        height: ${esMobil ? '100vh' : height + 'px'};
+        overflow: hidden;
+        ${esMobil ? 'background: #87CEEB;' : ''}
+    `;
+    canvasWrapper.appendChild(renderer.domElement);
+    container.appendChild(canvasWrapper);
+    
+    // Agregar botón de sonido - posición diferente según dispositivo
+    const soundButton = document.createElement('button');
+    soundButton.id = 'sound-toggle';
+    // En móviles: arriba-izquierda, en desktop: abajo-derecha
+    const soundButtonClass = esMobil 
+        ? 'absolute top-4 left-4 z-10 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-full p-3 shadow-xl transition-all transform hover:scale-110'
+        : 'absolute bottom-4 right-4 z-10 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-full p-3 shadow-xl transition-all transform hover:scale-110';
+    soundButton.className = soundButtonClass;
+    soundButton.innerHTML = `
+        <svg id="sound-on-icon" class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd"></path>
+        </svg>
+        <svg id="sound-off-icon" class="w-6 h-6 text-white hidden" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+        </svg>
+    `;
+    container.appendChild(soundButton);
+
+    // controles
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 15;
+    controls.maxDistance = 100;
+    controls.maxPolarAngle = Math.PI / 2.1;
+    controls.target.set(0, 15, -40); // Apuntar hacia las montañas (norte)
+    controls.update(); // Actualizar controles con el nuevo target
+
+    // Iluminación dinámica según tipo de gráfico
+    let ambient, sun, fillLight, astro, resplandor;
+    
+    if (modoNocturno) {
+        // MODO NOCTURNO (line/area) - Noche iluminada por la luna
+        scene.background = new THREE.Color(0x1a2332); // Azul noche más claro
+        scene.fog = new THREE.Fog(0x1a2332, 50, 200);
+        
+        ambient = new THREE.AmbientLight(0x6080A0, 0.6); // Luz ambiental más intensa
+        scene.add(ambient);
+        
+        sun = new THREE.DirectionalLight(0xE0E0FF, 1.2); // Luz lunar más brillante y blanca
+        sun.position.set(-80, 50, -70);
+        sun.castShadow = true;
+        sun.shadow.camera.left = -80;
+        sun.shadow.camera.right = 80;
+        sun.shadow.camera.top = 80;
+        sun.shadow.camera.bottom = -80;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        scene.add(sun);
+        
+        fillLight = new THREE.DirectionalLight(0x8090B0, 0.5); // Luz de relleno más fuerte
+        fillLight.position.set(60, 20, 0);
+        scene.add(fillLight);
+        
+        // Luz adicional desde arriba para mejor visibilidad
+        const topLight = new THREE.DirectionalLight(0xA0B0D0, 0.4);
+        topLight.position.set(0, 80, 0);
+        scene.add(topLight);
+        
+        // 🌙 Luna más brillante
+        const lunaGeom = new THREE.SphereGeometry(8, 32, 32); // Más grande
+        const lunaMat = new THREE.MeshBasicMaterial({ 
+            color: 0xFFFFFF, // Blanco puro
+            emissive: 0xFFFFFF,
+            emissiveIntensity: 1.5 // Más brillante
+        });
+        astro = new THREE.Mesh(lunaGeom, lunaMat);
+        astro.position.set(-75, 40, -75);
+        scene.add(astro);
+        
+        // Resplandor lunar más visible
+        const resplandorGeom = new THREE.SphereGeometry(14, 32, 32); // Más grande
+        const resplandorMat = new THREE.MeshBasicMaterial({ 
+            color: 0xE0E0FF,
+            transparent: true,
+            opacity: 0.4 // Más opaco
+        });
+        resplandor = new THREE.Mesh(resplandorGeom, resplandorMat);
+        resplandor.position.copy(astro.position);
+        scene.add(resplandor);
+    } else {
+        // MODO DÍA/ATARDECER (bar) - Sol
+        ambient = new THREE.AmbientLight(0xFFE4B5, 0.5);
+        scene.add(ambient);
+        
+        sun = new THREE.DirectionalLight(0xFF8C42, 1.2);
+        sun.position.set(-80, 35, -70);
+        sun.castShadow = true;
+        sun.shadow.camera.left = -80;
+        sun.shadow.camera.right = 80;
+        sun.shadow.camera.top = 80;
+        sun.shadow.camera.bottom = -80;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        scene.add(sun);
+        
+        fillLight = new THREE.DirectionalLight(0x9BB0FF, 0.3);
+        fillLight.position.set(60, 20, 0);
+        scene.add(fillLight);
+        
+        // ☀️ Sol
+        const solGeom = new THREE.SphereGeometry(8, 32, 32);
+        const solMat = new THREE.MeshBasicMaterial({ 
+            color: 0xFFA500,
+            emissive: 0xFFA500,
+            emissiveIntensity: 1
+        });
+        astro = new THREE.Mesh(solGeom, solMat);
+        astro.position.set(-75, 25, -75);
+        scene.add(astro);
+        
+        const resplandorGeom = new THREE.SphereGeometry(12, 32, 32);
+        const resplandorMat = new THREE.MeshBasicMaterial({ 
+            color: 0xFFD700,
+            transparent: true,
+            opacity: 0.3
+        });
+        resplandor = new THREE.Mesh(resplandorGeom, resplandorMat);
+        resplandor.position.copy(astro.position);
+        scene.add(resplandor);
+    }
+
+    // 🏙️ Suelo urbano - Calles y aceras de Santiago de Cali
+    const textureLoader = new THREE.TextureLoader();
+    
+    // Crear patrón de cuadra urbana con calles (sin textura, color sólido)
+    const groundGeom = new THREE.PlaneGeometry(200, 200);
+    const groundMat = new THREE.MeshLambertMaterial({ 
+        color: 0x3a3a3a // Asfalto gris oscuro sólido
+    });
+    const ground = new THREE.Mesh(groundGeom, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    scene.add(ground);
+    
+    // Sin líneas viales ni aceras (removidas por solicitud del usuario)
+
+    // 🏠 Crear edificio/casa según altura y serie (con color)
+    function crearEdificio(altura, tipo, colorSerie) {
+        const grupo = new THREE.Group();
+        
+        if (tipo === 'casa') {
+            // Casa de 1-2 pisos con color de serie
+            const paredMat = new THREE.MeshLambertMaterial({ color: colorSerie }); // Color de la serie
+            const techoMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // Teja roja-marrón
+            
+            const paredes = new THREE.Mesh(new THREE.BoxGeometry(2, altura, 2), paredMat);
+            paredes.position.y = altura / 2;
+            paredes.castShadow = true;
+            paredes.receiveShadow = true;
+            grupo.add(paredes);
+            
+            // Techo a dos aguas
+            const techoGeom = new THREE.ConeGeometry(1.6, 1, 4);
+            const techo = new THREE.Mesh(techoGeom, techoMat);
+            techo.rotation.y = Math.PI / 4;
+            techo.position.y = altura + 0.5;
+            techo.castShadow = true;
+            grupo.add(techo);
+            
+            // Ventanas (con luces en modo nocturno)
+            const ventanaColor = modoNocturno ? 0xFFDD88 : 0x6699CC; // Amarillo cálido en noche
+            const ventanaMat = new THREE.MeshBasicMaterial({ 
+                color: ventanaColor,
+                emissive: modoNocturno ? 0xFFDD88 : 0x000000,
+                emissiveIntensity: modoNocturno ? 0.8 : 0
+            });
+            for (let i = 0; i < Math.floor(altura / 1.5); i++) {
+                const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.05), ventanaMat);
+                ventana.position.set(0.6, 0.5 + i * 1.5, 1.01);
+                grupo.add(ventana);
+                const ventana2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.05), ventanaMat);
+                ventana2.position.set(-0.6, 0.5 + i * 1.5, 1.01);
+                grupo.add(ventana2);
+            }
+        } else {
+            // Edificio moderno con color de serie
+            const paredMat = new THREE.MeshLambertMaterial({ color: colorSerie });
+            
+            const edificio = new THREE.Mesh(new THREE.BoxGeometry(2.2, altura, 2.2), paredMat);
+            edificio.position.y = altura / 2;
+            edificio.castShadow = true;
+            edificio.receiveShadow = true;
+            grupo.add(edificio);
+            
+            // Ventanas en patrón (con luces en modo nocturno)
+            const ventanaColor = modoNocturno ? 0xFFDD88 : 0x4A90E2;
+            const ventanaMat = new THREE.MeshBasicMaterial({ 
+                color: ventanaColor,
+                emissive: modoNocturno ? 0xFFDD88 : 0x000000,
+                emissiveIntensity: modoNocturno ? 0.8 : 0
+            });
+            const numPisos = Math.floor(altura / 1.2);
+            for (let piso = 0; piso < numPisos; piso++) {
+                for (let lado = 0; lado < 4; lado++) {
+                    const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.05), ventanaMat);
+                    const angulo = (lado * Math.PI / 2);
+                    ventana.position.set(
+                        Math.sin(angulo) * 1.13,
+                        0.6 + piso * 1.2,
+                        Math.cos(angulo) * 1.13
+                    );
+                    ventana.rotation.y = -angulo;
+                    grupo.add(ventana);
+                }
+            }
+            
+            // Techo plano con antena
+            const techoMat = new THREE.MeshLambertMaterial({ color: 0x555555 });
+            const techo = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.2, 2.4), techoMat);
+            techo.position.y = altura + 0.1;
+            grupo.add(techo);
+        }
+        
+        return grupo;
+    }
+
+    // 🌳 Árboles urbanos con volumen mejorado
+    function crearArbolUrbano(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Tronco más grueso y alto
+        const troncoGeom = new THREE.CylinderGeometry(0.2, 0.3, 5, 8);
+        const troncoMat = new THREE.MeshLambertMaterial({ color: 0x4a3319 }); // Marrón oscuro
+        const tronco = new THREE.Mesh(troncoGeom, troncoMat);
+        tronco.position.y = 2.5;
+        tronco.castShadow = true;
+        grupo.add(tronco);
+        
+        // Copa del árbol con múltiples esferas para volumen
+        const copaBase = new THREE.Group();
+        
+        // Esfera principal más grande
+        const copaGeom = new THREE.SphereGeometry(2, 12, 12);
+        const copaMat = new THREE.MeshLambertMaterial({ color: 0x2d5016 });
+        const copa = new THREE.Mesh(copaGeom, copaMat);
+        copa.castShadow = true;
+        copaBase.add(copa);
+        
+        // Esferas adicionales para volumen irregular (más grandes)
+        for (let i = 0; i < 5; i++) {
+            const copaExtra = new THREE.Mesh(
+                new THREE.SphereGeometry(1 + Math.random() * 0.8, 10, 10),
+                copaMat
+            );
+            const angulo = (i / 5) * Math.PI * 2;
+            copaExtra.position.set(
+                Math.cos(angulo) * 1.2,
+                Math.random() * 0.8 - 0.4,
+                Math.sin(angulo) * 1.2
+            );
+            copaExtra.castShadow = true;
+            copaBase.add(copaExtra);
+        }
+        
+        copaBase.position.y = 6;
+        grupo.add(copaBase);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+
+    // Plantar árboles en las aceras con colores de Cali
+    const arboles = [];
+    const coloresArboles = [
+        { color: 0x2d5016, peso: 70, nombre: 'Verde' },      // 70% verdes
+        { color: 0xFF69B4, peso: 10, nombre: 'Rosado' },     // 10% rosados (guayacanes)
+        { color: 0x9370DB, peso: 10, nombre: 'Morado' },     // 10% morados (jacarandás)
+        { color: 0xFFD700, peso: 10, nombre: 'Amarillo' }    // 10% amarillos (chicalás)
+    ];
+    
+    function obtenerColorArbol() {
+        const rand = Math.random() * 100;
+        let acumulado = 0;
+        for (const tipo of coloresArboles) {
+            acumulado += tipo.peso;
+            if (rand <= acumulado) return tipo.color;
+        }
+        return coloresArboles[0].color;
+    }
+    
+    // Generar más árboles distribuidos por el barrio
+    for (let i = 0; i < 40; i++) {
+        const x = (Math.random() - 0.5) * 80;
+        const z = (Math.random() - 0.5) * 80;
+        
+        // Evitar colocar árboles muy cerca del centro (donde están los edificios)
+        if (Math.abs(x) < 15 && Math.abs(z) < 15) continue;
+        
+        const grupo = new THREE.Group();
+        
+        // Tronco cilíndrico
+        const troncoGeom = new THREE.CylinderGeometry(0.15, 0.2, 3, 8);
+        const troncoMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
+        const tronco = new THREE.Mesh(troncoGeom, troncoMat);
+        tronco.position.y = 1.5;
+        tronco.castShadow = true;
+        grupo.add(tronco);
+        
+        // Copa del árbol con color aleatorio según distribución
+        const colorCopa = obtenerColorArbol();
+        const copaGeom = new THREE.SphereGeometry(1.2, 8, 8);
+        const copaMat = new THREE.MeshLambertMaterial({ color: colorCopa });
+        const copa = new THREE.Mesh(copaGeom, copaMat);
+        copa.position.y = 3.5;
+        copa.castShadow = true;
+        grupo.add(copa);
+        
+        grupo.position.set(x, 0, z);
+        arboles.push(grupo);
+        scene.add(grupo);
+    }
+
+    // ⛰️ Cordillera de los Andes al fondo con monumentos de Cali
+    const cordillera = new THREE.Group();
+    
+    // Crear montañas con geometría cónica
+    const montanaMat = new THREE.MeshLambertMaterial({ 
+        color: 0x4a6741, // Verde montaña
+        flatShading: true 
+    });
+    
+    // CERRO DE LAS TRES CRUCES (izquierda) - con cima aplanada
+    const cerroTresCruces = new THREE.Mesh(
+        new THREE.CylinderGeometry(3, 12, 22, 8), // Cilindro truncado (cima plana de 3m)
+        montanaMat
+    );
+    cerroTresCruces.position.set(-55, 11, -75);
+    cerroTresCruces.castShadow = true;
+    cordillera.add(cerroTresCruces);
+    
+    // Plataforma plana en la cima para las cruces
+    const plataformaCruces = new THREE.Mesh(
+        new THREE.CylinderGeometry(3.5, 3.5, 0.5, 8),
+        new THREE.MeshLambertMaterial({ color: 0x5a6d4a })
+    );
+    plataformaCruces.position.set(-55, 22.25, -75);
+    plataformaCruces.castShadow = true;
+    cordillera.add(plataformaCruces);
+    
+    // Tres cruces en la cima
+    const cruzMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+    const posicionesCruces = [-2, 0, 2]; // Separación horizontal
+    
+    posicionesCruces.forEach((offsetX) => {
+        // Poste vertical
+        const posteVertical = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 3, 0.3),
+            cruzMat
+        );
+        posteVertical.position.set(-55 + offsetX, 24, -75);
+        posteVertical.castShadow = true;
+        cordillera.add(posteVertical);
+        
+        // Poste horizontal
+        const posteHorizontal = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 0.3, 0.3),
+            cruzMat
+        );
+        posteHorizontal.position.set(-55 + offsetX, 24.5, -75);
+        posteHorizontal.castShadow = true;
+        cordillera.add(posteHorizontal);
+    });
+    
+    // CERRO DEL CRISTO REY (derecha) - más alto con cima aplanada
+    const cerroCristoRey = new THREE.Mesh(
+        new THREE.CylinderGeometry(4, 15, 28, 8), // Cilindro truncado (cima plana de 4m)
+        montanaMat
+    );
+    cerroCristoRey.position.set(-25, 14, -80);
+    cerroCristoRey.castShadow = true;
+    cordillera.add(cerroCristoRey);
+    
+    // Plataforma plana en la cima para el Cristo Rey
+    const plataformaCristo = new THREE.Mesh(
+        new THREE.CylinderGeometry(5, 5, 0.8, 8),
+        new THREE.MeshLambertMaterial({ color: 0x5a6d4a })
+    );
+    plataformaCristo.position.set(-25, 28.4, -80);
+    plataformaCristo.castShadow = true;
+    cordillera.add(plataformaCristo);
+    
+    // CRISTO REY - Estatua estilo Cristo Redentor
+    const cristoMat = new THREE.MeshLambertMaterial({ color: 0xF5F5F5 }); // Blanco
+    
+    // Pedestal/base
+    const pedestal = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.2, 1.8, 4, 8),
+        new THREE.MeshLambertMaterial({ color: 0xA0A0A0 })
+    );
+    pedestal.position.set(-25, 30, -80);
+    pedestal.castShadow = true;
+    cordillera.add(pedestal);
+    
+    // Túnica/manto (forma trapezoidal)
+    const tunicaGeom = new THREE.CylinderGeometry(0.8, 1.2, 5, 8);
+    const tunica = new THREE.Mesh(tunicaGeom, cristoMat);
+    tunica.position.set(-25, 34.5, -80);
+    tunica.castShadow = true;
+    cordillera.add(tunica);
+    
+    // Torso superior
+    const torso = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.6, 0.8, 2, 8),
+        cristoMat
+    );
+    torso.position.set(-25, 38, -80);
+    torso.castShadow = true;
+    cordillera.add(torso);
+    
+    // Cabeza
+    const cabeza = new THREE.Mesh(
+        new THREE.SphereGeometry(0.8, 10, 10),
+        cristoMat
+    );
+    cabeza.position.set(-25, 40, -80);
+    cabeza.castShadow = true;
+    cordillera.add(cabeza);
+    
+    // Brazos extendidos horizontalmente (icónico)
+    const brazoGeom = new THREE.CylinderGeometry(0.3, 0.25, 6, 8);
+    
+    const brazoIzq = new THREE.Mesh(brazoGeom, cristoMat);
+    brazoIzq.rotation.z = Math.PI / 2;
+    brazoIzq.rotation.x = -0.2; // Ligera inclinación hacia adelante
+    brazoIzq.position.set(-25 - 3, 38, -80 + 0.5);
+    brazoIzq.castShadow = true;
+    cordillera.add(brazoIzq);
+    
+    const brazoDer = new THREE.Mesh(brazoGeom, cristoMat);
+    brazoDer.rotation.z = -Math.PI / 2;
+    brazoDer.rotation.x = -0.2;
+    brazoDer.position.set(-25 + 3, 38, -80 + 0.5);
+    brazoDer.castShadow = true;
+    cordillera.add(brazoDer);
+    
+    // Manos
+    const manoGeom = new THREE.SphereGeometry(0.35, 6, 6);
+    const manoIzq = new THREE.Mesh(manoGeom, cristoMat);
+    manoIzq.position.set(-25 - 6, 38, -80 + 0.5);
+    cordillera.add(manoIzq);
+    
+    const manoDer = new THREE.Mesh(manoGeom, cristoMat);
+    manoDer.position.set(-25 + 6, 38, -80 + 0.5);
+    cordillera.add(manoDer);
+    
+    // Montañas secundarias de fondo (extendidas mucho más a lo largo)
+    for (let i = 0; i < 18; i++) {
+        const montanaSecundaria = new THREE.Mesh(
+            new THREE.ConeGeometry(8 + Math.random() * 5, 12 + Math.random() * 10, 6),
+            new THREE.MeshLambertMaterial({ 
+                color: 0x3d5a36,
+                flatShading: true 
+            })
+        );
+        montanaSecundaria.position.set(
+            -90 + i * 10,
+            (12 + Math.random() * 10) / 2,
+            -70 - Math.random() * 15
+        );
+        cordillera.add(montanaSecundaria);
+    }
+    
+    scene.add(cordillera);
+
+    // 🌊 Río Cauca en el borde este (con curvas)
+    const rio = new THREE.Group();
+    
+    // Crear río con curvas usando segmentos
+    const segmentosRio = 20;
+    const rioMat = new THREE.MeshLambertMaterial({ 
+        color: 0x4A90E2,
+        transparent: true,
+        opacity: 0.7
+    });
+    const orillaMat = new THREE.MeshLambertMaterial({ color: 0x6B8E23 });
+    
+    for (let i = 0; i < segmentosRio; i++) {
+        const zPos = -95 + (i * 10);
+        // Crear curva sinusoidal (ajustada para evitar bomberos en 50, -15)
+        const curva = Math.sin(i * 0.5) * 5; // Aumentado de 3 a 5
+        const xBase = 62 + curva; // Movido de 60 a 62 (más al este)
+        
+        // Segmento del cauce
+        const segmentoCauce = new THREE.Mesh(
+            new THREE.PlaneGeometry(15, 10),
+            rioMat
+        );
+        segmentoCauce.rotation.x = -Math.PI / 2;
+        segmentoCauce.position.set(xBase, 0.05, zPos);
+        segmentoCauce.receiveShadow = true;
+        rio.add(segmentoCauce);
+        
+        // Orillas
+        const orillaIzq = new THREE.Mesh(
+            new THREE.PlaneGeometry(3, 10),
+            orillaMat
+        );
+        orillaIzq.rotation.x = -Math.PI / 2;
+        orillaIzq.position.set(xBase - 8, 0.03, zPos);
+        rio.add(orillaIzq);
+        
+        const orillaDer = new THREE.Mesh(
+            new THREE.PlaneGeometry(3, 10),
+            orillaMat
+        );
+        orillaDer.rotation.x = -Math.PI / 2;
+        orillaDer.position.set(xBase + 8, 0.03, zPos);
+        rio.add(orillaDer);
+    }
+    
+    // Rocas en el río (distribuidas según curvas)
+    for (let i = 0; i < 12; i++) {
+        const zPos = (Math.random() - 0.5) * 180;
+        const curva = Math.sin((zPos + 95) / 10 * 0.5) * 5;
+        const rocaGeom = new THREE.SphereGeometry(0.5 + Math.random() * 0.5, 6, 6);
+        const rocaMat = new THREE.MeshLambertMaterial({ color: 0x808080 });
+        const roca = new THREE.Mesh(rocaGeom, rocaMat);
+        roca.position.set(
+            60 + curva + Math.random() * 4,
+            0.3,
+            zPos
+        );
+        roca.scale.set(1, 0.6, 1);
+        roca.castShadow = true;
+        rio.add(roca);
+    }
+    
+    scene.add(rio);
+
+    // 🌾 Cultivo de caña de azúcar en el borde norte (extendido hasta el borde)
+    const cultivoCana = new THREE.Group();
+    
+    // Campo de caña (verde claro) - extendido
+    const campoGeom = new THREE.PlaneGeometry(200, 30);
+    const campoMat = new THREE.MeshLambertMaterial({ color: 0x9ACD32 }); // Verde amarillento
+    const campo = new THREE.Mesh(campoGeom, campoMat);
+    campo.rotation.x = -Math.PI / 2;
+    campo.position.set(0, 0.02, -85); // Más al norte
+    campo.receiveShadow = true;
+    cultivoCana.add(campo);
+    
+    // Cañas individuales (líneas verticales) - más cantidad
+    for (let i = 0; i < 150; i++) {
+        const canaGeom = new THREE.CylinderGeometry(0.05, 0.05, 2 + Math.random() * 1, 4);
+        const canaMat = new THREE.MeshLambertMaterial({ color: 0x7CFC00 }); // Verde lima
+        const cana = new THREE.Mesh(canaGeom, canaMat);
+        cana.position.set(
+            (Math.random() - 0.5) * 195,
+            1 + Math.random() * 0.5,
+            -75 + (Math.random() - 0.5) * 28
+        );
+        cana.castShadow = true;
+        cultivoCana.add(cana);
+    }
+    
+    scene.add(cultivoCana);
+
+    // 🌾 Cultivo de caña de azúcar en el borde oeste (extendido hasta el borde)
+    const cultivoCanaOeste = new THREE.Group();
+    
+    // Campo de caña - extendido
+    const campoOesteGeom = new THREE.PlaneGeometry(35, 200);
+    const campoOesteMat = new THREE.MeshLambertMaterial({ color: 0x9ACD32 });
+    const campoOeste = new THREE.Mesh(campoOesteGeom, campoOesteMat);
+    campoOeste.rotation.x = -Math.PI / 2;
+    campoOeste.position.set(-82.5, 0.02, 0); // Más al oeste, hasta el borde
+    campoOeste.receiveShadow = true;
+    cultivoCanaOeste.add(campoOeste);
+    
+    // Cañas individuales - más cantidad
+    for (let i = 0; i < 180; i++) {
+        const canaGeom = new THREE.CylinderGeometry(0.05, 0.05, 2 + Math.random() * 1, 4);
+        const canaMat = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
+        const cana = new THREE.Mesh(canaGeom, canaMat);
+        cana.position.set(
+            -100 + Math.random() * 35,
+            1 + Math.random() * 0.5,
+            (Math.random() - 0.5) * 195
+        );
+        cana.castShadow = true;
+        cultivoCanaOeste.add(cana);
+    }
+    
+    scene.add(cultivoCanaOeste);
+
+    // 🌊 Segundo río en el borde sur (Río Cali con curvas - desviado de base aérea)
+    const rioSur = new THREE.Group();
+    
+    // Crear río sur con curvas usando segmentos
+    const segmentosRioSur = 20;
+    const rioSurMat = new THREE.MeshLambertMaterial({ 
+        color: 0x5B9BD5,
+        transparent: true,
+        opacity: 0.7
+    });
+    const orillaSurMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
+    
+    for (let i = 0; i < segmentosRioSur; i++) {
+        const xPos = -95 + (i * 10);
+        // Crear curva sinusoidal más pronunciada para evitar base aérea en (0, 58)
+        const curva = Math.sin(i * 0.6 + 1) * 4.5; // Aumentado de 2.5 a 4.5
+        const zBase = 68 + curva; // Movido de 65 a 68 (más al sur)
+        
+        // Segmento del cauce
+        const segmentoCauce = new THREE.Mesh(
+            new THREE.PlaneGeometry(10, 12),
+            rioSurMat
+        );
+        segmentoCauce.rotation.x = -Math.PI / 2;
+        segmentoCauce.position.set(xPos, 0.05, zBase);
+        segmentoCauce.receiveShadow = true;
+        rioSur.add(segmentoCauce);
+        
+        // Orillas
+        const orillaNorte = new THREE.Mesh(
+            new THREE.PlaneGeometry(10, 2.5),
+            orillaSurMat
+        );
+        orillaNorte.rotation.x = -Math.PI / 2;
+        orillaNorte.position.set(xPos, 0.03, zBase - 6);
+        rioSur.add(orillaNorte);
+        
+        const orillaSur = new THREE.Mesh(
+            new THREE.PlaneGeometry(10, 2.5),
+            orillaSurMat
+        );
+        orillaSur.rotation.x = -Math.PI / 2;
+        orillaSur.position.set(xPos, 0.03, zBase + 6);
+        rioSur.add(orillaSur);
+    }
+    
+    // Rocas en el río sur (distribuidas según curvas)
+    for (let i = 0; i < 15; i++) {
+        const xPos = (Math.random() - 0.5) * 190;
+        const curva = Math.sin((xPos + 95) / 10 * 0.6 + 1) * 4.5;
+        const rocaGeom = new THREE.SphereGeometry(0.4 + Math.random() * 0.4, 6, 6);
+        const rocaMat = new THREE.MeshLambertMaterial({ color: 0x696969 });
+        const roca = new THREE.Mesh(rocaGeom, rocaMat);
+        roca.position.set(
+            xPos,
+            0.25,
+            66 + curva + Math.random() * 4
+        );
+        roca.scale.set(1, 0.5, 1);
+        roca.castShadow = true;
+        rioSur.add(roca);
+    }
+    
+    scene.add(rioSur);
+
+    // ☁️ Nubes realistas
+    const nubes = [];
+    function crearNube() {
+        const grupo = new THREE.Group();
+        const nubeMat = new THREE.MeshLambertMaterial({ 
+            color: 0xFFFFFF,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        // Crear nube con esferas superpuestas
+        const numEsferas = 5 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < numEsferas; i++) {
+            const radio = 1.5 + Math.random() * 1;
+            const esfera = new THREE.Mesh(new THREE.SphereGeometry(radio, 8, 8), nubeMat);
+            esfera.position.set(
+                (Math.random() - 0.5) * 4,
+                (Math.random() - 0.5) * 1,
+                (Math.random() - 0.5) * 4
+            );
+            grupo.add(esfera);
+        }
+        
+        return grupo;
+    }
+    
+    for (let i = 0; i < 8; i++) {
+        const nube = crearNube();
+        nube.position.set(
+            (Math.random() - 0.5) * 100,
+            30 + Math.random() * 15,
+            (Math.random() - 0.5) * 100
+        );
+        nube.scale.setScalar(0.6 + Math.random() * 0.4);
+        nubes.push(nube);
+        scene.add(nube);
+    }
+
+    // 🦅 Aves solo en modo día
+    const aves = [];
+    if (!modoNocturno) {
+        const coloresAves = [
+            0x00AA00, 0xFF4444, 0x4169E1, 0xFFD700, 0xFF6B9D, 0x00CED1
+        ];
+        
+        for (let i = 0; i < 25; i++) {
+            const color = coloresAves[Math.floor(Math.random() * coloresAves.length)];
+            const tamano = 0.08 + Math.random() * 0.12;
+            
+            const aveGeom = new THREE.SphereGeometry(tamano, 6, 6);
+            const aveMat = new THREE.MeshLambertMaterial({ color: color });
+            const ave = new THREE.Mesh(aveGeom, aveMat);
+            
+            ave.position.set(
+                (Math.random() - 0.5) * 70,
+                8 + Math.random() * 12,
+                (Math.random() - 0.5) * 70
+            );
+            ave.castShadow = true;
+            ave.userData.velocidad = (0.15 + Math.random() * 0.2) * (1 / tamano);
+            ave.userData.alturaBase = ave.position.y;
+            aves.push(ave);
+            scene.add(ave);
+        }
+    }
+
+    // 📊 Datos -> Edificios y casas del barrio
+    const series = grafico.series || [];
+    const labels = series[0]?.x || [];
+    let vmin = Infinity, vmax = -Infinity;
+    series.forEach(s => s.y?.forEach(v => {
+        if (!isNaN(v)) { vmin = Math.min(vmin, v); vmax = Math.max(vmax, v); }
+    }));
+    if (!isFinite(vmin)) { vmin = 0; vmax = 1; }
+
+    const grupoBarras = new THREE.Group();
+    const barrasInteractivas = [];
+    const gap = 3.5;
+
+    // Calcular escala para altura proporcional EXACTA
+    const rangoValores = vmax - vmin || 1;
+    const alturaMaxima = 20; // Altura máxima en unidades 3D
+    
+    // Paleta de colores para series (tonos cálidos y naturales que combinan con el paisaje)
+    const paletaColores = [
+        0xE8D4A0, // Beige (tierra)
+        0xD2B48C, // Tan (arena)
+        0xDEB887, // Burlywood (madera clara)
+        0xF4A460, // Sandy brown (arena oscura)
+        0xCD853F, // Peru (terracota)
+        0xD2691E, // Chocolate (marrón cálido)
+        0xB8860B, // Dark goldenrod (dorado oscuro)
+        0xDAA520, // Goldenrod (dorado)
+        0xBC8F8F, // Rosy brown (marrón rosado)
+        0xA0826D  // Taupe (marrón grisáceo)
+    ];
+
+    series.forEach((serie, si) => {
+        // Asignar color a la serie (cíclico si hay más de 10 series)
+        const colorSerie = paletaColores[si % paletaColores.length];
+        // Usar el array x de la serie actual para obtener labels y longitud correcta
+        const serieLabels = serie.x || [];
+        const numBarras = serie.y.length;
+        
+        serie.y.forEach((valor, i) => {
+            // Usar proporción EXACTA sin aproximación
+            const proporcion = (valor - vmin) / rangoValores;
+            const altura = Math.max(0.5, proporcion * alturaMaxima); // Mínimo 0.5 para visibilidad
+            
+            // Decidir si es casa o edificio según altura
+            const tipo = altura < 6 ? 'casa' : 'edificio';
+            const edificio = crearEdificio(altura, tipo, colorSerie);
+            
+            // CORRECCIÓN: Usar numBarras (longitud real de la serie) en lugar de labels.length
+            const x = (i - numBarras / 2) * gap;
+            const z = (si - series.length / 2) * gap * 1.8;
+            edificio.position.set(x, 0, z);
+            
+            edificio.userData = {
+                valor: valor,
+                label: serieLabels[i] || labels[i] || `Dato ${i+1}`, // Usar label de la serie actual
+                serie: serie.name,
+                altura: altura.toFixed(2),
+                tipo: tipo === 'casa' ? 'Casa' : 'Edificio',
+                proporcion: (proporcion * 100).toFixed(1) + '%',
+                desagregaciones: grafico.desagregaciones || 'N/A'
+            };
+            
+            barrasInteractivas.push(edificio);
+            grupoBarras.add(edificio);
+        });
+    });
+    scene.add(grupoBarras);
+    
+    // 🔊 Sonido ambiental de fondo
+    const audioListener = new THREE.AudioListener();
+    camera.add(audioListener);
+    
+    // Sonido ambiente (loop continuo)
+    const sonidoAmbiente = new THREE.Audio(audioListener);
+    const audioLoader = new THREE.AudioLoader();
+    
+    // Sonido de recolección (se reproduce cada vez que recolecta)
+    const sonidoRecoleccion = new THREE.Audio(audioListener);
+    
+    // Variables de control (usar estado global para preservar entre renders)
+    let ambienteCargado = false;
+    let recoleccionCargado = false;
+    
+    const soundToggle = document.getElementById('sound-toggle');
+    const soundOnIcon = document.getElementById('sound-on-icon');
+    const soundOffIcon = document.getElementById('sound-off-icon');
+    
+    // Restaurar estado visual del botón desde el estado global
+    if (estadoAudioGlobal.audioIniciado) {
+        if (estadoAudioGlobal.sonidoActivo) {
+            soundOnIcon.classList.remove('hidden');
+            soundOffIcon.classList.add('hidden');
+        } else {
+            soundOnIcon.classList.add('hidden');
+            soundOffIcon.classList.remove('hidden');
+        }
+    }
+    
+    // Cargar sonido ambiente
+    audioLoader.load('{% static "indicadores/audio/ambiente_cali.mp3" %}', function(buffer) {
+        sonidoAmbiente.setBuffer(buffer);
+        sonidoAmbiente.setLoop(true);
+        sonidoAmbiente.setVolume(0.3);
+        ambienteCargado = true;
+        console.log('✅ Audio ambiente cargado');
+        
+        // Si el estado global indica que el audio debe estar activo, reproducirlo automáticamente
+        if (estadoAudioGlobal.audioIniciado && estadoAudioGlobal.sonidoActivo) {
+            // Reanudar el contexto si está suspendido
+            if (audioListener.context.state === 'suspended') {
+                audioListener.context.resume().then(() => {
+                    sonidoAmbiente.play();
+                    console.log('🎵 Audio ambiente reanudado automáticamente');
+                });
+            } else {
+                sonidoAmbiente.play();
+                console.log('🎵 Audio ambiente reproducido automáticamente');
+            }
+        }
+    }, undefined, function(error) {
+        console.error('❌ Error cargando audio ambiente:', error);
+    });
+    
+    // Cargar sonido de recolección
+    audioLoader.load('{% static "indicadores/audio/recoleccion_chontaduro.mp3" %}', function(buffer) {
+        sonidoRecoleccion.setBuffer(buffer);
+        sonidoRecoleccion.setLoop(false);
+        sonidoRecoleccion.setVolume(0.5);
+        recoleccionCargado = true;
+        console.log('✅ Audio recolección cargado');
+    }, undefined, function(error) {
+        console.error('❌ Error cargando audio recolección:', error);
+    });
+    
+    // Control de sonido con botón (actualizar estado global)
+    soundToggle.addEventListener('click', async () => {
+        if (!estadoAudioGlobal.audioIniciado) {
+            // Primera vez: iniciar audio
+            if (audioListener.context.state === 'suspended') {
+                await audioListener.context.resume();
+            }
+            
+            // Iniciar sonido ambiente si está cargado
+            if (ambienteCargado && !sonidoAmbiente.isPlaying) {
+                sonidoAmbiente.play();
+            }
+            
+            estadoAudioGlobal.audioIniciado = true;
+            estadoAudioGlobal.sonidoActivo = true;
+            soundOnIcon.classList.remove('hidden');
+            soundOffIcon.classList.add('hidden');
+            console.log('🎵 Sonido ambiental activado');
+        } else {
+            // Toggle on/off
+            estadoAudioGlobal.sonidoActivo = !estadoAudioGlobal.sonidoActivo;
+            
+            if (estadoAudioGlobal.sonidoActivo) {
+                // Reactivar: reanudar contexto si está suspendido
+                if (audioListener.context.state === 'suspended') {
+                    await audioListener.context.resume();
+                    console.log('🔄 Contexto de audio reanudado');
+                }
+                
+                if (ambienteCargado && !sonidoAmbiente.isPlaying) {
+                    sonidoAmbiente.play();
+                    console.log('🎵 Sonido ambiente reactivado');
+                }
+                soundOnIcon.classList.remove('hidden');
+                soundOffIcon.classList.add('hidden');
+            } else {
+                if (sonidoAmbiente.isPlaying) {
+                    sonidoAmbiente.pause();
+                    console.log('⏸️ Sonido ambiente pausado');
+                }
+                soundOnIcon.classList.add('hidden');
+                soundOffIcon.classList.remove('hidden');
+            }
+        }
+    });
+    
+    // 🍑 Función para reproducir sonido de recolección de chontaduro
+    function reproducirSonidoRecoleccion() {
+        if (!estadoAudioGlobal.audioIniciado || !estadoAudioGlobal.sonidoActivo) return; // Solo reproducir si el audio está activado
+        
+        if (recoleccionCargado) {
+            // Si ya está sonando, detenerlo y reiniciarlo
+            if (sonidoRecoleccion.isPlaying) {
+                sonidoRecoleccion.stop();
+            }
+            sonidoRecoleccion.play();
+            console.log('🍑 ¡Sonido de recolección!');
+        }
+    }
+    // 🏛️ Edificios decorativos aleatorios alrededor del barrio
+    const edificiosDecorativos = [];
+    
+    // Función para crear iglesia
+    function crearIglesia(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Nave principal
+        const nave = new THREE.Mesh(
+            new THREE.BoxGeometry(4, 6, 6),
+            new THREE.MeshLambertMaterial({ color: 0xE8D4A0 })
+        );
+        nave.position.y = 3;
+        nave.castShadow = true;
+        grupo.add(nave);
+        
+        // Techo a dos aguas
+        const techoGeom = new THREE.ConeGeometry(3.5, 2, 4);
+        const techo = new THREE.Mesh(techoGeom, new THREE.MeshLambertMaterial({ color: 0x8B4513 }));
+        techo.rotation.y = Math.PI / 4;
+        techo.position.y = 7;
+        techo.castShadow = true;
+        grupo.add(techo);
+        
+        // Torre/campanario
+        const torre = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 8, 1.5),
+            new THREE.MeshLambertMaterial({ color: 0xD4C4A0 })
+        );
+        torre.position.set(0, 4, -3.5);
+        torre.castShadow = true;
+        grupo.add(torre);
+        
+        // Cruz en la torre
+        const cruzV = new THREE.Mesh(
+            new THREE.BoxGeometry(0.2, 2, 0.2),
+            new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
+        );
+        cruzV.position.set(0, 9, -3.5);
+        grupo.add(cruzV);
+        
+        const cruzH = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 0.2, 0.2),
+            new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
+        );
+        cruzH.position.set(0, 8.5, -3.5);
+        grupo.add(cruzH);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear estación de bomberos
+    function crearEstacionBomberos(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Edificio principal
+        const edificio = new THREE.Mesh(
+            new THREE.BoxGeometry(5, 5, 4),
+            new THREE.MeshLambertMaterial({ color: 0xCC0000 }) // Rojo
+        );
+        edificio.position.y = 2.5;
+        edificio.castShadow = true;
+        grupo.add(edificio);
+        
+        // Puerta de garaje
+        const puerta = new THREE.Mesh(
+            new THREE.BoxGeometry(2.5, 3, 0.1),
+            new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
+        );
+        puerta.position.set(0, 1.5, 2.05);
+        grupo.add(puerta);
+        
+        // Sirena en el techo
+        const sirena = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 0.5, 8),
+            new THREE.MeshBasicMaterial({ color: 0xFF0000, emissive: 0xFF0000 })
+        );
+        sirena.position.y = 5.5;
+        grupo.add(sirena);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear fuente
+    function crearFuente(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Base
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(2, 2.5, 0.5, 8),
+            new THREE.MeshLambertMaterial({ color: 0xCCCCCC })
+        );
+        base.position.y = 0.25;
+        base.castShadow = true;
+        grupo.add(base);
+        
+        // Piscina
+        const piscina = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.8, 1.8, 0.8, 8),
+            new THREE.MeshLambertMaterial({ color: 0x4A90E2, transparent: true, opacity: 0.7 })
+        );
+        piscina.position.y = 0.9;
+        grupo.add(piscina);
+        
+        // Pilar central
+        const pilar = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 2, 8),
+            new THREE.MeshLambertMaterial({ color: 0xAAAAAA })
+        );
+        pilar.position.y = 1.5;
+        pilar.castShadow = true;
+        grupo.add(pilar);
+        
+        // Copa superior
+        const copa = new THREE.Mesh(
+            new THREE.SphereGeometry(0.6, 8, 8),
+            new THREE.MeshLambertMaterial({ color: 0x888888 })
+        );
+        copa.position.y = 2.8;
+        grupo.add(copa);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear antena de comunicaciones
+    function crearAntena(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Torre principal (estructura metálica)
+        const torre = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.5, 15, 4),
+            new THREE.MeshLambertMaterial({ color: 0xC0C0C0 })
+        );
+        torre.position.y = 7.5;
+        torre.castShadow = true;
+        grupo.add(torre);
+        
+        // Plataformas en diferentes niveles
+        for (let i = 0; i < 3; i++) {
+            const plataforma = new THREE.Mesh(
+                new THREE.CylinderGeometry(1, 1, 0.2, 8),
+                new THREE.MeshLambertMaterial({ color: 0x888888 })
+            );
+            plataforma.position.y = 5 + i * 4;
+            grupo.add(plataforma);
+        }
+        
+        // Antena en la cima
+        const antena = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.1, 3, 8),
+            new THREE.MeshLambertMaterial({ color: 0xFF0000 })
+        );
+        antena.position.y = 16.5;
+        grupo.add(antena);
+        
+        // Luz roja parpadeante
+        const luz = new THREE.Mesh(
+            new THREE.SphereGeometry(0.2, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xFF0000, emissive: 0xFF0000 })
+        );
+        luz.position.y = 18;
+        grupo.add(luz);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear centro comercial
+    function crearCentroComercial(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Edificio principal (grande y moderno)
+        const edificio = new THREE.Mesh(
+            new THREE.BoxGeometry(8, 6, 10),
+            new THREE.MeshLambertMaterial({ color: 0xE0E0E0 })
+        );
+        edificio.position.y = 3;
+        edificio.castShadow = true;
+        grupo.add(edificio);
+        
+        // Letrero "MALL"
+        const letrero = new THREE.Mesh(
+            new THREE.BoxGeometry(6, 1, 0.2),
+            new THREE.MeshBasicMaterial({ color: 0xFF6600, emissive: 0xFF6600 })
+        );
+        letrero.position.set(0, 6.5, 5.1);
+        grupo.add(letrero);
+        
+        // Puertas de entrada
+        for (let i = -2; i <= 2; i += 2) {
+            const puerta = new THREE.Mesh(
+                new THREE.BoxGeometry(1.5, 3, 0.1),
+                new THREE.MeshLambertMaterial({ color: 0x4169E1 })
+            );
+            puerta.position.set(i, 1.5, 5.05);
+            grupo.add(puerta);
+        }
+        
+        // Estacionamiento (plataforma)
+        const estacionamiento = new THREE.Mesh(
+            new THREE.BoxGeometry(12, 0.2, 8),
+            new THREE.MeshLambertMaterial({ color: 0x555555 })
+        );
+        estacionamiento.position.set(0, 0.1, -9);
+        grupo.add(estacionamiento);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear estadio
+    function crearEstadio(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Crear estructura del estadio con apertura (usando geometría personalizada)
+        // Usamos un cilindro parcial con segmentos
+        const estadioGeom = new THREE.CylinderGeometry(10, 12, 8, 16, 1, true, 0, Math.PI * 1.7);
+        const estadio = new THREE.Mesh(
+            estadioGeom,
+            new THREE.MeshLambertMaterial({ 
+                color: 0xDDDDDD,
+                side: THREE.DoubleSide 
+            })
+        );
+        estadio.position.y = 4;
+        estadio.castShadow = true;
+        grupo.add(estadio);
+        
+        // Añadir paredes laterales en la apertura
+        const paredIzq = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 8, 3),
+            new THREE.MeshLambertMaterial({ color: 0xDDDDDD })
+        );
+        paredIzq.position.set(-9, 4, 5);
+        paredIzq.castShadow = true;
+        grupo.add(paredIzq);
+        
+        const paredDer = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 8, 3),
+            new THREE.MeshLambertMaterial({ color: 0xDDDDDD })
+        );
+        paredDer.position.set(9, 4, 5);
+        paredDer.castShadow = true;
+        grupo.add(paredDer);
+        
+        // Campo interior (verde)
+        const campo = new THREE.Mesh(
+            new THREE.CylinderGeometry(8, 8, 0.2, 16),
+            new THREE.MeshLambertMaterial({ color: 0x00AA00 })
+        );
+        campo.position.y = 0.1;
+        grupo.add(campo);
+        
+        // Torres de iluminación (4 esquinas)
+        const posicionesTorres = [
+            [10, 0, 10], [10, 0, -10], [-10, 0, 10], [-10, 0, -10]
+        ];
+        posicionesTorres.forEach(([tx, ty, tz]) => {
+            const torre = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.4, 12, 6),
+                new THREE.MeshLambertMaterial({ color: 0x888888 })
+            );
+            torre.position.set(tx, 6, tz);
+            torre.castShadow = true;
+            grupo.add(torre);
+            
+            // Reflectores
+            const reflector = new THREE.Mesh(
+                new THREE.BoxGeometry(1, 0.5, 1),
+                new THREE.MeshBasicMaterial({ color: 0xFFFF00, emissive: 0xFFFF00 })
+            );
+            reflector.position.set(tx, 12, tz);
+            grupo.add(reflector);
+        });
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear parque
+    function crearParque(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Césped base
+        const cesped = new THREE.Mesh(
+            new THREE.BoxGeometry(12, 0.1, 12),
+            new THREE.MeshLambertMaterial({ color: 0x228B22 })
+        );
+        cesped.position.y = 0.05;
+        cesped.receiveShadow = true;
+        grupo.add(cesped);
+        
+        // Árboles del parque (pequeños)
+        const posicionesArboles = [
+            [-4, -4], [4, -4], [-4, 4], [4, 4], [0, 0]
+        ];
+        posicionesArboles.forEach(([ax, az]) => {
+            // Tronco
+            const tronco = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2, 0.25, 3, 6),
+                new THREE.MeshLambertMaterial({ color: 0x654321 })
+            );
+            tronco.position.set(ax, 1.5, az);
+            tronco.castShadow = true;
+            grupo.add(tronco);
+            
+            // Copa
+            const copa = new THREE.Mesh(
+                new THREE.SphereGeometry(1.2, 8, 8),
+                new THREE.MeshLambertMaterial({ color: 0x228B22 })
+            );
+            copa.position.set(ax, 3.5, az);
+            copa.castShadow = true;
+            grupo.add(copa);
+        });
+        
+        // Senderos (caminos)
+        const sendero1 = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 0.05, 12),
+            new THREE.MeshLambertMaterial({ color: 0xD2B48C })
+        );
+        sendero1.position.y = 0.08;
+        grupo.add(sendero1);
+        
+        const sendero2 = new THREE.Mesh(
+            new THREE.BoxGeometry(12, 0.05, 1),
+            new THREE.MeshLambertMaterial({ color: 0xD2B48C })
+        );
+        sendero2.position.y = 0.08;
+        grupo.add(sendero2);
+        
+        // Bancas
+        for (let i = -4; i <= 4; i += 4) {
+            const banca = new THREE.Mesh(
+                new THREE.BoxGeometry(1.5, 0.3, 0.5),
+                new THREE.MeshLambertMaterial({ color: 0x8B4513 })
+            );
+            banca.position.set(i, 0.3, 2);
+            grupo.add(banca);
+        }
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear Monumento al Gato de Tejada (icónico de Cali)
+    function crearMonumentoGato(x, z) {
+        const grupo = new THREE.Group();
+        const gatoMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 }); // Bronce
+        
+        // Base/pedestal
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(2.5, 3, 1.5, 8),
+            new THREE.MeshLambertMaterial({ color: 0x808080 })
+        );
+        base.position.y = 0.75;
+        base.castShadow = true;
+        grupo.add(base);
+        
+        // Placa conmemorativa
+        const placa = new THREE.Mesh(
+            new THREE.BoxGeometry(3, 0.8, 0.2),
+            new THREE.MeshLambertMaterial({ color: 0xB8860B })
+        );
+        placa.position.set(0, 1.5, 2.6);
+        grupo.add(placa);
+        
+        // Cuerpo del gato (elipsoide)
+        const cuerpo = new THREE.Mesh(
+            new THREE.SphereGeometry(1.2, 12, 12),
+            gatoMat
+        );
+        cuerpo.scale.set(1, 1.3, 0.9);
+        cuerpo.position.set(0, 3.5, 0);
+        cuerpo.castShadow = true;
+        grupo.add(cuerpo);
+        
+        // Cabeza del gato
+        const cabeza = new THREE.Mesh(
+            new THREE.SphereGeometry(0.8, 12, 12),
+            gatoMat
+        );
+        cabeza.scale.set(1.1, 1, 1.1);
+        cabeza.position.set(0, 5, 0.3);
+        cabeza.castShadow = true;
+        grupo.add(cabeza);
+        
+        // Orejas (triangulares)
+        const orejaGeom = new THREE.ConeGeometry(0.3, 0.6, 4);
+        const orejaIzq = new THREE.Mesh(orejaGeom, gatoMat);
+        orejaIzq.position.set(-0.5, 5.6, 0.2);
+        orejaIzq.rotation.z = -0.3;
+        grupo.add(orejaIzq);
+        
+        const orejaDer = new THREE.Mesh(orejaGeom, gatoMat);
+        orejaDer.position.set(0.5, 5.6, 0.2);
+        orejaDer.rotation.z = 0.3;
+        grupo.add(orejaDer);
+        
+        // Hocico
+        const hocico = new THREE.Mesh(
+            new THREE.SphereGeometry(0.4, 8, 8),
+            gatoMat
+        );
+        hocico.scale.set(0.8, 0.6, 0.7);
+        hocico.position.set(0, 4.7, 0.9);
+        grupo.add(hocico);
+        
+        // Nariz
+        const nariz = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 6, 6),
+            new THREE.MeshLambertMaterial({ color: 0x000000 })
+        );
+        nariz.position.set(0, 4.8, 1.3);
+        grupo.add(nariz);
+        
+        // Ojos
+        const ojoGeom = new THREE.SphereGeometry(0.15, 8, 8);
+        const ojoMat = new THREE.MeshBasicMaterial({ color: 0x00FF00, emissive: 0x00FF00 });
+        
+        const ojoIzq = new THREE.Mesh(ojoGeom, ojoMat);
+        ojoIzq.position.set(-0.3, 5.1, 0.9);
+        grupo.add(ojoIzq);
+        
+        const ojoDer = new THREE.Mesh(ojoGeom, ojoMat);
+        ojoDer.position.set(0.3, 5.1, 0.9);
+        grupo.add(ojoDer);
+        
+        // Cola (curva hacia arriba)
+        const colaGeom = new THREE.CylinderGeometry(0.15, 0.2, 2.5, 8);
+        const cola = new THREE.Mesh(colaGeom, gatoMat);
+        cola.position.set(0, 3.5, -1);
+        cola.rotation.x = Math.PI / 3; // Inclinada hacia arriba
+        cola.castShadow = true;
+        grupo.add(cola);
+        
+        // Patas delanteras
+        const pataGeom = new THREE.CylinderGeometry(0.2, 0.25, 1.5, 6);
+        const pataFrontalIzq = new THREE.Mesh(pataGeom, gatoMat);
+        pataFrontalIzq.position.set(-0.6, 2.3, 0.6);
+        pataFrontalIzq.castShadow = true;
+        grupo.add(pataFrontalIzq);
+        
+        const pataFrontalDer = new THREE.Mesh(pataGeom, gatoMat);
+        pataFrontalDer.position.set(0.6, 2.3, 0.6);
+        pataFrontalDer.castShadow = true;
+        grupo.add(pataFrontalDer);
+        
+        // Patas traseras
+        const pataTraseraIzq = new THREE.Mesh(pataGeom, gatoMat);
+        pataTraseraIzq.position.set(-0.6, 2.3, -0.5);
+        pataTraseraIzq.castShadow = true;
+        grupo.add(pataTraseraIzq);
+        
+        const pataTraseraDer = new THREE.Mesh(pataGeom, gatoMat);
+        pataTraseraDer.position.set(0.6, 2.3, -0.5);
+        pataTraseraDer.castShadow = true;
+        grupo.add(pataTraseraDer);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear estación de policía
+    function crearEstacionPolicia(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Edificio principal
+        const edificio = new THREE.Mesh(
+            new THREE.BoxGeometry(6, 4, 5),
+            new THREE.MeshLambertMaterial({ color: 0x2C5F8D }) // Azul policía
+        );
+        edificio.position.y = 2;
+        edificio.castShadow = true;
+        grupo.add(edificio);
+        
+        // Letrero "POLICÍA"
+        const letrero = new THREE.Mesh(
+            new THREE.BoxGeometry(4, 0.8, 0.2),
+            new THREE.MeshBasicMaterial({ color: 0xFFFFFF, emissive: 0xFFFFFF })
+        );
+        letrero.position.set(0, 4.5, 2.6);
+        grupo.add(letrero);
+        
+        // Sirena azul/roja
+        const sirena = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 0.4, 8),
+            new THREE.MeshBasicMaterial({ color: 0x0000FF, emissive: 0x0000FF })
+        );
+        sirena.position.y = 4.5;
+        grupo.add(sirena);
+        
+        // Bandera
+        const asta = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.1, 3, 6),
+            new THREE.MeshLambertMaterial({ color: 0x808080 })
+        );
+        asta.position.set(-2.5, 5.5, 0);
+        grupo.add(asta);
+        
+        const bandera = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.5, 1),
+            new THREE.MeshLambertMaterial({ color: 0xFFD700 })
+        );
+        bandera.position.set(-2.5, 6.5, 0.5);
+        grupo.add(bandera);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Función para crear base aérea
+    function crearBaseAerea(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Hangar principal
+        const hangar = new THREE.Mesh(
+            new THREE.BoxGeometry(12, 6, 10),
+            new THREE.MeshLambertMaterial({ color: 0x708090 }) // Gris metálico
+        );
+        hangar.position.y = 3;
+        hangar.castShadow = true;
+        grupo.add(hangar);
+        
+        // Techo curvo del hangar
+        const techoGeom = new THREE.CylinderGeometry(6, 6, 12, 16, 1, true, 0, Math.PI);
+        const techo = new THREE.Mesh(
+            techoGeom,
+            new THREE.MeshLambertMaterial({ color: 0x556B2F, side: THREE.DoubleSide })
+        );
+        techo.rotation.z = Math.PI / 2;
+        techo.position.y = 6;
+        grupo.add(techo);
+        
+        // Pista de aterrizaje
+        const pista = new THREE.Mesh(
+            new THREE.BoxGeometry(20, 0.1, 6),
+            new THREE.MeshLambertMaterial({ color: 0x404040 })
+        );
+        pista.position.set(0, 0.05, -12);
+        grupo.add(pista);
+        
+        // Líneas blancas de la pista
+        for (let i = 0; i < 5; i++) {
+            const linea = new THREE.Mesh(
+                new THREE.BoxGeometry(2, 0.12, 0.3),
+                new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+            );
+            linea.position.set(-8 + i * 4, 0.11, -12);
+            grupo.add(linea);
+        }
+        
+        // Torre de control
+        const torre = new THREE.Mesh(
+            new THREE.CylinderGeometry(1, 1.5, 8, 8),
+            new THREE.MeshLambertMaterial({ color: 0xD3D3D3 })
+        );
+        torre.position.set(8, 4, 0);
+        torre.castShadow = true;
+        grupo.add(torre);
+        
+        // Cabina de control
+        const cabina = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.5, 1.2, 2, 8),
+            new THREE.MeshLambertMaterial({ color: 0x4169E1 })
+        );
+        cabina.position.set(8, 9, 0);
+        grupo.add(cabina);
+        
+        // Antena
+        const antena = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.1, 2, 6),
+            new THREE.MeshLambertMaterial({ color: 0xFF0000 })
+        );
+        antena.position.set(8, 11, 0);
+        grupo.add(antena);
+        
+        grupo.position.set(x, 0, z);
+        return grupo;
+    }
+    
+    // Colocar edificios decorativos LEJOS del centro (para evitar interferencia con gráficos)
+    const posicionesDecorativas = [
+        // Esquinas lejanas
+        { x: -45, z: -45, tipo: 'iglesia' },
+        { x: 45, z: -45, tipo: 'antena' },
+        { x: -45, z: 45, tipo: 'centro_comercial' },
+        { x: 45, z: 45, tipo: 'iglesia' },
+        
+        // Laterales (alejados del centro y ríos)
+        { x: -50, z: -15, tipo: 'fuente' }, // Movido para no interferir con gráfico
+        { x: 50, z: -15, tipo: 'bomberos' }, // Movido para no estar sobre río
+        { x: 0, z: -50, tipo: 'antena' },
+        { x: -20, z: 50, tipo: 'parque' },
+        
+        // Intermedios
+        { x: -45, z: -30, tipo: 'bomberos' },
+        { x: 45, z: -30, tipo: 'fuente' },
+        { x: -45, z: 20, tipo: 'antena' },
+        { x: 45, z: 20, tipo: 'centro_comercial' },
+        
+        // Estadio (muy alejado de la cordillera)
+        { x: 40, z: -50, tipo: 'estadio' }, // Movido más al este y menos al norte
+        
+        // Más parques y monumentos
+        { x: 25, z: 55, tipo: 'parque' },
+        
+        // Monumento al Gato de Tejada cerca del parque
+        { x: -25, z: 48, tipo: 'monumento_gato' },
+        
+        // Estación de Policía y Base Aérea
+        { x: 50, z: 35, tipo: 'policia' }, // Movida al este, lejos del mall
+        { x: 0, z: 58, tipo: 'base_aerea' } // Movida al sur, cerca de los parques
+    ];
+    
+    posicionesDecorativas.forEach(pos => {
+        let edificio;
+        switch(pos.tipo) {
+            case 'iglesia':
+                edificio = crearIglesia(pos.x, pos.z);
+                break;
+            case 'bomberos':
+                edificio = crearEstacionBomberos(pos.x, pos.z);
+                break;
+            case 'fuente':
+                edificio = crearFuente(pos.x, pos.z);
+                break;
+            case 'antena':
+                edificio = crearAntena(pos.x, pos.z);
+                break;
+            case 'centro_comercial':
+                edificio = crearCentroComercial(pos.x, pos.z);
+                break;
+            case 'estadio':
+                edificio = crearEstadio(pos.x, pos.z);
+                break;
+            case 'parque':
+                edificio = crearParque(pos.x, pos.z);
+                break;
+            case 'monumento_gato':
+                edificio = crearMonumentoGato(pos.x, pos.z);
+                break;
+            case 'policia':
+                edificio = crearEstacionPolicia(pos.x, pos.z);
+                break;
+            case 'base_aerea':
+                edificio = crearBaseAerea(pos.x, pos.z);
+                break;
+        }
+        if (edificio) {
+            edificiosDecorativos.push(edificio);
+            scene.add(edificio);
+        }
+    });
+
+    // 🎯 Interactividad: Raycasting para hover
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hoveredBar = null;
+
+    renderer.domElement.addEventListener('mousemove', (event) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(grupoBarras.children, true);
+
+        if (hoveredBar) {
+            hoveredBar.children.forEach(b => b.scale.set(1, 1, 1));
+            hoveredBar = null;
+            tooltip.style.display = 'none';
+        }
+
+        if (intersects.length > 0) {
+            let obj = intersects[0].object;
+            while (obj.parent && !obj.userData.valor) obj = obj.parent;
+            
+            if (obj.userData.valor !== undefined) {
+                hoveredBar = obj;
+                obj.children.forEach(b => b.scale.set(1.1, 1, 1.1));
+                
+                const desags = obj.userData.desagregaciones !== 'N/A' ? 
+                    `<br><span style="color:#888; font-size:11px">📊 ${obj.userData.desagregaciones}</span>` : '';
+                
+                tooltip.innerHTML = `
+                    <strong>🏙️ ${obj.userData.label}</strong><br>
+                    ${obj.userData.serie}: <strong>${obj.userData.valor}</strong><br>
+                    <span style="color:#4A90E2">🏢 ${obj.userData.tipo} - Altura: ${obj.userData.altura}m (${obj.userData.proporcion})</span>${desags}
+                `;
+                tooltip.style.display = 'block';
+                tooltip.style.left = event.clientX + 10 + 'px';
+                tooltip.style.top = event.clientY + 10 + 'px';
+            }
+        }
+    });
+
+    renderer.domElement.addEventListener('mouseleave', () => {
+        if (hoveredBar) {
+            hoveredBar.children.forEach(b => b.scale.set(1, 1, 1));
+            hoveredBar = null;
+        }
+        tooltip.style.display = 'none';
+    });
+
+    // 🦜 ========== VIDEOJUEGO: DON DATICO EL LORO ========== 🦜
+    
+    // Función para crear a Don Datico (loro)
+    function crearDonDatico() {
+        const loro = new THREE.Group();
+        
+        // Cuerpo (verde loro)
+        const cuerpoGeom = new THREE.SphereGeometry(0.6, 12, 12);
+        const cuerpoMat = new THREE.MeshLambertMaterial({ color: 0x00AA00 }); // Verde loro
+        const cuerpo = new THREE.Mesh(cuerpoGeom, cuerpoMat);
+        cuerpo.scale.set(1, 1.3, 0.9);
+        cuerpo.position.y = 0.5;
+        cuerpo.castShadow = true;
+        loro.add(cuerpo);
+        
+        // Cabeza (verde más claro)
+        const cabezaGeom = new THREE.SphereGeometry(0.4, 12, 12);
+        const cabezaMat = new THREE.MeshLambertMaterial({ color: 0x22DD22 });
+        const cabeza = new THREE.Mesh(cabezaGeom, cabezaMat);
+        cabeza.position.set(0, 1.1, 0.2);
+        cabeza.castShadow = true;
+        loro.add(cabeza);
+        
+        // Pico (amarillo/naranja)
+        const picoGeom = new THREE.ConeGeometry(0.15, 0.4, 8);
+        const picoMat = new THREE.MeshLambertMaterial({ color: 0xFFAA00 });
+        const pico = new THREE.Mesh(picoGeom, picoMat);
+        pico.rotation.x = Math.PI / 2;
+        pico.position.set(0, 1.1, 0.6);
+        loro.add(pico);
+        
+        // Ojos
+        const ojoGeom = new THREE.SphereGeometry(0.1, 8, 8);
+        const ojoMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const ojoIzq = new THREE.Mesh(ojoGeom, ojoMat);
+        ojoIzq.position.set(-0.2, 1.2, 0.4);
+        loro.add(ojoIzq);
+        const ojoDer = new THREE.Mesh(ojoGeom, ojoMat);
+        ojoDer.position.set(0.2, 1.2, 0.4);
+        loro.add(ojoDer);
+        
+        // Alas (azul/turquesa) - Forma más natural con gradiente
+        // Ala izquierda - forma de ala real (más ancha arriba, estrecha abajo)
+        const alaShape = new THREE.Shape();
+        alaShape.moveTo(0, 0);
+        alaShape.lineTo(0.3, 0.2);
+        alaShape.lineTo(0.4, 0.5);
+        alaShape.lineTo(0.3, 1);
+        alaShape.lineTo(0, 0.9);
+        alaShape.lineTo(0, 0);
+        
+        const alaGeom = new THREE.ExtrudeGeometry(alaShape, {
+            depth: 0.1,
+            bevelEnabled: true,
+            bevelThickness: 0.05,
+            bevelSize: 0.05,
+            bevelSegments: 2
+        });
+        
+        const alaMat = new THREE.MeshLambertMaterial({ color: 0x00AAFF });
+        const alaIzq = new THREE.Mesh(alaGeom, alaMat);
+        alaIzq.position.set(-0.6, 0.2, -0.05);
+        alaIzq.rotation.z = -0.3;
+        alaIzq.scale.x = -1; // Efecto espejo para ala izquierda
+        alaIzq.castShadow = true;
+        loro.add(alaIzq);
+        
+        const alaDer = new THREE.Mesh(alaGeom, alaMat);
+        alaDer.position.set(0.6, 0.2, -0.05);
+        alaDer.rotation.z = 0.3;
+        alaDer.castShadow = true;
+        loro.add(alaDer);
+        
+        // Cola - forma de abanico simple y elegante
+        const colaShape = new THREE.Shape();
+        colaShape.moveTo(0, 0);
+        colaShape.lineTo(-0.4, 1);
+        colaShape.lineTo(-0.2, 1.3);
+        colaShape.lineTo(0, 1.4);
+        colaShape.lineTo(0.2, 1.3);
+        colaShape.lineTo(0.4, 1);
+        colaShape.lineTo(0, 0);
+        
+        const colaGeom = new THREE.ExtrudeGeometry(colaShape, {
+            depth: 0.08,
+            bevelEnabled: true,
+            bevelThickness: 0.03,
+            bevelSize: 0.03,
+            bevelSegments: 2
+        });
+        
+        // Gradiente de colores: rojo en la base, amarillo en las puntas
+        const colaMat = new THREE.MeshLambertMaterial({ 
+            color: 0xFF4444,
+            emissive: 0x331100,
+            emissiveIntensity: 0.2
+        });
+        const cola = new THREE.Mesh(colaGeom, colaMat);
+        cola.rotation.x = -Math.PI / 2; // Invertir para que apunte hacia atrás
+        cola.position.set(0, 0.4, -0.8);
+        cola.castShadow = true;
+        loro.add(cola);
+        
+        // Guardar referencia para animación de viento
+        loro.userData.cola = cola;
+        
+        // Patas (naranja)
+        const pataGeom = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6);
+        const pataMat = new THREE.MeshLambertMaterial({ color: 0xFF6600 });
+        const pataIzq = new THREE.Mesh(pataGeom, pataMat);
+        pataIzq.position.set(-0.2, 0, 0);
+        loro.add(pataIzq);
+        const pataDer = new THREE.Mesh(pataGeom, pataMat);
+        pataDer.position.set(0.2, 0, 0);
+        loro.add(pataDer);
+        
+        // Cresta (amarilla)
+        const crestaGeom = new THREE.ConeGeometry(0.15, 0.3, 6);
+        const crestaMat = new THREE.MeshLambertMaterial({ color: 0xFFFF00 });
+        const cresta = new THREE.Mesh(crestaGeom, crestaMat);
+        cresta.position.set(0, 1.5, 0);
+        loro.add(cresta);
+        
+        // Guardar referencias para animación
+        loro.userData.alaIzq = alaIzq;
+        loro.userData.alaDer = alaDer;
+        
+        return loro;
+    }
+    
+    // Función para crear chontaduro
+    function crearChontaduro() {
+        const grupo = new THREE.Group();
+        
+        // Fruta (esfera naranja-rojiza)
+        const frutaGeom = new THREE.SphereGeometry(0.3, 12, 12);
+        const frutaMat = new THREE.MeshLambertMaterial({ 
+            color: 0xFF6B35,
+            emissive: 0xFF6B35,
+            emissiveIntensity: 0.3
+        });
+        const fruta = new THREE.Mesh(frutaGeom, frutaMat);
+        fruta.scale.set(1, 1.2, 1);
+        fruta.castShadow = true;
+        grupo.add(fruta);
+        
+        // Brillo/resplandor
+        const brilloGeom = new THREE.SphereGeometry(0.4, 12, 12);
+        const brilloMat = new THREE.MeshBasicMaterial({ 
+            color: 0xFFAA00,
+            transparent: true,
+            opacity: 0.3
+        });
+        const brillo = new THREE.Mesh(brilloGeom, brilloMat);
+        grupo.add(brillo);
+        
+        grupo.userData.brillo = brillo;
+        
+        return grupo;
+    }
+    
+    // Crear Don Datico - Posición inicial cerca de las montañas
+    const donDatico = crearDonDatico();
+    donDatico.position.set(-30, 20, -45); // Cerca de las montañas, volando alto
+    scene.add(donDatico);
+    
+    // Variables de control del juego
+    const gameState = {
+        velocidad: 0.3,
+        velocidadRotacion: 0.05,
+        alturaVuelo: 3,
+        chontadurosRecolectados: 0,
+        teclas: {},
+        modoJuego: false // Se activa con tecla 'G'
+    };
+    
+    // Crear chontaduros en la cima de cada edificio
+    const chontaduros = [];
+    barrasInteractivas.forEach((edificio, index) => {
+        const chontaduro = crearChontaduro();
+        const altura = parseFloat(edificio.userData.altura);
+        chontaduro.position.set(
+            edificio.position.x,
+            altura + 1.5, // Más alto encima del edificio
+            edificio.position.z
+        );
+        chontaduro.userData.edificio = edificio;
+        chontaduro.userData.recolectado = false;
+        chontaduro.userData.index = index;
+        chontaduros.push(chontaduro);
+        scene.add(chontaduro);
+    });
+    
+    // Splash screen para mostrar información
+    const splashScreen = document.createElement('div');
+    splashScreen.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+        color: white;
+        padding: ${esMobil ? '15px 20px' : '30px 40px'};
+        border-radius: ${esMobil ? '15px' : '20px'};
+        border: ${esMobil ? '4px' : '6px'} solid #FFD700;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        z-index: 999999;
+        font-family: 'Comic Sans MS', cursive;
+        text-align: center;
+        max-width: ${esMobil ? '85vw' : '90vw'};
+        max-height: ${esMobil ? '70vh' : '80vh'};
+        overflow-y: auto;
+        transition: transform 0.3s ease;
+        pointer-events: none;
+    `;
+    // Agregar al canvasWrapper en móviles para que esté dentro del fullscreen
+    if (esMobil) {
+        canvasWrapper.appendChild(splashScreen);
+    } else {
+        document.body.appendChild(splashScreen);
+    }
+    
+    function mostrarSplash(edificio) {
+        const data = edificio.userData;
+        // Tamaños de fuente responsivos (más pequeños en móvil)
+        const titleSize = esMobil ? '1.8em' : '3em';
+        const labelSize = esMobil ? '1.2em' : '1.8em';
+        const valueSize = esMobil ? '0.9em' : '1.3em';
+        const infoSize = esMobil ? '0.8em' : '1.1em';
+        const smallSize = esMobil ? '0.75em' : '1em';
+        const counterSize = esMobil ? '0.9em' : '1.2em';
+        const padding = esMobil ? '10px' : '15px';
+        const margin = esMobil ? '5px 0' : '8px 0';
+        
+        splashScreen.innerHTML = `
+            <div style="font-size: ${titleSize}; margin-bottom: 10px;">🎉 ¡CHONTADURO! 🎉</div>
+            <div style="font-size: ${labelSize}; font-weight: bold; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                ${data.label}
+            </div>
+            <div style="background: rgba(255,255,255,0.2); padding: ${padding}; border-radius: 10px; margin-bottom: 10px;">
+                <div style="font-size: ${valueSize}; margin: ${margin};"><strong>📊 Valor:</strong> ${data.valor}</div>
+                <div style="font-size: ${infoSize}; margin: ${margin};"><strong>📈 Serie:</strong> ${data.serie}</div>
+                <div style="font-size: ${smallSize}; margin: ${margin};"><strong>🏢 Tipo:</strong> ${data.tipo}</div>
+                <div style="font-size: ${smallSize}; margin: ${margin};"><strong>📍 Proporción:</strong> ${data.proporcion}</div>
+            </div>
+            <div style="font-size: ${counterSize}; margin-top: 10px;">
+                🦜 Chontaduros: ${gameState.chontadurosRecolectados}/${chontaduros.length}
+            </div>
+        `;
+        splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
+        
+        setTimeout(() => {
+            splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
+        }, 3000);
+    }
+    
+    // Controles de teclado
+    document.addEventListener('keydown', (e) => {
+        gameState.teclas[e.key.toLowerCase()] = true;
+        
+        // Prevenir comportamiento por defecto de Espacio y Shift en modo juego
+        if (gameState.modoJuego && (e.key === ' ' || e.key === 'Shift')) {
+            e.preventDefault();
+        }
+        
+        // Activar/desactivar modo juego con 'G'
+        if (e.key.toLowerCase() === 'g') {
+            gameState.modoJuego = !gameState.modoJuego;
+            if (gameState.modoJuego) {
+                // Cambiar cámara a tercera persona
+                controls.enabled = false;
+                console.log('🎮 Modo Juego ACTIVADO - W: Avanzar | S: Retroceder | A/D: Girar | Espacio: Subir | Shift: Bajar');
+            } else {
+                controls.enabled = true;
+                console.log('🎮 Modo Juego DESACTIVADO - Cámara libre activada');
+            }
+        }
+    });
+    
+    document.addEventListener('keyup', (e) => {
+        gameState.teclas[e.key.toLowerCase()] = false;
+        
+        // Prevenir comportamiento por defecto de Espacio y Shift en modo juego
+        if (gameState.modoJuego && (e.key === ' ' || e.key === 'Shift')) {
+            e.preventDefault();
+        }
+    });
+    
+    // Función para detectar colisión con chontaduros
+    function detectarColisiones() {
+        chontaduros.forEach((chontaduro) => {
+            if (chontaduro.userData.recolectado) return;
+            
+            const distancia = donDatico.position.distanceTo(chontaduro.position);
+            if (distancia < 1) { // Radio de colisión
+                // ¡Recolectado!
+                chontaduro.userData.recolectado = true;
+                gameState.chontadurosRecolectados++;
+                
+                // Animación de recolección
+                const escalaInicial = chontaduro.scale.clone();
+                let animTime = 0;
+                const animInterval = setInterval(() => {
+                    animTime += 0.05;
+                    chontaduro.scale.set(
+                        escalaInicial.x * (1 + Math.sin(animTime * 10) * 0.3),
+                        escalaInicial.y * (1 + Math.sin(animTime * 10) * 0.3),
+                        escalaInicial.z * (1 + Math.sin(animTime * 10) * 0.3)
+                    );
+                    chontaduro.position.y += 0.2;
+                    
+                    if (animTime > 1) {
+                        clearInterval(animInterval);
+                        scene.remove(chontaduro);
+                    }
+                }, 16);
+                
+                // Mostrar splash con información
+                mostrarSplash(chontaduro.userData.edificio);
+                
+                // 🍑 Reproducir sonido de recolección
+                reproducirSonidoRecoleccion();
+                
+                // Verificar si recolectó todos
+                if (gameState.chontadurosRecolectados === chontaduros.length) {
+                    setTimeout(() => {
+                        const trophySize = esMobil ? '2.5em' : '4em';
+                        const congratsSize = esMobil ? '1.5em' : '2.5em';
+                        const messageSize = esMobil ? '1em' : '1.5em';
+                        const counterSize = esMobil ? '0.9em' : '1.2em';
+                        
+                        splashScreen.innerHTML = `
+                            <div style="font-size: ${trophySize}; margin-bottom: 15px;">🏆</div>
+                            <div style="font-size: ${congratsSize}; font-weight: bold; margin-bottom: 10px;">
+                                ¡FELICIDADES!
+                            </div>
+                            <div style="font-size: ${messageSize};">
+                                Don Datico recolectó todos los chontaduros
+                            </div>
+                            <div style="font-size: ${counterSize}; margin-top: 15px;">
+                                🦜 ${chontaduros.length}/${chontaduros.length} Chontaduros
+                            </div>
+                        `;
+                        splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
+                        setTimeout(() => {
+                            splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
+                        }, 5000);
+                    }, 3500);
+                }
+            }
+        });
+    }
+    
+    // Instrucciones de juego (solo en desktop)
+    if (!esMobil) {
+        const instrucciones = document.createElement('div');
+        instrucciones.style.cssText = `
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 0.9em;
+            z-index: 1000;
+            max-width: 250px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        `;
+        instrucciones.innerHTML = `
+            <div style="font-size: 1.3em; font-weight: bold; margin-bottom: 10px; text-align: center;">
+                🦜 Don Datico
+            </div>
+            <div style="margin: 5px 0;"><strong>G:</strong> Activar/Desactivar Juego</div>
+            <div style="margin: 5px 0;"><strong>W:</strong> Avanzar</div>
+            <div style="margin: 5px 0;"><strong>S:</strong> Retroceder</div>
+            <div style="margin: 5px 0;"><strong>A:</strong> Girar Izquierda</div>
+            <div style="margin: 5px 0;"><strong>D:</strong> Girar Derecha</div>
+            <div style="margin: 5px 0;"><strong>Espacio:</strong> Subir</div>
+            <div style="margin: 5px 0;"><strong>Shift:</strong> Bajar</div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 2px solid rgba(255,255,255,0.3); text-align: center;">
+                <span id="contador-chontaduros">🍑 0/${chontaduros.length}</span>
+            </div>
+        `;
+        container.appendChild(instrucciones);
+    }
+    
+    // Contador de chontaduros (crear referencia diferente para móviles)
+    const contadorChontaduros = esMobil ? null : document.getElementById('contador-chontaduros');
+    
+    // 📱 ========== CONTROLES MÓVILES ========== 📱
+    if (esMobil) {
+        // Activar modo juego automáticamente en móviles
+        gameState.modoJuego = true;
+        controls.enabled = false;
+        
+        // Botón para salir de pantalla completa (esquina superior derecha)
+        const btnExitFullscreen = document.createElement('button');
+        btnExitFullscreen.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5em;
+            cursor: pointer;
+            z-index: 10001;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Sans MS', cursive;
+        `;
+        btnExitFullscreen.innerHTML = '✕';
+        btnExitFullscreen.addEventListener('click', () => {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            }
+        });
+        canvasWrapper.appendChild(btnExitFullscreen);
+        
+        // Joystick Virtual (Izquierda - Movimiento)
+        const joystickMove = document.createElement('div');
+        joystickMove.id = 'joystick-move';
+        joystickMove.style.cssText = `
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            z-index: 10000;
+            touch-action: none;
+        `;
+        
+        const joystickMoveKnob = document.createElement('div');
+        joystickMoveKnob.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        `;
+        joystickMove.appendChild(joystickMoveKnob);
+        canvasWrapper.appendChild(joystickMove);
+        
+        // Joystick Virtual (Derecha - Rotación)
+        const joystickRotate = document.createElement('div');
+        joystickRotate.id = 'joystick-rotate';
+        joystickRotate.style.cssText = `
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            z-index: 10000;
+            touch-action: none;
+        `;
+        
+        const joystickRotateKnob = document.createElement('div');
+        joystickRotateKnob.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        `;
+        joystickRotate.appendChild(joystickRotateKnob);
+        canvasWrapper.appendChild(joystickRotate);
+        
+        // Botones de altura eliminados - ahora se controlan con joystick derecho (eje Y)
+        
+        // Variables para controles táctiles
+        let joystickMoveActive = false;
+        let joystickRotateActive = false;
+        let moveY = 0; // Joystick izquierdo: solo eje Y (avance/retroceso)
+        let rotateX = 0, rotateY = 0; // Joystick derecho: eje X (giro), eje Y (altura)
+        
+        // Eventos del joystick de movimiento
+        joystickMove.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            joystickMoveActive = true;
+        });
+        
+        joystickMove.addEventListener('touchmove', (e) => {
+            if (!joystickMoveActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = joystickMove.getBoundingClientRect();
+            const centerY = rect.top + rect.height / 2;
+            
+            const deltaY = touch.clientY - centerY;
+            const maxDistance = 35;
+            
+            // Solo movimiento vertical (eje Y)
+            moveY = Math.max(-maxDistance, Math.min(maxDistance, deltaY));
+            
+            joystickMoveKnob.style.transform = `translate(-50%, calc(-50% + ${moveY}px))`;
+            
+            // Aplicar movimiento: avance (W) y retroceso (S)
+            gameState.teclas['w'] = moveY < -10;
+            gameState.teclas['s'] = moveY > 10;
+        });
+        
+        joystickMove.addEventListener('touchend', () => {
+            joystickMoveActive = false;
+            moveY = 0;
+            joystickMoveKnob.style.transform = 'translate(-50%, -50%)';
+            gameState.teclas['w'] = false;
+            gameState.teclas['s'] = false;
+        });
+        
+        // Eventos del joystick de rotación
+        joystickRotate.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            joystickRotateActive = true;
+        });
+        
+        joystickRotate.addEventListener('touchmove', (e) => {
+            if (!joystickRotateActive) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const rect = joystickRotate.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const deltaX = touch.clientX - centerX;
+            const deltaY = touch.clientY - centerY;
+            const maxDistance = 35;
+            
+            // Eje X: giro (izquierda/derecha)
+            rotateX = Math.max(-maxDistance, Math.min(maxDistance, deltaX));
+            // Eje Y: altura (subir/bajar)
+            rotateY = Math.max(-maxDistance, Math.min(maxDistance, deltaY));
+            
+            joystickRotateKnob.style.transform = `translate(calc(-50% + ${rotateX}px), calc(-50% + ${rotateY}px))`;
+            
+            // Aplicar rotación (eje X)
+            gameState.teclas['a'] = rotateX < -10;
+            gameState.teclas['d'] = rotateX > 10;
+            
+            // Aplicar altura (eje Y)
+            gameState.teclas[' '] = rotateY < -10; // Subir (arriba)
+            gameState.teclas['shift'] = rotateY > 10; // Bajar (abajo)
+        });
+        
+        joystickRotate.addEventListener('touchend', () => {
+            joystickRotateActive = false;
+            rotateX = 0;
+            rotateY = 0;
+            joystickRotateKnob.style.transform = 'translate(-50%, -50%)';
+            gameState.teclas['a'] = false;
+            gameState.teclas['d'] = false;
+            gameState.teclas[' '] = false;
+            gameState.teclas['shift'] = false;
+        });
+        
+        // Eventos de botones de altura eliminados - ahora se controlan con joystick derecho
+    }
+
+    // 🎬 Animación con ciclo día/noche y movimiento
+    let t = 0;
+    let dayNightCycle = 0;
+    let animationId = null;
+    
+    function animate() {
+        animationId = requestAnimationFrame(animate);
+        controls.update();
+        t += 0.01;
+        dayNightCycle += 0.0005;
+
+        // Ciclo de atardecer sutil (mantener tonos cálidos)
+        const brightness = 0.5 + Math.sin(dayNightCycle) * 0.2;
+        sun.intensity = 1.0 + brightness * 0.3;
+        ambient.intensity = 0.4 + brightness * 0.2;
+
+        // Nubes flotando (movimiento reducido)
+        nubes.forEach((n, i) => {
+            n.position.x += Math.sin(t * 0.02 + i) * 0.015;
+            n.position.z += Math.cos(t * 0.015 + i) * 0.01;
+        });
+
+        // Aves volando (movimiento suave sin bugs)
+        aves.forEach((ave, i) => {
+            // Movimiento circular suave con interpolación
+            const radio = 25 + (i % 5) * 4;
+            const velocidad = ave.userData.velocidad * 0.5; // Reducir velocidad
+            const angulo = t * velocidad + i * 0.5;
+            
+            // Posición objetivo
+            const targetX = Math.cos(angulo) * radio;
+            const targetZ = Math.sin(angulo) * radio;
+            
+            // Interpolación suave (lerp) para evitar saltos
+            ave.position.x += (targetX - ave.position.x) * 0.05;
+            ave.position.z += (targetZ - ave.position.z) * 0.05;
+            ave.position.y = ave.userData.alturaBase + Math.sin(t * 1.5 + i) * 1.5;
+        });
+
+        // Árboles estáticos (sin movimiento)
+
+        // Edificios estáticos (sin oscilación para mantener precisión estadística)
+
+        // 🦜 ========== LÓGICA DEL VIDEOJUEGO ========== 🦜
+        if (gameState.modoJuego) {
+            // Controles RELATIVOS al loro (como juego de aventuras)
+            let moviendose = false;
+            
+            // A/D: Rotar el loro (girar izquierda/derecha)
+            if (gameState.teclas['a']) {
+                donDatico.rotation.y += gameState.velocidadRotacion;
+            }
+            if (gameState.teclas['d']) {
+                donDatico.rotation.y -= gameState.velocidadRotacion;
+            }
+            
+            // W/S: Mover adelante/atrás en la dirección que mira el loro
+            if (gameState.teclas['w']) {
+                // Avanzar hacia adelante (dirección que mira el loro)
+                const direccion = new THREE.Vector3(0, 0, 1); // Adelante en espacio local
+                direccion.applyQuaternion(donDatico.quaternion); // Rotar según orientación del loro
+                donDatico.position.x += direccion.x * gameState.velocidad;
+                donDatico.position.z += direccion.z * gameState.velocidad;
+                moviendose = true;
+            }
+            if (gameState.teclas['s']) {
+                // Retroceder (dirección opuesta)
+                const direccion = new THREE.Vector3(0, 0, -1); // Atrás en espacio local
+                direccion.applyQuaternion(donDatico.quaternion);
+                donDatico.position.x += direccion.x * gameState.velocidad;
+                donDatico.position.z += direccion.z * gameState.velocidad;
+                moviendose = true;
+            }
+            
+            // Espacio/Shift: Subir/Bajar
+            if (gameState.teclas[' ']) { // Espacio para subir
+                donDatico.position.y += gameState.velocidad * 0.5;
+                moviendose = true;
+            }
+            if (gameState.teclas['shift']) { // Shift para bajar
+                donDatico.position.y -= gameState.velocidad * 0.5;
+                moviendose = true;
+            }
+            
+            // Animación de aleteo CONSTANTE (siempre vuela)
+            const alaIzq = donDatico.userData.alaIzq;
+            const alaDer = donDatico.userData.alaDer;
+            const cola = donDatico.userData.cola;
+            
+            // Aleteo más rápido cuando se mueve, más lento cuando está quieto
+            const velocidadAleteo = moviendose ? 10 : 5;
+            const amplitudAleteo = moviendose ? 0.4 : 0.2;
+            alaIzq.rotation.z = -0.3 + Math.sin(t * velocidadAleteo) * amplitudAleteo;
+            alaDer.rotation.z = 0.3 - Math.sin(t * velocidadAleteo) * amplitudAleteo;
+            
+            // Movimiento de cola simulando viento (sutil y constante)
+            cola.rotation.y = Math.sin(t * 3) * 0.15; // Balanceo lateral suave
+            cola.rotation.z = Math.sin(t * 2.5 + 1) * 0.1; // Movimiento adicional
+            
+            // Limitar altura mínima y máxima
+            donDatico.position.y = Math.max(1, Math.min(30, donDatico.position.y));
+            
+            // Cámara en tercera persona siguiendo a Don Datico (DETRÁS, no selfie)
+            const offsetCamara = new THREE.Vector3(0, 5, -8); // Negativo en Z para estar DETRÁS
+            offsetCamara.applyQuaternion(donDatico.quaternion);
+            const posicionObjetivo = new THREE.Vector3().addVectors(donDatico.position, offsetCamara);
+            camera.position.lerp(posicionObjetivo, 0.1);
+            
+            // Mirar ligeramente adelante del loro para mejor visibilidad
+            const puntoMira = donDatico.position.clone();
+            puntoMira.y += 1; // Mirar un poco más arriba del centro del loro
+            camera.lookAt(puntoMira);
+            
+            // Detectar colisiones con chontaduros
+            detectarColisiones();
+            
+            // Actualizar contador (solo si existe - desktop)
+            if (contadorChontaduros) {
+                contadorChontaduros.textContent = `🍑 ${gameState.chontadurosRecolectados}/${chontaduros.length}`;
+            }
+        }
+        
+        // Animación de chontaduros (rotación y flotación)
+        chontaduros.forEach((chontaduro, i) => {
+            if (!chontaduro.userData.recolectado) {
+                chontaduro.rotation.y += 0.02;
+                const brillo = chontaduro.userData.brillo;
+                if (brillo) {
+                    brillo.scale.setScalar(1 + Math.sin(t * 3 + i) * 0.2);
+                }
+                // Flotación suave
+                const alturaBase = parseFloat(chontaduro.userData.edificio.userData.altura) + 1.5;
+                chontaduro.position.y = alturaBase + Math.sin(t * 2 + i) * 0.2;
+            }
+        });
+
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize handler - diferente para móvil y desktop
+    if (esMobil) {
+        // En móviles, ajustar al tamaño de la ventana (especialmente en fullscreen)
+        const handleResize = () => {
+            const newWidth = window.innerWidth;
+            const newHeight = window.innerHeight;
+            camera.aspect = newWidth / newHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(newWidth, newHeight);
+            canvasWrapper.style.width = '100vw';
+            canvasWrapper.style.height = '100vh';
+        };
+        window.addEventListener('resize', handleResize);
+        
+        // También escuchar cambios de fullscreen
+        document.addEventListener('fullscreenchange', handleResize);
+        document.addEventListener('webkitfullscreenchange', handleResize);
+        
+        // Guardar todas las referencias para limpieza posterior
+        threeRenderers.set(containerId, { 
+            renderer, 
+            scene, 
+            camera, 
+            controls,
+            animationId,
+            audioListener,
+            sonidoAmbiente,
+            sonidoRecoleccion,
+            resizeHandler: handleResize,
+            clickHandler: null, // Se asignará si hay eventos de click
+            mousemoveHandler: null // Se asignará si hay eventos de mousemove
+        });
+    } else {
+        // Desktop: usar ResizeObserver normal
+        const resizeObserver = new ResizeObserver(() => {
+            const newWidth = container.clientWidth;
+            camera.aspect = newWidth / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(newWidth, height);
+        });
+        resizeObserver.observe(container);
+        
+        // Guardar todas las referencias para limpieza posterior
+        threeRenderers.set(containerId, { 
+            renderer, 
+            scene, 
+            camera, 
+            controls,
+            animationId,
+            audioListener,
+            sonidoAmbiente,
+            sonidoRecoleccion,
+            resizeObserver,
+            clickHandler: null, // Se asignará si hay eventos de click
+            mousemoveHandler: null // Se asignará si hay eventos de mousemove
+        });
+    }
+}
+
+    // --- Tabla de datos para tipos sin gráfico (sin_grafico / tabla_dinamica) ---
+    function renderTablaDatos3D(container, grafico) {
+        const fmt = v => {
+            if (v === null || v === undefined || v === 'N/A') return 'N/A';
+            const n = Number(v);
+            return Number.isNaN(n) ? String(v) : n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+        };
+        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200 text-sm">';
+
+        if (grafico.tipo_grafico === 'tabla_dinamica') {
+            // Pivotada: series como filas, años como columnas
+            const anosSet = new Set();
+            (grafico.series || []).forEach(s => (s.x || []).forEach(x => anosSet.add(x)));
+            const anos = Array.from(anosSet).sort();
+            html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
+            anos.forEach(a => { html += `<th class="py-2 px-4 border-b text-right">${a}</th>`; });
+            html += '</tr></thead><tbody>';
+            (grafico.series || []).forEach(s => {
+                const mapa = {}; (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
+                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+                anos.forEach(a => {
+                    const v = mapa[a] !== undefined ? mapa[a] : 'N/A';
+                    html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`;
+                });
+                html += '</tr>';
+            });
+        } else {
+            // sin_grafico: tabla plana Año | Serie1 | Serie2 ...
+            html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Año</th>';
+            (grafico.series || []).forEach(s => { html += `<th class="py-2 px-4 border-b text-left">${s.name || 'Serie'}</th>`; });
+            html += '</tr></thead><tbody>';
+            let maxP = 0;
+            (grafico.series || []).forEach(s => { if ((s.x || []).length > maxP) maxP = s.x.length; });
+            for (let i = 0; i < maxP; i++) {
+                const cat = grafico.series[0] && grafico.series[0].x && grafico.series[0].x[i] !== undefined ? grafico.series[0].x[i] : 'N/A';
+                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${cat}</td>`;
+                (grafico.series || []).forEach(s => {
+                    const v = s.y && s.y[i] !== undefined ? s.y[i] : 'N/A';
+                    html += `<td class="py-2 px-4 border-b">${fmt(v)}</td>`;
+                });
+                html += '</tr>';
+            }
+        }
+        html += '</tbody></table></div>';
+        container.style.minHeight = 'auto';
+        container.innerHTML = html;
+    }
+
+    // --- Función para cargar gráfico (mantiene tus URLs y parámetros) ---
+    function cargarGrafico(indicadorLink, anoInicio = null, anoFin = null) {
+        const indicadorId = indicadorLink.dataset.indicadorId;
+        const indicadorNombre = indicadorLink.dataset.indicadorNombre;
+
+        // Cancelar petición anterior
+        if (graficoAbortController) {
+            try { graficoAbortController.abort(); } catch(e) {}
+        }
+        graficoAbortController = new AbortController();
+
+        // Construir URL (igual que tu template original)
+        let url = `{% url 'indicadores:api_get_graficos' 0 %}`.replace('/0/', `/${indicadorId}/`);
+        const params = new URLSearchParams();
+        if (anoInicio !== null) params.append('ano_inicio', anoInicio);
+        if (anoFin !== null) params.append('ano_fin', anoFin);
+
+        // agregar desagregaciones
+        const desagsGeo = Array.from(desagregacionesGeograficasSelect.selectedOptions).map(o=>o.value);
+        const desagsTem = Array.from(desagregacionesTematicasSelect.selectedOptions).map(o=>o.value);
+        desagsGeo.forEach(id=>params.append('desagregaciones_geograficas', id));
+        desagsTem.forEach(id=>params.append('desagregaciones_tematicas', id));
+
+        if (params.toString()) url += '?' + params.toString();
+
+        // UI: título y estado
+        indicadorTitulo.textContent = indicadorNombre;
+        graficosContainer.innerHTML = `<div class="text-center p-8"><p class="text-gray-600">Cargando gráfico 3D...</p></div>`;
+
+        // Cargar metadatos (misma llamada)
+        cargarMetadatosIndicador(indicadorId);
+
+        fetch(url, { signal: graficoAbortController.signal })
+            .then(resp => {
+                if (!resp.ok) throw new Error('Error en servidor: ' + resp.status);
+                return resp.json();
+            })
+            .then(graficosData => {
+                graficosContainer.innerHTML = '';
+                graficosData.forEach((grafico, idx) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'grafico-item mb-8 bg-white rounded p-4 shadow';
+                    const header = document.createElement('div');
+                    header.className = 'flex items-center justify-between mb-2';
+                    header.innerHTML = `<h4 class="font-semibold text-primary-800">${grafico.titulo || 'Gráfico'}</h4>`;
+                    wrap.appendChild(header);
+                    const grafDiv = document.createElement('div');
+                    grafDiv.id = `grafico-3d-${indicadorId}-${idx}`;
+                    grafDiv.style.minHeight = '360px';
+                    grafDiv.style.width = '100%';
+                    wrap.appendChild(grafDiv);
+                    graficosContainer.appendChild(wrap);
+
+                    // Tipos sin gráfico: renderizar tabla de datos en lugar de gráfico 3D
+                    if (grafico.tipo_grafico === 'sin_grafico' || grafico.tipo_grafico === 'tabla_dinamica') {
+                        renderTablaDatos3D(grafDiv, grafico);
+                    } else {
+                        // render 3D
+                        try {
+                            renderGrafico3D(grafDiv.id, grafico);
+                        } catch (e) {
+                            grafDiv.innerHTML = `<div class="p-8 text-red-600">Error al renderizar gráfico 3D: ${e.message}</div>`;
+                            console.error('Error renderGrafico3D', e);
+                        }
+                    }
+                });
+
+                // (Opcional) Si el backend envía tabla de datos, no la creamos (solicitaste omitir CSV)
+            })
+            .catch(err => {
+                if (err.name === 'AbortError') return;
+                console.error('Error cargando graficos:', err);
+                graficosContainer.innerHTML = `<div class="text-center p-8 text-red-600">Ocurrió un error al cargar los datos del gráfico: ${err.message}</div>`;
+            });
+    }
+
+    // --- Cargar metadatos (idéntico al flujo original: petición a tu API) ---
+    function cargarMetadatosIndicador(indicadorId) {
+        metadatosContainer.innerHTML = `<div class="text-sm text-gray-500">Cargando metadatos...</div>`;
+        fetch(`{% url 'indicadores:get_indicadores_simple' %}?indicador_id=${indicadorId}`)
+            .then(r => r.ok ? r.json() : Promise.reject(r))
+            .then(data => {
+                if (data.length > 0) {
+                    const meta = data[0];
+                    metadatosContainer.innerHTML = `<div class="p-4 bg-gray-50 rounded"><strong>Fuente:</strong> ${meta.fuente || '—'} &nbsp; <strong>Definición:</strong> ${meta.definicion || '—'}</div>`;
+                } else {
+                    metadatosContainer.innerHTML = `<div class="text-sm text-gray-500">No se encontraron metadatos.</div>`;
+                }
+            })
+            .catch(e => {
+                metadatosContainer.innerHTML = `<div class="text-sm text-gray-500">No se pudieron cargar metadatos.</div>`;
+            });
+    }
+
+    // --- Cargar desagregaciones y preparar controles de año (igual que original, simplificado) ---
+    function cargarDesagregacionesYGrafico(indicadorLink) {
+        const indicadorId = indicadorLink.dataset.indicadorId;
+        indicadorActual = indicadorLink;
+
+        // highlights
+        nav.querySelectorAll('.indicador-link').forEach(l=>l.classList.remove('bg-primary-100','text-primary-800','font-bold'));
+        indicadorLink.classList.add('bg-primary-100','text-primary-800','font-bold');
+
+        fetch(`{% url 'indicadores:api_get_desagregaciones' 0 %}`.replace('/0/', `/${indicadorId}/`))
+            .then(r => r.ok ? r.json() : Promise.reject(r))
+            .then(desag => {
+                // llenar selects
+                desagregacionesGeograficasSelect.innerHTML = '';
+                desagregacionesTematicasSelect.innerHTML = '';
+                if (desag.desagregaciones_geograficas) {
+                    desag.desagregaciones_geograficas.forEach(d => {
+                        const op = document.createElement('option'); op.value = d.id; op.textContent = d.nombre; op.selected = d.predeterminada || false;
+                        desagregacionesGeograficasSelect.appendChild(op);
+                    });
+                }
+                if (desag.desagregaciones_tematicas) {
+                    desag.desagregaciones_tematicas.forEach(d => {
+                        const op = document.createElement('option'); op.value = d.id; op.textContent = d.nombre; op.selected = d.predeterminada || false;
+                        desagregacionesTematicasSelect.appendChild(op);
+                    });
+                }
+
+                // Controles por dominio (un filtro por cada dominio de desagregación)
+                dominiosData = desag.dominios || [];
+                const filtroDominiosDiv = document.getElementById('filtro-dominios');
+                if (renderFiltrosDominios(filtroDominiosDiv, dominiosData, filtroDominiosSelects, sincronizarSelectsMaestros)) {
+                    document.getElementById('filtro-desagregaciones-geograficas').style.display = 'none';
+                    document.getElementById('filtro-desagregaciones-tematicas').style.display = 'none';
+                    sincronizarSelectsMaestros();
+                } else {
+                    filtroDominiosDiv.innerHTML = '';
+                }
+
+                // rango años
+                if (desag.rango_anios) {
+                    rangoAnios = desag.rango_anios;
+                }
+                configurarControlDeslizanteRango(rangoAnios, true);
+                // Determinar qué control de año usar
+                const primerGraficoTipo = desag.tipo_grafico_default || 'line';
+                if (primerGraficoTipo === 'pie' || primerGraficoTipo === 'piramide_poblacional' || primerGraficoTipo === 'treemap') {
+                    configurarSelectorAnoUnico(rangoAnios);
+                    const ano = ultimoAnoPorIndicador[indicadorId] || rangoAnios.max;
+                    cargarGrafico(indicadorLink, ano, ano);
+                } else {
+                    configurarControlDeslizanteRango(rangoAnios);
+                    cargarGrafico(indicadorLink, rangoAnios.min, rangoAnios.max);
+                }
+            })
+            .catch(e => console.error('Error desagregaciones', e));
+    }
+
+    // --- Controles de año dinámicos (rango o único) ---
+    let anoSeleccionadoUnico = null;
+    const ultimoAnoPorIndicador = {};
+
+    function configurarControlDeslizanteRango(rango, initial = false) {
+        controlesAniosContainer.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+            <label class="block text-sm font-medium text-gray-700 mb-2">Rango de años: <span id="ano-min-display">${rango.min}</span> — <span id="ano-max-display">${rango.max}</span></label>
+            <div class="flex items-center space-x-2">
+                <input id="rango-anios-min" type="range" min="${rango.min_disponible || rango.min}" max="${rango.max_disponible || rango.max}" value="${rango.min}" />
+                <input id="rango-anios-max" type="range" min="${rango.min_disponible || rango.min}" max="${rango.max_disponible || rango.max}" value="${rango.max}" />
+                <button id="restablecer-anios" class="px-3 py-1 bg-gray-200 rounded">Restablecer</button>
+            </div>
+        `;
+        controlesAniosContainer.appendChild(wrap);
+
+        const minInput = document.getElementById('rango-anios-min');
+        const maxInput = document.getElementById('rango-anios-max');
+        const anoMinDisplay = document.getElementById('ano-min-display');
+        const anoMaxDisplay = document.getElementById('ano-max-display');
+        const restBtn = document.getElementById('restablecer-anios');
+
+        function actualizar() {
+            let minV = parseInt(minInput.value);
+            let maxV = parseInt(maxInput.value);
+            if (minV > maxV) { if (this === minInput) maxInput.value = minV; else minInput.value = maxV; }
+            anoMinDisplay.textContent = minInput.value;
+            anoMaxDisplay.textContent = maxInput.value;
+            clearTimeout(minInput._t); minInput._t = setTimeout(() => {
+                if (indicadorActual) cargarGrafico(indicadorActual, minInput.value, maxInput.value);
+            }, 250);
+        }
+        minInput.addEventListener('input', actualizar);
+        maxInput.addEventListener('input', actualizar);
+        restBtn.addEventListener('click', () => {
+            minInput.value = rango.min;
+            maxInput.value = rango.max;
+            anoMinDisplay.textContent = rango.min;
+            anoMaxDisplay.textContent = rango.max;
+            if (indicadorActual) cargarGrafico(indicadorActual, rango.min, rango.max);
+        });
+    }
+
+    function configurarSelectorAnoUnico(rango) {
+        const indicadorId = indicadorActual.dataset.indicadorId;
+        anoSeleccionadoUnico = ultimoAnoPorIndicador[indicadorId] || rango.max;
+
+        controlesAniosContainer.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+            <label class="block text-sm font-medium text-gray-700 mb-2">Año: <span id="ano-unico-display">${anoSeleccionadoUnico}</span></label>
+            <div class="flex items-center space-x-2">
+                <input id="ano-unico-slider" type="range" min="${rango.min_disponible || rango.min}" max="${rango.max_disponible || rango.max}" value="${anoSeleccionadoUnico}" />
+                <button id="restablecer-ano-unico" class="px-3 py-1 bg-gray-200 rounded">Último año</button>
+            </div>
+        `;
+        controlesAniosContainer.appendChild(wrap);
+
+        const slider = document.getElementById('ano-unico-slider');
+        const display = document.getElementById('ano-unico-display');
+        const resetBtn = document.getElementById('restablecer-ano-unico');
+
+        function actualizar() {
+            anoSeleccionadoUnico = slider.value;
+            display.textContent = anoSeleccionadoUnico;
+            ultimoAnoPorIndicador[indicadorId] = anoSeleccionadoUnico;
+            clearTimeout(slider._t); slider._t = setTimeout(() => {
+                if (indicadorActual) cargarGrafico(indicadorActual, anoSeleccionadoUnico, anoSeleccionadoUnico);
+            }, 250);
+        }
+
+        slider.addEventListener('input', actualizar);
+        resetBtn.addEventListener('click', () => {
+            slider.value = rango.max;
+            slider.dispatchEvent(new Event('input'));
+        });
+    }
+
+    // --- Eventos nav indicatores ---
+    nav.addEventListener('click', function(e) {
+        const link = e.target.closest('.indicador-link');
+        if (!link) return;
+        e.preventDefault();
+        cargarDesagregacionesYGrafico(link);
+
+    });
+
+    // Toggle del panel de filtros globales (inicia colapsado)
+    document.getElementById('toggle-filtros-globales').addEventListener('click', () => {
+        const panel = document.getElementById('filtros-globales-panel');
+        const icon = document.getElementById('toggle-filtros-icon');
+        const oculto = panel.classList.toggle('hidden');
+        icon.textContent = oculto ? '▼' : '▲';
+    });
+
+    // botones aplicar/limpiar filtros
+    aplicarFiltrosBtn.addEventListener('click', ()=> {
+        if (indicadorActual) {
+            const min = document.getElementById('rango-anios-min')?.value || rangoAnios.min;
+            const max = document.getElementById('rango-anios-max')?.value || rangoAnios.max;
+            cargarGrafico(indicadorActual, min, max);
+        }
+    });
+    limpiarFiltrosBtn.addEventListener('click', ()=> {
+        desagregacionesGeograficasSelect.querySelectorAll('option').forEach(o=>o.selected=false);
+        desagregacionesTematicasSelect.querySelectorAll('option').forEach(o=>o.selected=false);
+        Object.values(filtroDominiosSelects).forEach(s => { s.selectedIndex = -1; });
+        actualizarCascadaDominios(filtroDominiosSelects);
+        if (indicadorActual) cargarGrafico(indicadorActual, rangoAnios.min, rangoAnios.max);
+    });
+
+    // Inicial: Cargar el primer indicador al iniciar la página o el indicado por URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const indicadorIdParam = urlParams.get('indicador') || window.location.hash.replace('#indicador-', '');
+    
+    let primerIndicador = null;
+    if (indicadorIdParam) {
+        primerIndicador = nav.querySelector(`.indicador-link[data-indicador-id="${indicadorIdParam}"]`);
+    }
+    if (!primerIndicador) {
+        primerIndicador = nav.querySelector('.indicador-link');
+    }
+    
+    if (primerIndicador) {
+        cargarDesagregacionesYGrafico(primerIndicador);
+    } else {
+        graficosContainer.innerHTML = `<div class="p-8 text-gray-500">No hay indicadores para mostrar.</div>`;
+    }
+
+    // Mensaje informativo removido según solicitud del usuario
+});
+</script>
+
+<!-- Nota: se omitió export CSV / tabla por petición del usuario -->
+
+{% endblock %}

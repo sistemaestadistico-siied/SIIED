@@ -1,0 +1,96 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+
+{% if show_import_datos_button and original %}
+<div class="submit-row" style="margin-top: 15px; padding: 15px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">
+    <p style="margin: 0 0 10px 0; color: #e65100; font-weight: 600;">
+        📥 Importación Masiva de Datos
+    </p>
+    <p style="margin: 0 0 10px 0; color: #666; font-size: 13px;">
+        ¿Tiene muchos datos para cargar? Use la importación desde CSV para cargar múltiples datos de una vez.
+    </p>
+    <a href="{% url 'admin:indicador_importar_datos' indicador_id %}" 
+       class="button" 
+       style="background: #ff9800; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: 500;">
+        📥 Importar Datos desde CSV
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block after_related_objects %}
+{{ block.super }}
+
+<!-- Debug: Verificar variables -->
+<!-- show_import_datos_button: {{ show_import_datos_button }} -->
+<!-- original: {{ original }} -->
+<!-- datos_pagination: {{ datos_pagination }} -->
+
+{% if show_import_datos_button and original %}
+<div style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 4px; border: 1px solid #ddd;">
+    <h3 style="margin-top: 0; color: #333;">📊 Gestión de Datos</h3>
+    
+    {% if datos_pagination %}
+        <!-- Información de paginación -->
+        <p style="color: #666; margin-bottom: 15px;">
+            <strong>Total de datos:</strong> {{ datos_pagination.total_datos }}<br>
+            <strong>Mostrando:</strong> Página {{ datos_pagination.current_page }} de {{ datos_pagination.total_pages }} 
+            ({{ datos_pagination.per_page }} datos por página)
+        </p>
+        
+        <!-- Controles de paginación -->
+        {% if datos_pagination.total_pages > 1 %}
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+            {% if datos_pagination.has_previous %}
+                <a href="?datos_page={{ datos_pagination.previous_page }}" 
+                   class="button" 
+                   style="background: #2196f3; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">
+                    ← Anterior
+                </a>
+            {% else %}
+                <span style="background: #ccc; color: #666; padding: 8px 16px; border-radius: 4px; cursor: not-allowed;">
+                    ← Anterior
+                </span>
+            {% endif %}
+            
+            <span style="padding: 8px 16px; background: white; border: 1px solid #ddd; border-radius: 4px; font-weight: 600;">
+                Página {{ datos_pagination.current_page }} / {{ datos_pagination.total_pages }}
+            </span>
+            
+            {% if datos_pagination.has_next %}
+                <a href="?datos_page={{ datos_pagination.next_page }}" 
+                   class="button" 
+                   style="background: #2196f3; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">
+                    Siguiente →
+                </a>
+            {% else %}
+                <span style="background: #ccc; color: #666; padding: 8px 16px; border-radius: 4px; cursor: not-allowed;">
+                    Siguiente →
+                </span>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Ayuda -->
+        <p style="color: #999; font-size: 12px; margin-bottom: 0;">
+            💡 <em>La tabla arriba muestra {{ datos_pagination.per_page }} datos por página</em><br>
+            💡 <em>Para crear nuevos: Use el botón "Agregar otro Dato del Indicador" arriba de la tabla</em><br>
+            💡 <em>Para cargar muchos datos: Use el botón "📥 Importar Datos CSV" arriba</em>
+        </p>
+    {% else %}
+        <!-- Sin paginación (fallback) -->
+        <p style="color: #666;">
+            <strong>Total de datos:</strong> {{ original.datos.count }}<br>
+            <strong>Mostrando:</strong> Últimos 10 datos en la tabla arriba
+        </p>
+        <p style="color: #999; font-size: 12px; margin-bottom: 0;">
+            💡 <em>Para crear nuevos: Use el botón "Agregar otro Dato del Indicador" arriba de la tabla</em><br>
+            💡 <em>Para cargar muchos datos: Use el botón "📥 Importar Datos CSV" arriba</em>
+        </p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

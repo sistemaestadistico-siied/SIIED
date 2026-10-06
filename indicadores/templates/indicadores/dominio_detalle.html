@@ -1,0 +1,71 @@
+{% extends 'indicadores/base.html' %}
+{% block content %}
+{% load static %}
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb mb-6 text-sm text-gray-600">
+        <a href="{% url 'indicadores:home' %}" class="text-blue-600 hover:underline">Inicio</a> /
+        <a href="{% url 'indicadores:dominios' %}" class="text-blue-600 hover:underline">Dominios</a> /
+        <span class="text-gray-800">{{ dominio.nombre }}</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <!-- Columna Izquierda (Sidebar del Dominio) -->
+        <aside class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-md p-6 text-center sticky top-8">
+                <div class="w-48 h-48 rounded-full flex items-center justify-center mx-auto mb-4" style="background-color: {{ dominio.color|default:'#1e40af' }};">
+                    {% if dominio.imagen_url %}
+                        <img src="{{ dominio.imagen_url }}" alt="{{ dominio.nombre }}" class="h-28 w-28 object-contain">
+                    {% elif dominio.icono %}
+                        <i class="{{ dominio.icono }} text-7xl text-white drop-shadow-lg"></i>
+                    {% else %}
+                        <svg class="h-28 w-28 text-white drop-shadow-lg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    {% endif %}
+                </div>
+                <h1 class="text-2xl font-bold text-blue-800">
+                    {{ dominio.nombre }}
+                </h1>
+            </div>
+        </aside>
+
+        <!-- Columna Derecha (Contenido Principal) -->
+        <main class="lg:col-span-3">
+            <div class="bg-white rounded-lg shadow-md p-8">
+                {% if dominio.descripcion %}
+                    <div class="prose max-w-none text-gray-700 mb-8">
+                        {{ dominio.descripcion|safe }}
+                    </div>
+                {% endif %}
+
+                <h2 class="text-2xl font-bold text-primary-800 mb-4 border-b-2 border-primary-200 pb-2">Temas</h2>
+                
+                {% if temas %}
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
+                        {% for tema in temas %}
+                            <a href="{% url 'indicadores:tema_detalle' dominio.slug tema.slug %}" class="group">
+                                <div class="w-24 h-24 rounded-full bg-primary-700 flex items-center justify-center mx-auto mb-3 transition-transform duration-300 group-hover:scale-110 overflow-hidden">
+                                    {% if tema.imagen_url %}
+                                        <img src="{{ tema.imagen_url }}" alt="{{ tema.nombre }}" class="h-full w-full object-cover">
+                                    {% elif tema.icono %}
+                                        <i class="{{ tema.icono }} text-4xl text-white"></i>
+                                    {% else %}
+                                        <svg class="h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                                        </svg>
+                                    {% endif %}
+                                </div>
+                                <h3 class="font-medium text-gray-800 group-hover:text-primary-600 transition-colors">{{ tema.nombre }}</h3>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-500">No hay temas disponibles para este dominio.</p>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

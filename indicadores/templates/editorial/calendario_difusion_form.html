@@ -1,0 +1,87 @@
+{% extends "editorial/base_editorial.html" %}
+
+{% block title %}{% if entrada %}Editar{% else %}Nueva{% endif %} Entrada — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <i class="fas fa-{% if entrada %}edit{% else %}plus{% endif %} text-indigo-500"></i>
+        {% if entrada %}Editar Entrada{% else %}Nueva Entrada{% endif %}
+    </h1>
+    <p class="mt-1 text-slate-500">Calendario de difusión de productos estadísticos</p>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-3xl">
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Organismo -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.organismo.id_for_label }}">{{ form.organismo.label }}</label>
+                {{ form.organismo }}
+                {% if form.organismo.errors %}<p class="mt-1 text-sm text-red-600">{{ form.organismo.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Observatorio -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.observatorio.id_for_label }}">{{ form.observatorio.label }}</label>
+                {{ form.observatorio }}
+                {% if form.observatorio.errors %}<p class="mt-1 text-sm text-red-600">{{ form.observatorio.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Producto -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.producto.id_for_label }}">{{ form.producto.label }}</label>
+                {{ form.producto }}
+                {% if form.producto.errors %}<p class="mt-1 text-sm text-red-600">{{ form.producto.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Tipo cifras -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.tipo_cifras.id_for_label }}">{{ form.tipo_cifras.label }}</label>
+                {{ form.tipo_cifras }}
+                {% if form.tipo_cifras.errors %}<p class="mt-1 text-sm text-red-600">{{ form.tipo_cifras.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Periodicidad -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.periodicidad.id_for_label }}">{{ form.periodicidad.label }}</label>
+                {{ form.periodicidad }}
+                {% if form.periodicidad.errors %}<p class="mt-1 text-sm text-red-600">{{ form.periodicidad.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Fecha publicación -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.fecha_publicacion.id_for_label }}">{{ form.fecha_publicacion.label }}</label>
+                {{ form.fecha_publicacion }}
+                {% if form.fecha_publicacion.errors %}<p class="mt-1 text-sm text-red-600">{{ form.fecha_publicacion.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Periodo referencia -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.periodo_referencia.id_for_label }}">{{ form.periodo_referencia.label }}</label>
+                {{ form.periodo_referencia }}
+                {% if form.periodo_referencia.errors %}<p class="mt-1 text-sm text-red-600">{{ form.periodo_referencia.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Activo -->
+            <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl md:col-span-2">
+                {{ form.activo }}
+                <label class="text-sm font-medium text-slate-700 cursor-pointer" for="{{ form.activo.id_for_label }}">{{ form.activo.label }}</label>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-between items-center pt-6 border-t border-slate-200">
+            <a href="{% url 'indicadores:editorial_calendario_difusion' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                <i class="fas fa-arrow-left"></i> Cancelar
+            </a>
+            <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

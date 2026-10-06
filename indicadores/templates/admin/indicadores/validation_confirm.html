@@ -1,0 +1,80 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='indicadores' %}">Indicadores</a>
+&rsaquo; <a href="{% url 'admin:indicadores_indicador_changelist' %}">Indicadores</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module aligned">
+    <h1>🔍 Validar Datos Automáticamente</h1>
+    
+    <div class="form-row">
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h2 style="color: #495057; margin-top: 0;">{{ indicador.nombre }}</h2>
+            <p style="color: #6c757d; margin: 10px 0;">
+                <strong>Subtema:</strong> {{ indicador.subtema.nombre }}<br>
+                <strong>Tema:</strong> {{ indicador.subtema.tema.nombre }}<br>
+                <strong>Dominio:</strong> {{ indicador.subtema.tema.dominio.nombre }}
+            </p>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="color: #1976d2; margin-top: 0;">📋 ¿Qué validaciones se ejecutarán?</h3>
+            <ul style="color: #424242; line-height: 1.6;">
+                <li><strong>🔍 Integridad Básica:</strong> Valores nulos, negativos, fechas inconsistentes, duplicados</li>
+                <li><strong>📊 Anomalías Estadísticas:</strong> Valores atípicos (outliers), consistencia temporal</li>
+                <li><strong>🗺️ Completitud Geográfica:</strong> Cobertura territorial completa</li>
+                <li><strong>🏢 Reglas de Negocio:</strong> Restricciones poblacionales, rangos de porcentajes</li>
+                <li><strong>📅 Frescura de Datos:</strong> Detección de información desactualizada</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin: 20px 0;">
+            <p style="color: #856404; margin: 0;">
+                <strong>⚠️ Nota:</strong> El proceso puede tomar unos minutos dependiendo del volumen de datos del indicador.
+            </p>
+        </div>
+    </div>
+
+    <form method="post" style="margin: 30px 0;">
+        {% csrf_token %}
+        <div class="submit-row">
+            <input type="submit" value="🚀 Ejecutar Validaciones" class="default" style="background: #28a745; border-color: #28a745; font-size: 16px; padding: 12px 24px;"/>
+            <a href="{% url 'admin:indicadores_indicador_changelist' %}" class="button cancel-link" style="margin-left: 15px;">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.module.aligned {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.submit-row input[type="submit"] {
+    transition: all 0.3s ease;
+}
+
+.submit-row input[type="submit"]:hover {
+    background: #218838 !important;
+    border-color: #1e7e34 !important;
+    transform: translateY(-1px);
+}
+
+ul li {
+    margin: 8px 0;
+}
+</style>
+{% endblock %}

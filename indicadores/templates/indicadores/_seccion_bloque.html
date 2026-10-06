@@ -1,0 +1,380 @@
+{# Partial: renderizado de un bloque de SeccionPaper #}
+{# Contexto requerido: seccion (SeccionPaper) #}
+{% load json_filters %}
+
+{% if seccion.tipo_bloque == 'texto' %}
+    <div class="paper-texto">{{ seccion.contenido|safe }}</div>
+
+{% elif seccion.tipo_bloque == 'grafico_indicador' %}
+    {% if seccion.indicador_vinculado %}
+    <div class="paper-grafico"
+         data-indicador-id="{{ seccion.indicador_vinculado.id }}"
+         data-config='{{ seccion.configuracion_grafico|tojson }}'>
+        <div class="grafico-loading" id="loading-seccion-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando gráfico...
+        </div>
+        <div class="grafico-container" id="grafico-seccion-{{ seccion.id }}"></div>
+    </div>
+    {% else %}
+    <div class="paper-grafico">
+        <p class="text-muted text-center">Indicador no vinculado para esta sección.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'mapa_indicador' %}
+    {% if seccion.indicador_vinculado %}
+    <div class="paper-mapa"
+         data-seccion-id="{{ seccion.id }}"
+         data-indicador-id="{{ seccion.indicador_vinculado.id }}"
+         data-config='{{ seccion.configuracion_grafico|tojson }}'>
+        <div class="mapa-loading" id="loading-mapa-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando mapa...
+        </div>
+        <div class="mapa-container" id="mapa-seccion-{{ seccion.id }}"></div>
+    </div>
+    {% else %}
+    <div class="paper-mapa">
+        <p class="text-muted text-center">Indicador no vinculado para esta sección de mapa.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'tabla_datos_indicador' %}
+    {% if seccion.indicador_vinculado %}
+    <div class="paper-tabla"
+         data-seccion-id="{{ seccion.id }}"
+         data-indicador-id="{{ seccion.indicador_vinculado.id }}"
+         data-config='{{ seccion.configuracion_grafico|tojson }}'>
+        <div class="tabla-loading" id="loading-tabla-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando tabla de datos...
+        </div>
+        <div class="tabla-container" id="tabla-seccion-{{ seccion.id }}"></div>
+        <div class="block-actions-bar">
+            <button class="btn-descarga" onclick="descargarTablaComoCSV('tabla-seccion-{{ seccion.id }}', 'datos_{{ seccion.indicador_vinculado.codigo_indicador|default:seccion.indicador_vinculado.id }}.csv')">
+                <i class="fas fa-file-csv"></i> Descargar CSV
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-tabla">
+        <p class="text-muted text-center">Indicador no vinculado para esta tabla.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'tabla_microdata' %}
+    {% if seccion.conjunto_datos_vinculado %}
+    <div class="paper-tabla-conjunto-datos"
+         data-seccion-id="{{ seccion.id }}"
+         data-conjunto-datos-id="{{ seccion.conjunto_datos_vinculado.id }}"
+         data-config='{{ seccion.configuracion_grafico|tojson }}'>
+        <div class="tabla-loading" id="loading-conjunto-datos-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando muestra de conjunto de datos...
+        </div>
+        <div class="tabla-container" id="conjunto-datos-seccion-{{ seccion.id }}"></div>
+        <div class="block-actions-bar">
+            <button class="btn-descarga" onclick="descargarTablaComoCSV('conjunto-datos-seccion-{{ seccion.id }}', 'conjunto_datos_{{ seccion.conjunto_datos_vinculado.id }}.csv')">
+                <i class="fas fa-file-csv"></i> Descargar CSV
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-tabla-conjunto-datos">
+        <p class="text-muted text-center">Conjunto de datos no vinculada para esta sección.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'ficha_indicador' %}
+    {% if seccion.indicador_vinculado %}
+    <div class="paper-ficha"
+         data-seccion-id="{{ seccion.id }}"
+         data-indicador-id="{{ seccion.indicador_vinculado.id }}">
+        <div class="ficha-loading" id="loading-ficha-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando ficha técnica...
+        </div>
+        <div class="ficha-container" id="ficha-seccion-{{ seccion.id }}"></div>
+    </div>
+    {% else %}
+    <div class="paper-ficha">
+        <p class="text-muted text-center">Indicador no vinculado para esta ficha técnica.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'documento_infraestructura' %}
+    {% if seccion.documento_vinculado %}
+    <div class="paper-documento">
+        <div class="doc-card">
+            <h4><i class="fas fa-file-alt"></i> {{ seccion.documento_vinculado.nombre }}</h4>
+            <p class="doc-tipo">{{ seccion.documento_vinculado.get_tipo_documento_display }} · {{ seccion.documento_vinculado.get_estado_display }}</p>
+            {% if seccion.documento_vinculado.descripcion %}
+            <p class="doc-desc">{{ seccion.documento_vinculado.descripcion|truncatewords:30 }}</p>
+            {% endif %}
+            <div class="doc-actions">
+                {% if seccion.documento_vinculado.archivo_pdf %}
+                <a href="{{ seccion.documento_vinculado.archivo_pdf.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-file-pdf"></i> Descargar PDF
+                </a>
+                {% endif %}
+                {% if seccion.documento_vinculado.archivo_word %}
+                <a href="{{ seccion.documento_vinculado.archivo_word.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                    <i class="fas fa-file-word"></i> Descargar Word
+                </a>
+                {% endif %}
+                <a href="{{ seccion.documento_vinculado.get_absolute_url }}" class="btn btn-sm btn-outline-info" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Ver en línea
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-documento">
+        <p class="text-muted text-center">Documento no vinculado para esta sección.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'sistema_informacion' %}
+    {% if seccion.sistema_vinculado %}
+    <div class="paper-sistema">
+        <div class="sistema-card">
+            <h4><i class="fas fa-tools"></i> {{ seccion.sistema_vinculado.nombre }}</h4>
+            {% if seccion.sistema_vinculado.descripcion %}
+            <p>{{ seccion.sistema_vinculado.descripcion|truncatewords:40 }}</p>
+            {% endif %}
+            <div class="sistema-meta">
+                <span class="badge badge-info">{{ seccion.sistema_vinculado.get_tipo_enlace_display }}</span>
+                <span class="badge badge-secondary">{{ seccion.sistema_vinculado.categoria.nombre }}</span>
+            </div>
+            <div class="sistema-actions">
+                <a href="{{ seccion.sistema_vinculado.url }}" class="btn btn-sm btn-primary" {% if seccion.sistema_vinculado.abrir_nueva_ventana %}target="_blank"{% endif %}>
+                    <i class="fas fa-external-link-alt"></i> Abrir herramienta
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-sistema">
+        <p class="text-muted text-center">Sistema no vinculado para esta sección.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'publicacion_relacionada' %}
+    {% if seccion.publicaciones_relacionadas.exists %}
+    <div class="paper-publicaciones">
+        <div class="pub-grid">
+            {% for pub in seccion.publicaciones_relacionadas.all %}
+            <div class="pub-card">
+                <h5><a href="{{ pub.get_absolute_url }}">{{ pub.titulo }}</a></h5>
+                <p class="pub-meta">{{ pub.autor }} · {{ pub.institucion|default:'' }}</p>
+                {% if pub.area_tematica %}<span class="badge badge-light">{{ pub.area_tematica }}</span>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-publicaciones">
+        <p class="text-muted text-center">No hay publicaciones vinculadas para esta sección.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'resultado_destacado' %}
+    {% if seccion.indicador_vinculado %}
+    <div class="paper-resultado-destacado"
+         data-seccion-id="{{ seccion.id }}"
+         data-indicador-id="{{ seccion.indicador_vinculado.id }}"
+         data-config='{{ seccion.configuracion_grafico|tojson }}'>
+        <div class="kpi-loading" id="loading-kpi-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando resultado destacado...
+        </div>
+        <div class="kpi-container" id="kpi-seccion-{{ seccion.id }}" style="display:none;">
+            <div class="kpi-title">{{ seccion.indicador_vinculado.nombre }}</div>
+            <div class="kpi-value" id="kpi-valor-{{ seccion.id }}">—</div>
+            <div class="kpi-unit" id="kpi-unidad-{{ seccion.id }}">{{ seccion.indicador_vinculado.unidad_medida|default:'' }}</div>
+            <div class="kpi-year" id="kpi-anio-{{ seccion.id }}"></div>
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-resultado-destacado">
+        <p class="text-muted text-center">Indicador no vinculado para este resultado destacado.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'tabla_datos' %}
+    <div class="paper-texto">{{ seccion.contenido|safe }}</div>
+
+{% elif seccion.tipo_bloque == 'formula' %}
+    <div class="paper-formula">
+        <div class="formula-content">{{ seccion.contenido|safe }}</div>
+    </div>
+
+{% elif seccion.tipo_bloque == 'visor_comparativo' %}
+    {% if seccion.indicadores_preseleccionados.exists %}
+    <div class="paper-visor-comparativo"
+         data-seccion-id="{{ seccion.id }}"
+         data-indicadores="[{% for ind in seccion.indicadores_preseleccionados.all %}{{ ind.id }}{% if not forloop.last %},{% endif %}{% endfor %}]"
+         data-config='{{ seccion.configuracion_grafico|tojson }}'>
+        <div class="visor-loading" id="loading-visor-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando visor comparativo...
+        </div>
+        <div class="visor-comparativo-container" id="visor-seccion-{{ seccion.id }}" style="min-height:400px;">
+            <div class="visor-comparativo-toolbar">
+                <select class="visor-indicador-select" id="visor-select-{{ seccion.id }}" multiple style="display:none;"></select>
+            </div>
+            <div class="visor-comparativo-chart" id="visor-chart-{{ seccion.id }}"></div>
+            <div class="visor-comparativo-table-wrapper" id="visor-table-wrapper-{{ seccion.id }}">
+                <div class="visor-comparativo-table" id="visor-table-{{ seccion.id }}"></div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-visor-comparativo">
+        <p class="text-muted text-center">No hay indicadores preseleccionados para el visor comparativo.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'tabla_dinamica_microdata' %}
+    {% if seccion.conjunto_datos_vinculado %}
+    <div class="paper-tabla-dinamica-conjunto-datos"
+         data-seccion-id="{{ seccion.id }}"
+         data-conjunto-datos-id="{{ seccion.conjunto_datos_vinculado.id }}"
+         data-conjunto-datos-file="{{ seccion.conjunto_datos_vinculado.archivo_csv.name|default:'' }}"
+         data-config='{{ seccion.configuracion_grafico|tojson }}'>
+        <div class="tabla-loading" id="loading-dinamica-{{ seccion.id }}">
+            <i class="fas fa-spinner fa-spin"></i> Cargando tabla dinámica...
+        </div>
+        <div class="tabla-dinamica-container" id="dinamica-seccion-{{ seccion.id }}" style="position:relative; z-index:1;"></div>
+    </div>
+    {% else %}
+    <div class="paper-tabla-dinamica-conjunto-datos">
+        <p class="text-muted text-center">Conjunto de datos no vinculada para esta tabla dinámica.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'video_embed' %}
+    {% if seccion.video_url %}
+    <div class="paper-video">
+        {% with seccion.video_url as url %}
+            {% if 'youtube.com' in url or 'youtu.be' in url %}
+                {% if 'youtu.be' in url %}
+                    {% with url|cut:'https://youtu.be/' as vid %}
+                    <iframe class="paper-video-iframe" src="https://www.youtube.com/embed/{{ vid }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    {% endwith %}
+                {% else %}
+                    {% with url|cut:'https://www.youtube.com/watch?v=' as vid %}
+                    <iframe class="paper-video-iframe" src="https://www.youtube.com/embed/{{ vid }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    {% endwith %}
+                {% endif %}
+            {% elif 'vimeo.com' in url %}
+                {% with url|cut:'https://vimeo.com/' as vid %}
+                <iframe class="paper-video-iframe" src="https://player.vimeo.com/video/{{ vid }}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                {% endwith %}
+            {% else %}
+                <p class="text-muted text-center">Formato de video no soportado. Use YouTube o Vimeo.</p>
+            {% endif %}
+        {% endwith %}
+    </div>
+    {% else %}
+    <div class="paper-video">
+        <p class="text-muted text-center">URL de video no configurada.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'galeria_imagenes' %}
+    {% if seccion.imagenes.exists %}
+    <div class="paper-galeria">
+        <div class="galeria-grid">
+            {% for img in seccion.imagenes.all %}
+            {% if img.tipo_uso == 'galeria' %}
+            <figure class="galeria-item">
+                <img src="{{ img.imagen.url }}" alt="{{ img.titulo|default:img.imagen.name }}" loading="lazy">
+                {% if img.titulo %}<figcaption>{{ img.titulo }}</figcaption>{% endif %}
+            </figure>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="paper-galeria">
+        <p class="text-muted text-center">No hay imágenes de galería vinculadas. Use el admin para agregar imágenes.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'carrusel' %}
+    {% if seccion.imagenes.exists %}
+    <div class="paper-carrusel" id="carrusel-{{ seccion.id }}">
+        <div class="carrusel-track">
+            {% for img in seccion.imagenes.all %}
+            {% if img.tipo_uso == 'carrusel' %}
+            <div class="carrusel-slide">
+                <img src="{{ img.imagen.url }}" alt="{{ img.titulo|default:img.imagen.name }}">
+                {% if img.titulo %}<div class="carrusel-caption">{{ img.titulo }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        <button class="carrusel-prev" onclick="carruselPrev({{ seccion.id }})"><i class="fas fa-chevron-left"></i></button>
+        <button class="carrusel-next" onclick="carruselNext({{ seccion.id }})"><i class="fas fa-chevron-right"></i></button>
+    </div>
+    {% else %}
+    <div class="paper-carrusel">
+        <p class="text-muted text-center">No hay imágenes de carrusel vinculadas. Use el admin para agregar imágenes.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'infografia' %}
+    {% if seccion.imagenes.exists %}
+    <div class="paper-infografia">
+        {% for img in seccion.imagenes.all %}
+        {% if img.tipo_uso == 'infografia' %}
+        <figure class="infografia-figure">
+            <img src="{{ img.imagen.url }}" alt="{{ img.titulo|default:img.imagen.name }}" loading="lazy">
+            {% if img.descripcion %}<figcaption>{{ img.descripcion }}</figcaption>{% endif %}
+        </figure>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="paper-infografia">
+        <p class="text-muted text-center">No hay infografía vinculada. Use el admin para agregar una imagen.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'acordeon' %}
+    {% if seccion.acordeon_items %}
+    <div class="paper-acordeon" id="acordeon-{{ seccion.id }}">
+        {% for item in seccion.acordeon_items %}
+        <div class="acordeon-item">
+            <button class="acordeon-header" type="button" onclick="toggleAcordeon(this)">
+                <span>{{ item.titulo }}</span>
+                <i class="fas fa-chevron-down acordeon-icon"></i>
+            </button>
+            <div class="acordeon-body">
+                <div class="acordeon-content">{{ item.contenido|safe }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="paper-acordeon">
+        <p class="text-muted text-center">No hay items de acordeón configurados. Use el campo "Acordeón items" en el admin.</p>
+    </div>
+    {% endif %}
+
+{% elif seccion.tipo_bloque == 'descarga_archivo' %}
+    {% if seccion.archivos.exists %}
+    <div class="paper-descargas">
+        <ul class="descargas-lista">
+            {% for arch in seccion.archivos.all %}
+            <li class="descarga-item">
+                <a href="{{ arch.archivo.url }}" class="descarga-link" target="_blank" download>
+                    <i class="{{ arch.icono|default:'fas fa-file' }}"></i>
+                    <span class="descarga-nombre">{{ arch.nombre|default:arch.archivo.name }}</span>
+                    {% if arch.descripcion %}<span class="descarga-desc">{{ arch.descripcion }}</span>{% endif %}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="paper-descargas">
+        <p class="text-muted text-center">No hay archivos vinculados. Use el admin para agregar archivos.</p>
+    </div>
+    {% endif %}
+{% endif %}

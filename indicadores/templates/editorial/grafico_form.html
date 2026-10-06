@@ -1,0 +1,760 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}{% if es_nuevo %}Nuevo{% else %}Editar{% endif %} Gráfico — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 mb-2">
+        <a href="{% url 'indicadores:editorial_graficos_listado' %}" class="text-sm text-slate-500 hover:text-violet-600 transition-colors">
+            <i class="fas fa-arrow-left"></i> Volver a Gráficos
+        </a>
+    </div>
+    <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <i class="fas fa-{% if es_nuevo %}plus{% else %}edit{% endif %} text-violet-500"></i>
+        {% if es_nuevo %}Nuevo Gráfico{% else %}Editar Gráfico{% endif %}
+    </h1>
+    <p class="mt-1 text-slate-500">
+        {% if es_nuevo %}Crear gráfico para{% else %}Configurando{% endif %}
+        <strong class="text-violet-700">{{ indicador.nombre }}</strong>
+        {% if not es_nuevo %}<span class="text-slate-400">| {{ grafico.nombre }}</span>{% endif %}
+    </p>
+    {% if not es_nuevo %}
+    <div class="mt-3">
+        <a href="{% url 'indicadores:editorial_grafico_crear' indicador.pk %}"
+           class="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
+            <i class="fas fa-plus"></i> Crear otro gráfico para este indicador
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+
+        <!-- Información Básica -->
+        <section>
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-info-circle text-violet-500"></i> Información Básica
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.nombre.label }}</label>
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}<p class="mt-1 text-sm text-red-600">{{ form.nombre.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.descripcion.label }}</label>
+                    {{ form.descripcion }}
+                    {% if form.descripcion.errors %}<p class="mt-1 text-sm text-red-600">{{ form.descripcion.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.tipo_grafico.label }}</label>
+                    {{ form.tipo_grafico }}
+                    {% if form.tipo_grafico.errors %}<p class="mt-1 text-sm text-red-600">{{ form.tipo_grafico.errors.0 }}</p>{% endif %}
+                </div>
+                <div id="aviso-solo-tabla" class="md:col-span-2 hidden p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Este tipo muestra <strong>solo la tabla de datos</strong> (sin gráfico Plotly).
+                    Las opciones de ejes, leyenda, cuadrícula y escala no aplican.
+                    Las series son opcionales: si no configuras ninguna, la tabla muestra todos los datos filtrados.
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.orden.label }}</label>
+                    {{ form.orden }}
+                    {% if form.orden.errors %}<p class="mt-1 text-sm text-red-600">{{ form.orden.errors.0 }}</p>{% endif %}
+                </div>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.activo }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.activo.label }}</label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Títulos Visibles -->
+        <section class="pt-6 border-t border-slate-200">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-heading text-sky-500"></i> Títulos del Gráfico
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.titulo.label }}</label>
+                    {{ form.titulo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.subtitulo.label }}</label>
+                    {{ form.subtitulo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.eje_x_titulo.label }}</label>
+                    {{ form.eje_x_titulo }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.eje_y_titulo.label }}</label>
+                    {{ form.eje_y_titulo }}
+                </div>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.mostrar_eje_y2 }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.mostrar_eje_y2.label }}</label>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.eje_y2_titulo.label }}</label>
+                    {{ form.eje_y2_titulo }}
+                </div>
+            </div>
+        </section>
+
+        <!-- Configuración Visual -->
+        <section id="seccion-config-visual" class="pt-6 border-t border-slate-200">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-paint-brush text-pink-500"></i> Configuración Visual
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.mostrar_leyenda }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.mostrar_leyenda.label }}</label>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.posicion_leyenda.label }}</label>
+                    {{ form.posicion_leyenda }}
+                </div>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.mostrar_cuadricula }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.mostrar_cuadricula.label }}</label>
+                </div>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.mostrar_valores }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.mostrar_valores.label }}</label>
+                </div>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.mostrar_linea_tendencia }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.mostrar_linea_tendencia.label }}</label>
+                </div>
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.ancho_completo }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.ancho_completo.label }}</label>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.altura_grafico.label }}</label>
+                    {{ form.altura_grafico }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.margen_derecho.label }}</label>
+                    {{ form.margen_derecho }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.margen_inferior.label }}</label>
+                    {{ form.margen_inferior }}
+                </div>
+            </div>
+        </section>
+
+        <!-- Escala y Rangos -->
+        <section class="pt-6 border-t border-slate-200">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-ruler-combined text-amber-500"></i> Escala y Rangos
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.begin_at_zero }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.begin_at_zero.label }}</label>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.rango_personalizado_min.label }}</label>
+                    {{ form.rango_personalizado_min }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.rango_personalizado_max.label }}</label>
+                    {{ form.rango_personalizado_max }}
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                    {{ form.mostrar_todas_etiquetas_x }}
+                    <label class="text-sm font-medium text-slate-700 cursor-pointer">{{ form.mostrar_todas_etiquetas_x.label }}</label>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.rango_anios_min.label }}</label>
+                    {{ form.rango_anios_min }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ form.rango_anios_max.label }}</label>
+                    {{ form.rango_anios_max }}
+                </div>
+            </div>
+        </section>
+
+        <!-- Desagregaciones Predeterminadas (por dominio) -->
+        <section class="pt-6 border-t border-slate-200">
+            <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-filter text-emerald-500"></i> Desagregaciones Predeterminadas
+            </h2>
+            <p class="text-sm text-slate-500 mb-4">
+                Valores preseleccionados en cada filtro por dominio del portal.
+                Mantén presionada la tecla Ctrl/Cmd para seleccionar múltiples.
+            </p>
+            {% if form.campos_predeterminados %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for dominio, campo in form.campos_predeterminados %}
+                <div {% if dominio.dominio_padre_id %}class="md:pl-4 border-l-2 border-emerald-200"{% endif %}>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">
+                        {{ campo.label }}
+                        {% if dominio.dominio_padre_id %}<span class="text-xs font-normal text-slate-400">(subdominio)</span>{% endif %}
+                    </label>
+                    {{ campo }}
+                    {% if campo.errors %}<p class="mt-1 text-sm text-red-600">{{ campo.errors.0 }}</p>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400 italic">El indicador no tiene dominios de desagregación asociados.</p>
+            {% endif %}
+        </section>
+
+        {% if not es_nuevo and formset %}
+        <!-- Series Inline -->
+        <section class="pt-6 border-t border-slate-200">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-layer-group text-indigo-500"></i> Series del Gráfico
+                    </h2>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Configura cada serie con sus desagregaciones geográficas y temáticas.
+                    </p>
+                </div>
+                <button type="button" id="btn-agregar-serie"
+                        class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
+                    <i class="fas fa-plus mr-1"></i> Agregar Serie
+                </button>
+            </div>
+
+            {{ formset.management_form }}
+
+            <!-- Empty template for cloning -->
+            <div id="serie-empty-template" class="hidden">
+                <div class="serie-fila grid grid-cols-1 md:grid-cols-6 gap-4 p-4 bg-slate-50 rounded-xl items-end relative">
+                    <button type="button" class="btn-eliminar-serie absolute top-2 right-2 text-rose-500 hover:text-rose-700 transition-colors"
+                            title="Eliminar serie">
+                        <i class="fas fa-times-circle text-lg"></i>
+                    </button>
+                    {% for campo in formset.empty_form.dominio_fields %}
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">{{ campo.label }}</label>
+                        {{ campo }}
+                    </div>
+                    {% endfor %}
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre Serie</label>
+                        {{ formset.empty_form.nombre_personalizado }}
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Orden</label>
+                        {{ formset.empty_form.orden }}
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Color</label>
+                        {{ formset.empty_form.color }}
+                    </div>
+                    {{ formset.empty_form.id }}
+                </div>
+            </div>
+
+            <div class="space-y-4" id="series-container">
+                {% for fs in formset %}
+                <div class="serie-fila grid grid-cols-1 md:grid-cols-6 gap-4 p-4 bg-slate-50 rounded-xl items-end relative">
+                    {% if fs.instance.pk %}
+                    <button type="button" class="btn-eliminar-serie absolute top-2 right-2 text-rose-500 hover:text-rose-700 transition-colors"
+                            title="Eliminar serie">
+                        <i class="fas fa-times-circle text-lg"></i>
+                    </button>
+                    <div class="hidden">{{ fs.DELETE }}</div>
+                    {% else %}
+                    <button type="button" class="btn-eliminar-serie absolute top-2 right-2 text-rose-500 hover:text-rose-700 transition-colors"
+                            title="Eliminar serie">
+                        <i class="fas fa-times-circle text-lg"></i>
+                    </button>
+                    {% endif %}
+                    {% for campo in fs.dominio_fields %}
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">{{ campo.label }}</label>
+                        {{ campo }}
+                    </div>
+                    {% endfor %}
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre Serie</label>
+                        {{ fs.nombre_personalizado }}
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Orden</label>
+                        {{ fs.orden }}
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Color</label>
+                        {{ fs.color }}
+                    </div>
+                    {{ fs.id }}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% elif not es_nuevo and series_bloqueadas %}
+        <!-- Series bloqueadas por volumen -->
+        <section class="pt-6 border-t border-slate-200">
+            <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-layer-group text-indigo-500"></i> Series del Gráfico
+            </h2>
+            <div class="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+                <p class="font-semibold">⚠️ Este gráfico tiene <strong>{{ n_series }}</strong> series y el editor inline no es viable por volumen.</p>
+                <p class="mt-1">Renderizarlas genera cientos de miles de campos (&gt;GB de HTML). Aquí solo puedes editar la <strong>configuración del gráfico</strong> (tipo, ejes, visual, etc.).</p>
+                <p class="mt-1">Las series existentes <strong>no se modifican ni se pierden</strong> al guardar.</p>
+            </div>
+        </section>
+        {% endif %}
+
+        <script>
+        (function() {
+            const container = document.getElementById('series-container');
+            if (!container) return;
+            const templateWrapper = document.getElementById('serie-empty-template');
+            const addBtn = document.getElementById('btn-agregar-serie');
+            const totalForms = document.getElementById('id_series-TOTAL_FORMS');
+            const prefix = 'series';
+
+            function updateDeleteHandlers() {
+                container.querySelectorAll('.btn-eliminar-serie').forEach(btn => {
+                    btn.onclick = function() {
+                        const fila = btn.closest('.serie-fila');
+                        // Si es una fila existente (tiene pk), marcar DELETE y ocultar
+                        const deleteInput = fila.querySelector('input[type="checkbox"][name*="DELETE"]');
+                        if (deleteInput) {
+                            deleteInput.checked = true;
+                            fila.classList.add('opacity-50', 'pointer-events-none');
+                            fila.style.display = 'none';
+                        } else {
+                            // Fila nueva: eliminar del DOM y renumerar
+                            fila.remove();
+                            renumberForms();
+                        }
+                    };
+                });
+            }
+
+            function renumberForms() {
+                const filas = container.querySelectorAll('.serie-fila');
+                filas.forEach((fila, idx) => {
+                    fila.querySelectorAll('input, select, textarea').forEach(el => {
+                        if (el.name) {
+                            el.name = el.name.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + idx + '-');
+                        }
+                        if (el.id) {
+                            el.id = el.id.replace(new RegExp(prefix + '_\\d+_'), prefix + '_' + idx + '_');
+                        }
+                    });
+                });
+                totalForms.value = filas.length;
+            }
+
+            if (addBtn && templateWrapper) {
+                addBtn.addEventListener('click', function() {
+                    const templateHTML = templateWrapper.innerHTML.trim();
+                    const idx = parseInt(totalForms.value);
+                    const newHTML = templateHTML
+                        .replace(/__prefix__/g, idx)
+                        .replace(new RegExp(prefix + '_\\d+_', 'g'), prefix + '_' + idx + '_')
+                        .replace(new RegExp(prefix + '-\\d+-', 'g'), prefix + '-' + idx + '-');
+
+                    const div = document.createElement('div');
+                    div.innerHTML = newHTML;
+                    container.appendChild(div.firstElementChild);
+                    totalForms.value = idx + 1;
+                    updateDeleteHandlers();
+                });
+            }
+
+            updateDeleteHandlers();
+        })();
+        </script>
+
+        <!-- Acciones -->
+        <section class="pt-6 border-t border-slate-200">
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" class="px-6 py-3 bg-violet-600 text-white font-medium rounded-xl hover:bg-violet-700 transition-colors shadow-sm">
+                    <i class="fas fa-save mr-2"></i> Guardar Gráfico
+                </button>
+                {% if not es_nuevo %}
+                <a href="{% url 'indicadores:editorial_grafico_eliminar' grafico.pk %}"
+                   class="px-6 py-3 bg-white border border-rose-200 text-rose-600 font-medium rounded-xl hover:bg-rose-50 transition-all">
+                    <i class="fas fa-trash mr-2"></i> Eliminar
+                </a>
+                {% endif %}
+                <a href="{% url 'indicadores:editorial_graficos_listado' %}"
+                   class="px-6 py-3 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors">
+                    Cancelar
+                </a>
+            </div>
+        </section>
+    </form>
+</div>
+
+{% if not es_nuevo %}
+<!-- Vista Previa del Gráfico -->
+<div class="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+    <h2 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        <i class="fas fa-eye text-sky-500"></i> Vista Previa del Gráfico
+    </h2>
+    {% if series_bloqueadas %}
+    <div class="p-4 bg-slate-50 border border-slate-200 rounded-md text-sm text-slate-600">
+        Vista previa no disponible: el gráfico tiene {{ n_series }} series y la respuesta sería demasiado grande para el navegador.
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-500 mb-4">Visualiza cómo se renderiza este gráfico con los datos actuales. Los controles son independientes y no afectan la configuración guardada.</p>
+
+    <div class="grafico-preview-controles mb-4 p-3 bg-gray-50 rounded-md">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div id="preview-control-ano"></div>
+            <div id="preview-control-geo"></div>
+            <div id="preview-control-tem"></div>
+        </div>
+        <div class="mt-2 flex gap-2">
+            <button id="preview-btn-aplicar" class="px-3 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Aplicar</button>
+            <button id="preview-btn-limpiar" class="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Limpiar</button>
+        </div>
+    </div>
+    <div id="grafico-preview-plot" style="min-height:400px;"></div>
+    <div id="grafico-preview-tabla" class="mt-3"></div>
+</div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+(function() {
+    const plotDiv = document.getElementById('grafico-preview-plot');
+    const tablaDiv = document.getElementById('grafico-preview-tabla');
+    const controlAno = document.getElementById('preview-control-ano');
+    const controlGeo = document.getElementById('preview-control-geo');
+    const controlTem = document.getElementById('preview-control-tem');
+    const btnAplicar = document.getElementById('preview-btn-aplicar');
+    const btnLimpiar = document.getElementById('preview-btn-limpiar');
+
+    let estado = { anoInicio: null, anoFin: null, desagGeo: [], desagTem: [] };
+    let rangoAnios = { min: 2010, max: 2025 };
+
+    function renderizarPlotly(graficoData) {
+        // Asegurar que existe layout
+        graficoData.layout = graficoData.layout || {};
+
+        if (graficoData.tipo_grafico === 'piramide_poblacional') {
+            try {
+                const categorias = (graficoData.series?.[0]?.y) ? graficoData.series[0].y.slice() : null;
+                // Fusionar margin sin destruir valores previos
+                const marginPrev = graficoData.layout.margin || {};
+                graficoData.layout.margin = Object.assign({}, marginPrev, { t: 40, b: 40, l: 120, r: 120 });
+                // Fusionar yaxis sin destruir título ni otros ajustes del backend
+                const yaxisPrev = graficoData.layout.yaxis || {};
+                graficoData.layout.yaxis = Object.assign({}, yaxisPrev, { type: 'category', automargin: true, ticks: 'outside' });
+                if (categorias?.length) {
+                    graficoData.layout.yaxis.tickmode = 'array';
+                    graficoData.layout.yaxis.tickvals = categorias;
+                    graficoData.layout.yaxis.ticktext = categorias;
+                    graficoData.layout.yaxis.range = [-0.5, categorias.length - 0.5];
+                    graficoData.layout.yaxis.categoryorder = 'array';
+                }
+                graficoData.layout.barmode = 'overlay';
+                if (typeof graficoData.layout.bargap === 'undefined') graficoData.layout.bargap = 0.1;
+            } catch (e) { console.warn('Ajustes pirámide:', e); }
+        }
+
+        // Fusionar hoverlabel sobre lo que venga del backend
+        const hoverPrev = graficoData.layout.hoverlabel || {};
+        graficoData.layout.hoverlabel = Object.assign({}, hoverPrev, {
+            font: Object.assign({}, hoverPrev.font, { size: 16, family: 'Arial, sans-serif' }),
+            bgcolor: 'rgba(0,0,0,0.8)', bordercolor: 'white', borderwidth: 1
+        });
+
+        if (graficoData.tipo_grafico === 'piramide_poblacional') {
+            graficoData.series?.forEach(s => { s.textposition = 'none'; s.textinfo = 'none'; });
+        }
+
+        Plotly.newPlot('grafico-preview-plot', graficoData.series, graficoData.layout, {
+            responsive: true, displayModeBar: 'top', displaylogo: false,
+            modeBarButtonsToRemove: [], locale: 'es'
+        });
+    }
+
+    // Tabla dinámica (repivotada): series como filas, años como columnas.
+    // Va en el slot del gráfico — la tabla de datos sigue normal.
+    function generarTablaPivotadaHTML(grafico) {
+        const fmt = v => {
+            if (v === null || v === undefined || v === 'N/A') return 'N/A';
+            const n = Number(v);
+            return Number.isNaN(n) ? String(v) : n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+        };
+        const anosSet = new Set();
+        (grafico.series || []).forEach(s => (s.x || []).forEach(x => anosSet.add(x)));
+        const anos = Array.from(anosSet).sort();
+        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
+        html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
+        anos.forEach(a => { html += `<th class="py-2 px-4 border-b text-right">${a}</th>`; });
+        html += '</tr></thead><tbody>';
+        (grafico.series || []).forEach(s => {
+            const mapa = {};
+            (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
+            html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+            anos.forEach(a => {
+                const v = mapa[a] !== undefined ? mapa[a] : 'N/A';
+                html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    function generarTabla(grafico) {
+        tablaDiv.innerHTML = '';
+        const esTipoTabla = (grafico.tipo_grafico === 'sin_grafico' || grafico.tipo_grafico === 'tabla_dinamica');
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300';
+        toggleBtn.textContent = 'Mostrar/Ocultar Datos en Tabla';
+        const tableContainer = document.createElement('div');
+        tableContainer.className = (esTipoTabla ? '' : 'hidden ') + 'mt-2 overflow-x-auto';
+
+        let html = '<table class="min-w-full bg-white border border-gray-200"><thead><tr class="bg-gray-100">';
+        let csv = [];
+        const fmt = v => {
+            if (v === null || v === undefined || v === 'N/A') return 'N/A';
+            const n = Number(v); return Number.isNaN(n) ? String(v) : n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        };
+        const fmtCsv = v => (typeof v === 'number') ? v.toFixed(1).replace('.', ',') : v;
+
+        if (grafico.tipo_grafico === 'pie' && grafico.series?.[0]?.type === 'pie') {
+            const d = grafico.series[0];
+            html += '<th class="py-2 px-4 border-b">Segmento</th><th class="py-2 px-4 border-b">Valor</th></tr></thead><tbody>';
+            csv.push(['Segmento','Valor']);
+            for (let i = 0; i < (d.labels?.length || 0); i++) {
+                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${d.labels[i]||'N/A'}</td><td class="py-2 px-4 border-b">${fmt(d.values[i])}</td></tr>`;
+                csv.push([d.labels[i]||'N/A', fmtCsv(d.values[i])]);
+            }
+        } else if (grafico.tipo_grafico === 'piramide_poblacional' && grafico.series?.length > 0) {
+            html += '<th class="py-2 px-4 border-b">Rango de Edad</th>';
+            const heads = ['Rango de Edad'];
+            grafico.series.forEach(s => { html += `<th class="py-2 px-4 border-b">${s.name||'Serie'}</th>`; heads.push(s.name||'Serie'); });
+            html += '</tr></thead><tbody>'; csv.push(heads);
+            const rangos = grafico.series[0].y || [];
+            for (let i = 0; i < rangos.length; i++) {
+                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${rangos[i]}</td>`;
+                const row = [rangos[i]];
+                grafico.series.forEach(s => { const v = s.x && s.x[i]!==undefined ? Math.abs(s.x[i]) : 'N/A'; html += `<td class="py-2 px-4 border-b">${fmt(v)}</td>`; row.push(typeof v==='number'?v.toFixed(1).replace('.',','):v); });
+                html += '</tr>'; csv.push(row);
+            }
+        } else if (grafico.tipo_grafico === 'tabla_dinamica') {
+            // Tabla dinámica: series como filas, años como columnas (repivotada)
+            const anosSet = new Set();
+            grafico.series.forEach(s => (s.x || []).forEach(x => anosSet.add(x)));
+            const anos = Array.from(anosSet).sort();
+            html += '<th class="py-2 px-4 border-b">Categoría</th>';
+            const heads = ['Categoría'];
+            anos.forEach(a => { html += `<th class="py-2 px-4 border-b text-right">${a}</th>`; heads.push(a); });
+            html += '</tr></thead><tbody>'; csv.push(heads);
+            grafico.series.forEach(s => {
+                const mapa = {}; (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
+                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+                const row = [s.name || 'Serie'];
+                anos.forEach(a => { const v = mapa[a] !== undefined ? mapa[a] : 'N/A'; html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`; row.push(fmtCsv(v)); });
+                html += '</tr>'; csv.push(row);
+            });
+        } else {
+            const esH = grafico.tipo_grafico === 'bar_horizontal';
+            html += `<th class="py-2 px-4 border-b">${esH?'Categoría':'Año'}</th>`;
+            const heads = [esH?'Categoría':'Año'];
+            grafico.series.forEach(s => { html += `<th class="py-2 px-4 border-b">${s.name||'Serie'}</th>`; heads.push(s.name||'Serie'); });
+            html += '</tr></thead><tbody>'; csv.push(heads);
+            let maxP = 0; grafico.series.forEach(s => { const x = esH?s.y:s.x; if (x?.length>maxP) maxP=x.length; });
+            for (let i=0;i<maxP;i++) {
+                const prim = grafico.series[0]; const xv = esH?prim.y:prim.x; const cat = xv&&xv[i]!==undefined?xv[i]:'N/A';
+                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${cat}</td>`;
+                const row = [cat];
+                grafico.series.forEach(s => { const yv = esH?s.x:s.y; const v = yv&&yv[i]!==undefined?yv[i]:'N/A'; html += `<td class="py-2 px-4 border-b">${fmt(v)}</td>`; row.push(typeof v==='number'?v.toFixed(1).replace('.',','):v); });
+                html += '</tr>'; csv.push(row);
+            }
+        }
+        html += '</tbody></table>';
+        tableContainer.innerHTML = html;
+
+        // Botones descarga (visibles junto a la tabla para tipos sin gráfico)
+        const dlContainer = document.createElement('div');
+        dlContainer.className = 'mt-2 flex gap-2' + (esTipoTabla ? '' : ' hidden');
+        const dlCSV = document.createElement('button');
+        dlCSV.className = 'px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600';
+        dlCSV.textContent = 'CSV';
+        dlCSV.onclick = () => {
+            const delim=';'; let c=''; csv.forEach(r=>{ c += r.map(cell=>{ let s=cell==null?'':String(cell); if(s.includes('"'))s=s.replace(/"/g,'""'); if(s.includes(delim)||s.includes(',')||s.includes('\n'))s='"'+s+'"'; return s; }).join(delim)+'\n'; });
+            const blob=new Blob(['\uFEFF'+c],{type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='datos.csv'; a.click();
+        };
+        dlContainer.appendChild(dlCSV);
+        toggleBtn.addEventListener('click', () => { tableContainer.classList.toggle('hidden'); dlContainer.classList.toggle('hidden'); });
+        tablaDiv.appendChild(toggleBtn);
+        tablaDiv.appendChild(dlContainer);
+        tablaDiv.appendChild(tableContainer);
+    }
+
+    function cargarPreview() {
+        // La tabla repivotada ocupa el slot del gráfico (tabla_dinamica)
+        plotDiv.innerHTML = '<div class="text-center p-8 text-gray-500">Cargando vista previa...</div>';
+        let url = `{% url 'indicadores:api_get_grafico' grafico.pk %}`;
+        const params = new URLSearchParams();
+        if (estado.anoInicio) params.append('ano_inicio', estado.anoInicio);
+        if (estado.anoFin) params.append('ano_fin', estado.anoFin);
+        estado.desagGeo.forEach(id => params.append('desagregaciones_geograficas', id));
+        estado.desagTem.forEach(id => params.append('desagregaciones_tematicas', id));
+        if (params.toString()) url += '?' + params.toString();
+
+        fetch(url)
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+                if (data.tipo_grafico === 'tabla_dinamica') {
+                    // La tabla repivotada ocupa el slot del gráfico
+                    plotDiv.innerHTML = generarTablaPivotadaHTML(data);
+                } else if (data.tipo_grafico === 'sin_grafico') {
+                    plotDiv.innerHTML = '<div class="text-center p-8 text-gray-500 text-sm">Este tipo no genera gráfico: los datos se muestran directamente en la tabla.</div>';
+                } else {
+                    renderizarPlotly(data);
+                }
+                generarTabla(data);
+            })
+            .catch(err => { console.error('Error preview:', err); plotDiv.innerHTML = '<div class="text-center p-8 text-red-600">Error al cargar la vista previa.</div>'; });
+    }
+
+    function crearControles(data, desagregaciones) {
+        if (data.rango_anios) {
+            rangoAnios = data.rango_anios;
+        }
+        const tipo = data.tipo_grafico || 'line';
+        const esUnico = (tipo === 'pie' || tipo === 'piramide_poblacional' || tipo === 'treemap');
+
+        controlAno.innerHTML = `<label class="block text-xs font-medium text-gray-600 mb-1">${esUnico?'Año':'Rango de Años'}</label>`;
+        if (esUnico) {
+            controlAno.innerHTML += `<div class="flex items-center gap-2"><span id="preview-ano-display" class="text-sm font-semibold text-primary-600">${rangoAnios.max}</span><input type="range" id="preview-ano-slider" min="${rangoAnios.min}" max="${rangoAnios.max}" value="${rangoAnios.max}" class="flex-1"></div>`;
+            const slider = document.getElementById('preview-ano-slider');
+            const display = document.getElementById('preview-ano-display');
+            slider.addEventListener('input', () => { display.textContent = slider.value; });
+        } else {
+            controlAno.innerHTML += `<div class="flex items-center gap-2"><input type="number" id="preview-ano-min" class="w-20 text-xs border rounded p-1" value="${rangoAnios.min}"><span class="text-gray-500">-</span><input type="number" id="preview-ano-max" class="w-20 text-xs border rounded p-1" value="${rangoAnios.max}"></div>`;
+        }
+
+        // Desagregaciones reales desde el indicador
+        const geoOpts = desagregaciones.desagregaciones_geograficas || [];
+        const temOpts = desagregaciones.desagregaciones_tematicas || [];
+
+        let geoHtml = '<label class="block text-xs font-medium text-gray-600 mb-1">Desagregaciones Geográficas</label><select id="preview-desag-geo" multiple class="w-full text-xs border rounded p-1 bg-white">';
+        if (geoOpts.length === 0) geoHtml += '<option disabled>No hay desagregaciones geográficas</option>';
+        geoOpts.forEach(d => { geoHtml += `<option value="${d.id}">${d.nombre}</option>`; });
+        geoHtml += '</select>';
+        controlGeo.innerHTML = geoHtml;
+
+        let temHtml = '<label class="block text-xs font-medium text-gray-600 mb-1">Desagregaciones Temáticas</label><select id="preview-desag-tem" multiple class="w-full text-xs border rounded p-1 bg-white">';
+        if (temOpts.length === 0) temHtml += '<option disabled>No hay desagregaciones temáticas</option>';
+        temOpts.forEach(d => { temHtml += `<option value="${d.id}">${d.nombre}</option>`; });
+        temHtml += '</select>';
+        controlTem.innerHTML = temHtml;
+    }
+
+    btnAplicar.addEventListener('click', () => {
+        const tipo = document.getElementById('preview-ano-slider');
+        const mn = document.getElementById('preview-ano-min');
+        const mx = document.getElementById('preview-ano-max');
+        const geoSel = document.getElementById('preview-desag-geo');
+        const temSel = document.getElementById('preview-desag-tem');
+        if (tipo) {
+            estado.anoInicio = tipo.value; estado.anoFin = tipo.value;
+        } else if (mn && mx) {
+            estado.anoInicio = mn.value; estado.anoFin = mx.value;
+        }
+        estado.desagGeo = geoSel ? Array.from(geoSel.selectedOptions).map(o => o.value) : [];
+        estado.desagTem = temSel ? Array.from(temSel.selectedOptions).map(o => o.value) : [];
+        cargarPreview();
+    });
+
+    btnLimpiar.addEventListener('click', () => {
+        estado = { anoInicio: null, anoFin: null, desagGeo: [], desagTem: [] };
+        const s = document.getElementById('preview-ano-slider');
+        const mn = document.getElementById('preview-ano-min');
+        const mx = document.getElementById('preview-ano-max');
+        if (s) s.value = rangoAnios.max;
+        if (mn) mn.value = rangoAnios.min;
+        if (mx) mx.value = rangoAnios.max;
+        const geoSel = document.getElementById('preview-desag-geo');
+        const temSel = document.getElementById('preview-desag-tem');
+        if (geoSel) geoSel.selectedIndex = -1;
+        if (temSel) temSel.selectedIndex = -1;
+        cargarPreview();
+    });
+
+    // Carga inicial: obtener datos del gráfico y desagregaciones del indicador en paralelo
+    Promise.all([
+        fetch(`{% url 'indicadores:api_get_grafico' grafico.pk %}`).then(r => r.ok ? r.json() : Promise.reject(r.status)),
+        fetch(`{% url 'indicadores:api_get_desagregaciones' indicador.pk %}`).then(r => r.ok ? r.json() : Promise.reject(r.status))
+    ])
+        .then(([graficoData, desagData]) => {
+            crearControles(graficoData, desagData);
+            if (graficoData.tipo_grafico === 'tabla_dinamica') {
+                plotDiv.innerHTML = generarTablaPivotadaHTML(graficoData);
+            } else if (graficoData.tipo_grafico === 'sin_grafico') {
+                plotDiv.innerHTML = '<div class="text-center p-8 text-gray-500 text-sm">Este tipo no genera gráfico: los datos se muestran directamente en la tabla.</div>';
+            } else {
+                renderizarPlotly(graficoData);
+            }
+            generarTabla(graficoData);
+        })
+        .catch(err => { console.error('Error preview inicial:', err); plotDiv.innerHTML = '<div class="text-center p-8 text-red-600">No se pudo cargar la vista previa.</div>'; });
+})();
+</script>
+{% endif %}
+{% endif %}
+
+<script>
+// Ocultar campos irrelevantes cuando el tipo es "solo tabla"
+(function() {
+    const TIPOS_SOLO_TABLA = ['sin_grafico', 'tabla_dinamica'];
+    const tipoSelect = document.getElementById('id_tipo_grafico');
+    if (!tipoSelect) return;
+
+    // Campos individuales a ocultar (wrapper = div padre)
+    const CAMPOS_OCULTAR = [
+        'id_eje_x_titulo', 'id_eje_y_titulo', 'id_eje_y2_titulo',
+        'id_mostrar_eje_y2',
+        'id_begin_at_zero', 'id_rango_personalizado_min', 'id_rango_personalizado_max',
+        'id_mostrar_todas_etiquetas_x',
+    ];
+
+    function toggleCamposSoloTabla() {
+        const esSoloTabla = TIPOS_SOLO_TABLA.includes(tipoSelect.value);
+
+        // Aviso informativo
+        const aviso = document.getElementById('aviso-solo-tabla');
+        if (aviso) aviso.classList.toggle('hidden', !esSoloTabla);
+
+        // Sección completa de Configuración Visual
+        const seccionVisual = document.getElementById('seccion-config-visual');
+        if (seccionVisual) seccionVisual.classList.toggle('hidden', esSoloTabla);
+
+        // Campos individuales (ejes, escala)
+        CAMPOS_OCULTAR.forEach(id => {
+            const campo = document.getElementById(id);
+            if (!campo) return;
+            const wrapper = campo.closest('div');
+            if (wrapper) wrapper.classList.toggle('hidden', esSoloTabla);
+        });
+    }
+
+    tipoSelect.addEventListener('change', toggleCamposSoloTabla);
+    toggleCamposSoloTabla();
+})();
+</script>
+
+{% endblock %}

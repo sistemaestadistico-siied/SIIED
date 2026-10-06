@@ -1,0 +1,449 @@
+{% extends 'recoleccion/base_recoleccion.html' %}
+
+{% block title %}Instrucciones para Carga de Conjunto de datos{% endblock %}
+
+{% block recoleccion_content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="text-4xl font-serif font-bold text-slate-900 mb-2">
+                <svg class="w-8 h-8 inline mr-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>Instrucciones para Carga de Conjunto de datos
+            </h1>
+            <p class="text-slate-600">Guía completa para preparar y cargar archivos de conjunto de datos</p>
+        </div>
+        <a href="{% url 'indicadores:cargar_conjunto_datos' %}" 
+           class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>Volver al Formulario
+        </a>
+    </div>
+
+    <!-- Contenido -->
+    <div class="space-y-8">
+        
+        <!-- Sección 1: Introducción -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <h2 class="text-2xl font-serif font-bold text-slate-900 mb-4 flex items-center">
+                <span class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">1</span>
+                ¿Qué es Conjunto de datos?
+            </h2>
+            <div class="prose max-w-none">
+                <p class="text-slate-700 mb-4">
+                    La <strong>conjunto de datos</strong> es un conjunto de datos a nivel de observación individual que contiene información detallada 
+                    sobre variables específicas. A diferencia de los datos agregados, el conjunto de datos permite análisis más profundos y la 
+                    extracción de múltiples indicadores desde una única fuente.
+                </p>
+                <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 mb-4">
+                    <p class="text-slate-700">
+                        <svg class="w-4 h-4 inline mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <strong>Importante:</strong> Un archivo de conjunto de datos puede alimentar uno o varios indicadaores.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 2: Formatos Aceptados -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <h2 class="text-2xl font-serif font-bold text-slate-900 mb-4 flex items-center">
+                <span class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">2</span>
+                Formatos Aceptados
+            </h2>
+            
+            <p class="text-slate-700 mb-6">El sistema acepta dos formatos de conjunto de datos según la estructura de sus datos:</p>
+
+            <!-- Formato Largo -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-slate-800 mb-3 flex items-center">
+                    <svg class="w-5 h-5 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Formato Largo (Desagregaciones en Columnas)
+                </h3>
+                <p class="text-slate-700 mb-4">
+                    Las desagregaciones temáticas se representan como columnas. Cada fila es una observación con sus desagregaciones.
+                </p>
+                <div class="bg-slate-50 rounded-lg p-4 overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-emerald-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left font-semibold">Año</th>
+                                <th class="px-4 py-2 text-left font-semibold">Grupos de edad</th>
+                                <th class="px-4 py-2 text-left font-semibold">Nacimientos</th>
+                                <th class="px-4 py-2 text-left font-semibold">Poblacion_Mujeres</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="px-4 py-2">2022</td>
+                                <td class="px-4 py-2">15-19</td>
+                                <td class="px-4 py-2">5500</td>
+                                <td class="px-4 py-2">93000</td>
+                            </tr>
+                            <tr class="border-b">
+                                <td class="px-4 py-2">2022</td>
+                                <td class="px-4 py-2">20-24</td>
+                                <td class="px-4 py-2">7800</td>
+                                <td class="px-4 py-2">91000</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-2">2022</td>
+                                <td class="px-4 py-2">25-29</td>
+                                <td class="px-4 py-2">6500</td>
+                                <td class="px-4 py-2">89000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 bg-emerald-50 border border-emerald-200 rounded p-3">
+                    <p class="text-sm text-emerald-800">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <strong>Ideal para:</strong> Datos con pocas desagregaciones o datos tabulares simples.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Formato Ancho -->
+            <div class="mb-6">
+                <h3 class="text-xl font-semibold text-slate-800 mb-3 flex items-center">
+                    <svg class="w-5 h-5 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Formato Ancho (Desagregaciones en Encabezados)
+                </h3>
+                <p class="text-slate-700 mb-4">
+                    Las desagregaciones temáticas se representan en los encabezados de columnas, separadas por guión bajo (_).
+                </p>
+                <div class="bg-slate-50 rounded-lg p-4 overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-emerald-100">
+                            <tr>
+                                <th class="px-4 py-2 text-left font-semibold">AÑO</th>
+                                <th class="px-4 py-2 text-left font-semibold">ÁREA GEOGRÁFICA</th>
+                                <th class="px-4 py-2 text-left font-semibold">Hombres_0</th>
+                                <th class="px-4 py-2 text-left font-semibold">Hombres_1</th>
+                                <th class="px-4 py-2 text-left font-semibold">Mujeres_0</th>
+                                <th class="px-4 py-2 text-left font-semibold">Mujeres_1</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="px-4 py-2">2022</td>
+                                <td class="px-4 py-2">Cabecera Municipal</td>
+                                <td class="px-4 py-2">17722</td>
+                                <td class="px-4 py-2">17603</td>
+                                <td class="px-4 py-2">16677</td>
+                                <td class="px-4 py-2">16595</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-2">2023</td>
+                                <td class="px-4 py-2">Cabecera Municipal</td>
+                                <td class="px-4 py-2">17937</td>
+                                <td class="px-4 py-2">17748</td>
+                                <td class="px-4 py-2">16940</td>
+                                <td class="px-4 py-2">16795</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 bg-emerald-50 border border-emerald-200 rounded p-3">
+                    <p class="text-sm text-slate-700">
+                        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <strong>Ideal para:</strong> Datos demográficos, tablas cruzadas y múltiples desagregaciones.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 3: Estructura Requerida -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <h2 class="text-2xl font-serif font-bold text-slate-900 mb-4 flex items-center">
+                <span class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">3</span>
+                Estructura Requerida
+            </h2>
+
+            <div class="space-y-6">
+                <!-- Columna de Fecha -->
+                <div class="border-l-4 border-amber-500 pl-4">
+                    <h4 class="font-semibold text-slate-800 mb-2">
+                        <svg class="w-4 h-4 text-amber-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        Columna de Fecha/Año (Obligatoria)
+                    </h4>
+                    <p class="text-slate-700 mb-2">El encabezado puede ser: <code class="bg-slate-100 px-2 py-1 rounded">Año</code>, <code class="bg-slate-100 px-2 py-1 rounded">AÑO</code>, <code class="bg-slate-100 px-2 py-1 rounded">año</code>, <code class="bg-slate-100 px-2 py-1 rounded">Fecha</code>, <code class="bg-slate-100 px-2 py-1 rounded">fecha</code>, <code class="bg-slate-100 px-2 py-1 rounded">FECHA</code></p>
+                    <p class="text-sm text-slate-600">Formato: número (2024) o fecha (2024-01-15)</p>
+                </div>
+
+                <!-- Desagregaciones Geográficas -->
+                <div class="border-l-4 border-emerald-500 pl-4">
+                    <h4 class="font-semibold text-slate-800 mb-2">
+                        <svg class="w-4 h-4 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Desagregaciones Geográficas (Opcional)
+                    </h4>
+                    <p class="text-slate-700 mb-2">El encabezado debe tener el nombre del dominio geográfico.</p>
+                    <p class="text-sm text-slate-600">Ejemplos: "Barrios y Veredas", "Comunas y Corregimientos", "Área Geográfica"</p>
+                </div>
+
+                <!-- Desagregaciones Temáticas -->
+                <div class="border-l-4 border-emerald-500 pl-4">
+                    <h4 class="font-semibold text-slate-800 mb-2">
+                        <svg class="w-4 h-4 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        Desagregaciones Temáticas (Opcional)
+                    </h4>
+                    <ul class="list-disc list-inside text-slate-700 space-y-1">
+                        <li><strong>Formato Largo:</strong> En columnas con nombre del dominio (ej: "Grupos de edad")</li>
+                        <li><strong>Formato Ancho:</strong> En encabezados separados por guión bajo (ej: Hombres_0, Mujeres_15-19)</li>
+                    </ul>
+                </div>
+
+                <!-- Columnas de Valores -->
+                <div class="border-l-4 border-emerald-500 pl-4">
+                    <h4 class="font-semibold text-slate-800 mb-2">
+                        <svg class="w-4 h-4 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                        </svg>
+                        Columnas de Valores
+                    </h4>
+                    <p class="text-slate-700 mb-2">Las columnas numéricas que contienen los valores de las variables.</p>
+                    <p class="text-sm text-slate-600">Use punto (.) como separador decimal, no comas.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 4: Archivo de Metadata de Variables -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <h2 class="text-2xl font-serif font-bold text-slate-900 mb-4 flex items-center">
+                <span class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">4</span>
+                Archivo de Metadata de Variables
+            </h2>
+            
+            <p class="text-slate-700 mb-4">
+                Además del archivo de conjunto de datos, debe proporcionar un archivo Excel con la metadata de las variables que describe 
+                cada columna del archivo de conjunto de datos.
+            </p>
+
+            <div class="bg-slate-50 rounded-lg p-4 overflow-x-auto mb-4">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-100">
+                        <tr>
+                            <th class="px-4 py-2 text-left font-semibold">Codigo_Indicador</th>
+                            <th class="px-4 py-2 text-left font-semibold">Nombre_Indicador</th>
+                            <th class="px-4 py-2 text-left font-semibold">Codigo_Variable</th>
+                            <th class="px-4 py-2 text-left font-semibold">Nombre_Variable</th>
+                            <th class="px-4 py-2 text-left font-semibold">Definicion_Conceptual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b">
+                            <td class="px-4 py-2">ICET_ECO_FIN_ING_01</td>
+                            <td class="px-4 py-2">Presupuesto municipal</td>
+                            <td class="px-4 py-2">V1</td>
+                            <td class="px-4 py-2">Ingresos totales</td>
+                            <td class="px-4 py-2">Total de ingresos del municipio</td>
+                        </tr>
+                        <tr>
+                            <td class="px-4 py-2">ICET_ECO_FIN_ING_01</td>
+                            <td class="px-4 py-2">Presupuesto municipal</td>
+                            <td class="px-4 py-2">V2</td>
+                            <td class="px-4 py-2">Ingresos tributarios</td>
+                            <td class="px-4 py-2">Ingresos por impuestos</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-4">
+                <p class="text-amber-800">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <strong>Importante:</strong> Puede descargar la plantilla de metadata de variables desde el botón en el formulario de carga.
+                </p>
+            </div>
+        </div>
+
+        <!-- Sección 5: Paso a Paso -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <h2 class="text-2xl font-serif font-bold text-slate-900 mb-4 flex items-center">
+                <span class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">5</span>
+                Proceso de Carga Paso a Paso
+            </h2>
+
+            <div class="space-y-4">
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
+                    <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Opción A: Crear Nuevo Conjunto de Conjunto de datos
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <div class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                1
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Identifique los IDs de los indicadores</h5>
+                                <p class="text-slate-700 text-sm">Determine qué indicadores se alimentarán de este archivo de conjunto de datos (1-6 indicadores). <strong>¿Dónde encontrar los IDs?</strong> Ve a "Reportes de Indicadores" - Tabla completa con IDs numéricos.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                2
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Seleccione "Crear nuevo conjunto"</h5>
+                                <p class="text-slate-700 text-sm">En el formulario, elija la opción para crear un nuevo conjunto de conjunto de datos.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                3
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Ingrese los IDs de indicadores</h5>
+                                <p class="text-slate-700 text-sm">Escriba los IDs separados por comas (ej: 45, 67, 89, 102).</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                4
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Suba los archivos</h5>
+                                <p class="text-slate-700 text-sm">Adjunte ambos archivos Excel (conjuntos de datos y metadata de variables).</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-blue-100 text-blue-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                5
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Envíe y verifique</h5>
+                                <p class="text-slate-700 text-sm">Envíe el formulario y recibirá un código de evidencia. Puede verificar el estado en el historial.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-violet-50 border border-violet-200 rounded-2xl p-4">
+                    <h4 class="font-semibold text-violet-800 mb-3 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Opción B: Actualizar Conjunto de datos Existente
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="flex items-start">
+                            <div class="bg-violet-100 text-violet-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                1
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Seleccione "Actualizar existente"</h5>
+                                <p class="text-slate-700 text-sm">En el formulario, elija la opción para actualizar un conjunto existente.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-violet-100 text-violet-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                2
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Elija el conjunto a actualizar</h5>
+                                <p class="text-slate-700 text-sm">Seleccione de la lista el conjunto de conjunto de datos que desea actualizar.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-violet-100 text-violet-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                3
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Suba los nuevos archivos</h5>
+                                <p class="text-slate-700 text-sm">Adjunte los archivos actualizados (reemplazarán los existentes).</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="bg-violet-100 text-violet-700 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0 text-sm">
+                                4
+                            </div>
+                            <div>
+                                <h5 class="font-semibold text-slate-800 mb-1">Envíe y verifique</h5>
+                                <p class="text-slate-700 text-sm">Envíe el formulario y recibirá un código de evidencia.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 6: Recomendaciones -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <h2 class="text-2xl font-serif font-bold text-slate-900 mb-4 flex items-center">
+                <span class="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 font-bold">6</span>
+                Recomendaciones y Buenas Prácticas
+            </h2>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-emerald-800 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>Hacer
+                    </h4>
+                    <ul class="space-y-2 text-sm text-emerald-700">
+                        <li>✓ Use nombres de columnas descriptivos y claros</li>
+                        <li>✓ Verifique que no haya celdas vacías en columnas clave</li>
+                        <li>✓ Use punto (.) como separador decimal</li>
+                        <li>✓ Mantenga consistencia en los formatos de fecha</li>
+                        <li>✓ Documente bien las variables en el archivo de metadata</li>
+                        <li>✓ Para crear nueva conjunto de datos, tenga listos los IDs de indicadores</li>
+                        <li>✓ Para actualizar, seleccione el conjunto correcto de la lista</li>
+                    </ul>
+                </div>
+
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-red-800 mb-2 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>Evitar
+                    </h4>
+                    <ul class="space-y-2 text-sm text-red-700">
+                        <li>✗ No use caracteres especiales en nombres de columnas</li>
+                        <li>✗ No mezcle formatos de fecha en la misma columna</li>
+                        <li>✗ No use coma (,) como separador decimal</li>
+                        <li>✗ No deje filas completamente vacías en medio de los datos</li>
+                        <li>✗ No modifique la estructura después de cargar</li>
+                        <li>✗ No cree múltiples conjunto de datos para el mismo indicador</li>
+                        <li>✗ No use IDs de indicadores incorrectos o inventados</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botón de Acción -->
+        <div class="text-center py-8">
+            <a href="{% url 'indicadores:cargar_conjunto_datos' %}" 
+               class="inline-flex items-center bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-bold py-3 px-8 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>Ir al Formulario de Carga
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

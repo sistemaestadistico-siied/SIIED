@@ -1,0 +1,2584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Mensaje de orientación para móviles -->
+    <style>
+        @media (max-width: 768px) and (orientation: portrait) {
+            .orientation-warning {
+                display: flex !important;
+            }
+            .main-content {
+                display: none !important;
+            }
+        }
+        @media (max-width: 768px) and (orientation: landscape) {
+            .orientation-warning {
+                display: none !important;
+            }
+        }
+    </style>
+    <title>Visor comparativo de indicadores estadisticos del distrito de santiago de cali</title>
+    <link rel="icon" href="{% static 'indicadores/images/logo_sin_fondo.png' %}">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+       <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#ebf5ff',
+                            100: '#e1effe',
+                            200: '#c3ddfd',
+                            300: '#a4cafe',
+                            400: '#76a9fa',
+                            500: '#4299e1', /* Color institucional */
+                            600: '#3182ce',
+                            700: '#2b6cb0',
+                            800: '#2c5282',
+                            900: '#2a4365',
+                        },
+                        gov: {
+                            100:'#3366CC',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+        // Utilidades: listas personalizadas con iconos sincronizadas con los selects ocultos
+        function updateHiddenSelectFromList(containerId, selectId) {
+            const container = document.getElementById(containerId);
+            const select = document.getElementById(selectId);
+            if (!container || !select) return;
+            const selectedIds = new Set(
+                Array.from(container.querySelectorAll('.custom-item.selected')).map(el => el.getAttribute('data-id'))
+            );
+            Array.from(select.options).forEach(opt => {
+                opt.selected = selectedIds.has(opt.value);
+            });
+            // Disparar evento change para mantener la lógica existente
+            select.dispatchEvent(new Event('change'));
+        }
+
+        // Normaliza clases de Font Awesome a FA6, soportando entradas v5 y parciales (e.g., "fa-chart-line")
+        function normalizeFaIcon(icon) {
+            if (!icon) return '';
+            const trimmed = String(icon).trim();
+            // Si ya es FA6 (fa-solid|fa-regular|fa-brands|fa-light|fa-thin), devolver tal cual
+            if (/^(fa-solid|fa-regular|fa-brands|fa-light|fa-thin)\s+fa-/.test(trimmed)) return trimmed;
+            // Mapear prefijos v5 -> v6
+            if (/^(fas|far|fab|fal)\s+fa-/.test(trimmed)) {
+                return trimmed
+                    .replace(/^fas\s+/, 'fa-solid ')
+                    .replace(/^far\s+/, 'fa-regular ')
+                    .replace(/^fab\s+/, 'fa-brands ')
+                    // 'fal' (light) es Pro; hacer fallback a regular
+                    .replace(/^fal\s+/, 'fa-regular ');
+            }
+            // Si viene con 'fa ' sin el estilo, asumir 'fa-solid'
+            if (/^fa\s+fa-/.test(trimmed)) return trimmed.replace(/^fa\s+/, 'fa-solid ');
+            // Si sólo viene el nombre 'fa-xxxx', anteponer 'fa-solid'
+            if (/^fa-/.test(trimmed)) return 'fa-solid ' + trimmed;
+            return trimmed;
+        }
+
+        // Icono por defecto para dominios de desagregación según tipo (FA6)
+        function iconForDomDesag(d) {
+            if (d && d.icono) return d.icono;
+            const t = (d && d.tipo ? String(d.tipo) : '').toLowerCase();
+            if (t.includes('geog')) return 'fa-solid fa-map-location-dot';
+            if (t.includes('tema')) return 'fa-solid fa-tags';
+            return 'fa-solid fa-layer-group';
+        }
+
+        // Icono por defecto para indicadores (FA6)
+        function iconForIndicador(ind) {
+            if (ind && ind.icono) return ind.icono;
+            return 'fa-solid fa-chart-line';
+        }
+
+        function renderCustomList(containerId, items, selectId) {
+            const container = document.getElementById(containerId);
+            const select = document.getElementById(selectId);
+            if (!container) return;
+            container.innerHTML = '';
+            (items || []).forEach(item => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'custom-item';
+                btn.setAttribute('data-id', item.id);
+                const iconClass = normalizeFaIcon(item.icono);
+                btn.innerHTML = `${iconClass ? `<i class="${iconClass} mr-2"></i>` : '<span class="mr-2">📄</span>'}<span>${item.nombre}</span>`;
+                btn.addEventListener('click', function() {
+                    btn.classList.toggle('selected');
+                    // Asegurar que exista la opción correspondiente en el select oculto
+                    if (select && !Array.from(select.options).some(o => o.value == item.id)) {
+                        const opt = document.createElement('option');
+                        opt.value = item.id;
+                        opt.textContent = item.nombre;
+                        select.appendChild(opt);
+                    }
+                    updateHiddenSelectFromList(containerId, selectId);
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function initDominiosList() {
+            const container = document.getElementById('dominios-list');
+            const select = document.getElementById('dominios');
+            if (!container || !select) return;
+            Array.from(container.querySelectorAll('.custom-item')).forEach(btn => {
+                btn.addEventListener('click', function() {
+                    btn.classList.toggle('selected');
+                    updateHiddenSelectFromList('dominios-list', 'dominios');
+                });
+            });
+        }
+    </script>
+
+    <script type="text/javascript">
+        var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+        (function(){
+        var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+        s1.async=true;
+        s1.src='https://embed.tawk.to/68c8fed4dc3fe719243dfca1/1j58i6rgf';
+        s1.charset='UTF-8';
+        s1.setAttribute('crossorigin','*');
+        s0.parentNode.insertBefore(s1,s0);
+        })();
+        </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- WebDataRocks CSS (local) -->
+    <link id="webdatarocks-theme-css" href="{% static 'indicadores/webdatarocks/theme/dark/webdatarocks.min.css' %}" rel="stylesheet"/>
+    <!-- Font Awesome 6 (all) for broader icon coverage (e.g., fa-trowel-bricks). No SRI to avoid dev blocking. -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+    
+    <style>
+        :root {
+            --content-max: 1600px; /* ancho máximo deseado para el contenido principal */
+        }
+        
+        /* Default dark theme variables */
+        :root,
+        [data-theme="dark"] {
+            --lab-bg: #212121;
+            --lab-surface: #212121; /* base */
+            --lab-card: #2a2a2a; /* panel ligeramente más claro que el fondo base */
+            /* Ajuste de paleta al logo nuevo (cian) */
+            --lab-accent: #06b6d4; /* cyan-500 */
+            --lab-accent-2: #0891b2; /* cyan-600 para hover */
+            --lab-muted: #cbd5e1; /* slate-300 for higher contrast */
+            --lab-text: #e5e7eb; /* gray-200 */
+            --lab-grid-line: rgba(148,163,184,0.12);
+            --lab-border: rgba(148,163,184,0.18);
+            --lab-chip: rgba(56,189,248,0.12);
+            --lab-nav-bg: #212121;
+            --lab-nav-text: #e5e7eb;
+            --lab-header-bg: #212121;
+            --lab-footer-bg: #212121; /* dark footer in dark theme */
+        }
+        
+        /* Light theme variables */
+        [data-theme="light"] {
+            --lab-bg: #f7fafc !important; /* bg-gray-50 from base.html */
+            --lab-surface: #ffffff !important; /* white backgrounds */
+            --lab-card: #ffffff !important; /* white cards */
+            /* Primary colors from base.html */
+            --lab-accent: #4299e1 !important; /* primary-500 */
+            --lab-accent-2: #3182ce !important; /* primary-600 */
+            --lab-muted: #4a5568 !important; /* gray-600 */
+            --lab-text: #2d3748 !important; /* gray-800 */
+            --lab-grid-line: rgba(203,213,224,0.5) !important;
+            --lab-border: rgba(203,213,224,0.8) !important;
+            --lab-chip: rgba(66,153,225,0.1) !important;
+            --lab-nav-bg: #ffffff !important;
+            --lab-nav-text: #4a5568 !important;
+            --lab-header-bg: #ffffff !important;
+            --lab-footer-bg: linear-gradient(to right, #3182ce, #2b6cb0) !important; /* footer like base.html */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--lab-bg) !important;
+            color: var(--lab-text) !important;
+            /* Evitar scroll horizontal global; lo manejaremos en el contenedor del Pivot */
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Animaciones y efectos */
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #4299e1;
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        /* Hero banner (nuevo logo con título incluido) */
+        .hero-banner { background-color: var(--lab-surface); border: none; transition: background-color 0.3s ease; }
+        .hero-banner img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+        /* Tamaño grande para el logo del banner */
+        .hero-banner .hero-logo { max-width: 640px; }
+        /* Contenedor principal: ocupa el ancho disponible hasta un máximo (coherente para todos los paneles) */
+        main.container {
+            width: 100%;
+            max-width: var(--content-max, 1600px);
+        }
+        
+        .panel {
+            background: var(--lab-card);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(3,7,18,0.4);
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid var(--lab-border);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* Sponsors section styles */
+        .sponsors-section {
+            background: var(--lab-surface);
+            padding: 2rem 0;
+            border-top: 1px solid var(--lab-border);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .sponsors-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--lab-text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .sponsor-logo-link:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+        }
+        
+        .sponsor-logo-link:hover .sponsor-logo {
+            filter: none !important;
+            opacity: 1 !important;
+        }
+        
+        [data-theme="light"] .panel {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .panel h2 {
+            color: var(--lab-text);
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--lab-muted);
+        }
+        
+        select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--lab-border);
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.2;
+            color: var(--lab-text);
+            background: var(--lab-card);
+            outline: none;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Hide native selects when using custom icon lists */
+        .hidden-select { display: none; }
+
+        /* Custom list with icons */
+        .custom-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        @media (min-width: 480px) {
+            .custom-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (min-width: 768px) {
+            .custom-list { grid-template-columns: 1fr; }
+        }
+        .custom-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: rgba(148,163,184,0.08);
+            border: 1px solid var(--lab-border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            font-size: 13px;
+            color: var(--lab-text);
+        }
+        .custom-item:hover {
+            background: rgba(148,163,184,0.14);
+        }
+        .custom-item.selected {
+            background: var(--lab-chip);
+            border-color: var(--lab-accent-2);
+        }
+
+        /* Compact selector layout */
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 768px) {
+            .filters-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        .filters-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 6px;
+        }
+        .filters-caption {
+            color: var(--lab-muted);
+            font-size: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--lab-accent);
+            color: #ffffff;
+        }
+        
+        .hero-banner {
+            background: linear-gradient(135deg, var(--lab-primary) 0%, var(--lab-accent) 100%);
+        }
+        
+        /* Default light mode text colors */
+        [data-theme="light"] .hero-banner .text-white h2,
+        [data-theme="light"] .hero-banner .text-white p {
+            color: var(--lab-text) !important;
+        }
+        
+        /* Dark mode text colors */
+        [data-theme="dark"] .hero-banner .text-white h2,
+        [data-theme="dark"] .hero-banner .text-white p {
+            color: white !important;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--lab-accent-2);
+        }
+        
+        .btn-secondary {
+            background-color: #1f2937;
+            color: var(--lab-text);
+            border: 1px solid var(--lab-border);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #111827;
+        }
+        
+        /* Scoped dark text to avoid dark-on-dark in panels */
+        .panel { color: var(--lab-text); }
+        .panel * { color: inherit; }
+        .panel .form-group label, .panel .filters-caption { color: var(--lab-muted) !important; }
+        .panel .btn-primary { color: #ffffff !important; }
+        
+        /* Contenedor para WebDataRocks */
+        #pivot-table {
+            width: 100%;
+            min-height: 600px;
+        }
+
+        /* Highcharts download menu */
+        #highcharts-download-menu { background: var(--lab-card); border: 1px solid var(--lab-border); border-radius: 8px; }
+        #highcharts-download-menu button { color: var(--lab-text); }
+        #highcharts-download-menu button:hover { background: rgba(148,163,184,0.12); }
+        
+        /* Botón de toggle de tema */
+        .theme-toggle {
+            background: var(--lab-accent);
+            color: white !important; /* Siempre blanco */
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .theme-toggle:hover {
+            background: var(--lab-accent-2);
+            transform: translateY(-1px);
+            color: white !important; /* Siempre blanco en hover también */
+        }
+        
+        .theme-toggle *,
+        .theme-toggle i,
+        .theme-toggle span {
+            color: white !important; /* Todos los elementos hijos también blancos */
+        }
+        
+        /* Botones de filtros con texto blanco */
+        .btn-secondary,
+        #toggle-filters,
+        .clear-selection {
+            color: white !important;
+        }
+        
+        .btn-secondary:hover,
+        #toggle-filters:hover,
+        .clear-selection:hover {
+            color: white !important;
+        }
+        
+        /* Manual de usuario */
+        .manual-section {
+            margin-bottom: 1.5rem;
+        }
+        .toggle-manual {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+        .toggle-manual i {
+            margin-right: 0.5rem;
+        }
+        #user-manual {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #user-manual h3 {
+            margin-top: 0;
+        }
+        #user-manual ul {
+            list-style: disc;
+            padding-left: 1rem;
+        }
+        #user-manual li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans" data-theme="dark">
+    <!-- Mensaje de orientación para móviles -->
+    <div class="orientation-warning fixed inset-0 bg-gray-900 bg-opacity-95 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg p-6 text-center max-w-sm mx-auto">
+            <div class="mb-4">
+                <svg class="w-16 h-16 mx-auto text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Rota tu dispositivo</h3>
+            <p class="text-gray-600 text-sm">Para una mejor experiencia con las tablas dinámicas y gráficos comparativos, por favor gira tu dispositivo a orientación horizontal.</p>
+        </div>
+    </div>
+    
+    <div class="main-content">
+    <!-- Header adaptable al tema -->
+
+    <header id="main-header" class="bg-white text-white shadow-xl relative z-[100]" style="background: var(--lab-header-bg);">
+        <div class="md:h-20 bg-gov-100 w-full items-center">
+            <div class="grid grid-cols-2 container mx-auto px-4 py-2 items-center">
+                <div class="place-self-start py-2">
+                    <a href="https://www.gov.co"><img src="https://cdnwordpresstest-f0ekdgevcngegudb.z01.azurefd.net/es/wp-content/themes/theme_alcaldia/img/logo_gov.png" alt="gov" class="h-10"></a>
+                </div>
+                <div class="place-self-end py-2 flex items-center gap-4">
+                <a class="text-white text-2xl font-bold" href="https://www.cali.gov.co/participacion/publicaciones/43/oficina-de-atencin-al-ciudadano/">PQRSD</a>
+                <div class="h-8 w-px bg-white opacity-50"></div>
+                <a class="text-white text-2xl hover:text-gray-200 transition duration-200" href="{% url 'indicadores:acceso_modulos' %}" title="Acceso a Módulos">
+                    <i class="fas fa-sign-in-alt"></i>
+                </a>
+            </div>
+
+            </div>
+        </div>
+       
+        <div class="container mx-auto px-4 py-3 relative z-50">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center space-x-4 md:space-x-6">
+                    <!-- Logo Alcaldía -->
+            
+                    <div class="flex items-center space-x-4 flex-shrink-0">
+                        <a href="https://www.cali.gov.co/" target="_blank" rel="noopener noreferrer" class="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center overflow-hidden rounded">
+                            <img id="alcaldia-logo" 
+                                 src="{% static 'indicadores/images/alcaldia color.png' %}" 
+                                 alt="Alcaldía de Santiago de Cali"
+                                 class="h-16 w-auto object-contain"
+                                 onerror="this.style.display='none'">
+                        </a>
+                    </div>
+                    <div class="h-12 md:h-14 w-px bg-sky-900 flex-shrink-0"></div>
+
+                    
+                    <!-- Nombre de la plataforma -->
+                    <div class="flex items-center space-x-4">
+                        <div>
+                            <h1 class="text-xl md:text-2xl font-bold" style="color: var(--lab-text)">Sistema Integrado</h1>
+                            <h1 class="text-xl md:text-2xl font-bold" style="color: var(--lab-text)">de Información Estadística Distrital</h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buscador Semántico en Header -->
+                <div class="w-full lg:w-auto flex-grow max-w-xl relative group">
+                    <div class="relative flex items-center">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-magic text-sky-500"></i>
+                        </div>
+                        <input type="text" id="header-semantic-search-input" 
+                               class="w-full pl-10 pr-12 py-2.5 rounded-full border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm shadow-sm bg-gray-50 text-gray-800 transition-all" 
+                               placeholder="Buscador Inteligente de Indicadores...">
+                        <button id="header-semantic-search-btn" class="absolute right-1 top-1/2 -translate-y-1/2 bg-sky-600 hover:bg-sky-700 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors">
+                            <i class="fas fa-search text-sm"></i>
+                        </button>
+                    </div>
+
+                    <!-- Contenedor de Resultados (Flotante) -->
+                    <div id="header-semantic-search-results" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 hidden z-[9999] max-h-[80vh] overflow-hidden flex-col" style="transform: translateZ(0);">
+                        <div class="p-3 border-b bg-gray-50 flex justify-between items-center text-gray-800">
+                            <h4 class="font-semibold text-sm">Resultados IA</h4>
+                            <span id="header-search-status" class="text-xs text-gray-500"></span>
+                            <button id="header-search-close" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div id="header-results-container" class="overflow-y-auto p-2 space-y-2 text-gray-800 text-sm max-h-[60vh] custom-scrollbar" style="text-align: left;">
+                            <!-- Resultados aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+ 
+
+    <!-- Navegación adaptable al tema -->
+    <nav id="main-nav" class="shadow-md sticky top-0 z-50 transition-all duration-300" style="background-color: var(--lab-nav-bg);">
+        <div class="container mx-auto px-4">
+            <ul class="flex flex-wrap justify-around md:justify-center space-x-0 md:space-x-8">
+                <li class="py-4">
+                    <a href="{% url 'indicadores:home' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Inicio
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:dominios' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Dominios
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="#" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Productos
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="#" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Sistemas
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="#" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Infraestructura
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- Contenido principal -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Hero Banner (logo + título en HTML) -->
+        <div class="hero-banner rounded-3xl mb-8 overflow-hidden">
+            <div class="p-6 md:p-8 flex flex-col items-center gap-4">
+                <img src="{% static 'indicadores/images/logo_sin_fondo.png' %}"
+                     alt="Logo del visor"
+                     class="object-contain mx-auto hero-logo"
+                     onerror="this.onerror=null; this.src='{% static 'indicadores/images/logo_sin_fondo.png' %}'">
+                <div class="text-white text-center" style="color: var(--lab-text)">
+                    <h2 class="text-3xl md:text-4xl font-bold mb-2">Visor comparativo</h2>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-2">de indicadores estadísticos</h2>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-2">de Santiago de Cali</h2>
+
+                    <p class="text-base md:text-lg opacity-80">Laboratorio de Datos Distrital</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual de usuario mejorado -->
+        <div class="manual-section mb-6">
+          <button class="toggle-manual bg-primary-500 hover:bg-primary-600 text-white font-medium py-3 px-6 rounded-lg flex items-center transition-colors" 
+                  onclick="toggleManual()">
+            <i class="fas fa-book-open mr-3"></i>
+            <span id="manual-button-text">Manual de Uso del Visor</span>
+            <i class="fas fa-chevron-down ml-2 transition-transform" id="manual-chevron"></i>
+          </button>
+          
+          <div id="user-manual" class="hidden bg-card border border-border mt-3 p-6 rounded-lg shadow-lg transition-all">
+            <h3 class="text-xl font-bold mb-4 text-accent flex items-center">
+              <i class="fas fa-info-circle mr-2"></i>
+              Guía Completa del Visor Comparativo
+            </h3>
+            
+            <div class="space-y-4">
+              <div class="bg-surface p-4 rounded-lg">
+                <h4 class="font-semibold mb-2 text-primary-600">
+                  <i class="fas fa-sliders-h mr-2"></i>
+                  Configuración Básica
+                </h4>
+                <ol class="list-decimal pl-5 space-y-2 text-muted">
+                  <li class="flex items-start"><span class="mr-2">1.</span> Seleccione dominios temáticos usando los filtros</li>
+                  <li class="flex items-start"><span class="mr-2">2.</span> Elija indicadores específicos dentro de cada dominio</li>
+                  <li class="flex items-start"><span class="mr-2">3.</span> Defina el rango de años de análisis</li>
+                  <li class="flex items-start"><span class="mr-2">4.</span> Seleccione desagregaciones geográficas/temáticas</li>
+                  <li class="flex items-start"><span class="mr-2">5.</span> Haga clic en "Agregar indicadores"</li>
+                </ol>
+              </div>
+
+              <!-- Nueva sección: WebDataRocks - Tabla Dinámica -->
+              <div style="background: var(--lab-card); border: 1px solid var(--lab-border); border-left: 4px solid var(--lab-accent);" class="p-4 rounded-lg">
+                <h4 class="font-semibold mb-3" style="color: var(--lab-text);">
+                  <i class="fas fa-table mr-2" style="color: var(--lab-accent);"></i>
+                  Tabla Dinámica WebDataRocks - Funcionalidades Avanzadas
+                </h4>
+                
+                <div class="space-y-4">
+                  <div style="background: var(--lab-surface); border: 1px solid var(--lab-border);" class="p-3 rounded-md">
+                    <h5 class="font-medium mb-2" style="color: var(--lab-text);">
+                      <i class="fas fa-arrows-alt mr-2" style="color: var(--lab-accent);"></i>
+                      Reorganización de Datos (Drag & Drop)
+                    </h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>Filas:</strong> Arrastre campos al área de filas para agrupar datos verticalmente</li>
+                      <li><strong>Columnas:</strong> Arrastre campos al área de columnas para crear pivotes horizontales</li>
+                      <li><strong>Valores:</strong> Arrastre métricas numéricas al área de valores para agregaciones</li>
+                      <li><strong>Filtros:</strong> Use el área de filtros para aplicar condiciones globales</li>
+                    </ul>
+                  </div>
+
+                  <div style="background: var(--lab-surface); border: 1px solid var(--lab-border);" class="p-3 rounded-md">
+                    <h5 class="font-medium mb-2" style="color: var(--lab-text);">
+                      <i class="fas fa-calculator mr-2" style="color: var(--lab-accent);"></i>
+                      Agregaciones y Cálculos
+                    </h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>Suma:</strong> Agregación por defecto para valores numéricos</li>
+                      <li><strong>Promedio:</strong> Haga clic derecho en un campo → "Summarize by" → "Average"</li>
+                      <li><strong>Conteo:</strong> Útil para contar registros únicos por categoría</li>
+                      <li><strong>Min/Max:</strong> Para encontrar valores extremos en los datos</li>
+                      <li><strong>Campos calculados:</strong> Cree nuevas métricas combinando campos existentes</li>
+                    </ul>
+                  </div>
+
+                  <div style="background: var(--lab-surface); border: 1px solid var(--lab-border);" class="p-3 rounded-md">
+                    <h5 class="font-medium mb-2" style="color: var(--lab-text);">
+                      <i class="fas fa-filter mr-2" style="color: var(--lab-accent);"></i>
+                      Filtrado Avanzado
+                    </h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>Filtros de campo:</strong> Haga clic en el ícono de filtro junto a cada campo</li>
+                      <li><strong>Filtros múltiples:</strong> Combine varios filtros para análisis específicos</li>
+                      <li><strong>Filtros de rango:</strong> Para fechas y valores numéricos (ej: años 2020-2023)</li>
+                      <li><strong>Búsqueda rápida:</strong> Use la caja de búsqueda en cada filtro</li>
+                      <li><strong>Filtros condicionales:</strong> Mayor que, menor que, contiene, etc.</li>
+                    </ul>
+                  </div>
+
+                  <div style="background: var(--lab-surface); border: 1px solid var(--lab-border);" class="p-3 rounded-md">
+                    <h5 class="font-medium mb-2" style="color: var(--lab-text);">
+                      <i class="fas fa-sort mr-2" style="color: var(--lab-accent);"></i>
+                      Ordenamiento y Jerarquías
+                    </h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>Ordenamiento:</strong> Haga clic en encabezados de columna para ordenar</li>
+                      <li><strong>Ordenamiento múltiple:</strong> Mantenga Shift + clic para ordenar por varios campos</li>
+                      <li><strong>Jerarquías:</strong> Agrupe campos relacionados (ej: Año → Mes → Día)</li>
+                      <li><strong>Expansión/Colapso:</strong> Use +/- para expandir/colapsar grupos</li>
+                      <li><strong>Drill-down:</strong> Doble clic en valores para profundizar en detalles</li>
+                    </ul>
+                  </div>
+
+                  <div style="background: var(--lab-surface); border: 1px solid var(--lab-border);" class="p-3 rounded-md">
+                    <h5 class="font-medium mb-2" style="color: var(--lab-text);">
+                      <i class="fas fa-palette mr-2" style="color: var(--lab-accent);"></i>
+                      Formato Condicional y Visualización
+                    </h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>Formato condicional:</strong> Resalte valores según condiciones (colores, barras)</li>
+                      <li><strong>Formato de números:</strong> Personalice decimales, separadores, monedas</li>
+                      <li><strong>Barras de datos:</strong> Visualice magnitudes dentro de las celdas</li>
+                      <li><strong>Escalas de color:</strong> Mapas de calor para identificar patrones</li>
+                      <li><strong>Totales y subtotales:</strong> Configure totales personalizados por grupo</li>
+                    </ul>
+                  </div>
+
+                  <div style="background: var(--lab-surface); border: 1px solid var(--lab-accent); border-left: 4px solid var(--lab-accent);" class="p-3 rounded-md">
+                    <h5 class="font-medium mb-2" style="color: var(--lab-text);">
+                      <i class="fas fa-lightbulb mr-2" style="color: var(--lab-accent);"></i>
+                      Consejos Avanzados para Análisis Comparativo
+                    </h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>Análisis temporal:</strong> Coloque "Año" en columnas e indicadores en filas</li>
+                      <li><strong>Comparación geográfica:</strong> Use desagregaciones geográficas en filas</li>
+                      <li><strong>Análisis multivariado:</strong> Combine múltiples indicadores en el área de valores</li>
+                      <li><strong>Tendencias:</strong> Ordene por año para identificar patrones temporales</li>
+                      <li><strong>Benchmarking:</strong> Compare indicadores similares usando filtros</li>
+                      <li><strong>Detección de outliers:</strong> Use formato condicional para valores extremos</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <div style="background: var(--lab-card); border: 1px solid var(--lab-border);" class="p-4 rounded-lg">
+                <h4 class="font-semibold mb-2" style="color: var(--lab-text);">
+                  <i class="fas fa-chart-line mr-2" style="color: var(--lab-accent);"></i>
+                  Gráficos Integrados
+                </h4>
+                <ul class="list-disc pl-5 space-y-2 text-sm" style="color: var(--lab-text-muted);">
+                  <li><strong>Gráficos automáticos:</strong> WebDataRocks genera gráficos basados en su configuración de tabla</li>
+                  <li><strong>Tipos disponibles:</strong> Líneas (tendencias), barras (comparaciones), áreas (composición)</li>
+                  <li><strong>Sincronización:</strong> Los gráficos se actualizan automáticamente al cambiar la tabla</li>
+                  <li><strong>Interactividad:</strong> Haga clic en elementos del gráfico para filtrar la tabla</li>
+                  <li><strong>Múltiples ejes:</strong> Para indicadores con diferentes unidades de medida</li>
+                </ul>
+              </div>
+              
+              <div style="background: var(--lab-card); border: 1px solid var(--lab-border);" class="p-4 rounded-lg">
+                <h4 class="font-semibold mb-2" style="color: var(--lab-text);">
+                  <i class="fas fa-file-export mr-2" style="color: var(--lab-accent);"></i>
+                  Exportación de Resultados
+                </h4>
+                <div class="space-y-3">
+                  <div>
+                    <h5 class="font-medium mb-1" style="color: var(--lab-text);">Exportación de Tablas:</h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>Excel (.xlsx):</strong> Mantiene formato y permite análisis posterior</li>
+                      <li><strong>CSV:</strong> Para integración con otras herramientas de análisis</li>
+                      <li><strong>PDF:</strong> Para reportes y presentaciones formales</li>
+                      <li><strong>HTML:</strong> Para publicación web o correos electrónicos</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h5 class="font-medium mb-1" style="color: var(--lab-text);">Exportación de Gráficos:</h5>
+                    <ul class="list-disc pl-5 space-y-1 text-sm" style="color: var(--lab-text-muted);">
+                      <li><strong>PNG/JPG:</strong> Para presentaciones y documentos</li>
+                      <li><strong>SVG:</strong> Gráficos vectoriales escalables</li>
+                      <li><strong>PDF:</strong> Para reportes de alta calidad</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background: var(--lab-surface); border: 1px solid var(--lab-accent); border-left: 4px solid var(--lab-accent);" class="p-4 rounded-lg">
+                <h4 class="font-semibold mb-2" style="color: var(--lab-text);">
+                  <i class="fas fa-exclamation-triangle mr-2" style="color: var(--lab-accent);"></i>
+                  Consideraciones de Rendimiento
+                </h4>
+                <ul class="list-disc pl-5 space-y-2 text-sm" style="color: var(--lab-text-muted);">
+                  <li><strong>Carga paginada:</strong> Los datos se cargan en lotes para optimizar rendimiento</li>
+                  <li><strong>Filtros inteligentes:</strong> Use filtros para reducir el volumen de datos procesados</li>
+                  <li><strong>Agregaciones eficientes:</strong> Las operaciones se realizan en el cliente para mayor velocidad</li>
+                  <li><strong>Caché local:</strong> Los datos se almacenan temporalmente para navegación rápida</li>
+                  <li><strong>Límites recomendados:</strong> Para mejor rendimiento, limite a 5-10 indicadores simultáneos</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel de selección de indicadores -->
+        <div class="panel">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold" style="color: var(--lab-text)">Configuración de Indicadores</h2>
+                        <p class="filters-caption">Laboratorio académico: refina resultados por dominios, temas, subtemas y desagregaciones</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="theme-toggle" class="theme-toggle">
+                        <i id="theme-icon" class="fas fa-sun"></i>
+                        <span id="theme-text">Tema Claro</span>
+                    </button>
+                    <button id="toggle-filters" class="px-3 py-2 btn-secondary text-sm">Ocultar filtros</button>
+                </div>
+            </div>
+
+            <div id="filters-container" class="filters-grid">
+                <div class="form-group">
+                    <label for="dominios">Dominios:</label>
+                    <select id="dominios" multiple size="4" class="hidden-select">
+                        {% for dominio in dominios %}
+                            <option value="{{ dominio.id }}">{{ dominio.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <div id="dominios-list" class="custom-list">
+                        {% for dominio in dominios %}
+                            <button type="button" class="custom-item" data-id="{{ dominio.id }}">
+                                {% if dominio.icono %}
+                                    <i class="{{ dominio.icono }} mr-2"></i>
+                                {% else %}
+                                    <span class="mr-2">📁</span>
+                                {% endif %}
+                                <span>{{ dominio.nombre }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="temas">Temas:</label>
+                    <select id="temas" multiple size="4" class="hidden-select"></select>
+                    <div id="temas-list" class="custom-list"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="subtemas">Subtemas:</label>
+                    <select id="subtemas" multiple size="4" class="hidden-select"></select>
+                    <div id="subtemas-list" class="custom-list"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="dominios-desagregacion">Grupos de desagregación:</label>
+                    <select id="dominios-desagregacion" multiple size="4" class="hidden-select"></select>
+                    <div id="dom-desag-list" class="custom-list"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="indicadores">Indicadores:</label>
+                    <select id="indicadores" multiple size="4" class="hidden-select"></select>
+                    <div id="indicadores-list" class="custom-list"></div>
+                </div>
+            </div>
+
+            <div class="filters-actions button-group">
+                <button id="agregar-indicadores" class="btn-primary">
+                    Agregar Indicadores Seleccionados
+                </button>
+                <button id="limpiar-seleccion" class="btn-secondary">
+                    Limpiar Selección
+                </button>
+            </div>
+        </div>
+        
+        <!-- Contenedor de WebDataRocks - COMPLETAMENTE LIBRE -->
+        <div class="panel mt-6">
+            <h2>Tabla Dinámica</h2>
+            <div id="pivot-table"></div>
+        </div>
+        
+        <!-- Contenedor de gráfico Highcharts -->
+        <div class="panel mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Gráfico Clásico (Sincronizado con tabla dinámica)</h2>
+                <div class="flex gap-2">
+                    <select id="highcharts-type" class="px-3 py-1 border rounded">
+                        <option value="line">Línea</option>
+                        <option value="column">Barra</option>
+                        <option value="area">Área</option>
+                    </select>
+                    <button id="highcharts-zoom-reset" class="px-3 py-1 btn-secondary text-sm">
+                        🔍 Reset Zoom
+                    </button>
+                    <div class="relative">
+                        <button id="highcharts-download-btn" class="px-3 py-1 btn-primary text-sm">
+                            📥 Descargar
+                        </button>
+                        <div id="highcharts-download-menu" class="absolute right-0 top-8 border rounded shadow-lg hidden z-10">
+                            <button onclick="downloadHighchartsChart('png')" class="block px-4 py-2 text-sm w-full text-left">
+                                PNG
+                            </button>
+                            <button onclick="downloadHighchartsChart('jpeg')" class="block px-4 py-2 text-sm w-full text-left">
+                                JPEG
+                            </button>
+                            <button onclick="downloadHighchartsChart('svg')" class="block px-4 py-2 text-sm w-full text-left">
+                                SVG
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="h-96">
+                <div id="highcharts-container" style="width: 100%; height: 100%;"></div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- WebDataRocks JS (local) - load core before toolbar plugin -->
+    <script src="{% static 'indicadores/webdatarocks/webdatarocks.js' %}"></script>
+    <script src="{% static 'indicadores/webdatarocks/webdatarocks.toolbar.min.js' %}"></script>
+  
+      <!-- Highcharts via jsDelivr CDN (más confiable que code.highcharts.com) -->
+      <script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.0/highcharts.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.0/highcharts-more.js"></script>
+      <!-- Highcharts exporting modules -->
+      <script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.0/modules/exporting.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.0/modules/export-data.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.0/modules/offline-exporting.js"></script>
+      <!-- WebDataRocks Connector for Highcharts (local) -->
+      <script src="{% static 'indicadores/webdatarocks/webdatarocks.highcharts.js' %}"></script>
+      
+      
+      <script>
+        // Variables para controlar los datos y WebDataRocks
+        var currentData = [];
+        var allIndicatorsData = []; // Array para acumular datos de todos los indicadores
+        var pivot = null;
+        var isPivotReady = false;
+        
+        // Variables para los gráficos
+        var highchartsChart = null;
+        var currentHighchartsType = 'line';
+        var indicatorUnits = {}; // Almacena las unidades de medida por indicador
+        var axisMapping = {}; // Mapeo de unidades a índices de ejes
+        var indicatorNameToUnit = {}; // Mapeo nombre de indicador -> unidad
+        var axisIdMapping = {}; // Mapeo de unidad -> id de eje Highcharts
+        var selectedIndicatorIds = new Set(); // IDs acumulados de indicadores agregados
+        
+        // Utilidades de red y UI (timeouts, reintentos, overlays)
+        async function fetchWithTimeoutRetry(url, options = {}, cfg = {}) {
+            const timeoutMs = cfg.timeoutMs ?? 15000;
+            const retries = cfg.retries ?? 2;
+            const backoffMs = cfg.backoffMs ?? 800;
+            let attempt = 0;
+            while (true) {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    const resp = await fetch(url, { ...options, signal: controller.signal });
+                    clearTimeout(timer);
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
+                    return resp;
+                } catch (err) {
+                    clearTimeout(timer);
+                    attempt++;
+                    if (attempt > retries) throw err;
+                    const wait = backoffMs * Math.pow(2, attempt - 1);
+                    console.warn(`[NET] Reintento ${attempt}/${retries} en ${wait}ms por:`, err?.message || err);
+                    await new Promise(r => setTimeout(r, wait));
+                }
+            }
+        }
+
+        function showOverlay(targetSelector, message) {
+            try {
+                const el = document.querySelector(targetSelector) || document.body;
+                let overlay = document.getElementById('global-loading-overlay');
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.id = 'global-loading-overlay';
+                    overlay.style.position = 'fixed';
+                    overlay.style.top = '0';
+                    overlay.style.left = '0';
+                    overlay.style.right = '0';
+                    overlay.style.bottom = '0';
+                    overlay.style.background = 'rgba(0,0,0,0.35)';
+                    overlay.style.display = 'flex';
+                    overlay.style.alignItems = 'center';
+                    overlay.style.justifyContent = 'center';
+                    overlay.style.zIndex = '9999';
+                    const box = document.createElement('div');
+                    box.id = 'global-loading-box';
+                    box.style.background = '#212121';
+                    box.style.color = '#e5e7eb';
+                    box.style.border = '1px solid rgba(148,163,184,0.35)';
+                    box.style.borderRadius = '8px';
+                    box.style.padding = '12px 16px';
+                    box.style.fontSize = '14px';
+                    box.innerText = message || 'Cargando...';
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+                } else {
+                    const box = document.getElementById('global-loading-box');
+                    if (box) box.innerText = message || 'Cargando...';
+                }
+            } catch (e) { /* no-op */ }
+        }
+
+        function hideOverlay() {
+            try {
+                const overlay = document.getElementById('global-loading-overlay');
+                if (overlay) overlay.remove();
+            } catch (e) { /* no-op */ }
+        }
+
+        function showToast(message, type = 'info', duration = 4000) {
+            try {
+                const id = `toast-${Date.now()}`;
+                const toast = document.createElement('div');
+                toast.id = id;
+                toast.style.position = 'fixed';
+                toast.style.right = '16px';
+                toast.style.bottom = '16px';
+                toast.style.padding = '10px 14px';
+                toast.style.borderRadius = '8px';
+                toast.style.fontSize = '13px';
+                toast.style.zIndex = '10000';
+                toast.style.boxShadow = '0 2px 12px rgba(0,0,0,0.35)';
+                const color = type === 'error' ? '#ef4444' : (type === 'success' ? '#22c55e' : '#38bdf8');
+                toast.style.background = '#212121';
+                toast.style.color = '#e5e7eb';
+                toast.style.border = `1px solid ${color}`;
+                toast.innerText = message;
+                document.body.appendChild(toast);
+                setTimeout(() => { try { toast.remove(); } catch (e) {} }, duration);
+            } catch (e) { /* no-op */ }
+        }
+
+        // Highcharts academic lab theme
+        if (window.Highcharts) {
+            Highcharts.setOptions({
+                chart: {
+                    backgroundColor: 'transparent',
+                    style: { fontFamily: 'Inter, sans-serif' }
+                },
+                colors: ['#7cb5ec', '#22c55e', '#f59e0b', '#a78bfa', '#e879f9', '#f43f5e', '#14b8a6', '#f97316'],
+                xAxis: {
+                    gridLineColor: 'rgba(148,163,184,0.12)',
+                    labels: { style: { color: '#e5e7eb' } },
+                    title: { style: { color: '#94a3b8' } }
+                },
+                yAxis: {
+                    gridLineColor: 'rgba(148,163,184,0.12)',
+                    labels: { style: { color: '#e5e7eb' } },
+                    title: { style: { color: '#94a3b8' } }
+                },
+                legend: { itemStyle: { color: '#e5e7eb' } },
+                title: { style: { color: '#e5e7eb' } },
+                tooltip: {
+                    backgroundColor: '#0f172a',
+                    borderColor: 'rgba(148,163,184,0.35)',
+                    style: { color: '#e5e7eb' }
+                },
+                credits: { style: { color: '#94a3b8' } }
+            });
+        }
+        
+        // Función para crear el gráfico Highcharts
+        function createChart() {
+            // Verificar que WebDataRocks esté listo
+            if (!pivot || !isPivotReady) {
+                console.log('WebDataRocks no está listo, esperando...');
+                setTimeout(createChart, 500);
+                return;
+            }
+            
+            // Verificar que el contenedor existe
+            if (!document.getElementById('highcharts-container')) {
+                console.error('Contenedor highcharts-container no encontrado');
+                return;
+            }
+            
+            pivot.highcharts.getData(
+                {
+                    type: currentHighchartsType
+                },
+                // Función llamada cuando los datos están listos
+                function(chartConfig) {
+                    configureHighchartsChart(chartConfig);
+                },
+                // Función llamada en cambios de reporte (filtros, ordenamiento, etc.)
+                function(chartConfig) {
+                    configureHighchartsChart(chartConfig);
+                }
+            );
+        }
+        
+        // Función para configurar Highcharts con doble eje Y
+        function configureHighchartsChart(chartConfig) {
+            chartConfig.chart = {
+                type: currentHighchartsType,
+                zoomType: 'xy'
+            };
+            
+            chartConfig.title = {
+                text: 'Gráfico Comparativo - Vista Classic/Compact'
+            };
+            
+            // Configurar exportación
+            chartConfig.exporting = {
+                enabled: true,
+                buttons: {
+                    contextButton: {
+                        enabled: false // Ocultamos el botón por defecto
+                    }
+                }
+            };
+            
+            // Deshabilitar warning de accesibilidad
+            chartConfig.accessibility = {
+                enabled: false
+            };
+            
+            // Obtener años de los datos filtrados de WebDataRocks
+            console.log('Configurando eje X - chartConfig recibido:', chartConfig);
+            
+            let aniosUnicos = [];
+            
+            // Intentar obtener años de las categorías existentes de WebDataRocks
+            if (chartConfig.xAxis && chartConfig.xAxis.categories) {
+                aniosUnicos = chartConfig.xAxis.categories;
+                console.log('Años obtenidos de WebDataRocks:', aniosUnicos);
+            } else if (currentData && currentData.length > 0) {
+                // Fallback: usar datos globales
+                const aniosSet = new Set(currentData.map(d => d['Año']).filter(a => a != null));
+                aniosUnicos = Array.from(aniosSet).sort((a, b) => parseInt(a) - parseInt(b));
+                console.log('Años obtenidos de currentData:', aniosUnicos);
+            }
+            
+            // Configurar eje X manteniendo la funcionalidad de filtros
+            chartConfig.xAxis = {
+                ...chartConfig.xAxis,
+                title: {
+                    text: 'Año'
+                },
+                categories: aniosUnicos,
+                type: 'category'
+            };
+            
+            // Configurar múltiples ejes Y basados en unidades detectadas
+            chartConfig.yAxis = generateMultipleYAxes();
+
+            // Ajustar espaciado del gráfico según cantidad de ejes por lado
+            try {
+                const totalRight = (Array.isArray(chartConfig.yAxis) ? chartConfig.yAxis : []).filter(a => a && a.opposite).length;
+                const totalLeft = (Array.isArray(chartConfig.yAxis) ? chartConfig.yAxis : []).filter(a => a && !a.opposite).length;
+                const perAxisOffset = 50; // px por eje adicional
+                chartConfig.chart = {
+                    ...chartConfig.chart,
+                    spacingRight: Math.max(10, totalRight * perAxisOffset + 10),
+                    spacingLeft: Math.max(10, totalLeft * perAxisOffset + 10),
+                    alignTicks: false
+                };
+            } catch (e) { /* no-op */ }
+            
+            console.log('Doble eje Y configurado');
+            console.log('chartConfig.yAxis después de asignación:', chartConfig.yAxis);
+            console.log('Número de ejes configurados:', Array.isArray(chartConfig.yAxis) ? chartConfig.yAxis.length : 'No es array');
+            
+            // Asignar cada serie al eje correspondiente según su unidad (fallback: alternado)
+            if (chartConfig.series) {
+                chartConfig.series.forEach((serie, index) => {
+                    // Intentar resolver unidad por nombre exacto o aproximado
+                    let unit = indicatorNameToUnit[serie.name];
+                    if (!unit) {
+                        const matchKey = Object.keys(indicatorNameToUnit).find(k =>
+                            serie.name.includes(k) || k.includes(serie.name)
+                        );
+                        if (matchKey) unit = indicatorNameToUnit[matchKey];
+                    }
+
+                    if (unit && (axisIdMapping[unit] || axisMapping.hasOwnProperty(unit))) {
+                        // Preferir asignación por id explícito si existe
+                        if (axisIdMapping[unit]) {
+                            serie.yAxis = axisIdMapping[unit];
+                        } else {
+                            serie.yAxis = axisMapping[unit];
+                        }
+                        console.log(`Serie "${serie.name}" (unidad: ${unit}) asignada al eje ${serie.yAxis}`);
+                    } else {
+                        // Fallback si no se puede determinar la unidad
+                        serie.yAxis = index % 2;
+                        console.warn(`No se encontró unidad para la serie "${serie.name}". Usando eje ${serie.yAxis} por defecto`);
+                    }
+                });
+            }
+            
+            chartConfig.plotOptions = {};
+            chartConfig.plotOptions[currentHighchartsType] = {
+                marker: {
+                    enabled: true,
+                    radius: 4
+                }
+            };
+            
+            // Verificar que el contenedor existe antes de crear el gráfico
+            const container = document.getElementById('highcharts-container');
+            if (!container) {
+                console.error('Contenedor highcharts-container no encontrado');
+                return;
+            }
+            
+            // Crear el gráfico con la configuración actualizada (destruir si existe para evitar estado residual)
+            try {
+                if (highchartsChart) {
+                    try { highchartsChart.destroy(); } catch (e) { console.warn('Error al destruir gráfico previo:', e); }
+                }
+                highchartsChart = Highcharts.chart('highcharts-container', chartConfig);
+                console.log('Gráfico Highcharts creado/actualizado con años:', aniosUnicos);
+                console.log('Ejes Y configurados:', chartConfig.yAxis.length);
+                // Fallback: forzar múltiples ejes Y tras la creación si Highcharts/WebDataRocks dejara solo uno
+                try {
+                    enforceMultipleYAxisAfterCreation(highchartsChart);
+                    // Reintento corto por si el conector aplica algún ajuste asincrónico
+                    setTimeout(() => { try { enforceMultipleYAxisAfterCreation(highchartsChart); } catch (e) {} }, 80);
+                } catch (e) {
+                    console.warn('Fallback de ejes múltiples falló:', e);
+                }
+            } catch (error) {
+                console.error('Error al crear gráfico Highcharts:', error);
+            }
+        }
+        
+        // Función para generar múltiples ejes Y para Highcharts
+        function generateMultipleYAxes() {
+            console.log('generateMultipleYAxes llamado - indicatorUnits:', indicatorUnits);
+            
+            // Si no hay unidades definidas, crear al menos 2 ejes para testing
+            if (!indicatorUnits || Object.keys(indicatorUnits).length === 0) {
+                console.log('No hay unidades, creando 2 ejes por defecto para testing');
+                axisMapping = { 'Sin unidad': 0, 'Eje Secundario': 1 };
+                axisIdMapping = { 'Sin unidad': 'y0', 'Eje Secundario': 'y1' };
+                return [
+                    {
+                        id: 'y0',
+                        title: { text: 'Eje Principal' },
+                        opposite: false,
+                        gridLineWidth: 1
+                    },
+                    {
+                        id: 'y1',
+                        title: { text: 'Eje Secundario' },
+                        opposite: true,
+                        gridLineWidth: 0
+                    }
+                ];
+            }
+            
+            const uniqueUnits = [...new Set(Object.values(indicatorUnits))];
+            console.log('Unidades únicas encontradas:', uniqueUnits);
+            
+            // Forzar al menos 2 ejes, incluso si solo hay 1 unidad
+            if (uniqueUnits.length === 1) {
+                uniqueUnits.push('Eje Adicional');
+                console.log('Forzando segundo eje - unidades finales:', uniqueUnits);
+            }
+            
+            const axes = [];
+            const colors = ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f'];
+            
+            axisMapping = {}; // Reset mapping
+            axisIdMapping = {}; // Reset id mapping
+            
+            let leftCount = 0;
+            let rightCount = 0;
+            uniqueUnits.forEach((unit, index) => {
+                const position = index % 2 === 0 ? 'left' : 'right';
+                const isRight = position === 'right';
+                const perAxisOffset = 50; // px por eje acumulado en ese lado
+                const offset = (isRight ? rightCount : leftCount) * perAxisOffset;
+
+                const axis = {
+                    id: `y${index}`,
+                    title: {
+                        text: unit || 'Sin unidad',
+                        style: {
+                            color: colors[index % colors.length]
+                        }
+                    },
+                    labels: {
+                        style: {
+                            color: colors[index % colors.length]
+                        }
+                    },
+                    opposite: isRight,
+                    gridLineWidth: index === 0 ? 1 : 0,
+                    lineWidth: 1,
+                    offset: offset
+                };
+
+                axes.push(axis);
+                const key = unit || 'Sin unidad';
+                axisMapping[key] = index;
+                axisIdMapping[key] = `y${index}`;
+
+                if (isRight) { rightCount++; } else { leftCount++; }
+                console.log(`Eje ${index} creado (${position}) con offset ${offset}px:`, axis);
+            });
+            
+            console.log('Highcharts - Total ejes generados:', axes.length);
+            console.log('Mapeo final:', axisMapping);
+            return axes;
+        }
+        
+        // Fallback post-creación: asegurar múltiples ejes Y y reasignar series por unidad
+        function enforceMultipleYAxisAfterCreation(chart) {
+            if (!chart) return;
+            try {
+                const desiredAxes = generateMultipleYAxes() || [];
+                const existingById = new Map((chart.yAxis || []).map(ax => [ax && ax.options ? ax.options.id : undefined, ax]));
+                
+                // Agregar/actualizar ejes necesarios
+                desiredAxes.forEach(axOpt => {
+                    const existing = existingById.get(axOpt.id);
+                    if (existing) {
+                        try {
+                            existing.update({
+                                title: axOpt.title,
+                                labels: axOpt.labels,
+                                opposite: axOpt.opposite,
+                                gridLineWidth: axOpt.gridLineWidth,
+                                lineWidth: axOpt.lineWidth,
+                                offset: axOpt.offset
+                            }, false);
+                        } catch (e) { /* no-op */ }
+                    } else {
+                        try { chart.addAxis(axOpt, false, false); } catch (e) { console.warn('addAxis falló para', axOpt.id, e); }
+                    }
+                });
+                
+                // Ajustar espaciado según lados
+                try {
+                    const totalRight = desiredAxes.filter(a => a && a.opposite).length;
+                    const totalLeft = desiredAxes.filter(a => a && !a.opposite).length;
+                    const perAxisOffset = 50;
+                    chart.update({
+                        chart: {
+                            spacingRight: Math.max(10, totalRight * perAxisOffset + 10),
+                            spacingLeft: Math.max(10, totalLeft * perAxisOffset + 10),
+                            alignTicks: false
+                        }
+                    }, false);
+                } catch (e) { /* no-op */ }
+                
+                // Reasignar series al eje correcto por unidad
+                try {
+                    (chart.series || []).forEach(serie => {
+                        const name = serie && serie.name ? serie.name : '';
+                        let unit = indicatorNameToUnit[name];
+                        if (!unit) {
+                            const matchKey = Object.keys(indicatorNameToUnit).find(k => name.includes(k) || k.includes(name));
+                            if (matchKey) unit = indicatorNameToUnit[matchKey];
+                        }
+                        const targetAxisId = (unit && axisIdMapping[unit]) ? axisIdMapping[unit] : (desiredAxes[0] && desiredAxes[0].id);
+                        if (targetAxisId) {
+                            try { serie.update({ yAxis: targetAxisId }, false); } catch (e) { /* no-op */ }
+                        }
+                    });
+                } catch (e) { /* no-op */ }
+                
+                try { chart.redraw(); } catch (e) { /* no-op */ }
+                console.log('Fallback de ejes múltiples aplicado. Ejes actuales:', (chart.yAxis || []).map(a => a && a.options ? a.options.id : '(sin id)'));
+            } catch (e) {
+                console.warn('No se pudo aplicar fallback de ejes múltiples:', e);
+            }
+        }
+        
+        // Función para configurar doble eje Y (funcionalidad original)
+        function configureDoubleYAxis() {
+            return [{
+                id: 'y0',
+                title: {
+                    text: 'Eje Principal',
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                },
+                labels: {
+                    style: {
+                        color: Highcharts.getOptions().colors[0]
+                    }
+                }
+            }, {
+                id: 'y1',
+                title: {
+                    text: 'Eje Secundario',
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                },
+                labels: {
+                    style: {
+                        color: Highcharts.getOptions().colors[1]
+                    }
+                },
+                opposite: true
+            }];
+        }
+        
+        // Event listeners para selectores de tipo de gráfico
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarDominios();
+            
+            // Selector Highcharts
+            document.getElementById('highcharts-type').addEventListener('change', function() {
+                currentHighchartsType = this.value;
+                if (isPivotReady && currentData.length > 0) {
+                    createChart();
+                }
+            });
+            
+            // Botón de reset zoom Highcharts
+            const resetBtn = document.getElementById('highcharts-zoom-reset');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    if (!highchartsChart) return;
+                    try {
+                        if (typeof highchartsChart.zoomOut === 'function') {
+                            highchartsChart.zoomOut();
+                        }
+                    } catch (e) { /* no-op */ }
+                    try {
+                        (highchartsChart.xAxis || []).forEach(function(axis){ axis.setExtremes(null, null); });
+                        (highchartsChart.yAxis || []).forEach(function(axis){ axis.setExtremes(null, null); });
+                    } catch (e) { /* no-op */ }
+                });
+            }
+            
+            // Botón de descarga Highcharts
+            document.getElementById('highcharts-download-btn').addEventListener('click', function() {
+                const menu = document.getElementById('highcharts-download-menu');
+                menu.classList.toggle('hidden');
+            });
+            
+            // Cerrar menú al hacer click fuera
+            document.addEventListener('click', function(event) {
+                const menu = document.getElementById('highcharts-download-menu');
+                const button = document.getElementById('highcharts-download-btn');
+                if (!button.contains(event.target) && !menu.contains(event.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+        });
+        
+        // Toggle compact filters panel
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggle = document.getElementById('toggle-filters');
+            const container = document.getElementById('filters-container');
+            if (toggle && container) {
+                toggle.addEventListener('click', function() {
+                    container.classList.toggle('hidden');
+                    this.textContent = container.classList.contains('hidden') ? 'Mostrar filtros' : 'Ocultar filtros';
+                });
+            }
+        });
+        
+        // Funciones de descarga para Highcharts
+        function downloadHighchartsChart(format) {
+            if (!highchartsChart) {
+                alert('No hay gráfico disponible para descargar');
+                return;
+            }
+            
+            const filename = `grafico-highcharts-${new Date().toISOString().split('T')[0]}`;
+            
+            try {
+                switch(format) {
+                    case 'png':
+                        highchartsChart.exportChart({
+                            type: 'image/png',
+                            filename: filename
+                        });
+                        break;
+                    case 'jpeg':
+                        highchartsChart.exportChart({
+                            type: 'image/jpeg',
+                            filename: filename
+                        });
+                        break;
+                    case 'svg':
+                        highchartsChart.exportChart({
+                            type: 'image/svg+xml',
+                            filename: filename
+                        });
+                        break;
+                }
+                
+                // Cerrar menú
+                document.getElementById('highcharts-download-menu').classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Error al descargar:', error);
+                alert('Error al descargar el gráfico');
+            }
+        }
+        
+        // Event listeners para los selects
+        document.getElementById('dominios').addEventListener('change', function() {
+            const dominioIds = Array.from(this.selectedOptions).map(option => option.value);
+            if (dominioIds.length > 0) {
+                cargarTemas(dominioIds);
+            } else {
+                document.getElementById('temas').innerHTML = '';
+                document.getElementById('subtemas').innerHTML = '';
+                const temasList = document.getElementById('temas-list');
+                const subtemasList = document.getElementById('subtemas-list');
+                if (temasList) temasList.innerHTML = '';
+                if (subtemasList) subtemasList.innerHTML = '';
+                document.getElementById('dominios-desagregacion').innerHTML = '';
+                document.getElementById('indicadores').innerHTML = '';
+                const domDesagList = document.getElementById('dom-desag-list');
+                const indicadoresList = document.getElementById('indicadores-list');
+                if (domDesagList) domDesagList.innerHTML = '';
+                if (indicadoresList) indicadoresList.innerHTML = '';
+            }
+        });
+        
+        document.getElementById('temas').addEventListener('change', function() {
+            const temaIds = Array.from(this.selectedOptions).map(option => option.value);
+            if (temaIds.length > 0) {
+                cargarSubtemas(temaIds);
+            } else {
+                document.getElementById('subtemas').innerHTML = '';
+                const subtemasList = document.getElementById('subtemas-list');
+                if (subtemasList) subtemasList.innerHTML = '';
+                document.getElementById('dominios-desagregacion').innerHTML = '';
+                document.getElementById('indicadores').innerHTML = '';
+                const domDesagList = document.getElementById('dom-desag-list');
+                const indicadoresList = document.getElementById('indicadores-list');
+                if (domDesagList) domDesagList.innerHTML = '';
+                if (indicadoresList) indicadoresList.innerHTML = '';
+            }
+        });
+        
+        document.getElementById('subtemas').addEventListener('change', function() {
+            const subtemaIds = Array.from(this.selectedOptions).map(option => option.value);
+            // Limpiar niveles dependientes
+            document.getElementById('dominios-desagregacion').innerHTML = '';
+            document.getElementById('indicadores').innerHTML = '';
+            const domDesagList = document.getElementById('dom-desag-list');
+            const indicadoresList = document.getElementById('indicadores-list');
+            if (domDesagList) domDesagList.innerHTML = '';
+            if (indicadoresList) indicadoresList.innerHTML = '';
+            if (subtemaIds.length > 0) {
+                cargarDominiosDesagregacion(subtemaIds);
+            }
+        });
+
+        // Nuevo: cargar indicadores cuando se seleccionen dominios de desagregación
+        document.getElementById('dominios-desagregacion').addEventListener('change', function() {
+            const domDesagIds = Array.from(this.selectedOptions).map(option => option.value);
+            const subtemaIds = Array.from(document.getElementById('subtemas').selectedOptions).map(option => option.value);
+            const hasOptions = this && this.options && this.options.length > 0;
+
+            // Si existen dominios de desagregación pero no hay ninguno seleccionado,
+            // no cargar indicadores (evita traer todos los del subtema). Limpiar en su lugar.
+            if (hasOptions && domDesagIds.length === 0) {
+                const selIndicadores = document.getElementById('indicadores');
+                if (selIndicadores) selIndicadores.innerHTML = '';
+                const indicadoresList = document.getElementById('indicadores-list');
+                if (indicadoresList) indicadoresList.innerHTML = '';
+                return;
+            }
+
+            if (subtemaIds.length > 0) {
+                cargarIndicadores(subtemaIds, domDesagIds);
+            } else {
+                const selIndicadores = document.getElementById('indicadores');
+                if (selIndicadores) selIndicadores.innerHTML = '';
+                const indicadoresList = document.getElementById('indicadores-list');
+                if (indicadoresList) indicadoresList.innerHTML = '';
+            }
+        });
+        
+        // Funciones para cargar datos
+        function cargarDominios() {
+            // Los dominios ya están cargados desde el template
+            console.log('Dominios cargados desde el template');
+            initDominiosList();
+            // Normalizar iconos pre-renderizados del listado de dominios
+            try {
+                const iconEls = document.querySelectorAll('#dominios-list i');
+                iconEls.forEach(i => { i.className = normalizeFaIcon(i.className); });
+            } catch (e) {
+                console.warn('No se pudieron normalizar los iconos iniciales de dominios:', e);
+            }
+        }
+        
+        function cargarTemas(dominioIds) {
+            fetch(`{% url "indicadores:get_temas" %}?dominios=${dominioIds.join(',')}`)
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('temas');
+                    select.innerHTML = '';
+                    data.forEach(tema => {
+                        const option = document.createElement('option');
+                        option.value = tema.id;
+                        option.textContent = tema.nombre;
+                        select.appendChild(option);
+                    });
+                    renderCustomList('temas-list', data, 'temas');
+                })
+                .catch(error => console.error('Error al cargar temas:', error));
+        }
+        
+        function cargarSubtemas(temaIds) {
+            fetch(`{% url "indicadores:get_subtemas" %}?temas=${temaIds.join(',')}`)
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('subtemas');
+                    select.innerHTML = '';
+                    data.forEach(subtema => {
+                        const option = document.createElement('option');
+                        option.value = subtema.id;
+                        option.textContent = subtema.nombre;
+                        select.appendChild(option);
+                    });
+                    renderCustomList('subtemas-list', data, 'subtemas');
+                })
+                .catch(error => console.error('Error al cargar subtemas:', error));
+        }
+        
+        // Cargar dominios de desagregación en base a subtemas
+        function cargarDominiosDesagregacion(subtemaIds) {
+            fetch(`{% url "indicadores:get_dominios_desagregacion" %}?subtemas=${subtemaIds.join(',')}`)
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('dominios-desagregacion');
+                    select.innerHTML = '';
+                    if (Array.isArray(data) && data.length > 0) {
+                        const items = data.map(d => {
+                            // Crear opción para el select oculto
+                            const option = document.createElement('option');
+                            option.value = d.id;
+                            option.textContent = d.tipo ? `${d.nombre} (${d.tipo})` : d.nombre;
+                            select.appendChild(option);
+                            // Preparar item para lista personalizada
+                            return {
+                                id: d.id,
+                                nombre: d.tipo ? `${d.nombre} (${d.tipo})` : d.nombre,
+                                icono: normalizeFaIcon(iconForDomDesag(d))
+                            };
+                        });
+                        // Renderizar lista personalizada
+                        renderCustomList('dom-desag-list', items, 'dominios-desagregacion');
+                    } else {
+                        // Fallback: si no hay dominios de desagregación, cargar indicadores directamente
+                        // Limpiar lista personalizada de dom-desag
+                        const domDesagList = document.getElementById('dom-desag-list');
+                        if (domDesagList) domDesagList.innerHTML = '';
+                        cargarIndicadores(subtemaIds);
+                    }
+                })
+                .catch(error => console.error('Error al cargar dominios de desagregación:', error));
+        }
+
+        // Cargar indicadores con filtro opcional de dominios de desagregación
+        function cargarIndicadores(subtemaIds, dominiosDesagIds) {
+            let url = `{% url "indicadores:get_indicadores" %}?subtemas=${subtemaIds.join(',')}`;
+            if (dominiosDesagIds && dominiosDesagIds.length > 0) {
+                url += `&dominios_desagregacion=${dominiosDesagIds.join(',')}`;
+            }
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('indicadores');
+                    select.innerHTML = '';
+                    const items = (data || []).map(indicador => {
+                        const option = document.createElement('option');
+                        option.value = indicador.id;
+                        option.textContent = indicador.nombre;
+                        select.appendChild(option);
+                        return {
+                            id: indicador.id,
+                            nombre: indicador.nombre,
+                            icono: normalizeFaIcon(iconForIndicador(indicador))
+                        };
+                    });
+                    renderCustomList('indicadores-list', items, 'indicadores');
+                })
+                .catch(error => console.error('Error al cargar indicadores:', error));
+        }
+        
+        // Función para agregar indicadores seleccionados
+        document.getElementById('agregar-indicadores').addEventListener('click', function() {
+            console.log('Botón agregar indicadores clickeado');
+            const indicadorIds = Array.from(document.getElementById('indicadores').selectedOptions).map(option => option.value);
+            console.log('Indicadores seleccionados:', indicadorIds);
+            // Calcular sólo los nuevos IDs que aún no se han agregado
+            const nuevosIds = indicadorIds.filter(id => !selectedIndicatorIds.has(id));
+            console.log('Nuevos indicadores a cargar:', nuevosIds);
+            if (nuevosIds.length > 0) {
+                nuevosIds.forEach(id => selectedIndicatorIds.add(id));
+                agregarIndicadoresATabla(nuevosIds);
+            } else if (allIndicatorsData.length > 0) {
+                console.warn('No hay indicadores nuevos para agregar. Refrescando con datos acumulados existentes.');
+                actualizarWebDataRocks(allIndicatorsData);
+            } else {
+                console.warn('No hay indicadores seleccionados para agregar');
+            }
+        });
+        
+        // Función para limpiar selección
+        document.getElementById('limpiar-seleccion').addEventListener('click', function() {
+            // Limpiar arrays de datos
+            allIndicatorsData = [];
+            currentData = [];
+            
+            // Limpiar WebDataRocks
+            if (pivot) {
+                pivot.updateData({ data: [] });
+            }
+            
+            // Limpiar Highcharts
+            if (highchartsChart) {
+                highchartsChart.destroy();
+                highchartsChart = null;
+            }
+            
+            // Limpiar unidades de indicadores
+            indicatorUnits = {};
+            indicatorNameToUnit = {};
+            axisMapping = {};
+            axisIdMapping = {};
+            selectedIndicatorIds = new Set();
+
+            // Limpiar selects ocultos y listas personalizadas
+            const selectsToClear = ['dominios', 'temas', 'subtemas', 'dominios-desagregacion', 'indicadores'];
+            selectsToClear.forEach(id => {
+                const sel = document.getElementById(id);
+                if (sel) {
+                    Array.from(sel.options).forEach(opt => opt.selected = false);
+                    // Vaciar dependientes excepto dominios
+                    if (id !== 'dominios') sel.innerHTML = '';
+                }
+            });
+            // Quitar selección visual en listas (y limpiar las dependientes)
+            ['dominios-list', 'temas-list', 'subtemas-list', 'dom-desag-list', 'indicadores-list'].forEach(cid => {
+                const cont = document.getElementById(cid);
+                if (cont) Array.from(cont.querySelectorAll('.custom-item.selected')).forEach(el => el.classList.remove('selected'));
+                if (cid !== 'dominios-list' && cont) cont.innerHTML = '';
+            });
+            
+            // Disparar cambios para reiniciar flujos
+            const dominiosSel = document.getElementById('dominios');
+            if (dominiosSel) dominiosSel.dispatchEvent(new Event('change'));
+        });
+        
+        // Inicializar WebDataRocks - COMPLETAMENTE LIBRE
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                pivot = new WebDataRocks({
+                    container: "#pivot-table",
+                    toolbar: true,
+                    width: "100%",
+                    height: 400,
+                    localization: "{% static 'indicadores/webdatarocks/loc/es.json' %}",
+                    // Tema dark oficial de WebDataRocks; sin customizeCell ni customizeToolbar
+                    report: {
+                        dataSource: {
+                            data: []
+                        },
+                        slice: {
+                            rows: [
+                                {
+                                    uniqueName: "Año"
+                                }
+                            ],
+                            columns: [
+                                {
+                                    uniqueName: "Indicador"
+                                }
+                            ],
+                            measures: [
+                                {
+                                    uniqueName: "Valor",
+                                    aggregation: "sum"
+                                }
+                            ]
+                        },
+                        options: {
+                            grid: {
+                                showTotals: "off",
+                                showGrandTotals: "off"
+                            }
+                        }
+                    },
+                    reportcomplete: function() {
+                        if (!isPivotReady) {
+                            isPivotReady = true;
+                            console.log('WebDataRocks inicializado correctamente');
+                            
+                            // Forzar la configuración correcta del slice con detección automática
+                            if (currentData && currentData.length > 0) {
+                                const keys = Object.keys(currentData[0] || {});
+                                const desagregacionKeys = keys.filter(key => 
+                                    key.toLowerCase().includes('desagregacion') || 
+                                    key.toLowerCase().includes('geografica') || 
+                                    key.toLowerCase().includes('tematica')
+                                );
+                                
+                                console.log('Configurando filtros iniciales para:', desagregacionKeys);
+                                const reportFilters = desagregacionKeys.map(key => ({ uniqueName: key }));
+                                
+                                // Alimentar el pivot usando la función estándar (con truncado por año)
+                                actualizarWebDataRocks(currentData);
+                            }
+                            
+                            // Crear gráficos iniciales
+                            if (currentData.length > 0) {
+                                createChart();
+                            }
+                        }
+                    },
+                    // Escuchar cambios en filtros y configuración
+                    reportchange: function() {
+                        console.log('Reporte cambiado - Actualizando gráfico');
+                        // Highcharts se actualiza automáticamente con el conector
+                    },
+                    filteropen: function() {
+                        console.log('Filtro abierto en WebDataRocks');
+                    }
+                });
+            }, 500);
+        });
+        
+        // Función para agregar indicadores a la tabla con paginación
+        function agregarIndicadoresATabla(indicadorIds) {
+            console.log('[PAGINACIÓN] Iniciando carga de datos para indicadores:', indicadorIds);
+            
+            // Verificar que haya indicadores seleccionados
+            if (!indicadorIds || indicadorIds.length === 0) {
+                console.warn('[PAGINACIÓN] No hay indicadores seleccionados');
+                return;
+            }
+            
+            const limit = 1000; // Cargar en lotes de 1000
+            let offset = 0;
+            let allData = [];
+            showOverlay('#pivot-table', 'Cargando datos de indicadores...');
+            
+            // Utilidad: fusionar y desduplicar en el acumulado global
+            function mergeIntoGlobalData(items) {
+                const keyOf = (item) => {
+                    const year = item['Año'];
+                    const ind = item['Indicador'];
+                    const geo = item['Desagregaciones Geográficas'] || item['Desagregacion Geografica'] || item['Desagregación Geográfica'] || '';
+                    const tem = item['Desagregaciones Temáticas'] || item['Desagregacion Tematica'] || item['Desagregación Temática'] || '';
+                    return `${year}|${ind}|${geo}|${tem}`;
+                };
+                const map = new Map();
+                allIndicatorsData.forEach(i => map.set(keyOf(i), i));
+                items.forEach(i => map.set(keyOf(i), i));
+                allIndicatorsData = Array.from(map.values());
+            }
+            
+            async function cargarLote() {
+                const url = `{% url "indicadores:api_get_datos_indicadores" %}?indicadores=${indicadorIds.join(',')}&limit=${limit}&offset=${offset}`;
+                console.log('[PAGINACIÓN] Haciendo fetch a:', url);
+                
+                try {
+                    const response = await fetchWithTimeoutRetry(url, {}, { timeoutMs: 15000, retries: 2, backoffMs: 800 });
+                    console.log('[PAGINACIÓN] Respuesta recibida:', response.status, response.statusText);
+                    const responseData = await response.json();
+                        console.log('[PAGINACIÓN] Datos recibidos del servidor:', {
+                            datos: responseData.datos?.length || 0,
+                            total: responseData.total,
+                            limit: responseData.limit,
+                            offset: responseData.offset
+                        });
+                        
+                        // Verificar que los datos sean válidos
+                        if (!responseData.datos || !Array.isArray(responseData.datos)) {
+                            console.error('[PAGINACIÓN] Datos inválidos recibidos:', responseData);
+                            return;
+                        }
+                        
+                        // Agregar los datos recibidos al acumulador
+                        allData = allData.concat(responseData.datos);
+                        const datosDespues = allData.length;
+                        
+                        console.log('[PAGINACIÓN] Datos acumulados:', datosDespues, 'registros');
+                        
+                        // Verificar años únicos en los datos acumulados
+                        const aniosAcumulados = [...new Set(allData.map(d => d['Año']))].sort();
+                        console.log('[PAGINACIÓN] Años acumulados:', aniosAcumulados);
+                        
+                        // Verificar si hay más datos que cargar
+                        console.log('[PAGINACIÓN] Verificando condición de parada:');
+                        console.log('  - allData.length (' + datosDespues + ') >= responseData.total (' + responseData.total + '):', datosDespues >= responseData.total);
+                        console.log('  - responseData.datos.length (' + responseData.datos.length + ') < limit (' + limit + '):', responseData.datos.length < limit);
+                        
+                        if (datosDespues >= responseData.total) {
+                            // Ya se cargaron todos los datos, actualizar WebDataRocks
+                            console.log('[PAGINACIÓN] Carga completa. Total de registros:', datosDespues);
+                            
+                            // Almacenar unidades de medida de los indicadores
+                            if (responseData.indicadores) {
+                                responseData.indicadores.forEach(indicator => {
+                                    indicatorUnits[indicator.id] = indicator.unidad_medida || 'Sin unidad';
+                                    // Mapear nombre -> unidad para asignar series a ejes por nombre
+                                    if (indicator.nombre) {
+                                        indicatorNameToUnit[indicator.nombre] = indicator.unidad_medida || 'Sin unidad';
+                                    }
+                                    console.log(`[PAGINACIÓN] Unidad almacenada para indicador ${indicator.id}: "${indicator.unidad_medida}"`);
+                                });
+                                console.log('[PAGINACIÓN] Estado de indicatorUnits después de almacenar:', indicatorUnits);
+                                console.log('[PAGINACIÓN] Estado de indicatorNameToUnit:', indicatorNameToUnit);
+                                
+                                // Forzar regeneración de ejes si hay múltiples unidades
+                                const uniqueUnits = [...new Set(Object.values(indicatorUnits))];
+                                console.log('[PAGINACIÓN] Unidades únicas detectadas:', uniqueUnits);
+                                if (uniqueUnits.length > 1) {
+                                    console.log('[PAGINACIÓN] Múltiples unidades detectadas - se deberían crear múltiples ejes');
+                                }
+                            } else {
+                                console.warn('[PAGINACIÓN] No se recibieron metadatos de indicadores en la respuesta');
+                            }
+                            
+                            // Fusionar en el acumulado global y actualizar
+                            const prev = allIndicatorsData.length;
+                            mergeIntoGlobalData(allData);
+                            const post = allIndicatorsData.length;
+                            console.log(`[PAGINACIÓN] Datos acumulados globalmente: antes=${prev}, después=${post}`);
+                            
+                            currentData = allIndicatorsData;
+                            console.log('[PAGINACIÓN] Datos guardados en currentData (global):', currentData.length, 'registros');
+                            
+                            // Actualizar WebDataRocks con datos combinados
+                            actualizarWebDataRocks(allIndicatorsData);
+                        } else if (responseData.datos.length < limit) {
+                            // No hay más datos que cargar, actualizar WebDataRocks
+                            console.log('[PAGINACIÓN] Carga completa (último lote parcial). Total de registros:', datosDespues);
+                            
+                            // Almacenar unidades de medida de los indicadores
+                            if (responseData.indicadores) {
+                                responseData.indicadores.forEach(indicator => {
+                                    indicatorUnits[indicator.id] = indicator.unidad_medida || 'Sin unidad';
+                                    // Mapear nombre -> unidad para asignar series por nombre
+                                    if (indicator.nombre) {
+                                        indicatorNameToUnit[indicator.nombre] = indicator.unidad_medida || 'Sin unidad';
+                                    }
+                                    console.log(`[PAGINACIÓN] Unidad almacenada para indicador ${indicator.id}: "${indicator.unidad_medida}"`);
+                                });
+                                console.log('[PAGINACIÓN] Estado de indicatorUnits después de almacenar:', indicatorUnits);
+                                console.log('[PAGINACIÓN] Estado de indicatorNameToUnit:', indicatorNameToUnit);
+                                
+                                // Forzar regeneración de ejes si hay múltiples unidades
+                                const uniqueUnits = [...new Set(Object.values(indicatorUnits))];
+                                console.log('[PAGINACIÓN] Unidades únicas detectadas:', uniqueUnits);
+                                if (uniqueUnits.length > 1) {
+                                    console.log('[PAGINACIÓN] Múltiples unidades detectadas - se deberían crear múltiples ejes');
+                                }
+                            } else {
+                                console.warn('[PAGINACIÓN] No se recibieron metadatos de indicadores en la respuesta');
+                            }
+                            
+                            // Fusionar en el acumulado global y actualizar
+                            const prev2 = allIndicatorsData.length;
+                            mergeIntoGlobalData(allData);
+                            const post2 = allIndicatorsData.length;
+                            console.log(`[PAGINACIÓN] Datos acumulados globalmente: antes=${prev2}, después=${post2}`);
+                            
+                            currentData = allIndicatorsData;
+                            console.log('[PAGINACIÓN] Datos guardados en currentData (global):', currentData.length, 'registros');
+                            
+                            // Actualizar WebDataRocks con datos combinados
+                            actualizarWebDataRocks(allIndicatorsData);
+                        } else {
+                            // Cargar el siguiente lote
+                            console.log('[PAGINACIÓN] Cargando siguiente lote...');
+                            offset += limit;
+                            await cargarLote();
+                        }
+                } catch (error) {
+                    console.error('[PAGINACIÓN] Error al cargar datos de indicadores:', error);
+                    showToast('Error al cargar datos. Verifique su conexión o intente nuevamente.', 'error', 6000);
+                }
+            }
+            
+            // Iniciar la carga
+            cargarLote().finally(() => hideOverlay());
+        }
+        
+        // Utilidades: estimación de tamaño y truncado por año (más reciente -> más antiguo)
+        const MAX_BYTES_WDR = 950 * 1024; // ~950KB para mantener margen bajo el límite de ~1MB
+        const __encoder = (typeof TextEncoder !== 'undefined') ? new TextEncoder() : null;
+        function estimateBytes(obj) {
+            try {
+                const json = JSON.stringify(obj);
+                if (__encoder) return __encoder.encode(json).length;
+                return json.length; // aproximación si no hay TextEncoder
+            } catch (e) {
+                return 0;
+            }
+        }
+        
+        function limitarPorAnio(datos, maxBytes = MAX_BYTES_WDR) {
+            if (!Array.isArray(datos) || datos.length === 0) return [];
+            // Agrupar por año
+            const porAnio = new Map();
+            for (const row of datos) {
+                const yRaw = row['Año'];
+                const y = (typeof yRaw === 'string') ? parseInt(yRaw, 10) : yRaw;
+                const key = Number.isFinite(y) ? y : yRaw; // fallback si no es número
+                if (!porAnio.has(key)) porAnio.set(key, []);
+                porAnio.get(key).push(row);
+            }
+            // Orden años desc (más recientes primero)
+            const years = Array.from(porAnio.keys()).sort((a, b) => {
+                const na = parseInt(a, 10), nb = parseInt(b, 10);
+                if (Number.isFinite(na) && Number.isFinite(nb)) return nb - na;
+                // fallback lexicográfico inverso
+                return ('' + b).localeCompare('' + a);
+            });
+            
+            const acumulado = [];
+            for (const y of years) {
+                const candidato = acumulado.concat(porAnio.get(y));
+                const size = estimateBytes({ data: candidato }); // aproximar al formato dataSource
+                if (size <= maxBytes) {
+                    acumulado.push(...porAnio.get(y));
+                } else {
+                    // Si aún no hay años y el primero excede, incluimos ese año de todas formas para no dejar vacío
+                    if (acumulado.length === 0) {
+                        console.warn('[TRUNCADO AÑO] El año más reciente excede el umbral; se incluirá completo igualmente:', y, '(bytes ~', size, ')');
+                        acumulado.push(...porAnio.get(y));
+                    }
+                    break;
+                }
+            }
+            const incluidos = new Set(acumulado.map(r => r['Año']));
+            const rangos = Array.from(incluidos).sort();
+            console.log(`[TRUNCADO AÑO] Años incluidos (${rangos.length}):`, rangos);
+            console.log('[TRUNCADO AÑO] Registros incluidos:', acumulado.length, 'Tamaño aprox bytes:', estimateBytes({ data: acumulado }));
+            return acumulado;
+        }
+        
+        // ===== THEME TOGGLE FUNCTIONALITY =====
+        
+        // Initialize theme on page load
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('visor-theme') || 'dark';
+            setTheme(savedTheme);
+        }
+        
+        // Set theme and update UI
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('visor-theme', theme);
+            
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+            const headerLogo = document.getElementById('header-logo');
+            const heroLogo = document.querySelector('.hero-logo');
+            const webdatarocksCSS = document.getElementById('webdatarocks-theme-css');
+            
+            if (theme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+                themeText.textContent = 'Tema Claro';
+                // Use dark theme logos
+                if (headerLogo) headerLogo.src = "{% static 'indicadores/images/icono oscuros.png' %}";
+                if (heroLogo) heroLogo.src = "{% static 'indicadores/images/logo_sin_fondo.png' %}";
+                // Use dark theme alcaldía logo
+                const alcaldiaLogo = document.getElementById('alcaldia-logo');
+                if (alcaldiaLogo) alcaldiaLogo.src = "{% static 'indicadores/images/alcaldia-logo.png' %}";
+                
+                // Switch WebDataRocks CSS to dark theme
+                if (webdatarocksCSS) {
+                    webdatarocksCSS.href = "{% static 'indicadores/webdatarocks/theme/dark/webdatarocks.min.css' %}";
+                }
+            } else {
+                themeIcon.className = 'fas fa-moon';
+                themeText.textContent = 'Tema Oscuro';
+                // Use light theme logos
+                if (headerLogo) headerLogo.src = "{% static 'indicadores/images/unnamed.png' %}";
+                if (heroLogo) heroLogo.src = "{% static 'indicadores/images/logosinfondoclaros.png' %}";
+                // Use light theme alcaldía logo
+                const alcaldiaLogo = document.getElementById('alcaldia-logo');
+                if (alcaldiaLogo) alcaldiaLogo.src = "{% static 'indicadores/images/alcaldia color.png' %}";
+                
+                // Switch WebDataRocks CSS to lightblue theme from CDN
+                if (webdatarocksCSS) {
+                    webdatarocksCSS.href = "https://cdn.webdatarocks.com/latest/theme/lightblue/webdatarocks.min.css";
+                }
+            }
+            
+            // Update WebDataRocks theme (only if pivot is ready)
+            updateWebDataRocksTheme(theme);
+            
+            // Update Highcharts theme
+            updateHighchartsTheme(theme);
+            
+            console.log('Theme switched to:', theme);
+        }
+        
+        // Update WebDataRocks theme
+        function updateWebDataRocksTheme(theme) {
+            if (!pivot || !isPivotReady) {
+                console.log('WebDataRocks not ready yet, theme will be applied when ready');
+                return;
+            }
+            
+            try {
+                // Use WebDataRocks built-in theme switching
+                if (theme === 'light') {
+                    console.log('Applying lightblue theme to WebDataRocks');
+                    pivot.setOptions({
+                        grid: {
+                            theme: "lightblue"
+                        }
+                    });
+                } else {
+                    console.log('Applying dark theme to WebDataRocks');
+                    pivot.setOptions({
+                        grid: {
+                            theme: "dark"
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating WebDataRocks theme:', error);
+            }
+        }
+        
+        // Update Highcharts theme
+        function updateHighchartsTheme(theme) {
+            if (!window.Highcharts) return;
+            
+            if (theme === 'light') {
+                Highcharts.setOptions({
+                    chart: {
+                        backgroundColor: 'transparent',
+                        style: { fontFamily: 'Inter, sans-serif' }
+                    },
+                    colors: ['#4299e1', '#22c55e', '#f59e0b', '#a78bfa', '#e879f9', '#f43f5e', '#14b8a6', '#f97316'],
+                    xAxis: {
+                        gridLineColor: 'rgba(203,213,224,0.5)',
+                        labels: { style: { color: '#1a202c' } }, // gray-900 - más oscuro
+                        title: { style: { color: '#2d3748' } } // gray-800 - más oscuro
+                    },
+                    yAxis: {
+                        gridLineColor: 'rgba(203,213,224,0.5)',
+                        labels: { style: { color: '#1a202c' } }, // gray-900 - más oscuro
+                        title: { style: { color: '#2d3748' } } // gray-800 - más oscuro
+                    },
+                    legend: { itemStyle: { color: '#1a202c' } }, // gray-900 - más oscuro
+                    title: { style: { color: '#1a202c' } }, // gray-900 - más oscuro
+                    tooltip: {
+                        backgroundColor: '#ffffff',
+                        borderColor: 'rgba(203,213,224,0.8)',
+                        style: { color: '#1a202c' } // gray-900 - más oscuro
+                    },
+                    credits: { style: { color: '#2d3748' } } // gray-800 - más oscuro
+                });
+            } else {
+                Highcharts.setOptions({
+                    chart: {
+                        backgroundColor: 'transparent',
+                        style: { fontFamily: 'Inter, sans-serif' }
+                    },
+                    colors: ['#06b6d4', '#22c55e', '#f59e0b', '#a78bfa', '#e879f9', '#f43f5e', '#14b8a6', '#f97316'], // cyan-500 instead of sky-400
+                    xAxis: {
+                        gridLineColor: 'rgba(148,163,184,0.12)',
+                        labels: { style: { color: '#f1f5f9' } }, // slate-100 - más claro
+                        title: { style: { color: '#cbd5e1' } } // slate-300 - más claro
+                    },
+                    yAxis: {
+                        gridLineColor: 'rgba(148,163,184,0.12)',
+                        labels: { style: { color: '#f1f5f9' } }, // slate-100 - más claro
+                        title: { style: { color: '#cbd5e1' } } // slate-300 - más claro
+                    },
+                    legend: { itemStyle: { color: '#f1f5f9' } }, // slate-100 - más claro
+                    title: { style: { color: '#f1f5f9' } }, // slate-100 - más claro
+                    tooltip: {
+                        backgroundColor: '#0f172a',
+                        borderColor: 'rgba(148,163,184,0.35)',
+                        style: { color: '#f1f5f9' } // slate-100 - más claro
+                    },
+                    credits: { style: { color: '#cbd5e1' } } // slate-300 - más claro
+                });
+            }
+            
+            // Redraw existing chart if it exists
+            if (highchartsChart) {
+                // Force update of chart options and redraw
+                highchartsChart.update({
+                    chart: {
+                        backgroundColor: 'transparent'
+                    }
+                }, true, true);
+                
+                // Also recreate the chart to ensure theme is fully applied
+                setTimeout(() => {
+                    if (isPivotReady && currentData.length > 0) {
+                        createChart();
+                    }
+                }, 100);
+            }
+        }
+        
+        // Theme toggle event listener
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize theme first
+            initializeTheme();
+            
+            // Add theme toggle listener
+            const themeToggle = document.getElementById('theme-toggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    console.log('Switching from', currentTheme, 'to', newTheme);
+                    setTheme(newTheme);
+                });
+            }
+        });
+        
+        // Also initialize when WebDataRocks is ready
+        function initWebDataRocks() {
+            pivot = new WebDataRocks({
+                container: "#pivot-table",
+                toolbar: true,
+                height: 600,
+                width: "100%",
+                localization: "https://cdn.webdatarocks.com/loc/es.json",
+                report: {
+                    dataSource: {
+                        data: []
+                    }
+                },
+                beforetoolbarcreated: function(toolbar) {
+                    // Personalizar toolbar si es necesario
+                },
+                reportcomplete: function() {
+                    isPivotReady = true;
+                    console.log('WebDataRocks inicializado correctamente');
+                    // Apply current theme to WebDataRocks
+                    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+                    updateWebDataRocksTheme(currentTheme);
+                }
+            });
+        }
+        
+        // Función para actualizar WebDataRocks
+        function actualizarWebDataRocks(datos) {
+            if (!pivot) {
+                console.error('WebDataRocks no está inicializado');
+                return;
+            }
+            
+            // Aplicar truncado por año manteniendo años recientes
+            const datosTruncados = limitarPorAnio(datos, MAX_BYTES_WDR);
+            console.log('Actualizando WebDataRocks con', datosTruncados.length, 'registros (truncado por año si fue necesario)');
+            console.log('Indicadores en la tabla:', [...new Set(datosTruncados.map(d => d['Indicador']))]);
+            
+            // Detectar automáticamente columnas de desagregaciones
+            const keys = Object.keys(datos[0] || {});
+            const desagregacionKeys = keys.filter(key => 
+                key.toLowerCase().includes('desagregacion') || 
+                key.toLowerCase().includes('geografica') || 
+                key.toLowerCase().includes('tematica')
+            );
+            
+            console.log('Configurando filtros para columnas:', desagregacionKeys);
+            
+            // Crear reportFilters dinámicamente
+            const reportFilters = desagregacionKeys.map(key => ({ uniqueName: key }));
+            
+            // Actualizar WebDataRocks con nuevos datos y forzar configuración
+            pivot.setReport({
+                dataSource: {
+                    data: datosTruncados
+                },
+                slice: {
+                    rows: [
+                        {
+                            uniqueName: "Año"
+                        }
+                    ],
+                    columns: [
+                        {
+                            uniqueName: "Indicador"
+                        }
+                    ],
+                    measures: [
+                        {
+                            uniqueName: "Valor",
+                            aggregation: "sum"
+                        }
+                    ],
+                    reportFilters: reportFilters
+                },
+                options: {
+                    grid: {
+                        showTotals: "off",
+                        showGrandTotals: "off"
+                    }
+                }
+            });
+            
+            console.log('WebDataRocks actualizado con', datosTruncados.length, 'registros');
+            console.log('Indicadores en la tabla:', [...new Set(datosTruncados.map(d => d['Indicador']))]);
+            
+            // Regenerar el gráfico de Highcharts después de actualizar WebDataRocks
+            if (isPivotReady && datosTruncados.length > 0) {
+                console.log('Regenerando gráfico de Highcharts...');
+                setTimeout(() => {
+                    createChart();
+                }, 300); // Pequeño delay para asegurar que WebDataRocks termine de procesar
+            }
+        }
+
+        // (Eliminado) Utilidades específicas de PivotTable.js
+
+        // (Eliminado) Renderizador de PivotTable.js
+        
+        // (Eliminado) Listeners legacy para IDs antiguos (zoom-reset, download-btn, download-menu)
+    </script>
+    </main>
+
+    {% load aliados_tags %}
+    {% get_aliados as aliados %}
+    {% if aliados %}
+    <!-- Sección de Aliados -->
+    <div class="sponsors-section" style="background: rgba(var(--color-primary-rgb), 0.05); padding: 30px 0; margin-top: 40px;">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <h3 class="mb-4" style="color: var(--color-text-primary); font-size: 1.2rem; font-weight: 600;">Aliados</h3>
+                    <div class="sponsors-logos" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2rem; max-width: 100%; margin: 0 auto;">
+                        {% for aliado in aliados %}
+                            <a href="{% url 'indicadores:aliado_detalle' aliado.slug %}" 
+                               class="sponsor-logo-link" 
+                               title="{{ aliado.nombre }}"
+                               style="display: block; transition: all 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                                {% if aliado.logo_url %}
+                                    <img src="{{ aliado.logo_url }}" 
+                                         alt="{{ aliado.nombre }}" 
+                                         class="sponsor-logo"
+                                         style="max-height: 70px; max-width: 140px; width: auto; height: auto; object-fit: contain; display: block;">
+                                {% endif %}
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <!-- Footer -->
+    <footer class="py-12 relative overflow-hidden" style="background: var(--lab-footer-bg); color: white;">
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--lab-text)">SIIED</h3>
+                    <p class="opacity-80" style="color: var(--lab-muted)">Sistema Integrado de Información Estadística Distrital</p>
+                    <p class="opacity-80" style="color: var(--lab-muted)">Subdirección de Desarrollo Integral</p>
+                    <p class="opacity-80" style="color: var(--lab-muted)">Departamento Administrativo de Planeación Municipal</p>
+                    <p class="opacity-80" style="color: var(--lab-muted)">Alcaldía de Santiago de Cali</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--lab-text)">Contacto</h3>
+                    <p class="opacity-80" style="color: var(--lab-muted)"><i class="fas fa-map-marker-alt mr-2"></i>Centro Administrativo Municipal (CAM) — Piso 10</p>
+                    <p class="opacity-80" style="color: var(--lab-muted)"><i class="fas fa-phone mr-2"></i>(602) 886 2700</p>
+                    <p class="opacity-80" style="color: var(--lab-muted)"><i class="fas fa-envelope mr-2"></i>sistemaestadistico@cali.gov.co</p>
+                    <p class="opacity-80" style="color: var(--lab-muted)"><i class="fas fa-envelope mr-2"></i>planestadistico@cali.gov.co</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--lab-text)">Enlaces</h3>
+                    <ul class="space-y-2">
+                        <li><a href="{% url 'indicadores:home' %}" class="opacity-80 hover:opacity-100 transition-opacity" style="color: var(--lab-muted)">Inicio</a></li>
+                        <li><a href="#" class="opacity-80 hover:opacity-100 transition-opacity" style="color: var(--lab-muted)">Política de Privacidad</a></li>
+                        <li><a href="#" class="opacity-80 hover:opacity-100 transition-opacity" style="color: var(--lab-muted)">Términos de Uso</a></li>
+                        <li><a href="{% url 'indicadores:dominios' %}" class="opacity-80 hover:opacity-100 transition-opacity" style="color: var(--lab-muted)">Dominios</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-sm opacity-80" style="color: var(--lab-muted); border-color: var(--lab-border)">
+                <p>&copy; {% now "Y" %} Alcaldía de Santiago de Cali. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </footer>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Lógica de búsqueda semántica en el Header
+        const headerSearchInput = document.getElementById('header-semantic-search-input');
+        const headerSearchBtn = document.getElementById('header-semantic-search-btn');
+        const headerResultsContainer = document.getElementById('header-semantic-search-results');
+        const headerResultsList = document.getElementById('header-results-container');
+        const headerSearchStatus = document.getElementById('header-search-status');
+        const headerSearchClose = document.getElementById('header-search-close');
+
+        if (headerSearchInput && headerSearchBtn) {
+            function performHeaderSearch() {
+                const query = headerSearchInput.value.trim();
+                if (!query) {
+                    headerResultsContainer.classList.add('hidden');
+                    return;
+                }
+
+                // UI Feedback
+                headerSearchBtn.disabled = true;
+                headerSearchBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
+                headerResultsContainer.classList.remove('hidden');
+                headerResultsList.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-magic fa-spin text-xl mb-2 text-sky-500"></i><p class="text-xs">Consultando a la Inteligencia Artificial...</p></div>';
+                headerSearchStatus.textContent = '';
+
+                fetch(`{% url 'indicadores:api_buscar_indicadores' %}?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        headerResultsList.innerHTML = '';
+                        
+                        if (!data.success || !data.resultados || data.resultados.length === 0) {
+                            headerResultsList.innerHTML = `
+                                <div class="text-center py-4 text-gray-500">
+                                    <i class="fas fa-search-minus text-2xl mb-2 text-gray-300"></i>
+                                    <p class="text-xs">No encontramos indicadores para esta búsqueda.</p>
+                                </div>`;
+                            headerSearchStatus.textContent = '0 resultados';
+                            return;
+                        }
+
+                        headerSearchStatus.textContent = `${data.total} resultados`;
+                        
+                        data.resultados.forEach(ind => {
+                            const urlEstandar = `{% url 'indicadores:subtema_detalle' 'DOM_SLUG' 'TEMA_SLUG' 'SUB_SLUG' %}?indicador=${ind.id}`
+                                .replace('DOM_SLUG', ind.dominio_slug)
+                                .replace('TEMA_SLUG', ind.tema_slug)
+                                .replace('SUB_SLUG', ind.subtema_slug);
+                                
+                            const url3D = `{% url 'indicadores:subtema_detalle_3d' 'DOM_SLUG' 'TEMA_SLUG' 'SUB_SLUG' %}?indicador=${ind.id}`
+                                .replace('DOM_SLUG', ind.dominio_slug)
+                                .replace('TEMA_SLUG', ind.tema_slug)
+                                .replace('SUB_SLUG', ind.subtema_slug);
+
+                            // Determinar el color de relevancia
+                            let relevanceColor = 'bg-gray-100 text-gray-600';
+                            let relevanceText = 'Relacionado';
+                            
+                            if (ind.similitud > 0.75) {
+                                relevanceColor = 'bg-green-100 text-green-700';
+                                relevanceText = 'Muy Relevante';
+                            } else if (ind.similitud > 0.6) {
+                                relevanceColor = 'bg-blue-100 text-blue-700';
+                                relevanceText = 'Relevante';
+                            }
+
+                            const resultHtml = `
+                                <div class="p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors group">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h5 class="text-sm font-bold text-gray-800 group-hover:text-sky-700 transition-colors">${ind.nombre}</h5>
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ml-2 ${relevanceColor}">${relevanceText}</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mb-2 flex items-center flex-wrap gap-1">
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100"><i class="fas fa-layer-group mr-1"></i>${ind.dominio_nombre}</span>
+                                        <i class="fas fa-chevron-right text-gray-300 text-[8px]"></i>
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100">${ind.tema_nombre}</span>
+                                        <i class="fas fa-chevron-right text-gray-300 text-[8px]"></i>
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100">${ind.subtema_nombre}</span>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <a href="${urlEstandar}" class="inline-flex items-center px-2 py-1 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white rounded text-xs font-medium transition-colors">
+                                            <i class="fas fa-chart-bar mr-1"></i> Ver Tablero
+                                        </a>
+                                        <a href="${url3D}" class="inline-flex items-center px-2 py-1 bg-teal-50 text-teal-700 hover:bg-teal-600 hover:text-white rounded text-xs font-medium transition-colors">
+                                            <i class="fas fa-cube mr-1"></i> Ver en 3D
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                            headerResultsList.insertAdjacentHTML('beforeend', resultHtml);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error en búsqueda:', error);
+                        headerResultsList.innerHTML = `<div class="text-center py-3 text-red-500 text-xs"><i class="fas fa-exclamation-circle mr-1"></i>Ocurrió un error al buscar.</div>`;
+                    })
+                    .finally(() => {
+                        headerSearchBtn.disabled = false;
+                        headerSearchBtn.innerHTML = '<i class="fas fa-search text-sm"></i>';
+                    });
+            }
+
+            headerSearchBtn.addEventListener('click', performHeaderSearch);
+            headerSearchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performHeaderSearch();
+                }
+            });
+
+            // Cerrar resultados
+            if (headerSearchClose) {
+                headerSearchClose.addEventListener('click', () => {
+                    headerResultsContainer.classList.add('hidden');
+                });
+            }
+
+            // Cerrar al hacer clic fuera
+            document.addEventListener('click', function(event) {
+                if (!headerSearchInput.contains(event.target) && !headerResultsContainer.contains(event.target) && !headerSearchBtn.contains(event.target)) {
+                    headerResultsContainer.classList.add('hidden');
+                }
+            });
+        }
+    });
+    </script>
+    <script>
+        function toggleManual() {
+            const manual = document.getElementById('user-manual');
+            const buttonText = document.getElementById('manual-button-text');
+            const chevron = document.getElementById('manual-chevron');
+            manual.classList.toggle('hidden');
+            buttonText.textContent = manual.classList.contains('hidden') ? 
+                'Manual de Uso del Visor' : 'Ocultar Manual';
+            chevron.classList.toggle('rotate-180');
+        }
+    </script>
+    </div>
+</body>
+</html>

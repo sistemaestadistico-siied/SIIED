@@ -1,0 +1,622 @@
+{% extends 'delegado/base_delegado.html' %}
+{% block title %}Manual de Uso — Portal de Organismos{% endblock %}
+
+{% block delegado_content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-serif font-bold text-slate-900">Manual de uso del Portal de Organismos</h1>
+    <p class="text-slate-500 mt-1">Guía paso a paso para entregar datos al SIIED de forma correcta.</p>
+  </div>
+
+  <!-- Índice rápido -->
+  <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 mb-8">
+    <p class="text-sm font-semibold text-emerald-800 mb-2 flex items-center">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>En esta guía encontrarás:
+    </p>
+    <ul class="text-sm text-emerald-700 space-y-1 ml-6">
+      <li><a href="#que-necesito" class="hover:text-emerald-900 hover:underline">1. ¿Qué necesito para empezar?</a></li>
+      <li><a href="#tipos-archivos" class="hover:text-emerald-900 hover:underline">2. ¿Qué archivos debo entregar?</a></li>
+      <li><a href="#deconstruir-tabla" class="hover:text-emerald-900 hover:underline">3. ¿Mi tabla viene en formato dinámico? (Deconstruir)</a></li>
+      <li><a href="#cargar-serie" class="hover:text-emerald-900 hover:underline">4. Cómo cargar una serie de datos</a></li>
+      <li><a href="#cargar-conjunto-datos" class="hover:text-emerald-900 hover:underline">5. Cómo cargar conjuntos de datos</a></li>
+      <li><a href="#actualizar-existente" class="hover:text-emerald-900 hover:underline">6. Actualizar datos existentes</a></li>
+      <li><a href="#ficed" class="hover:text-emerald-900 hover:underline">7. Formulario FICED (Capacidad Estadística)</a></li>
+      <li><a href="#carga-parcial" class="hover:text-emerald-900 hover:underline">8. ¿Qué hago si no tengo todos los archivos todavía?</a></li>
+      <li><a href="#historial" class="hover:text-emerald-900 hover:underline">9. Historial de cargas</a></li>
+      <li><a href="#estados" class="hover:text-emerald-900 hover:underline">10. ¿Qué significan los estados de mis cargas?</a></li>
+      <li><a href="#correcciones" class="hover:text-emerald-900 hover:underline">11. Me pidieron correcciones, ¿qué hago?</a></li>
+      <li><a href="#errores" class="hover:text-emerald-900 hover:underline">12. Errores comunes y cómo evitarlos</a></li>
+    </ul>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <section id="que-necesito" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">1</span>
+      ¿Qué necesito para empezar?
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>Para usar este portal necesitas:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Un usuario y contraseña asignados por el equipo SIIED.</li>
+        <li>Los archivos de datos en formato <strong>Excel (.xlsx)</strong> — no se aceptan otros formatos. También puedes ingresar algunos datos directamente por la web (sin archivo).</li>
+        <li>Que los archivos sigan las <strong>plantillas oficiales</strong> del SIIED (descárgalas <a href="{% url 'indicadores:delegado_plantillas' %}" class="text-emerald-600 hover:text-emerald-700 hover:underline">aquí</a>).</li>
+      </ul>
+      <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3 mt-2">
+        <p class="text-amber-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Importante:
+        </p>
+        <p class="text-amber-700">Si tu archivo no sigue la plantilla, el equipo validador puede rechazarlo. Usa siempre la plantilla oficial para evitar demoras.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2 -->
+  <section id="tipos-archivos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">2</span>
+      ¿Qué archivos debo entregar?
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden text-sm">
+      <table class="w-full">
+        <thead class="bg-emerald-50 border-b border-slate-200">
+          <tr>
+            <th class="text-left px-4 py-3 font-semibold text-emerald-700">Archivo</th>
+            <th class="text-left px-4 py-3 font-semibold text-emerald-700">¿Qué contiene?</th>
+            <th class="text-left px-4 py-3 font-semibold text-emerald-700">¿Es obligatorio?</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-slate-700">
+          <tr>
+            <td class="px-4 py-3 font-medium">Datos de serie (Excel)</td>
+            <td class="px-4 py-3">Valores del indicador por año y desagregación. Columnas: <code class="bg-slate-100 px-1 rounded text-xs">Codigo_Indicador</code>, <code class="bg-slate-100 px-1 rounded text-xs">Nombre_Indicador</code>, <code class="bg-slate-100 px-1 rounded text-xs">Año</code>, <code class="bg-slate-100 px-1 rounded text-xs">Desagregacion_Geografica</code>, <code class="bg-slate-100 px-1 rounded text-xs">Desagregacion_Tematica_1</code>, <code class="bg-slate-100 px-1 rounded text-xs">Desagregacion_Tematica_2</code>, <code class="bg-slate-100 px-1 rounded text-xs">Valor</code></td>
+            <td class="px-4 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">Sí (o inline)</span></td>
+          </tr>
+          <tr class="bg-slate-50">
+            <td class="px-4 py-3 font-medium">Metadata del indicador (Excel)</td>
+            <td class="px-4 py-3">Ficha técnica del indicador: código, nombre, fórmula, unidad de medida, fuente, periodicidad, línea base, etc. <strong>24 campos</strong> — una sola fila.</td>
+            <td class="px-4 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">Sí (o web)</span></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-medium">Datos inline</td>
+            <td class="px-4 py-3">Ingreso directo de valores por año y desagregación desde el navegador, <strong>sin necesidad de Excel</strong>. Ideal para pocas filas o correcciones rápidas.</td>
+            <td class="px-4 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">Alternativa</span></td>
+          </tr>
+          <tr class="bg-slate-50">
+            <td class="px-4 py-3 font-medium">Metadata web</td>
+            <td class="px-4 py-3">Formulario web para completar la ficha técnica del indicador campo por campo. <strong>Reemplaza al archivo Excel de metadata</strong> y valida automáticamente.</td>
+            <td class="px-4 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs">Alternativa</span></td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3 font-medium">Conjuntos de datos (Excel)</td>
+            <td class="px-4 py-3">Tabla de datos fuente del indicador. Acepta dos formatos: <strong>Largo</strong> (desagregaciones en columnas) o <strong>Ancho</strong> (desagregaciones en encabezados). Ver plantilla para ejemplos de cada formato.</td>
+            <td class="px-4 py-3"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs">Si aplica</span></td>
+          </tr>
+          <tr class="bg-slate-50">
+            <td class="px-4 py-3 font-medium">Variables de conjuntos de datos (Excel o web)</td>
+            <td class="px-4 py-3">Describe cada variable/columna del archivo de conjuntos de datos: código, nombre, definición conceptual, tipo de dato, unidad de medida, fuente. <strong>17 campos</strong> — una fila por variable. También puedes usar el formulario web de Variables.</td>
+            <td class="px-4 py-3"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs">Si hay conjuntos de datos</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="px-4 py-3 bg-emerald-50 border-t border-emerald-100 text-emerald-700 text-xs">
+        Puedes entregar los archivos <strong>por partes</strong>: primero los datos y después la metadata, o todos al mismo tiempo. El sistema guarda tu progreso como borrador.
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3: DECONSTRUIR TABLA -->
+  <section id="deconstruir-tabla" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-indigo-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">3</span>
+      ¿Mi tabla viene en formato dinámico? (Deconstruir)
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-5">
+      <p>A veces los datos de un indicador llegan en una <strong>tabla dinámica</strong> (pivot table): varios bloques de desagregación separados por <strong>filas vacías</strong>, con los años como columnas. El SIIED no entiende ese formato directamente, pero tenemos una herramienta que lo convierte automáticamente al formato plano requerido.</p>
+
+      <div class="bg-indigo-50 border border-indigo-200 rounded-3xl p-3 mb-3">
+        <p class="font-semibold text-indigo-800 mb-1 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>¿Cómo se ve una tabla que NECESITA deconstrucción?
+        </p>
+        <p class="text-indigo-700 mb-2">Tiene <strong>un solo encabezado</strong> en la parte superior (ej: AÑO | 2020 | 2021 | 2022) y debajo varios bloques de datos separados por filas vacías:</p>
+        <ul class="text-indigo-700 space-y-1 ml-6 list-disc list-inside text-xs">
+          <li>Bloque 1: Bogotá, Medellín, Cali… (desagregación geográfica)</li>
+          <li><em>(fila vacía)</em></li>
+          <li>Bloque 2: Hombres, Mujeres… (desagregación por sexo)</li>
+          <li><em>(fila vacía)</em></li>
+          <li>Bloque 3: 0-14 años, 15-64 años… (desagregación por edad)</li>
+        </ul>
+      </div>
+
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <p class="font-semibold text-slate-800 mb-2 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+          </svg>
+          Cómo usar la herramienta "Deconstruir"
+        </p>
+        <ol class="list-decimal list-inside space-y-1 text-slate-700 ml-2">
+          <li>Desde el menú, haz clic en <strong>"Deconstruir"</strong> o usa el botón que aparece en la pantalla de <strong>"Cargar Serie"</strong>.</li>
+          <li>Selecciona el modo <strong>Individual</strong> (una sola hoja, un indicador) o <strong>Masivo</strong> (varias hojas, varios indicadores).</li>
+          <li>Sube tu archivo Excel. El sistema detectará automáticamente los grupos separados por filas vacías.</li>
+          <li>Para cada grupo detectado, escribe el nombre que tendrá su columna en el archivo final (ej: <code class="bg-slate-100 px-1 rounded text-xs">Desagregacion_Geografica</code>, <code class="bg-slate-100 px-1 rounded text-xs">Sexo</code>, <code class="bg-slate-100 px-1 rounded text-xs">Grupo_Etario</code>).</li>
+          <li>Descarga el archivo ya formateado. En modo individual, ya incluye <code class="bg-slate-100 px-1 rounded text-xs">Codigo_Indicador</code> y <code class="bg-slate-100 px-1 rounded text-xs">Nombre_Indicador</code> automáticamente.</li>
+          <li>Usa ese archivo para cargar la serie normalmente en <strong>"Cargar Serie"</strong>.</li>
+        </ol>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3">
+        <p class="text-amber-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-amber-700">Si tu tabla <strong>ya viene plana</strong> (una fila por dato, con columnas como Año, Desagregacion_Geografica, Valor), <strong>no necesitas esta herramienta</strong>. Sube el archivo directamente a "Cargar Serie".</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 4 -->
+  <section id="cargar-serie" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">4</span>
+      Cómo cargar una serie de datos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-5">
+      <p>Existen <strong>tres formas</strong> de entregar los datos y la metadata de una serie. Elige la que mejor se adapte a tu situación:</p>
+
+      <!-- Opción A -->
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <p class="font-semibold text-slate-800 mb-2 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+          Opción A: Cargar serie por Excel
+        </p>
+        <ol class="list-decimal list-inside space-y-1 text-slate-700 ml-2">
+          <li>Ve a <strong>"Cargar Serie"</strong> en el menú.</li>
+          <li>Selecciona el indicador al que corresponden los datos.</li>
+          <li>Debajo del selector verás el panel de <strong>dominios de desagregación</strong>. Este panel siempre muestra <strong>todos los dominios del sistema</strong> con sus desagregaciones. Si seleccionas un indicador, los dominios asociados a ese indicador se <strong>resaltan en verde</strong> con un icono de checkmark (<svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>), y el título del panel cambia a "Dominios del indicador seleccionado".</li>
+          <li>Sube el archivo de <strong>datos</strong> (.xlsx). El sistema mostrará automáticamente una <strong>vista previa</strong> de las primeras filas y validará que el archivo tenga el formato correcto (fechas y valores numéricos). El botón <strong>"Guardar y enviar"</strong> permanecerá bloqueado hasta que la validación sea exitosa.</li>
+          <li>Sube el archivo de <strong>metadata</strong> (.xlsx) si lo tienes listo.</li>
+          <li>Guarda como <strong>borrador</strong> o <strong>envía</strong> a validación (requiere ambos archivos).</li>
+        </ol>
+      </div>
+
+      <!-- Opción B -->
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <p class="font-semibold text-slate-800 mb-2 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18"/>
+          </svg>
+          Opción B: Datos Inline (sin Excel)
+        </p>
+        <ol class="list-decimal list-inside space-y-1 text-slate-700 ml-2">
+          <li>Ve a <strong>"Datos Inline"</strong> en el menú o desde el dashboard.</li>
+          <li>Selecciona el indicador. El sistema cargará las desagregaciones configuradas.</li>
+          <li>Ingresa los valores directamente en la tabla fila por fila (Año, Desagregación, Valor).</li>
+          <li>Guarda como <strong>borrador</strong> o <strong>envía</strong> a validación. También puedes completar la metadata web después.</li>
+        </ol>
+        <p class="text-xs text-slate-500 mt-2">Ideal para indicadores con pocos datos o cuando necesitas corregir valores rápidamente.</p>
+      </div>
+
+      <!-- Opción C -->
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <p class="font-semibold text-slate-800 mb-2 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          Opción C: Metadata Web
+        </p>
+        <ol class="list-decimal list-inside space-y-1 text-slate-700 ml-2">
+          <li>Ve a <strong>"Metadata"</strong> en el menú.</li>
+          <li>Selecciona el indicador.</li>
+          <li>Completa los campos del formulario web (fórmula, fuente, periodicidad, línea base, etc.).</li>
+          <li>Guarda como <strong>borrador</strong> o <strong>envía</strong> a validación.</li>
+        </ol>
+        <p class="text-xs text-slate-500 mt-2">Reemplaza al archivo Excel de metadata y valida automáticamente los campos obligatorios.</p>
+      </div>
+
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Puedes mezclar métodos: subir datos por Excel y completar la metadata por el formulario web, o viceversa. El sistema los une automáticamente bajo el mismo indicador.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 5 -->
+  <section id="cargar-conjunto-datos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">5</span>
+      Cómo cargar conjuntos de datos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-4">
+      <p>El proceso ahora soporta dos tipos de carga: crear nuevos conjuntos o actualizar existentes. Antes de subir, ten en cuenta el formato de tu archivo de conjuntos de datos:</p>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3 mb-3 text-xs">
+        <p class="font-semibold text-emerald-800 mb-1 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>El sistema acepta dos formatos de conjuntos de datos (ver plantilla):
+        </p>
+        <p class="text-emerald-700 mb-1"><strong>Formato Largo:</strong> una columna por desagregación temática. Ideal para datos con pocas categorías.<br>Ejemplo: <code class="bg-white px-1 rounded">Año | Grupos de edad | Nacimientos | Poblacion_Mujeres</code></p>
+        <p class="text-emerald-700"><strong>Formato Ancho:</strong> desagregaciones en los nombres de columnas. Ideal para tablas demográficas con muchas combinaciones.<br>Ejemplo: <code class="bg-white px-1 rounded">AÑO | ÁREA GEOGRÁFICA | Hombres_0 | Hombres_1 | Mujeres_0...</code></p>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+          <p class="font-semibold text-slate-800 mb-2 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Opción A: Crear nuevo conjunto de conjunto de datos
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-slate-700 ml-2">
+            <li>Ve a "Cargar Conjunto de datos" en el menú.</li>
+            <li>Selecciona "Crear nuevo conjunto".</li>
+            <li>Ingresa los IDs de los indicadores relacionados (ej: 45, 67, 89).</li>
+            <li><strong>¿Dónde encontrar los IDs?</strong> Ve a "Mis Indicadores" - cada indicador muestra su ID numérico.</li>
+            <li>Sube ambos archivos (conjuntos de datos y metadata de variables).</li>
+            <li>Guarda como borrador o envía directamente a validación.</li>
+          </ol>
+        </div>
+        
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+          <p class="font-semibold text-slate-800 mb-2 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Opción B: Actualizar conjunto de datos existente
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-slate-700 ml-2">
+            <li>Ve a "Cargar Conjunto de datos" en el menú.</li>
+            <li>Selecciona "Actualizar existente".</li>
+            <li>Elige el conjunto de conjunto de datos que quieres actualizar.</li>
+            <li>Sube los nuevos archivos (reemplazarán los existentes).</li>
+            <li>Guarda como borrador o envía a validación.</li>
+          </ol>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+          <p class="font-semibold text-slate-800 mb-2 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 11h16M4 15h10"/>
+            </svg>
+            Opción C: Variables Inline (sin Excel)
+          </p>
+          <ol class="list-decimal list-inside space-y-1 text-slate-700 ml-2">
+            <li>Ve a <strong>"Variables"</strong> en el menú o desde el detalle de una carga de conjuntos de datos.</li>
+            <li>Selecciona el conjunto de conjunto de datos.</li>
+            <li>Completa el formulario web para cada variable: código, nombre, definición, tipo de dato, unidad, fuente.</li>
+            <li>Guarda como <strong>borrador</strong> o <strong>envía</strong> a validación.</li>
+          </ol>
+          <p class="text-xs text-slate-500 mt-2">Reemplaza al archivo Excel de variables y te guía campo por campo.</p>
+        </div>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3">
+        <p class="text-amber-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Cambio importante:
+        </p>
+        <p class="text-amber-700">Ahora puedes crear nuevos conjuntos de conjuntos de datos, actualizar existentes, o usar el formulario web de Variables. El sistema te guiará según el tipo de carga que elijas.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 6 -->
+  <section id="actualizar-existente" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">6</span>
+      Actualizar datos existentes
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-4">
+      <p>El portal permite buscar y editar datos que ya entregaste previamente, sin crear una carga nueva.</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Ve a <strong>"Actualizar"</strong> en el menú o desde el dashboard.</li>
+        <li>Busca por nombre o código del indicador / conjunto de datos.</li>
+        <li>Haz clic en la acción que necesites:
+          <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+            <li><strong>Datos inline:</strong> editar valores directamente en la web.</li>
+            <li><strong>Metadata:</strong> completar o corregir la ficha técnica del indicador.</li>
+            <li><strong>Subir Excel:</strong> reemplazar el archivo de datos con una versión corregida.</li>
+            <li><strong>Variables:</strong> editar la descripción de variables de conjuntos de datos.</li>
+          </ul>
+        </li>
+        <li>Guarda los cambios. El sistema actualizará la carga existente o creará una nueva versión según corresponda.</li>
+      </ol>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Usa "Actualizar" cuando necesites corregir datos ya enviados. Si la carga fue rechazada, es mejor crear una nueva carga desde cero.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 7 -->
+  <section id="ficed" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">7</span>
+      Formulario FICED — Índice de Capacidad Estadística
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-4">
+      <p>El <strong>Formulario de Índice de Capacidad Estadística Distrital (FICED)</strong> evalúa la madurez estadística de tu organismo en cuatro dimensiones. Es independiente de las cargas de datos.</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Desde el dashboard, haz clic en el banner <strong>"Formulario FICED"</strong>.</li>
+        <li>Completa los módulos A (Identificación), B (Entorno Institucional), C (Infraestructura), D (Metodología) y E (Accesibilidad).</li>
+        <li>Puedes guardar progreso y continuar más tarde. Cada módulo se guarda individualmente.</li>
+        <li>Cuando termines todos los módulos, envía el formulario. El sistema calculará automáticamente tu puntaje global y por dimensión.</li>
+      </ol>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Importante:
+        </p>
+        <p class="text-emerald-700">El puntaje FICED se calcula con la fórmula: B×25% + C×25% + D×30% + E×20%. Una vez enviado, el equipo validador revisará tu formulario y podría solicitar ajustes.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 8 -->
+  <section id="carga-parcial" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">8</span>
+      ¿Qué hago si no tengo todos los archivos todavía?
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>No hay problema. El portal está diseñado para cargas en varias etapas:</p>
+      <ul class="list-disc list-inside space-y-2 ml-2">
+        <li>Sube lo que tienes y guarda como <strong>borrador</strong>.</li>
+        <li>En el historial o en el detalle de la carga verás qué falta (<span class="text-red-600">datos faltantes</span> o <span class="text-red-600">metadata faltante</span>).</li>
+        <li>Cuando tengas el archivo faltante, abre la carga y haz clic en <strong>"Completar carga"</strong>. También puedes usar <strong>"Datos Inline"</strong> o <strong>"Metadata"</strong> para completar la información que falta sin necesidad de subir un archivo Excel.</li>
+        <li>Cuando tengas ambos archivos (o hayas completado los formularios web), usa el botón <strong>"Enviar a validación"</strong>.</li>
+      </ul>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3 mt-2">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Recuerda: <strong>solo puedes enviar cuando tienes AMBOS componentes</strong> (datos + metadata). Si intentas enviar incompleto, el sistema te avisará qué falta. Al enviar, los validadores recibirán una notificación automática por correo.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 9 -->
+  <section id="historial" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">9</span>
+      Historial de cargas
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>El <strong>Historial</strong> te permite ver todas tus cargas (series y conjunto de datos) en un solo lugar:</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Ve a <strong>"Historial"</strong> en el menú.</li>
+        <li>Verás dos pestañas: <strong>Series</strong> y <strong>Conjunto de datos</strong>, cada una con su propio listado paginado.</li>
+        <li>Puedes filtrar por estado (borrador, enviado, aprobado, rechazado, correcciones).</li>
+        <li>Haz clic en cualquier carga para ver su detalle: archivos, vista previa de datos, observaciones del validador.</li>
+        <li>Desde el detalle puedes <strong>enviar a validación</strong> (si está en borrador o correcciones) o <strong>completar carga</strong> (si faltan archivos).</li>
+      </ol>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Revisa tus cargas frecuentemente en el Historial. Si llevas mucho tiempo en "Enviado" o "En revisión", contacta al equipo SIIED.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 10 -->
+  <section id="estados" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">10</span>
+      ¿Qué significan los estados de mis cargas?
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden text-sm">
+      <table class="w-full">
+        <thead class="bg-emerald-50 border-b border-slate-200">
+          <tr>
+            <th class="text-left px-4 py-3 font-semibold text-emerald-700">Estado</th>
+            <th class="text-left px-4 py-3 font-semibold text-emerald-700">¿Qué significa?</th>
+            <th class="text-left px-4 py-3 font-semibold text-emerald-700">¿Qué debes hacer?</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 text-slate-700">
+          <tr>
+            <td class="px-4 py-3"><span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full text-xs font-medium">Borrador</span></td>
+            <td class="px-4 py-3">Guardado, no enviado aún</td>
+            <td class="px-4 py-3">Completa los archivos y envía</td>
+          </tr>
+          <tr class="bg-slate-50">
+            <td class="px-4 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">Enviado</span></td>
+            <td class="px-4 py-3">Entregado al equipo SIIED, en cola de revisión</td>
+            <td class="px-4 py-3">Espera — no necesitas hacer nada</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-medium">En revisión</span></td>
+            <td class="px-4 py-3">Un estadístico lo está revisando</td>
+            <td class="px-4 py-3">Espera — no necesitas hacer nada</td>
+          </tr>
+          <tr class="bg-slate-50">
+            <td class="px-4 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">Aprobado</span></td>
+            <td class="px-4 py-3">Datos aprobados y listos para integración</td>
+            <td class="px-4 py-3">¡Listo! El equipo técnico lo procesará</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs font-medium">Correcciones</span></td>
+            <td class="px-4 py-3">El validador necesita que corrijas algo</td>
+            <td class="px-4 py-3">Lee las observaciones y sube los archivos corregidos</td>
+          </tr>
+          <tr class="bg-slate-50">
+            <td class="px-4 py-3"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">Rechazado</span></td>
+            <td class="px-4 py-3">No se pudo aceptar esta entrega</td>
+            <td class="px-4 py-3">Lee el motivo y crea una nueva carga corregida</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-3"><span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full text-xs font-medium">Procesado</span></td>
+            <td class="px-4 py-3">Integrado al sistema SIIED</td>
+            <td class="px-4 py-3">Nada — el proceso terminó exitosamente</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 11 -->
+  <section id="correcciones" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">11</span>
+      Me pidieron correcciones, ¿qué hago?
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-4">
+      <div class="flex gap-3">
+        <span class="bg-amber-100 text-amber-700 font-bold text-xs w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">1</span>
+        <div>
+          <p class="font-medium">Abre la carga con estado "Correcciones solicitadas"</p>
+          <p class="text-slate-500">En el historial o en el inicio verás un aviso rojo.</p>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-amber-100 text-amber-700 font-bold text-xs w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">2</span>
+        <div>
+          <p class="font-medium">Lee con atención las observaciones del validador</p>
+          <p class="text-slate-500">Aparecen en el detalle de la carga, en la sección "Observaciones del equipo SIIED".</p>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-amber-100 text-amber-700 font-bold text-xs w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">3</span>
+        <div>
+          <p class="font-medium">Corrige el archivo o usa los formularios web</p>
+          <p class="text-slate-500">No intentes modificar el archivo que ya subiste. Puedes descargar la plantilla, corregirla y subirla de nuevo, o usar <strong>"Datos Inline"</strong> / <strong>"Metadata"</strong> / <strong>"Variables"</strong> para corregir directamente desde la web.</p>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-amber-100 text-amber-700 font-bold text-xs w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">4</span>
+        <div>
+          <p class="font-medium">Usa "Completar carga" o los formularios web para aplicar las correcciones</p>
+          <p class="text-slate-500">El botón aparece en el detalle de la carga cuando el estado es "Correcciones solicitadas". También puedes acceder desde <strong>"Actualizar"</strong> para editar inline.</p>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <span class="bg-amber-100 text-amber-700 font-bold text-xs w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">5</span>
+        <div>
+          <p class="font-medium">Envía nuevamente a validación</p>
+          <p class="text-slate-500">Una vez aplicadas las correcciones, usa <strong>"Enviar a validación"</strong>. El sistema notificará automáticamente a los validadores por correo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 12 -->
+  <section id="errores" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">12</span>
+      Errores comunes y cómo evitarlos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl overflow-hidden text-sm">
+      <div class="divide-y divide-slate-100">
+        <div class="px-5 py-4 bg-slate-50">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>VALIDACIÓN FALLIDA — El botón de enviar está bloqueado
+          </p>
+          <p class="text-slate-600">El sistema detectó un problema en el archivo de datos antes de enviar. Revisa el panel de vista previa: debe haber al menos 2 columnas, la columna de fechas debe ser reconocible y la columna de valores debe ser numérica. Usa la plantilla oficial y evita filas vacías o encabezados extra.</p>
+        </div>
+        <div class="px-5 py-4">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>Error: "El archivo debe ser Excel"
+          </p>
+          <p class="text-slate-600">Estás subiendo un archivo .csv, .txt, .pdf u otro formato. <strong>Solo se aceptan archivos .xlsx o .xls (Excel).</strong></p>
+        </div>
+        <div class="px-5 py-4 bg-slate-50">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>Error: "Necesitas ambos archivos para enviar"
+          </p>
+          <p class="text-slate-600">Solo tienes uno de los dos archivos. Guarda como borrador y agrega el otro antes de enviar.</p>
+        </div>
+        <div class="px-5 py-4">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>El validador rechazó mi archivo por formato incorrecto
+          </p>
+          <p class="text-slate-600">No usaste la plantilla oficial. <a href="{% url 'indicadores:delegado_plantillas' %}" class="text-emerald-600 hover:text-emerald-700 hover:underline">Descarga las plantillas aquí</a> y vuelve a preparar tu archivo.</p>
+        </div>
+        <div class="px-5 py-4 bg-slate-50">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>No veo mi indicador en la lista
+          </p>
+          <p class="text-slate-600">El indicador puede no estar asignado a tu organismo. Contacta al equipo SIIED para que lo configuren.</p>
+        </div>
+        <div class="px-5 py-4">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>El validador indica que el año no se reconoce o los valores son incorrectos
+          </p>
+          <p class="text-slate-600">En el archivo de datos de serie, la columna del año debe llamarse exactamente <code class="bg-slate-100 px-1 rounded">Año</code> y contener valores numéricos enteros (ej: <code class="bg-slate-100 px-1 rounded">2022</code>). En conjuntos de datos puede ser <code class="bg-slate-100 px-1 rounded">Año</code> (formato largo) o <code class="bg-slate-100 px-1 rounded">AÑO</code> (formato ancho). No uses fechas completas en la columna del año.</p>
+        </div>
+        <div class="px-5 py-4 bg-slate-50">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>Mi carga lleva mucho tiempo en "En revisión"
+          </p>
+          <p class="text-slate-600">El proceso puede tomar varios días hábiles según el volumen de trabajo. Si pasan más de 5 días hábiles, contacta al equipo SIIED con tu código de evidencia.</p>
+        </div>
+        <div class="px-5 py-4">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>Las desagregaciones no aparecen en Datos Inline
+          </p>
+          <p class="text-slate-600">Las desagregaciones (geográfica y temática) deben estar previamente configuradas para el indicador. Si no ves columnas de desagregación, contacta al equipo SIIED para que las configuren en el indicador.</p>
+        </div>
+        <div class="px-5 py-4 bg-slate-50">
+          <p class="font-medium text-red-700 mb-1 flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>No recibí confirmación de notificación por correo
+          </p>
+          <p class="text-slate-600">Al enviar una carga, el sistema intenta notificar a los validadores por correo automáticamente. Si ves un mensaje de advertencia (⚠️), la notificación falló pero la carga sí se envió. Contacta al equipo SIIED si necesitas confirmar.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contacto -->
+  <div class="bg-slate-50 border border-slate-200 rounded-3xl p-5 text-sm text-slate-700">
+    <p class="font-semibold text-slate-800 mb-1 flex items-center">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      </svg>¿Necesitas ayuda adicional?
+    </p>
+    <p>Contacta al equipo técnico del SIIED — Subdirección de Desarrollo Integral, Depto. Administrativo de Planeación Distrital.</p>
+    <p class="mt-2">Siempre incluye tu <strong>código de evidencia</strong> (ej: <code class="bg-gray-200 px-1 rounded">CSIND-20250301-143022</code>) al comunicarte.</p>
+  </div>
+
+</div>
+{% endblock %}

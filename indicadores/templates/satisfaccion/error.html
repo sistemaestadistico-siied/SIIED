@@ -1,0 +1,43 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Error - Satisfacción Ciudadana{% endblock %}
+
+{% block content %}
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="text-center py-12 px-6">
+                
+                <div class="text-8xl mb-6">
+                    ⚠️
+                </div>
+                
+                <h1 class="text-4xl font-bold text-red-600 mb-4">Error</h1>
+                
+                <p class="text-xl text-gray-600 mb-6">
+                    {{ mensaje|default:"Ha ocurrido un error al procesar su solicitud." }}
+                </p>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded inline-block">
+                    <p class="text-yellow-800 text-sm">
+                        Si el problema persiste, por favor contacte al administrador del sistema.
+                    </p>
+                </div>
+                
+                <div class="mb-6">
+                    <a href="https://www.cali.gov.co" class="inline-block bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg transform transition hover:scale-105">
+                        Volver al sitio web
+                    </a>
+                </div>
+                
+                <div>
+                    <p class="text-gray-500 text-sm">
+                        <strong class="text-gray-800">Alcaldía de Santiago de Cali</strong><br>
+                        <span class="text-xs">Sistema Integrado de Información Estadística Distrital - SIIED</span>
+                    </p>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+{% endblock %}

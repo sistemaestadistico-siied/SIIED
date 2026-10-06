@@ -1,0 +1,2192 @@
+{% extends 'indicadores/taller/base_taller.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: #F8FAFC;
+        overflow: hidden;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+    }
+    
+    :root {
+        --inst-primary:  #003876;
+        --inst-accent:   #0EA5E9;
+        --inst-border:   #CBD5E1;
+        --inst-text:     #1E293B;
+        --inst-muted:    #64748B;
+        --inst-light:    #F1F5F9;
+        --inst-success:  #10B981;
+        --inst-warning:  #F59E0B;
+        --inst-danger:   #EF4444;
+        --inst-purple:   #7C3AED;
+    }
+    
+    #canvas-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+    
+    #hud-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 10;
+    }
+    
+    .mapa-header {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--inst-border);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        pointer-events: auto;
+        max-width: 90%;
+    }
+    
+    .mapa-header h1 {
+        color: var(--inst-primary);
+        font-size: 1.1rem;
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 0;
+    }
+    
+    .mapa-header .subtitulo {
+        color: var(--inst-muted);
+        font-size: 0.75rem;
+        margin: 3px 0 0 0;
+        display: none;
+    }
+    
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 8px;
+    }
+    
+    .btn-nav {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: var(--inst-primary);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .btn-nav:hover {
+        background: var(--inst-accent);
+    }
+    
+    .codigo-acceso {
+        background: var(--inst-light);
+        border: 1px solid var(--inst-border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        text-align: center;
+    }
+    
+    body.en-iframe .codigo-acceso {
+        display: none;
+    }
+    
+    .codigo-acceso .label {
+        color: var(--inst-muted);
+        font-size: 0.8rem;
+        display: block;
+        margin-bottom: 2px;
+    }
+    
+    .codigo-acceso .codigo {
+        color: var(--inst-primary);
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 2px;
+        font-family: monospace;
+    }
+    
+    .panel-control {
+        position: absolute;
+        right: 20px;
+        top: 100px;
+        background: white;
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid var(--inst-border);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        max-width: 220px;
+        pointer-events: auto;
+    }
+    
+    .panel-control h3 {
+        color: var(--inst-primary);
+        margin: 0 0 12px 0;
+        font-size: 0.9rem;
+        font-weight: 700;
+        border-bottom: 1px solid var(--inst-border);
+        padding-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .filtro-item {
+        margin: 6px 0;
+        padding: 7px 10px;
+        background: var(--inst-light);
+        border: 1px solid var(--inst-border);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: var(--inst-text);
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .filtro-item:hover {
+        background: #EFF6FF;
+        border-color: var(--inst-primary);
+        color: var(--inst-primary);
+    }
+    
+    .filtro-item.activo {
+        background: var(--inst-primary);
+        border-color: var(--inst-primary);
+        color: white;
+        font-weight: 600;
+    }
+    
+    .stats-panel {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--inst-border);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        pointer-events: auto;
+        display: flex;
+        gap: 24px;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-valor {
+        color: var(--inst-primary);
+        font-size: 1.6rem;
+        font-weight: 800;
+        display: block;
+    }
+    
+    .stat-label {
+        color: var(--inst-muted);
+        font-size: 0.78rem;
+        display: block;
+        margin-top: 2px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .zoom-controls {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        pointer-events: auto;
+    }
+    
+    .zoom-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        background: white;
+        border: 1px solid var(--inst-border);
+        color: var(--inst-primary);
+        font-size: 1.2rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .zoom-btn:hover {
+        background: var(--inst-primary);
+        color: white;
+        border-color: var(--inst-primary);
+    }
+    
+    .zoom-btn:active {
+        transform: scale(0.97);
+    }
+    
+    #tooltip {
+        position: absolute;
+        background: white;
+        color: var(--inst-text);
+        padding: 10px 28px 10px 14px;
+        border-radius: 6px;
+        border: 1px solid var(--inst-border);
+        pointer-events: auto;
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-size: 0.88rem;
+        max-width: 240px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        z-index: 1000;
+    }
+    
+    #tooltip.visible {
+        opacity: 1;
+    }
+    
+    #tooltip-close {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(0,0,0,0.1);
+        border: none;
+        color: var(--inst-muted);
+        cursor: pointer;
+        font-size: 12px;
+        padding: 2px 6px;
+        line-height: 1;
+        border-radius: 3px;
+        transition: all 0.2s;
+    }
+    
+    #tooltip-close:hover {
+        background: rgba(0,0,0,0.2);
+        color: var(--inst-text);
+    }
+    
+    .leyenda {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--inst-border);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        pointer-events: auto;
+    }
+    
+    .leyenda h4 {
+        color: var(--inst-primary);
+        margin: 0 0 8px 0;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: center;
+    }
+    
+    .leyenda-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+    }
+    
+    .leyenda-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 10px;
+        color: var(--inst-text);
+        font-size: 0.82rem;
+    }
+    
+    .leyenda-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+    }
+    
+    .leyenda-linea {
+        width: 24px;
+        height: 3px;
+        border-top: 2px solid;
+    }
+    
+    .leyenda-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    
+    .leyenda-item span {
+        font-size: 0.8rem;
+        color: var(--inst-text);
+    }
+    
+    #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #F8FAFC;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        transition: opacity 0.4s;
+    }
+    
+    #loading-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .loading-text {
+        color: var(--inst-muted);
+        font-size: 1rem;
+        margin-top: 16px;
+        font-weight: 500;
+    }
+    
+    .spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid var(--inst-border);
+        border-top-color: var(--inst-primary);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Media Queries para Móviles */
+    @media (max-width: 768px) {
+        .mapa-header h1 { font-size: 0.9rem; }
+        .panel-control { display: none; }
+        .stats-panel { display: none; }
+        .leyenda { display: none; }
+        .zoom-controls { bottom: 10px; right: 10px; }
+        .zoom-btn { width: 36px; height: 36px; font-size: 1rem; }
+    }
+    
+    @media (min-width: 769px) {
+        .mapa-header h1 { font-size: 1.4rem; }
+        .mapa-header .subtitulo { display: block; }
+        .codigo-acceso .codigo { font-size: 1.5rem; letter-spacing: 4px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Loading screen -->
+<div id="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text">Cargando ecosistema de datos...</div>
+</div>
+
+<!-- Canvas para Three.js -->
+<div id="canvas-container"></div>
+
+<!-- HUD Overlay -->
+<div id="hud-overlay">
+    <!-- Header -->
+    <div class="mapa-header">
+        <h1>Ecosistema de Datos — {{ sesion.organismo.nombre }}</h1>
+        
+        <div class="header-actions">
+            <a href="/taller/mapa-ciudad/" class="btn-nav" title="Ver mapa de ciudad">
+                🏙️ Mapa de Ciudad
+            </a>
+            <div class="codigo-acceso">
+                <span class="label">Código de acceso:</span>
+                <span class="codigo">{{ sesion.codigo_acceso }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Panel de control -->
+    <div class="panel-control">
+        <h3>Filtros</h3>
+        <div class="filtro-item activo" data-filtro="todos">
+            <span>◉</span> Ver todo
+        </div>
+        
+        <!-- Filtros por Tipo de Flujo -->
+        <div class="filtro-item" data-filtro="flujos-internos">
+            Flujos internos
+        </div>
+        <div class="filtro-item" data-filtro="flujos-inter-sub">
+            Entre subsistemas
+        </div>
+        <div class="filtro-item" data-filtro="flujos-externos">
+            Flujos externos
+        </div>
+        
+        <!-- Filtros por Sensibilidad -->
+        <div class="filtro-item" data-filtro="sensibilidad-publico">
+            Datos públicos
+        </div>
+        <div class="filtro-item" data-filtro="sensibilidad-interno">
+            Datos internos
+        </div>
+        <div class="filtro-item" data-filtro="sensibilidad-confidencial">
+            Datos confidenciales
+        </div>
+        <div class="filtro-item" data-filtro="sensibilidad-critico">
+            Datos críticos
+        </div>
+        
+        <!-- Filtros por Nivel -->
+        <div class="filtro-item" data-filtro="nivel-operativo">
+            Nivel operativo
+        </div>
+        <div class="filtro-item" data-filtro="nivel-tactico">
+            Nivel táctico
+        </div>
+        <div class="filtro-item" data-filtro="nivel-estrategico">
+            Nivel estratégico
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats-panel">
+        <div class="stat-item">
+            <span class="stat-valor" id="stat-participantes">0</span>
+            <span class="stat-label">Participantes</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-valor" id="stat-flujos">0</span>
+            <span class="stat-label">Conexiones</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-valor" id="stat-subsistemas">0</span>
+            <span class="stat-label">Subsistemas</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-valor" id="stat-densidad">0%</span>
+            <span class="stat-label">Densidad</span>
+        </div>
+    </div>
+    
+    <!-- Controles de Zoom -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-in" title="Acercarse (Zoom In)">+</button>
+        <button class="zoom-btn" id="zoom-reset" title="Restablecer Vista">⟲</button>
+        <button class="zoom-btn" id="zoom-out" title="Alejarse (Zoom Out)">−</button>
+        <button class="zoom-btn" id="btn-gexf" title="Exportar GEXF para Gephi"
+                onclick="window.location.href='/taller/api/ecosistema/grafo/{{ sesion.id }}/export/gexf/'"
+                style="font-size:0.7rem;">GEXF</button>
+    </div>
+    
+    <!-- Leyenda Completa -->
+    <div class="leyenda">
+        <h4>📍 Elementos del Ecosistema</h4>
+        <div class="leyenda-grid">
+            <div class="leyenda-item">
+                <div class="leyenda-icon">🏠</div>
+                <span>Sociedad Civil (centro)</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-icon">💻</div>
+                <span>Subsistemas (Ó1: radio 12)</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-icon">👤</div>
+                <span>Actores/Roles (Ó2: radio 15-17)</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-icon">💎</div>
+                <span>Datos (Ó3: radio 28-36)</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-icon">🗂️</div>
+                <span>Organismos (Ó4: radio 42)</span>
+            </div>
+            <div class="leyenda-item">
+                <div class="leyenda-icon">🏢</div>
+                <span>Entidades Externas (Ó5: radio 50)</span>
+            </div>
+        </div>
+        
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #E2E8F0;">
+            <h4 style="margin:0 0 8px 0; font-size:0.8rem; color:#475569;">🎨 Colores de Roles (Familias):</h4>
+            <div class="leyenda-grid">
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #F59E0B;"></div>
+                    <span>A-Producción</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #F97316;"></div>
+                    <span>B-Gestión</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #3B82F6;"></div>
+                    <span>C-Infraestructura</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #8B5CF6;"></div>
+                    <span>D-Análisis</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #10B981;"></div>
+                    <span>E-Intermediación</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #EF4444;"></div>
+                    <span>F-Estrategia</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #E2E8F0;">
+            <h4 style="margin:0 0 8px 0; font-size:0.8rem; color:#475569;">📊 Datos (octaedros):</h4>
+            <div class="leyenda-grid">
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #EF4444;"></div>
+                    <span>🔴 Estratégico (radio 28)</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #F59E0B;"></div>
+                    <span>🟡 Táctico (radio 32)</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color" style="background: #10B981;"></div>
+                    <span>🟢 Operativo (radio 36)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #E2E8F0;">
+            <h4 style="margin:0 0 8px 0; font-size:0.8rem; color:#475569;">〰️ Flujos de Datos (líneas) — Torres 2026:</h4>
+            <div class="leyenda-grid">
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #3B82F6;"></div>
+                    <span>🔵 IF — Funcional (solicitar, entregar, validar)</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #10B981;"></div>
+                    <span>🟢 IT — Técnica (capturar, transferir, integrar)</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #8B5CF6;"></div>
+                    <span>🟣 ID — Decisión (monitorear, alertar, priorizar)</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #F59E0B;"></div>
+                    <span>🟡 IV — Valor (reportes, tableros, diagnósticos)</span>
+                </div>
+            </div>
+            <small style="color:#64748B; display:block; margin-top:4px;">
+                💡 Color = tipo de interacción | Opacidad = sensibilidad | Altura = nivel
+            </small>
+        </div>
+        
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #E2E8F0;">
+            <h4 style="margin:0 0 8px 0; font-size:0.8rem; color:#475569;">🔗 Linaje de Datos (curvas entre datos):</h4>
+            <div class="leyenda-grid">
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #FF6B6B;"></div>
+                    <span>Deriva en</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #4ECDC4;"></div>
+                    <span>Alimenta / Es insumo</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #AA96DA;"></div>
+                    <span>Versión / Consolida</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-linea" style="border-color: #FFD93D;"></div>
+                    <span>Desagrega / Sintetiza</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tooltip con botón de cierre -->
+    <div id="tooltip">
+        <button id="tooltip-close" style="position:absolute; top:4px; right:4px; background:none; border:none; color:white; cursor:pointer; font-size:14px; padding:2px 6px; line-height:1;">✕</button>
+        <div id="tooltip-content"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================================
+// MAPA 3D DEL ECOSISTEMA DE DATOS
+// Torres 2026 — Grafo tripartito institucional
+// ============================================================================
+
+const SESION_ID = {{ sesion.id }};
+const CODIGO_FACILITADOR = '{{ sesion.codigo_acceso }}';
+const COLORES_FAMILIA = {
+    'A': 0xF59E0B, // Amarillo producción
+    'B': 0xF97316, // Naranja gestión
+    'C': 0x3B82F6, // Azul infraestructura
+    'D': 0x8B5CF6, // Púrpura análisis
+    'E': 0x10B981, // Verde intermediación
+    'F': 0xEF4444, // Rojo estrategia
+};
+
+class MapaEcosistema {
+    constructor() {
+        this.container = document.getElementById('canvas-container');
+        this.tooltip = document.getElementById('tooltip');
+        
+        // Datos del ecosistema
+        this.participantes = [];
+        this.subsistemas = [];
+        this.flujos = [];
+        this.filtroActivo = 'todos';
+        
+        // Three.js core
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.controls = null;
+        
+        // Grupos de objetos 3D
+        this.grupoNucleo = new THREE.Group();
+        this.grupoSubsistemas = new THREE.Group();
+        this.grupoActores = new THREE.Group();
+        this.grupoDatos = new THREE.Group();
+        this.grupoFlujos = new THREE.Group();
+        this.grupoExternos = new THREE.Group();
+        this.grupoRelacionesDatos = new THREE.Group(); // Relaciones Dato→Dato
+        
+        // Posiciones fijas de nodos especiales
+        this.posicionSociedadCivil = null;
+        this.posicionesOrganismos = {};
+        
+        
+        // Raycaster para interacción
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        
+        this.init();
+    }
+    
+    init() {
+        this.setupScene();
+        this.setupLights();
+        this.crearPlataforma();
+        this.setupEventListeners();
+        this.cargarDatos();
+        this.animate();
+    }
+    
+    setupScene() {
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0xF8FAFC);
+        
+        // Cámara
+        const aspect = this.container.clientWidth / this.container.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+        this.camera.position.set(0, 50, 80);
+        this.camera.lookAt(0, 0, 0);
+        
+        // Renderer
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.container.appendChild(this.renderer.domElement);
+        
+        // Variables de zoom
+        this.zoomLevel = 1;
+        this.targetZoom = 1;
+        this.minZoom = 0.5;
+        this.maxZoom = 3;
+        
+        // Controles orbitales (importar OrbitControls si está disponible)
+        // Por ahora, rotación automática suave
+        
+        // Agregar grupos a la escena
+        this.scene.add(this.grupoNucleo);
+        this.scene.add(this.grupoSubsistemas);
+        this.scene.add(this.grupoActores);
+        this.scene.add(this.grupoDatos);
+        this.scene.add(this.grupoFlujos);
+        this.scene.add(this.grupoExternos);
+        this.scene.add(this.grupoRelacionesDatos);
+        
+        // Responsive
+        window.addEventListener('resize', () => this.onWindowResize());
+    }
+    
+    setupLights() {
+        const ambient = new THREE.AmbientLight(0xFFFFFF, 1.4);
+        this.scene.add(ambient);
+        
+        const directional = new THREE.DirectionalLight(0xCCDDEE, 0.8);
+        directional.position.set(50, 100, 50);
+        directional.castShadow = true;
+        directional.shadow.camera.left = -50;
+        directional.shadow.camera.right = 50;
+        directional.shadow.camera.top = 50;
+        directional.shadow.camera.bottom = -50;
+        this.scene.add(directional);
+        
+        const luzFill = new THREE.PointLight(0xDDEEFF, 0.6, 120);
+        luzFill.position.set(-30, 20, -30);
+        this.scene.add(luzFill);
+    }
+    
+    crearPlataforma() {
+        // Anillo azul = Sociedad Civil (radio 30)
+        const geomAzul = new THREE.RingGeometry(29, 31, 64);
+        const matAzul = new THREE.MeshBasicMaterial({ 
+            color: 0x3B82F6,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.35
+        });
+        const circuloAzul = new THREE.Mesh(geomAzul, matAzul);
+        circuloAzul.rotation.x = -Math.PI / 2;
+        circuloAzul.position.y = 0.5;
+        this.grupoNucleo.add(circuloAzul);
+        
+        this.crearEtiqueta('Sociedad Civil / Ciudadanía', new THREE.Vector3(0, 1, 32), 0x3B82F6);
+        
+        // Anillo ámbar = Organismos Alcaldía (radio 35)
+        const geomAmbar = new THREE.RingGeometry(34, 36, 64);
+        const matAmbar = new THREE.MeshBasicMaterial({ 
+            color: 0xF59E0B,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.35
+        });
+        const circuloAmbar = new THREE.Mesh(geomAmbar, matAmbar);
+        circuloAmbar.rotation.x = -Math.PI / 2;
+        circuloAmbar.position.y = 0.5;
+        this.grupoNucleo.add(circuloAmbar);
+        
+        this.crearEtiqueta('Organismos de la Alcaldía', new THREE.Vector3(0, 1, 37), 0xF59E0B);
+        
+        // Plataforma base — azul institucional
+        const geomPlataforma = new THREE.CylinderGeometry(28, 28, 1.5, 64);
+        const matPlataforma = new THREE.MeshStandardMaterial({ 
+            color: 0x003876,
+            transparent: true,
+            opacity: 0.08,
+        });
+        const plataforma = new THREE.Mesh(geomPlataforma, matPlataforma);
+        plataforma.receiveShadow = true;
+        this.grupoNucleo.add(plataforma);
+    }
+    
+    async cargarDatos() {
+        try {
+            const response = await fetch(`/taller/api/ecosistema/grafo/${SESION_ID}/`, {
+                headers: {
+                    'X-Facilitador-Token': CODIGO_FACILITADOR
+                }
+            });
+            const data = await response.json();
+            
+            this.participantes = data.participantes || [];
+            this.subsistemas = data.subsistemas || [];
+            this.flujos = data.flujos || [];
+            this.datosNodos = data.datos_nodos || [];
+            this.relacionesDatos = data.relaciones_datos || [];
+            // Guardar clasificaciones para usarlas en los flujos
+            this.clasificaciones = data.clasificaciones_detalle || {};
+            
+            console.log('[Mapa] Datos cargados del ecosistema:');
+            console.log('  - Participantes:', this.participantes.length);
+            console.log('  - Subsistemas:', this.subsistemas.length);
+            console.log('  - Datos (nodos):', this.datosNodos.length);
+            console.log('  - Flujos:', this.flujos.length);
+            console.log('  - Relaciones entre datos:', this.relacionesDatos.length);
+            if (this.flujos.length > 0) {
+                console.log('  - Primer flujo:', this.flujos[0]);
+            }
+            
+            this.construirEcosistema();
+            this.actualizarStats();
+            
+            // Aplicar filtro activo (para que persista después de reconstruir)
+            if (this.filtroActivo && this.filtroActivo !== 'todos') {
+                this.aplicarFiltro();
+            }
+            
+            // Ocultar loading screen
+            document.getElementById('loading-screen').classList.add('hidden');
+            
+        } catch (error) {
+            console.error('Error cargando datos del ecosistema:', error);
+        }
+    }
+    
+    construirEcosistema() {
+        // Limpiar grupos
+        this.grupoSubsistemas.clear();
+        this.grupoActores.clear();
+        this.grupoDatos.clear();
+        this.grupoFlujos.clear();
+        this.grupoExternos.clear();
+        this.grupoRelacionesDatos.clear();
+        this.posicionSociedadCivil = null;
+        this.posicionesOrganismos = {};
+        this.posicionesDatos = {};
+        
+        // Extraer organismos únicos y verificar sociedad civil
+        const organismoMap = new Map();
+        let haySociedadCivil = false;
+        this.flujos.forEach(flujo => {
+            if (flujo.recibe_de_sociedad_civil || flujo.envia_a_sociedad_civil) haySociedadCivil = true;
+            if (flujo.recibe_de_organismo_id && flujo.recibe_de_organismo_nombre) {
+                organismoMap.set(flujo.recibe_de_organismo_id, flujo.recibe_de_organismo_nombre);
+            }
+            if (flujo.envia_a_organismo_id && flujo.envia_a_organismo_nombre) {
+                organismoMap.set(flujo.envia_a_organismo_id, flujo.envia_a_organismo_nombre);
+            }
+        });
+        
+        // Crear nodos de sociedad civil (casas)
+        if (haySociedadCivil) {
+            this.crearCasasSociedadCivil();
+        }
+        
+        // Crear nodos de organismos alcaldía (escritorios)
+        const organismos = Array.from(organismoMap.entries());
+        organismos.forEach(([id, nombre], idx) => {
+            this.crearEscritorioOrganismo(id, nombre, idx, organismos.length);
+        });
+        
+        // Crear subsistemas (computadoras retro)
+        this.subsistemas.forEach((sub, index) => {
+            this.crearSubsistema(sub, index);
+        });
+        
+        // Crear actores (esferas de colores)
+        this.participantes.forEach((part, index) => {
+            this.crearActor(part, index);
+        });
+        
+        // Extraer entidades externas únicas de los flujos (con tipo)
+        const entidadesExternasMap = {};
+        console.log('[Mapa] Analizando flujos para extraer entidades externas...');
+        this.flujos.forEach(flujo => {
+            if (flujo.recibe_de_entidad_externa) {
+                const nombre = flujo.recibe_de_entidad_externa;
+                if (!entidadesExternasMap[nombre]) {
+                    entidadesExternasMap[nombre] = { nombre, tipo: flujo.recibe_de_tipo_entidad || 'otro' };
+                }
+                console.log('  + Entidad externa (recibe):', nombre, 'tipo:', flujo.recibe_de_tipo_entidad);
+            }
+            if (flujo.envia_a_entidad_externa) {
+                const nombre = flujo.envia_a_entidad_externa;
+                if (!entidadesExternasMap[nombre]) {
+                    entidadesExternasMap[nombre] = { nombre, tipo: flujo.envia_a_tipo_entidad || 'otro' };
+                }
+                console.log('  + Entidad externa (envia):', nombre, 'tipo:', flujo.envia_a_tipo_entidad);
+            }
+        });
+        
+        const entidadesArray = Object.values(entidadesExternasMap);
+        console.log('[Mapa] Total entidades externas encontradas:', entidadesArray.length);
+        
+        // Crear edificios para entidades externas
+        entidadesArray.forEach((entidad, index) => {
+            console.log(`[Mapa] Creando edificio ${index + 1}/${entidadesArray.length}:`, entidad.nombre, 'tipo:', entidad.tipo);
+            this.crearEntidadExterna(entidad.nombre, entidad.tipo, index, entidadesArray.length);
+        });
+        
+        // Crear nodos de DATOS (octaedros — Torres 2026)
+        // ÓRBITA EXCLUSIVA: Entre actores (radio ~15-20) y organismos (radio 35)
+        // Para evitar solapamiento con subsistemas (radio 12) y organismos (radio 35)
+        if (this.datosNodos && this.datosNodos.length > 0) {
+            console.log('[Mapa] Creando órbita exclusiva para datos...');
+            
+            // Separar datos por nivel
+            const datosPorNivel = {
+                'estrategico': [],
+                'tactico': [],
+                'operativo': [],
+                'sin_clasificar': []
+            };
+            
+            this.datosNodos.forEach(d => {
+                if (datosPorNivel[d.nivel]) {
+                    datosPorNivel[d.nivel].push(d);
+                } else {
+                    datosPorNivel['sin_clasificar'].push(d);
+                }
+            });
+            
+            // ÓRBITA EXCLUSIVA PARA DATOS: Muy separada de actores (15-17) y organismos (35)
+            // Estratégicos más cerca del centro (pero lejos de actores), operativos más afuera
+            const RADIO_BASE_DATOS = 32;  // Centro de la órbita de datos (entre actores 15-17 y organismos 35)
+            const ANCHO_ORBITA = 8;       // Espaciado entre niveles
+            
+            const radiosNivel = {
+                'estrategico': RADIO_BASE_DATOS - ANCHO_ORBITA/2,  // 28 - más cerca del centro
+                'tactico': RADIO_BASE_DATOS,                          // 32 - centro de la órbita
+                'operativo': RADIO_BASE_DATOS + ANCHO_ORBITA/2,     // 36 - más hacia afuera
+                'sin_clasificar': RADIO_BASE_DATOS                   // 32 - default
+            };
+            
+            const coloresNivel = {
+                'operativo': 0x10B981,    // verde
+                'tactico': 0xF59E0B,      // amarillo
+                'estrategico': 0xEF4444,  // rojo
+            };
+            
+            // Calcular ángulos para distribuir todos los datos uniformemente en la órbita
+            const totalDatos = this.datosNodos.length;
+            let indexGlobal = 0;
+            
+            ['estrategico', 'tactico', 'operativo', 'sin_clasificar'].forEach(nivel => {
+                const datosNivel = datosPorNivel[nivel];
+                const radio = radiosNivel[nivel];
+                
+                datosNivel.forEach((dato, index) => {
+                    // Distribución uniforme en círculo completo
+                    const angle = (indexGlobal / totalDatos) * Math.PI * 2;
+                    const x = Math.cos(angle) * radio;
+                    const z = Math.sin(angle) * radio;
+                    
+                    const color = coloresNivel[dato.nivel] || 0x0EA5E9;
+                    
+                    // Tamaño: más grandes los estratégicos y los con más conexiones
+                    const escala = 0.6 + Math.min(dato.num_flujos * 0.15, 1.2);
+                    const escalaNivel = nivel === 'estrategico' ? 1.3 : (nivel === 'tactico' ? 1.0 : 0.8);
+                    const escalaFinal = escala * escalaNivel;
+                    
+                    // Octaedro = forma de dato (diamante)
+                    const geometry = new THREE.OctahedronGeometry(escalaFinal, 0);
+                    const material = new THREE.MeshPhongMaterial({
+                        color: color,
+                        emissive: color,
+                        emissiveIntensity: dato.es_critico ? 0.6 : 0.2,
+                        transparent: true,
+                        opacity: dato.es_huerfano ? 0.4 : 0.9,
+                        wireframe: dato.es_huerfano,
+                    });
+                    
+                    const mesh = new THREE.Mesh(geometry, material);
+                    // Altura fija para todos los datos en la órbita (más alta que subsistemas)
+                    mesh.position.set(x, 2.5, z);
+                    
+                    // Guardar datos completos en userData
+                    mesh.userData = { 
+                        tipo: 'dato', 
+                        data: dato,
+                        id: dato.id, 
+                        nombre: dato.nombre, 
+                        nivel: dato.nivel 
+                    };
+                    
+                    this.grupoDatos.add(mesh);
+                    this.posicionesDatos[dato.id] = mesh.position.clone();
+                    
+                    indexGlobal++;
+                });
+                
+                console.log(`  - ${nivel}: ${datosNivel.length} datos a radio ${radio}`);
+            });
+            
+            console.log(`[Mapa] ${this.datosNodos.length} nodos-dato creados en órbita exclusiva (radio ${RADIO_BASE_DATOS - ANCHO_ORBITA/2} a ${RADIO_BASE_DATOS + ANCHO_ORBITA/2})`);
+            
+            // Dibujar anillos de órbita visuales
+            this.dibujarOrbita(15, 0x3B82F6, 'Ó2: Actores');     // Órbita actores
+            this.dibujarOrbita(32, 0xF59E0B, 'Ó3: Datos');      // Órbita datos (28-36)
+            this.dibujarOrbita(42, 0x10B981, 'Ó4: Organismos'); // Órbita organismos
+            this.dibujarOrbita(50, 0x6B7280, 'Ó5: Ext. Externas'); // Órbita entidades externas
+        }
+        
+        // Crear flujos (líneas curvas)
+        this.flujos.forEach(flujo => {
+            this.crearFlujo(flujo);
+        });
+        
+        // Crear relaciones entre datos (linaje)
+        this.crearRelacionesDatos();
+    }
+    
+    dibujarOrbita(radio, color, label) {
+        // Crear anillo visual de órbita
+        const geometry = new THREE.RingGeometry(radio - 0.3, radio + 0.3, 64);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: color, 
+            transparent: true, 
+            opacity: 0.15,
+            side: THREE.DoubleSide
+        });
+        const anillo = new THREE.Mesh(geometry, material);
+        anillo.rotation.x = Math.PI / 2;
+        anillo.position.y = 0.1;
+        this.scene.add(anillo);
+        
+        // Línea de órbita más delgada
+        const curve = new THREE.EllipseCurve(
+            0, 0,            // ax, aY
+            radio, radio,    // xRadius, yRadius
+            0, 2 * Math.PI,  // aStartAngle, aEndAngle
+            false,           // aClockwise
+            0                // aRotation
+        );
+        const points = curve.getPoints(64);
+        const lineGeometry = new THREE.BufferGeometry().setFromPoints(
+            points.map(p => new THREE.Vector3(p.x, 0.1, p.y))
+        );
+        const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: color, 
+            transparent: true, 
+            opacity: 0.4 
+        });
+        const line = new THREE.Line(lineGeometry, lineMaterial);
+        this.scene.add(line);
+    }
+    
+    crearRelacionesDatos() {
+        // Visualizar relaciones Dato → Dato como líneas especiales
+        if (!this.relacionesDatos || this.relacionesDatos.length === 0) return;
+        
+        console.log(`[Mapa] Creando ${this.relacionesDatos.length} relaciones entre datos...`);
+        
+        const coloresTipo = {
+            'deriva': 0xFF6B6B,
+            'alimenta': 0x4ECDC4,
+            'consolida': 0x95E1D3,
+            'referencia': 0xF38181,
+            'version': 0xAA96DA,
+            'sintetiza': 0xFCBAD3,
+            'desagrega': 0xFFD93D,
+            'valida': 0xA8E6CF,
+            'complementa': 0xFFD3A5,
+            'otro': 0xC9C9C9
+        };
+        
+        this.relacionesDatos.forEach(rel => {
+            // Buscar nodos de datos
+            const datoOrigen = this.grupoDatos.children.find(d => d.userData.data && d.userData.data.id === rel.dato_origen_id);
+            const datoDestino = this.grupoDatos.children.find(d => d.userData.data && d.userData.data.id === rel.dato_destino_id);
+            
+            if (!datoOrigen || !datoDestino) {
+                console.log(`  Saltando relación ${rel.id}: nodos no encontrados`);
+                return;
+            }
+            
+            const color = coloresTipo[rel.tipo_relacion] || 0xC9C9C9;
+            const desde = datoOrigen.position.clone();
+            const hacia = datoDestino.position.clone();
+            
+            // Ajustar altura
+            desde.y += 1;
+            hacia.y += 1;
+            
+            // Curva bezier
+            const mid = desde.clone().add(hacia).multiplyScalar(0.5);
+            mid.y += 5;
+            
+            const curve = new THREE.QuadraticBezierCurve3(desde, mid, hacia);
+            const points = curve.getPoints(25);
+            const geo = new THREE.BufferGeometry().setFromPoints(points);
+            
+            const mat = new THREE.LineBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.7,
+                linewidth: 3
+            });
+            
+            const line = new THREE.Line(geo, mat);
+            line.userData = {
+                tipo: 'relacion_dato',
+                relacion: rel
+            };
+            this.grupoRelacionesDatos.add(line);
+            
+            // Flecha indicadora de dirección
+            this.crearFlechaRelacion(desde, hacia, color);
+            
+            // Etiqueta del tipo de relación
+            this.crearEtiqueta(
+                rel.tipo_relacion_display,
+                mid,
+                color,
+                0.6
+            );
+            
+            console.log(`  ✓ Relación creada: ${rel.dato_origen_nombre} → ${rel.dato_destino_nombre}`);
+        });
+    }
+    
+    crearFlechaRelacion(desde, hacia, color) {
+        const direccion = new THREE.Vector3().subVectors(hacia, desde).normalize();
+        const distancia = desde.distanceTo(hacia);
+        const posicion = new THREE.Vector3().addVectors(desde, direccion.clone().multiplyScalar(distancia * 0.55));
+        
+        const geomCono = new THREE.ConeGeometry(0.25, 0.6, 6);
+        geomCono.rotateX(Math.PI / 2);
+        const matCono = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.85 });
+        const cono = new THREE.Mesh(geomCono, matCono);
+        cono.position.copy(posicion);
+        cono.lookAt(hacia);
+        cono.rotateX(Math.PI / 2);
+        
+        this.grupoRelacionesDatos.add(cono);
+    }
+    
+    crearEntidadExterna(nombreEntidad, tipoEntidad, index, total) {
+        // QUINTO ANILLO - Entidades externas en el perímetro (después de organismos 42)
+        const angulo = (index / total) * Math.PI * 2;
+        const radio = 50; // Quinto anillo, separado de organismos (radio 42)
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+        
+        // Configuración por tipo de entidad
+        const configs = {
+            gobierno_nacional: { color: 0x1E3A5F, forma: 'columnas', label: 'Gob. Nacional' },
+            gobierno_departamental: { color: 0x2E5090, forma: 'columnas', label: 'Gob. Departamental' },
+            organo_control: { color: 0x7C3AED, forma: 'balanza', label: 'Órgano Control' },
+            sector_privado: { color: 0x059669, forma: 'torre', label: 'Sector Privado' },
+            sector_academico: { color: 0xB45309, forma: 'libro', label: 'Sector Académico' },
+            cooperacion_internacional: { color: 0x0284C7, forma: 'globo', label: 'Coop. Internacional' },
+            sector_salud: { color: 0xDC2626, forma: 'cruz', label: 'Sector Salud' },
+            otro: { color: 0x64748B, forma: 'cubo', label: 'Entidad Externa' },
+        };
+        const config = configs[tipoEntidad] || configs['otro'];
+        
+        const grupoEdificio = new THREE.Group();
+        const matEdificio = new THREE.MeshLambertMaterial({ color: config.color, transparent: true, opacity: 0.85 });
+        let altura = 6;
+        
+        if (config.forma === 'columnas') {
+            // Edificio gubernamental con columnas
+            const base = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.5, 2.5), matEdificio);
+            base.position.set(0, 0.5, 0); grupoEdificio.add(base);
+            const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 2), matEdificio);
+            cuerpo.position.set(0, 3.25, 0); cuerpo.castShadow = true; grupoEdificio.add(cuerpo);
+            const techo = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.3, 2.5), matEdificio);
+            techo.position.set(0, 6.1, 0); grupoEdificio.add(techo);
+            const fronton = new THREE.Mesh(new THREE.ConeGeometry(2, 1.2, 4), matEdificio);
+            fronton.rotation.y = Math.PI / 4; fronton.position.set(0, 7, 0); grupoEdificio.add(fronton);
+            for (let c = -1; c <= 1; c += 1) {
+                const col = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 4.5, 8), new THREE.MeshLambertMaterial({ color: 0xCBD5E1 }));
+                col.position.set(c * 1.2, 3, 1.1); grupoEdificio.add(col);
+            }
+            altura = 8;
+        } else if (config.forma === 'balanza') {
+            // Balanza de justicia
+            const pilar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 5, 8), matEdificio);
+            pilar.position.set(0, 3, 0); grupoEdificio.add(pilar);
+            const barra = new THREE.Mesh(new THREE.BoxGeometry(4, 0.12, 0.12), new THREE.MeshLambertMaterial({ color: 0x94A3B8 }));
+            barra.position.set(0, 5.5, 0); grupoEdificio.add(barra);
+            const plato1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.08, 16), new THREE.MeshLambertMaterial({ color: 0x94A3B8 }));
+            plato1.position.set(-1.8, 5.2, 0); grupoEdificio.add(plato1);
+            const plato2 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.08, 16), new THREE.MeshLambertMaterial({ color: 0x94A3B8 }));
+            plato2.position.set(1.8, 5.2, 0); grupoEdificio.add(plato2);
+            altura = 6.5;
+        } else if (config.forma === 'torre') {
+            // Torre moderna (sector privado)
+            const torre = new THREE.Mesh(new THREE.BoxGeometry(2, 7, 2), matEdificio);
+            torre.position.set(0, 4, 0); torre.castShadow = true; grupoEdificio.add(torre);
+            for (let p = 0; p < 4; p++) {
+                const franja = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.25, 2.1), new THREE.MeshStandardMaterial({ color: 0x34D399, emissive: 0x34D399, emissiveIntensity: 0.3 }));
+                franja.position.set(0, 1.5 + p * 1.5, 0); grupoEdificio.add(franja);
+            }
+            altura = 8;
+        } else if (config.forma === 'libro') {
+            // Libro abierto (sector académico)
+            const libro1 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.3), matEdificio);
+            libro1.rotation.y = 0.15; libro1.position.set(-0.6, 2, 0); grupoEdificio.add(libro1);
+            const libro2 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.8, 0.3), matEdificio);
+            libro2.rotation.y = -0.15; libro2.position.set(0.6, 2, 0); grupoEdificio.add(libro2);
+            const birrete = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.15, 2.2), new THREE.MeshLambertMaterial({ color: 0xFBBF24 }));
+            birrete.position.set(0, 3.8, 0); grupoEdificio.add(birrete);
+            altura = 5;
+        } else if (config.forma === 'globo') {
+            // Globo terráqueo (cooperación internacional)
+            const esfera = new THREE.Mesh(new THREE.SphereGeometry(2.2, 16, 16), matEdificio);
+            esfera.position.set(0, 3, 0); grupoEdificio.add(esfera);
+            const anillo = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.08, 8, 32), new THREE.MeshLambertMaterial({ color: 0x38BDF8 }));
+            anillo.position.set(0, 3, 0); grupoEdificio.add(anillo);
+            altura = 5.5;
+        } else if (config.forma === 'cruz') {
+            // Hospital con cruz (sector salud)
+            const edificio = new THREE.Mesh(new THREE.BoxGeometry(3, 4.5, 3), matEdificio);
+            edificio.position.set(0, 3, 0); edificio.castShadow = true; grupoEdificio.add(edificio);
+            const cruzV = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.3, 0.1), new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
+            cruzV.position.set(0, 5, 1.55); grupoEdificio.add(cruzV);
+            const cruzH = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.4, 0.1), new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
+            cruzH.position.set(0, 5, 1.55); grupoEdificio.add(cruzH);
+            altura = 6;
+        } else {
+            // Cubo genérico (otro)
+            const cubo = new THREE.Mesh(new THREE.BoxGeometry(3, 5.5, 3), matEdificio);
+            cubo.position.set(0, 3.5, 0); cubo.castShadow = true; grupoEdificio.add(cubo);
+            for (let p = 0; p < 3; p++) {
+                for (let v = 0; v < 2; v++) {
+                    const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.1), new THREE.MeshStandardMaterial({ color: 0xFFFF00, emissive: 0xFFFF00, emissiveIntensity: 0.5 }));
+                    ventana.position.set(v === 0 ? -0.9 : 0.9, 1.8 + p * 1.8, 1.55);
+                    grupoEdificio.add(ventana);
+                }
+            }
+            altura = 7;
+        }
+        
+        // Techo para todas las formas
+        const techoGeom = new THREE.BoxGeometry(3.2, 0.3, 3.2);
+        const techoMat = new THREE.MeshLambertMaterial({ color: config.color });
+        const techo = new THREE.Mesh(techoGeom, techoMat);
+        techo.position.set(0, altura + 0.5, 0);
+        grupoEdificio.add(techo);
+        
+        // Base circular identificadora
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.1, 32), new THREE.MeshLambertMaterial({ color: config.color, transparent: true, opacity: 0.4 }));
+        base.position.set(0, 0.1, 0); grupoEdificio.add(base);
+        
+        // Posicionar grupo completo
+        grupoEdificio.position.set(x, 0, z);
+        grupoEdificio.userData = { tipo: 'entidad_externa', nombre: nombreEntidad, tipo_entidad: tipoEntidad };
+        
+        this.grupoExternos.add(grupoEdificio);
+        
+        // Etiqueta con tipo
+        this.crearEtiqueta(`${config.label} ${nombreEntidad}`, new THREE.Vector3(x, altura + 2, z), 0xCCCCCC);
+    }
+    
+    crearCasasSociedadCivil() {
+        // CENTRO DEL MAPA - Sociedad civil como núcleo (SIMPLIFICADO)
+        const numCasas = 5; // Reducido de 8 a 5
+        
+        // Punto de conexión en el centro
+        this.posicionSociedadCivil = new THREE.Vector3(0, 1, 0);
+        
+        // Colores más uniformes (azules claros y techos rojos)
+        const colorCuerpo = 0x90CAF9;
+        const colorTecho = 0xE53935;
+        
+        for (let i = 0; i < numCasas; i++) {
+            const angulo = (i / numCasas) * Math.PI * 2;
+            // Círculo pequeño en el centro
+            const radio = 4;
+            const x = Math.cos(angulo) * radio;
+            const z = Math.sin(angulo) * radio;
+            
+            const grupoCasa = new THREE.Group();
+            
+            // Cuerpo simplificado (solo caja + techo)
+            const cuerpoGeom = new THREE.BoxGeometry(1.6, 1.4, 1.6);
+            const cuerpoMat = new THREE.MeshLambertMaterial({ color: colorCuerpo });
+            const cuerpo = new THREE.Mesh(cuerpoGeom, cuerpoMat);
+            cuerpo.position.set(0, 1.1, 0);
+            cuerpo.castShadow = true;
+            grupoCasa.add(cuerpo);
+            
+            // Techo simplificado (sin puerta ni ventana)
+            const techoGeom = new THREE.ConeGeometry(1.3, 1.0, 4);
+            const techoMat = new THREE.MeshLambertMaterial({ color: colorTecho });
+            const techo = new THREE.Mesh(techoGeom, techoMat);
+            techo.position.set(0, 2.3, 0);
+            techo.rotation.y = Math.PI / 4;
+            techo.castShadow = true;
+            grupoCasa.add(techo);
+            
+            grupoCasa.position.set(x, 0, z);
+            grupoCasa.rotation.y = -angulo + Math.PI / 2;
+            grupoCasa.userData = { tipo: 'sociedad_civil', nombre: 'Sociedad Civil / Ciudadanía' };
+            this.grupoExternos.add(grupoCasa);
+        }
+        
+        this.crearEtiqueta(
+            '🏠 Sociedad Civil / Ciudadanía',
+            new THREE.Vector3(0, 6, 0),
+            0x3B82F6
+        );
+    }
+    
+    crearEscritorioOrganismo(organismoId, organismoNombre, index, total) {
+        // CUARTO ANILLO - Organismos de la alcaldía (separado de datos: radio 28-36)
+        const angulo = (index / total) * Math.PI * 2;
+        const radio = 42; // Cuarto anillo, separado de datos (radio 28-36)
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+        
+        // Guardar posición para flujos
+        this.posicionesOrganismos[organismoId] = new THREE.Vector3(x, 2, z);
+        
+        const grupoEscritorio = new THREE.Group();
+        
+        // Superficie de la mesa
+        const mesaGeom = new THREE.BoxGeometry(3.2, 0.15, 2.2);
+        const mesaMat = new THREE.MeshLambertMaterial({ color: 0x8D6E63 });
+        const mesa = new THREE.Mesh(mesaGeom, mesaMat);
+        mesa.position.set(0, 1.5, 0);
+        mesa.castShadow = true;
+        grupoEscritorio.add(mesa);
+        
+        // Patas (4)
+        const pataMat = new THREE.MeshLambertMaterial({ color: 0x6D4C41 });
+        [[-1.3, -0.8], [-1.3, 0.8], [1.3, -0.8], [1.3, 0.8]].forEach(([px, pz]) => {
+            const pataGeom = new THREE.CylinderGeometry(0.08, 0.08, 1.5, 6);
+            const pata = new THREE.Mesh(pataGeom, pataMat);
+            pata.position.set(px, 0.75, pz);
+            grupoEscritorio.add(pata);
+        });
+        
+        // ── Laptop PC portátil ──
+        // Base (teclado)
+        const baseLaptopGeom = new THREE.BoxGeometry(1.6, 0.06, 1.05);
+        const baseLaptopMat = new THREE.MeshLambertMaterial({ color: 0x37474F });
+        const baseLaptop = new THREE.Mesh(baseLaptopGeom, baseLaptopMat);
+        baseLaptop.position.set(0, 1.58, 0.1);
+        baseLaptop.castShadow = true;
+        grupoEscritorio.add(baseLaptop);
+        
+        // Teclas
+        const teclasGeom = new THREE.BoxGeometry(1.3, 0.03, 0.72);
+        const teclasMat = new THREE.MeshLambertMaterial({ color: 0x546E7A });
+        const teclas = new THREE.Mesh(teclasGeom, teclasMat);
+        teclas.position.set(0, 1.62, 0.1);
+        grupoEscritorio.add(teclas);
+        
+        // Pantalla (pivota desde el borde trasero del teclado)
+        const pivotPantalla = new THREE.Group();
+        pivotPantalla.position.set(0, 1.58, -0.42);
+        pivotPantalla.rotation.x = -1.85; // ≈ 106° abierta
+        
+        const marcoGeom = new THREE.BoxGeometry(1.6, 0.05, 1.1);
+        const marcoMat = new THREE.MeshLambertMaterial({ color: 0x263238 });
+        const marco = new THREE.Mesh(marcoGeom, marcoMat);
+        marco.position.set(0, 0, -0.55);
+        pivotPantalla.add(marco);
+        
+        const pantallaGeom = new THREE.BoxGeometry(1.44, 0.04, 0.92);
+        const pantallaMat = new THREE.MeshStandardMaterial({
+            color: 0x00BFFF, emissive: 0x00BFFF, emissiveIntensity: 0.55
+        });
+        const pantalla = new THREE.Mesh(pantallaGeom, pantallaMat);
+        pantalla.position.set(0, 0.03, -0.55);
+        pivotPantalla.add(pantalla);
+        
+        grupoEscritorio.add(pivotPantalla);
+        
+        grupoEscritorio.position.set(x, 0, z);
+        grupoEscritorio.userData = { tipo: 'organismo_alcaldia', id: organismoId, nombre: organismoNombre };
+        this.grupoExternos.add(grupoEscritorio);
+        
+        this.crearEtiqueta(
+            `🗂️ ${organismoNombre}`,
+            new THREE.Vector3(x, 5.5, z),
+            0xF59E0B
+        );
+    }
+    
+    crearSubsistema(subsistema, index) {
+        // PRIMER ANILLO - Subsistemas alrededor de sociedad civil
+        const angulo = (index / this.subsistemas.length) * Math.PI * 2;
+        const radio = 12; // Primer anillo
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+        
+        // COMPUTADORA RETRO ESTILO AÑOS 80
+        const grupoComputadora = new THREE.Group();
+        
+        // Monitor (caja principal)
+        const monitorGeom = new THREE.BoxGeometry(3, 2.5, 0.4);
+        const monitorMat = new THREE.MeshLambertMaterial({ 
+            color: 0xCCCCCC, // Beige/gris claro
+            transparent: false
+        });
+        const monitor = new THREE.Mesh(monitorGeom, monitorMat);
+        monitor.position.set(0, 2.5, 0);
+        monitor.castShadow = true;
+        grupoComputadora.add(monitor);
+        
+        // Pantalla (verde fosforescente retro)
+        const pantallaGeom = new THREE.BoxGeometry(2.5, 2, 0.1);
+        const pantallaMat = new THREE.MeshStandardMaterial({ 
+            color: 0x00FF00, // Verde fosforescente
+            emissive: 0x00FF00,
+            emissiveIntensity: 0.6
+        });
+        const pantalla = new THREE.Mesh(pantallaGeom, pantallaMat);
+        pantalla.position.set(0, 2.5, 0.25);
+        grupoComputadora.add(pantalla);
+        
+        // Borde de la pantalla (más oscuro)
+        const bordeGeom = new THREE.BoxGeometry(2.7, 2.2, 0.05);
+        const bordeMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        const borde = new THREE.Mesh(bordeGeom, bordeMat);
+        borde.position.set(0, 2.5, 0.15);
+        grupoComputadora.add(borde);
+        
+        // Teclado (base)
+        const tecladoGeom = new THREE.BoxGeometry(2.8, 0.2, 1.2);
+        const tecladoMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
+        const teclado = new THREE.Mesh(tecladoGeom, tecladoMat);
+        teclado.position.set(0, 0.6, 0.6);
+        teclado.castShadow = true;
+        grupoComputadora.add(teclado);
+        
+        // Teclas (detalles)
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 8; j++) {
+                const teclaGeom = new THREE.BoxGeometry(0.15, 0.05, 0.15);
+                const teclaMat = new THREE.MeshLambertMaterial({ color: 0xDDDDDD });
+                const tecla = new THREE.Mesh(teclaGeom, teclaMat);
+                tecla.position.set(-1 + j * 0.25, 0.72, 0.2 + i * 0.2);
+                grupoComputadora.add(tecla);
+            }
+        }
+        
+        // Base/soporte del monitor
+        const soporteGeom = new THREE.CylinderGeometry(0.3, 0.5, 1.5, 8);
+        const soporteMat = new THREE.MeshLambertMaterial({ color: 0x999999 });
+        const soporte = new THREE.Mesh(soporteGeom, soporteMat);
+        soporte.position.set(0, 1.5, 0);
+        grupoComputadora.add(soporte);
+        
+        // Posicionar grupo completo
+        grupoComputadora.position.set(x, 0, z);
+        grupoComputadora.userData = { tipo: 'subsistema', data: subsistema };
+        
+        this.grupoSubsistemas.add(grupoComputadora);
+        
+        // Etiqueta flotante
+        this.crearEtiqueta(subsistema.nombre, new THREE.Vector3(x, 5, z));
+    }
+    
+    crearActor(participante, index) {
+        // ÓRBITA DE ACTORES - Más cerca del centro, separada de datos
+        const angulo = (index / this.participantes.length) * Math.PI * 2 + Math.random() * 0.15;
+        const radio = 15 + Math.random() * 2; // Radio 15-17, separado de datos (28-36)
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+        
+        // Color del rol primario
+        const colorPrimario = COLORES_FAMILIA[participante.rol_primario__familia__codigo] || 0x6B7280;
+        
+        // Esfera principal (rol primario)
+        const geom = new THREE.SphereGeometry(1.2, 16, 16);
+        const mat = new THREE.MeshStandardMaterial({ 
+            color: colorPrimario,
+            emissive: colorPrimario,
+            emissiveIntensity: 0.3
+        });
+        const esfera = new THREE.Mesh(geom, mat);
+        esfera.position.set(x, 3, z);
+        esfera.castShadow = true;
+        esfera.userData = { tipo: 'actor', data: participante };
+        
+        this.grupoActores.add(esfera);
+        
+        // Si tiene rol secundario, agregar esfera más pequeña al lado
+        if (participante.rol_secundario__familia__codigo) {
+            const colorSecundario = COLORES_FAMILIA[participante.rol_secundario__familia__codigo] || 0x6B7280;
+            
+            const geomSec = new THREE.SphereGeometry(0.8, 12, 12);
+            const matSec = new THREE.MeshStandardMaterial({ 
+                color: colorSecundario,
+                emissive: colorSecundario,
+                emissiveIntensity: 0.3
+            });
+            const esferaSec = new THREE.Mesh(geomSec, matSec);
+            esferaSec.position.set(x + 2.5, 3, z + 1.5); // Más separado y a la misma altura
+            esferaSec.castShadow = true;
+            esferaSec.userData = { tipo: 'actor_secundario', data: participante };
+            
+            this.grupoActores.add(esferaSec);
+            
+            // Línea conectando ambos roles
+            const puntos = [
+                new THREE.Vector3(x, 3, z),
+                new THREE.Vector3(x + 2.5, 3, z + 1.5)
+            ];
+            const geometriaLinea = new THREE.BufferGeometry().setFromPoints(puntos);
+            const materialLinea = new THREE.LineBasicMaterial({ 
+                color: 0x94A3B8,
+                transparent: true,
+                opacity: 0.5,
+                linewidth: 1
+            });
+            const linea = new THREE.Line(geometriaLinea, materialLinea);
+            this.grupoActores.add(linea);
+        }
+        
+        // Etiqueta con nombre
+        this.crearEtiqueta(participante.nombre_completo, new THREE.Vector3(x, 5, z));
+    }
+    
+    crearFlujo(flujo) {
+        // Nuevo modelo: [Recibe de] → [Participante central] → [Envía a]
+        
+        console.log('[Flujo] Creando flujo:', flujo.id, 'para participante:', flujo.participante_id);
+        console.log('   Datos completos del flujo:', JSON.stringify(flujo, null, 2));
+        
+        // Participante central que maneja el flujo (obligatorio)
+        const participanteCentral = this.grupoActores.children.find(a => 
+            a.userData.data && a.userData.data.id === flujo.participante_id
+        );
+        
+        if (!participanteCentral) {
+            console.warn('WARN: No se encontro participante central con id:', flujo.participante_id);
+            console.log('   Actores disponibles:', this.grupoActores.children.map(a => a.userData.data?.id));
+            return;
+        }
+        
+        console.log('[Flujo] Participante central encontrado en posicion:', participanteCentral.position);
+        
+        // Determinar origen (de dónde recibe)
+        let origenPos = null;
+        
+        console.log('  [Flujo] Analizando origen...');
+        
+        if (flujo.recibe_de_participante_id) {
+            const origenActor = this.grupoActores.children.find(a => 
+                a.userData.data && a.userData.data.id === flujo.recibe_de_participante_id
+            );
+            if (origenActor) {
+                origenPos = origenActor.position.clone();
+                console.log('  Origen (participante):', flujo.recibe_de_participante_id);
+            }
+        } else if (flujo.recibe_de_subsistema_id) {
+            const origenSub = this.grupoSubsistemas.children.find(s => 
+                s.userData.data && s.userData.data.id === flujo.recibe_de_subsistema_id
+            );
+            if (origenSub) {
+                origenPos = origenSub.position.clone();
+                console.log('  Origen (subsistema):', flujo.recibe_de_subsistema_id);
+            }
+        } else if (flujo.recibe_de_sociedad_civil === true) {
+            // Sociedad Civil: posición fija del cluster de casas
+            origenPos = this.posicionSociedadCivil || new THREE.Vector3(0, 1, 30);
+            console.log('  Origen (Sociedad Civil)');
+        } else if (flujo.recibe_de_organismo_id) {
+            // Organismo de la Alcaldía: posición fija del escritorio
+            origenPos = this.posicionesOrganismos[flujo.recibe_de_organismo_id] ||
+                new THREE.Vector3(Math.cos(Math.random() * Math.PI * 2) * 35, 1, Math.sin(Math.random() * Math.PI * 2) * 35);
+            console.log('  Origen (Organismo Alcaldia):', flujo.recibe_de_organismo_nombre);
+        } else if (flujo.recibe_de_entidad_externa && flujo.recibe_de_entidad_externa.trim() !== '') {
+            // Entidad Externa: buscar edificio ya creado o usar posición fuera (radio > 40)
+            console.log('  Buscando edificio para:', flujo.recibe_de_entidad_externa);
+            console.log('  Edificios disponibles:', this.grupoExternos.children.map(e => e.userData.nombre));
+            
+            const edificioExistente = this.grupoExternos.children.find(e => 
+                e.userData.nombre === flujo.recibe_de_entidad_externa
+            );
+            if (edificioExistente) {
+                origenPos = edificioExistente.position.clone();
+                origenPos.y = 3; // Altura media del edificio
+                console.log('  Edificio encontrado en posicion:', origenPos);
+            } else {
+                // Fallback: crear posición virtual
+                const angulo = Math.random() * Math.PI * 2;
+                origenPos = new THREE.Vector3(
+                    Math.cos(angulo) * 50,
+                    3,
+                    Math.sin(angulo) * 50
+                );
+                console.log('  Edificio no encontrado, usando posicion virtual');
+            }
+            console.log('  Origen (Entidad Externa):', flujo.recibe_de_entidad_externa);
+        }
+        
+        if (!origenPos) {
+            console.log('  WARN: No se pudo determinar origen del flujo');
+        }
+        
+        // Determinar destino (a dónde envía)
+        let destinoPos = null;
+        
+        console.log('  [Flujo] Analizando destino...');
+        
+        if (flujo.envia_a_participante_id) {
+            const destinoActor = this.grupoActores.children.find(a => 
+                a.userData.data && a.userData.data.id === flujo.envia_a_participante_id
+            );
+            if (destinoActor) {
+                destinoPos = destinoActor.position.clone();
+                console.log('  Destino (participante):', flujo.envia_a_participante_id);
+            }
+        } else if (flujo.envia_a_subsistema_id) {
+            const destinoSub = this.grupoSubsistemas.children.find(s => 
+                s.userData.data && s.userData.data.id === flujo.envia_a_subsistema_id
+            );
+            if (destinoSub) {
+                destinoPos = destinoSub.position.clone();
+                console.log('  Destino (subsistema):', flujo.envia_a_subsistema_id);
+            }
+        } else if (flujo.envia_a_sociedad_civil === true) {
+            // Sociedad Civil: posición fija del cluster de casas
+            destinoPos = this.posicionSociedadCivil || new THREE.Vector3(0, 1, 30);
+            console.log('  Destino (Sociedad Civil)');
+        } else if (flujo.envia_a_organismo_id) {
+            // Organismo de la Alcaldía: posición fija del escritorio
+            destinoPos = this.posicionesOrganismos[flujo.envia_a_organismo_id] ||
+                new THREE.Vector3(Math.cos(Math.random() * Math.PI * 2) * 42, 1, Math.sin(Math.random() * Math.PI * 2) * 42);
+            console.log('  Destino (Organismo Alcaldia):', flujo.envia_a_organismo_nombre);
+        } else if (flujo.envia_a_entidad_externa && flujo.envia_a_entidad_externa.trim() !== '') {
+            // Entidad Externa: buscar edificio ya creado o usar posición fuera (radio > 40)
+            console.log('  Buscando edificio destino para:', flujo.envia_a_entidad_externa);
+            console.log('  Edificios disponibles:', this.grupoExternos.children.map(e => e.userData.nombre));
+            
+            const edificioExistente = this.grupoExternos.children.find(e => 
+                e.userData.nombre === flujo.envia_a_entidad_externa
+            );
+            if (edificioExistente) {
+                destinoPos = edificioExistente.position.clone();
+                destinoPos.y = 3; // Altura media del edificio
+                console.log('  Edificio destino encontrado en posicion:', destinoPos);
+            } else {
+                // Fallback: crear posición virtual
+                const angulo = Math.random() * Math.PI * 2;
+                destinoPos = new THREE.Vector3(
+                    Math.cos(angulo) * 45,
+                    3,
+                    Math.sin(angulo) * 45
+                );
+                console.log('  Edificio destino no encontrado, usando posicion virtual');
+            }
+            console.log('  Destino (Entidad Externa):', flujo.envia_a_entidad_externa);
+        }
+        
+        if (!destinoPos) {
+            console.log('  WARN: No se pudo determinar destino del flujo');
+        }
+        
+        const centroPos = participanteCentral.position.clone();
+        
+        // Determinar altura y material basado en la clasificación del dato (si existe)
+        const dato = flujo.descripcion_datos;
+        const clasificacion = this.clasificaciones ? this.clasificaciones[dato] : null;
+        
+        // Altura por defecto (operativo o sin clasificar)
+        let alturaSalto = 6 + Math.random() * 3;
+        if (clasificacion) {
+            if (clasificacion.nivel === 'tactico') alturaSalto = 15 + Math.random() * 5;
+            if (clasificacion.nivel === 'estrategico') alturaSalto = 30 + Math.random() * 10;
+        }
+
+        // Color según tipo_interaccion (Torres 2026)
+        // Usar tipo_interaccion_recibe primero, o envia como fallback
+        const tipoInteraccion = flujo.tipo_interaccion_recibe || flujo.tipo_interaccion_envia || '';
+        let colorFlujo = 0x6B7280; // Default gris
+        if (tipoInteraccion === 'IF') colorFlujo = 0x3B82F6; // Azul - Funcional
+        else if (tipoInteraccion === 'IT') colorFlujo = 0x10B981; // Verde - Técnica
+        else if (tipoInteraccion === 'ID') colorFlujo = 0x8B5CF6; // Púrpura - Decisión
+        else if (tipoInteraccion === 'IV') colorFlujo = 0xF59E0B; // Amarillo - Valor
+                         
+        let materialConfig = {
+            color: colorFlujo,
+            transparent: true,
+            opacity: 0.5,
+            linewidth: 2
+        };
+
+        if (clasificacion) {
+            if (clasificacion.sensibilidad === 'publico') {
+                // Brillante y resaltado (estrellas fugaces)
+                // Mantener color del tipo de flujo, solo aumentar intensidad
+                materialConfig.opacity = 1.0;
+                materialConfig.linewidth = 3;
+            } else if (clasificacion.sensibilidad === 'critico' || clasificacion.sensibilidad === 'confidencial') {
+                // Oscuro y opaco (blindado)
+                // Mantener color del tipo de flujo, solo reducir opacidad
+                materialConfig.opacity = 0.3;
+                materialConfig.linewidth = 1;
+            }
+        }
+        
+        // Crear línea de entrada (origen → participante)
+        if (origenPos) {
+            console.log('  ✅ Creando línea de entrada');
+            const mid1 = origenPos.clone().add(centroPos).multiplyScalar(0.5);
+            mid1.y += alturaSalto;
+            
+            const curve1 = new THREE.QuadraticBezierCurve3(origenPos, mid1, centroPos);
+            const points1 = curve1.getPoints(20);
+            const geometry1 = new THREE.BufferGeometry().setFromPoints(points1);
+            
+            const mat1 = new THREE.LineBasicMaterial(materialConfig);
+            
+            const line1 = new THREE.Line(geometry1, mat1);
+            line1.userData = { tipo: 'flujo_entrada', data: flujo };
+            this.grupoFlujos.add(line1);
+        }
+        
+        // Crear línea de salida (participante → destino)
+        if (destinoPos) {
+            console.log('  ✅ Creando línea de salida');
+            const mid2 = centroPos.clone().add(destinoPos).multiplyScalar(0.5);
+            mid2.y += alturaSalto;
+            
+            const curve2 = new THREE.QuadraticBezierCurve3(centroPos, mid2, destinoPos);
+            const points2 = curve2.getPoints(20);
+            const geometry2 = new THREE.BufferGeometry().setFromPoints(points2);
+            
+            const mat2 = new THREE.LineBasicMaterial(materialConfig);
+            
+            const line2 = new THREE.Line(geometry2, mat2);
+            line2.userData = { tipo: 'flujo_salida', data: flujo };
+            this.grupoFlujos.add(line2);
+        }
+        
+        // === LÍNEA PRINCIPAL: Participante ↔ Dato (Torres 2026) ===
+        if (flujo.dato_id && this.posicionesDatos[flujo.dato_id]) {
+            const datoPos = this.posicionesDatos[flujo.dato_id];
+            console.log('  ✅ Creando línea Participante ↔ Dato:', flujo.dato_id);
+            
+            const midDato = centroPos.clone().add(datoPos).multiplyScalar(0.5);
+            midDato.y += alturaSalto * 0.8; // Ligeramente más baja
+            
+            const curveDato = new THREE.QuadraticBezierCurve3(centroPos, midDato, datoPos);
+            const pointsDato = curveDato.getPoints(20);
+            const geometryDato = new THREE.BufferGeometry().setFromPoints(pointsDato);
+            
+            const matDato = new THREE.LineBasicMaterial({
+                ...materialConfig,
+                linewidth: 3 // Más gruesa para destacar
+            });
+            
+            const lineDato = new THREE.Line(geometryDato, matDato);
+            lineDato.userData = { tipo: 'flujo_dato', data: flujo };
+            this.grupoFlujos.add(lineDato);
+        } else {
+            console.log('  ⚠️ No se encontró posición del dato:', flujo.dato_id);
+        }
+    }
+    
+    crearEtiqueta(texto, posicion, color = 0x64748B) {
+        // Crear sprite de texto con manejo inteligente de texto largo
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        // Configuración inicial
+        const fontSize = 16;
+        const padding = 20;
+        const maxWidth = 400;
+        const lineHeight = 22;
+        
+        context.font = `Bold ${fontSize}px Arial`;
+        
+        // Función para dividir texto en líneas
+        function wrapText(text, maxWidth) {
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            for (let word of words) {
+                const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                const metrics = context.measureText(testLine);
+                
+                if (metrics.width > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            // Limitar a máximo 3 líneas
+            if (lines.length > 3) {
+                const lastLine = lines[2];
+                const truncated = lastLine.substring(0, Math.max(0, lastLine.length - 3)) + '...';
+                lines[2] = truncated;
+                return lines.slice(0, 3);
+            }
+            
+            return lines;
+        }
+        
+        // Dividir texto en líneas
+        const lines = wrapText(texto, maxWidth);
+        
+        // Calcular dimensiones del canvas
+        const canvasWidth = Math.min(maxWidth + padding * 2, 512);
+        const canvasHeight = lines.length * lineHeight + padding * 2;
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Redibujar con el tamaño correcto
+        context.font = `Bold ${fontSize}px Arial`;
+        context.fillStyle = 'rgba(45, 80, 22, 0.9)';
+        context.fillRect(0, 0, canvasWidth, canvasHeight);
+        
+        // Convertir color hex a string CSS
+        const colorStr = '#' + color.toString(16).padStart(6, '0');
+        context.fillStyle = colorStr;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        
+        // Dibujar cada línea
+        const startY = canvasHeight / 2 - (lines.length - 1) * lineHeight / 2;
+        lines.forEach((line, index) => {
+            const y = startY + index * lineHeight;
+            context.fillText(line, canvasWidth / 2, y);
+        });
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+        sprite.position.copy(posicion);
+        
+        // Escalar proporcionalmente al tamaño del texto
+        const scaleX = canvasWidth / 64; // Base: 64px = 8 unidades
+        const scaleY = canvasHeight / 64; // Base: 64px = 2 unidades
+        sprite.scale.set(scaleX, scaleY, 1);
+        
+        this.grupoSubsistemas.add(sprite);
+    }
+    
+    setupEventListeners() {
+        // Filtros
+        document.querySelectorAll('.filtro-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                document.querySelectorAll('.filtro-item').forEach(i => i.classList.remove('activo'));
+                e.currentTarget.classList.add('activo');
+                this.filtroActivo = e.currentTarget.dataset.filtro;
+                this.aplicarFiltro();
+            });
+        });
+        
+        // Controles de Zoom
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            this.targetZoom = Math.min(this.targetZoom + 0.3, this.maxZoom);
+        });
+        
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            this.targetZoom = Math.max(this.targetZoom - 0.3, this.minZoom);
+        });
+        
+        document.getElementById('zoom-reset').addEventListener('click', () => {
+            this.targetZoom = 1;
+        });
+        
+        // Zoom con rueda del mouse
+        this.renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.1 : -0.1;
+            this.targetZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.targetZoom + delta));
+        });
+        
+        // Mouse move para tooltip
+        this.renderer.domElement.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        
+        // Click para seleccionar
+        this.renderer.domElement.addEventListener('click', (e) => this.onClick(e));
+        
+        // Setup cierre de tooltip
+        this.setupTooltipClose();
+    }
+    
+    aplicarFiltro() {
+        // Mostrar/ocultar elementos según filtro
+        this.grupoActores.children.forEach(actor => {
+            if (this.filtroActivo === 'todos') {
+                actor.visible = true;
+            } else {
+                // Para filtros de flujos, sensibilidad y nivel, mostrar todos los actores
+                // ya que los actores son los que manejan los flujos
+                actor.visible = true;
+            }
+        });
+        
+        this.grupoFlujos.children.forEach(flujo => {
+            if (this.filtroActivo === 'todos') {
+                flujo.visible = true;
+            } else if (this.filtroActivo === 'flujos-internos') {
+                flujo.visible = flujo.userData.data.tipo === 'interno';
+            } else if (this.filtroActivo === 'flujos-inter-sub') {
+                flujo.visible = flujo.userData.data.tipo === 'inter_sub';
+            } else if (this.filtroActivo === 'flujos-externos') {
+                flujo.visible = flujo.userData.data.tipo === 'externo';
+            } else if (this.filtroActivo.startsWith('sensibilidad-')) {
+                // Filtrar por sensibilidad del dato
+                const sensibilidad = this.filtroActivo.split('-')[1];
+                const dato = flujo.userData.data.descripcion_datos;
+                const clasificacion = this.clasificaciones ? this.clasificaciones[dato] : null;
+                
+                if (clasificacion) {
+                    flujo.visible = clasificacion.sensibilidad === sensibilidad;
+                } else {
+                    // Si no tiene clasificación, tratar como 'interno' por defecto
+                    flujo.visible = sensibilidad === 'interno';
+                }
+            } else if (this.filtroActivo.startsWith('nivel-')) {
+                // Filtrar por nivel del dato
+                const nivel = this.filtroActivo.split('-')[1];
+                const dato = flujo.userData.data.descripcion_datos;
+                const clasificacion = this.clasificaciones ? this.clasificaciones[dato] : null;
+                
+                if (clasificacion) {
+                    flujo.visible = clasificacion.nivel === nivel;
+                } else {
+                    // Si no tiene clasificación, tratar como 'operativo' por defecto
+                    flujo.visible = nivel === 'operativo';
+                }
+            } else {
+                flujo.visible = false; // Ocultar por defecto para filtros desconocidos
+            }
+        });
+    }
+    
+    onMouseMove(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects([
+            ...this.grupoActores.children, 
+            ...this.grupoSubsistemas.children,
+            ...this.grupoExternos.children,
+            ...this.grupoDatos.children,
+            ...this.grupoRelacionesDatos.children
+        ], true);
+        
+        if (intersects.length > 0) {
+            let obj = intersects[0].object;
+            // Buscar el objeto padre que tenga userData.tipo
+            while (obj.parent && !obj.userData.tipo) {
+                obj = obj.parent;
+            }
+            if (obj.userData.tipo === 'actor') {
+                this.mostrarTooltip(obj.userData.data, event.clientX, event.clientY);
+            } else if (obj.userData.tipo === 'subsistema') {
+                this.mostrarTooltip(obj.userData.data, event.clientX, event.clientY);
+            } else if (obj.userData.tipo === 'entidad_externa') {
+                this.mostrarTooltipEntidadExterna(obj.userData, event.clientX, event.clientY);
+            } else if (obj.userData.tipo === 'dato') {
+                const d = obj.userData.data;
+                const nivelDisplay = {
+                    'estrategico': '🎯 Estratégico',
+                    'tactico': '📊 Táctico',
+                    'operativo': '⚙️ Operativo'
+                }[d.nivel] || '📄 Sin clasificar';
+                
+                const colorNivel = {
+                    'estrategico': '#EF4444',
+                    'tactico': '#F59E0B',
+                    'operativo': '#10B981'
+                }[d.nivel] || '#64748B';
+                
+                let html = `<strong style="font-size:1.05em">${obj.userData.nombre}</strong><br>`;
+                html += `<span style="color:${colorNivel};font-weight:600">${nivelDisplay}</span><br>`;
+                html += `<small style="color:var(--inst-muted)">Conexiones: ${d.num_flujos || 0}</small>`;
+                if (d.es_critico) html += `<br><span style="color:#DC2626">🔴 Crítico</span>`;
+                if (d.es_huerfano) html += `<br><span style="color:#9CA3AF">⚠️ Huérfano</span>`;
+                html += `<br><em style="color:var(--inst-accent);font-size:0.9em">🖱️ Clic para ver mapa del dato</em>`;
+                
+                this.tooltipContent.innerHTML = html;
+                this.tooltip.style.left = event.clientX + 15 + 'px';
+                this.tooltip.style.top = event.clientY + 15 + 'px';
+                this.tooltip.classList.add('visible');
+                this.renderer.domElement.style.cursor = 'pointer';
+            } else if (obj.userData.tipo === 'relacion_dato') {
+                const r = obj.userData.relacion;
+                this.tooltipContent.innerHTML = `<strong>🔗 ${r.tipo_relacion_display}</strong><br>${r.dato_origen_nombre} → ${r.dato_destino_nombre}<br><small>${r.descripcion || ''}</small>`;
+                this.tooltip.style.left = event.clientX + 15 + 'px';
+                this.tooltip.style.top = event.clientY + 15 + 'px';
+                this.tooltip.classList.add('visible');
+            }
+        } else {
+            this.ocultarTooltip();
+            this.renderer.domElement.style.cursor = 'default';
+        }
+    }
+    
+    onClick(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects([
+            ...this.grupoDatos.children,
+        ], true);
+        
+        if (intersects.length > 0) {
+            let obj = intersects[0].object;
+            while (obj.parent && !obj.userData.tipo) obj = obj.parent;
+            if (obj.userData.tipo === 'dato' && obj.userData.id) {
+                // Navegar al Mapa del Dato
+                window.open(`/taller/mapa-dato/${obj.userData.id}/`, '_blank');
+            }
+        }
+    }
+    
+    mostrarTooltip(data, x, y) {
+        let contenido = '';
+        if (data.nombre_completo) {
+            // Es un actor
+            contenido = `
+                <strong>${data.nombre_completo}</strong><br>
+                ${data.area_funcional}<br>
+                <em>${data.rol_primario__nombre || 'Sin rol'}</em>
+            `;
+        } else if (data.nombre) {
+            // Es un subsistema
+            contenido = `
+                <strong>${data.nombre}</strong><br>
+                Tipo: ${data.tipo}
+            `;
+        }
+        
+        this.tooltipContent.innerHTML = contenido;
+        this.tooltip.style.left = x + 15 + 'px';
+        this.tooltip.style.top = y + 15 + 'px';
+        this.tooltip.classList.add('visible');
+    }
+    
+    mostrarTooltipEntidadExterna(userData, x, y) {
+        const configs = {
+            gobierno_nacional: 'Gobierno Nacional',
+            gobierno_departamental: 'Gobierno Departamental',
+            organo_control: 'Órgano de Control',
+            sector_privado: 'Sector Privado',
+            sector_academico: 'Sector Académico',
+            cooperacion_internacional: 'Cooperación Internacional',
+            sector_salud: 'Sector Salud',
+            otro: 'Entidad Externa',
+        };
+        const tipoLabel = configs[userData.tipo_entidad] || 'Entidad Externa';
+        const contenido = `<strong>${tipoLabel}</strong><br>${userData.nombre}`;
+        
+        this.tooltipContent.innerHTML = contenido;
+        this.tooltip.style.left = x + 15 + 'px';
+        this.tooltip.style.top = y + 15 + 'px';
+        this.tooltip.classList.add('visible');
+    }
+    
+    ocultarTooltip() {
+        this.tooltip.classList.remove('visible');
+    }
+    
+    setupTooltipClose() {
+        // Botón de cierre del tooltip
+        const closeBtn = document.getElementById('tooltip-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.ocultarTooltip();
+            });
+        }
+        
+        // Cerrar tooltip al hacer click en el canvas (fuera del tooltip)
+        this.renderer.domElement.addEventListener('click', (e) => {
+            // Solo cerrar si no estamos haciendo hover sobre un objeto
+            const rect = this.renderer.domElement.getBoundingClientRect();
+            this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            const intersects = this.raycaster.intersectObjects([
+                ...this.grupoActores.children,
+                ...this.grupoSubsistemas.children,
+                ...this.grupoExternos.children,
+                ...this.grupoDatos.children,
+                ...this.grupoRelacionesDatos.children
+            ], true);
+            if (intersects.length === 0) {
+                this.ocultarTooltip();
+            }
+        });
+    }
+    
+    actualizarStats() {
+        document.getElementById('stat-participantes').textContent = this.participantes.length;
+        document.getElementById('stat-flujos').textContent = this.flujos.length;
+        document.getElementById('stat-subsistemas').textContent = this.subsistemas.length;
+        
+        // Calcular densidad de red
+        const maxFlujos = this.participantes.length * (this.participantes.length - 1) / 2;
+        const densidad = maxFlujos > 0 ? (this.flujos.length / maxFlujos * 100).toFixed(1) : 0;
+        document.getElementById('stat-densidad').textContent = densidad + '%';
+    }
+    
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        const time = Date.now() * 0.0001;
+        
+        // Aplicar zoom suave
+        this.zoomLevel += (this.targetZoom - this.zoomLevel) * 0.1;
+        const baseDistance = 80;
+        const zoomDistance = baseDistance / this.zoomLevel;
+        
+        this.camera.position.x = Math.sin(time) * zoomDistance;
+        this.camera.position.z = Math.cos(time) * zoomDistance;
+        this.camera.position.y = 50 / this.zoomLevel;
+        this.camera.lookAt(0, 0, 0);
+        
+        // Flotación suave de actores
+        this.grupoActores.children.forEach((actor, i) => {
+            actor.position.y = 3 + Math.sin(time * 3 + i) * 0.3;
+        });
+        
+        // Rotación de nodos-dato (diamantes giratorios)
+        this.grupoDatos.children.forEach((dato, i) => {
+            dato.rotation.y += 0.01;
+            dato.rotation.x = Math.sin(time * 2 + i) * 0.1;
+            dato.position.y = 1.5 + Math.sin(time * 2 + i * 0.5) * 0.2;
+        });
+        
+        this.renderer.render(this.scene, this.camera);
+    }
+    
+    onWindowResize() {
+        this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    }
+}
+
+// Detectar si está en iframe (participante) y ocultar código de acceso
+if (window.self !== window.top) {
+    document.body.classList.add('en-iframe');
+}
+
+// Inicializar cuando cargue la página
+document.addEventListener('DOMContentLoaded', () => {
+    window.ecosistema = new MapaEcosistema();
+    
+    // Polling cada 5 segundos para actualizar datos en vivo
+    setInterval(() => {
+        window.ecosistema.cargarDatos();
+    }, 5000);
+});
+</script>
+{% endblock %}

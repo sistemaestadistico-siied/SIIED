@@ -1,0 +1,460 @@
+{% extends 'recoleccion/base_recoleccion.html' %}
+
+{% block title %}Cargar Serie de Indicador{% endblock %}
+
+{% block recoleccion_content %}
+<!-- Hero del formulario -->
+<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200 mb-8">
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-serif font-bold text-slate-900">Cargar Serie de Indicador</h1>
+                <p class="text-slate-600 mt-1">Suba los archivos de datos y metadata</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <!-- Body -->
+        <div class="p-8">
+            <!-- Instrucciones -->
+            <div class="bg-emerald-50 border-l-4 border-emerald-500 p-6 mb-8 rounded-lg">
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center mr-4 mt-1">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-semibold text-slate-800 mb-3">Instrucciones:</p>
+                        <ul class="text-slate-700 space-y-2 text-sm mb-4">
+                            <li class="flex items-start">
+                                <span class="text-emerald-500 mr-2">•</span>
+                                Suba el archivo Excel con la serie de datos del indicador
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-emerald-500 mr-2">•</span>
+                                Suba el archivo Excel con la metadata del indicador
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-emerald-500 mr-2">•</span>
+                                Los archivos se convertirán automáticamente a CSV
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-emerald-500 mr-2">•</span>
+                                Se generará un código de evidencia único
+                            </li>
+                        </ul>
+                        <div class="flex flex-wrap gap-3 mt-4">
+                            <a href="{% url 'indicadores:descargar_plantilla_serie_datos' %}" 
+                               class="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Plantilla Datos
+                            </a>
+                            <a href="{% url 'indicadores:descargar_plantilla_metadata_indicador' %}" 
+                               class="inline-flex items-center px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Plantilla Metadata
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" class="space-y-8">
+                {% csrf_token %}
+                
+                <!-- Selector de Indicador -->
+                <div class="bg-slate-50 rounded-2xl p-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-3">
+                        <svg class="w-5 h-5 inline mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        Indicador
+                    </label>
+                    <input type="text" id="buscar-indicador"
+                           placeholder="Buscar por código o nombre..."
+                           class="block w-full text-sm text-slate-900 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent p-3 transition-colors mb-2"
+                           autocomplete="off">
+                    <select name="indicador_id" id="sel-indicador-rec"
+                            required
+                            class="block w-full text-sm text-slate-900 border border-slate-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent p-3 transition-colors">
+                        <option value="">Seleccione un indicador...</option>
+                        {% for indicador in indicadores %}
+                        <option value="{{ indicador.id }}" data-search="{{ indicador.codigo_indicador|lower }} {{ indicador.nombre|lower }}"
+                                {% if indicador_pre == indicador.id|stringformat:"s" %}selected{% endif %}>{{ indicador.codigo_indicador }} — {{ indicador.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="mt-2 text-sm text-slate-500">Seleccione el indicador al que corresponden los datos</p>
+
+                    {% if datos_rows %}
+                    <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <p class="text-sm font-semibold text-amber-800">Este indicador ya tiene datos cargados</p>
+                            <a href="{% url 'indicadores:cargar_serie_inline' %}?indicador_id={{ indicador_obj.id }}"
+                               class="text-xs font-medium text-amber-700 hover:text-amber-900 underline">Editar datos inline</a>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="text-amber-700 border-b border-amber-200">
+                                        <th class="text-left py-1 pr-2">Período</th>
+                                        <th class="text-left py-1 pr-2">Valor</th>
+                                        {% for dom in dominios_headers %}
+                                        <th class="text-left py-1 pr-2">{{ dom.nombre }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in datos_rows %}
+                                    <tr class="text-slate-700 border-b border-amber-100 last:border-0">
+                                        <td class="py-1 pr-2">{{ row.fecha_dato|default:"—" }}</td>
+                                        <td class="py-1 pr-2 font-mono">{{ row.valor_dato }}</td>
+                                        {% for val in row.desag_values %}
+                                        <td class="py-1 pr-2">{{ val }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="text-xs text-amber-600 mt-2">Subir un nuevo archivo Excel reemplazará estos datos en la siguiente validación.</p>
+                    </div>
+                    {% endif %}
+
+                    {% if dominios_geo_info or dominios_tem_info %}
+                    <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <p class="text-xs font-bold text-blue-700 uppercase tracking-wider mb-2">Dominios de desagregación del indicador</p>
+                        {% if dominios_geo_info %}
+                        <div class="mb-2">
+                            <h4 class="text-[10px] font-bold text-blue-600 uppercase mb-1">Geográficos</h4>
+                            <div class="space-y-1.5">
+                                {% for d in dominios_geo_info %}
+                                <div class="bg-white border border-blue-100 rounded-lg px-2.5 py-1.5">
+                                    <span class="text-xs font-semibold text-blue-800">{{ d.nombre }}</span>
+                                    <span class="text-[10px] text-blue-400">({{ d.total }})</span>
+                                    <div class="mt-0.5 flex flex-wrap gap-1">
+                                        {% for des in d.desagregaciones %}
+                                        <span class="inline-block px-1.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded border border-blue-100">{{ des }}</span>
+                                        {% endfor %}
+                                        {% if d.total > 10 %}<span class="text-[10px] text-blue-400 italic">+{{ d.total|add:'-10' }} más</span>{% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if dominios_tem_info %}
+                        <div>
+                            <h4 class="text-[10px] font-bold text-teal-600 uppercase mb-1">Temáticos</h4>
+                            <div class="space-y-1.5">
+                                {% for d in dominios_tem_info %}
+                                <div class="bg-white border border-teal-100 rounded-lg px-2.5 py-1.5">
+                                    <span class="text-xs font-semibold text-teal-800">{{ d.nombre }}</span>
+                                    <span class="text-[10px] text-teal-400">({{ d.total }})</span>
+                                    <div class="mt-0.5 flex flex-wrap gap-1">
+                                        {% for des in d.desagregaciones %}
+                                        <span class="inline-block px-1.5 py-0.5 bg-teal-50 text-teal-700 text-[10px] rounded border border-teal-100">{{ des }}</span>
+                                        {% endfor %}
+                                        {% if d.total > 10 %}<span class="text-[10px] text-teal-400 italic">+{{ d.total|add:'-10' }} más</span>{% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-6">
+                    <label class="block text-sm font-semibold text-slate-700 mb-3">
+                        <svg class="w-5 h-5 inline mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v1a1 1 0 001 1h4a1 1 0 001-1v-1m3-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8m5-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Archivo de Datos (Excel / CSV)
+                    </label>
+                    <input type="file" 
+                           name="archivo_datos" 
+                           accept=".xlsx,.xls,.csv" 
+                           required
+                           class="block w-full text-sm text-slate-900 border border-slate-300 rounded-xl cursor-pointer bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent p-3 transition-colors">
+                    <p class="mt-2 text-sm text-slate-500">Formato: .xlsx, .xls o .csv</p>
+
+                    <!-- Botón de deconstrucción -->
+                    <div class="mt-4 pt-4 border-t border-slate-200">
+                        <p class="text-xs text-slate-500 mb-2">
+                            ¿Su tabla está en formato dinámico (pivot) con grupos separados por filas vacías?
+                        </p>
+                        <a href="{% url 'indicadores:deconstruir_tabla' %}?modo=individual{% if indicador_pre %}&indicador_id={{ indicador_pre }}{% endif %}"
+                           class="inline-flex items-center px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium rounded-lg transition-colors border border-indigo-200">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                            </svg>
+                            Deconstruir tabla
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Archivo de Metadata -->
+                <div class="bg-slate-50 rounded-2xl p-6 border-2 border-dashed border-slate-200">
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">
+                        <svg class="w-5 h-5 inline mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v1a1 1 0 001 1h4a1 1 0 001-1v-1m3-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8m5-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Archivo de Metadata (Excel)
+                        <span class="ml-2 text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Opcional</span>
+                    </label>
+                    <p class="text-xs text-slate-500 mb-3">Puede subirla ahora o en una carga posterior. Sin metadata, el indicador no se visualizará hasta que el equipo la complete.</p>
+                    <input type="file" 
+                           name="archivo_metadata" 
+                           accept=".xlsx,.xls,.csv" 
+                           class="block w-full text-sm text-slate-900 border border-slate-300 rounded-xl cursor-pointer bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent p-3 transition-colors">
+                    <p class="mt-2 text-sm text-slate-500">Formato: .xlsx, .xls o .csv</p>
+                </div>
+
+                <!-- Validación y Preview Client-Side -->
+                <div id="preview-panel" class="hidden bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-slate-700">
+                            <svg class="w-5 h-5 inline mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6 4h3"></path>
+                            </svg>
+                            Vista previa y validación
+                        </h3>
+                        <span id="validacion-estado" class="text-xs font-bold px-2 py-1 rounded-full"></span>
+                    </div>
+                    <div id="preview-errores" class="hidden mb-4"></div>
+                    <div class="overflow-x-auto max-h-64 overflow-y-auto border border-slate-200 rounded-lg">
+                        <table id="preview-tabla" class="w-full text-xs text-left">
+                            <thead class="bg-slate-100 text-slate-600 sticky top-0"></thead>
+                            <tbody class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                    <p id="preview-resumen" class="text-xs text-slate-500 mt-2"></p>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                    <button type="submit" id="btn-cargar"
+                            class="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:from-slate-300 disabled:to-slate-400 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Cargar Archivos
+                    </button>
+                    <a href="{% url 'indicadores:recoleccion_dashboard' %}" 
+                       class="flex-1 bg-slate-500 hover:bg-slate-600 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script>
+(function() {
+    const inputDatos = document.querySelector('input[name="archivo_datos"]');
+    const inputMeta  = document.querySelector('input[name="archivo_metadata"]');
+    const btnCargar  = document.getElementById('btn-cargar');
+    const panel      = document.getElementById('preview-panel');
+    const estadoBadge= document.getElementById('validacion-estado');
+    const erroresDiv = document.getElementById('preview-errores');
+    const tabla      = document.getElementById('preview-tabla');
+    const resumen    = document.getElementById('preview-resumen');
+
+    let datosValido = false;
+
+    function resetPanel() {
+        panel.classList.add('hidden');
+        erroresDiv.classList.add('hidden');
+        erroresDiv.innerHTML = '';
+        estadoBadge.textContent = '';
+        estadoBadge.className = 'text-xs font-bold px-2 py-1 rounded-full';
+        tabla.querySelector('thead').innerHTML = '';
+        tabla.querySelector('tbody').innerHTML = '';
+        resumen.textContent = '';
+        datosValido = false;
+    }
+
+    function setEstado(tipo, mensaje) {
+        estadoBadge.textContent = mensaje;
+        estadoBadge.className = 'text-xs font-bold px-2 py-1 rounded-full ' +
+            (tipo === 'ok' ? 'bg-emerald-100 text-emerald-700' :
+             tipo === 'warn' ? 'bg-amber-100 text-amber-700' :
+             'bg-red-100 text-red-700');
+    }
+
+    function mostrarErrores(errores) {
+        erroresDiv.classList.remove('hidden');
+        erroresDiv.innerHTML = '<ul class="list-disc pl-5 text-xs text-red-700 space-y-1">' +
+            errores.map(e => '<li>' + e + '</li>').join('') + '</ul>';
+    }
+
+    function renderTabla(headers, rows) {
+        const thead = tabla.querySelector('thead');
+        const tbody = tabla.querySelector('tbody');
+        thead.innerHTML = '<tr>' + headers.map(h => '<th class="px-3 py-2 font-medium">' + h + '</th>').join('') + '</tr>';
+        tbody.innerHTML = rows.map(row =>
+            '<tr class="hover:bg-slate-50">' + headers.map(h =>
+                '<td class="px-3 py-2">' + (row[h] !== undefined && row[h] !== null && row[h] !== '' ? String(row[h]).substring(0, 50) : '<span class="text-slate-300">—</span>') + '</td>'
+            ).join('') + '</tr>'
+        ).join('');
+    }
+
+    function validarDatos(workbook) {
+        const errores = [];
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, {header: 1, defval: ''});
+
+        if (json.length === 0) { errores.push('El archivo está vacío.'); return {errores, headers: [], rows: [], totalFilas: 0, totalCols: 0}; }
+
+        const headerRow = json[0].map(h => String(h).trim().toLowerCase());
+        if (headerRow.length < 2) { errores.push('Se esperan al menos 2 columnas (ej: fecha_dato, valor_dato).'); }
+
+        const dataRows = json.slice(1).filter(r => r.some(c => c !== '' && c !== null && c !== undefined));
+        if (dataRows.length === 0) { errores.push('No se encontraron filas de datos.'); }
+
+        // Detectar columna de fecha: busca fecha/año/periodo/vigencia/year, excluye codigo
+        const fechaIdx = headerRow.findIndex(h =>
+            (h.includes('fecha') || h.includes('año') || h.includes('ano') || h.includes('anio') ||
+             h.includes('periodo') || h.includes('vigencia') || h.includes('year')) &&
+            !h.includes('codigo')
+        );
+        const valorIdx = headerRow.findIndex(h => h.includes('valor') || h.includes('dato'));
+        const colFecha = fechaIdx >= 0 ? fechaIdx : 0;
+        const colValor = valorIdx >= 0 ? valorIdx : 1;
+
+        let fechasOk = 0, valoresOk = 0, filasChequeadas = 0;
+        const maxCheck = Math.min(dataRows.length, 20);
+        for (let i = 0; i < maxCheck; i++) {
+            const row = dataRows[i];
+            const vFecha = row[colFecha];
+            const vValor = row[colValor];
+            if (vFecha) {
+                const f = new Date(vFecha);
+                if (!isNaN(f.getTime())) fechasOk++;
+            }
+            if (vValor !== '' && !isNaN(parseFloat(vValor))) valoresOk++;
+            filasChequeadas++;
+        }
+        if (filasChequeadas > 0) {
+            if (fechasOk / filasChequeadas < 0.5) {
+                errores.push('La columna de fechas no parece válida. Verifica el formato (YYYY-MM-DD o DD/MM/YYYY).');
+            }
+            if (valoresOk / filasChequeadas < 0.5) {
+                errores.push('La columna de valores no parece numérica. Verifica que contenga números.');
+            }
+        }
+
+        // Muestreo: primeras 10 filas con headers como objetos.
+        // defval evita huecos undefined; encabezados vacíos (columnas sobrantes)
+        // se nombran 'Columna N' para no renderizar 'undefined' en la tabla.
+        const previewJson = XLSX.utils.sheet_to_json(sheet, {header: 1, range: 0, defval: ''}).slice(0, 11);
+        let headers = (previewJson[0] || []).map((h, i) =>
+            (h === undefined || h === null || String(h).trim() === '') ? 'Columna ' + (i + 1) : String(h));
+        let rows = previewJson.slice(1).map(r => {
+            const obj = {};
+            headers.forEach((h, i) => { obj[h] = r[i]; });
+            return obj;
+        });
+
+        return {errores, headers, rows, totalFilas: dataRows.length, totalCols: headerRow.length};
+    }
+
+    function procesarArchivo(file) {
+        resetPanel();
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const resultado = validarDatos(workbook);
+
+                panel.classList.remove('hidden');
+                resumen.textContent = 'Columnas detectadas: ' + resultado.totalCols +
+                    ' | Filas de datos: ' + resultado.totalFilas;
+
+                if (resultado.headers && resultado.rows) {
+                    renderTabla(resultado.headers, resultado.rows);
+                }
+
+                if (resultado.errores.length > 0) {
+                    setEstado('error', 'VALIDACIÓN FALLIDA');
+                    mostrarErrores(resultado.errores);
+                    btnCargar.disabled = false;
+                    datosValido = false;
+                } else {
+                    setEstado('ok', 'LISTO PARA CARGAR');
+                    btnCargar.disabled = false;
+                    datosValido = true;
+                }
+            } catch (err) {
+                panel.classList.remove('hidden');
+                setEstado('warn', 'VALIDACIÓN NO DISPONIBLE');
+                mostrarErrores(['No se pudo validar el archivo localmente (librería XLSX no disponible). El servidor validará el archivo al subirlo.']);
+                btnCargar.disabled = false;
+                datosValido = true;
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    inputDatos.addEventListener('change', function() {
+        if (this.files[0]) {
+            btnCargar.disabled = false;
+            if (typeof XLSX !== 'undefined') {
+                procesarArchivo(this.files[0]);
+            }
+        }
+    });
+
+    // Buscador de indicador
+    document.getElementById('buscar-indicador').addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        const sel = document.getElementById('sel-indicador-rec');
+        Array.from(sel.options).forEach(function(opt) {
+            if (!opt.value) return;
+            const texto = opt.getAttribute('data-search') || '';
+            opt.hidden = q && !texto.includes(q);
+        });
+        if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].hidden) {
+            sel.value = '';
+        }
+    });
+
+    // Al escoger un indicador, recargar con ?indicador= para que la vista
+    // muestre sus datos existentes y dominios de desagregación.
+    const selIndicador = document.getElementById('sel-indicador-rec');
+    selIndicador.dataset.actual = selIndicador.value;
+    selIndicador.addEventListener('change', function() {
+        if (!this.value) { this.dataset.actual = this.value; return; }
+        if (inputDatos.files.length &&
+            !confirm('Cambiar de indicador recargará la página y se perderá el archivo seleccionado. ¿Continuar?')) {
+            this.value = this.dataset.actual;
+            return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set('indicador', this.value);
+        window.location.href = url.toString();
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,350 @@
+{% extends "validacion/base_validacion.html" %}
+{% load iced_tags %}
+{% block title %}Revisar ICED — {{ formulario.organismo.nombre }}{% endblock %}
+{% block validacion_content %}
+
+<div class="mb-6">
+    <a href="{% url 'indicadores:validacion_dashboard' %}" class="text-sm text-emerald-600 hover:text-emerald-700 hover:underline">← Volver al dashboard</a>
+    <h1 class="text-2xl font-serif font-bold text-slate-900 mt-2">
+        Revisar Formulario ICED
+        <span class="text-lg font-normal text-slate-400">— {{ formulario.organismo.nombre }}</span>
+    </h1>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+
+    <!-- Columna izquierda: info, puntaje y acciones -->
+    <div class="lg:col-span-1 space-y-4">
+
+        <!-- Info del formulario -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+            <h2 class="font-semibold text-slate-800 mb-4">Información del formulario</h2>
+            <dl class="space-y-3 text-sm">
+                <div>
+                    <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Organismo</dt>
+                    <dd class="text-slate-800 font-medium mt-0.5">{{ organismo.nombre }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Vigencia</dt>
+                    <dd class="text-slate-800 mt-0.5">{{ formulario.periodo }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Diligenciado por</dt>
+                    <dd class="text-slate-800 mt-0.5">{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Fecha de envío</dt>
+                    <dd class="text-slate-800 mt-0.5">{{ formulario.fecha_envio|date:"d/m/Y H:i"|default:"—" }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Estado actual</dt>
+                    <dd class="mt-0.5">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium estado-{{ formulario.estado }}">
+                            {{ formulario.get_estado_display }}
+                        </span>
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- Puntaje ICED -->
+        <div class="bg-white rounded-3xl shadow-sm border border-indigo-200 p-5 text-center">
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">Puntaje ICED (Preview, 0-100)</p>
+            <div class="text-4xl font-serif font-bold text-indigo-700">{{ resultado.puntaje_global|floatformat:1 }}</div>
+            <span class="inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold text-white
+                {% if resultado.nivel_codigo == 'muy_alto' %}bg-emerald-800
+                {% elif resultado.nivel_codigo == 'alto' %}bg-emerald-500
+                {% elif resultado.nivel_codigo == 'medio' %}bg-amber-500
+                {% else %}bg-red-500{% endif %}">
+                {{ resultado.nivel_nombre }}
+            </span>
+            <div class="mt-3 text-xs text-slate-500 font-mono">
+                ({{ resultado.puntaje_b|floatformat:1 }} + {{ resultado.puntaje_c|floatformat:1 }} + {{ resultado.puntaje_d|floatformat:1 }} + {{ resultado.puntaje_e|floatformat:1 }}) × 0.25
+            </div>
+        </div>
+
+        <!-- Dimensiones resumen -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+            <h2 class="font-semibold text-slate-800 mb-3 text-sm">Puntaje por dimensión</h2>
+            <div class="space-y-3">
+                {% for dim_key, dim in resultado.detalle.items %}
+                <div>
+                    <div class="flex justify-between items-center text-sm mb-1">
+                        <span class="text-slate-700 font-medium">{{ dim_key }}. {{ dim.nombre|truncatewords:3 }}</span>
+                        <span class="font-bold text-slate-900">{{ dim.puntaje|floatformat:1 }}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500
+                            {% if dim_key == '1' %}bg-blue-500
+                            {% elif dim_key == '2' %}bg-purple-500
+                            {% elif dim_key == '3' %}bg-amber-500
+                            {% else %}bg-emerald-500{% endif %}"
+                            data-puntaje="{{ dim.puntaje }}"></div>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ dim.nivel.1 }} · Peso: {{ dim.peso }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Calcular y guardar -->
+        {% if formulario.estado == 'enviado' %}
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+            <h2 class="font-semibold text-slate-800 mb-3 text-sm">Cálculo oficial</h2>
+            <p class="text-xs text-slate-500 mb-3">
+                Los puntajes de arriba son un preview. Para persistir en la base de datos, 
+                haz clic en "Calcular y guardar".
+            </p>
+            <form method="post" action="{% url 'indicadores:validacion_calcular_iced' formulario_id=formulario.pk %}">
+                {% csrf_token %}
+                <button type="submit"
+                        class="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition text-sm">
+                    Calcular y guardar puntajes
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Panel de decisión -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+            <h2 class="font-semibold text-slate-800 mb-4">Tu decisión</h2>
+
+            {% if formulario.estado == 'enviado' %}
+            <form method="post"
+                  action="{% url 'indicadores:validacion_decidir_iced' formulario_id=formulario.pk %}"
+                  id="form-decision">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Observaciones <span class="text-gray-400 text-xs">(requeridas para devolver/rechazar)</span>
+                    </label>
+                    <textarea name="observaciones" rows="5" id="txt-obs"
+                              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                              placeholder="Describe las observaciones para el organismo..."></textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <button type="button" onclick="decidir('aprobar')"
+                            class="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        Aprobar y publicar ICED
+                    </button>
+                    <button type="button" onclick="decidir('devolver')"
+                            class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        Devolver para correcciones
+                    </button>
+                    <button type="button" onclick="decidir('rechazar')"
+                            class="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        Rechazar formulario
+                    </button>
+                </div>
+                <input type="hidden" name="accion" id="inp-accion" value="">
+            </form>
+
+            <!-- Guía de criterios -->
+            <div class="mt-4 p-3 bg-slate-50 rounded-lg">
+                <p class="text-xs text-slate-600 font-semibold mb-1">Criterios de revisión ICED:</p>
+                <ul class="text-xs text-slate-500 space-y-0.5 list-disc list-inside">
+                    <li>Respuestas coherentes y completas en los 5 módulos</li>
+                    <li>Documentos soporte referenciados (URLs, códigos MOP)</li>
+                    <li>Datos de RRHH (P19) verificables y razonables</li>
+                    <li>Operaciones estadísticas con NTC PE 1000:2020 referenciadas</li>
+                    <li>Productos de difusión con URLs funcionales</li>
+                </ul>
+            </div>
+
+            {% elif formulario.estado == 'validado' %}
+            <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p class="text-sm text-emerald-800 font-semibold">
+                    ✅ Formulario validado el {{ formulario.fecha_validacion|date:"d/m/Y H:i" }}
+                </p>
+                {% if formulario.observaciones_validador %}
+                <p class="text-xs text-emerald-700 mt-2">
+                    <strong>Observaciones:</strong> {{ formulario.observaciones_validador }}
+                </p>
+                {% endif %}
+            </div>
+
+            {% elif formulario.estado == 'devuelto' %}
+            <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p class="text-sm text-amber-800 font-semibold">
+                    🔄 Formulario devuelto al organismo
+                </p>
+                {% if formulario.observaciones_validador %}
+                <p class="text-xs text-amber-700 mt-2">
+                    <strong>Observaciones enviadas:</strong> {{ formulario.observaciones_validador }}
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Columna derecha: respuestas del organismo + puntajes -->
+    <div class="lg:col-span-2 space-y-4">
+
+        <!-- SECCIÓN 1: Respuestas del organismo (lo que el validador revisa primero) -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden" id="respuestas-organismo">
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                <h2 class="font-serif font-bold text-slate-900">Respuestas del organismo</h2>
+                <span class="text-xs text-slate-500 font-medium bg-white px-2 py-1 rounded-full border border-slate-200">Revisar antes de calcular</span>
+            </div>
+
+            <!-- Tabs por módulo -->
+            <div class="flex border-b border-slate-100 overflow-x-auto" id="modulo-tabs">
+                {% for modulo_nombre, items in respuestas_modulo_display %}
+                <button type="button"
+                        class="modulo-tab px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors
+                               {% if forloop.first %}text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50{% else %}text-slate-500 hover:text-slate-700 hover:bg-slate-50{% endif %}"
+                        data-modulo="modulo-{{ forloop.counter }}">
+                    {{ modulo_nombre }}
+                    <span class="ml-1 text-xs px-1.5 py-0.5 rounded-full
+                        {% if items|length > 0 %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-400{% endif %}">
+                        {{ items|length }}
+                    </span>
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Contenido por módulo -->
+            <div class="p-4">
+                {% for modulo_nombre, items in respuestas_modulo_display %}
+                <div class="modulo-content {% if not forloop.first %}hidden{% endif %}" id="modulo-{{ forloop.counter }}">
+                    {% if items %}
+                    <div class="space-y-3">
+                        {% for item in items %}
+                        <div class="bg-slate-50 rounded-lg px-4 py-3 border border-slate-100">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-xs font-semibold text-slate-700">{{ item.label }}</span>
+                                <span class="text-[10px] text-slate-400 font-mono">{{ item.field_key }}</span>
+                            </div>
+                            <div class="text-xs text-slate-600 leading-relaxed bg-white border border-slate-200 rounded-lg px-3 py-2 max-h-48 overflow-y-auto">
+                                {{ item|render_iced_respuesta }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-sm text-slate-400 italic text-center py-8">No hay respuestas en este módulo.</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: Detalle de puntajes por subdimensión (preview del cálculo) -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 bg-indigo-50">
+                <h2 class="font-serif font-bold text-slate-900">Puntajes calculados (Preview)</h2>
+            </div>
+
+            <div class="divide-y divide-slate-50">
+                {% for dim_key, dim in resultado.detalle.items %}
+                <div class="bg-white rounded-xl border border-slate-100 m-4 overflow-hidden">
+                    <div class="px-4 py-3 border-b border-slate-100 flex justify-between items-center
+                        {% if dim_key == '1' %}bg-blue-50
+                        {% elif dim_key == '2' %}bg-purple-50
+                        {% elif dim_key == '3' %}bg-amber-50
+                        {% else %}bg-emerald-50{% endif %}">
+                        <h3 class="font-serif font-bold text-slate-900 text-sm">
+                            {{ dim_key }}. {{ dim.nombre }}
+                        </h3>
+                        <span class="text-base font-bold
+                            {% if dim_key == '1' %}text-blue-700
+                            {% elif dim_key == '2' %}text-purple-700
+                            {% elif dim_key == '3' %}text-amber-700
+                            {% else %}text-emerald-700{% endif %}">
+                            {{ dim.puntaje|floatformat:1 }}
+                        </span>
+                    </div>
+
+                    <div class="divide-y divide-slate-50">
+                        {% for sub_key, sub in dim.subdimensiones.items %}
+                        <div class="px-4 py-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-xs font-semibold text-slate-800">
+                                    {{ sub_key }} — {{ sub.nombre }}
+                                </h4>
+                                <span class="font-bold text-xs
+                                    {% if sub.puntaje >= 75 %}text-emerald-600
+                                    {% elif sub.puntaje >= 50 %}text-amber-600
+                                    {% else %}text-red-600{% endif %}">
+                                    {{ sub.puntaje|floatformat:1 }}
+                                </span>
+                            </div>
+                            {% if sub.preguntas_detalle %}
+                            <div class="space-y-2">
+                                {% for preg_key, preg in sub.preguntas_detalle.items %}
+                                <div class="bg-slate-50 rounded-lg px-3 py-2 border border-slate-100">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="text-[11px] font-semibold text-slate-700">{{ preg.label }}</span>
+                                        <span class="text-[10px] font-bold shrink-0 ml-2 px-1.5 py-0.5 rounded-full
+                                            {% if preg.score >= 75 %}bg-emerald-100 text-emerald-700
+                                            {% elif preg.score >= 50 %}bg-amber-100 text-amber-700
+                                            {% else %}bg-red-100 text-red-700{% endif %}">
+                                            {{ preg.score|floatformat:0 }}
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-600 leading-relaxed bg-white border border-slate-200 rounded px-2 py-1.5 max-h-32 overflow-y-auto">
+                                        {{ preg|render_iced_respuesta }}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// Set bar widths from data-puntaje (escala 0-100)
+document.querySelectorAll('[data-puntaje]').forEach(function(el) {
+    el.style.width = parseFloat(el.dataset.puntaje || 0) + '%';
+});
+
+// Tabs de módulos
+var tabs = document.querySelectorAll('.modulo-tab');
+var contents = document.querySelectorAll('.modulo-content');
+
+tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        var target = this.dataset.modulo;
+        tabs.forEach(function(t) {
+            t.classList.remove('text-indigo-700', 'border-b-2', 'border-indigo-600', 'bg-indigo-50');
+            t.classList.add('text-slate-500');
+        });
+        this.classList.remove('text-slate-500');
+        this.classList.add('text-indigo-700', 'border-b-2', 'border-indigo-600', 'bg-indigo-50');
+        contents.forEach(function(c) {
+            c.classList.add('hidden');
+        });
+        document.getElementById(target).classList.remove('hidden');
+    });
+});
+
+function decidir(accion) {
+    var obs = document.getElementById('txt-obs').value.trim();
+    var mensajes = {
+        'aprobar': '¿Confirmas que apruebas y publicas este ICED?',
+        'devolver': '¿Confirmas que devuelves el formulario para correcciones?',
+        'rechazar': '¿Confirmas que rechazas este formulario ICED?'
+    };
+    if ((accion === 'rechazar' || accion === 'devolver') && !obs) {
+        alert('Por favor escribe las observaciones antes de ' + (accion === 'rechazar' ? 'rechazar' : 'devolver') + '.');
+        document.getElementById('txt-obs').focus();
+        return;
+    }
+    if (confirm(mensajes[accion])) {
+        document.getElementById('inp-accion').value = accion;
+        document.getElementById('form-decision').submit();
+    }
+}
+</script>
+{% endblock %}

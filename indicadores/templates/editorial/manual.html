@@ -1,0 +1,352 @@
+{% extends 'editorial/base_editorial.html' %}
+{% block title %}Manual de Uso — Módulo Editorial{% endblock %}
+
+{% block editorial_content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-serif font-bold text-slate-900">Manual de uso del Módulo Editorial</h1>
+    <p class="text-slate-500 mt-1">Guía paso a paso para gestionar contenidos estadísticos del SIIED.</p>
+  </div>
+
+  <!-- Índice rápido -->
+  <div class="bg-purple-50 border border-purple-200 rounded-3xl p-4 mb-8">
+    <p class="text-sm font-semibold text-purple-800 mb-2 flex items-center">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>En esta guía encontrarás:
+    </p>
+    <ul class="text-sm text-purple-700 space-y-1 ml-6">
+      <li><a href="#acceso" class="hover:text-purple-900 hover:underline">1. Acceso al Módulo Editorial</a></li>
+      <li><a href="#dashboard" class="hover:text-purple-900 hover:underline">2. Dashboard y navegación</a></li>
+      <li><a href="#productos" class="hover:text-purple-900 hover:underline">3. Productos Académicos</a></li>
+      <li><a href="#graficos" class="hover:text-purple-900 hover:underline">4. Gráficos de Indicadores</a></li>
+      <li><a href="#eventos" class="hover:text-purple-900 hover:underline">5. Eventos</a></li>
+      <li><a href="#noticias" class="hover:text-purple-900 hover:underline">6. Noticias</a></li>
+      <li><a href="#calendario" class="hover:text-purple-900 hover:underline">7. Calendario de Difusión</a></li>
+      <li><a href="#catalogos" class="hover:text-purple-900 hover:underline">8. Catálogos (Sistemas, Proyectos, Documentos)</a></li>
+      <li><a href="#infraestructura" class="hover:text-purple-900 hover:underline">9. Árbol de Infraestructura</a></li>
+      <li><a href="#consejos" class="hover:text-purple-900 hover:underline">10. Consejos y buenas prácticas</a></li>
+    </ul>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <section id="acceso" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">1</span>
+      Acceso al Módulo Editorial
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>El Módulo Editorial permite a los editores de contenido gestionar productos académicos, eventos, noticias, calendario de difusión y gráficos de indicadores <strong>sin necesidad de acceder al Admin de Django</strong>.</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Accede desde el portal principal haciendo clic en <strong>"Editorial"</strong> o directamente en <code>/editorial/</code>.</li>
+        <li>Requiere estar autenticado con un usuario que tenga el rol <strong>editor</strong> o ser <strong>staff</strong>.</li>
+        <li>Si no tienes acceso, contacta al administrador del SIIED.</li>
+      </ul>
+      <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3 mt-2">
+        <p class="text-amber-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Importante:
+        </p>
+        <p class="text-amber-700">Este módulo está diseñado para gestión de contenido público. Los cambios que hagas aquí se reflejan directamente en el portal ciudadano.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2 -->
+  <section id="dashboard" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">2</span>
+      Dashboard y navegación
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>Al ingresar verás el <strong>Dashboard</strong> con estadísticas en tiempo real:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Productos académicos</strong> publicados y en borrador.</li>
+        <li><strong>Productos educativos</strong> publicados y en borrador.</li>
+        <li><strong>Eventos</strong> próximos y pasados.</li>
+        <li><strong>Noticias</strong> activas e inactivas.</li>
+        <li><strong>Entradas del calendario de difusión</strong> por organismo.</li>
+        <li><strong>Sistemas de información</strong> registrados.</li>
+        <li><strong>Productos de información</strong> catalogados.</li>
+        <li><strong>Documentos de infraestructura</strong> disponibles.</li>
+      </ul>
+      <p class="mt-2">El menú lateral (o la navegación móvil) te permite acceder a cada sección del módulo:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Panel Principal:</strong> Dashboard, Productos, Gráficos.</li>
+        <li><strong>Difusión Pública:</strong> Eventos, Noticias, Calendario de Difusión.</li>
+        <li><strong>Catálogos:</strong> Sistemas de Información, Productos de Información, Documentos de Infraestructura.</li>
+        <li><strong>Árbol Jerarquía:</strong> Visualización jerárquica de infraestructura.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3 -->
+  <section id="productos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">3</span>
+      Productos Académicos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <h3 class="font-bold text-slate-800">3.1 ¿Qué son?</h3>
+      <p>Los productos académicos son publicaciones estadísticas (papers, boletines, informes) que combinan narrativa con datos e indicadores del SIIED. Pueden ser:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Paper clásico:</strong> Texto con secciones, subtabs y gráficos embebidos.</li>
+        <li><strong>Producto educativo:</strong> Contenido didáctico dirigido a niños, niñas o adolescentes.</li>
+      </ul>
+
+      <h3 class="font-bold text-slate-800 mt-4">3.2 Crear un producto (Wizard)</h3>
+      <ol class="list-decimal list-inside space-y-1 ml-2">
+        <li>Ve a <strong>Productos</strong> y haz clic en <strong>"Crear Producto"</strong>.</li>
+        <li><strong>Paso 1:</strong> Selecciona el tipo (académico o educativo) y la plantilla.</li>
+        <li><strong>Paso 2:</strong> Completa los datos básicos (nombre, descripción, imagen, slug).</li>
+        <li><strong>Paso 3:</strong> Asocia los indicadores que alimentarán los gráficos del producto.</li>
+        <li><strong>Paso 4:</strong> Revisa el resumen y publica.</li>
+      </ol>
+
+      <h3 class="font-bold text-slate-800 mt-4">3.3 Editar secciones</h3>
+      <p>Una vez creado el producto, puedes:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Agregar, editar o eliminar <strong>secciones</strong> (bloques de texto, gráficos, tablas, mapas).</li>
+        <li>Usar <strong>subnúmeros</strong> (ej: 1.1, 1.2) para crear sub-tabs dentro de una sección.</li>
+        <li>Configurar gráficos en formato JSON si la sección es de tipo <em>grafico_embebido</em>, o usar la <strong>interfaz visual de configuración</strong> accesible desde el botón "Configurar gráfico" en la sección.</li>
+      </ul>
+
+      <h3 class="font-bold text-slate-800 mt-4">3.4 Publicación</h3>
+      <p>Antes de publicar, usa el botón <strong>"Preview"</strong> para ver cómo se verá el producto para el ciudadano. Solo los productos marcados como <strong>publicado</strong> son visibles en el portal.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 4 -->
+  <section id="graficos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">4</span>
+      Gráficos de Indicadores
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <h3 class="font-bold text-slate-800">4.1 ¿Qué puedes hacer aquí?</h3>
+      <p>La sección <strong>Gráficos</strong> permite gestionar las visualizaciones de datos asociadas a cada indicador del SIIED. Desde aquí puedes:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Listar</strong> todos los gráficos del sistema con búsqueda semántica.</li>
+        <li><strong>Crear</strong> nuevos gráficos para un indicador.</li>
+        <li><strong>Editar</strong> la configuración visual y las series de un gráfico.</li>
+        <li><strong>Eliminar</strong> gráficos que ya no se necesiten.</li>
+      </ul>
+
+      <h3 class="font-bold text-slate-800 mt-4">4.2 Buscador semántico</h3>
+      <p>El buscador de gráficos utiliza <strong>inteligencia artificial</strong> para entender lo que buscas, no solo coincidencias exactas de palabras. Funciona así:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Escribe una consulta natural (ej: <em>"población de Cali"</em>).</li>
+        <li>El sistema busca por similitud semántica en indicadores y gráficos.</li>
+        <li>Los resultados se organizan por jerarquía: <strong>Dominio → Tema → Subtema → Indicador → Gráficos</strong>.</li>
+        <li>Esto te permite ubicarte rápidamente en el árbol temático del SIIED.</li>
+      </ul>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3 mt-2">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">También puedes buscar por palabras clave como el nombre exacto del gráfico, el código del indicador o descripciones.</p>
+      </div>
+
+      <h3 class="font-bold text-slate-800 mt-4">4.3 Crear un gráfico</h3>
+      <ol class="list-decimal list-inside space-y-1 ml-2">
+        <li>Desde el listado, selecciona el indicador al que quieres agregar un gráfico.</li>
+        <li>Haz clic en <strong>"Crear Gráfico"</strong>.</li>
+        <li>Completa el formulario:
+          <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+            <li><strong>Nombre:</strong> identificación interna del gráfico.</li>
+            <li><strong>Título y subtítulo:</strong> textos visibles para el ciudadano.</li>
+            <li><strong>Tipo de gráfico:</strong> línea, barras, áreas, circular, pirámide, treemap, etc.</li>
+            <li><strong>Configuración visual:</strong> leyenda, cuadrícula, valores, ejes, altura, márgenes.</li>
+            <li><strong>Rango de años:</strong> si quieres que el gráfico cargue con un rango inicial específico.</li>
+            <li><strong>Desagregaciones predeterminadas:</strong> selecciona las desagregaciones geográficas y temáticas que se activarán por defecto al abrir el gráfico.</li>
+          </ul>
+        </li>
+        <li>Guarda y luego edita para configurar las <strong>series</strong>.</li>
+      </ol>
+
+      <h3 class="font-bold text-slate-800 mt-4">4.4 Editar un gráfico y vista previa</h3>
+      <p>Al editar un gráfico encontrarás dos áreas:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Formulario de configuración:</strong> todos los campos visuales y de comportamiento.</li>
+        <li><strong>Vista Previa:</strong> debajo del formulario se renderiza el gráfico tal como lo verá el ciudadano, con <strong>controles independientes</strong> de años y desagregaciones.
+          <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+            <li>Los controles de la vista previa <strong>no afectan la configuración guardada</strong>; son solo para que verifiques cómo se comporta el gráfico con diferentes filtros.</li>
+            <li>Puedes ajustar el rango de años y seleccionar/deseleccionar desagregaciones para probar.</li>
+            <li>Debajo del gráfico verás una <strong>tabla de datos</strong> descargable en CSV.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3 class="font-bold text-slate-800 mt-4">4.5 Configurar series</h3>
+      <p>Las <strong>series</strong> definen las líneas o barras que aparecen en el gráfico. Cada serie puede:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Apuntar a una <strong>desagregación geográfica</strong> (ej: Comuna 1, Comuna 2).</li>
+        <li>Apuntar a una <strong>desagregación temática</strong> (ej: Hombres, Mujeres).</li>
+        <li>Tener un <strong>nombre personalizado</strong> y un <strong>color</strong> específico.</li>
+        <li>Tener un <strong>orden</strong> para controlar cuál aparece primero.</li>
+      </ul>
+      <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3 mt-2">
+        <p class="text-amber-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Importante:
+        </p>
+        <p class="text-amber-700">Los selectores de desagregaciones predeterminadas (en el formulario principal) y las series (formulario inline) solo muestran las desagregaciones disponibles para el <strong>indicador específico</strong> del gráfico. No verás desagregaciones de otros indicadores.</p>
+      </div>
+
+      <h3 class="font-bold text-slate-800 mt-4">4.6 Tipos de gráfico soportados</h3>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Línea:</strong> tendencias temporales.</li>
+        <li><strong>Barras / Barras Horizontales:</strong> comparaciones entre categorías.</li>
+        <li><strong>Barras Apiladas / Áreas Apiladas:</strong> composición de totales.</li>
+        <li><strong>Área:</strong> evolución con énfasis en el volumen.</li>
+        <li><strong>Circular (Pie):</strong> proporciones de un total para un año específico.</li>
+        <li><strong>Pirámide Poblacional:</strong> estructura por edad y sexo.</li>
+        <li><strong>Treemap:</strong> jerarquías proporcionales.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 5 -->
+  <section id="eventos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">5</span>
+      Eventos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>La sección <strong>Eventos</strong> permite gestionar las actividades de difusión del SIIED:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Crear eventos con nombre, descripción, fechas, lugar e imagen.</li>
+        <li>Destacar eventos importantes para que aparezcan en el portal.</li>
+        <li>Activar o desactivar eventos sin eliminarlos.</li>
+        <li>Ver el <strong>calendario visual</strong> mensual con todos los eventos programados.</li>
+      </ul>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3 mt-2">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Usa el campo <strong>Destacado</strong> para eventos de alta relevancia (lanzamientos de productos, foros estadísticos). Aparecerán en la página principal del portal.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 6 -->
+  <section id="noticias" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">6</span>
+      Noticias
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>La sección <strong>Noticias</strong> gestiona los banners y artículos de prensa del SIIED:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Crear noticias con título, subtítulo, descripción, imagen y enlace principal.</li>
+        <li>Asociar <strong>estadísticas destacadas</strong> (cifras clave que aparecen junto a la noticia).</li>
+        <li>Agregar <strong>enlaces relacionados</strong> (fuentes, documentos de soporte).</li>
+        <li>Controlar el <strong>orden</strong> de aparición en el portal.</li>
+        <li>Activar/desactivar noticias para gestionar temporalmente su visibilidad.</li>
+        <li>Usar el botón <strong>"Preview"</strong> para ver cómo se verá la noticia en el portal antes de activarla.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 7 -->
+  <section id="calendario" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">7</span>
+      Calendario de Difusión
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>El <strong>Calendario de Difusión</strong> organiza la publicación programada de productos estadísticos por organismo:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Cada entrada vincula un <strong>organismo</strong>, un <strong>producto</strong> y una <strong>fecha de publicación</strong>.</li>
+        <li>Puedes especificar la <strong>periodicidad</strong> (mensual, trimestral, anual, etc.).</li>
+        <li>El campo <strong>tipo de cifras</strong> indica si se publican datos preliminares, revisados o definitivos.</li>
+        <li>Exportar el calendario a Excel para compartirlo externamente.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 8 -->
+  <section id="catalogos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">8</span>
+      Catálogos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <h3 class="font-bold text-slate-800">8.1 Sistemas de Información</h3>
+      <p>Registra los sistemas de información estadística del distrito, organizados por categorías:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Nombre, descripción, URL, responsable, periodicidad de actualización.</li>
+        <li>Categorías personalizables (ej: Censo, Encuestas, Registros Administrativos).</li>
+      </ul>
+
+      <h3 class="font-bold text-slate-800 mt-4">8.2 Productos de Información</h3>
+      <p>Catálogo de productos generados por los organismos del distrito:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Asociados a una categoría y a un sistema de información.</li>
+        <li>Incluyen fecha de publicación, enlace y descripción.</li>
+      </ul>
+
+      <h3 class="font-bold text-slate-800 mt-4">8.3 Documentos de Infraestructura</h3>
+      <p>Gestiona los documentos técnicos de la infraestructura estadística:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Asociados a áreas, categorías, subcategorías o grupos del árbol de infraestructura.</li>
+        <li>Tipo de documento (política, norma, metodología, informe técnico, etc.).</li>
+        <li>Archivo adjunto o enlace externo.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 9 -->
+  <section id="infraestructura" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">9</span>
+      Árbol de Infraestructura
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>La vista de <strong>Árbol Jerárquico</strong> muestra la estructura de la infraestructura estadística del distrito en 4 niveles:</p>
+      <ol class="list-decimal list-inside space-y-1 ml-2">
+        <li><strong>Áreas</strong> (macrodimensiones: Entorno Institucional, Infraestructura, Metodología, Accesibilidad).</li>
+        <li><strong>Categorías</strong> (subdimensiones dentro de cada área).</li>
+        <li><strong>Subcategorías</strong> (componentes específicos).</li>
+        <li><strong>Grupos</strong> (indicadores concretos de evaluación).</li>
+      </ol>
+      <p class="mt-2">Desde esta vista puedes navegar, crear, editar y eliminar nodos en cualquier nivel. También ver los documentos asociados a cada nodo.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 10 -->
+  <section id="consejos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-purple-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">10</span>
+      Consejos y buenas prácticas
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <ul class="list-disc list-inside space-y-2 ml-2">
+        <li><strong>Preview antes de publicar:</strong> Siempre revisa el preview de productos y noticias antes de activarlos.</li>
+        <li><strong>Gráficos con datos actualizados:</strong> Si un indicador recibe nuevos datos, la vista previa del gráfico los reflejará automáticamente.</li>
+        <li><strong>Desagregaciones coherentes:</strong> Al configurar series, asegúrate de que las desagregaciones existan en los datos del indicador; de lo contrario, la serie aparecerá vacía.</li>
+        <li><strong>Orden de series:</strong> Usa el campo <em>orden</em> para controlar la secuencia visual (útil en leyendas y apilados).</li>
+        <li><strong>Rango de años:</strong> Si el indicador tiene décadas de datos, establece un rango inicial razonable para no saturar al ciudadano.</li>
+        <li><strong>Nombres descriptivos:</strong> Usa nombres claros en gráficos y series para que el ciudadano entienda qué está viendo.</li>
+        <li><strong>Backup visual:</strong> Toma capturas de pantalla de los gráficos configurados como referencia para futuras modificaciones.</li>
+      </ul>
+      <div class="bg-rose-50 border border-rose-200 rounded-3xl p-3 mt-3">
+        <p class="text-rose-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Advertencia:
+        </p>
+        <p class="text-rose-700">Eliminar un gráfico es irreversible. Si solo quieres ocultarlo temporalmente, desactiva la casilla <strong>Activo</strong> en el formulario de edición.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

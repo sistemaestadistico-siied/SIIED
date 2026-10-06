@@ -1,0 +1,59 @@
+# Requirements para funcionalidades de Machine Learning
+# Basado en análisis de código - Solo paquetes que SÍ se usan
+# Instalación: pip install -r requirements-base.txt -r requirements-ml.txt
+
+# ============================================
+# PAQUETES USADOS (verificado con grep)
+# ============================================
+
+# OpenAI SDK (para Cerebras API y Ollama fallback)
+openai>=1.0.0
+
+# Transformers (usado en views.py para clasificación)
+transformers==4.56.2
+tokenizers==0.22.1
+huggingface-hub==0.35.1
+safetensors==0.6.2
+
+# Sentence Transformers (usado en models.py y embeddings.py)
+sentence-transformers==5.1.1
+
+# NLTK (usado en views.py para stopwords y tokenización)
+nltk==3.9.1
+regex==2025.9.18
+
+# Text-to-Speech (usado en views.py)
+TTS==0.13.3
+
+# ============================================
+# DEPENDENCIAS REQUERIDAS
+# ============================================
+
+# PyTorch (requerido por transformers y sentence-transformers)
+# Nota: Usando versión CPU para ahorrar espacio
+torch==2.8.0+cpu
+
+# Utilidades ML (requeridas por los paquetes anteriores)
+tqdm==4.67.1
+filelock==3.19.1
+fsspec==2025.9.0
+joblib==1.5.2
+threadpoolctl==3.6.0
+protobuf==6.32.1
+
+# ============================================
+# PAQUETES NO USADOS (comentados para referencia)
+# ============================================
+onnx==1.19.0                 # NO usado
+onnxruntime==1.23.0          # NO usado
+onnxruntime-tools==1.7.0     # NO usado
+scikit-learn==1.7.2          # NO usado
+scipy==1.15.3                # NO usado
+ml_dtypes==0.5.3             # NO usado
+flatbuffers==25.9.23         # NO usado
+narwhals==2.5.0              # NO usado
+networkx==3.4.2              # NO usado
+sympy==1.14.0                # NO usado
+mpmath==1.3.0                # NO usado
+tiktoken==0.11.0             # NO usado
+hf-xet==1.1.10               # NO usado

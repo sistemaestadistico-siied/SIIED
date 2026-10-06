@@ -1,0 +1,175 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}ICED Enviado — {{ formulario.organismo.nombre }} — SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --iced-primary: #000866;
+        --iced-accent: #d97706;
+        --iced-success: #059669;
+        --iced-bg: #f8fafc;
+        --iced-card: #ffffff;
+        --iced-border: #e2e8f0;
+        --iced-text: #0f172a;
+        --iced-muted: #64748b;
+    }
+
+    .iced-confirm {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .iced-confirm-card {
+        background: white;
+        border: 1px solid var(--iced-border);
+        border-radius: 1rem;
+        padding: 2.5rem;
+        text-align: center;
+    }
+    .iced-check-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--iced-success);
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .iced-confirm-title {
+        font-family: Georgia, serif;
+        font-size: 1.75rem;
+        color: var(--iced-text);
+        margin-bottom: 0.5rem;
+    }
+    .iced-confirm-subtitle {
+        color: var(--iced-muted);
+        margin-bottom: 2rem;
+    }
+
+    .iced-btn {
+        padding: 0.7rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+    .iced-btn-primary {
+        background: var(--iced-primary);
+        color: white;
+    }
+    .iced-btn-primary:hover {
+        background: #000a80;
+        color: white;
+    }
+    .iced-btn-outline {
+        background: white;
+        color: var(--iced-primary);
+        border: 1px solid var(--iced-primary);
+    }
+    .iced-btn-outline:hover {
+        background: #f0f1ff;
+        color: var(--iced-primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="iced-confirm">
+    <div class="iced-confirm-card">
+        
+        <div class="iced-check-icon">✓</div>
+        
+        <h1 class="iced-confirm-title">Formulario ICED Enviado</h1>
+        <p class="iced-confirm-subtitle">
+            {{ formulario.organismo.nombre }} — Vigencia {{ formulario.periodo }}
+        </p>
+
+        <!-- Mensaje de proceso pendiente -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 0.75rem; padding: 1.5rem; margin: 2rem 0; text-align: left;">
+            <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                <span style="font-size: 1.5rem; line-height: 1;">📋</span>
+                <div>
+                    <h3 style="margin: 0 0 0.5rem 0; color: #1e40af; font-size: 1rem;">Pendiente de validación</h3>
+                    <p style="margin: 0; color: #1e3a5f; font-size: 0.9rem; line-height: 1.5;">
+                        Su formulario ha sido recibido exitosamente. Un validador del
+                        <strong>equipo técnico del SIIED</strong> revisará cada una de sus respuestas
+                        y ejecutará el proceso de cálculo del Índice de Capacidad Estadística Distrital (ICED).
+                    </p>
+                    <p style="margin: 0.75rem 0 0 0; color: #1e3a5f; font-size: 0.9rem; line-height: 1.5;">
+                        Una vez finalizado el proceso de validación, se le notificará por
+                        <strong>correo electrónico</strong> con el resultado y podrá consultarlo en esta plataforma.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info del envío -->
+        <div style="background: #f8fafc; border-radius: 0.5rem; padding: 1rem; margin: 1.5rem 0; font-size: 0.85rem; color: var(--iced-muted); text-align: left;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 0.35rem 0; font-weight: 600; width: 160px;">Organismo:</td>
+                    <td style="padding: 0.35rem 0;">{{ formulario.organismo.nombre }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.35rem 0; font-weight: 600;">Vigencia:</td>
+                    <td style="padding: 0.35rem 0;">{{ formulario.periodo }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.35rem 0; font-weight: 600;">Estado:</td>
+                    <td style="padding: 0.35rem 0;">
+                        <span style="background: #fef3c7; color: #92400e; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600;">
+                            {{ formulario.get_estado_display }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.35rem 0; font-weight: 600;">Fecha de envío:</td>
+                    <td style="padding: 0.35rem 0;">{{ formulario.fecha_envio|date:"d/m/Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.35rem 0; font-weight: 600;">Diligenciado por:</td>
+                    <td style="padding: 0.35rem 0;">{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Pasos del proceso -->
+        <div style="margin: 2rem 0; text-align: left;">
+            <h3 style="font-size: 0.95rem; color: var(--iced-text); margin-bottom: 1rem;">¿Qué sigue?</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="width: 28px; height: 28px; background: var(--iced-success); color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">✓</span>
+                    <span style="font-size: 0.9rem; color: var(--iced-muted);">Formulario diligenciado y enviado</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="width: 28px; height: 28px; background: #f59e0b; color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">2</span>
+                    <span style="font-size: 0.9rem; color: var(--iced-text); font-weight: 500;">Validación de respuestas por el equipo SIIED</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="width: 28px; height: 28px; background: #e2e8f0; color: #94a3b8; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">3</span>
+                    <span style="font-size: 0.9rem; color: var(--iced-muted);">Cálculo del ICED y revisión de puntajes</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="width: 28px; height: 28px; background: #e2e8f0; color: #94a3b8; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">4</span>
+                    <span style="font-size: 0.9rem; color: var(--iced-muted);">Publicación en el Hall de Capacidad Estadística</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+            <a href="{% url 'indicadores:iced_landing' %}" class="iced-btn iced-btn-primary">
+                Volver al inicio ICED
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

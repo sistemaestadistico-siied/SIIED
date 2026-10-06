@@ -1,0 +1,1599 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Conjunto de datos - {{ indicador.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .conjunto-datos-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .tech-sheet {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .tech-sheet h2 {
+        color: white;
+        margin-bottom: 1rem;
+    }
+    
+    .tech-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .tech-info-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .tech-info-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+    }
+    
+    .tech-info-value {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin: 2rem 0;
+    }
+    
+    .action-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2563eb;
+        transform: translateY(-1px);
+    }
+    
+    .btn-success {
+        background: #10b981;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #059669;
+        transform: translateY(-1px);
+    }
+    
+    .btn-warning {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .btn-warning:hover {
+        background: #d97706;
+        transform: translateY(-1px);
+    }
+    
+    .btn-info {
+        background: #06b6d4;
+        color: white;
+    }
+    
+    .btn-info:hover {
+        background: #0891b2;
+        transform: translateY(-1px);
+    }
+    
+    .tabulator-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin: 2rem 0;
+    }
+    
+    .jupyter-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    .success-message {
+        background: #dcfce7;
+        border: 1px solid #bbf7d0;
+        color: #16a34a;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    /* Univer container styling */
+    #univer-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+    /* Improved fullscreen spreadsheet experience */
+    .sheet-fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #ffffff;
+        z-index: 9999;
+        display: none;
+        flex-direction: column;
+    }
+    .sheet-header {
+        background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        color: white;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .sheet-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    .sheet-logo {
+        width: 32px;
+        height: 32px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .sheet-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .sheet-btn {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .sheet-btn:hover {
+        background: rgba(255,255,255,0.3);
+        border-color: rgba(255,255,255,0.5);
+    }
+    .sheet-close {
+        background: rgba(239,68,68,0.2);
+        border-color: rgba(239,68,68,0.3);
+    }
+    .sheet-close:hover {
+        background: rgba(239,68,68,0.3);
+    }
+    .sheet-content {
+        flex: 1;
+        background: #f8fafc;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="conjunto-datos-container">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-6" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'indicadores:home' %}" class="text-gray-700 hover:text-primary-600">
+                    <i class="fas fa-home mr-1"></i>
+                    Inicio
+                </a>
+            </li>
+
+            <li aria-current="page">
+                <div class="flex items-center">
+                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
+                    <span class="text-gray-500">{{ indicador.nombre|truncatechars:50 }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    {% if conjunto_datos %}
+        <!-- Technical Sheet -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-table text-blue-500 mr-2"></i>
+                    Tabla Dinámica Interactiva
+                </h3>
+                <div class="space-x-2">
+                    <button id="show-guide-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded transition-colors">
+                        <i class="fas fa-question-circle mr-2"></i>Guía de Uso
+                    </button>
+                </div>
+            </div>
+            
+            <!-- User Guide Modal -->
+            <div id="user-guide-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-gray-800">
+                                <i class="fas fa-book text-blue-500 mr-2"></i>
+                                Guía de Uso - Tabla Dinámica
+                            </h2>
+                        <button id="close-guide-btn" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <!-- Univer Guide -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-table text-blue-500 mr-2"></i>
+                                Hoja de Cálculo Interactiva (Univer)
+                            </h3>
+                            <div class="space-y-4 text-sm text-gray-700">
+                                <div class="bg-blue-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-800 mb-2">🚀 Cómo empezar:</h4>
+                                    <ol class="list-decimal list-inside space-y-1">
+                                        <li>Haga clic en "Cargar Hoja de Cálculo" para inicializar Univer</li>
+                                        <li>Los datos se cargarán automáticamente en una hoja editable</li>
+                                        <li>Use scroll, teclado y barra de herramientas para explorar y editar</li>
+                                    </ol>
+                                </div>
+                                
+                                <div class="bg-green-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-800 mb-2">📊 Funcionalidades principales:</h4>
+                                    <ul class="space-y-1">
+                                        <li><strong>Edición directa:</strong> Modifique celdas con doble clic</li>
+                                        <li><strong>Fórmulas básicas:</strong> Funciones como SUM, AVERAGE, COUNT</li>
+                                        <li><strong>Ordenamiento y filtros:</strong> Desde el menú contextual</li>
+                                        <li><strong>Formato:</strong> Negrita, color de fondo, alineación</li>
+                                        <li><strong>Exportación:</strong> Descargue datos originales como Excel o CSV</li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="bg-yellow-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-800 mb-2">🎛️ Funciones disponibles:</h4>
+                                    <ul class="space-y-1">
+                                        <li>Redimensionamiento de filas y columnas</li>
+                                        <li>Copiar y pegar entre celdas</li>
+                                        <li>Deshacer y rehacer cambios (Ctrl+Z/Ctrl+Y)</li>
+                                        <li>Selección múltiple de celdas</li>
+                                        <li>Navegación con teclado (flechas, Tab, Enter)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        
+                        <!-- Tips -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-800 mb-2">💡 Consejos útiles:</h4>
+                            <ul class="text-sm text-gray-700 space-y-1">
+                                <li>• Use la hoja de cálculo para editar y analizar los datos</li>
+                                <li>• Descargue los datos originales usando los botones superiores</li>
+                                <li>• Haga doble clic en una celda para editarla</li>
+                                <li>• Use Ctrl+Z/Ctrl+Y para deshacer/rehacer cambios</li>
+                                <li>• Seleccione múltiples celdas arrastrando el mouse</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+        <!-- Technical Information -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                Información Técnica
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="tech-info-item">
+                    <div class="tech-info-label">Filas de Datos</div>
+                    <div class="tech-info-value">
+                        {% if conjunto_datos and conjunto_datos.num_filas %}
+                            {{ conjunto_datos.num_filas|floatformat:0 }}
+                        {% else %}
+                            <span id="dynamic-rows">No disponible</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="tech-info-item">
+                    <div class="tech-info-label">Columnas</div>
+                    <div class="tech-info-value">
+                        {% if conjunto_datos and conjunto_datos.num_columnas %}
+                            {{ conjunto_datos.num_columnas }}
+                        {% else %}
+                            <span id="dynamic-columns">No disponible</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="tech-info-item">
+                    <div class="tech-info-label">Tamaño del Archivo</div>
+                    <div class="tech-info-value">
+                        {% if conjunto_datos and conjunto_datos.tamaño_archivo %}
+                            {{ conjunto_datos.tamaño_archivo|filesizeformat }}
+                        {% else %}
+                            <span id="dynamic-filesize">No disponible</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="tech-info-item">
+                    <div class="tech-info-label">Dominio</div>
+                    <div class="tech-info-value">{{ indicador.subtema.tema.dominio.nombre }}</div>
+                </div>
+                <div class="tech-info-item">
+                    <div class="tech-info-label">Tema</div>
+                    <div class="tech-info-value">{{ indicador.subtema.tema.nombre }}</div>
+                </div>
+                <div class="tech-info-item">
+                    <div class="tech-info-label">Subtema</div>
+                    <div class="tech-info-value">{{ indicador.subtema.nombre }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ficha Técnica de Variables -->
+        {% if indicador.conjunto_datos and indicador.conjunto_datos.variables.exists %}
+        <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-file-alt text-purple-500 mr-2"></i>
+                    Ficha Técnica de Variables de Conjunto de datos
+                </h3>
+                <button id="download-ficha-btn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded transition-colors">
+                    <i class="fas fa-download mr-2"></i>Descargar Ficha Técnica (Excel)
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Variable</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Definición</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for variable in indicador.conjunto_datos.variables.all %}
+                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="toggleVariableDetails({{ variable.id }})">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ variable.codigo_variable }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ variable.nombre_variable }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700">{{ variable.definicion_conceptual|truncatewords:15 }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ variable.unidad_medida|default:"-" }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ variable.tipo_variable_estadistica|default:"-" }}</td>
+                        </tr>
+                        <tr id="details-{{ variable.id }}" class="hidden bg-blue-50">
+                            <td colspan="5" class="px-4 py-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Definición Completa:</p>
+                                        <p class="text-gray-600">{{ variable.definicion_conceptual }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Población Objetivo:</p>
+                                        <p class="text-gray-600">{{ variable.poblacion_objetivo|default:"-" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Cobertura Geográfica:</p>
+                                        <p class="text-gray-600">{{ variable.cobertura_geografica|default:"-" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Tipo de Dato:</p>
+                                        <p class="text-gray-600">{{ variable.tipo_dato|default:"-" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Dominio del Dato:</p>
+                                        <p class="text-gray-600">{{ variable.dominio_dato|default:"-" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Fuente de Datos:</p>
+                                        <p class="text-gray-600">{{ variable.fuente_datos|default:"-" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Periodicidad:</p>
+                                        <p class="text-gray-600">{{ variable.periodicidad|default:"-" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-gray-700">Organismo Productor:</p>
+                                        <p class="text-gray-600">{{ variable.organismo_productor|default:"-" }}</p>
+                                    </div>
+                                    {% if variable.observaciones %}
+                                    <div class="md:col-span-2">
+                                        <p class="font-semibold text-gray-700">Observaciones:</p>
+                                        <p class="text-gray-600">{{ variable.observaciones }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button id="load-sheet-btn" class="action-btn btn-primary">
+                <i class="fas fa-table"></i>
+                Cargar Hoja de Cálculo
+            </button>
+            <button id="download-csv-btn" class="action-btn btn-success">
+                <i class="fas fa-download"></i>
+                Descargar CSV
+            </button>
+            <button id="download-excel-btn" class="action-btn btn-success">
+                <i class="fas fa-file-excel"></i>
+                Descargar Excel
+            </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="message-container"></div>
+
+        <!-- Fullscreen Univer -->
+        <div class="sheet-fullscreen" id="sheet-fullscreen">
+            <div class="sheet-header">
+                <div class="sheet-title">
+                    <div class="sheet-logo">
+                        <img src="{% static 'indicadores/images/icono oscuros.png' %}" alt="SIIED" class="w-6 h-6" />
+                    </div>
+                    <span>Hoja de Cálculo Interactiva</span>
+                    <span id="sheet-title-name" class="opacity-80 font-normal"></span>
+                </div>
+                <div class="sheet-actions">
+                    <button class="sheet-btn" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel mr-2"></i>Exportar Excel
+                    </button>
+                    <button class="sheet-btn" onclick="exportToCSV()">
+                        <i class="fas fa-file-csv mr-2"></i>Exportar CSV
+                    </button>
+                    <button class="sheet-btn sheet-close" id="sheet-close">
+                        <i class="fas fa-times mr-2"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+            <div class="sheet-content">
+                <div id="univer-container" style="width:100%;height:100%;"></div>
+            </div>
+        </div>
+
+    {% else %}
+        <!-- No Conjunto de datos Available -->
+        <div class="text-center py-12">
+            <div class="max-w-md mx-auto">
+                <div class="mb-4">
+                    <i class="fas fa-database text-6xl text-gray-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">No hay conjunto de datos disponible</h2>
+                <p class="text-gray-600 mb-6">
+                    El indicador "{{ indicador.nombre }}" no tiene conjunto de datos asociado para análisis.
+                </p>
+                <div class="space-x-4">
+                    <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="action-btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Explorar Otros Datasets
+                    </a>
+                    <a href="{{ indicador.get_absolute_url }}" class="action-btn btn-info">
+                        <i class="fas fa-chart-line"></i>
+                        Ver Indicador
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+    
+    <!-- XLSX for Excel export -->
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- html2canvas for PNG export -->
+    <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const conjuntoDatosId = {% if conjunto_datos %}{{ conjunto_datos.id }}{% else %}null{% endif %};
+    const indicadorId = {{ indicador.id }};
+    
+    let spreadsheetInstance = null;
+    let currentData = null;
+    
+    // Verify GA shim is available (silent fallback)
+    if (typeof window.ga === 'undefined' || typeof window.ga.createChart !== 'function') {
+        window.ga = window.ga || function(){};
+        window.ga.createChart = function(){ return { canvas: document.createElement('canvas') }; };
+    }
+    
+    // Fullscreen sheet elements
+    const sheetFullscreen = document.getElementById('sheet-fullscreen');
+    const sheetCloseBtn = document.getElementById('sheet-close');
+    const sheetTitleName = document.getElementById('sheet-title-name');
+    
+    const loadSheetBtn = document.getElementById('load-sheet-btn');
+    const downloadCsvBtn = document.getElementById('download-csv-btn');
+    const downloadExcelBtn = document.getElementById('download-excel-btn');
+    
+    // Simple check for Univer availability
+    function checkUniver() {
+        console.log('Checking Univer availability...');
+        console.log('window.UniverPresets:', !!window.UniverPresets);
+        console.log('window.UniverCore:', !!window.UniverCore);
+        console.log('window.UniverPresetSheetsCore:', !!window.UniverPresetSheetsCore);
+        console.log('window.UniverPresetSheetsCoreEnUS:', !!window.UniverPresetSheetsCoreEnUS);
+        
+        // Verificar que las librerías principales estén disponibles
+        if (!window.UniverPresets) {
+            console.log('UniverPresets not found');
+            return false;
+        }
+        
+        if (!window.UniverCore) {
+            console.log('UniverCore not found');
+            return false;
+        }
+        
+        if (!window.UniverPresetSheetsCore) {
+            console.log('UniverPresetSheetsCore not found');
+            return false;
+        }
+        
+        if (!window.UniverPresetSheetsCoreEnUS) {
+            console.log('UniverPresetSheetsCoreEnUS not found');
+            return false;
+        }
+        
+        // Verificar que las funciones necesarias estén disponibles
+        // Según la documentación oficial, necesitamos createUniver
+        if (typeof window.UniverPresets.createUniver !== 'function' && 
+            typeof window.UniverPresets.default !== 'function' &&
+            typeof window.UniverPresets.Univer !== 'function') {
+            console.log('No valid Univer creation method found');
+            // Verificar propiedades disponibles
+            console.log('Available UniverPresets properties:', Object.keys(window.UniverPresets || {}));
+            return false;
+        }
+        
+        // Verificar que las propiedades necesarias estén disponibles
+        if (!window.UniverCore.LocaleType) {
+            console.log('UniverCore.LocaleType not found');
+            console.log('Available UniverCore properties:', Object.keys(window.UniverCore || {}));
+            return false;
+        }
+        
+        if (!window.UniverPresetSheetsCore.UniverSheetsCorePreset) {
+            console.log('UniverPresetSheetsCore.UniverSheetsCorePreset not found');
+            console.log('Available UniverPresetSheetsCore properties:', Object.keys(window.UniverPresetSheetsCore || {}));
+            return false;
+        }
+        
+        console.log('All Univer libraries are available and properly configured');
+        return true;
+    }
+    
+    // Function to dynamically load Univer scripts
+    function loadUniverScripts() {
+        return new Promise((resolve, reject) => {
+            // Check if scripts are already loaded
+            if (checkUniver()) {
+                resolve();
+                return;
+            }
+            
+            console.log('Loading Univer scripts dynamically...');
+            
+            // Define script URLs
+            const scriptUrls = [
+                'https://unpkg.com/react@18.3.1/umd/react.production.min.js',
+                'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js',
+                'https://unpkg.com/rxjs/dist/bundles/rxjs.umd.min.js',
+                'https://unpkg.com/@univerjs/presets/lib/umd/index.js',
+                'https://unpkg.com/@univerjs/preset-sheets-core/lib/umd/index.js',
+                'https://unpkg.com/@univerjs/preset-sheets-core/lib/umd/locales/en-US.js'
+            ];
+            
+            // Load scripts sequentially
+            let loadedCount = 0;
+            
+            function loadNextScript() {
+                if (loadedCount >= scriptUrls.length) {
+                    // All scripts loaded, check if Univer is available
+                    setTimeout(() => {
+                        if (checkUniver()) {
+                            resolve();
+                        } else {
+                            reject(new Error('Failed to load Univer scripts'));
+                        }
+                    }, 100);
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = scriptUrls[loadedCount];
+                script.onload = () => {
+                    console.log(`Loaded script: ${scriptUrls[loadedCount]}`);
+                    loadedCount++;
+                    loadNextScript();
+                };
+                script.onerror = () => {
+                    reject(new Error(`Failed to load script: ${scriptUrls[loadedCount]}`));
+                };
+                
+                document.head.appendChild(script);
+            }
+            
+            loadNextScript();
+        });
+    }
+
+    // Helper functions
+    function showMessage(message, type = 'info') {
+        // Create or update message element
+        let messageEl = document.getElementById('message-container');
+        if (!messageEl) {
+            messageEl = document.createElement('div');
+            messageEl.id = 'message-container';
+            messageEl.className = 'fixed top-4 right-4 z-50';
+            document.body.appendChild(messageEl);
+        }
+        
+        const alertClass = type === 'success' ? 'bg-green-500' : 
+                          type === 'error' ? 'bg-red-500' : 
+                          type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500';
+        
+        messageEl.innerHTML = `
+            <div class="${alertClass} text-white px-4 py-2 rounded shadow-lg">
+                ${message}
+            </div>
+        `;
+        
+        setTimeout(() => {
+            messageEl.innerHTML = '';
+        }, 5000);
+    }
+    
+    function setButtonLoading(button, loading) {
+        if (loading) {
+            button.disabled = true;
+            button.innerHTML = button.innerHTML.replace(/^.*?(<i|$)/, 'Cargando... $1');
+        } else {
+            button.disabled = false;
+            button.innerHTML = button.innerHTML.replace('Cargando... ', '');
+        }
+    }
+
+    // Client-side export functions
+    function exportToExcel() {
+        if (!window.univerInstance) {
+            showMessage('La hoja de cálculo no está cargada.', 'error');
+            return;
+        }
+        const univerInstanceService = window.univerInstance.__getInjector().get(UniverCore.IUniverInstanceService);
+        const workbook = univerInstanceService.getCurrentUniverSheetInstance();
+        const activeSheet = workbook.getActiveSheet();
+        const sheetData = activeSheet.getSheetRawIR();
+        
+        const dataForExport = [];
+        const rowCount = activeSheet.getRowCount();
+        const colCount = activeSheet.getColumnCount();
+
+        for (let r = 0; r < rowCount; r++) {
+            const row = [];
+            for (let c = 0; c < colCount; c++) {
+                const cell = activeSheet.getRange(r, c).getValue();
+                row.push(cell ? cell.v : null);
+            }
+            // Only add row if it's not entirely empty
+            if (row.some(cell => cell !== null)) {
+                dataForExport.push(row);
+            }
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet(dataForExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, worksheet, 'Datos');
+        XLSX.writeFile(wb, 'conjunto de datos.xlsx');
+    }
+
+    function exportToCSV() {
+        if (!window.univerInstance) {
+            showMessage('La hoja de cálculo no está cargada.', 'error');
+            return;
+        }
+        const univerInstanceService = window.univerInstance.__getInjector().get(UniverCore.IUniverInstanceService);
+        const workbook = univerInstanceService.getCurrentUniverSheetInstance();
+        const activeSheet = workbook.getActiveSheet();
+        
+        const dataForExport = [];
+        const rowCount = activeSheet.getRowCount();
+        const colCount = activeSheet.getColumnCount();
+
+        for (let r = 0; r < rowCount; r++) {
+            const row = [];
+            for (let c = 0; c < colCount; c++) {
+                const cell = activeSheet.getRange(r, c).getValue();
+                row.push(cell ? cell.v : null);
+            }
+            if (row.some(cell => cell !== null)) {
+                dataForExport.push(row);
+            }
+        }
+
+        const worksheet = XLSX.utils.aoa_to_sheet(dataForExport);
+        const csv = XLSX.utils.sheet_to_csv(worksheet);
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'conjunto de datos.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    
+    function convertArrayToCSV(data) {
+        if (!data || data.length === 0) return '';
+        
+        const headers = Object.keys(data[0]);
+        const csvRows = [headers.join(',')];
+        
+        for (const row of data) {
+            const values = headers.map(header => {
+                const value = row[header] || '';
+                // Escape quotes and wrap in quotes if contains comma
+                return typeof value === 'string' && (value.includes(',') || value.includes('"')) 
+                    ? `"${value.replace(/"/g, '""')}"` 
+                    : value;
+            });
+            csvRows.push(values.join(','));
+        }
+        
+        return csvRows.join('\n');
+    }
+    
+    // Function to load Univer with parsed CSV data
+    async function loadSpreadsheetData() {
+        // Debug: Check what's actually loaded
+        console.log('Available globals:', {
+            UniverPresets: !!window.UniverPresets,
+            UniverCore: !!window.UniverCore, 
+            UniverPresetSheetsCore: !!window.UniverPresetSheetsCore,
+            UniverPresetSheetsCoreEnUS: !!window.UniverPresetSheetsCoreEnUS
+        });
+        
+        // Check if Univer libraries are available, load them if not
+        try {
+            if (!checkUniver()) {
+                console.log('Univer not available, attempting to load scripts...');
+                await loadUniverScripts();
+                console.log('Univer scripts loaded successfully');
+            }
+        } catch (loadError) {
+            console.error('Failed to load Univer scripts:', loadError);
+            showMessage('Error al cargar la hoja de cálculo: ' + loadError.message, 'error');
+            if (loadSheetBtn) setButtonLoading(loadSheetBtn, false);
+            return;
+        }
+        try {
+            if (loadSheetBtn) setButtonLoading(loadSheetBtn, true);
+                
+                const response = await fetch(`{% url 'indicadores:get_conjunto_datos_csv_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvText = await response.text();
+                
+                // Better CSV parsing that handles quotes and commas within fields
+                function parseCSV(text) {
+                    const lines = text.split('\n').filter(line => line.trim());
+                    if (lines.length === 0) return { headers: [], data: [] };
+                    
+                    function parseLine(line) {
+                        const result = [];
+                        let current = '';
+                        let inQuotes = false;
+                        
+                        for (let i = 0; i < line.length; i++) {
+                            const char = line[i];
+                            const nextChar = line[i + 1];
+                            
+                            if (char === '"') {
+                                if (inQuotes && nextChar === '"') {
+                                    current += '"';
+                                    i++; // Skip next quote
+                                } else {
+                                    inQuotes = !inQuotes;
+                                }
+                            } else if (char === ',' && !inQuotes) {
+                                result.push(current.trim());
+                                current = '';
+                            } else {
+                                current += char;
+                            }
+                        }
+                        result.push(current.trim());
+                        return result;
+                    }
+                    
+                    const headers = parseLine(lines[0]).filter(h => h && h.trim() !== '');
+                    console.log('Parsed headers:', headers);
+                    console.log('Total headers found:', headers.length);
+                    
+                    const data = lines.slice(1).map(line => {
+                        const values = parseLine(line);
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            if (header && header.trim() !== '') {
+                                row[header] = values[index] || '';
+                            }
+                        });
+                        return row;
+                    });
+                    
+                    return { headers, data };
+                }
+                
+                const { headers, data } = parseCSV(csvText);
+                
+                if (data.length === 0) {
+                    showMessage('No hay datos disponibles', 'warning');
+                    return;
+                }
+                
+                // Prepare data for Univer
+                const spreadsheetContainer = document.getElementById('univer-modal-sheet');
+                
+                // Store data for exports
+                currentData = data;
+                
+                // Update dynamic technical info
+                const dynamicRows = document.getElementById('dynamic-rows');
+                const dynamicColumns = document.getElementById('dynamic-columns');
+                const dynamicFilesize = document.getElementById('dynamic-filesize');
+                
+                if (dynamicRows) dynamicRows.textContent = data.length.toLocaleString();
+                if (dynamicColumns) dynamicColumns.textContent = headers.length;
+                if (dynamicFilesize) {
+                    const sizeInBytes = new Blob([csvText]).size;
+                    dynamicFilesize.textContent = (sizeInBytes / 1024).toFixed(1) + ' KB';
+                }
+                
+                // Initialize Univer
+                const univerEl = document.getElementById('univer-container');
+                if (univerEl) univerEl.innerHTML = '';
+                
+                // Build celldata for Univer (row 0 = headers)
+                const celldata = [];
+                headers.forEach((header, c) => {
+                    celldata.push({ r: 0, c, v: { v: String(header) } });
+                });
+                data.forEach((row, rIdx) => {
+                    headers.forEach((header, c) => {
+                        const val = row[header] != null ? row[header] : '';
+                        celldata.push({ r: rIdx + 1, c, v: { v: String(val) } });
+                    });
+                });
+                
+                // Destroy previous instance if any
+                if (window.univerInstance) {
+                    try {
+                        window.univerInstance.dispose();
+                        console.log('Previous Univer instance disposed.');
+                    } catch (e) {
+                        console.warn('Error disposing Univer instance:', e);
+                    }
+                }
+
+                const totalRows = data.length + 1;
+                const totalCols = headers.length;
+                const workbookTitle = {% if conjunto_datos %}"{{ conjunto_datos.nombre|escapejs }}"{% else %}"{{ indicador.nombre|escapejs }}"{% endif %};
+                const sheetName = 'Datos';
+
+                // Open fullscreen sheet
+                if (sheetFullscreen) {
+                    sheetFullscreen.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+                if (sheetTitleName) sheetTitleName.textContent = ' — ' + workbookTitle;
+
+                // 1. Prepare Workbook Data for Univer
+                const workbookData = {
+                    id: `workbook-${Date.now()}`,
+                    sheetOrder: ['sheet-01'],
+                    name: workbookTitle,
+                    sheets: {
+                        'sheet-01': {
+                            id: 'sheet-01',
+                            name: sheetName,
+                            rowCount: totalRows,
+                            columnCount: totalCols,
+                            cellData: celldata.reduce((acc, cell) => {
+                                if (!acc[cell.r]) acc[cell.r] = {};
+                                acc[cell.r][cell.c] = cell.v;
+                                return acc;
+                            }, {}),
+                        },
+                    },
+                };
+
+                // 2. Initialize Univer with Dependency Injection
+                const univer = new UniverCore.Univer();
+                const injector = univer.__getInjector();
+
+                // Core plugins
+                const dependencies = [
+                    [UniverPresetSheetsCore.UniverSheetsCorePreset],
+                ];
+
+                dependencies.forEach((d) => injector.add(d));
+
+                window.univerInstance = univer; // Store instance for later disposal
+
+                // 3. Create the workbook via the Univer instance
+                const workbook = univer.createUniverSheet(workbookData);
+
+                if (!workbook) {
+                    throw new Error('Failed to create Univer workbook.');
+                }
+
+                console.log('Univer workbook created successfully.');
+
+                // Enhanced table fallback with better UI and functionality
+                const createFallbackTable = () => {
+                    const container = document.getElementById('univer-container');
+                    if (container) {
+                        // Create a more sophisticated table with search and pagination
+                        container.innerHTML = `
+                            <div style="width: 100%; height: 100%; display: flex; flex-direction: column; background: white;">
+                                <!-- Table controls -->
+                                <div style="padding: 10px; background: #f8f9fa; border-bottom: 1px solid #dee2e6; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                                    <div style="flex: 1; min-width: 200px;">
+                                        <input type="text" id="table-search" placeholder="Buscar en los datos..." 
+                                            style="width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px;">
+                                    </div>
+                                    <div style="display: flex; gap: 5px; align-items: center;">
+                                        <span style="font-size: 12px; color: #6c757d;">Filas por página:</span>
+                                        <select id="rows-per-page" style="padding: 4px; border: 1px solid #ced4da; border-radius: 4px;">
+                                            <option value="25">25</option>
+                                            <option value="50" selected>50</option>
+                                            <option value="100">100</option>
+                                            <option value="200">200</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Table container with scroll -->
+                                <div style="flex: 1; overflow: auto; position: relative;">
+                                    <table id="data-table" style="border-collapse: collapse; width: 100%; font-size: 12px;">
+                                        <thead>
+                                            <tr style="background: #f5f5f5; position: sticky; top: 0; z-index: 10;">
+                                                ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 8px; text-align: left; background: #f5f5f5; position: sticky; top: 0;">${h}</th>`).join('')}
+                                            </tr>
+                                        </thead>
+                                        <tbody id="table-body">
+                                            <!-- Data will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Pagination controls -->
+                                <div style="padding: 10px; background: #f8f9fa; border-top: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                    <div id="pagination-info" style="font-size: 12px; color: #6c757d;">
+                                        Mostrando <span id="start-row">1</span> - <span id="end-row">${Math.min(50, data.length)}</span> de ${data.length} filas
+                                    </div>
+                                    <div style="display: flex; gap: 5px;">
+                                        <button id="prev-page" style="padding: 6px 12px; border: 1px solid #ced4da; background: white; border-radius: 4px; cursor: pointer;">Anterior</button>
+                                        <button id="next-page" style="padding: 6px 12px; border: 1px solid #ced4da; background: white; border-radius: 4px; cursor: pointer;">Siguiente</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Add interactivity to the fallback table
+                        addTableInteractivity(data, headers);
+                        console.log('Enhanced fallback table created with', data.length, 'rows');
+                    }
+                };
+                
+                // Function to add interactivity to the fallback table
+                const addTableInteractivity = (data, headers) => {
+                    let currentPage = 1;
+                    let rowsPerPage = 50;
+                    let filteredData = [...data];
+                    
+                    const tableBody = document.getElementById('table-body');
+                    const searchInput = document.getElementById('table-search');
+                    const rowsPerPageSelect = document.getElementById('rows-per-page');
+                    const prevPageBtn = document.getElementById('prev-page');
+                    const nextPageBtn = document.getElementById('next-page');
+                    const startRowSpan = document.getElementById('start-row');
+                    const endRowSpan = document.getElementById('end-row');
+                    const paginationInfo = document.getElementById('pagination-info');
+                    
+                    // Function to render table data
+                    const renderTable = () => {
+                        const startIndex = (currentPage - 1) * rowsPerPage;
+                        const endIndex = Math.min(startIndex + rowsPerPage, filteredData.length);
+                        const pageData = filteredData.slice(startIndex, endIndex);
+                        
+                        tableBody.innerHTML = pageData.map(row => `
+                            <tr>
+                                ${headers.map(h => `<td style="border: 1px solid #ddd; padding: 8px; white-space: nowrap;">${row[h] || ''}</td>`).join('')}
+                            </tr>
+                        `).join('');
+                        
+                        // Update pagination info
+                        startRowSpan.textContent = startIndex + 1;
+                        endRowSpan.textContent = endIndex;
+                        
+                        // Update button states
+                        prevPageBtn.disabled = currentPage === 1;
+                        nextPageBtn.disabled = endIndex >= filteredData.length;
+                    };
+                    
+                    // Search functionality
+                    if (searchInput) {
+                        searchInput.addEventListener('input', (e) => {
+                            const searchTerm = e.target.value.toLowerCase();
+                            if (searchTerm) {
+                                filteredData = data.filter(row => {
+                                    return headers.some(header => {
+                                        const value = row[header];
+                                        return value && value.toString().toLowerCase().includes(searchTerm);
+                                    });
+                                });
+                            } else {
+                                filteredData = [...data];
+                            }
+                            currentPage = 1;
+                            renderTable();
+                            
+                            // Update total count in pagination info
+                            paginationInfo.innerHTML = `Mostrando <span id="start-row">${Math.min(1, filteredData.length)}</span> - <span id="end-row">${Math.min(rowsPerPage, filteredData.length)}</span> de ${filteredData.length} filas`;
+                        });
+                    }
+                    
+                    // Rows per page change
+                    if (rowsPerPageSelect) {
+                        rowsPerPageSelect.addEventListener('change', (e) => {
+                            rowsPerPage = parseInt(e.target.value);
+                            currentPage = 1;
+                            renderTable();
+                        });
+                    }
+                    
+                    // Pagination buttons
+                    if (prevPageBtn) {
+                        prevPageBtn.addEventListener('click', () => {
+                            if (currentPage > 1) {
+                                currentPage--;
+                                renderTable();
+                            }
+                        });
+                    }
+                    
+                    if (nextPageBtn) {
+                        nextPageBtn.addEventListener('click', () => {
+                            const maxPage = Math.ceil(filteredData.length / rowsPerPage);
+                            if (currentPage < maxPage) {
+                                currentPage++;
+                                renderTable();
+                            }
+                        });
+                    }
+                    
+                    // Initial render
+                    renderTable();
+                };
+                
+                // Initialize Univer with the parsed data according to official documentation
+                try {
+                    // Destroy any existing Univer instance
+                    if (window.univerInstance) {
+                        try {
+                            window.univerInstance.dispose();
+                        } catch (e) {
+                            console.warn('Error disposing previous Univer instance:', e);
+                        }
+                    }
+                    
+                    // Get container element
+                    const univerContainer = document.getElementById('univer-container');
+                    if (!univerContainer) {
+                        throw new Error('Univer container not found');
+                    }
+                    
+                    // Clear container
+                    univerContainer.innerHTML = '';
+                    
+                    // Check if Univer libraries are available according to official docs
+                    if (!window.UniverPresets || !window.UniverPresetSheetsCore || !window.UniverPresetSheetsCoreEnUS) {
+                        throw new Error('Univer libraries not loaded');
+                    }
+                    
+                    // Create Univer instance according to official documentation
+                    let createUniverFunc;
+                    if (typeof window.UniverPresets.createUniver === 'function') {
+                        createUniverFunc = window.UniverPresets.createUniver;
+                    } else if (typeof window.UniverPresets.default === 'function') {
+                        createUniverFunc = window.UniverPresets.default;
+                    } else if (typeof window.UniverPresets.Univer === 'function') {
+                        createUniverFunc = (config) => {
+                            const univer = new window.UniverPresets.Univer(config);
+                            return { univer, univerAPI: univer };
+                        };
+                    } else {
+                        throw new Error('No valid Univer creation method found');
+                    }
+                    
+                    const { LocaleType, mergeLocales } = window.UniverCore;
+                    const { UniverSheetsCorePreset } = window.UniverPresetSheetsCore;
+                    
+                    // Configure Univer according to official docs
+                    const univerConfig = {
+                        locale: LocaleType.EN_US,
+                        locales: {
+                            [LocaleType.EN_US]: mergeLocales(window.UniverPresetSheetsCoreEnUS),
+                        },
+                        presets: [
+                            UniverSheetsCorePreset({
+                                container: 'univer-container',
+                            }),
+                        ],
+                    };
+                    
+                    // Create Univer instance
+                    const { univer, univerAPI } = createUniverFunc(univerConfig);
+                    
+                    // Store reference for cleanup
+                    window.univerInstance = univer;
+                    window.univerAPI = univerAPI;
+                    
+                    // Convert data to Univer format according to official documentation
+                    // cellData debe ser un objeto anidado: { row: { column: { v: value } } }
+                    const cellData = {};
+                    
+                    // Add headers (row 0)
+                    cellData[0] = {};
+                    headers.forEach((header, c) => {
+                        cellData[0][c] = { v: String(header) };
+                    });
+                    
+                    // Add data rows
+                    data.forEach((row, rIdx) => {
+                        const rowIndex = rIdx + 1; // +1 porque la fila 0 son los headers
+                        cellData[rowIndex] = {};
+                        headers.forEach((header, c) => {
+                            const val = row[header] != null ? row[header] : '';
+                            cellData[rowIndex][c] = { v: String(val) };
+                        });
+                    });
+                    
+                    // Crear el workbook con la estructura correcta según la documentación
+                    const workbook = univerAPI.createWorkbook({
+                        id: 'conjunto de datos-workbook',
+                        name: sheetName,
+                        sheetOrder: ['sheet1'],
+                        sheets: {
+                            'sheet1': {
+                                id: 'sheet1',
+                                name: sheetName,
+                                rowCount: data.length + 1, // +1 para headers
+                                columnCount: headers.length,
+                                cellData: cellData
+                            }
+                        }
+                    });
+                    
+                    console.log('Workbook created with', cellData.length, 'cells of data');
+                    
+                    // Store workbook reference for exports
+                    window.currentUniverWorkbook = workbook;
+                    
+                    console.log('Univer initialized successfully with', data.length, 'rows');
+                    
+                } catch (univerError) {
+                    console.error('Error initializing Univer:', univerError);
+                    // Fallback to HTML table if Univer fails
+                    console.log('Using HTML table as fallback');
+                    createFallbackTable();
+                }
+                
+                showMessage('Hoja de cálculo cargada exitosamente', 'success');
+                
+                // Do not show inline container; we use modal
+
+        } catch (error) {
+            console.error('Error loading spreadsheet:', error);
+            showMessage('Error al cargar la hoja de cálculo: ' + error.message, 'error');
+        } finally {
+            if (loadSheetBtn) setButtonLoading(loadSheetBtn, false);
+        }
+    }
+    
+    // Attach event listener to load sheet button
+    if (loadSheetBtn && conjuntoDatosId) {
+        loadSheetBtn.addEventListener('click', loadSpreadsheetData);
+    }
+    
+    // Download Original CSV
+    if (downloadCsvBtn) {
+        downloadCsvBtn.addEventListener('click', async function() {
+            setButtonLoading(downloadCsvBtn, true);
+            try {
+                const response = await fetch(`{% url 'indicadores:get_conjunto_datos_csv_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`));
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvData = await response.text();
+                const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `conjunto_datos_original_${indicadorId}_${new Date().toISOString().slice(0,10)}.csv`;
+                link.click();
+                showMessage('CSV original descargado exitosamente', 'success');
+            } catch (error) {
+                console.error('Error downloading CSV:', error);
+                showMessage('Error al descargar CSV: ' + error.message, 'error');
+            } finally {
+                setButtonLoading(downloadCsvBtn, false);
+            }
+        });
+    }
+    
+    // Download Original Excel (convert CSV to Excel)
+    if (downloadExcelBtn) {
+        downloadExcelBtn.addEventListener('click', async function() {
+            setButtonLoading(downloadExcelBtn, true);
+            try {
+                // Check if XLSX library is available
+                if (typeof XLSX === 'undefined') {
+                    throw new Error('Librería XLSX no está disponible');
+                }
+                
+                const response = await fetch(`{% url 'indicadores:get_conjunto_datos_csv_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`));
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvData = await response.text();
+                
+                // Parse CSV to JSON
+                const lines = csvData.split('\n').filter(line => line.trim());
+                if (lines.length === 0) {
+                    throw new Error('Archivo CSV vacío');
+                }
+                
+                const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+                const data = lines.slice(1).map(line => {
+                    const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    return row;
+                });
+                
+                // Create Excel file
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Conjunto de datos Original");
+                XLSX.writeFile(wb, `conjunto_datos_original_${indicadorId}_${new Date().toISOString().slice(0,10)}.xlsx`);
+                showMessage('Excel original descargado exitosamente', 'success');
+            } catch (error) {
+                console.error('Error downloading Excel:', error);
+                showMessage('Error al descargar Excel: ' + error.message, 'error');
+            } finally {
+                setButtonLoading(downloadExcelBtn, false);
+            }
+        });
+    }
+    
+    // User Guide Modal functionality
+    const showGuideBtn = document.getElementById('show-guide-btn');
+    const closeGuideBtn = document.getElementById('close-guide-btn');
+    const userGuideModal = document.getElementById('user-guide-modal');
+    
+    if (showGuideBtn && userGuideModal) {
+        showGuideBtn.addEventListener('click', function() {
+            userGuideModal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeGuideBtn && userGuideModal) {
+        closeGuideBtn.addEventListener('click', function() {
+            userGuideModal.classList.add('hidden');
+        });
+        
+        // Close modal when clicking outside
+        userGuideModal.addEventListener('click', function(e) {
+            if (e.target === userGuideModal) {
+                userGuideModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // Fullscreen close handler
+    function closeSheet() {
+        try { if (window.univerInstance) window.univerInstance.dispose(); } catch (e) {}
+        const sheetContainer = document.getElementById('univer-container');
+        if (sheetContainer) sheetContainer.innerHTML = '';
+        if (sheetFullscreen) sheetFullscreen.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    if (sheetCloseBtn) {
+        sheetCloseBtn.addEventListener('click', closeSheet);
+    }
+    
+    // ESC key to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sheetFullscreen && sheetFullscreen.style.display === 'flex') {
+            closeSheet();
+        }
+    });
+    
+    // Toggle variable details
+    window.toggleVariableDetails = function(variableId) {
+        const detailsRow = document.getElementById(`details-${variableId}`);
+        if (detailsRow) {
+            detailsRow.classList.toggle('hidden');
+        }
+    };
+    
+    // Download ficha técnica
+    const downloadFichaBtn = document.getElementById('download-ficha-btn');
+    if (downloadFichaBtn) {
+        downloadFichaBtn.addEventListener('click', async function() {
+            try {
+                setButtonLoading(downloadFichaBtn, true);
+                
+                // Fetch ficha técnica data
+                const response = await fetch(`{% url 'indicadores:get_ficha_tecnica_conjunto_datos' 0 %}`.replace('/0/', `/${indicadorId}/`), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Error al obtener la ficha técnica');
+                }
+                
+                const variables = await response.json();
+                
+                if (!variables || variables.length === 0) {
+                    showMessage('No hay variables disponibles para descargar', 'warning');
+                    return;
+                }
+                
+                // Prepare data for Excel
+                const excelData = variables.map(v => ({
+                    'Código Variable': v.codigo_variable,
+                    'Nombre Variable': v.nombre_variable,
+                    'Definición Conceptual': v.definicion_conceptual,
+                    'Población Objetivo': v.poblacion_objetivo || '',
+                    'Cobertura Geográfica': v.cobertura_geografica || '',
+                    'Desagregación Geográfica': v.desagregacion_geografica || '',
+                    'Desagregación Temática': v.desagregacion_tematica || '',
+                    'Tipo de Dato': v.tipo_dato || '',
+                    'Dominio del Dato': v.dominio_dato || '',
+                    'Unidad de Medida': v.unidad_medida || '',
+                    'Tipo Variable Estadística': v.tipo_variable_estadistica || '',
+                    'Fuente de Datos': v.fuente_datos || '',
+                    'Periodicidad': v.periodicidad || '',
+                    'Observaciones': v.observaciones || '',
+                    'Organismo Productor': v.organismo_productor || ''
+                }));
+                
+                // Create Excel file
+                const worksheet = XLSX.utils.json_to_sheet(excelData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Ficha Técnica');
+                
+                // Auto-size columns
+                const maxWidth = 50;
+                const colWidths = Object.keys(excelData[0]).map(key => {
+                    const maxLen = Math.max(
+                        key.length,
+                        ...excelData.map(row => String(row[key] || '').length)
+                    );
+                    return { wch: Math.min(maxLen + 2, maxWidth) };
+                });
+                worksheet['!cols'] = colWidths;
+                
+                // Download
+                XLSX.writeFile(workbook, `ficha_tecnica_${indicadorId}.xlsx`);
+                showMessage('Ficha técnica descargada exitosamente', 'success');
+                
+            } catch (error) {
+                console.error('Error downloading ficha técnica:', error);
+                showMessage('Error al descargar la ficha técnica: ' + error.message, 'error');
+            } finally {
+                setButtonLoading(downloadFichaBtn, false);
+            }
+        });
+    }
+    
+    // Export functions for header buttons - get data from Univer
+    function downloadCSV(data) {
+        try {
+            let exportData = data;
+            
+            // Try to get data from Univer if available
+            if (window.currentUniverWorkbook && window.univerInstance) {
+                try {
+                    const worksheet = window.currentUniverWorkbook.getActiveSheet();
+                    const range = worksheet.getUsedRange();
+                    if (range) {
+                        const univerData = range.getValues();
+                        if (univerData && univerData.length > 0) {
+                            // Convert Univer 2D array to object array
+                            const headers = univerData[0];
+                            exportData = univerData.slice(1).map(row => {
+                                const obj = {};
+                                headers.forEach((header, i) => {
+                                    obj[header] = row[i] || '';
+                                });
+                                return obj;
+                            });
+                            console.log('Exporting Univer data:', exportData.length, 'rows');
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Could not get Univer data, using original:', err);
+                }
+            }
+            
+            if (!exportData || exportData.length === 0) return;
+            
+            const headers = Object.keys(exportData[0]);
+            const csvContent = [headers.join(',')];
+            exportData.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] || '';
+                    return typeof value === 'string' && (value.includes(',') || value.includes('"')) 
+                        ? `"${value.replace(/"/g, '""')}"` 
+                        : value;
+                });
+                csvContent.push(values.join(','));
+            });
+            
+            const blob = new Blob([csvContent.join('\n')], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `univer_data_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        } catch (error) {
+            console.error('Error in downloadCSV:', error);
+        }
+    }
+    
+    function downloadExcel(data) {
+        try {
+            if (typeof XLSX === 'undefined') {
+                console.error('XLSX library not available');
+                return;
+            }
+            
+            let exportData = data;
+            
+            // Try to get data from Univer if available
+            if (window.currentUniverWorkbook && window.univerInstance) {
+                try {
+                    const worksheet = window.currentUniverWorkbook.getActiveSheet();
+                    const range = worksheet.getUsedRange();
+                    if (range) {
+                        const univerData = range.getValues();
+                        if (univerData && univerData.length > 0) {
+                            // Convert Univer 2D array to object array
+                            const headers = univerData[0];
+                            exportData = univerData.slice(1).map(row => {
+                                const obj = {};
+                                headers.forEach((header, i) => {
+                                    obj[header] = row[i] || '';
+                                });
+                                return obj;
+                            });
+                            console.log('Exporting Univer data to Excel:', exportData.length, 'rows');
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Could not get Univer data, using original:', err);
+                }
+            }
+            
+            if (!exportData || exportData.length === 0) return;
+            
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Data');
+            XLSX.writeFile(wb, `univer_data_${new Date().toISOString().slice(0,10)}.xlsx`);
+        } catch (error) {
+            console.error('Error in downloadExcel:', error);
+        }
+    }
+    
+    window.exportToExcel = function() {
+        if (currentData && currentData.length > 0) {
+            downloadExcel(currentData);
+        }
+    };
+    
+    window.exportToCSV = function() {
+        if (currentData && currentData.length > 0) {
+            downloadCSV(currentData);
+        }
+    };
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1238 @@
+{% extends 'indicadores/taller/institucional/base_institucional.html' %}
+{% load static %}
+
+{% block title %}Ecosistema de Datos — {{ sesion.organismo.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #FAFBFC; 
+    overflow: hidden; 
+    color: #1E293B;
+}
+
+:root {
+    --inst-primary: #003876;
+    --inst-secondary: #5B7B9D;
+    --inst-accent: #0A5F5C;
+    --inst-light: #F1F5F9;
+    --inst-border: #CBD5E1;
+    --inst-text: #1E293B;
+    --inst-muted: #64748B;
+}
+
+#canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+#hud-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+/* Header institucional */
+.header-institucional {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 2px solid var(--inst-primary);
+    padding: 12px 24px;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+}
+
+.header-institucional .brand { display: flex; align-items: center; gap: 16px; }
+.header-institucional .brand-text h1 { font-size: 1.1rem; font-weight: 700; color: var(--inst-primary); letter-spacing: -0.02em; }
+.header-institucional .brand-text .subtitle { font-size: 0.78rem; color: var(--inst-muted); font-weight: 400; }
+
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.btn-inst {
+    padding: 7px 14px; border-radius: 6px; border: 1px solid var(--inst-border);
+    background: white; color: var(--inst-text); font-size: 0.8rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.btn-inst:hover { background: var(--inst-light); border-color: var(--inst-primary); color: var(--inst-primary); }
+.btn-inst.active { background: var(--inst-primary); color: white; border-color: var(--inst-primary); }
+
+/* Panel de filtros (izquierda) */
+.panel-filtros {
+    position: absolute; left: 16px; top: 72px;
+    max-height: calc(100vh - 200px);
+    background: rgba(255,255,255,0.96); backdrop-filter: blur(12px);
+    padding: 0; border-radius: 8px; border: 1px solid var(--inst-border);
+    width: 210px; pointer-events: auto; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    display: flex; flex-direction: column; overflow: hidden;
+}
+
+.panel-filtros .panel-header {
+    background: var(--inst-accent); color: white;
+    padding: 10px 14px; font-size: 0.82rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+
+.panel-filtros .panel-header .panel-toggle {
+    background: none; border: none; color: rgba(255,255,255,0.7);
+    cursor: pointer; font-size: 0.7rem; padding: 2px 6px;
+    border-radius: 4px; transition: all 0.2s;
+}
+.panel-filtros .panel-header .panel-toggle:hover { color: white; background: rgba(255,255,255,0.15); }
+
+.panel-filtros .panel-body {
+    padding: 10px 12px; overflow-y: auto; flex: 1;
+    scrollbar-width: thin; scrollbar-color: var(--inst-border) transparent;
+}
+
+.panel-filtros .seccion-titulo {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--inst-muted); font-weight: 700; margin: 10px 0 6px; padding-top: 8px;
+    border-top: 1px solid var(--inst-border); padding-bottom: 4px;
+}
+
+.panel-filtros .seccion-titulo:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+.filtro-item {
+    margin: 4px 0; padding: 6px 8px; background: transparent; border-radius: 4px;
+    cursor: pointer; transition: all 0.15s; color: var(--inst-text);
+    display: flex; align-items: center; gap: 8px; font-size: 0.78rem;
+}
+.filtro-item:hover { background: var(--inst-light); }
+.filtro-item.activo { background: var(--inst-primary); color: white; font-weight: 600; }
+
+.filtro-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* Stats */
+.stats-bar {
+    position: absolute; bottom: 42px; left: 240px;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(12px);
+    padding: 12px 20px; border-radius: 8px; border: 1px solid var(--inst-border);
+    pointer-events: auto; display: flex; gap: 32px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.stat-item { text-align: center; }
+.stat-value { color: var(--inst-primary); font-size: 1.5rem; font-weight: 700; display: block; line-height: 1; }
+.stat-label { color: var(--inst-muted); font-size: 0.72rem; font-weight: 500; display: block; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Zoom */
+.zoom-controls { position: absolute; bottom: 42px; right: 16px; display: flex; flex-direction: column; gap: 4px; pointer-events: auto; }
+.zoom-btn {
+    width: 36px; height: 36px; border-radius: 6px; background: rgba(255,255,255,0.95);
+    border: 1px solid var(--inst-border); color: var(--inst-text); font-size: 1.1rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+}
+.zoom-btn:hover { background: var(--inst-light); border-color: var(--inst-primary); color: var(--inst-primary); }
+
+/* Panel de referencias (derecha) */
+.panel-referencia {
+    position: absolute; right: 16px; top: 72px; bottom: 110px;
+    background: rgba(255,255,255,0.96); backdrop-filter: blur(12px);
+    padding: 0; border-radius: 8px; border: 1px solid var(--inst-border);
+    width: 240px; pointer-events: auto; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    display: flex; flex-direction: column; overflow: hidden;
+}
+
+.panel-referencia .panel-header {
+    background: var(--inst-primary); color: white;
+    padding: 10px 14px; font-size: 0.82rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+
+.panel-referencia .panel-header .panel-toggle {
+    background: none; border: none; color: rgba(255,255,255,0.7);
+    cursor: pointer; font-size: 0.7rem; padding: 2px 6px;
+    border-radius: 4px; transition: all 0.2s;
+}
+.panel-referencia .panel-header .panel-toggle:hover { color: white; background: rgba(255,255,255,0.15); }
+
+.panel-referencia .panel-body {
+    padding: 12px 14px; overflow-y: auto; flex: 1;
+    scrollbar-width: thin; scrollbar-color: var(--inst-border) transparent;
+}
+
+.ref-section { margin-bottom: 14px; }
+
+.ref-section-title {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--inst-muted); font-weight: 700; margin: 0 0 6px;
+    padding-bottom: 4px; border-bottom: 1px solid var(--inst-border);
+}
+
+.ref-item {
+    display: flex; align-items: center; gap: 8px;
+    margin: 5px 0; font-size: 0.76rem; color: var(--inst-text); line-height: 1.3;
+}
+
+.ref-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.ref-dot.circle { border-radius: 50%; }
+
+.ref-line { width: 18px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+.ref-shape { width: 14px; height: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.ref-shape svg { width: 14px; height: 14px; }
+
+.ref-note {
+    font-size: 0.68rem; color: var(--inst-muted); font-style: italic;
+    margin-top: 8px; padding: 6px 8px; background: var(--inst-light);
+    border-radius: 4px; line-height: 1.4;
+}
+
+/* Tooltip */
+#tooltip {
+    position: absolute; background: rgba(255,255,255,0.97); color: var(--inst-text);
+    padding: 10px 14px; border-radius: 6px; border: 1px solid var(--inst-border);
+    pointer-events: none; opacity: 0; transition: opacity 0.2s; font-size: 0.82rem;
+    max-width: 260px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); line-height: 1.5;
+}
+#tooltip.visible { opacity: 1; }
+
+/* Loading */
+#loading-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #FAFBFC;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 1000; transition: opacity 0.4s;
+}
+#loading-screen.hidden { opacity: 0; pointer-events: none; }
+.spinner-inst { width: 40px; height: 40px; border: 3px solid var(--inst-border); border-top-color: var(--inst-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text-inst { color: var(--inst-muted); font-size: 0.9rem; margin-top: 16px; font-weight: 500; }
+
+/* Logo Alcaldía en header */
+.brand-logo {
+    height: 36px; width: auto; object-fit: contain; flex-shrink: 0; opacity: 0.9;
+}
+
+.brand-divider {
+    width: 1px; height: 28px; background: var(--inst-border); flex-shrink: 0;
+}
+
+/* Franja watermark ecosistema (centro inferior) */
+.watermark-strip {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 32px;
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(203,213,225,0.4);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    pointer-events: none;
+}
+
+.watermark-strip img {
+    height: 20px; width: auto; object-fit: contain; opacity: 0.4; filter: grayscale(100%);
+}
+
+.watermark-strip span {
+    font-size: 0.62rem; color: rgba(100,116,139,0.5); font-weight: 500; letter-spacing: 0.03em;
+}
+
+/* Logo SIIED esquina inferior izquierda */
+.logo-siied {
+    position: absolute; bottom: 120px; left: 240px;
+    pointer-events: none; display: flex; align-items: center; gap: 8px; opacity: 0.35;
+}
+
+.logo-siied img {
+    height: 50px; width: auto; object-fit: contain; filter: grayscale(60%);
+}
+
+.logo-siied span {
+    font-size: 0.86rem; color: var(--inst-muted); font-weight: 500;
+    letter-spacing: 0.02em; line-height: 1.2;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .panel-filtros, .panel-referencia, .stats-bar { display: none; }
+    .header-institucional .brand-text h1 { font-size: 0.9rem; }
+    .header-institucional .subtitle { display: none; }
+    .brand-logo { height: 24px; }
+    .watermark-strip { height: 24px; }
+    .watermark-strip img { height: 14px; }
+    .logo-siied { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="loading-screen">
+    <div class="spinner-inst"></div>
+    <div class="loading-text-inst">Cargando ecosistema de {{ sesion.organismo.nombre }}...</div>
+</div>
+
+<div id="canvas-container"></div>
+
+<div id="hud-overlay">
+    <div class="header-institucional">
+        <div class="brand">
+            <img src="{% static 'indicadores/images/alcaldia color.png' %}"
+                 alt="Alcaldía de Santiago de Cali" class="brand-logo"
+                 onerror="this.style.display='none'">
+            <div class="brand-divider"></div>
+            <div class="brand-text">
+                <h1>{{ sesion.organismo.nombre }}</h1>
+                <span class="subtitle">Mapa de flujos de datos — Vista estratégica</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="/ecosistema/" class="btn-inst">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                Volver al mapa de ciudad
+            </a>
+            <button class="btn-inst" id="btn-gexf" onclick="window.location.href='/taller/api/ecosistema/grafo/{{ sesion.id }}/export/gexf/'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                Exportar GEXF
+            </button>
+            <a href="/taller/mapa3d/{{ sesion.id }}/" class="btn-inst" title="Ir a vista gamificada">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+                Vista taller
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros (izquierda) -->
+    <div class="panel-filtros" id="panel-filtros">
+        <div class="panel-header">
+            <span>Filtros de Flujos</span>
+            <button class="panel-toggle" id="btn-toggle-filtros" title="Minimizar">&#9660;</button>
+        </div>
+        <div class="panel-body" id="panel-filtros-body">
+            <div class="filtro-item activo" data-filtro="todos">
+                <div class="filtro-dot" style="background:var(--inst-primary);"></div>
+                Todos los flujos
+            </div>
+
+            <div class="seccion-titulo">Tipo de flujo</div>
+            <div class="filtro-item" data-filtro="flujos-internos">
+                <div class="filtro-dot" style="background:#DC3545;"></div>
+                Internos
+            </div>
+            <div class="filtro-item" data-filtro="flujos-inter-sub">
+                <div class="filtro-dot" style="background:#2563EB;"></div>
+                Inter-organismo
+            </div>
+            <div class="filtro-item" data-filtro="flujos-externos">
+                <div class="filtro-dot" style="background:#059669;"></div>
+                Externos
+            </div>
+
+            <div class="seccion-titulo">Sensibilidad</div>
+            <div class="filtro-item" data-filtro="sensibilidad-publico">
+                <div class="filtro-dot" style="background:#D97706;"></div>
+                P&uacute;blico
+            </div>
+            <div class="filtro-item" data-filtro="sensibilidad-interno">
+                <div class="filtro-dot" style="background:#64748B;"></div>
+                Interno
+            </div>
+            <div class="filtro-item" data-filtro="sensibilidad-confidencial">
+                <div class="filtro-dot" style="background:#6B21A8;"></div>
+                Confidencial
+            </div>
+            <div class="filtro-item" data-filtro="sensibilidad-critico">
+                <div class="filtro-dot" style="background:#991B1B;"></div>
+                Cr&iacute;tico
+            </div>
+
+            <div class="seccion-titulo">Nivel</div>
+            <div class="filtro-item" data-filtro="nivel-operativo">
+                <div class="filtro-dot" style="background:#94A3B8;"></div>
+                Operativo
+            </div>
+            <div class="filtro-item" data-filtro="nivel-tactico">
+                <div class="filtro-dot" style="background:#3B82F6;"></div>
+                T&aacute;ctico
+            </div>
+            <div class="filtro-item" data-filtro="nivel-estrategico">
+                <div class="filtro-dot" style="background:#003876;"></div>
+                Estrat&eacute;gico
+            </div>
+        </div>
+    </div>
+
+    <!-- Tablero de Referencias (derecha) -->
+    <div class="panel-referencia" id="panel-ref">
+        <div class="panel-header">
+            <span>Referencias del Mapa</span>
+            <button class="panel-toggle" id="btn-toggle-ref" title="Minimizar">&#9660;</button>
+        </div>
+        <div class="panel-body" id="panel-ref-body">
+
+            <!-- Familias de roles (colores de actores) -->
+            <div class="ref-section">
+                <div class="ref-section-title">Familias de roles (actores)</div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#F59E0B;"></div>
+                    <span>A &mdash; Producci&oacute;n de datos</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#F97316;"></div>
+                    <span>B &mdash; Gesti&oacute;n de datos</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#3B82F6;"></div>
+                    <span>C &mdash; Infraestructura</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#8B5CF6;"></div>
+                    <span>D &mdash; An&aacute;lisis</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#10B981;"></div>
+                    <span>E &mdash; Intermediaci&oacute;n</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#EF4444;"></div>
+                    <span>F &mdash; Estrategia</span>
+                </div>
+            </div>
+
+            <!-- Tipos de nodos -->
+            <div class="ref-section">
+                <div class="ref-section-title">Tipos de nodos</div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#94A3B8;"></div>
+                    <span>Actor / Participante</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot" style="background:#475569;"></div>
+                    <span>Subsistema de datos</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot" style="background:#003876;"></div>
+                    <span>Organismo de la Alcald&iacute;a</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot" style="background:#94A3B8; opacity:0.8;"></div>
+                    <span>Entidad externa</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#0EA5E9;"></div>
+                    <span>Sociedad civil / Ciudadan&iacute;a</span>
+                </div>
+            </div>
+
+            <!-- Tipo de flujo -->
+            <div class="ref-section">
+                <div class="ref-section-title">Tipo de flujo</div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#DC3545;"></div>
+                    <span>Interno (dentro del organismo)</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#2563EB;"></div>
+                    <span>Inter-organismo</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#059669;"></div>
+                    <span>Externo (otras entidades)</span>
+                </div>
+            </div>
+
+            <!-- Sensibilidad -->
+            <div class="ref-section">
+                <div class="ref-section-title">Sensibilidad del dato</div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#D97706;"></div>
+                    <span>P&uacute;blico (alta visibilidad)</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:rgba(100,116,139,0.5);"></div>
+                    <span>Interno (visibilidad normal)</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:rgba(107,33,168,0.4);"></div>
+                    <span>Confidencial / Cr&iacute;tico (tenue)</span>
+                </div>
+            </div>
+
+            <!-- Nivel del flujo -->
+            <div class="ref-section">
+                <div class="ref-section-title">Nivel del flujo (altura del arco)</div>
+                <div class="ref-item">
+                    <div class="ref-shape"><svg viewBox="0 0 24 12"><path d="M2 11 Q12 8 22 11" stroke="#94A3B8" fill="none" stroke-width="2"/></svg></div>
+                    <span>Operativo (arco bajo)</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-shape"><svg viewBox="0 0 24 12"><path d="M2 11 Q12 4 22 11" stroke="#3B82F6" fill="none" stroke-width="2"/></svg></div>
+                    <span>T&aacute;ctico (arco medio)</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-shape"><svg viewBox="0 0 24 12"><path d="M2 11 Q12 0 22 11" stroke="#003876" fill="none" stroke-width="2"/></svg></div>
+                    <span>Estrat&eacute;gico (arco alto)</span>
+                </div>
+            </div>
+
+            <!-- Indicadores visuales -->
+            <div class="ref-section">
+                <div class="ref-section-title">Indicadores visuales</div>
+                <div class="ref-item">
+                    <div class="ref-shape"><svg viewBox="0 0 14 14"><rect x="1" y="1" width="12" height="10" rx="2" fill="#93C5FD" stroke="#475569" stroke-width="1"/></svg></div>
+                    <span>Pantalla de subsistema</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#0EA5E9; width:10px; height:10px;"></div>
+                    <span>Anillo: zona sociedad civil</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-dot circle" style="background:#003876; width:10px; height:10px; opacity:0.4;"></div>
+                    <span>Anillo: zona organismos</span>
+                </div>
+            </div>
+
+            <!-- Linaje de Datos -->
+            <div class="ref-section">
+                <div class="ref-section-title">Linaje de Datos (entre datos)</div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#FF6B6B;"></div>
+                    <span>Deriva en / Alimenta</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#4ECDC4;"></div>
+                    <span>Es insumo / Consolida</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#AA96DA;"></div>
+                    <span>Versión / Desagrega</span>
+                </div>
+                <div class="ref-item">
+                    <div class="ref-line" style="background:#FFD93D;"></div>
+                    <span>Sintetiza / Complementa</span>
+                </div>
+            </div>
+
+            <!-- Interacci&oacute;n -->
+            <div class="ref-section">
+                <div class="ref-section-title">Interacci&oacute;n</div>
+                <div class="ref-item">
+                    <span style="font-size:0.85rem;">&#128270;</span>
+                    <span>Hover en actor: ver rol y &aacute;rea</span>
+                </div>
+                <div class="ref-item">
+                    <span style="font-size:0.85rem;">&#128256;</span>
+                    <span>Scroll: acercar / alejar</span>
+                </div>
+                <div class="ref-item">
+                    <span style="font-size:0.85rem;">&#9776;</span>
+                    <span>Filtros: tipo, sensibilidad, nivel</span>
+                </div>
+            </div>
+
+            <div class="ref-note">
+                Mapa de organismo: muestra actores por familia de rol, subsistemas, y flujos de datos con su clasificaci&oacute;n.
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <span class="stat-value" id="stat-participantes">0</span>
+            <span class="stat-label">Participantes</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="stat-flujos">0</span>
+            <span class="stat-label">Flujos</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="stat-subsistemas">0</span>
+            <span class="stat-label">Subsistemas</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="stat-densidad">0%</span>
+            <span class="stat-label">Densidad</span>
+        </div>
+    </div>
+
+    <!-- Zoom -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-in" title="Acercar">+</button>
+        <button class="zoom-btn" id="zoom-reset" title="Restablecer">⟲</button>
+        <button class="zoom-btn" id="zoom-out" title="Alejar">−</button>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <!-- Logo SIIED (esquina inferior izquierda) -->
+    <div class="logo-siied">
+        <img src="{% static 'indicadores/images/unnamed.png' %}"
+             alt="SIIED" onerror="this.parentElement.style.display='none'">
+        <span>Sistema Integrado de<br>Información Estadística Distrital</span>
+    </div>
+
+    <!-- Franja watermark ecosistema (centro inferior) -->
+    <div class="watermark-strip">
+        <img src="https://i.ibb.co/1Gw0gZfm/Captura-desde-2026-03-11-01-59-37.png"
+             alt="Ecosistema de Datos" onerror="this.style.display='none'">
+        <span>Taller de Identificación del Ecosistema de Datos</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================================
+// MAPA DE ORGANISMO — VISTA INSTITUCIONAL ESTRATÉGICA
+// ============================================================================
+
+const SESION_ID = {{ sesion.id }};
+const CODIGO_FACILITADOR = '{{ sesion.codigo_acceso }}';
+const COLORES_FAMILIA = {
+    'A': 0xF59E0B, 'B': 0xF97316, 'C': 0x3B82F6,
+    'D': 0x8B5CF6, 'E': 0x10B981, 'F': 0xEF4444,
+};
+
+class EcosistemaInstitucional {
+    constructor() {
+        this.container = document.getElementById('canvas-container');
+        this.tooltip = document.getElementById('tooltip');
+        this.participantes = [];
+        this.subsistemas = [];
+        this.flujos = [];
+        this.clasificaciones = {};
+        this.filtroActivo = 'todos';
+
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+
+        this.grupoNucleo = new THREE.Group();
+        this.grupoSubsistemas = new THREE.Group();
+        this.grupoActores = new THREE.Group();
+        this.grupoFlujos = new THREE.Group();
+        this.grupoExternos = new THREE.Group();
+
+        this.posicionSociedadCivil = null;
+        this.posicionesOrganismos = {};
+
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+        this.zoomLevel = 1;
+        this.targetZoom = 1;
+
+        this.init();
+    }
+
+    init() {
+        this.setupScene();
+        this.setupLights();
+        this.crearPlataforma();
+        this.setupEventListeners();
+        this.cargarDatos();
+        this.animate();
+    }
+
+    setupScene() {
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0xFAFBFC);
+        this.scene.fog = new THREE.Fog(0xFAFBFC, 120, 300);
+
+        const aspect = this.container.clientWidth / this.container.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
+        this.camera.position.set(0, 50, 80);
+        this.camera.lookAt(0, 0, 0);
+
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.container.appendChild(this.renderer.domElement);
+
+        this.scene.add(this.grupoNucleo);
+        this.scene.add(this.grupoSubsistemas);
+        this.scene.add(this.grupoActores);
+        this.scene.add(this.grupoFlujos);
+        this.scene.add(this.grupoExternos);
+
+        window.addEventListener('resize', () => this.onWindowResize());
+    }
+
+    setupLights() {
+        this.scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+
+        const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+        dir.position.set(50, 100, 50);
+        dir.castShadow = true;
+        dir.shadow.camera.left = -50;
+        dir.shadow.camera.right = 50;
+        dir.shadow.camera.top = 50;
+        dir.shadow.camera.bottom = -50;
+        this.scene.add(dir);
+
+        const fill = new THREE.PointLight(0xE2E8F0, 0.3, 100);
+        fill.position.set(-30, 20, -30);
+        this.scene.add(fill);
+    }
+
+    crearPlataforma() {
+        // Anillo: Sociedad Civil (radio 30)
+        const geomAzul = new THREE.TorusGeometry(30, 0.3, 8, 64);
+        const matAzul = new THREE.MeshStandardMaterial({ color: 0x0EA5E9, transparent: true, opacity: 0.4 });
+        const anilloAzul = new THREE.Mesh(geomAzul, matAzul);
+        anilloAzul.rotation.x = -Math.PI / 2;
+        anilloAzul.position.y = 0.2;
+        this.grupoNucleo.add(anilloAzul);
+        this.crearEtiqueta('Sociedad Civil / Ciudadanía', new THREE.Vector3(0, 1, 32), 0x0EA5E9);
+
+        // Anillo: Organismos (radio 35)
+        const geomAmarillo = new THREE.TorusGeometry(35, 0.3, 8, 64);
+        const matAmarillo = new THREE.MeshStandardMaterial({ color: 0x003876, transparent: true, opacity: 0.3 });
+        const anilloAmarillo = new THREE.Mesh(geomAmarillo, matAmarillo);
+        anilloAmarillo.rotation.x = -Math.PI / 2;
+        anilloAmarillo.position.y = 0.2;
+        this.grupoNucleo.add(anilloAmarillo);
+        this.crearEtiqueta('Organismos de la Alcaldía', new THREE.Vector3(0, 1, 37), 0x003876);
+
+        // Plataforma base
+        const plataforma = new THREE.Mesh(
+            new THREE.CylinderGeometry(28, 28, 0.3, 64),
+            new THREE.MeshStandardMaterial({ color: 0xF1F5F9, transparent: true, opacity: 0.5 })
+        );
+        plataforma.receiveShadow = true;
+        this.grupoNucleo.add(plataforma);
+    }
+
+    async cargarDatos() {
+        try {
+            const response = await fetch(`/taller/api/ecosistema/grafo/${SESION_ID}/`, {
+                headers: { 'X-Facilitador-Token': CODIGO_FACILITADOR }
+            });
+            const data = await response.json();
+
+            this.participantes = data.participantes || [];
+            this.subsistemas = data.subsistemas || [];
+            this.flujos = data.flujos || [];
+            this.clasificaciones = data.clasificaciones_detalle || {};
+
+            this.construirEcosistema();
+            this.actualizarStats();
+
+            if (this.filtroActivo !== 'todos') this.aplicarFiltro();
+
+            document.getElementById('loading-screen').classList.add('hidden');
+        } catch (error) {
+            console.error('Error cargando datos:', error);
+        }
+    }
+
+    construirEcosistema() {
+        this.grupoSubsistemas.clear();
+        this.grupoActores.clear();
+        this.grupoFlujos.clear();
+        this.grupoExternos.clear();
+        this.posicionSociedadCivil = null;
+        this.posicionesOrganismos = {};
+
+        const organismoMap = new Map();
+        let haySociedadCivil = false;
+        this.flujos.forEach(f => {
+            if (f.recibe_de_sociedad_civil || f.envia_a_sociedad_civil) haySociedadCivil = true;
+            if (f.recibe_de_organismo_id && f.recibe_de_organismo_nombre)
+                organismoMap.set(f.recibe_de_organismo_id, f.recibe_de_organismo_nombre);
+            if (f.envia_a_organismo_id && f.envia_a_organismo_nombre)
+                organismoMap.set(f.envia_a_organismo_id, f.envia_a_organismo_nombre);
+        });
+
+        if (haySociedadCivil) this.crearSociedadCivil();
+
+        const organismos = Array.from(organismoMap.entries());
+        organismos.forEach(([id, nombre], idx) => this.crearOrganismo(id, nombre, idx, organismos.length));
+
+        this.subsistemas.forEach((sub, i) => this.crearSubsistema(sub, i));
+        this.participantes.forEach((part, i) => this.crearActor(part, i));
+
+        const entidadesExternasMap = {};
+        this.flujos.forEach(f => {
+            if (f.recibe_de_entidad_externa) {
+                const nombre = f.recibe_de_entidad_externa;
+                if (!entidadesExternasMap[nombre]) entidadesExternasMap[nombre] = { nombre, tipo: f.recibe_de_tipo_entidad || 'otro' };
+            }
+            if (f.envia_a_entidad_externa) {
+                const nombre = f.envia_a_entidad_externa;
+                if (!entidadesExternasMap[nombre]) entidadesExternasMap[nombre] = { nombre, tipo: f.envia_a_tipo_entidad || 'otro' };
+            }
+        });
+        const entidadesExternas = Object.values(entidadesExternasMap);
+        console.log(`Creando ${entidadesExternas.length} entidades externas:`, entidadesExternas);
+        entidadesExternas.forEach((ent, i) => this.crearEntidadExterna(ent.nombre, ent.tipo, i, entidadesExternas.length));
+
+        // Log flujos con entidades externas
+        const flujosConExternos = this.flujos.filter(f => f.recibe_de_entidad_externa || f.envia_a_entidad_externa);
+        console.log(`Procesando ${flujosConExternos.length} flujos con entidades externas:`, flujosConExternos);
+        
+        this.flujos.forEach(f => this.crearFlujo(f));
+    }
+
+    crearSociedadCivil() {
+        this.posicionSociedadCivil = new THREE.Vector3(0, 1, 0);
+        const anillo = new THREE.Mesh(
+            new THREE.TorusGeometry(3, 0.3, 8, 32),
+            new THREE.MeshStandardMaterial({ color: 0x0EA5E9 })
+        );
+        anillo.rotation.x = -Math.PI / 2;
+        anillo.position.set(0, 1, 0);
+        this.grupoExternos.add(anillo);
+
+        const esfera = new THREE.Mesh(
+            new THREE.SphereGeometry(1.5, 32, 32),
+            new THREE.MeshStandardMaterial({ color: 0x0EA5E9, transparent: true, opacity: 0.3 })
+        );
+        esfera.position.set(0, 1, 0);
+        esfera.userData = { tipo: 'sociedad_civil', nombre: 'Sociedad Civil / Ciudadanía' };
+        this.grupoExternos.add(esfera);
+        this.crearEtiqueta('Sociedad Civil', new THREE.Vector3(0, 5, 0), 0x0EA5E9);
+    }
+
+    crearOrganismo(id, nombre, index, total) {
+        const angulo = (index / total) * Math.PI * 2;
+        const radio = 35;
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+        this.posicionesOrganismos[id] = new THREE.Vector3(x, 2, z);
+
+        const g = new THREE.Group();
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(2, 2, 0.3, 32),
+            new THREE.MeshStandardMaterial({ color: 0x003876 })
+        );
+        base.position.y = 0.15; base.castShadow = true;
+        g.add(base);
+
+        const cilindro = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.5, 1.8, 2.5, 32),
+            new THREE.MeshStandardMaterial({ color: 0x003876, metalness: 0.1, roughness: 0.7 })
+        );
+        cilindro.position.y = 1.6; cilindro.castShadow = true;
+        g.add(cilindro);
+
+        g.position.set(x, 0, z);
+        g.userData = { tipo: 'organismo_alcaldia', id, nombre };
+        this.grupoExternos.add(g);
+        this.crearEtiqueta(nombre, new THREE.Vector3(x, 5, z), 0x003876);
+    }
+
+    crearSubsistema(sub, index) {
+        const angulo = (index / this.subsistemas.length) * Math.PI * 2;
+        const radio = 12;
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+
+        const g = new THREE.Group();
+        const caja = new THREE.Mesh(
+            new THREE.BoxGeometry(2.5, 2, 2),
+            new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.1, roughness: 0.7 })
+        );
+        caja.position.y = 1.5; caja.castShadow = true;
+        g.add(caja);
+
+        const pantalla = new THREE.Mesh(
+            new THREE.BoxGeometry(2, 1.5, 0.05),
+            new THREE.MeshStandardMaterial({ color: 0x93C5FD, emissive: 0x93C5FD, emissiveIntensity: 0.15 })
+        );
+        pantalla.position.set(0, 1.5, -1.03);
+        g.add(pantalla);
+
+        g.position.set(x, 0, z);
+        g.userData = { tipo: 'subsistema', data: sub };
+        this.grupoSubsistemas.add(g);
+        this.crearEtiqueta(sub.nombre, new THREE.Vector3(x, 4, z), 0x475569);
+    }
+
+    crearActor(participante, index) {
+        const angulo = (index / this.participantes.length) * Math.PI * 2 + Math.random() * 0.2;
+        const radio = 22 + Math.random() * 4;
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+
+        const colorPrimario = COLORES_FAMILIA[participante.rol_primario__familia__codigo] || 0x94A3B8;
+
+        const esfera = new THREE.Mesh(
+            new THREE.SphereGeometry(1.2, 16, 16),
+            new THREE.MeshStandardMaterial({ color: colorPrimario, metalness: 0.15, roughness: 0.6 })
+        );
+        esfera.position.set(x, 3, z);
+        esfera.castShadow = true;
+        esfera.userData = { tipo: 'actor', data: participante };
+        this.grupoActores.add(esfera);
+
+        if (participante.rol_secundario__familia__codigo) {
+            const colorSec = COLORES_FAMILIA[participante.rol_secundario__familia__codigo] || 0x94A3B8;
+            const esferaSec = new THREE.Mesh(
+                new THREE.SphereGeometry(0.8, 12, 12),
+                new THREE.MeshStandardMaterial({ color: colorSec, metalness: 0.15, roughness: 0.6 })
+            );
+            esferaSec.position.set(x + 2.5, 3, z + 1.5);
+            esferaSec.castShadow = true;
+            esferaSec.userData = { tipo: 'actor_secundario', data: participante };
+            this.grupoActores.add(esferaSec);
+
+            const pts = [new THREE.Vector3(x, 3, z), new THREE.Vector3(x + 2.5, 3, z + 1.5)];
+            this.grupoActores.add(new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(pts),
+                new THREE.LineBasicMaterial({ color: 0xCBD5E1, transparent: true, opacity: 0.5 })
+            ));
+        }
+
+        this.crearEtiqueta(participante.nombre_completo, new THREE.Vector3(x, 5, z), 0x1E293B);
+    }
+
+    // Configuración visual por tipo de entidad externa
+    getTipoEntidadConfig(tipo) {
+        const configs = {
+            gobierno_nacional: { color: 0x1E3A5F, accent: 0xFFD700, label: 'Gob. Nacional', forma: 'columnas' },
+            gobierno_departamental: { color: 0x2E5090, accent: 0xC0C0C0, label: 'Gob. Departamental', forma: 'columnas' },
+            organo_control: { color: 0x7C3AED, accent: 0xE2E8F0, label: 'Órgano Control', forma: 'balanza' },
+            sector_privado: { color: 0x059669, accent: 0x34D399, label: 'Sector Privado', forma: 'torre' },
+            sector_academico: { color: 0xB45309, accent: 0xFBBF24, label: 'Sector Académico', forma: 'libro' },
+            cooperacion_internacional: { color: 0x0284C7, accent: 0x38BDF8, label: 'Coop. Internacional', forma: 'globo' },
+            sector_salud: { color: 0xDC2626, accent: 0xFCA5A5, label: 'Sector Salud', forma: 'cruz' },
+            otro: { color: 0x64748B, accent: 0xCBD5E1, label: 'Entidad Externa', forma: 'cubo' },
+        };
+        return configs[tipo] || configs['otro'];
+    }
+
+    crearEntidadExterna(nombre, tipoEntidad, index, total) {
+        const angulo = (index / total) * Math.PI * 2;
+        const radio = 45;
+        const x = Math.cos(angulo) * radio;
+        const z = Math.sin(angulo) * radio;
+        const config = this.getTipoEntidadConfig(tipoEntidad);
+
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color: config.color, transparent: true, opacity: 0.9 });
+        const accentMat = new THREE.MeshStandardMaterial({ color: config.accent, emissive: config.accent, emissiveIntensity: 0.2 });
+        let topY = 6;
+
+        if (config.forma === 'columnas') {
+            // Gobierno: edificio neoclásico con columnas y frontón
+            const base = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 3), mat);
+            base.position.set(0, 0.75, 0); g.add(base);
+            const techo = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.4, 3.5), mat);
+            techo.position.set(0, 5.5, 0); g.add(techo);
+            // Frontón triangular
+            const fronton = new THREE.Mesh(
+                new THREE.ConeGeometry(2.5, 1.5, 4),
+                new THREE.MeshStandardMaterial({ color: config.color, transparent: true, opacity: 0.9 })
+            );
+            fronton.rotation.y = Math.PI / 4;
+            fronton.position.set(0, 6.5, 0); g.add(fronton);
+            // Columnas
+            for (let c = -1.5; c <= 1.5; c += 1) {
+                const col = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 4.5, 8), accentMat);
+                col.position.set(c, 3.2, 1.5); g.add(col);
+            }
+            topY = 7.5;
+        } else if (config.forma === 'balanza') {
+            // Órgano de control: pilar con balanza
+            const pilar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 6, 8), mat);
+            pilar.position.set(0, 3.5, 0); g.add(pilar);
+            const barra = new THREE.Mesh(new THREE.BoxGeometry(4, 0.15, 0.15), accentMat);
+            barra.position.set(0, 6.5, 0); g.add(barra);
+            // Platillos
+            const plato1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), accentMat);
+            plato1.position.set(-1.8, 6, 0); g.add(plato1);
+            const plato2 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), accentMat);
+            plato2.position.set(1.8, 6, 0); g.add(plato2);
+            topY = 7;
+        } else if (config.forma === 'torre') {
+            // Sector privado: torre moderna acristalada
+            const torre = new THREE.Mesh(new THREE.BoxGeometry(2, 8, 2), mat);
+            torre.position.set(0, 4.5, 0); torre.castShadow = true; g.add(torre);
+            // Franjas de vidrio
+            for (let p = 0; p < 5; p++) {
+                const franja = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.3, 2.05), accentMat);
+                franja.position.set(0, 1.5 + p * 1.5, 0); g.add(franja);
+            }
+            topY = 9;
+        } else if (config.forma === 'libro') {
+            // Sector académico: libro abierto con birrete
+            const libro1 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3, 0.3), mat);
+            libro1.rotation.y = 0.2; libro1.position.set(-0.5, 2, 0); g.add(libro1);
+            const libro2 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3, 0.3), mat);
+            libro2.rotation.y = -0.2; libro2.position.set(0.5, 2, 0); g.add(libro2);
+            // Birrete encima
+            const birrete = new THREE.Mesh(new THREE.BoxGeometry(2, 0.15, 2), accentMat);
+            birrete.position.set(0, 4.5, 0); g.add(birrete);
+            const boton = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), accentMat);
+            boton.position.set(0, 4.8, 0); g.add(boton);
+            topY = 5.5;
+        } else if (config.forma === 'globo') {
+            // Cooperación internacional: globo terráqueo
+            const esfera = new THREE.Mesh(new THREE.SphereGeometry(2, 16, 16), mat);
+            esfera.position.set(0, 3, 0); g.add(esfera);
+            // Anillo ecuatorial
+            const anillo = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.08, 8, 32), accentMat);
+            anillo.position.set(0, 3, 0); g.add(anillo);
+            // Anillo meridiano
+            const anillo2 = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.08, 8, 32), accentMat);
+            anillo2.rotation.y = Math.PI / 2; anillo2.position.set(0, 3, 0); g.add(anillo2);
+            topY = 6;
+        } else if (config.forma === 'cruz') {
+            // Sector salud: edificio con cruz
+            const edificio = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 3), mat);
+            edificio.position.set(0, 3, 0); edificio.castShadow = true; g.add(edificio);
+            // Cruz roja
+            const cruzV = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.5, 0.15), accentMat);
+            cruzV.position.set(0, 5.5, 1.55); g.add(cruzV);
+            const cruzH = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.4, 0.15), accentMat);
+            cruzH.position.set(0, 5.5, 1.55); g.add(cruzH);
+            topY = 6.5;
+        } else {
+            // Cubo genérico
+            const cubo = new THREE.Mesh(new THREE.BoxGeometry(3, 5, 3), mat);
+            cubo.position.set(0, 3, 0); cubo.castShadow = true; g.add(cubo);
+            topY = 6;
+        }
+
+        // Base circular identificadora
+        const baseCircle = new THREE.Mesh(
+            new THREE.CylinderGeometry(2.5, 2.5, 0.15, 32),
+            new THREE.MeshStandardMaterial({ color: config.color, transparent: true, opacity: 0.4 })
+        );
+        baseCircle.position.set(0, 0.1, 0);
+        g.add(baseCircle);
+
+        g.position.set(x, 0, z);
+        g.userData = { tipo: 'entidad_externa', nombre, tipo_entidad: tipoEntidad };
+        this.grupoExternos.add(g);
+        this.crearEtiqueta(nombre, new THREE.Vector3(x, topY + 1.5, z), config.color);
+    }
+
+    crearFlujo(flujo) {
+        const participanteCentral = this.grupoActores.children.find(a =>
+            a.userData.data && a.userData.data.id === flujo.participante_id
+        );
+        if (!participanteCentral) return;
+
+        let origenPos = this._resolverPosicion(flujo, 'recibe');
+        let destinoPos = this._resolverPosicion(flujo, 'envia');
+        const centroPos = participanteCentral.position.clone();
+
+        const dato = flujo.descripcion_datos;
+        const clasificacion = this.clasificaciones[dato] || null;
+
+        let alturaSalto = 6 + Math.random() * 3;
+        if (clasificacion) {
+            if (clasificacion.nivel === 'tactico') alturaSalto = 15 + Math.random() * 5;
+            if (clasificacion.nivel === 'estrategico') alturaSalto = 30 + Math.random() * 10;
+        }
+
+        let colorFlujo = flujo.tipo === 'interno' ? 0xDC3545 : flujo.tipo === 'inter_sub' ? 0x2563EB : 0x059669;
+        let matConfig = { color: colorFlujo, transparent: true, opacity: 0.4, linewidth: 2 };
+
+        if (clasificacion) {
+            if (clasificacion.sensibilidad === 'publico') { matConfig.opacity = 0.8; matConfig.linewidth = 3; }
+            else if (clasificacion.sensibilidad === 'critico' || clasificacion.sensibilidad === 'confidencial') { matConfig.opacity = 0.2; }
+        }
+
+        if (origenPos) {
+            const mid = origenPos.clone().add(centroPos).multiplyScalar(0.5); mid.y += alturaSalto;
+            const c = new THREE.QuadraticBezierCurve3(origenPos, mid, centroPos);
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(c.getPoints(20)), new THREE.LineBasicMaterial(matConfig));
+            line.userData = { tipo: 'flujo_entrada', data: flujo };
+            this.grupoFlujos.add(line);
+        }
+        if (destinoPos) {
+            const mid = centroPos.clone().add(destinoPos).multiplyScalar(0.5); mid.y += alturaSalto;
+            const c = new THREE.QuadraticBezierCurve3(centroPos, mid, destinoPos);
+            const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(c.getPoints(20)), new THREE.LineBasicMaterial(matConfig));
+            line.userData = { tipo: 'flujo_salida', data: flujo };
+            this.grupoFlujos.add(line);
+        }
+    }
+
+    _resolverPosicion(flujo, direccion) {
+        const prefijo = direccion === 'recibe' ? 'recibe_de' : 'envia_a';
+        if (flujo[`${prefijo}_participante_id`]) {
+            const actor = this.grupoActores.children.find(a => a.userData.data && a.userData.data.id === flujo[`${prefijo}_participante_id`]);
+            return actor ? actor.position.clone() : null;
+        }
+        if (flujo[`${prefijo}_subsistema_id`]) {
+            const sub = this.grupoSubsistemas.children.find(s => s.userData.data && s.userData.data.id === flujo[`${prefijo}_subsistema_id`]);
+            return sub ? sub.position.clone() : null;
+        }
+        if (flujo[`${prefijo}_sociedad_civil`]) return this.posicionSociedadCivil || new THREE.Vector3(0, 1, 0);
+        if (flujo[`${prefijo}_organismo_id`]) return this.posicionesOrganismos[flujo[`${prefijo}_organismo_id`]] || null;
+        if (flujo[`${prefijo}_entidad_externa`] && flujo[`${prefijo}_entidad_externa`].trim()) {
+            const nombreBuscado = flujo[`${prefijo}_entidad_externa`].trim();
+            const ed = this.grupoExternos.children.find(e => 
+                e.userData && e.userData.tipo === 'entidad_externa' && 
+                e.userData.nombre && e.userData.nombre.trim() === nombreBuscado
+            );
+            if (ed) { 
+                const p = ed.position.clone(); 
+                p.y = 3; 
+                return p; 
+            }
+            console.warn(`Entidad externa no encontrada: "${nombreBuscado}"`);
+        }
+        return null;
+    }
+
+    crearEtiqueta(texto, posicion, color = 0x003876) {
+        const cv = document.createElement('canvas');
+        const ctx = cv.getContext('2d');
+        const fontSize = 14;
+        const maxWidth = 360;
+        const lineHeight = 18;
+        ctx.font = `500 ${fontSize}px Inter, Arial`;
+
+        const words = texto.split(' ');
+        const lines = [];
+        let currentLine = '';
+        for (let word of words) {
+            const testLine = currentLine + (currentLine ? ' ' : '') + word;
+            if (ctx.measureText(testLine).width > maxWidth && currentLine) { lines.push(currentLine); currentLine = word; }
+            else currentLine = testLine;
+        }
+        if (currentLine) lines.push(currentLine);
+        if (lines.length > 2) { lines[1] = lines[1].substring(0, Math.max(0, lines[1].length - 3)) + '...'; lines.length = 2; }
+
+        const cw = Math.min(maxWidth + 30, 512);
+        const ch = lines.length * lineHeight + 16;
+        cv.width = cw; cv.height = ch;
+        ctx.font = `500 ${fontSize}px Inter, Arial`;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const startY = ch / 2 - (lines.length - 1) * lineHeight / 2;
+        lines.forEach((line, i) => ctx.fillText(line, cw / 2, startY + i * lineHeight));
+
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv) }));
+        sp.position.copy(posicion);
+        sp.scale.set(cw / 64, ch / 64, 1);
+        this.grupoSubsistemas.add(sp);
+    }
+
+    setupEventListeners() {
+        // Filtros
+        document.querySelectorAll('.filtro-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                document.querySelectorAll('.filtro-item').forEach(i => i.classList.remove('activo'));
+                e.currentTarget.classList.add('activo');
+                this.filtroActivo = e.currentTarget.dataset.filtro;
+                this.aplicarFiltro();
+            });
+        });
+
+        // Panel toggles (minimizar/expandir)
+        this._setupPanelToggle('btn-toggle-filtros', 'panel-filtros-body');
+        this._setupPanelToggle('btn-toggle-ref', 'panel-ref-body');
+
+        document.getElementById('zoom-in').addEventListener('click', () => { this.targetZoom = Math.min(this.targetZoom + 0.3, 3); });
+        document.getElementById('zoom-out').addEventListener('click', () => { this.targetZoom = Math.max(this.targetZoom - 0.3, 0.5); });
+        document.getElementById('zoom-reset').addEventListener('click', () => { this.targetZoom = 1; });
+
+        this.renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            this.targetZoom = Math.max(0.5, Math.min(3, this.targetZoom + (e.deltaY > 0 ? 0.1 : -0.1)));
+        });
+
+        this.renderer.domElement.addEventListener('mousemove', (e) => this.onMouseMove(e));
+    }
+
+    _setupPanelToggle(btnId, bodyId) {
+        const btn = document.getElementById(btnId);
+        const body = document.getElementById(bodyId);
+        if (!btn || !body) return;
+        btn.onclick = () => {
+            const collapsed = body.style.display === 'none';
+            body.style.display = collapsed ? '' : 'none';
+            btn.innerHTML = collapsed ? '&#9660;' : '&#9654;';
+            btn.title = collapsed ? 'Minimizar' : 'Expandir';
+        };
+    }
+
+    aplicarFiltro() {
+        this.grupoActores.children.forEach(a => { a.visible = true; });
+        this.grupoFlujos.children.forEach(flujo => {
+            if (this.filtroActivo === 'todos') { flujo.visible = true; return; }
+            if (this.filtroActivo === 'flujos-internos') { flujo.visible = flujo.userData.data?.tipo === 'interno'; return; }
+            if (this.filtroActivo === 'flujos-inter-sub') { flujo.visible = flujo.userData.data?.tipo === 'inter_sub'; return; }
+            if (this.filtroActivo === 'flujos-externos') { flujo.visible = flujo.userData.data?.tipo === 'externo'; return; }
+            if (this.filtroActivo.startsWith('sensibilidad-')) {
+                const sens = this.filtroActivo.split('-')[1];
+                const dato = flujo.userData.data?.descripcion_datos;
+                const cl = this.clasificaciones[dato];
+                flujo.visible = cl ? cl.sensibilidad === sens : sens === 'interno';
+                return;
+            }
+            if (this.filtroActivo.startsWith('nivel-')) {
+                const niv = this.filtroActivo.split('-')[1];
+                const dato = flujo.userData.data?.descripcion_datos;
+                const cl = this.clasificaciones[dato];
+                flujo.visible = cl ? cl.nivel === niv : niv === 'operativo';
+                return;
+            }
+            flujo.visible = false;
+        });
+    }
+
+    onMouseMove(event) {
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects([...this.grupoActores.children, ...this.grupoSubsistemas.children, ...this.grupoExternos.children]);
+        if (intersects.length > 0) {
+            let obj = intersects[0].object;
+            // Subir en la jerarquía hasta encontrar el objeto con userData.tipo
+            while (obj.parent && !obj.userData.tipo) obj = obj.parent;
+            if (obj.userData.tipo === 'actor' || obj.userData.tipo === 'actor_secundario') {
+                const d = obj.userData.data;
+                this.tooltip.innerHTML = `<strong>${d.nombre_completo}</strong><br>${d.area_funcional || ''}<br><em>${d.rol_primario__nombre || 'Sin rol'}</em>`;
+            } else if (obj.userData.tipo === 'subsistema') {
+                const d = obj.userData.data;
+                this.tooltip.innerHTML = `<strong>${d.nombre}</strong><br>Tipo: ${d.tipo}`;
+            } else if (obj.userData.tipo === 'entidad_externa') {
+                const config = this.getTipoEntidadConfig(obj.userData.tipo_entidad);
+                this.tooltip.innerHTML = `<strong>${obj.userData.nombre}</strong><br><em>${config.label}</em>`;
+            }
+            this.tooltip.style.left = event.clientX + 15 + 'px';
+            this.tooltip.style.top = event.clientY + 15 + 'px';
+            this.tooltip.classList.add('visible');
+        } else {
+            this.tooltip.classList.remove('visible');
+        }
+    }
+
+    actualizarStats() {
+        document.getElementById('stat-participantes').textContent = this.participantes.length;
+        document.getElementById('stat-flujos').textContent = this.flujos.length;
+        document.getElementById('stat-subsistemas').textContent = this.subsistemas.length;
+        const mx = this.participantes.length * (this.participantes.length - 1) / 2;
+        document.getElementById('stat-densidad').textContent = mx > 0 ? (this.flujos.length / mx * 100).toFixed(1) + '%' : '0%';
+    }
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        const time = Date.now() * 0.00006;
+        this.zoomLevel += (this.targetZoom - this.zoomLevel) * 0.08;
+        const zoomDist = 80 / this.zoomLevel;
+
+        this.camera.position.x = Math.sin(time) * zoomDist;
+        this.camera.position.z = Math.cos(time) * zoomDist;
+        this.camera.position.y = 50 / this.zoomLevel;
+        this.camera.lookAt(0, 0, 0);
+
+        // Pulsación sutil de actores
+        this.grupoActores.children.forEach((actor, i) => {
+            if (actor.isMesh) actor.position.y = 3 + Math.sin(time * 50 + i) * 0.15;
+        });
+
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    onWindowResize() {
+        this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.ecosistema = new EcosistemaInstitucional();
+    setInterval(() => { window.ecosistema.cargarDatos(); }, 10000);
+});
+</script>
+{% endblock %}

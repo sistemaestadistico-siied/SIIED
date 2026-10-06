@@ -1,0 +1,156 @@
+{% extends 'recoleccion/base_recoleccion.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-6 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a href="{{ request.GET.next|default:'#' }}"
+           class="inline-flex items-center text-slate-600 hover:text-slate-900 mb-4 transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Volver
+        </a>
+        <h1 class="text-2xl font-serif font-bold text-slate-900">{{ titulo_pagina }}</h1>
+        <p class="text-slate-600 mt-2">Configure los elementos básicos del gráfico. El equipo SIIED completará la configuración avanzada.</p>
+    </div>
+
+    <!-- Info del indicador -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+        <div class="flex items-start gap-3">
+            <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <div>
+                <p class="font-semibold text-blue-900">Indicador: {{ indicador.nombre }}</p>
+                <p class="text-sm text-blue-700">{{ indicador.subtema.tema.nombre }} > {{ indicador.subtema.nombre }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200">
+        <form method="post" class="p-6">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+            <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <p class="font-semibold text-red-900">Por favor corrija los siguientes errores:</p>
+                        <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Nombre del gráfico -->
+            <div class="mb-6">
+                <label for="{{ form.nombre.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-2">
+                    {{ form.nombre.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                {{ form.nombre }}
+                {% if form.nombre.help_text %}
+                <p class="text-xs text-slate-500 mt-1">{{ form.nombre.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Tipo de gráfico -->
+            <div class="mb-6">
+                <label for="{{ form.tipo_grafico.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-2">
+                    {{ form.tipo_grafico.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                {{ form.tipo_grafico }}
+                {% if form.tipo_grafico.help_text %}
+                <p class="text-xs text-slate-500 mt-1">{{ form.tipo_grafico.help_text }}</p>
+                {% endif %}
+                <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs text-slate-600">
+                    <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                        <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                        <span>Línea</span>
+                    </div>
+                    <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                        <div class="w-4 h-4 bg-green-500 rounded"></div>
+                        <span>Barras</span>
+                    </div>
+                    <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                        <div class="w-4 h-4 bg-orange-500 rounded"></div>
+                        <span>Área</span>
+                    </div>
+                    <div class="flex items-center gap-2 p-2 bg-slate-50 rounded-lg">
+                        <div class="w-4 h-4 bg-purple-500 rounded-full"></div>
+                        <span>Circular</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Título eje X -->
+            <div class="mb-6">
+                <label for="{{ form.eje_x_titulo.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-2">
+                    {{ form.eje_x_titulo.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                {{ form.eje_x_titulo }}
+                {% if form.eje_x_titulo.help_text %}
+                <p class="text-xs text-slate-500 mt-1">{{ form.eje_x_titulo.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Título eje Y / Unidad de medida -->
+            <div class="mb-6">
+                <label for="{{ form.eje_y_titulo.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-2">
+                    {{ form.eje_y_titulo.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                {{ form.eje_y_titulo }}
+                {% if form.eje_y_titulo.help_text %}
+                <p class="text-xs text-slate-500 mt-1">{{ form.eje_y_titulo.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Nota informativa -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <p class="font-semibold text-amber-900">Configuración básica</p>
+                        <p class="text-sm text-amber-700 mt-1">
+                            Este formulario captura solo los elementos esenciales del gráfico. 
+                            El equipo SIIED completará posteriormente la configuración avanzada 
+                            (márgenes, rangos, desagregaciones, colores, etc.) desde el panel de administración.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex items-center justify-end gap-3">
+                <a href="{{ request.GET.next|default:'#' }}"
+                   class="px-6 py-2.5 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors shadow-sm">
+                    Crear Gráfico
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

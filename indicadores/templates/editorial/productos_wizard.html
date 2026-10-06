@@ -1,0 +1,241 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Wizard de Productos — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <i class="fas fa-magic text-indigo-500"></i> Wizard de Creación de Productos
+    </h1>
+    <p class="mt-1 text-slate-500">Crea productos académicos y educativos paso a paso</p>
+</div>
+
+<!-- Indicador de progreso -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-8">
+    <div class="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-0">
+        {% for i in "1234" %}
+        <div class="flex flex-col items-center gap-2">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all
+                        {% if paso == forloop.counter %}bg-indigo-600 text-white shadow-lg shadow-indigo-200{% elif paso > forloop.counter %}bg-emerald-500 text-white{% else %}bg-slate-200 text-slate-500{% endif %}">
+                {% if paso > forloop.counter %}<i class="fas fa-check"></i>{% else %}{{ forloop.counter }}{% endif %}
+            </div>
+            <span class="text-xs font-semibold text-center max-w-[80px] {% if paso == forloop.counter %}text-indigo-600{% else %}text-slate-400{% endif %}">
+                {% if forloop.counter == 1 %}Info Básica{% elif forloop.counter == 2 %}Indicadores{% elif forloop.counter == 3 %}Plantilla{% else %}Confirmar{% endif %}
+            </span>
+        </div>
+        {% if not forloop.last %}
+        <div class="w-8 md:w-16 h-1 md:h-1 my-2 md:my-0 rounded-full {% if paso > forloop.counter %}bg-emerald-500{% else %}bg-slate-200{% endif %}"></div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Contenido -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+    <form method="post">
+        {% csrf_token %}
+
+        {% if paso == 1 %}
+        <!-- PASO 1 -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <i class="fas fa-info-circle text-indigo-500"></i> Información Básica
+            </h2>
+            <div class="space-y-5 max-w-2xl">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2" for="tipo_producto">Tipo de Producto *</label>
+                    <select name="tipo_producto" id="tipo_producto" required onchange="togglePublicoField()"
+                            class="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all">
+                        <option value="">Seleccione...</option>
+                        <option value="academico" {% if wizard_data.tipo_producto == 'academico' %}selected{% endif %}>Producto Académico</option>
+                        <option value="educativo" {% if wizard_data.tipo_producto == 'educativo' %}selected{% endif %}>Producto Educativo</option>
+                    </select>
+                </div>
+
+                <div id="publico_group" class="hidden">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2" for="publico">Público Objetivo *</label>
+                    <select name="publico" id="publico"
+                            class="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all">
+                        <option value="infantil" {% if wizard_data.publico == 'infantil' %}selected{% endif %}>Infantil (6-11 años)</option>
+                        <option value="adolescente" {% if wizard_data.publico == 'adolescente' %}selected{% endif %}>Adolescente (12-17 años)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2" for="titulo">Título *</label>
+                    <input type="text" name="titulo" id="titulo" required value="{{ wizard_data.titulo }}"
+                           placeholder="Ej: Proyecciones de Población de Cali 2024-2050"
+                           class="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2" for="slug">Slug *</label>
+                    <input type="text" name="slug" id="slug" required value="{{ wizard_data.slug }}"
+                           placeholder="ej: proyecciones-poblacion-cali-2024"
+                           class="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all">
+                    <p class="mt-1 text-xs text-slate-400">Solo letras minúsculas, números y guiones</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2" for="autor">Autor *</label>
+                    <input type="text" name="autor" id="autor" required value="{{ wizard_data.autor|default:user.get_full_name }}"
+                           class="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2" for="institucion">Institución</label>
+                    <input type="text" name="institucion" id="institucion" value="{{ wizard_data.institucion }}"
+                           placeholder="Ej: Departamento Administrativo de Planeación"
+                           class="w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all">
+                </div>
+            </div>
+        </div>
+
+            {% elif paso == 2 %}
+            <!-- PASO 2 -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fas fa-chart-line text-indigo-500"></i> Selecciona los Indicadores
+                </h2>
+                <p class="text-slate-500 mb-6">Selecciona los indicadores que incluirá este producto</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for indicador in indicadores %}
+                    <label class="flex items-start gap-3 p-4 bg-white border-2 border-slate-200 rounded-xl cursor-pointer hover:border-indigo-400 hover:shadow-md transition-all group">
+                        <input type="checkbox" name="indicadores" value="{{ indicador.id }}"
+                               {% if indicador.id|stringformat:"s" in wizard_data.indicadores %}checked{% endif %}
+                               class="mt-1 w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-slate-800 group-hover:text-indigo-700 transition-colors">{{ indicador.nombre }}</div>
+                            <div class="text-sm text-slate-500">{{ indicador.subtema.nombre|default:"Sin subtema" }}</div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                {% if not indicadores %}
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 mt-4">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> No hay indicadores disponibles. Debes crear indicadores primero.
+                </div>
+                {% endif %}
+            </div>
+
+            {% elif paso == 3 %}
+            <!-- PASO 3 -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fas fa-palette text-indigo-500"></i> Selecciona una Plantilla
+                </h2>
+                <p class="text-slate-500 mb-6">Elige la estructura base para tu producto</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {% for plantilla in plantillas %}
+                    <label class="cursor-pointer group">
+                        <input type="radio" name="plantilla" value="{{ plantilla.id }}"
+                               {% if wizard_data.plantilla == plantilla.id %}checked{% endif %}
+                               required class="hidden peer">
+                        <div class="bg-white border-2 border-slate-200 rounded-2xl p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg peer-checked:border-indigo-600 peer-checked:bg-gradient-to-b peer-checked:from-indigo-50/50 peer-checked:to-white">
+                            <div class="text-5xl mb-4">
+                                {% if plantilla.id == 'censo' %}📊{% elif plantilla.id == 'paper' %}📄{% elif plantilla.id == 'informe' %}📋{% elif plantilla.id == 'infantil' %}🎨{% else %}🔬{% endif %}
+                            </div>
+                            <h3 class="text-lg font-bold text-slate-800 mb-2">{{ plantilla.nombre }}</h3>
+                            <p class="text-sm text-slate-500">{{ plantilla.descripcion }}</p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% elif paso == 4 %}
+            <!-- PASO 4 -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                    <i class="fas fa-check-circle text-indigo-500"></i> Confirma y Crea
+                </h2>
+                <p class="text-slate-500 mb-6">Revisa la información antes de crear el producto</p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-lg font-bold text-indigo-600 mb-4 flex items-center gap-2">
+                            <i class="fas fa-info-circle"></i> Información Básica
+                        </h3>
+                        <dl class="space-y-3 text-sm">
+                            <div class="flex justify-between"><dt class="text-slate-500">Tipo:</dt><dd class="font-medium text-slate-800">{{ wizard_data.tipo_producto|title }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-slate-500">Título:</dt><dd class="font-medium text-slate-800">{{ wizard_data.titulo }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-slate-500">Slug:</dt><dd class="font-medium text-slate-800 font-mono text-xs">{{ wizard_data.slug }}</dd></div>
+                            <div class="flex justify-between"><dt class="text-slate-500">Autor:</dt><dd class="font-medium text-slate-800">{{ wizard_data.autor }}</dd></div>
+                            {% if wizard_data.institucion %}
+                            <div class="flex justify-between"><dt class="text-slate-500">Institución:</dt><dd class="font-medium text-slate-800">{{ wizard_data.institucion }}</dd></div>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-lg font-bold text-emerald-600 mb-4 flex items-center gap-2">
+                            <i class="fas fa-chart-line"></i> Indicadores
+                        </h3>
+                        <p class="text-slate-600">{{ wizard_data.indicadores|length }} indicador{{ wizard_data.indicadores|length|pluralize:"es" }} seleccionado{{ wizard_data.indicadores|length|pluralize:"s" }}</p>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-lg font-bold text-amber-600 mb-4 flex items-center gap-2">
+                            <i class="fas fa-palette"></i> Plantilla
+                        </h3>
+                        <p class="text-slate-600">{{ wizard_data.plantilla|title }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-sm">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    El producto se creará en estado <strong>borrador</strong>. Podrás editarlo antes de publicarlo.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Botones de navegación -->
+            <div class="flex justify-between items-center mt-8 pt-6 border-t border-slate-200">
+                {% if paso > 1 %}
+                <a href="?paso={{ paso|add:"-1" }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                    <i class="fas fa-arrow-left"></i> Anterior
+                </a>
+                {% else %}
+                <a href="{% url 'indicadores:editorial_productos' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+                {% endif %}
+
+                <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all">
+                    {% if paso == total_pasos %}
+                    <i class="fas fa-check"></i> Crear Producto
+                    {% else %}
+                    Siguiente <i class="fas fa-arrow-right"></i>
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+<script>
+function togglePublicoField() {
+    const tipo = document.getElementById('tipo_producto').value;
+    const publicoGroup = document.getElementById('publico_group');
+    if (tipo === 'educativo') {
+        publicoGroup.classList.remove('hidden');
+        document.getElementById('publico').required = true;
+    } else {
+        publicoGroup.classList.add('hidden');
+        document.getElementById('publico').required = false;
+    }
+}
+
+document.getElementById('titulo')?.addEventListener('input', function(e) {
+    const slug = e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    document.getElementById('slug').value = slug;
+});
+
+document.addEventListener('DOMContentLoaded', togglePublicoField);
+</script>
+{% endblock %}

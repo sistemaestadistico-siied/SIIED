@@ -1,0 +1,82 @@
+{% extends "delegado/base_delegado.html" %}
+{% block title %}Mis Indicadores{% endblock %}
+{% block delegado_content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-serif font-bold text-slate-900">Mis Indicadores</h1>
+    <p class="text-slate-500 text-sm mt-1">
+        Indicadores asignados a {{ organismo.nombre|default:"tu organismo" }}.
+        Haz clic en un indicador para cargar su actualización.
+    </p>
+</div>
+
+{% if not indicadores_con_estado %}
+<div class="bg-amber-50 border border-amber-200 rounded-3xl p-6 text-center">
+    <p class="text-amber-800 font-semibold flex items-center justify-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>No hay indicadores asignados a tu organismo.
+    </p>
+    <p class="text-amber-600 text-sm mt-1">Contacta al equipo del SIIED para que configuren tus indicadores.</p>
+</div>
+{% else %}
+<div class="bg-white rounded-3xl shadow-sm border border-slate-200">
+    <div class="divide-y divide-slate-100">
+        {% for item in indicadores_con_estado %}
+        <div class="px-5 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-mono font-semibold">ID: {{ item.indicador.id }}</span>
+                        {% if item.indicador.codigo_indicador %}
+                        <code class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">{{ item.indicador.codigo_indicador }}</code>
+                        {% endif %}
+                        <h3 class="text-sm font-semibold text-slate-800">{{ item.indicador.nombre }}</h3>
+                    </div>
+                    {% if item.indicador.frecuencia_difusion %}
+                    <p class="text-xs text-slate-400 mt-1 flex items-center">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>Periodicidad: {{ item.indicador.frecuencia_difusion }}
+                    </p>
+                    {% endif %}
+                    {% if item.indicador.unidad_medida %}
+                    <p class="text-xs text-slate-400 flex items-center">
+                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>Unidad: {{ item.indicador.unidad_medida }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    {% if item.ultima_carga %}
+                    <div class="text-right">
+                        <span class="block px-3 py-1 rounded-full text-xs font-medium estado-{{ item.ultima_carga.estado }}">
+                            {{ item.ultima_carga.get_estado_display }}
+                        </span>
+                        <span class="text-xs text-slate-400 mt-1 block">{{ item.ultima_carga.fecha_carga|date:"d/m/Y" }}</span>
+                        {% if item.desactualizado %}
+                        <span class="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Desactualizado ({{ item.dias_desde_ultima }}d)
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Sin cargas</span>
+                    {% endif %}
+                    <a href="{% url 'indicadores:delegado_cargar_serie' %}?indicador={{ item.indicador.id }}"
+                       class="bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white text-xs font-medium px-3 py-2 rounded-lg transition whitespace-nowrap">
+                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>Actualizar datos
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

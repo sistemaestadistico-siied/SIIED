@@ -1,0 +1,303 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Banners por Suborganismo - Satisfacción Ciudadana{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%);
+        color: white;
+        padding: 40px 0;
+        margin-bottom: 30px;
+        border-radius: 0;
+    }
+    .equipo-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .equipo-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        border-color: #06b6d4;
+    }
+    .banner-preview {
+        background: #ffffff;
+        border: 1px dashed #dee2e6;
+        border-radius: 6px;
+        padding: 10px;
+        overflow-x: auto;
+        min-height: 80px;
+    }
+    .copy-btn {
+        background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%);
+        color: white;
+        border: none;
+        font-weight: 500;
+    }
+    .copy-btn:hover {
+        opacity: 0.9;
+        color: white;
+    }
+    .organismo-card {
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    .organismo-card:hover {
+        border-color: #06b6d4;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(6,182,212,0.2);
+    }
+    .organismo-card.selected {
+        border-color: #06b6d4;
+        background-color: #ecfeff;
+    }
+    .suborganismo-card {
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+    .suborganismo-card:hover {
+        border-color: #06b6d4;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(6,182,212,0.2);
+    }
+    .suborganismo-card.selected {
+        border-color: #06b6d4;
+        background-color: #ecfeff;
+    }
+    .copy-success {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Alerta de éxito al copiar -->
+<div class="alert alert-success alert-dismissible fade copy-success" role="alert">
+    <i class="bi bi-check-circle-fill"></i> ¡Banner copiado al portapapeles!
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- Hero Section -->
+<div class="hero-section shadow-sm">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="fw-bold mb-2"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Banners por Suborganismo</h1>
+                <p class="mb-0 opacity-75">
+                    1. Selecciona el organismo &nbsp;→&nbsp; 2. Selecciona la subdirección u oficina &nbsp;→&nbsp; Copia los banners.
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <a href="{% url 'indicadores:satisfaccion_instructivo' %}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-book me-1"></i> Ir al Instructivo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container pb-5">
+
+    <!-- PASO 1: Selector de Organismo -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="bi bi-building me-2 text-primary"></i>Paso 1 — Selecciona el Organismo</h5>
+        </div>
+        <div class="card-body">
+            {% if organismos %}
+            <div class="row">
+                {% for org in organismos %}
+                <div class="col-md-4 col-lg-3 mb-3">
+                    <a href="?organismo={{ org.id }}" class="text-decoration-none">
+                        <div class="card organismo-card h-100 {% if organismo_seleccionado.id == org.id %}selected{% endif %}">
+                            <div class="card-body text-center">
+                                <i class="bi bi-building" style="font-size: 36px; color: #000866;"></i>
+                                <h6 class="mt-2 mb-1 text-dark">{{ org.nombre }}</h6>
+                                <p class="text-muted small mb-0"><code>{{ org.codigo }}</code></p>
+                                {% if organismo_seleccionado.id == org.id %}
+                                <span class="badge mt-2" style="background-color: #06b6d4; color: #000866;">
+                                    <i class="bi bi-check-circle"></i> Seleccionado
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> No hay organismos activos.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if organismo_seleccionado %}
+
+    <!-- PASO 2: Selector de Suborganismo -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Paso 2 — Selecciona la Subdirección / Oficina</h5>
+            <a href="?" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Cambiar organismo
+            </a>
+        </div>
+        <div class="card-body">
+            {% if suborganismos %}
+            <div class="row">
+                {% for sub in suborganismos %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <a href="?organismo={{ organismo_seleccionado.id }}&suborganismo={{ sub.id }}" class="text-decoration-none">
+                        <div class="card suborganismo-card h-100 {% if suborganismo_seleccionado.id == sub.id %}selected{% endif %}">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-diagram-3 fs-3 me-2" style="color: #000866;"></i>
+                                    <div>
+                                        <h6 class="mb-0 text-dark fw-bold">{{ sub.nombre }}</h6>
+                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ sub.get_tipo_display }}</span>
+                                    </div>
+                                </div>
+                                {% if suborganismo_seleccionado.id == sub.id %}
+                                <span class="badge mt-2" style="background-color: #06b6d4; color: #000866;">
+                                    <i class="bi bi-check-circle"></i> Seleccionado
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i> Este organismo no tiene suborganismos activos.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if suborganismo_seleccionado %}
+
+    <!-- Banners del Suborganismo -->
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white;">
+        <div>
+            <h4 class="mb-0 fw-bold"><i class="bi bi-diagram-3 me-2"></i>{{ suborganismo_seleccionado.nombre }}</h4>
+            <p class="mb-0 opacity-75 small">{{ organismo_seleccionado.nombre }} — {{ suborganismo_seleccionado.get_tipo_display }}</p>
+        </div>
+        <span class="badge" style="background-color: rgba(255,255,255,0.2); color: white; font-size: 0.9rem;">
+            <i class="bi bi-people-fill me-1"></i>{{ equipos_con_banner|length }} equipo{{ equipos_con_banner|length|pluralize:"s" }}
+        </span>
+    </div>
+
+    {% if equipos_con_banner %}
+        <div class="row">
+            {% for eq in equipos_con_banner %}
+            <div class="col-lg-6 mb-4">
+                <div class="equipo-card h-100 p-3 bg-white">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h6 class="mb-1 fw-bold" style="color: #000866;">
+                                <i class="bi bi-people-fill me-1 text-success"></i>{{ eq.equipo.nombre }}
+                            </h6>
+                            <code class="small text-muted">{{ eq.equipo.codigo }}</code>
+                        </div>
+                        <button class="btn btn-sm copy-btn"
+                                onclick="copiarBannerEquipo('banner-{{ suborganismo_seleccionado.id }}-{{ eq.equipo.id }}')">
+                            <i class="bi bi-clipboard"></i> Copiar
+                        </button>
+                    </div>
+
+                    <div class="banner-preview mb-2">
+                        <div id="banner-{{ suborganismo_seleccionado.id }}-{{ eq.equipo.id }}" class="banner-renderizado">
+                            {{ eq.banner_html|safe }}
+                        </div>
+                    </div>
+
+                    <div class="mt-2 small text-muted">
+                        <i class="bi bi-link-45deg me-1"></i>
+                        <a href="{% url 'indicadores:satisfaccion_formulario_equipo' organismo_seleccionado.codigo eq.equipo.codigo %}" target="_blank" class="text-decoration-none">
+                            Ver formulario completo
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Este suborganismo no tiene equipos de trabajo activos configurados.
+        </div>
+    {% endif %}
+
+    {% endif %}{# suborganismo_seleccionado #}
+
+    {% endif %}{# organismo_seleccionado #}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function copiarBannerEquipo(bannerId) {
+        const contenedor = document.getElementById(bannerId);
+        if (!contenedor) {
+            alert('No se encontró el banner.');
+            return;
+        }
+
+        const originalPosition = contenedor.style.position;
+        const originalLeft = contenedor.style.left;
+        const originalTop = contenedor.style.top;
+        const originalOpacity = contenedor.style.opacity;
+
+        contenedor.style.position = 'fixed';
+        contenedor.style.left = '0';
+        contenedor.style.top = '0';
+        contenedor.style.opacity = '0';
+        contenedor.style.pointerEvents = 'none';
+
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(contenedor);
+
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            const copiado = document.execCommand('copy');
+            selection.removeAllRanges();
+
+            if (copiado) {
+                const alert = document.querySelector('.copy-success');
+                alert.style.display = 'block';
+                alert.classList.add('show');
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                    setTimeout(() => { alert.style.display = 'none'; }, 150);
+                }, 2500);
+            } else {
+                throw new Error('No se pudo copiar');
+            }
+        } catch (err) {
+            console.error('Error al copiar:', err);
+            alert('Error al copiar. Intenta seleccionar manualmente y copiar con Ctrl+C.');
+        } finally {
+            contenedor.style.position = originalPosition;
+            contenedor.style.left = originalLeft;
+            contenedor.style.top = originalTop;
+            contenedor.style.opacity = originalOpacity;
+        }
+    }
+</script>
+{% endblock %}

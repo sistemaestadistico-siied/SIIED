@@ -1,0 +1,148 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}{{ titulo_form }} — Editorial SIIED{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <a href="{% url 'indicadores:editorial_proyectos_info' %}" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">
+        <i class="fas fa-arrow-left mr-1"></i> Volver a Productos de Información
+    </a>
+    <h1 class="text-2xl font-bold text-slate-900 mt-3">{{ titulo_form }}</h1>
+</div>
+
+<!-- Formulario -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-3xl">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            Por favor corrige los errores señalados.
+        </div>
+        {% endif %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Nombre -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Nombre *</label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.nombre.errors.0 }}</p>{% endif %}
+            </div>
+            
+            <!-- Descripción -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Descripción</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.descripcion.errors.0 }}</p>{% endif %}
+            </div>
+            
+            <!-- Categoría -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Categoría *</label>
+                {{ form.categoria }}
+                {% if form.categoria.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.categoria.errors.0 }}</p>{% endif %}
+            </div>
+            
+            <!-- Estado -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Estado</label>
+                {{ form.estado }}
+            </div>
+            
+            <!-- Tipo de enlace -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Enlace</label>
+                {{ form.tipo_enlace }}
+            </div>
+            
+            <!-- URL -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">URL *</label>
+                {{ form.url }}
+                {% if form.url.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.url.errors.0 }}</p>{% endif %}
+            </div>
+            
+            <!-- Dependencia -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Dependencia Responsable</label>
+                {{ form.dependencia_responsable }}
+            </div>
+            
+            <!-- Email contacto -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Email Contacto</label>
+                {{ form.contacto_email }}
+            </div>
+            
+            <!-- Teléfono -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Teléfono</label>
+                {{ form.contacto_telefono }}
+            </div>
+            
+            <!-- Fecha inicio -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Fecha Inicio</label>
+                {{ form.fecha_inicio }}
+            </div>
+            
+            <!-- Objetivos -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Objetivos</label>
+                {{ form.objetivos }}
+            </div>
+            
+            <!-- Población objetivo -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Población Objetivo</label>
+                {{ form.poblacion_objetivo }}
+            </div>
+            
+            <!-- Ícono -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Ícono (CSS)</label>
+                {{ form.icono }}
+            </div>
+            
+            <!-- Imagen URL -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Imagen URL</label>
+                {{ form.imagen_url }}
+            </div>
+            
+            <!-- Orden -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Orden</label>
+                {{ form.orden }}
+            </div>
+            
+            <!-- Checkboxes -->
+            <div class="md:col-span-2 flex flex-wrap gap-6">
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    {{ form.activo }}
+                    <span class="text-sm font-medium text-slate-700">Activo</span>
+                </label>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    {{ form.abrir_nueva_ventana }}
+                    <span class="text-sm font-medium text-slate-700">Abrir en nueva ventana</span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Botones -->
+        <div class="mt-8 flex items-center gap-4 pt-6 border-t border-slate-200">
+            <button type="submit" class="px-6 py-3 bg-teal-600 text-white rounded-xl font-medium hover:bg-teal-700 transition-colors shadow-sm">
+                <i class="fas fa-save mr-2"></i>Guardar
+            </button>
+            <a href="{% url 'indicadores:editorial_proyectos_info' %}" class="px-6 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

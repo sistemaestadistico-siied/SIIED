@@ -1,0 +1,119 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Documentos de Infraestructura — Editorial SIIED{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+    <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+            <span class="bg-amber-100 text-amber-700 p-2.5 rounded-xl">
+                <i class="fas fa-file-alt"></i>
+            </span>
+            Documentos de Infraestructura
+        </h1>
+        <p class="mt-1 text-slate-500 ml-12">Procesos, metodologías, guías y manuales del sistema estadístico</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'indicadores:editorial_infraestructura_arbol' %}" class="px-4 py-2.5 bg-violet-100 text-violet-700 rounded-xl font-medium text-sm hover:bg-violet-200 transition-colors">
+            <i class="fas fa-sitemap mr-2"></i>Ver Árbol
+        </a>
+        <a href="{% url 'indicadores:editorial_documento_crear' %}" class="px-4 py-2.5 bg-amber-600 text-white rounded-xl font-medium text-sm hover:bg-amber-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-2"></i>Nuevo Documento
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="mb-6 flex flex-wrap gap-2 items-center">
+    <a href="{% url 'indicadores:editorial_documentos' %}" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if not estado_filtro and not tipo_filtro and not grupo_filtro %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">
+        Todos
+    </a>
+    <span class="text-slate-300 mx-1">|</span>
+    <a href="?estado=publicado" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if estado_filtro == 'publicado' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">Publicados</a>
+    <a href="?estado=borrador" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if estado_filtro == 'borrador' %}bg-slate-200 text-slate-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">Borradores</a>
+    <a href="?estado=revision" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if estado_filtro == 'revision' %}bg-sky-100 text-sky-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">En revisión</a>
+    <span class="text-slate-300 mx-1">|</span>
+    <a href="?tipo=proceso" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if tipo_filtro == 'proceso' %}bg-purple-100 text-purple-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">Procesos</a>
+    <a href="?tipo=metodologia" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if tipo_filtro == 'metodologia' %}bg-purple-100 text-purple-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">Metodologías</a>
+    <a href="?tipo=guia" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if tipo_filtro == 'guia' %}bg-purple-100 text-purple-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">Guías</a>
+    <a href="?tipo=manual" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if tipo_filtro == 'manual' %}bg-purple-100 text-purple-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">Manuales</a>
+</div>
+
+<!-- Filtro por Grupo -->
+{% if grupos %}
+<div class="mb-6">
+    <select onchange="if(this.value) window.location='?grupo='+this.value; else window.location='{% url 'indicadores:editorial_documentos' %}';" 
+            class="px-4 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-slate-700 text-sm focus:outline-none focus:border-amber-400">
+        <option value="">Filtrar por grupo...</option>
+        {% for grupo in grupos %}
+        <option value="{{ grupo.id }}" {% if grupo_filtro == grupo.id|stringformat:'d' %}selected{% endif %}>
+            {{ grupo.subcategoria.categoria.area.nombre }} › {{ grupo.nombre }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{% endif %}
+
+<!-- Tabla -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Documento</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Grupo</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                    <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                    <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Versión</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for doc in documentos %}
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-900">{{ doc.nombre }}</div>
+                        {% if doc.autor %}<div class="text-xs text-slate-400">{{ doc.autor }}</div>{% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ doc.grupo_documento.nombre }}</td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ doc.get_tipo_documento_display }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if doc.estado == 'publicado' %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Publicado</span>
+                        {% elif doc.estado == 'revision' %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-700">En revisión</span>
+                        {% elif doc.estado == 'aprobado' %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">Aprobado</span>
+                        {% elif doc.estado == 'archivado' %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Archivado</span>
+                        {% else %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Borrador</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-center text-sm text-slate-500">{{ doc.version|default:"-" }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{% url 'indicadores:editorial_documento_editar' doc.pk %}" class="text-amber-600 hover:text-amber-800 text-sm font-medium mr-3">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'indicadores:editorial_documento_eliminar' doc.pk %}" class="text-rose-500 hover:text-rose-700 text-sm font-medium">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                        <i class="fas fa-file-alt text-4xl mb-3 block"></i>
+                        No hay documentos registrados
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

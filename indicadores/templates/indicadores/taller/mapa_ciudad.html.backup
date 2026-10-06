@@ -1,0 +1,297 @@
+{% extends 'indicadores/taller/base_taller.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+body { background: radial-gradient(ellipse at center, #0a1628 0%, #020815 100%); overflow: hidden; }
+#canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+#hud-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+.header-ciudad { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, rgba(0,208,132,0.15), rgba(14,165,233,0.15)); backdrop-filter: blur(10px); padding: 12px 24px; border-radius: 15px; border: 2px solid #FFD700; pointer-events: auto; text-align: center; max-width: 90%; }
+.header-ciudad h1 { color: #FFD700; font-size: 1.4rem; margin: 0; font-weight: 900; }
+.header-ciudad .sub { color: #F5F5DC; font-size: 0.8rem; margin: 4px 0 0; }
+.panel-derecho { position: absolute; right: 20px; top: 110px; background: rgba(10,22,40,0.92); backdrop-filter: blur(10px); padding: 18px; border-radius: 15px; border: 2px solid #00D084; max-width: 260px; pointer-events: auto; }
+.panel-derecho h3 { color: #FFD700; margin: 0 0 12px; font-size: 1rem; border-bottom: 1px solid #00D084; padding-bottom: 6px; }
+.panel-derecho p { color: #ccc; font-size: 0.8rem; margin: 0 0 12px; }
+.panel-derecho .ley { color: #ddd; font-size: 0.8rem; margin: 4px 0; }
+.btn-exp { display: block; width: 100%; padding: 10px; margin-top: 14px; background: linear-gradient(135deg, #F59E0B, #D97706); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 0.88rem; }
+.btn-exp:hover { opacity: 0.85; }
+.stats-panel { position: absolute; bottom: 20px; left: 20px; background: rgba(10,22,40,0.92); backdrop-filter: blur(10px); padding: 14px 22px; border-radius: 15px; border: 2px solid #0EA5E9; pointer-events: auto; display: flex; gap: 28px; }
+.sv { color: #FFD700; font-size: 1.9rem; font-weight: 900; display: block; }
+.sl { color: #F5F5DC; font-size: 0.85rem; display: block; }
+.zoom-controls { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; pointer-events: auto; }
+.zoom-btn { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, rgba(0,208,132,0.9), rgba(14,165,233,0.9)); border: 2px solid #FFD700; color: white; font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#tooltip { position: absolute; background: rgba(0,208,132,0.95); color: white; padding: 10px 14px; border-radius: 10px; border: 2px solid #FFD700; pointer-events: none; opacity: 0; transition: opacity 0.3s; font-size: 0.88rem; max-width: 240px; }
+#tooltip.visible { opacity: 1; }
+#loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #020815; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; transition: opacity 0.5s; }
+#loading.hidden { opacity: 0; pointer-events: none; }
+.spinner { width: 70px; height: 70px; border: 7px solid rgba(255,215,0,0.3); border-top-color: #FFD700; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.lt { color: #FFD700; font-size: 1.5rem; margin-top: 18px; font-weight: bold; animation: p 1.5s infinite; }
+@keyframes p { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+@media(max-width:768px){.panel-derecho,.stats-panel{display:none;}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="loading"><div class="spinner"></div><div class="lt">🏙️ Construyendo mapa de ciudad...</div></div>
+<div id="canvas-container"></div>
+<div id="hud-overlay">
+  <div class="header-ciudad">
+    <h1>🏙️ Mapa de Ciudad — Ecosistema Distrital de Datos</h1>
+    <div class="sub">Conexiones inter-organismo · Todos los talleres realizados</div>
+  </div>
+  <div class="panel-derecho">
+    <h3>📋 Referencia</h3>
+    <p>Cada escritorio = un organismo con taller. Las líneas = flujos de datos entre organismos.</p>
+    <div class="ley">🗂️ <span style="color:#F9A825">Escritorio</span> — Organismo</div>
+    <div class="ley">🏠 <span style="color:#90CAF9">Casas</span> — Sociedad civil</div>
+    <div class="ley">🏢 <span style="color:#ccc">Edificio</span> — Entidad externa</div>
+    <button class="btn-exp" onclick="window.location.href='/taller/api/ecosistema/ciudad/export/gexf/'">📥 Exportar GEXF (Gephi)</button>
+  </div>
+  <div class="stats-panel">
+    <div><span class="sv" id="s-org">0</span><span class="sl">Organismos</span></div>
+    <div><span class="sv" id="s-con">0</span><span class="sl">Conexiones</span></div>
+    <div><span class="sv" id="s-den">0%</span><span class="sl">Densidad</span></div>
+  </div>
+  <div class="zoom-controls">
+    <button class="zoom-btn" id="zi">+</button>
+    <button class="zoom-btn" id="zr">⟲</button>
+    <button class="zoom-btn" id="zo">−</button>
+  </div>
+  <div id="tooltip"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+class MapaCiudad {
+    constructor() {
+        this.container = document.getElementById('canvas-container');
+        this.tooltip = document.getElementById('tooltip');
+        this.organismos = []; this.flujos = []; this.entidadesExternas = [];
+        this.haySociedadCivil = false;
+        this.posNodos = {};
+        this.donDatico = null;
+        this.zoomLevel = 1; this.targetZoom = 1;
+        this.grupoNodos = new THREE.Group(); this.grupoFlujos = new THREE.Group();
+        this.raycaster = new THREE.Raycaster(); this.mouse = new THREE.Vector2();
+        this.init();
+    }
+    init() {
+        // Scene
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x020815);
+        this.scene.fog = new THREE.Fog(0x000000, 150, 350);
+        const asp = this.container.clientWidth / this.container.clientHeight;
+        this.camera = new THREE.PerspectiveCamera(55, asp, 0.1, 1000);
+        this.camera.position.set(0, 70, 100);
+        this.camera.lookAt(0, 0, 0);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.container.appendChild(this.renderer.domElement);
+        this.scene.add(this.grupoNodos); this.scene.add(this.grupoFlujos);
+        // Lights
+        this.scene.add(new THREE.AmbientLight(0x1a2a4a, 1.5));
+        const d = new THREE.DirectionalLight(0x0EA5E9, 0.8); d.position.set(60,120,60); this.scene.add(d);
+        const lv = new THREE.PointLight(0x00D084,1.5,200); lv.position.set(-40,30,-40); this.scene.add(lv);
+        // Particles
+        const g = new THREE.BufferGeometry();
+        const pos = new Float32Array(300*3);
+        for(let i=0;i<300*3;i+=3){pos[i]=(Math.random()-.5)*200;pos[i+1]=Math.random()*80;pos[i+2]=(Math.random()-.5)*200;}
+        g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+        this.scene.add(new THREE.Points(g, new THREE.PointsMaterial({color:0xFFD700,size:0.4,transparent:true,opacity:0.5})));
+        // Zoom controls
+        document.getElementById('zi').onclick = () => this.targetZoom = Math.min(this.targetZoom+0.3, 4);
+        document.getElementById('zo').onclick = () => this.targetZoom = Math.max(this.targetZoom-0.3, 0.3);
+        document.getElementById('zr').onclick = () => this.targetZoom = 1;
+        this.renderer.domElement.addEventListener('wheel', e => {
+            e.preventDefault();
+            this.targetZoom = Math.max(0.3, Math.min(4, this.targetZoom + (e.deltaY>0?-0.1:0.1)));
+        });
+        this.renderer.domElement.addEventListener('mousemove', e => this.onMouse(e));
+        window.addEventListener('resize', () => { this.camera.aspect = this.container.clientWidth/this.container.clientHeight; this.camera.updateProjectionMatrix(); this.renderer.setSize(this.container.clientWidth, this.container.clientHeight); });
+        this.cargarDatos();
+        this.animate();
+    }
+    async cargarDatos() {
+        try {
+            const data = await (await fetch('/taller/api/ecosistema/ciudad/')).json();
+            this.organismos = data.organismos||[]; this.flujos = data.flujos||[];
+            this.haySociedadCivil = data.hay_sociedad_civil||false;
+            this.entidadesExternas = data.entidades_externas||[];
+            this.construir();
+            document.getElementById('s-org').textContent = this.organismos.length;
+            document.getElementById('s-con').textContent = this.flujos.length;
+            const mx = this.organismos.length*(this.organismos.length-1)/2;
+            document.getElementById('s-den').textContent = mx>0 ? (this.flujos.length/mx*100).toFixed(1)+'%' : '0%';
+            document.getElementById('loading').classList.add('hidden');
+        } catch(e) { console.error('Error:', e); }
+    }
+    construir() {
+        this.grupoNodos.clear(); this.grupoFlujos.clear(); this.posNodos = {};
+        const n = this.organismos.length;
+        const radio = Math.max(25, n * 4);
+        this.organismos.forEach((org, idx) => {
+            const a = (idx/Math.max(n,1))*Math.PI*2;
+            this._escritorio(org, Math.cos(a)*radio, Math.sin(a)*radio);
+        });
+        if (this.haySociedadCivil) this._casas(0, 0);
+        this.entidadesExternas.forEach((nom, idx) => {
+            const a = (idx/Math.max(this.entidadesExternas.length,1))*Math.PI*2 + Math.PI/4;
+            this._edificio(nom, Math.cos(a)*(radio+22), Math.sin(a)*(radio+22));
+        });
+        this.flujos.forEach(f => this._flujo(f));
+        if (!this.donDatico) {
+            this.donDatico = this._crearDonDatico();
+            this.donDatico.position.set(0, 25, 0);
+            this.scene.add(this.donDatico);
+        }
+    }
+    _crearDonDatico() {
+        const loro = new THREE.Group();
+        const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.6,12,12), new THREE.MeshLambertMaterial({color:0x00AA00}));
+        cuerpo.scale.set(1,1.3,0.9); cuerpo.position.y=0.5; cuerpo.castShadow=true; loro.add(cuerpo);
+        const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.4,12,12), new THREE.MeshLambertMaterial({color:0x22DD22}));
+        cabeza.position.set(0,1.1,0.2); cabeza.castShadow=true; loro.add(cabeza);
+        const pico = new THREE.Mesh(new THREE.ConeGeometry(0.15,0.4,8), new THREE.MeshLambertMaterial({color:0xFFAA00}));
+        pico.rotation.x=Math.PI/2; pico.position.set(0,1.1,0.6); loro.add(pico);
+        const ojoG = new THREE.SphereGeometry(0.1,8,8), ojoM = new THREE.MeshBasicMaterial({color:0x000000});
+        const oI = new THREE.Mesh(ojoG,ojoM); oI.position.set(-0.2,1.2,0.4); loro.add(oI);
+        const oD = new THREE.Mesh(ojoG,ojoM); oD.position.set(0.2,1.2,0.4); loro.add(oD);
+        const as = new THREE.Shape();
+        as.moveTo(0,0); as.lineTo(0.3,0.2); as.lineTo(0.4,0.5); as.lineTo(0.3,1); as.lineTo(0,0.9); as.lineTo(0,0);
+        const ag = new THREE.ExtrudeGeometry(as,{depth:0.1,bevelEnabled:true,bevelThickness:0.05,bevelSize:0.05,bevelSegments:2});
+        const am = new THREE.MeshLambertMaterial({color:0x00AAFF});
+        const aI = new THREE.Mesh(ag,am); aI.position.set(-0.6,0.2,-0.05); aI.rotation.z=-0.3; aI.scale.x=-1; aI.castShadow=true; loro.add(aI);
+        const aD = new THREE.Mesh(ag,am); aD.position.set(0.6,0.2,-0.05); aD.rotation.z=0.3; aD.castShadow=true; loro.add(aD);
+        const cs = new THREE.Shape();
+        cs.moveTo(0,0); cs.lineTo(-0.4,1); cs.lineTo(-0.2,1.3); cs.lineTo(0,1.4); cs.lineTo(0.2,1.3); cs.lineTo(0.4,1); cs.lineTo(0,0);
+        const cg = new THREE.ExtrudeGeometry(cs,{depth:0.08,bevelEnabled:true,bevelThickness:0.03,bevelSize:0.03,bevelSegments:2});
+        const cm = new THREE.Mesh(cg, new THREE.MeshLambertMaterial({color:0xFF4444,emissive:0x331100,emissiveIntensity:0.2}));
+        cm.rotation.x=-Math.PI/2; cm.position.set(0,0.4,-0.8); cm.castShadow=true; loro.add(cm);
+        const cresta = new THREE.Mesh(new THREE.ConeGeometry(0.15,0.3,6), new THREE.MeshLambertMaterial({color:0xFFFF00}));
+        cresta.position.set(0,1.5,0); loro.add(cresta);
+        loro.userData.alaIzq=aI; loro.userData.alaDer=aD; loro.userData.cola=cm;
+        loro.scale.setScalar(3);
+        return loro;
+    }
+    _escritorio(org, x, z) {
+        this.posNodos[`org_${org.id}`] = new THREE.Vector3(x, 2, z);
+        const g = new THREE.Group();
+        const mesa = new THREE.Mesh(new THREE.BoxGeometry(4,0.2,2.8), new THREE.MeshLambertMaterial({color:0x8D6E63}));
+        mesa.position.set(0,1.8,0); mesa.castShadow=true; g.add(mesa);
+        const pm = new THREE.MeshLambertMaterial({color:0x6D4C41});
+        [[-1.6,-1],[-1.6,1],[1.6,-1],[1.6,1]].forEach(([px,pz])=>{
+            const p=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1.8,6),pm);
+            p.position.set(px,0.9,pz); g.add(p);
+        });
+        // Laptop
+        const bL=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.07,1.2),new THREE.MeshLambertMaterial({color:0x37474F}));
+        bL.position.set(0,1.95,0.1); g.add(bL);
+        const tk=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.04,0.85),new THREE.MeshLambertMaterial({color:0x546E7A}));
+        tk.position.set(0,1.99,0.1); g.add(tk);
+        const piv=new THREE.Group(); piv.position.set(0,1.95,-0.5); piv.rotation.x=-1.85;
+        const mrc=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.05,1.2),new THREE.MeshLambertMaterial({color:0x263238}));
+        mrc.position.set(0,0,-0.6); piv.add(mrc);
+        const scr=new THREE.Mesh(new THREE.BoxGeometry(1.62,0.04,1.0),new THREE.MeshStandardMaterial({color:0x00BFFF,emissive:0x00BFFF,emissiveIntensity:0.55}));
+        scr.position.set(0,0.03,-0.6); piv.add(scr);
+        g.add(piv);
+        const ind = new THREE.Mesh(new THREE.SphereGeometry(0.3,8,8), new THREE.MeshStandardMaterial({color:0x00D084,emissive:0x00D084,emissiveIntensity:0.8}));
+        ind.position.set(1.5,2.4,0); g.add(ind);
+        g.position.set(x,0,z); g.userData={tipo:'organismo',data:org}; this.grupoNodos.add(g);
+        this._label(`🗂️ ${org.nombre}`, new THREE.Vector3(x,6.5,z), 0xF9A825);
+        this._label(`${org.num_participantes}p · ${org.num_flujos}f`, new THREE.Vector3(x,5.2,z), 0xAAAAAA);
+    }
+    _casas(x, z) {
+        this.posNodos['sociedad_civil'] = new THREE.Vector3(x,1,z);
+        for(let i=0;i<4;i++){
+            const a=(i/4)*Math.PI*2, r=5;
+            const cx=x+Math.cos(a)*r, cz=z+Math.sin(a)*r;
+            const g=new THREE.Group();
+            const b=new THREE.Mesh(new THREE.BoxGeometry(2.5,2.2,2.5),new THREE.MeshLambertMaterial({color:i%2===0?0x90CAF9:0xBBDEFB}));
+            b.position.set(0,1.6,0); b.castShadow=true; g.add(b);
+            const t=new THREE.Mesh(new THREE.ConeGeometry(2.0,1.6,4),new THREE.MeshLambertMaterial({color:0xE53935}));
+            t.position.set(0,3.6,0); t.rotation.y=Math.PI/4; g.add(t);
+            g.position.set(cx,0,cz); g.userData={tipo:'sociedad_civil',nombre:'Sociedad Civil'}; this.grupoNodos.add(g);
+        }
+        this._label('🏠 Sociedad Civil / Ciudadanía', new THREE.Vector3(x,7,z), 0x90CAF9);
+    }
+    _edificio(nombre, x, z) {
+        const safe=`ext_${nombre.replace(/\s+/g,'_')}`;
+        this.posNodos[safe] = new THREE.Vector3(x,3,z);
+        const h=7+Math.random()*4, g=new THREE.Group();
+        const ed=new THREE.Mesh(new THREE.BoxGeometry(3.5,h,3.5),new THREE.MeshLambertMaterial({color:0x888888,transparent:true,opacity:0.85}));
+        ed.position.set(0,h/2+0.75,0); ed.castShadow=true; g.add(ed);
+        for(let p=0;p<3;p++) for(let v=0;v<2;v++){
+            const w=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.7,0.1),new THREE.MeshStandardMaterial({color:0xFFFF00,emissive:0xFFFF00,emissiveIntensity:0.4}));
+            w.position.set(v===0?-0.9:0.9,1.8+p*1.8,1.8); g.add(w);
+        }
+        g.position.set(x,0,z); g.userData={tipo:'entidad_externa',nombre}; this.grupoNodos.add(g);
+        this._label(`🏢 ${nombre}`, new THREE.Vector3(x,h+3,z), 0xCCCCCC);
+    }
+    _getPos(tipo, id, nombre) {
+        if(tipo==='organismo') return this.posNodos[`org_${id}`]||null;
+        if(tipo==='sociedad_civil') return this.posNodos['sociedad_civil']||null;
+        if(tipo==='entidad_externa') return this.posNodos[`ext_${(nombre||'').replace(/\s+/g,'_')}`]||null;
+        return null;
+    }
+    _flujo(f) {
+        const src = this._getPos(f.origen_tipo, f.origen_id, f.origen_nombre);
+        const dst = this._getPos(f.destino_tipo, f.destino_id, f.destino_nombre);
+        if(!src||!dst) return;
+        const color = f.tipo==='externo'?0x10B981:f.tipo==='inter_sub'?0x3B82F6:0xEF4444;
+        const mid = src.clone().add(dst).multiplyScalar(0.5); mid.y += 12;
+        const curve = new THREE.QuadraticBezierCurve3(src, mid, dst);
+        const pts = curve.getPoints(24);
+        const geo = new THREE.BufferGeometry().setFromPoints(pts);
+        const line = new THREE.Line(geo, new THREE.LineBasicMaterial({color,transparent:true,opacity:0.6}));
+        line.userData = {data: f}; this.grupoFlujos.add(line);
+    }
+    _label(texto, pos, color=0xFFD700) {
+        const cv=document.createElement('canvas'); cv.width=256; cv.height=64;
+        const ctx=cv.getContext('2d');
+        ctx.fillStyle='rgba(10,22,40,0.85)'; ctx.fillRect(0,0,256,64);
+        ctx.font='Bold 18px Arial'; ctx.fillStyle='#'+color.toString(16).padStart(6,'0');
+        ctx.textAlign='center'; ctx.fillText(texto,128,40);
+        const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv)}));
+        sp.position.copy(pos); sp.scale.set(10,2.5,1);
+        this.grupoNodos.add(sp);
+    }
+    onMouse(e) {
+        const rect=this.renderer.domElement.getBoundingClientRect();
+        this.mouse.x=((e.clientX-rect.left)/rect.width)*2-1;
+        this.mouse.y=-((e.clientY-rect.top)/rect.height)*2+1;
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        const hits=this.raycaster.intersectObjects(this.grupoNodos.children, true);
+        if(hits.length>0){
+            let obj=hits[0].object;
+            while(obj.parent && !obj.userData.tipo) obj=obj.parent;
+            if(obj.userData.tipo==='organismo'){
+                const d=obj.userData.data;
+                this.renderer.domElement.style.cursor='pointer';
+                this.tooltip.innerHTML=`<strong>${d.nombre}</strong><br>Participantes: ${d.num_participantes}<br>Flujos: ${d.num_flujos}<br><em style="color:#0EA5E9">Click para ver mapa</em>`;
+                this.tooltip.style.left=e.clientX+14+'px'; this.tooltip.style.top=e.clientY+14+'px';
+                this.tooltip.classList.add('visible');
+        this.camera.position.x = Math.sin(t)*dist;
+        this.camera.position.z = Math.cos(t)*dist;
+        this.camera.position.y = 70/this.zoomLevel;
+        this.camera.lookAt(0,0,0);
+        if (this.donDatico) {
+            const td = Date.now()*0.0003;
+            this.donDatico.position.x = Math.sin(td) * 30;
+            this.donDatico.position.z = Math.sin(td*2) * 15;
+            this.donDatico.position.y = 25 + Math.sin(td*3) * 3;
+            const vx = Math.cos(td)*30, vz = Math.cos(td*2)*30;
+            this.donDatico.rotation.y = Math.atan2(vx, vz);
+            const bat = Math.sin(td*12)*0.6;
+            this.donDatico.userData.alaIzq.rotation.z = -0.3+bat;
+            this.donDatico.userData.alaDer.rotation.z = 0.3-bat;
+            this.donDatico.userData.cola.rotation.y = Math.sin(td*3)*0.15;
+        }
+        this.renderer.render(this.scene, this.camera);
+    }
+}
+document.addEventListener('DOMContentLoaded', () => { window.mapaCiudad = new MapaCiudad(); });
+</script>
+{% endblock %}

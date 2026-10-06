@@ -1,0 +1,138 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-file-alt"></i>
+      Cargar Metadata del Indicador
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Ficha Técnica:</strong> Si el archivo incluye metadata, se cargará automáticamente.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Metadata detectada -->
+    {% if metadata_detectada %}
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-check-circle" style="color: #10b981;"></i>
+        Metadata Detectada
+      </h4>
+      
+      <div class="metadata-preview">
+        {% for campo, valor in metadata_detectada.items %}
+        <div class="metadata-item">
+          <strong>{{ campo }}:</strong>
+          <span>{{ valor|default:"No disponible" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      
+      <div class="form-group">
+        {{ wizard.form.cargar_metadata_auto }}
+        <label for="{{ wizard.form.cargar_metadata_auto.id_for_label }}">
+          {{ wizard.form.cargar_metadata_auto.label }}
+        </label>
+        {% if wizard.form.cargar_metadata_auto.help_text %}
+        <span class="helptext">{{ wizard.form.cargar_metadata_auto.help_text }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="warning-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>No se detectó metadata en el archivo.</strong> Puedes agregar la información manualmente más tarde desde el admin.
+    </div>
+    {% endif %}
+    
+    <!-- Campos opcionales para editar -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-edit"></i>
+        Editar Metadata (Opcional)
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.definicion.id_for_label }}">
+          {{ wizard.form.definicion.label }}
+        </label>
+        {{ wizard.form.definicion }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.interpretacion.id_for_label }}">
+          {{ wizard.form.interpretacion.label }}
+        </label>
+        {{ wizard.form.interpretacion }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.metodologia.id_for_label }}">
+          {{ wizard.form.metodologia.label }}
+        </label>
+        {{ wizard.form.metodologia }}
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.metadata-preview {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.metadata-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  gap: 1rem;
+}
+
+.metadata-item:last-child {
+  border-bottom: none;
+}
+
+.metadata-item strong {
+  min-width: 150px;
+  color: var(--admin-text);
+}
+
+.metadata-item span {
+  color: var(--admin-muted);
+  flex: 1;
+}
+</style>
+{% endblock %}

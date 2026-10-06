@@ -1,0 +1,408 @@
+{% extends 'recoleccion/base_recoleccion.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Módulo de Recolección{% endblock %}
+
+{% block recoleccion_content %}
+<!-- Hero del dashboard -->
+<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200 mb-8">
+    <div class="container mx-auto px-6 py-12">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-serif font-bold text-slate-900">Dashboard de Recolección</h1>
+                <p class="text-slate-600 mt-1">Bienvenido, <span class="font-semibold">{{ user.get_full_name|default:user.username }}</span></p>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-slate-500">Institución</p>
+                <p class="text-lg font-semibold text-slate-800">{{ perfil.institucion }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas principales -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ total_cargas_series }}</div>
+        <p class="text-sm text-slate-600 mt-1">Cargas de Series</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Exitosas</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ cargas_series_exitosas }}</div>
+        <p class="text-sm text-slate-600 mt-1">Series Aprobadas</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ total_cargas_conjuntos_datos }}</div>
+        <p class="text-sm text-slate-600 mt-1">Cargas de Conjunto de datos</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Exitosas</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ cargas_conjuntos_datos_exitosas }}</div>
+        <p class="text-sm text-slate-600 mt-1">Conjunto de datos Aprobadas</p>
+    </div>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-6">
+            <h2 class="text-xl font-serif font-bold text-white">Cargar Datos</h2>
+        </div>
+        <div class="p-8 space-y-4">
+            <a href="{% url 'indicadores:cargar_serie_indicador' %}"
+               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Cargar Serie de Indicador
+            </a>
+            <a href="{% url 'indicadores:cargar_masiva_series' %}"
+               class="block w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                </svg>
+                Cargar Masiva de Series
+            </a>
+            <a href="{% url 'indicadores:cargar_conjunto_datos' %}"
+               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                </svg>
+                Cargar Conjunto de datos
+            </a>
+            <div class="border-t border-slate-100 pt-4 mt-2">
+                <p class="text-xs text-slate-400 mb-3 uppercase tracking-wide font-medium">También puedes ingresar directamente</p>
+                <div class="grid grid-cols-4 gap-2">
+                    <a href="{% url 'indicadores:cargar_serie_inline' %}"
+                       class="block bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium py-2 px-2 rounded-xl text-center transition-colors">
+                        <svg class="w-4 h-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18"/>
+                        </svg>
+                        Datos Inline
+                    </a>
+                    <a href="{% url 'indicadores:cargar_metadata_form' %}"
+                       class="block bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium py-2 px-2 rounded-xl text-center transition-colors">
+                        <svg class="w-4 h-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Metadata
+                    </a>
+                    <a href="{% url 'indicadores:cargar_variables_form' %}"
+                       class="block bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium py-2 px-2 rounded-xl text-center transition-colors">
+                        <svg class="w-4 h-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 11h16M4 15h10"/>
+                        </svg>
+                        Variables
+                    </a>
+                    <a href="{% url 'indicadores:actualizar_existente' %}"
+                       class="block bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-xs font-medium py-2 px-2 rounded-xl text-center transition-colors">
+                        <svg class="w-4 h-4 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        Actualizar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-6">
+            <h2 class="text-xl font-serif font-bold text-white">Generar Reportes</h2>
+        </div>
+        <div class="p-8 space-y-4">
+            <a href="{% url 'indicadores:reportes_indicadores' %}" 
+               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v1a1 1 0 001 1h4a1 1 0 001-1v-1m3-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8m5-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Reportes de Indicadores
+            </a>
+            <a href="{% url 'indicadores:reportes_conjuntos_datos' %}" 
+               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                Reportes de Conjunto de datos
+            </a>
+        </div>
+    </div>
+</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas: correcciones solicitadas y masivas activas -->
+{% if cargas_con_correcciones %}
+<div class="bg-amber-50 border border-amber-300 rounded-2xl p-6 mb-8">
+    <h3 class="text-lg font-bold text-amber-800 mb-3">
+        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+        </svg>
+        Correcciones solicitadas por el administrador ({{ cargas_con_correcciones|length }})
+    </h3>
+    <div class="space-y-3">
+        {% for carga in cargas_con_correcciones %}
+        <div class="bg-white rounded-xl p-4 border border-amber-200">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="font-semibold text-slate-800">{{ carga.codigo_evidencia }}</p>
+                    <p class="text-sm text-slate-600">{{ carga.indicador.nombre|default:"Sin indicador" }}</p>
+                    {% if carga.observaciones_admin %}
+                    <div class="mt-2 bg-amber-100 rounded-lg p-3 text-sm text-amber-800">
+                        <strong>Observaciones:</strong> {{ carga.observaciones_admin }}
+                    </div>
+                    {% endif %}
+                </div>
+                <a href="{% url 'indicadores:detalle_carga_serie' carga.id %}"
+                   class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-lg transition">
+                    Corregir
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% if masivas_activas %}
+<div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+    <h3 class="text-lg font-bold text-blue-800 mb-3">
+        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+        </svg>
+        Cargas masivas en proceso ({{ masivas_activas|length }})
+    </h3>
+    <div class="space-y-2">
+        {% for masiva in masivas_activas %}
+        <div class="bg-white rounded-lg p-3 border border-blue-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="font-mono text-xs text-slate-500">{{ masiva.codigo_evidencia }}</span>
+                    <span class="ml-2 text-sm text-slate-700">{{ masiva.get_estado_display }}</span>
+                </div>
+                {% if masiva.estado == 'validacion_recolector' %}
+                <a href="{% url 'indicadores:revisar_masiva' carga_masiva_id=masiva.id %}"
+                   class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition">
+                    Continuar revisión
+                </a>
+                {% else %}
+                <span class="text-xs text-blue-600 font-medium">Esperando admin</span>
+                {% endif %}
+            </div>
+            {% with cargas=masiva.cargas_series.all %}
+                {% if cargas %}
+                <div class="mt-2 pt-2 border-t border-blue-50">
+                    <p class="text-[10px] font-bold text-blue-500 uppercase mb-1">Indicadores incluidos ({{ cargas|length }})</p>
+                    <div class="flex flex-wrap gap-1">
+                        {% for carga in cargas %}
+                        <span class="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] rounded border border-blue-100 font-mono" title="{{ carga.indicador.nombre|default:'' }}">
+                            {{ carga.indicador.codigo_indicador|default:'N/A' }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endwith %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Últimas Cargas -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Últimas Cargas de Series -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
+            <h3 class="text-xl font-serif font-bold text-white">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Últimas Cargas de Series
+            </h3>
+        </div>
+        <div class="p-6">
+            {% if ultimas_series %}
+                <div class="space-y-3">
+                    {% for carga in ultimas_series %}
+                        <div class="block bg-slate-50 hover:bg-slate-100 rounded-lg p-4 transition duration-200 border border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="font-semibold text-gray-800">{{ carga.codigo_evidencia }}</p>
+                                    {% if carga.indicador %}
+                                    <p class="text-xs text-slate-500 mt-0.5">
+                                        {% if carga.indicador.codigo_indicador %}<span class="font-mono">{{ carga.indicador.codigo_indicador }}</span> · {% endif %}{{ carga.indicador.nombre|truncatewords:5 }}
+                                    </p>
+                                    {% endif %}
+                                    <p class="text-sm text-gray-500">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    {% if carga.estado == 'exitoso' %}
+                                        <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Exitoso</span>
+                                    {% elif carga.estado == 'error' %}
+                                        <span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Error</span>
+                                    {% else %}
+                                        <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">{{ carga.get_estado_display }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                                <a href="{% url 'indicadores:detalle_carga_serie' carga.id %}" class="text-xs text-emerald-600 hover:text-emerald-800 font-medium">Ver detalle</a>
+                                {% if carga.indicador %}
+                                <a href="{% url 'indicadores:cargar_serie_inline' %}?indicador_id={{ carga.indicador.id }}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Actualizar datos</a>
+                                <a href="{% url 'indicadores:cargar_metadata_form' %}?indicador_id={{ carga.indicador.id }}" class="text-xs text-blue-600 hover:text-blue-800 font-medium">Actualizar metadata</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="{% url 'indicadores:historial_cargas_series' %}" 
+                       class="text-emerald-600 hover:text-emerald-800 font-medium text-sm">
+                        Ver historial completo <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-inbox text-gray-300 text-5xl mb-3"></i>
+                    <p class="text-gray-500">No hay cargas registradas</p>
+                    <a href="{% url 'indicadores:cargar_serie_indicador' %}" 
+                       class="inline-block mt-3 text-sky-600 hover:text-sky-800 font-medium">
+                        <i class="fas fa-upload mr-1"></i>Realizar Primera Carga
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Últimas Cargas de Conjunto de datos -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
+            <h3 class="text-xl font-serif font-bold text-white">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Últimas Cargas de Conjunto de datos
+            </h3>
+        </div>
+        <div class="p-6">
+            {% if ultimos_conjuntos_datos %}
+                <div class="space-y-3">
+                    {% for carga in ultimos_conjuntos_datos %}
+                        <div class="block bg-slate-50 hover:bg-slate-100 rounded-lg p-4 transition duration-200 border border-slate-200">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="font-semibold text-gray-800">{{ carga.codigo_evidencia }}</p>
+                                    <p class="text-sm text-gray-500">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    {% if carga.estado == 'exitoso' %}
+                                        <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Exitoso</span>
+                                    {% elif carga.estado == 'error' %}
+                                        <span class="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full">Error</span>
+                                    {% else %}
+                                        <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full">{{ carga.get_estado_display }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                                <a href="{% url 'indicadores:detalle_carga_conjunto_datos' carga.id %}" class="text-xs text-emerald-600 hover:text-emerald-800 font-medium">Ver detalle</a>
+                                {% if carga.conjunto_datos %}
+                                <a href="{% url 'indicadores:cargar_variables_form' %}?conjunto_datos_id={{ carga.conjunto_datos.id }}" class="text-xs text-violet-600 hover:text-violet-800 font-medium">Actualizar variables</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="{% url 'indicadores:historial_cargas_conjuntos_datos' %}" 
+                       class="text-emerald-600 hover:text-emerald-800 font-medium text-sm">
+                        Ver historial completo <svg class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                        </svg>
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-inbox text-gray-300 text-5xl mb-3"></i>
+                    <p class="text-gray-500">No hay cargas registradas</p>
+                    <a href="{% url 'indicadores:cargar_conjunto_datos' %}" 
+                       class="inline-block mt-3 text-sky-600 hover:text-sky-800 font-medium">
+                        <i class="fas fa-upload mr-1"></i>Realizar Primera Carga
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Indicadores pendientes de carga -->
+{% if indicadores_pendientes %}
+<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+    <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-6">
+        <h3 class="text-xl font-serif font-bold text-white">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            Indicadores pendientes de carga
+        </h3>
+        <p class="text-amber-50 text-sm mt-1">Indicadores activos sin carga exitosa — muéstranse los primeros 15</p>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for ind in indicadores_pendientes %}
+            <div class="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-lg p-3 hover:bg-amber-100 transition-colors">
+                <div class="min-w-0 flex-1">
+                    {% if ind.codigo_indicador %}
+                    <span class="text-xs font-mono text-slate-500">{{ ind.codigo_indicador }}</span>
+                    {% endif %}
+                    <p class="text-sm text-slate-700 truncate">{{ ind.nombre|truncatewords:5 }}</p>
+                </div>
+                <a href="{% url 'indicadores:cargar_serie_indicador' %}?indicador_id={{ ind.id }}"
+                   class="ml-2 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg whitespace-nowrap transition-colors">
+                    Cargar
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

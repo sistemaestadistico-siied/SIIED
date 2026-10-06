@@ -1,0 +1,60 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n static %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-edit"></i>
+      Solicitar Corrección
+    </h3>
+
+    <div class="info-box" style="background:var(--selected-row, #fef3c7); border-color:var(--border-color, #f59e0b);">
+      <i class="fas fa-exclamation-triangle" style="color:#d97706;"></i>
+      <strong>Carga:</strong> {{ carga.codigo_evidencia }}<br>
+      <strong>Indicador:</strong> {{ indicador.codigo_indicador }} — {{ indicador.nombre|default:"Sin indicador" }}<br>
+      <strong>Recolector:</strong> {{ carga.usuario.get_full_name|default:carga.usuario.username }}<br>
+      <strong>Registros:</strong> {{ carga.registros_procesados }}
+    </div>
+
+    {% if carga.preferencias_grafico %}
+    <div class="info-box" style="background:var(--selected-bg, #eff6ff); border-color:var(--link-fg, #3b82f6);">
+      <i class="fas fa-chart-bar" style="color:var(--link-fg, #3b82f6);"></i>
+      <strong>Preferencias de gráfico del recolector:</strong><br>
+      Tipo: {{ carga.preferencias_grafico.tipo_grafico }},
+      Título: {{ carga.preferencias_grafico.titulo }},
+      Eje X: {{ carga.preferencias_grafico.eje_x }},
+      Eje Y: {{ carga.preferencias_grafico.eje_y }}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="form-group">
+        <label for="observaciones">
+          <i class="fas fa-comment-dots"></i>
+          Observaciones para el recolector
+        </label>
+        <textarea name="observaciones" id="observaciones" rows="5"
+                  class="form-control"
+                  placeholder="Describa qué correcciones necesita el recolector..."
+                  required></textarea>
+        <span class="helptext">Sea específico: indique qué columnas, valores o formatos necesitan corrección.</span>
+      </div>
+
+      <div style="display:flex; gap:1rem; margin-top:1.5rem;">
+        <a href="{% url 'wizard_dashboard' %}"
+           class="btn btn-secondary" style="padding:0.6rem 1.2rem; border-radius:0.5rem; text-decoration:none;">
+          Cancelar
+        </a>
+        <button type="submit"
+                class="btn btn-warning" style="padding:0.6rem 1.2rem; border-radius:0.5rem; border:none; cursor:pointer; font-weight:600;">
+          <i class="fas fa-paper-plane"></i>
+          Enviar solicitud de corrección
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

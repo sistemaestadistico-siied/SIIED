@@ -1,0 +1,237 @@
+{% extends 'reportes/base_reportes.html' %}
+{% load static %}
+
+{% block title %}Reporte de Visitas — SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card { transition: all 0.2s ease; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+</style>
+{% endblock %}
+
+{% block reportes_content %}
+<!-- Hero -->
+<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200 mb-8">
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-serif font-bold text-slate-900">Reporte de Visitas</h1>
+                <p class="text-slate-600 mt-1">Análisis de tráfico del sitio SIIED</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+    <form method="get" class="flex flex-wrap items-end gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Desde</label>
+            <input type="date" name="fecha_desde" value="{{ fecha_desde }}"
+                   class="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Hasta</label>
+            <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}"
+                   class="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div>
+            <button type="submit"
+                    class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition duration-200">
+                Filtrar
+            </button>
+        </div>
+        <div>
+            <a href="{% url 'indicadores:reportes_visitas' %}"
+               class="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg transition duration-200 inline-block">
+                Reiniciar
+            </a>
+        </div>
+        <div>
+            <a href="{% url 'indicadores:reportes_visitas_exportar_excel' %}?fecha_desde={{ fecha_desde|urlencode }}&fecha_hasta={{ fecha_hasta|urlencode }}"
+               class="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition duration-200 inline-block flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Descargar Excel
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Estadísticas -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="stat-card bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-slate-900">{{ total_visitas|default:0 }}</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Visitas</p>
+            </div>
+        </div>
+        {% if prev_total is not None %}
+        <p class="text-sm {% if total_visitas >= prev_total %}text-emerald-600{% else %}text-red-600{% endif %}">
+            vs período anterior: {{ prev_total }}
+            {% if total_visitas >= prev_total %}▲{% else %}▼{% endif %}
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="stat-card bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-slate-900">{{ visitantes_unicos|default:0 }}</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Visitantes Únicos</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-slate-900">
+                    {% if total_visitas > 0 and visitantes_unicos > 0 %}
+                        {{ total_visitas|floatformat:1 }}
+                    {% else %}0{% endif %}
+                </p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Visitas / Único</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráfico + Top Páginas -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Gráfico -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-lg font-serif font-bold text-slate-900 mb-4">Evolución Diaria</h2>
+        <div style="height: 300px;">
+            <canvas id="visitasChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Top Páginas -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-lg font-serif font-bold text-slate-900 mb-4">Páginas más visitadas</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                        <th class="pb-2">Página</th>
+                        <th class="pb-2 text-right">Visitas</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for p in top_paginas %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2 truncate max-w-xs" title="{{ p.path }}">{{ p.path }}</td>
+                        <td class="py-2 text-right font-semibold text-slate-900">{{ p.visitas }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" class="py-4 text-center text-slate-400">Sin datos</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Visitas Recientes -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+    <h2 class="text-lg font-serif font-bold text-slate-900 mb-4">Visitas Recientes</h2>
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+            <thead>
+                <tr class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <th class="pb-2">Página</th>
+                    <th class="pb-2">Usuario</th>
+                    <th class="pb-2">IP</th>
+                    <th class="pb-2">Fecha/Hora</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for v in visitas_recientes %}
+                <tr class="hover:bg-slate-50">
+                    <td class="py-2 truncate max-w-xs" title="{{ v.path }}">{{ v.path }}</td>
+                    <td class="py-2">{{ v.user.username|default:"Anónimo" }}</td>
+                    <td class="py-2 text-slate-500">{{ v.ip_address|default:"—" }}</td>
+                    <td class="py-2 text-slate-500">{{ v.timestamp|date:"Y-m-d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="py-4 text-center text-slate-400">Sin visitas registradas</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(function() {
+    var visitasData = {{ visitas_por_dia|safe }};
+    if (!visitasData || !visitasData.length) return;
+
+    var labels = visitasData.map(function(d) { return d.dia; });
+    var visitas = visitasData.map(function(d) { return d.visitas; });
+    var unicos  = visitasData.map(function(d) { return d.unicos; });
+
+    new Chart(document.getElementById('visitasChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Visitas',
+                    data: visitas,
+                    borderColor: '#3B82F6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3
+                },
+                {
+                    label: 'Únicos',
+                    data: unicos,
+                    borderColor: '#10B981',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    tension: 0.3,
+                    pointRadius: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                x: { ticks: { maxTicksLimit: 10 } },
+                y: { beginAtZero: true }
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

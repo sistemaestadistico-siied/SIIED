@@ -1,0 +1,35 @@
+═══════════════════════════════════════════════════════════════════════════
+    RESUMEN DE DATOS NORMALIZADOS - SISTEMA ICET SANTIAGO DE CALI
+═══════════════════════════════════════════════════════════════════════════
+
+FECHA DE PROCESAMIENTO: 2025-10-07
+CARPETA DE DESTINO: /home/amiranda/Descargas/ICET/insumos/
+
+───────────────────────────────────────────────────────────────────────────
+📊 ARCHIVOS PRINCIPALES GENERADOS
+───────────────────────────────────────────────────────────────────────────
+
+1. ficha_tecnica_indicadores.csv
+   - Contiene los metadatos completos de todos los indicadores
+   - Incluye: código, nombre, definiciones, objetivo, justificación, 
+     metodología, fórmula, variables, unidad de medida, valores de 
+     referencia, desagregaciones, periodicidad, fuentes, responsable
+
+2. series_datos_indicadores.csv
+   - Series temporales de todos los indicadores procesados
+   - Formato normalizado: Codigo_Indicador, Nombre_Indicador, Anio, Valor
+   - Datos históricos desde 1985 hasta 2025 según disponibilidad
+
+3. microdata_[CODIGO_INDICADOR].csv (múltiples archivos)
+   - Variables (microdata) utilizadas para calcular cada indicador
+   - Solo para indicadores que tienen variables disponibles
+   - Formato: Codigo_Indicador, Codigo_Variable, Nombre_Variable, Anio, Valor
+
+───────────────────────────────────────────────────────────────────────────
+📈 ESTADÍSTICAS DEL PROCESAMIENTO
+───────────────────────────────────────────────────────────────────────────
+
+Total de indicadores procesados: 35
+Total de series de datos: 415
+Total de archivos de microdata: 7
+

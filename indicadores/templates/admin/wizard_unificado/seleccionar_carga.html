@@ -1,0 +1,285 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-upload"></i>
+      Seleccionar Nueva Carga
+    </h3>
+    
+    {% if indicador %}
+    <div class="success-box" style="background: var(--admin-panel-2); border: 1px solid #4caf50; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+      <i class="fas fa-chart-line" style="color: #4caf50;"></i>
+      <strong>Indicador a actualizar:</strong> {{ indicador.nombre }}
+      {% if indicador.codigo_indicador %}<br><small style="color: var(--admin-muted);">Código: {{ indicador.codigo_indicador }} | Datos actuales: {{ indicador.datos.count }}</small>{% endif %}
+    </div>
+    {% endif %}
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Datos Nuevos:</strong> Selecciona la carga con los datos que deseas usar para actualizar el indicador.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Tipo de carga -->
+    <div class="form-section">
+      <div class="form-group">
+        <label>{{ wizard.form.tipo_carga.label }}</label>
+        {{ wizard.form.tipo_carga }}
+      </div>
+    </div>
+
+    <!-- Cargas de Serie -->
+    <div class="form-section" id="section-serie" style="display: none;">
+      <h4>
+        <i class="fas fa-file-csv"></i>
+        Cargas de Serie Pendientes
+      </h4>
+      
+      {% if cargas_serie %}
+      <div class="cargas-grid">
+        {% for carga in cargas_serie %}
+        <div class="carga-card">
+          <div class="carga-header">
+            <i class="fas fa-file-excel"></i>
+            <strong>{{ carga.codigo_carga }}</strong>
+          </div>
+          <div class="carga-body">
+            <div class="carga-info">
+              <span class="label">Archivo:</span>
+              <span>{{ carga.archivo_datos_xlsx.name|truncatechars:30 }}</span>
+            </div>
+            <div class="carga-info">
+              <span class="label">Fecha:</span>
+              <span>{{ carga.fecha_carga|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="carga-info">
+              <span class="label">Usuario:</span>
+              <span>{{ carga.usuario_carga.username }}</span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.carga_serie.id_for_label }}">
+          {{ wizard.form.carga_serie.label }}
+        </label>
+        <input type="text" class="wizard-search" data-target="{{ wizard.form.carga_serie.html_name }}"
+               placeholder="Buscar carga de serie..."
+               style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:6px;margin-bottom:0.5rem;font-size:0.9rem;">
+        {{ wizard.form.carga_serie }}
+        {{ wizard.form.carga_serie.errors }}
+      </div>
+      {% else %}
+      <div class="warning-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>No hay cargas de serie pendientes.</strong>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Cargas de Conjunto de datos -->
+    <div class="form-section" id="section-conjunto-datos" style="display: none;">
+      <h4>
+        <i class="fas fa-database"></i>
+        Cargas de Conjunto de datos Pendientes
+      </h4>
+      
+      {% if cargas_conjuntos_datos %}
+      <div class="cargas-grid">
+        {% for carga in cargas_conjuntos_datos %}
+        <div class="carga-card">
+          <div class="carga-header">
+            <i class="fas fa-database"></i>
+            <strong>{{ carga.codigo_carga }}</strong>
+          </div>
+          <div class="carga-body">
+            <div class="carga-info">
+              <span class="label">Archivo:</span>
+              <span>{{ carga.archivo_microdata_xlsx.name|truncatechars:30 }}</span>
+            </div>
+            <div class="carga-info">
+              <span class="label">Fecha:</span>
+              <span>{{ carga.fecha_carga|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="carga-info">
+              <span class="label">Usuario:</span>
+              <span>{{ carga.usuario_carga.username }}</span>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.carga_conjunto_datos.id_for_label }}">
+          {{ wizard.form.carga_conjunto_datos.label }}
+        </label>
+        <input type="text" class="wizard-search" data-target="{{ wizard.form.carga_conjunto_datos.html_name }}"
+               placeholder="Buscar carga de conjunto de datos..."
+               style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:6px;margin-bottom:0.5rem;font-size:0.9rem;">
+        {{ wizard.form.carga_conjunto_datos }}
+        {{ wizard.form.carga_conjunto_datos.errors }}
+      </div>
+      {% else %}
+      <div class="warning-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>No hay cargas de conjunto de datos pendientes.</strong>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.cargas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.carga-card {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.carga-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.carga-header {
+  background: var(--wizard-primary);
+  color: white;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.carga-header i {
+  font-size: 1.25rem;
+}
+
+.carga-body {
+  padding: 1rem;
+}
+
+.carga-info {
+  padding: 0.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.carga-info:last-child {
+  border-bottom: none;
+}
+
+.carga-info .label {
+  font-weight: 600;
+  color: var(--admin-text);
+  font-size: 0.875rem;
+}
+
+.carga-info span:last-child {
+  color: var(--admin-muted);
+  font-size: 0.875rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tipoRadios = document.querySelectorAll('input[name="{{ wizard.form.tipo_carga.html_name }}"]');
+  const sectionSerie = document.getElementById('section-serie');
+  const sectionConjuntoDatos = document.getElementById('section-conjunto-datos');
+  
+  function updateSections() {
+    const selectedValue = document.querySelector('input[name="{{ wizard.form.tipo_carga.html_name }}"]:checked')?.value;
+    
+    sectionSerie.style.display = 'none';
+    sectionConjuntoDatos.style.display = 'none';
+    
+    if (selectedValue === 'serie') {
+      sectionSerie.style.display = 'block';
+    } else if (selectedValue === 'conjunto_datos') {
+      sectionConjuntoDatos.style.display = 'block';
+    }
+  }
+  
+  tipoRadios.forEach(radio => {
+    radio.addEventListener('change', updateSections);
+  });
+  
+  // Buscador en selects del wizard
+  document.querySelectorAll('.wizard-search').forEach(function(searchInput) {
+    searchInput.addEventListener('input', function() {
+      var q = this.value.toLowerCase().trim();
+      var targetName = this.getAttribute('data-target');
+      var select = document.querySelector('select[name="' + targetName + '"]');
+      if (!select) return;
+      
+      var selectedValue = select.value;
+      
+      Array.from(select.options).forEach(function(opt) {
+        if (!opt.value) return;
+        // NUNCA ocultar la opción seleccionada actualmente
+        var isSelected = opt.value === selectedValue;
+        opt.hidden = !isSelected && q && opt.textContent.toLowerCase().indexOf(q) === -1;
+      });
+    });
+  });
+  
+  // Limpiar campo de búsqueda cuando el usuario selecciona un item
+  document.querySelectorAll('select').forEach(function(select) {
+    select.addEventListener('change', function() {
+      var targetName = this.getAttribute('name');
+      var searchInput = document.querySelector('.wizard-search[data-target="' + targetName + '"]');
+      if (searchInput) {
+        searchInput.value = '';
+        // Mostrar todas las opciones de nuevo
+        Array.from(select.options).forEach(function(opt) {
+          opt.hidden = false;
+        });
+      }
+    });
+  });
+
+  updateSections();
+});
+</script>
+{% endblock %}

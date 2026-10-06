@@ -1,0 +1,236 @@
+{% extends "delegado/base_delegado.html" %}
+{% block title %}Detalle de Carga — Serie de Datos{% endblock %}
+{% block delegado_content %}
+<div class="max-w-4xl mx-auto">
+
+    <div class="mb-6">
+        <a href="{% url 'indicadores:delegado_historial' %}" class="text-sm text-emerald-600 hover:text-emerald-700 hover:underline">← Historial</a>
+        <h1 class="text-2xl font-serif font-bold text-slate-900 mt-2">Carga de Serie de Datos</h1>
+        <p class="text-slate-500 text-sm">Código: <code class="bg-slate-100 px-2 py-0.5 rounded text-xs font-mono">{{ carga.codigo_evidencia }}</code></p>
+    </div>
+
+    <!-- Estado principal -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <p class="text-sm text-slate-500 mb-1">Estado de tu carga</p>
+                <span class="inline-block px-4 py-2 rounded-full font-semibold text-sm estado-{{ carga.estado }}">
+                    {{ carga.get_estado_display }}
+                </span>
+            </div>
+            <div class="text-sm text-slate-500">
+                <p>Enviado: <strong>{{ carga.fecha_carga|date:"d/m/Y H:i" }}</strong></p>
+                {% if carga.indicador %}
+                <p>Indicador: <strong>{{ carga.indicador.nombre|truncatewords:6 }}</strong></p>
+                {% endif %}
+                {% if carga.registros_procesados %}
+                <p>Registros en archivo: <strong>{{ carga.registros_procesados }}</strong></p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Observaciones del validador -->
+        {% if carga.observaciones_validador %}
+        <div class="mt-5 p-4 rounded-lg
+            {% if carga.estado == 'rechazado' %}bg-red-50 border border-red-200
+            {% elif carga.estado == 'correcciones_solicitadas' %}bg-amber-50 border border-amber-200
+            {% else %}bg-emerald-50 border border-emerald-200{% endif %}">
+            <p class="text-sm font-semibold mb-1 flex items-center
+                {% if carga.estado == 'rechazado' %}text-red-800
+                {% elif carga.estado == 'correcciones_solicitadas' %}text-amber-800
+                {% else %}text-emerald-800{% endif %}">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H15"></path>
+                </svg>Observaciones del validador{% if carga.validado_por %} ({{ carga.validado_por.get_full_name|default:carga.validado_por.username }}){% endif %}:
+            </p>
+            <p class="text-sm {% if carga.estado == 'rechazado' %}text-red-700{% elif carga.estado == 'correcciones_solicitadas' %}text-amber-700{% else %}text-emerald-700{% endif %}">
+                {{ carga.observaciones_validador }}
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Indicador de completitud -->
+        {% if carga.estado in 'borrador,rechazado,correcciones_solicitadas' %}
+        <div class="mt-4 pt-4 border-t border-slate-200">
+            <p class="text-xs font-semibold text-slate-500 mb-2">Archivos entregados:</p>
+            <div class="flex gap-4 text-xs">
+                <span class="flex items-center gap-1
+                    {% if carga.tiene_datos %}text-emerald-700{% else %}text-red-600{% endif %}">
+                    {% if carga.tiene_datos %}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    {% else %}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    {% endif %} Datos de serie
+                </span>
+                <span class="flex items-center gap-1
+                    {% if carga.tiene_metadata %}text-emerald-700{% else %}text-red-600{% endif %}">
+                    {% if carga.tiene_metadata %}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    {% else %}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    {% endif %} Metadata
+                </span>
+            </div>
+            <div class="mt-2 bg-slate-200 rounded-full h-1.5">
+                <div class="bg-emerald-500 h-1.5 rounded-full transition-all"
+                     style="width: {{ carga.porcentaje_completitud }}%"></div>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">{{ carga.porcentaje_completitud }}% completo</p>
+        </div>
+        {% endif %}
+
+        <!-- Acciones según estado de completitud -->
+        <div class="mt-5 flex flex-col sm:flex-row gap-3">
+            {% if puede_enviar %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="enviar">
+                <button type="submit" onclick="return confirm('¿Confirmas el envío? Una vez enviado no podrás modificarlo hasta recibir respuesta del equipo SIIED.')"
+                        class="bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition">
+                    {% if carga.estado == 'borrador' %}Enviar para validación{% else %}Corregir y reenviar{% endif %}
+                </button>
+            </form>
+            {% endif %}
+
+            {% if puede_completar %}
+            <a href="{% url 'indicadores:delegado_completar_serie' carga.id %}"
+               class="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Completar archivos faltantes
+            </a>
+            {% endif %}
+
+            {% if carga.estado in 'borrador,rechazado,correcciones_solicitadas' %}
+            <a href="{% url 'indicadores:delegado_completar_serie' carga.id %}"
+               class="inline-flex items-center gap-2 border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium px-4 py-2.5 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Actualizar archivos
+            </a>
+            {% endif %}
+
+            {% if carga.indicador %}
+            <a href="{% url 'indicadores:delegado_cargar_serie_inline' %}?indicador_id={{ carga.indicador.id }}"
+               class="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18"/></svg>
+                Actualizar datos
+            </a>
+            <a href="{% url 'indicadores:delegado_cargar_metadata_form' %}?indicador_id={{ carga.indicador.id }}"
+               class="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Actualizar metadata
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Timeline del proceso -->
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
+        <h2 class="font-semibold text-slate-800 mb-4 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>¿Qué sigue?
+        </h2>
+        <div class="flex items-start space-x-4">
+            {% with estados='enviado,en_revision,aprobado,procesado' %}
+            <div class="flex flex-col items-center">
+                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if carga.estado in 'enviado,en_revision,aprobado,procesado' %}bg-emerald-600 text-white{% else %}bg-slate-200 text-slate-400{% endif %}">1</div>
+                <div class="w-0.5 h-8 {% if carga.estado in 'en_revision,aprobado,procesado' %}bg-emerald-400{% else %}bg-slate-200{% endif %}"></div>
+                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if carga.estado in 'en_revision,aprobado,procesado' %}bg-emerald-600 text-white{% else %}bg-slate-200 text-slate-400{% endif %}">2</div>
+                <div class="w-0.5 h-8 {% if carga.estado in 'aprobado,procesado' %}bg-emerald-400{% else %}bg-slate-200{% endif %}"></div>
+                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if carga.estado in 'aprobado,procesado' %}bg-emerald-600 text-white{% else %}bg-slate-200 text-slate-400{% endif %}">3</div>
+                <div class="w-0.5 h-8 {% if carga.estado == 'procesado' %}bg-emerald-400{% else %}bg-slate-200{% endif %}"></div>
+                <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                    {% if carga.estado == 'procesado' %}bg-emerald-600 text-white{% else %}bg-slate-200 text-slate-400{% endif %}">4</div>
+            </div>
+            <div class="flex-1 space-y-6 pt-0.5">
+                <div>
+                    <p class="text-sm font-semibold text-slate-700">Carga enviada</p>
+                    <p class="text-xs text-slate-400">Tu archivo llegó al equipo del SIIED.</p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-700">En revisión</p>
+                    <p class="text-xs text-slate-400">Un estadístico está revisando los datos.</p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-700">Aprobado</p>
+                    <p class="text-xs text-slate-400">Los datos fueron aprobados para publicación.</p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-700">Publicado</p>
+                    <p class="text-xs text-slate-400">Los datos ya están disponibles en el sistema.</p>
+                </div>
+            </div>
+            {% endwith %}
+        </div>
+    </div>
+
+    <!-- Vista previa de datos -->
+    {% if preview_datos %}
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 mb-6">
+        <h2 class="font-semibold text-slate-800 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>Vista previa — Datos (primeras 10 filas)
+        </h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs border-collapse">
+                <thead>
+                    <tr class="bg-emerald-50">
+                        {% for col in preview_datos.columnas %}
+                        <th class="border border-slate-200 px-3 py-2 text-left text-emerald-600 font-semibold">{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in preview_datos.filas %}
+                    <tr class="hover:bg-slate-50">
+                        {% for celda in fila %}
+                        <td class="border border-slate-200 px-3 py-2 text-slate-700">{{ celda }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if preview_metadata %}
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <h2 class="font-semibold text-slate-800 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>Vista previa — Metadata
+        </h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs border-collapse">
+                <thead>
+                    <tr class="bg-emerald-50">
+                        {% for col in preview_metadata.columnas %}
+                        <th class="border border-slate-200 px-3 py-2 text-left text-emerald-600 font-semibold">{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in preview_metadata.filas %}
+                    <tr class="hover:bg-slate-50">
+                        {% for celda in fila %}
+                        <td class="border border-slate-200 px-3 py-2 text-slate-700">{{ celda }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

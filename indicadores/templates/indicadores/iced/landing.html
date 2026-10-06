@@ -1,0 +1,286 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Módulo ICED — SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --iced-primary: #000866;
+        --iced-accent: #d97706;
+        --iced-success: #059669;
+        --iced-bg: #f8fafc;
+        --iced-card: #ffffff;
+        --iced-border: #e2e8f0;
+        --iced-text: #0f172a;
+        --iced-muted: #64748b;
+    }
+
+    .iced-landing {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .iced-hero {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, var(--iced-primary) 0%, #1a237e 100%);
+        border-radius: 1.25rem;
+        color: white;
+    }
+    .iced-hero h1 {
+        font-family: Georgia, serif;
+        font-size: 2.25rem;
+        margin-bottom: 0.75rem;
+    }
+    .iced-hero p {
+        opacity: 0.85;
+        font-size: 1rem;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    .iced-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2.5rem;
+    }
+    .iced-stat-card {
+        background: white;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        text-align: center;
+    }
+    .iced-stat-value {
+        font-family: Georgia, serif;
+        font-size: 2rem;
+        color: var(--iced-primary);
+    }
+    .iced-stat-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--iced-muted);
+        margin-top: 0.25rem;
+    }
+
+    .iced-section-title {
+        font-family: Georgia, serif;
+        font-size: 1.5rem;
+        color: var(--iced-text);
+        margin-bottom: 1.25rem;
+    }
+
+    .iced-formulario-card {
+        background: white;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        transition: border-color 0.2s;
+    }
+    .iced-formulario-card:hover {
+        border-color: var(--iced-primary);
+    }
+
+    .iced-estado {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .iced-estado.borrador { background: #fef3c7; color: #92400e; }
+    .iced-estado.enviado { background: #dbeafe; color: #1e40af; }
+    .iced-estado.validado { background: #d1fae5; color: #065f46; }
+    .iced-estado.devuelto { background: #fee2e2; color: #991b1b; }
+
+    .iced-btn {
+        padding: 0.7rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .iced-btn-primary {
+        background: var(--iced-primary);
+        color: white;
+    }
+    .iced-btn-primary:hover {
+        background: #000a80;
+        box-shadow: 0 4px 12px rgba(0, 8, 102, 0.3);
+        color: white;
+    }
+    .iced-btn-outline {
+        background: white;
+        color: var(--iced-primary);
+        border: 1px solid var(--iced-primary);
+    }
+    .iced-btn-outline:hover {
+        background: #f0f1ff;
+        color: var(--iced-primary);
+    }
+
+    .iced-puntaje-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .iced-puntaje-badge.muy_alto { background: #064e3b; color: white; }
+    .iced-puntaje-badge.alto { background: #059669; color: white; }
+    .iced-puntaje-badge.medio { background: #d97706; color: white; }
+    .iced-puntaje-badge.bajo { background: #dc2626; color: white; }
+
+    .iced-empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        border: 2px dashed var(--iced-border);
+        border-radius: 1rem;
+        color: var(--iced-muted);
+    }
+    .iced-empty-state p {
+        margin-bottom: 1rem;
+    }
+
+    .iced-completitud {
+        width: 100px;
+        height: 6px;
+        background: var(--iced-border);
+        border-radius: 999px;
+        overflow: hidden;
+    }
+    .iced-completitud-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: var(--iced-success);
+        transition: width 0.3s;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="iced-landing">
+
+    <!-- Hero -->
+    <div class="iced-hero">
+        <h1>Índice de Capacidad Estadística y de Datos</h1>
+        <p>
+            Instrumento oficial para evaluar la madurez de los organismos distritales 
+            en la gestión de información estadística y datos. 
+            42 preguntas en 5 módulos.
+        </p>
+    </div>
+
+    {% if organismo %}
+    <!-- Estadísticas rápidas -->
+    <div class="iced-stats">
+        <div class="iced-stat-card">
+            <div class="iced-stat-value">{{ formularios|length }}</div>
+            <div class="iced-stat-label">Formularios</div>
+        </div>
+        <div class="iced-stat-card">
+            <div class="iced-stat-value">{{ periodo_actual }}</div>
+            <div class="iced-stat-label">Vigencia actual</div>
+        </div>
+        <div class="iced-stat-card">
+            <div class="iced-stat-value">{{ organismo.nombre|truncatechars:20 }}</div>
+            <div class="iced-stat-label">Organismo</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Listado de formularios -->
+    <h2 class="iced-section-title">Formularios ICED</h2>
+
+    {% if formularios %}
+        {% for f in formularios %}
+        <div class="iced-formulario-card">
+            <div>
+                <div style="font-weight: 600; color: var(--iced-text); margin-bottom: 0.25rem;">
+                    ICED {{ f.periodo }} — {{ f.organismo.nombre }}
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <span class="iced-estado {{ f.estado }}">
+                        {% if f.estado == 'borrador' %}📝{% elif f.estado == 'enviado' %}📤{% elif f.estado == 'validado' %}✅{% else %}↩️{% endif %}
+                        {{ f.get_estado_display }}
+                    </span>
+                    <span style="font-size: 0.8rem; color: var(--iced-muted);">
+                        Completitud: {{ f.completitud }}%
+                    </span>
+                    <div class="iced-completitud">
+                        <div class="iced-completitud-fill" style="width: {{ f.completitud }}%;"></div>
+                    </div>
+                    {% if f.puntaje_global %}
+                    <span class="iced-puntaje-badge {{ f.nivel_global }}">
+                        {{ f.puntaje_global|floatformat:4 }} — {{ f.nivel_global_display }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div style="font-size: 0.8rem; color: var(--iced-muted); margin-top: 0.35rem;">
+                    Actualizado {{ f.fecha_actualizacion|naturaltime }}
+                </div>
+                {% if f.estado == 'devuelto' and f.observaciones_validador %}
+                <div style="margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 0.375rem; font-size: 0.8rem; color: #78350f; white-space: pre-line;">
+                    <strong>Observaciones del validador:</strong> {{ f.observaciones_validador }}
+                </div>
+                {% endif %}
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+                {% if f.estado == 'borrador' or f.estado == 'devuelto' %}
+                    <a href="{% url 'indicadores:iced_formulario_retomar' formulario_id=f.pk %}" class="iced-btn iced-btn-primary">
+                        Continuar ✎
+                    </a>
+                {% endif %}
+                {% if f.puntaje_global %}
+                    <a href="{% url 'indicadores:iced_resultado' formulario_id=f.pk %}" class="iced-btn iced-btn-outline">
+                        Ver resultado
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="iced-empty-state">
+            <p>No hay formularios ICED registrados{% if organismo %} para {{ organismo.nombre }}{% endif %}.</p>
+        </div>
+    {% endif %}
+
+    <!-- Botón nuevo formulario -->
+    {% if organismo %}
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="{% url 'indicadores:iced_formulario_nuevo' %}" class="iced-btn iced-btn-primary" style="padding: 0.9rem 2rem; font-size: 1rem;">
+            + Iniciar nuevo formulario ICED {{ periodo_actual }}
+        </a>
+    </div>
+    {% endif %}
+
+    {% if request.user.is_staff %}
+    <div style="margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--iced-border); text-align: center;">
+        <a href="{% url 'indicadores:validacion_dashboard' %}" class="iced-btn iced-btn-outline" style="border-color: var(--iced-accent); color: var(--iced-accent);">
+            Panel de Validación (Equipo Técnico SIIED)
+        </a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

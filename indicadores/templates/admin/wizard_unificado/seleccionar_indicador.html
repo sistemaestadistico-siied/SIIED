@@ -1,0 +1,156 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-search"></i>
+      Seleccionar Indicador a Actualizar
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Actualización de Indicador:</strong> Selecciona el indicador que deseas actualizar con nuevos datos.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Buscador -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-filter"></i>
+        Buscar Indicador
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.buscar_nombre.id_for_label }}">
+          {{ wizard.form.buscar_nombre.label }}
+        </label>
+        {{ wizard.form.buscar_nombre }}
+      </div>
+    </div>
+    
+    <!-- Selector de indicador -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-chart-line"></i>
+        Indicador
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.indicador.id_for_label }}">
+          {{ wizard.form.indicador.label }}
+        </label>
+        {{ wizard.form.indicador }}
+        {{ wizard.form.indicador.errors }}
+      </div>
+    </div>
+    
+    <!-- Preview del indicador seleccionado -->
+    <div class="form-section" id="indicador-preview" style="display: none;">
+      <h4>
+        <i class="fas fa-eye"></i>
+        Vista Previa del Indicador
+      </h4>
+      
+      <div class="preview-card">
+        <div class="preview-item">
+          <strong>Código:</strong>
+          <span id="preview-codigo">-</span>
+        </div>
+        <div class="preview-item">
+          <strong>Nombre:</strong>
+          <span id="preview-nombre">-</span>
+        </div>
+        <div class="preview-item">
+          <strong>Subtema:</strong>
+          <span id="preview-subtema">-</span>
+        </div>
+        <div class="preview-item">
+          <strong>Datos actuales:</strong>
+          <span id="preview-datos">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.preview-card {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.preview-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.preview-item:last-child {
+  border-bottom: none;
+}
+
+.preview-item strong {
+  color: var(--admin-text);
+  font-size: 0.9rem;
+}
+
+.preview-item span {
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+  text-align: right;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const indicadorSelect = document.querySelector('select[name="{{ wizard.form.indicador.html_name }}"]');
+  const previewSection = document.getElementById('indicador-preview');
+  
+  if (indicadorSelect) {
+    indicadorSelect.addEventListener('change', function() {
+      if (this.value) {
+        // TODO: Cargar datos del indicador via AJAX
+        previewSection.style.display = 'block';
+        
+        // Por ahora mostrar placeholder
+        const option = this.options[this.selectedIndex];
+        document.getElementById('preview-nombre').textContent = option.text;
+      } else {
+        previewSection.style.display = 'none';
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

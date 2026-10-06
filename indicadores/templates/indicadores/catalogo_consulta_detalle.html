@@ -1,0 +1,130 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-gray-500 mb-6">
+        <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="hover:text-primary-600">Catálogo de Consulta</a>
+        <span class="mx-2">/</span>
+        <span>{{ conjunto.dominio.nombre }}</span>
+        <span class="mx-2">/</span>
+        <span class="text-gray-800 font-medium">{{ conjunto.nombre }}</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">{{ conjunto.nombre }}</h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    <i class="fas fa-tag mr-1"></i>{{ conjunto.get_tipo_consulta_display }}
+                    · Dominio: <span class="font-medium">{{ conjunto.dominio.nombre }}</span>
+                    · {{ total_filas }} registros
+                    · Actualizado {{ conjunto.fecha_actualizacion|date:"d/m/Y H:i" }}
+                </p>
+                {% if conjunto.descripcion %}
+                <p class="text-gray-600 mt-3">{{ conjunto.descripcion }}</p>
+                {% endif %}
+            </div>
+            {% if conjunto.archivo %}
+            <a href="{{ conjunto.archivo.url }}" download
+               class="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex-shrink-0">
+                <i class="fas fa-download mr-2"></i>
+                Descargar {{ conjunto.extension|upper }}
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Indicadores enlazados -->
+        {% if indicadores_enlazados %}
+        <div class="mt-5 pt-4 border-t border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-700 mb-2">
+                <i class="fas fa-link mr-1 text-indigo-500"></i>Indicadores que muestran este cuadro:
+            </h3>
+            <div class="flex flex-wrap gap-2">
+                {% for ind in indicadores_enlazados %}
+                {% if ind.subtema and ind.subtema.tema and ind.subtema.tema.dominio %}
+                <a href="{% url 'indicadores:subtema_detalle' dominio_slug=ind.subtema.tema.dominio.slug tema_slug=ind.subtema.tema.slug subtema_slug=ind.subtema.slug %}?indicador={{ ind.pk }}"
+                   class="inline-flex items-center px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium hover:bg-indigo-100 transition-colors">
+                    <i class="fas fa-chart-line mr-1.5"></i>{{ ind.nombre }}
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Cuadro de consulta -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-table mr-2 text-teal-600"></i>Cuadro de consulta
+            </h2>
+            <form method="get" class="flex gap-2">
+                <input type="text" name="q" value="{{ busqueda }}" placeholder="Buscar en el cuadro..."
+                       class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-300 focus:border-teal-400 w-64">
+                <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm hover:bg-teal-700 transition-colors">
+                    <i class="fas fa-search"></i>
+                </button>
+                {% if busqueda %}
+                <a href="{% url 'indicadores:catalogo_consulta_detalle' conjunto.pk %}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm hover:bg-gray-300 transition-colors">
+                    Limpiar
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        {% if pagina %}
+        <div class="overflow-x-auto border border-gray-200 rounded-lg">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">
+                    <tr>
+                        {% for col in columnas %}
+                        <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase whitespace-nowrap border-b">{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for fila in pagina_valores %}
+                    <tr class="hover:bg-teal-50">
+                        {% for valor in fila %}
+                        <td class="px-4 py-2.5 text-gray-700 whitespace-nowrap">{{ valor|default:"—" }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        {% if pagina.has_other_pages %}
+        <div class="flex items-center justify-between mt-4 text-sm">
+            <span class="text-gray-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }} ({{ total_filas }} registros)</span>
+            <div class="flex gap-2">
+                {% if pagina.has_previous %}
+                <a href="?pagina={{ pagina.previous_page_number }}{% if busqueda %}&q={{ busqueda|urlencode }}{% endif %}"
+                   class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">← Anterior</a>
+                {% endif %}
+                {% if pagina.has_next %}
+                <a href="?pagina={{ pagina.next_page_number }}{% if busqueda %}&q={{ busqueda|urlencode }}{% endif %}"
+                   class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Siguiente →</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-12 text-gray-500">
+            <i class="fas fa-inbox text-4xl text-gray-300 mb-3 block"></i>
+            {% if busqueda %}
+                Sin resultados para "{{ busqueda }}".
+            {% else %}
+                Este conjunto aún no tiene datos cargados.
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

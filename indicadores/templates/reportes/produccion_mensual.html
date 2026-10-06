@@ -1,0 +1,127 @@
+{% extends 'reportes/base_reportes.html' %}
+
+{% block title %}Producción Mensual — Reporte de Control{% endblock %}
+
+{% block reportes_content %}
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-slate-900">Producción Mensual</h2>
+        <p class="text-sm text-slate-500">
+            Período: {{ inicio_periodo|date:"d/m/Y" }} – {{ fin_periodo|date:"d/m/Y" }}
+        </p>
+    </div>
+    <a href="{% url 'indicadores:reportes_produccion_mensual_exportar_excel' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Exportar Excel
+    </a>
+</div>
+
+<!-- Totales -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="bg-white border border-slate-200 rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-blue-600">{{ total_series }}</div>
+        <div class="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-1">Series Cargadas</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-indigo-600">{{ total_conjunto_datos }}</div>
+        <div class="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-1">Conjunto de datos Cargados</div>
+    </div>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-emerald-600">{{ total_indicadores_unicos }}</div>
+        <div class="text-xs text-slate-500 uppercase tracking-wider font-semibold mt-1">Indicadores Únicos</div>
+    </div>
+</div>
+
+<!-- Tabla Resumen Mensual -->
+<div class="bg-white border border-slate-200 rounded-xl overflow-hidden mb-8">
+    <div class="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <h3 class="text-sm font-semibold text-slate-700">Resumen por Mes</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-slate-50 text-slate-600 font-semibold">
+                    <th class="px-4 py-2 text-left">Mes</th>
+                    <th class="px-4 py-2 text-right">Series Cargadas</th>
+                    <th class="px-4 py-2 text-right">Indicadores Únicos</th>
+                    <th class="px-4 py-2 text-right">Conjunto de datos Cargados</th>
+                    <th class="px-4 py-2 text-right">Total Operaciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for row in series_por_mes %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-2 font-medium">{{ row.mes|date:"Y-m" }}</td>
+                    <td class="px-4 py-2 text-right font-semibold text-blue-700">{{ row.total }}</td>
+                    <td class="px-4 py-2 text-right text-slate-600">{{ row.unicos }}</td>
+                    <td class="px-4 py-2 text-right text-slate-600">
+                        {% for m in conjunto_datos_por_mes %}
+                            {% if m.mes == row.mes %}{{ m.total }}{% endif %}
+                        {% empty %}0{% endfor %}
+                    </td>
+                    <td class="px-4 py-2 text-right font-bold text-slate-800">{{ row.total }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 py-8 text-center text-slate-400">
+                        <i class="fas fa-inbox mb-2 block text-2xl"></i>
+                        No hay cargas registradas en el período.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Detalle por Usuario -->
+<div class="bg-white border border-slate-200 rounded-xl overflow-hidden mb-8">
+    <div class="px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <h3 class="text-sm font-semibold text-slate-700">Detalle por Usuario y Mes</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-slate-50 text-slate-600 font-semibold">
+                    <th class="px-4 py-2 text-left">Mes</th>
+                    <th class="px-4 py-2 text-left">Usuario</th>
+                    <th class="px-4 py-2 text-left">Tipo</th>
+                    <th class="px-4 py-2 text-right">Cantidad</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for row in series_por_usuario_mes %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-2 whitespace-nowrap">{{ row.mes|date:"Y-m" }}</td>
+                    <td class="px-4 py-2">{{ row.usuario__first_name|default:row.usuario__username }} {{ row.usuario__last_name }}</td>
+                    <td class="px-4 py-2"><span class="badge-pill" style="background:#dbeafe;color:#1e40af;">Serie</span></td>
+                    <td class="px-4 py-2 text-right font-semibold">{{ row.total }}</td>
+                </tr>
+                {% endfor %}
+                {% for row in conjunto_datos_por_usuario_mes %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-2 whitespace-nowrap">{{ row.mes|date:"Y-m" }}</td>
+                    <td class="px-4 py-2">{{ row.usuario__first_name|default:row.usuario__username }} {{ row.usuario__last_name }}</td>
+                    <td class="px-4 py-2"><span class="badge-pill" style="background:#ede9fe;color:#5b21b6;">Conjunto de datos</span></td>
+                    <td class="px-4 py-2 text-right font-semibold">{{ row.total }}</td>
+                </tr>
+                {% endfor %}
+                {% if not series_por_usuario_mes and not conjunto_datos_por_usuario_mes %}
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-slate-400">
+                        <i class="fas fa-inbox mb-2 block text-2xl"></i>
+                        No hay cargas registradas en el período.
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

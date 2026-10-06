@@ -1,0 +1,571 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.cargas-dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--admin-border);
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.dashboard-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  color: white;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+}
+
+.stat-icon.series { background: linear-gradient(135deg, #10b981, #047857); }
+.stat-icon.conjunto-datos { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.stat-icon.pending { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.stat-icon.completed { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+.stat-content h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--admin-muted);
+  font-weight: 500;
+}
+
+.stat-content p {
+  margin: 0.25rem 0 0 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin: 2rem 0 1rem 0;
+}
+
+.section-title i {
+  color: var(--admin-primary);
+}
+
+.cargas-table {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.cargas-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cargas-table thead {
+  background: var(--admin-panel-2);
+  border-bottom: 2px solid var(--admin-border);
+}
+
+.cargas-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--admin-text);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cargas-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  color: var(--admin-text);
+}
+
+.cargas-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cargas-table tbody tr:hover {
+  background: var(--admin-panel-2);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge.procesando {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.status-badge.completado {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.status-badge.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--admin-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--admin-primary-dark);
+  text-decoration: none;
+  color: white;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #047857;
+  text-decoration: none;
+  color: white;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--admin-muted);
+}
+
+.empty-state i {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--admin-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--admin-border);
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--admin-muted);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -2px;
+}
+
+.tab:hover {
+  color: var(--admin-text);
+}
+
+.tab.active {
+  color: var(--admin-primary);
+  border-bottom-color: var(--admin-primary);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cargas-dashboard">
+  <div class="dashboard-header">
+    <div class="dashboard-icon">
+      <i class="fas fa-inbox"></i>
+    </div>
+    <div>
+      <h1>Dashboard de Cargas del Equipo</h1>
+      <p style="margin: 0; color: var(--admin-muted);">Visualiza y descarga los archivos CSV procesados</p>
+    </div>
+  </div>
+
+  <!-- Info Banner -->
+  <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05)); border: 2px solid #8b5cf6; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem;">
+    <div style="display: flex; align-items: start; gap: 1rem;">
+      <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <i class="fas fa-magic" style="color: white; font-size: 1.5rem;"></i>
+      </div>
+      <div style="flex-grow: 1;">
+        <h3 style="margin: 0 0 0.5rem 0; color: #7c3aed; font-size: 1.1rem; font-weight: 600;">
+          <i class="fas fa-info-circle"></i> ¿Cómo procesar las cargas?
+        </h3>
+        <p style="margin: 0 0 0.75rem 0; color: #6d28d9; line-height: 1.6;">
+          Las cargas con estado <strong>"Pendiente"</strong> están listas para ser procesadas. 
+          Haz clic en el botón <strong style="color: #8b5cf6;"><i class="fas fa-magic"></i> Procesar con Wizard</strong> 
+          para iniciar el asistente inteligente que te guiará paso a paso.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; color: #7c3aed;">
+          <div><i class="fas fa-check-circle" style="color: #10b981;"></i> Carga automática de metadata</div>
+          <div><i class="fas fa-check-circle" style="color: #10b981;"></i> Verificación de desagregaciones</div>
+          <div><i class="fas fa-check-circle" style="color: #10b981;"></i> Preview con Univer.js</div>
+          <div><i class="fas fa-check-circle" style="color: #10b981;"></i> Diagnóstico antes de procesar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon series">
+        <i class="fas fa-chart-line"></i>
+      </div>
+      <div class="stat-content">
+        <h3>Series de Indicadores</h3>
+        <p>{{ stats.total_series }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon conjunto-datos">
+        <i class="fas fa-database"></i>
+      </div>
+      <div class="stat-content">
+        <h3>Conjunto de datos</h3>
+        <p>{{ stats.total_conjunto_datos }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon pending">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content">
+        <h3>Pendientes</h3>
+        <p>{{ stats.pendientes }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon completed">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <h3>Completadas</h3>
+        <p>{{ stats.completadas }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('series')">
+      <i class="fas fa-chart-line"></i> Series de Indicadores
+    </button>
+    <button class="tab" onclick="switchTab('conjunto-datos')">
+      <i class="fas fa-database"></i> Conjunto de datos
+    </button>
+  </div>
+
+  <!-- Series Tab -->
+  <div id="tab-series" class="tab-content active">
+    <h2 class="section-title">
+      <i class="fas fa-chart-line"></i>
+      Cargas de Series de Indicadores
+    </h2>
+    
+    {% if cargas_series %}
+    <div class="cargas-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Usuario</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Archivos CSV</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for carga in cargas_series %}
+          <tr>
+            <td><strong>{{ carga.codigo_evidencia }}</strong></td>
+            <td>
+              <div class="user-info">
+                <div class="user-avatar">{{ carga.usuario.username|slice:":1"|upper }}</div>
+                <span>{{ carga.usuario.get_full_name|default:carga.usuario.username }}</span>
+              </div>
+            </td>
+            <td>{{ carga.fecha_carga|date:"d/m/Y H:i" }}</td>
+            <td>
+              <span class="status-badge {{ carga.estado }}">
+                {% if carga.estado == 'completado' %}
+                  <i class="fas fa-check-circle"></i> Completado
+                {% elif carga.estado == 'procesando' %}
+                  <i class="fas fa-spinner fa-spin"></i> Procesando
+                {% elif carga.estado == 'error' %}
+                  <i class="fas fa-exclamation-circle"></i> Error
+                {% endif %}
+              </span>
+            </td>
+            <td>
+              {% if carga.archivo_datos_csv %}
+                <i class="fas fa-file-csv text-success"></i> Datos CSV
+              {% endif %}
+              {% if carga.archivo_metadata_csv %}
+                <i class="fas fa-file-csv text-success"></i> Metadata CSV
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-buttons">
+                {% if carga.estado == 'pendiente' %}
+                <a href="{% url 'wizard_admin_unificado' %}?carga_serie={{ carga.id }}" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: none;">
+                  <i class="fas fa-magic"></i> Procesar con Wizard
+                </a>
+                {% endif %}
+                {% if carga.archivo_datos_csv %}
+                <a href="{% url 'indicadores:descargar_csv_serie_datos' carga.id %}" class="btn btn-success btn-sm">
+                  <i class="fas fa-download"></i> Datos
+                </a>
+                {% endif %}
+                {% if carga.archivo_metadata_csv %}
+                <a href="{% url 'indicadores:descargar_csv_serie_metadata' carga.id %}" class="btn btn-success btn-sm">
+                  <i class="fas fa-download"></i> Metadata
+                </a>
+                {% endif %}
+                <a href="{% url 'admin:indicadores_cargaserieindicador_change' carga.id %}" class="btn btn-primary btn-sm">
+                  <i class="fas fa-eye"></i> Ver
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="cargas-table">
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <p>No hay cargas de series de indicadores</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Conjunto de datos Tab -->
+  <div id="tab-conjunto-datos" class="tab-content">
+    <h2 class="section-title">
+      <i class="fas fa-database"></i>
+      Cargas de Conjunto de datos
+    </h2>
+    
+    {% if cargas_conjuntos_datos %}
+    <div class="cargas-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Usuario</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Archivos CSV</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for carga in cargas_conjuntos_datos %}
+          <tr>
+            <td><strong>{{ carga.codigo_evidencia }}</strong></td>
+            <td>
+              <div class="user-info">
+                <div class="user-avatar">{{ carga.usuario.username|slice:":1"|upper }}</div>
+                <span>{{ carga.usuario.get_full_name|default:carga.usuario.username }}</span>
+              </div>
+            </td>
+            <td>{{ carga.fecha_carga|date:"d/m/Y H:i" }}</td>
+            <td>
+              <span class="status-badge {{ carga.estado }}">
+                {% if carga.estado == 'completado' %}
+                  <i class="fas fa-check-circle"></i> Completado
+                {% elif carga.estado == 'procesando' %}
+                  <i class="fas fa-spinner fa-spin"></i> Procesando
+                {% elif carga.estado == 'error' %}
+                  <i class="fas fa-exclamation-circle"></i> Error
+                {% endif %}
+              </span>
+            </td>
+            <td>
+              {% if carga.archivo_microdata_csv %}
+                <i class="fas fa-file-csv text-success"></i> Conjunto de datos CSV
+              {% endif %}
+              {% if carga.archivo_metadata_variables_csv %}
+                <i class="fas fa-file-csv text-success"></i> Metadata CSV
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-buttons">
+                {% if carga.estado == 'pendiente' %}
+                <a href="{% url 'wizard_admin_unificado' %}?carga_conjunto_datos={{ carga.id }}" class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: none;">
+                  <i class="fas fa-magic"></i> Procesar con Wizard
+                </a>
+                {% endif %}
+                {% if carga.archivo_microdata_csv %}
+                <a href="{% url 'indicadores:descargar_csv_conjunto_datos' carga.id %}" class="btn btn-success btn-sm">
+                  <i class="fas fa-download"></i> Conjunto de datos
+                </a>
+                {% endif %}
+                {% if carga.archivo_metadata_variables_csv %}
+                <a href="{% url 'indicadores:descargar_csv_metadata_variables' carga.id %}" class="btn btn-success btn-sm">
+                  <i class="fas fa-download"></i> Metadata
+                </a>
+                {% endif %}
+                <a href="{% url 'admin:indicadores_cargaconjuntodatos_change' carga.id %}" class="btn btn-primary btn-sm">
+                  <i class="fas fa-eye"></i> Ver
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="cargas-table">
+      <div class="empty-state">
+        <i class="fas fa-database"></i>
+        <p>No hay cargas de conjunto de datos</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(content => {
+    content.classList.remove('active');
+  });
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  
+  // Show selected tab
+  document.getElementById('tab-' + tabName).classList.add('active');
+  event.target.closest('.tab').classList.add('active');
+}
+</script>
+{% endblock %}

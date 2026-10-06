@@ -1,0 +1,132 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-database"></i>
+      Configurar Conjunto de datos
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>¿Crear nueva o asociar existente?</strong> Define el registro de Conjunto de datos que contendrá esta información.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Opción: Crear o Asociar -->
+    <div class="form-section">
+      <div class="form-group">
+        <label>{{ wizard.form.opcion.label }}</label>
+        {{ wizard.form.opcion }}
+      </div>
+    </div>
+
+    <!-- Crear Nueva Conjunto de datos -->
+    <div class="form-section" id="section-crear-nueva" style="display: none;">
+      <h4>
+        <i class="fas fa-plus-circle"></i>
+        Crear Nueva Conjunto de datos
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.nombre_conjunto_datos.id_for_label }}">
+          {{ wizard.form.nombre_conjunto_datos.label }}
+        </label>
+        {{ wizard.form.nombre_conjunto_datos }}
+        {{ wizard.form.nombre_conjunto_datos.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.descripcion_conjunto_datos.id_for_label }}">
+          {{ wizard.form.descripcion_conjunto_datos.label }}
+        </label>
+        {{ wizard.form.descripcion_conjunto_datos }}
+        {{ wizard.form.descripcion_conjunto_datos.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.operacion_estadistica.id_for_label }}">
+          {{ wizard.form.operacion_estadistica.label }}
+        </label>
+        {{ wizard.form.operacion_estadistica }}
+        {{ wizard.form.operacion_estadistica.errors }}
+      </div>
+    </div>
+
+    <!-- Asociar Existente -->
+    <div class="form-section" id="section-asociar-existente" style="display: none;">
+      <h4>
+        <i class="fas fa-link"></i>
+        Asociar a Conjunto de datos Existente
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.conjunto_datos_existente.id_for_label }}">
+          {{ wizard.form.conjunto_datos_existente.label }}
+        </label>
+        {{ wizard.form.conjunto_datos_existente }}
+        {{ wizard.form.conjunto_datos_existente.errors }}
+      </div>
+      
+      <div class="warning-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Advertencia:</strong> Se asociará a el conjunto de datos existente.
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const opcionRadios = document.querySelectorAll('input[name="{{ wizard.form.opcion.html_name }}"]');
+  const sectionCrear = document.getElementById('section-crear-nueva');
+  const sectionAsociar = document.getElementById('section-asociar-existente');
+  
+  function updateSections() {
+    const selectedValue = document.querySelector('input[name="{{ wizard.form.opcion.html_name }}"]:checked')?.value;
+    
+    sectionCrear.style.display = 'none';
+    sectionAsociar.style.display = 'none';
+    
+    if (selectedValue === 'crear_nueva') {
+      sectionCrear.style.display = 'block';
+    } else if (selectedValue === 'asociar_existente') {
+      sectionAsociar.style.display = 'block';
+    }
+  }
+  
+  opcionRadios.forEach(radio => {
+    radio.addEventListener('change', updateSections);
+  });
+  
+  updateSections();
+});
+</script>
+{% endblock %}

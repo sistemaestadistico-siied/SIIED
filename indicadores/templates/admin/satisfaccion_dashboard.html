@@ -1,0 +1,863 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Dashboard de Satisfacción Ciudadana{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/fontawesome.min.css' %}">
+<style>
+    .admin-dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--admin-text);
+        margin-bottom: 2rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--admin-border);
+    }
+    
+    .metric-card {
+        background: var(--admin-panel);
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        border-left: 4px solid;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .metric-card { border-left-color: #000866; }
+    
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        color: #000866;
+    }
+    
+    .metric-label {
+        color: var(--admin-muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .metric-detail {
+        color: var(--admin-muted);
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+    }
+    
+    .app-card {
+        background: var(--admin-panel);
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+    
+    .app-card:hover {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .app-card-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--admin-border);
+        background: var(--admin-panel-2);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .app-card-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--admin-text);
+    }
+    
+    .app-card-body {
+        padding: 1.5rem;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 350px;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-card {
+        background: var(--admin-panel);
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-group {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-primary {
+        background: #000866;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #1e3a8a;
+        text-decoration: none;
+        color: white;
+    }
+    
+    .btn-success {
+        background: #06b6d4;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #0891b2;
+        text-decoration: none;
+        color: white;
+    }
+    
+    /* Animaciones para el Logo Protagonista */
+    @keyframes pulseLogo {
+        0%, 100% { 
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0.8;
+        }
+        50% { 
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes floatLogo {
+        0%, 100% { 
+            transform: translateY(0px);
+            filter: drop-shadow(0 8px 25px rgba(6,182,212,0.6)) drop-shadow(0 0 40px rgba(6,182,212,0.4));
+        }
+        50% { 
+            transform: translateY(-8px);
+            filter: drop-shadow(0 12px 35px rgba(6,182,212,0.8)) drop-shadow(0 0 50px rgba(6,182,212,0.6));
+        }
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table thead {
+        background: var(--admin-panel-2);
+    }
+    
+    .data-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: var(--admin-text);
+        border-bottom: 2px solid var(--admin-border);
+    }
+    
+    .data-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--admin-border);
+        color: var(--admin-text);
+    }
+    
+    .data-table tbody tr:hover {
+        background: var(--admin-panel-2);
+    }
+    
+    .badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+    
+    @media (max-width: 768px) {
+        .admin-dashboard {
+            padding: 1rem;
+        }
+        .btn-group {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    
+    <!-- Header Protagonista con Logo Impactante -->
+    <div style="text-align: center; margin-bottom: 3rem; position: relative; padding: 40px 0;">
+        <!-- Efecto de Resplandor de Fondo -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 300px; height: 300px; background: radial-gradient(circle, rgba(6,182,212,0.15) 0%, rgba(6,182,212,0.05) 40%, transparent 70%); border-radius: 50%; animation: pulseLogo 3s ease-in-out infinite; z-index: 1;"></div>
+        
+        <!-- Contenido del Header -->
+        <div style="position: relative; z-index: 2;">
+            <!-- Logo Principal con Efectos -->
+            <div class="mb-4">
+                <img src="https://i.ibb.co/5W6twRH8/Captura-desde-2026-03-11-01-54-12.png" 
+                     alt="Sistema de Medición de Satisfacción Ciudadana" 
+                     style="height: 100px; filter: drop-shadow(0 8px 25px rgba(6,182,212,0.6)) drop-shadow(0 0 40px rgba(6,182,212,0.4)); animation: floatLogo 4s ease-in-out infinite;">
+            </div>
+            
+            <!-- Título Principal -->
+            <h1 style="font-size: 2.5rem; font-weight: 700; color: var(--admin-text); margin-bottom: 0.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                Sistema para la Medición de la Satisfacción de los Diferentes Tipos de Usuarios Externos de Información Estadística
+            </h1>
+            
+            <!-- Subtítulo -->
+            <p style="color: var(--admin-muted); font-size: 1.2rem; margin-bottom: 2rem;">
+                <i class="fas fa-chart-line" style="color: #06b6d4; margin-right: 8px;"></i>
+                Dashboard Administrativo de Métricas y Análisis
+            </p>
+            
+            <!-- Botones de Acción -->
+            <div class="btn-group" style="justify-content: center;">
+                <a href="{% url 'satisfaccion_organismos' %}" class="btn btn-primary">
+                    <i class="fas fa-building"></i> Gestionar Organismos
+                </a>
+                <a href="{% url 'satisfaccion_exportar' %}" class="btn btn-success">
+                    <i class="fas fa-download"></i> Exportar a Excel
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="filter-card">
+        <h3 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 600; color: var(--admin-text); display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-filter"></i> Filtros de Búsqueda
+        </h3>
+        <form method="get" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--admin-text);">Organismo</label>
+                <select name="organismo" style="width: 100%; padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px; background: var(--admin-panel);">
+                    <option value="">Todos los organismos</option>
+                    {% for org in organismos %}
+                        <option value="{{ org.id }}" {% if org.id|stringformat:"s" == organismo_seleccionado %}selected{% endif %}>
+                            {{ org.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--admin-text);">Fecha desde</label>
+                <input type="date" name="fecha_desde" value="{{ fecha_desde }}" style="width: 100%; padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px; background: var(--admin-panel);">
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--admin-text);">Fecha hasta</label>
+                <input type="date" name="fecha_hasta" value="{{ fecha_hasta }}" style="width: 100%; padding: 0.5rem; border: 1px solid var(--admin-border); border-radius: 6px; background: var(--admin-panel);">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-search"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Sección: Respuestas Rápidas -->
+    <div style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+        <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-bolt"></i> Respuestas Rápidas (1 Clic)
+        </h2>
+        <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Calificaciones rápidas de satisfacción general (escala 1-5)</p>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div class="metric-card">
+            <div class="metric-label">Total Respuestas Rápidas</div>
+            <div class="metric-value">{{ total_respuestas_rapidas }}</div>
+            <div class="metric-detail">
+                <i class="fas fa-clock"></i> Últimos 30 días: {{ respuestas_rapidas_30_dias }}
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Promedio Rápidas</div>
+            <div class="metric-value">{{ promedio_rapidas }}<span style="font-size: 1.5rem; color: #6b7280;">/5.0</span></div>
+            <div class="metric-detail">
+                <i class="fas fa-chart-line"></i> Calificación promedio
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sección: Respuestas Completas -->
+    <div style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+        <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 600; display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-file-alt"></i> Respuestas Completas (Formulario Detallado)
+        </h2>
+        <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">Evaluación detallada por dimensiones: Utilidad, Relevancia y Accesibilidad</p>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+        <div class="metric-card">
+            <div class="metric-label">Total Respuestas Completas</div>
+            <div class="metric-value">{{ total_respuestas_completas }}</div>
+            <div class="metric-detail">
+                <i class="fas fa-clock"></i> Últimos 30 días: {{ respuestas_completas_30_dias }}
+            </div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-label">Promedio Completas</div>
+            <div class="metric-value">{{ promedio_completas }}<span style="font-size: 1.5rem; color: #6b7280;">/5.0</span></div>
+            <div class="metric-detail">
+                <i class="fas fa-chart-line"></i> Calificación promedio
+            </div>
+        </div>
+    </div>
+    
+    <!-- INDICADOR 3: Índice Neto de Satisfacción Global (INSG) -->
+    {% if indicador_insg %}
+    <div class="app-card" style="margin-bottom: 2rem;">
+        <div class="app-card-header" style="background: linear-gradient(135deg, rgba(0, 8, 102, 0.1), rgba(0, 8, 102, 0.05));">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(0, 8, 102, 0.1); display: flex; align-items: center; justify-content: center; color: #000866; font-size: 1.5rem;">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="app-card-title">Índice Neto de Satisfacción Global (INSG)</h3>
+        </div>
+        <div class="app-card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="text-align: center; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">INSG</div>
+                    <div style="font-size: 2rem; font-weight: 700; color: #000866;">{{ indicador_insg.insg }}%</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">Percepción</div>
+                    <div style="font-size: 1.25rem; font-weight: 600;">
+                        {% if indicador_insg.percepcion == 'positiva' %}
+                            <span style="color: #059669;">✓ Positiva</span>
+                        {% elif indicador_insg.percepcion == 'negativa' %}
+                            <span style="color: #dc2626;">✗ Negativa</span>
+                        {% else %}
+                            <span style="color: #6b7280;">— Neutral</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #d1fae5; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #065f46; margin-bottom: 0.5rem;">Satisfechas (4-5)</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #065f46;">{{ indicador_insg.satisfechas }}</div>
+                </div>
+                <div style="text-align: center; padding: 1rem; background: #fee2e2; border-radius: 8px;">
+                    <div style="font-size: 0.85rem; color: #991b1b; margin-bottom: 0.5rem;">No Satisfechas (1-3)</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #991b1b;">{{ indicador_insg.no_satisfechas }}</div>
+                </div>
+            </div>
+            <div style="font-size: 0.9rem; color: #6b7280; text-align: center;">
+                Total de respuestas evaluadas: <strong>{{ indicador_insg.total }}</strong> | 
+                Diferencia: <strong>{{ indicador_insg.diferencia }}</strong>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- INDICADOR 2: Índice Neto de Satisfacción por Dimensión (INSD) -->
+    {% if indicador_insd %}
+    <div class="app-card" style="margin-bottom: 2rem;">
+        <div class="app-card-header" style="background: linear-gradient(135deg, rgba(0, 8, 102, 0.1), rgba(0, 8, 102, 0.05));">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(0, 8, 102, 0.1); display: flex; align-items: center; justify-content: center; color: #000866; font-size: 1.5rem;">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <h3 class="app-card-title">Índice Neto de Satisfacción por Dimensión (INSD)</h3>
+        </div>
+        <div class="app-card-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                {% for dimension, datos in indicador_insd.items %}
+                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                    <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #000866;">{{ dimension }}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="text-align: center; padding: 0.75rem; background: #f9fafb; border-radius: 6px;">
+                            <div style="font-size: 0.8rem; color: #6b7280;">INSD</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #000866;">{{ datos.insd }}%</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.75rem; background: #f9fafb; border-radius: 6px;">
+                            <div style="font-size: 0.8rem; color: #6b7280;">Percepción</div>
+                            <div style="font-size: 1rem; font-weight: 600;">
+                                {% if datos.percepcion == 'positiva' %}
+                                    <span style="color: #059669;">✓ Positiva</span>
+                                {% elif datos.percepcion == 'negativa' %}
+                                    <span style="color: #dc2626;">✗ Negativa</span>
+                                {% else %}
+                                    <span style="color: #6b7280;">— Neutral</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #6b7280;">
+                        <div style="margin-bottom: 0.25rem;"><span style="color: #059669;">●</span> Satisfechas: <strong>{{ datos.satisfechas }}</strong></div>
+                        <div style="margin-bottom: 0.25rem;"><span style="color: #dc2626;">●</span> No Satisfechas: <strong>{{ datos.no_satisfechas }}</strong></div>
+                        <div><span style="color: #6b7280;">●</span> Total: <strong>{{ datos.total }}</strong></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- INDICADOR 1: Porcentaje de Satisfacción por Variable (SV) -->
+    {% if indicador_sv %}
+    <div class="app-card" style="margin-bottom: 3rem;">
+        <div class="app-card-header" style="background: linear-gradient(135deg, rgba(0, 8, 102, 0.1), rgba(0, 8, 102, 0.05));">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(0, 8, 102, 0.1); display: flex; align-items: center; justify-content: center; color: #000866; font-size: 1.5rem;">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <h3 class="app-card-title">Porcentaje de Satisfacción por Variable (SV)</h3>
+        </div>
+        <div class="app-card-body">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th style="text-align: center; width: 100px;">Total</th>
+                            <th style="text-align: center; width: 120px;">Muy Insatisfecho (1)</th>
+                            <th style="text-align: center; width: 120px;">Insatisfecho (2)</th>
+                            <th style="text-align: center; width: 100px;">Neutral (3)</th>
+                            <th style="text-align: center; width: 120px;">Satisfecho (4)</th>
+                            <th style="text-align: center; width: 140px;">Muy Satisfecho (5)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for campo, datos in indicador_sv.items %}
+                        <tr>
+                            <td><strong>{{ datos.nombre }}</strong></td>
+                            <td style="text-align: center; font-weight: 600;">{{ datos.total }}</td>
+                            <td style="text-align: center;">
+                                <div style="font-weight: 600; color: #dc2626;">{{ datos.distribucion.1.porcentaje }}%</div>
+                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.1.count }})</div>
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="font-weight: 600; color: #ea580c;">{{ datos.distribucion.2.porcentaje }}%</div>
+                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.2.count }})</div>
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="font-weight: 600; color: #ca8a04;">{{ datos.distribucion.3.porcentaje }}%</div>
+                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.3.count }})</div>
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="font-weight: 600; color: #16a34a;">{{ datos.distribucion.4.porcentaje }}%</div>
+                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.4.count }})</div>
+                            </td>
+                            <td style="text-align: center;">
+                                <div style="font-weight: 600; color: #059669;">{{ datos.distribucion.5.porcentaje }}%</div>
+                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.5.count }})</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Gráficos -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+        
+        <!-- Gráfico 1: Distribución de Calificaciones -->
+        <div class="app-card">
+            <div class="app-card-header" style="background: linear-gradient(135deg, rgba(75, 46, 131, 0.1), rgba(75, 46, 131, 0.05));">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(75, 46, 131, 0.1); display: flex; align-items: center; justify-content: center; color: #4B2E83; font-size: 1.5rem;">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h3 class="app-card-title">Distribución de Calificaciones</h3>
+            </div>
+            <div class="app-card-body">
+                <div class="chart-container">
+                    <canvas id="distribucionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico 2: Promedios por Dimensión -->
+        <div class="app-card">
+            <div class="app-card-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 1.5rem;">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h3 class="app-card-title">Promedios por Dimensión</h3>
+            </div>
+            <div class="app-card-body">
+                <div class="chart-container">
+                    <canvas id="dimensionesChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Top Organismos - Respuestas Rápidas -->
+    <div class="app-card" style="margin-bottom: 2rem;">
+        <div class="app-card-header" style="background: linear-gradient(135deg, rgba(0, 8, 102, 0.1), rgba(0, 8, 102, 0.05));">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(0, 8, 102, 0.1); display: flex; align-items: center; justify-content: center; color: #000866; font-size: 1.5rem;">
+                <i class="fas fa-trophy"></i>
+            </div>
+            <h3 class="app-card-title">Top 10 Organismos - Respuestas Rápidas</h3>
+        </div>
+        <div class="app-card-body">
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">#</th>
+                            <th>Organismo</th>
+                            <th style="text-align: center; width: 150px;">Total Respuestas</th>
+                            <th style="text-align: center; width: 120px;">Código</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for org in top_organismos_rapidas %}
+                        <tr>
+                            <td style="font-weight: 600; color: #000866;">{{ forloop.counter }}</td>
+                            <td>{{ org.nombre }}</td>
+                            <td style="text-align: center;">
+                                <span class="badge badge-success">{{ org.total_rapidas }}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                <code style="background: var(--admin-panel-2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">{{ org.codigo }}</code>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--admin-muted); padding: 2rem;">No hay datos disponibles</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Equipos - Respuestas Rápidas -->
+    <div class="app-card" style="margin-top: 2rem;">
+        <div class="app-card-header" style="background: linear-gradient(135deg, rgba(0, 8, 102, 0.1), rgba(0, 8, 102, 0.05));">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(0, 8, 102, 0.1); display: flex; align-items: center; justify-content: center; color: #000866; font-size: 1.5rem;">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="app-card-title">Top 15 Equipos - Respuestas Rápidas</h3>
+        </div>
+        <div class="app-card-body">
+            {% if equipos_rapidas %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">#</th>
+                            <th>Equipo</th>
+                            <th>Organismo</th>
+                            <th style="text-align: center; width: 150px;">Total Respuestas</th>
+                            <th style="text-align: center; width: 150px;">Promedio</th>
+                            <th style="text-align: center; width: 120px;">Código</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equipo in equipos_rapidas %}
+                        <tr>
+                            <td style="font-weight: 600; color: #000866;">{{ forloop.counter }}</td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-people-group" style="color: #000866;"></i>
+                                    <strong>{{ equipo.nombre }}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="color: var(--admin-muted); font-size: 0.9rem;">
+                                    {% if equipo.organismo %}
+                                        {{ equipo.organismo.nombre }}
+                                    {% else %}
+                                        <em style="color: #999;">Sin organismo</em>
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td style="text-align: center;">
+                                <span class="badge badge-success">{{ equipo.total_rapidas }}</span>
+                            </td>
+                            <td style="text-align: center;">
+                                {% if equipo.promedio_calificacion %}
+                                    {% if equipo.promedio_calificacion >= 4.5 %}
+                                        <span class="badge badge-success">😄 {{ equipo.promedio_calificacion|floatformat:2 }}</span>
+                                    {% elif equipo.promedio_calificacion >= 3.5 %}
+                                        <span class="badge badge-success">🙂 {{ equipo.promedio_calificacion|floatformat:2 }}</span>
+                                    {% elif equipo.promedio_calificacion >= 2.5 %}
+                                        <span class="badge badge-warning">😐 {{ equipo.promedio_calificacion|floatformat:2 }}</span>
+                                    {% elif equipo.promedio_calificacion >= 1.5 %}
+                                        <span class="badge badge-warning">😕 {{ equipo.promedio_calificacion|floatformat:2 }}</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">😞 {{ equipo.promedio_calificacion|floatformat:2 }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-info">Sin datos</span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <code style="background: var(--admin-panel-2); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">{{ equipo.codigo }}</code>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--admin-muted);">
+                <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <p style="margin: 0; font-size: 1.1rem;">No hay equipos con respuestas registradas</p>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem;">Los equipos aparecerán aquí una vez que reciban respuestas de satisfacción</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Tablas de Respuestas Recientes -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap: 2rem; margin-top: 2rem;">
+        
+        <!-- Últimas Respuestas Rápidas -->
+        <div class="app-card">
+            <div class="app-card-header" style="background: linear-gradient(135deg, rgba(75, 46, 131, 0.1), rgba(75, 46, 131, 0.05)); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(75, 46, 131, 0.1); display: flex; align-items: center; justify-content: center; color: #4B2E83; font-size: 1.5rem;">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3 class="app-card-title">Últimas Respuestas Rápidas</h3>
+                </div>
+                <a href="{% url 'exportar_respuestas_rapidas_csv' %}?organismo={{ organismo_seleccionado }}&fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}" 
+                   class="btn btn-sm" 
+                   style="background: #4B2E83; color: white; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-download"></i> Descargar CSV
+                </a>
+            </div>
+            <div class="app-card-body">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Organismo</th>
+                                <th style="text-align: center; width: 120px;">Calificación</th>
+                                <th style="text-align: center; width: 150px;">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for resp in ultimas_rapidas %}
+                            <tr>
+                                <td>{{ resp.organismo.nombre }}</td>
+                                <td style="text-align: center;">
+                                    {% if resp.calificacion == 5 %}
+                                        <span class="badge badge-success">😄 Muy satisfecho</span>
+                                    {% elif resp.calificacion == 4 %}
+                                        <span class="badge badge-success">🙂 Satisfecho</span>
+                                    {% elif resp.calificacion == 3 %}
+                                        <span class="badge badge-warning">😐 Neutral</span>
+                                    {% elif resp.calificacion == 2 %}
+                                        <span class="badge badge-warning">😕 Insatisfecho</span>
+                                    {% else %}
+                                        <span class="badge badge-danger">😞 Muy insatisfecho</span>
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center; color: var(--admin-muted); font-size: 0.85rem;">
+                                    <i class="fas fa-clock"></i> {{ resp.fecha_registro|date:"d/m/Y H:i" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: var(--admin-muted); padding: 2rem;">No hay respuestas rápidas</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Últimas Respuestas Completas -->
+        <div class="app-card">
+            <div class="app-card-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 1.5rem;">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3 class="app-card-title">Últimas Respuestas Completas</h3>
+                </div>
+                <a href="{% url 'exportar_respuestas_completas_csv' %}?organismo={{ organismo_seleccionado }}&fecha_desde={{ fecha_desde }}&fecha_hasta={{ fecha_hasta }}" 
+                   class="btn btn-sm" 
+                   style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 6px; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-download"></i> Descargar CSV
+                </a>
+            </div>
+            <div class="app-card-body">
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Organismo</th>
+                                <th style="text-align: center; width: 120px;">Promedio</th>
+                                <th style="text-align: center; width: 150px;">Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for resp in ultimas_completas %}
+                            <tr>
+                                <td>{{ resp.organismo.nombre }}</td>
+                                <td style="text-align: center;">
+                                    {% with promedio=resp.calcular_promedio_satisfaccion %}
+                                        {% if promedio >= 4.5 %}
+                                            <span class="badge badge-success">{{ promedio|floatformat:1 }} / 5.0</span>
+                                        {% elif promedio >= 3.5 %}
+                                            <span class="badge badge-info">{{ promedio|floatformat:1 }} / 5.0</span>
+                                        {% elif promedio >= 2.5 %}
+                                            <span class="badge badge-warning">{{ promedio|floatformat:1 }} / 5.0</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">{{ promedio|floatformat:1 }} / 5.0</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td style="text-align: center; color: var(--admin-muted); font-size: 0.85rem;">
+                                    <i class="fas fa-clock"></i> {{ resp.fecha_registro|date:"d/m/Y H:i" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: var(--admin-muted); padding: 2rem;">No hay respuestas completas</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Datos desde Django
+    const distribucionData = {{ distribucion_data|safe }};
+    const dimensionesData = {{ dimensiones_data|safe }};
+    
+    // Gráfico 1: Distribución de Calificaciones (Dona)
+    const ctx1 = document.getElementById('distribucionChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: distribucionData.labels,
+            datasets: [{
+                data: distribucionData.data,
+                backgroundColor: [
+                    '#dc3545',  // Muy insatisfecho
+                    '#fd7e14',  // Insatisfecho
+                    '#ffc107',  // Neutral
+                    '#28a745',  // Satisfecho
+                    '#20c997'   // Muy satisfecho
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed || 0;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = ((value / total) * 100).toFixed(1);
+                            return label + ': ' + value + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico 2: Promedios por Dimensión (Barras horizontales)
+    const ctx2 = document.getElementById('dimensionesChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: dimensionesData.labels,
+            datasets: [{
+                label: 'Promedio',
+                data: dimensionesData.data,
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ],
+                borderColor: [
+                    'rgb(54, 162, 235)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 5,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+    
+</script>
+{% endblock %}

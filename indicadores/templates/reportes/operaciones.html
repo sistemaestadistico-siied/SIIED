@@ -1,0 +1,385 @@
+{% extends 'reportes/base_reportes.html' %}
+
+{% block title %}Operaciones — Pipeline de Cargas{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .card-op { background:white; border-radius:0.75rem; border:1px solid #e2e8f0; padding:1rem; }
+  .card-op h3 { font-size:0.875rem; font-weight:600; color:#475569; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.025em; }
+  .badge-pill { font-size:0.75rem; padding:0.15rem 0.5rem; border-radius:9999px; font-weight:600; }
+  .section-title { font-size:1.125rem; font-weight:700; color:#1e293b; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; }
+  .mini-bar { height:6px; border-radius:3px; background:#e2e8f0; overflow:hidden; }
+  .mini-bar-fill { height:100%; border-radius:3px; }
+  .estado-row { display:flex; justify-content:space-between; align-items:center; padding:0.35rem 0; font-size:0.85rem; }
+  .estado-row .label { color:#475569; }
+  .estado-row .count { font-weight:700; font-size:0.95rem; }
+</style>
+{% endblock %}
+
+{% block reportes_content %}
+
+<!-- Header -->
+<div class="mb-6">
+  <h2 class="text-xl font-bold text-slate-900">Operaciones — Pipeline de Cargas</h2>
+  <p class="text-sm text-slate-600 mt-1">Observabilidad del flujo: recolector → validador → administrador</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 1. RESUMEN DE HOY                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+  Hoy — {{ hoy|date:"d/m/Y" }}
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  <div class="card-op text-center">
+    <div class="text-3xl font-bold text-blue-600">{{ series_hoy }}</div>
+    <div class="text-xs text-slate-500 mt-1">Cargas de series</div>
+  </div>
+  <div class="card-op text-center">
+    <div class="text-3xl font-bold text-indigo-600">{{ conjunto_datos_hoy }}</div>
+    <div class="text-xs text-slate-500 mt-1">Cargas de conjunto de datos</div>
+  </div>
+  <div class="card-op text-center">
+    <div class="text-3xl font-bold text-amber-600">{{ masivas_hoy }}</div>
+    <div class="text-xs text-slate-500 mt-1">Cargas masivas</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 2. ESTADO DEL PIPELINE                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+  Estado del pipeline
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <!-- Series -->
+  <div class="card-op">
+    <h3><i class="fas fa-chart-line text-blue-500 mr-1"></i> Series de indicadores</h3>
+    {% for estado, total in estados_series.items %}
+    <div class="estado-row">
+      <span class="label">
+        <span class="badge-pill estado-{{ estado }}">{{ estado|title }}</span>
+      </span>
+      <span class="count">{{ total }}</span>
+    </div>
+    {% empty %}
+    <p class="text-sm text-slate-400">Sin cargas registradas</p>
+    {% endfor %}
+  </div>
+  <!-- Conjunto de datos -->
+  <div class="card-op">
+    <h3><i class="fas fa-database text-indigo-500 mr-1"></i> Conjunto de datos</h3>
+    {% for estado, total in estados_conjunto_datos.items %}
+    <div class="estado-row">
+      <span class="label">
+        <span class="badge-pill estado-{{ estado }}">{{ estado|title }}</span>
+      </span>
+      <span class="count">{{ total }}</span>
+    </div>
+    {% empty %}
+    <p class="text-sm text-slate-400">Sin cargas registradas</p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 3. PIPELINE DE VALIDACIÓN (DELEGADO → VALIDADOR → ADMIN)          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  Pipeline de validación (delegados)
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div class="card-op">
+    <h3><i class="fas fa-chart-line text-blue-500 mr-1"></i> Series delegadas</h3>
+    {% for item in pipeline_validacion %}
+    <div class="estado-row">
+      <span class="label">
+        <span class="badge-pill estado-{{ item.estado }}">{{ item.estado|title }}</span>
+      </span>
+      <span class="count">{{ item.total }}</span>
+    </div>
+    {% empty %}
+    <p class="text-sm text-slate-400">Sin cargas delegadas</p>
+    {% endfor %}
+  </div>
+  <div class="card-op">
+    <h3><i class="fas fa-database text-indigo-500 mr-1"></i> Conjunto de datos delegados</h3>
+    {% for item in pipeline_conjunto_datos_validacion %}
+    <div class="estado-row">
+      <span class="label">
+        <span class="badge-pill estado-{{ item.estado }}">{{ item.estado|title }}</span>
+      </span>
+      <span class="count">{{ item.total }}</span>
+    </div>
+    {% empty %}
+    <p class="text-sm text-slate-400">Sin cargas delegadas</p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 3B. CARGAS RECIENTES (tabla consultable)                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+  Cargas recientes
+</div>
+<div class="card-op mb-8">
+  <!-- Filtros -->
+  <form method="get" class="flex flex-wrap gap-2 mb-4">
+    <input type="text" name="op_q" value="{{ op_q }}" placeholder="Buscar código o indicador..." class="text-sm px-3 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" style="min-width: 220px;">
+    <select name="op_estado" class="text-sm px-3 py-1.5 border border-slate-300 rounded-md">
+      <option value="">Todos los estados</option>
+      {% for e in op_estados %}
+      {% if e %}
+      <option value="{{ e }}" {% if op_estado == e %}selected{% endif %}>{{ e|title }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+    <button type="submit" class="text-sm px-4 py-1.5 bg-blue-600 text-white rounded-md font-medium">Filtrar</button>
+    {% if op_estado or op_q %}
+    <a href="{% url 'reportes_operaciones' %}" class="text-sm px-3 py-1.5 text-slate-600 border border-slate-300 rounded-md">Limpiar</a>
+    {% endif %}
+  </form>
+
+  <!-- Tabla -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="bg-slate-50 text-slate-600 font-semibold text-left">
+          <th class="px-3 py-2">Tipo</th>
+          <th class="px-3 py-2">Código</th>
+          <th class="px-3 py-2">Nombre</th>
+          <th class="px-3 py-2">Estado</th>
+          <th class="px-3 py-2">Origen</th>
+          <th class="px-3 py-2">Usuario</th>
+          <th class="px-3 py-2">Fecha</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for item in op_items %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-3 py-2">
+            {% if item.tipo == 'serie' %}
+            <span class="badge-pill" style="background:#dbeafe;color:#1e40af;">Serie</span>
+            {% else %}
+            <span class="badge-pill" style="background:#ede9fe;color:#5b21b6;">Conjunto de datos</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2 font-mono text-xs">{{ item.codigo }}</td>
+          <td class="px-3 py-2">{{ item.nombre|truncatewords:5 }}</td>
+          <td class="px-3 py-2"><span class="badge-pill estado-{{ item.estado }}">{{ item.estado|title }}</span></td>
+          <td class="px-3 py-2 text-xs text-slate-500">{{ item.origen }}</td>
+          <td class="px-3 py-2 text-xs text-slate-500">{{ item.usuario }}</td>
+          <td class="px-3 py-2 text-xs text-slate-500 whitespace-nowrap">{{ item.fecha|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="px-3 py-8 text-center text-slate-400">
+            <i class="fas fa-inbox mb-2 block text-2xl"></i>
+            No se encontraron cargas con los filtros aplicados.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginacion -->
+  {% if op_items.paginator.num_pages > 1 %}
+  <div class="flex justify-center gap-1 mt-4">
+    {% if op_items.has_previous %}
+    <a href="?{% if op_q %}op_q={{ op_q }}&{% endif %}{% if op_estado %}op_estado={{ op_estado }}&{% endif %}op_page={{ op_items.previous_page_number }}" class="px-2 py-1 rounded bg-slate-100 text-slate-600 text-sm">←</a>
+    {% endif %}
+    {% for num in op_items.paginator.page_range %}
+      {% if num == op_items.number %}
+      <span class="px-2 py-1 rounded bg-blue-600 text-white text-sm font-semibold">{{ num }}</span>
+      {% elif num > op_items.number|add:-3 and num < op_items.number|add:3 %}
+      <a href="?{% if op_q %}op_q={{ op_q }}&{% endif %}{% if op_estado %}op_estado={{ op_estado }}&{% endif %}op_page={{ num }}" class="px-2 py-1 rounded bg-slate-100 text-slate-600 text-sm">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if op_items.has_next %}
+    <a href="?{% if op_q %}op_q={{ op_q }}&{% endif %}{% if op_estado %}op_estado={{ op_estado }}&{% endif %}op_page={{ op_items.next_page_number }}" class="px-2 py-1 rounded bg-slate-100 text-slate-600 text-sm">→</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 4. CORRECCIONES PENDIENTES                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+  Correcciones solicitadas
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div class="card-op">
+    <h3><i class="fas fa-chart-line text-blue-500 mr-1"></i> Series ({{ correcciones_pendientes|length }} recientes)</h3>
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      {% for c in correcciones_pendientes %}
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-sm">
+        <div class="font-medium text-slate-800">{{ c.codigo_evidencia }}</div>
+        <div class="text-xs text-slate-500">{{ c.indicador.nombre|default:"Sin indicador"|truncatewords:5 }} · {{ c.usuario.username }} · {{ c.fecha_carga|date:"d/m H:i" }}</div>
+        {% if c.observaciones_admin %}
+        <div class="mt-1 text-xs text-amber-800 bg-amber-100 rounded px-2 py-1"><strong>Nota:</strong> {{ c.observaciones_admin|truncatewords:10 }}</div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p class="text-sm text-slate-400">No hay correcciones pendientes</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card-op">
+    <h3><i class="fas fa-database text-indigo-500 mr-1"></i> Conjunto de datos ({{ correcciones_pendientes_conjunto_datos|length }} recientes)</h3>
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      {% for c in correcciones_pendientes_conjunto_datos %}
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-sm">
+        <div class="font-medium text-slate-800">{{ c.codigo_evidencia }}</div>
+        <div class="text-xs text-slate-500">{{ c.conjunto_datos.nombre|default:"Sin conjunto_datos"|truncatewords:5 }} · {{ c.usuario.username }} · {{ c.fecha_carga|date:"d/m H:i" }}</div>
+        {% if c.observaciones_admin %}
+        <div class="mt-1 text-xs text-amber-800 bg-amber-100 rounded px-2 py-1"><strong>Nota:</strong> {{ c.observaciones_admin|truncatewords:10 }}</div>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p class="text-sm text-slate-400">No hay correcciones pendientes</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 5. CARGAS MASIVAS EN PROCESO                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+  Cargas masivas
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div class="card-op">
+    <h3><i class="fas fa-layer-group text-amber-500 mr-1"></i> En proceso</h3>
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      {% for m in masivas_en_proceso %}
+      <div class="border border-slate-200 rounded-lg p-2 text-sm">
+        <div class="flex justify-between items-center">
+          <span class="font-medium text-slate-800">{{ m.codigo_evidencia }}</span>
+          <span class="badge-pill estado-{{ m.estado }}">{{ m.get_estado_display }}</span>
+        </div>
+        <div class="text-xs text-slate-500 mt-1">{{ m.usuario.username }} · {{ m.fecha_carga|date:"d/m H:i" }}</div>
+      </div>
+      {% empty %}
+      <p class="text-sm text-slate-400">No hay cargas masivas en proceso</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card-op">
+    <h3><i class="fas fa-chart-bar text-amber-500 mr-1"></i> Resumen por estado</h3>
+    {% for estado, total in masivas_resumen.items %}
+    <div class="estado-row">
+      <span class="label">
+        <span class="badge-pill estado-{{ estado }}">{{ estado|title }}</span>
+      </span>
+      <span class="count">{{ total }}</span>
+    </div>
+    {% empty %}
+    <p class="text-sm text-slate-400">Sin cargas masivas registradas</p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 6. ERRORES RECIENTES (últimos 7 días)                             -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  Errores recientes (7 días)
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+  <div class="card-op">
+    <h3><i class="fas fa-chart-line text-blue-500 mr-1"></i> Series con error</h3>
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      {% for c in errores_series %}
+      <div class="bg-red-50 border border-red-200 rounded-lg p-2 text-sm">
+        <div class="font-medium text-red-800">{{ c.codigo_evidencia }}</div>
+        <div class="text-xs text-slate-500">{{ c.usuario.username }} · {{ c.fecha_carga|date:"d/m H:i" }}</div>
+        <div class="text-xs text-red-700 mt-1">{{ c.mensaje_error|truncatewords:12 }}</div>
+      </div>
+      {% empty %}
+      <p class="text-sm text-slate-400">Sin errores recientes</p>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card-op">
+    <h3><i class="fas fa-database text-indigo-500 mr-1"></i> Conjunto de datos con error</h3>
+    <div class="space-y-2 max-h-64 overflow-y-auto">
+      {% for c in errores_conjunto_datos %}
+      <div class="bg-red-50 border border-red-200 rounded-lg p-2 text-sm">
+        <div class="font-medium text-red-800">{{ c.codigo_evidencia }}</div>
+        <div class="text-xs text-slate-500">{{ c.usuario.username }} · {{ c.fecha_carga|date:"d/m H:i" }}</div>
+        <div class="text-xs text-red-700 mt-1">{{ c.mensaje_error|truncatewords:12 }}</div>
+      </div>
+      {% empty %}
+      <p class="text-sm text-slate-400">Sin errores recientes</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 7. ACTIVIDAD POR USUARIO (últimos 30 días)                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+  Actividad por recolector (30 días)
+</div>
+<div class="card-op mb-8">
+  {% for u in top_recolectores %}
+  <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+        {{ forloop.counter }}
+      </div>
+      <div>
+        <div class="text-sm font-medium text-slate-800">{{ u.usuario__first_name }} {{ u.usuario__last_name }} ({{ u.usuario__username }})</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="mini-bar w-24">
+        <div class="mini-bar-fill bg-emerald-500" style="width:{% widthratio u.total top_recolectores.0.total 100 %}%;"></div>
+      </div>
+      <span class="text-sm font-bold text-slate-700 w-8 text-right">{{ u.total }}</span>
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-sm text-slate-400">Sin actividad reciente</p>
+  {% endfor %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 8. VOLUMEN DIARIO (últimos 14 días)                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">
+  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+  Volumen diario de series (14 días)
+</div>
+<div class="card-op mb-8">
+  {% if volumen_diario %}
+  <div class="flex items-end gap-1 h-24">
+    {% for v in volumen_diario %}
+    <div class="flex-1 h-full flex flex-col justify-end items-center gap-1">
+      <div class="w-full bg-blue-500 rounded-t" style="height:{% widthratio v.total max_volumen 100 %}%;"></div>
+      <span class="text-[10px] text-slate-500">{{ v.dia|date:"d/m" }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="text-xs text-slate-400 mt-2">Total acumulado: {{ volumen_diario|length }} días con actividad</p>
+  {% else %}
+  <p class="text-sm text-slate-400">Sin actividad reciente</p>
+  {% endif %}
+</div>
+
+{% endblock %}
+

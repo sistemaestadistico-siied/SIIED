@@ -1,0 +1,414 @@
+{% extends 'recoleccion/base_recoleccion.html' %}
+{% load static forms_filters %}
+
+{% block recoleccion_content %}
+<div class="max-w-4xl mx-auto">
+  <div class="mb-6 flex items-center gap-3">
+    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+      <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+    </div>
+    <div>
+      <h2 class="text-xl font-bold text-slate-800">Formulario de Metadata del Indicador</h2>
+      <p class="text-sm text-slate-500">Completa los campos de metadata sin necesidad de subir un archivo Excel</p>
+    </div>
+  </div>
+
+  {% if cargas_pendientes %}
+  <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+    <div class="px-6 py-4 border-b border-slate-100 bg-amber-50">
+      <h3 class="font-semibold text-amber-800 text-sm">Adjuntar a carga existente (opcional)</h3>
+      <p class="text-xs text-amber-600 mt-1">Tienes cargas que aún no tienen metadata. Puedes adjuntar esta metadata a una de ellas.</p>
+    </div>
+    <div class="px-6 py-4">
+      <select name="carga_id" form="form-metadata" id="sel-carga"
+              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <option value="">— Crear nueva carga independiente —</option>
+        {% for c in cargas_pendientes %}
+        <option value="{{ c.id }}">{{ c.codigo_evidencia }} — {{ c.indicador.nombre|truncatechars:50 }} ({{ c.fecha_carga|date:"d/m/Y" }})</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="post" id="form-metadata">
+    {% csrf_token %}
+    {% if cargas_pendientes %}<input type="hidden" name="carga_id" id="hidden-carga-id">{% endif %}
+
+    <!-- 1. Identificación y Contacto Institucional (MSD) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <button type="button" class="w-full px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-left accordion-toggle" data-target="sec-ident">
+        <span class="font-semibold text-slate-700">1. Identificación y Contacto Institucional (MSD)</span>
+        <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="sec-ident" class="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">Indicador <span class="text-red-500">*</span></label>
+          <input type="text" id="buscar-indicador" placeholder="Buscar por código o nombre..."
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2"
+                 autocomplete="off">
+          <select name="indicador_id" id="sel-indicador" required
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="">— Selecciona —</option>
+            {% for ind in indicadores %}
+            <option value="{{ ind.id }}" data-search="{{ ind.codigo_indicador|lower }} {{ ind.nombre|lower }}"
+              {% if indicador_pre and indicador_pre.id == ind.id %}selected{% endif %}>
+              {{ ind.codigo_indicador }} — {{ ind.nombre }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if carga_delegada_activa %}
+          <div class="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p class="text-xs text-amber-800 font-medium flex items-start">
+              <svg class="w-4 h-4 mr-1.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              <span>
+                Este indicador tiene una carga delegada en curso
+                ({{ carga_delegada_activa.get_estado_display }}, {{ carga_delegada_activa.fecha_carga|date:"d/m/Y" }}).
+                Si editas la metadata aquí, podrías generar conflictos con la versión del delegado.
+              </span>
+            </p>
+          </div>
+          {% endif %}
+        </div>
+        <div><label class="block text-xs text-slate-500 mb-1">0.4 Grupo Indicador</label>
+          <input type="text" name="Grupo_Indicador" placeholder="ICET / SIIET"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Dominio</label>
+          <input type="text" name="Dominio" readonly
+                 class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Tema</label>
+          <input type="text" name="Tema" readonly
+                 class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Subtema</label>
+          <input type="text" name="Subtema" readonly
+                 class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">0.2 Código del Indicador</label>
+          <input type="text" name="Codigo_Indicador"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">0.1 Nombre del Indicador</label>
+          <input type="text" name="Nombre_Indicador"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">0.3 Sigla</label>
+          <input type="text" name="Sigla"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+
+        <!-- Contacto Institucional MSD -->
+        <div class="md:col-span-2 border-t border-slate-200 pt-4 mt-2">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">1. Contacto Institucional</h4>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">1.1 Entidad o Institución Responsable</label>
+          <select name="organismo_id" id="sel-organismo"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="">— Selecciona organismo —</option>
+            {% for org in organismos %}
+            <option value="{{ org.id }}" {% if indicador_pre and indicador_pre.organismo_responsable_id == org.id %}selected{% endif %}>
+              {{ org.nombre }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-500 mb-1">1.3 Área o Dependencia Responsable</label>
+          <select name="suborganismo_id" id="sel-suborganismo"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
+                  {% if not suborganismos_pre %}disabled{% endif %}>
+            <option value="">— Primero seleccione organismo —</option>
+            {% for sub in suborganismos_pre %}
+            <option value="{{ sub.id }}" {% if indicador_pre and indicador_pre.suborganismo_id == sub.id %}selected{% endif %}>
+              {{ sub.nombre }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div><label class="block text-xs text-slate-500 mb-1">1.4 Correo Electrónico de Contacto</label>
+          <input type="email" name="Correo_Contacto"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">1.5 Número Telefónico</label>
+          <input type="text" name="Telefono_Contacto"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">1.6 Fecha de Publicación de los Metadatos</label>
+          <input type="date" name="Fecha_Publicacion_Metadatos"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Fecha de Elaboración</label>
+          <input type="date" name="Fecha_Elaboracion"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Fecha de Actualización</label>
+          <input type="date" name="Fecha_Actualizacion"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.3 Objetivo</label>
+          <textarea name="Objetivo" rows="2"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+      </div>
+    </div>
+
+    <!-- 2. Características del Indicador (MSD) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <button type="button" class="w-full px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-left accordion-toggle" data-target="sec-met">
+        <span class="font-semibold text-slate-700">2. Características del Indicador (MSD)</span>
+        <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="sec-met" class="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.2 Descripción del Indicador</label>
+          <textarea name="Descripcion_Indicador" rows="3"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.4 Cálculo del Indicador / Método de Medición</label>
+          <textarea name="Metodo_Medicion" rows="3"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.5 Fórmula</label>
+          <input type="text" name="Formula" placeholder="ej. TMM5 = (V₁ / V₂) × 1.000"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.6 Variables</label>
+          <textarea name="Variables" rows="2" placeholder="edad, triage salud, comuna"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.10 Nombre del Conjunto de Datos</label>
+          <input type="text" name="Nombre_Conjunto_conjunto_datos" placeholder="Ej: Encuesta Calidad de Vida 2024"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <p class="text-xs text-slate-400 mt-1">Si ya existe un conjunto de datos con este nombre, se asociará automáticamente.</p>
+        </div>
+        <div><label class="block text-xs text-slate-500 mb-1">2.7 Unidad de Medida</label>
+          <input type="text" name="Unidad_Medida"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          {% if unidades_existentes %}
+          <div class="mt-2 border border-slate-200 rounded-lg overflow-hidden">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-50 text-slate-500">
+                <tr><th class="text-left px-2 py-1">Unidades existentes (clic para usar)</th></tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                {% for u in unidades_existentes %}
+                <tr><td class="px-2 py-1 cursor-pointer hover:bg-blue-50 text-slate-700" onclick="document.querySelector('input[name=Unidad_Medida]').value='{{ u }}';">{{ u }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}</div>
+        <div><label class="block text-xs text-slate-500 mb-1">2.8 Fuente de la Información</label>
+          <input type="text" name="Fuente_Datos"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">2.9 Nombre de la Operación Estadística</label>
+          <input type="text" name="Operacion_Estadistica" placeholder="Ej: Encuesta de Calidad de Vida"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.11 Nomenclaturas y Clasificaciones</label>
+          <textarea name="Nomenclaturas_Clasificaciones" rows="2"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.12 Alcance Temático</label>
+          <textarea name="Alcance_Tematico" rows="2"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.13 Población Objetivo</label>
+          <textarea name="Poblacion_Objetivo" rows="2"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.14 Cobertura Geográfica</label>
+          <textarea name="Cobertura_Geografica" rows="2"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div><label class="block text-xs text-slate-500 mb-1">2.15 Período de Referencia</label>
+          <input type="text" name="Periodo_Referencia"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">2.16 Período Base</label>
+          <input type="text" name="Periodo_Base"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+      </div>
+    </div>
+
+    <!-- 3. Difusión  +  4. Comentarios + Fechas (MSD) -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <button type="button" class="w-full px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-left accordion-toggle" data-target="sec-tec">
+        <span class="font-semibold text-slate-700">3. Difusión, Comentarios y Fechas (MSD)</span>
+        <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="sec-tec" class="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="block text-xs text-slate-500 mb-1">3.1 Serie Histórica Disponible</label>
+          <input type="text" name="Serie_Historica_Disponible" placeholder="Ej: 2010-2024"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">3.2 Frecuencia de Difusión</label>
+          <select name="Frecuencia_Difusion"
+                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="">— Selecciona —</option>
+            <option>Diaria</option><option>Semanal</option><option>Mensual</option>
+            <option>Bimensual</option><option>Trimestral</option><option>Semestral</option>
+            <option>Anual</option><option>Bienal</option><option>Quinquenal</option>
+            <option>A demanda</option>
+          </select></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">3.3 Medios de Difusión</label>
+          <textarea name="Medios_Difusion" rows="2" placeholder="Internet, correo electrónico, impreso, etc."
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">4.1 Comentarios Adicionales</label>
+          <textarea name="Comentarios_Adicionales" rows="3"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+
+        <!-- Sección SDMX: Referencias y Responsabilidad Institucional -->
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">5.1 Referencias (APA 7)</label>
+          <textarea name="Referencias" rows="3" placeholder="Fuentes bibliográficas, normativas y metodológicas con enlaces o DOI" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
+        <div><label class="block text-xs text-slate-500 mb-1">6.3 Equipo Responsable</label>
+          <input type="text" name="Equipo_Responsable" placeholder="Nombre del equipo del suborganismo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Nombre Responsable Técnico</label>
+          <input type="text" name="Nombre_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Cargo Responsable Técnico</label>
+          <input type="text" name="Cargo_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Correo Responsable Técnico</label>
+          <input type="email" name="Correo_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+        <div><label class="block text-xs text-slate-500 mb-1">Celular Responsable Técnico</label>
+          <input type="text" name="Celular_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+      </div>
+    </div>
+
+    <div class="flex gap-3 justify-end">
+      <a href="{% url 'indicadores:recoleccion_dashboard' %}"
+         class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+        Cancelar
+      </a>
+      <button type="submit"
+              class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Guardar metadata
+      </button>
+    </div>
+  </form>
+</div>
+
+{{ metadata_pre|json_script:"metadata-pre-data" }}
+<script>
+  // Accordion sections — all open by default
+  document.querySelectorAll('.accordion-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      target.classList.toggle('hidden');
+      btn.querySelector('svg').classList.toggle('rotate-180');
+    });
+  });
+
+  // Buscador de indicadores
+  document.getElementById('buscar-indicador').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    const sel = document.getElementById('sel-indicador');
+    Array.from(sel.options).forEach(function (opt) {
+      if (!opt.value) return;
+      const texto = opt.getAttribute('data-search') || '';
+      opt.hidden = q && !texto.includes(q);
+    });
+    if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].hidden) {
+      sel.value = '';
+    }
+  });
+
+  // Sync carga_id hidden field when select changes
+  const selCarga = document.getElementById('sel-carga');
+  const hiddenCarga = document.getElementById('hidden-carga-id');
+  if (selCarga && hiddenCarga) {
+    selCarga.addEventListener('change', () => hiddenCarga.value = selCarga.value);
+  }
+
+  // Cargar metadata de un indicador vía API y poblar el formulario
+  async function poblarFormularioDesdeMetadata(metadata, suborganismos) {
+    if (!metadata) return;
+    Object.entries(metadata).forEach(([key, val]) => {
+      if (val === null || val === undefined) val = '';
+      const el = document.querySelector('[name="' + key + '"]');
+      if (!el) return;
+      if (el.tagName === 'SELECT') {
+        Array.from(el.options).forEach(opt => {
+          if (opt.value == val || opt.textContent.trim() === val) { opt.selected = true; }
+        });
+      } else if (el.tagName === 'TEXTAREA') {
+        el.textContent = val;
+      } else {
+        el.value = val;
+      }
+    });
+    // Actualizar suborganismos si vienen del API
+    if (suborganismos && selSuborganismo) {
+      selSuborganismo.innerHTML = '<option value="">— Selecciona —</option>';
+      suborganismos.forEach(sub => {
+        const opt = document.createElement('option');
+        opt.value = sub.id;
+        opt.textContent = sub.nombre;
+        selSuborganismo.appendChild(opt);
+      });
+      selSuborganismo.disabled = false;
+      selSuborganismo.classList.remove('bg-slate-50');
+      if (metadata.suborganismo_id) {
+        selSuborganismo.value = metadata.suborganismo_id;
+      }
+    }
+  }
+
+  // Precarga automática de metadata existente (servidor)
+  const metadataPre = JSON.parse(document.getElementById('metadata-pre-data').textContent);
+  if (metadataPre && Object.keys(metadataPre).length > 0) {
+    poblarFormularioDesdeMetadata(metadataPre, null);
+  }
+
+  // Cuando cambia el indicador, cargar metadata dinámicamente
+  const selIndicador = document.getElementById('sel-indicador');
+  if (selIndicador) {
+    selIndicador.addEventListener('change', async function() {
+      const indicadorId = this.value;
+      if (!indicadorId) return;
+      try {
+        const res = await fetch(`{% url 'indicadores:api_indicador_metadata' %}?indicador_id=${indicadorId}`);
+        const data = await res.json();
+        if (data.success && data.metadata) {
+          poblarFormularioDesdeMetadata(data.metadata, data.suborganismos);
+        }
+      } catch (e) {
+        console.error('Error cargando metadata del indicador:', e);
+      }
+    });
+  }
+
+  // Selects dependientes: Organismo → Suborganismo
+  const selOrganismo = document.getElementById('sel-organismo');
+  const selSuborganismo = document.getElementById('sel-suborganismo');
+
+  async function cargarSuborganismos(organismoId, suborganismoSeleccionado) {
+    if (!organismoId) {
+      selSuborganismo.innerHTML = '<option value="">— Primero seleccione organismo —</option>';
+      selSuborganismo.disabled = true;
+      selSuborganismo.classList.add('bg-slate-50');
+      return;
+    }
+    try {
+      const res = await fetch(`{% url 'indicadores:api_suborganismos' 0 %}`.replace('/0/', `/${organismoId}/`));
+      const datos = await res.json();
+      selSuborganismo.innerHTML = '<option value="">— Selecciona —</option>';
+      datos.forEach(sub => {
+        const opt = document.createElement('option');
+        opt.value = sub.id;
+        opt.textContent = sub.nombre;
+        selSuborganismo.appendChild(opt);
+      });
+      selSuborganismo.disabled = false;
+      selSuborganismo.classList.remove('bg-slate-50');
+      if (suborganismoSeleccionado) {
+        selSuborganismo.value = suborganismoSeleccionado;
+      }
+    } catch (e) {
+      console.error('Error cargando suborganismos:', e);
+    }
+  }
+
+  if (selOrganismo && selSuborganismo) {
+    selOrganismo.addEventListener('change', () => {
+      cargarSuborganismos(selOrganismo.value, null);
+    });
+    // Si ya hay un organismo preseleccionado (precarga) cargar suborganismos
+    if (selOrganismo.value) {
+      const subPre = {{ indicador_pre.suborganismo_id|default:"null" }};
+      cargarSuborganismos(selOrganismo.value, subPre);
+    }
+  }
+</script>
+{% endblock %}

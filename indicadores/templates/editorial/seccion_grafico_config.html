@@ -1,0 +1,423 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Configurar Gráfico — {{ seccion.titulo|default:"Sección" }} — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<div class="mb-6">
+  <div class="flex items-center gap-2 mb-2">
+    <a href="{% url 'indicadores:editorial_producto_secciones' producto.slug %}" class="text-sm text-slate-500 hover:text-violet-600 transition-colors">
+      <i class="fas fa-arrow-left"></i> Volver a Secciones
+    </a>
+  </div>
+  <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+    <i class="fas fa-chart-line text-violet-500"></i> Configurar Gráfico de Sección
+  </h1>
+  <p class="mt-1 text-slate-500">
+    Sección: <strong class="text-violet-700">{{ seccion.titulo|default:"Sin título" }}</strong><br>
+    Indicador: <strong class="text-violet-700">{{ indicador.codigo_indicador }} — {{ indicador.nombre }}</strong>
+  </p>
+</div>
+
+<form method="post" id="form-config" class="space-y-6">
+  {% csrf_token %}
+  <input type="hidden" name="series_json" id="series-json-field" value="{{ form.series_json.value|default:'[]' }}">
+
+  <!-- Configuración básica -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <h2 class="text-lg font-bold text-slate-900 mb-4">Configuración del Gráfico</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de gráfico</label>
+        {{ form.tipo_grafico }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Altura (px)</label>
+        {{ form.altura_grafico }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Título</label>
+        {{ form.titulo }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Subtítulo</label>
+        {{ form.subtitulo }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Título eje X</label>
+        {{ form.eje_x_titulo }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Título eje Y</label>
+        {{ form.eje_y_titulo }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Opciones visuales -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <h2 class="text-lg font-bold text-slate-900 mb-4">Opciones Visuales</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+        {{ form.mostrar_leyenda }} <span class="text-sm text-slate-700">Mostrar leyenda</span>
+      </label>
+      <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+        {{ form.mostrar_cuadricula }} <span class="text-sm text-slate-700">Mostrar cuadrícula</span>
+      </label>
+      <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+        {{ form.mostrar_valores }} <span class="text-sm text-slate-700">Mostrar valores</span>
+      </label>
+      <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+        {{ form.begin_at_zero }} <span class="text-sm text-slate-700">Eje Y desde cero</span>
+      </label>
+      <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+        {{ form.mostrar_todas_etiquetas_x }} <span class="text-sm text-slate-700">Todas las etiquetas X</span>
+      </label>
+      <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+        {{ form.mostrar_linea_tendencia }} <span class="text-sm text-slate-700">Línea de tendencia</span>
+      </label>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Posición leyenda</label>
+        {{ form.posicion_leyenda }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Margen derecho</label>
+        {{ form.margen_derecho }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Margen inferior</label>
+        {{ form.margen_inferior }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Rango de años -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <h2 class="text-lg font-bold text-slate-900 mb-4">Rango de Años Predeterminado</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Año inicial</label>
+        {{ form.rango_anios_min }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Año final</label>
+        {{ form.rango_anios_max }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Desagregaciones predeterminadas -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <h2 class="text-lg font-bold text-slate-900 mb-4">Desagregaciones Predeterminadas</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Geográficas</label>
+        {{ form.desagregaciones_geograficas_predeterminadas }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">Temáticas</label>
+        {{ form.desagregaciones_tematicas_predeterminadas }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Series -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold text-slate-900">Series del Gráfico</h2>
+      <button type="button" id="btn-agregar-serie" class="px-3 py-1.5 bg-violet-600 text-white text-sm rounded-lg hover:bg-violet-700 transition-colors">
+        <i class="fas fa-plus"></i> Agregar serie
+      </button>
+    </div>
+    <div id="series-container" class="space-y-3">
+      <!-- Las filas de series se renderizan por JS -->
+    </div>
+    <p class="text-xs text-slate-400 mt-2">Cada serie puede filtrar por una desagregación geográfica, temática, o ambas.</p>
+  </div>
+
+  <!-- Vista previa -->
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold text-slate-900">Vista Previa</h2>
+      <button type="button" id="btn-actualizar-preview" class="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition-colors">
+        <i class="fas fa-sync-alt"></i> Actualizar preview
+      </button>
+    </div>
+    <div id="preview-controles" class="flex flex-wrap gap-3 mb-4 hidden">
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-slate-600">Año inicio:</label>
+        <select id="preview-ano-inicio" class="border border-slate-300 rounded-lg px-2 py-1 text-sm"></select>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm text-slate-600">Año fin:</label>
+        <select id="preview-ano-fin" class="border border-slate-300 rounded-lg px-2 py-1 text-sm"></select>
+      </div>
+      <div class="flex items-center gap-2" id="preview-geo-wrapper">
+        <label class="text-sm text-slate-600">Desag. geográficas:</label>
+        <select id="preview-geo" multiple class="border border-slate-300 rounded-lg px-2 py-1 text-sm min-w-[150px]"></select>
+      </div>
+      <div class="flex items-center gap-2" id="preview-tem-wrapper">
+        <label class="text-sm text-slate-600">Desag. temáticas:</label>
+        <select id="preview-tem" multiple class="border border-slate-300 rounded-lg px-2 py-1 text-sm min-w-[150px]"></select>
+      </div>
+    </div>
+    <div id="preview-grafico" class="w-full min-h-[400px] border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center">
+      <p class="text-slate-400 text-sm">Haz clic en "Actualizar preview" para ver el gráfico</p>
+    </div>
+    <div id="preview-tabla-wrapper" class="mt-4 hidden">
+      <button type="button" id="btn-toggle-tabla" class="text-sm text-violet-600 hover:text-violet-800 font-medium mb-2 flex items-center gap-1">
+        <i class="fas fa-table"></i> <span>Mostrar tabla de datos</span>
+      </button>
+      <div id="preview-tabla" class="hidden overflow-x-auto"></div>
+    </div>
+  </div>
+
+  <!-- Acciones -->
+  <div class="flex gap-3 justify-end pb-8">
+    <a href="{% url 'indicadores:editorial_producto_secciones' producto.slug %}" class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+      Cancelar
+    </a>
+    <button type="submit" class="px-6 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+      <i class="fas fa-save"></i> Guardar configuración
+    </button>
+  </div>
+</form>
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+  // Datos inyectados desde Django
+  const SEccion_ID = {{ seccion.id }};
+  const desagregacionesGeo = {{ desagregaciones_geo|safe }};
+  const desagregacionesTem = {{ desagregaciones_tem|safe }};
+  let seriesData = [];
+
+  try {
+    const rawSeries = document.getElementById('series-json-field').value;
+    seriesData = rawSeries ? JSON.parse(rawSeries) : [];
+    if (!Array.isArray(seriesData)) seriesData = [];
+  } catch (e) {
+    seriesData = [];
+  }
+
+  // Renderizar filas de series
+  function renderSeriesRows() {
+    const container = document.getElementById('series-container');
+    container.innerHTML = '';
+    seriesData.forEach((serie, index) => {
+      const row = document.createElement('div');
+      row.className = 'flex flex-wrap gap-3 items-end p-3 border border-slate-200 rounded-lg bg-slate-50';
+      row.innerHTML = `
+        <div class="flex-1 min-w-[150px]">
+          <label class="block text-xs text-slate-500 mb-1">Nombre</label>
+          <input type="text" class="serie-nombre w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm" value="${serie.nombre_personalizado || ''}" placeholder="Nombre visible">
+        </div>
+        <div class="min-w-[140px]">
+          <label class="block text-xs text-slate-500 mb-1">Desag. geográfica</label>
+          <select class="serie-geo w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+            <option value="">— Sin —</option>
+            ${desagregacionesGeo.map(d => `<option value="${d.id}" ${serie.desagregacion_geografica_id == d.id ? 'selected' : ''}>${d.nombre}</option>`).join('')}
+          </select>
+        </div>
+        <div class="min-w-[140px]">
+          <label class="block text-xs text-slate-500 mb-1">Desag. temática</label>
+          <select class="serie-tem w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm">
+            <option value="">— Sin —</option>
+            ${desagregacionesTem.map(d => `<option value="${d.id}" ${serie.desagregacion_tematica_id == d.id ? 'selected' : ''}>${d.nombre}</option>`).join('')}
+          </select>
+        </div>
+        <div class="w-20">
+          <label class="block text-xs text-slate-500 mb-1">Color</label>
+          <input type="color" class="serie-color w-full h-9 border border-slate-300 rounded-lg cursor-pointer" value="${serie.color || '#3366cc'}">
+        </div>
+        <div class="w-20">
+          <label class="block text-xs text-slate-500 mb-1">Orden</label>
+          <input type="number" class="serie-orden w-full border border-slate-300 rounded-lg px-2 py-1.5 text-sm" value="${serie.orden || 0}" min="0">
+        </div>
+        <button type="button" class="btn-eliminar-serie px-2 py-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors" data-index="${index}">
+          <i class="fas fa-trash"></i>
+        </button>
+      `;
+      container.appendChild(row);
+    });
+
+    // Event listeners para eliminar
+    document.querySelectorAll('.btn-eliminar-serie').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.index);
+        seriesData.splice(idx, 1);
+        syncSeriesToHidden();
+        renderSeriesRows();
+      });
+    });
+
+    // Event listeners para cambios en inputs
+    container.querySelectorAll('input, select').forEach(el => {
+      el.addEventListener('change', syncSeriesFromUI);
+      el.addEventListener('input', syncSeriesFromUI);
+    });
+  }
+
+  function syncSeriesFromUI() {
+    const rows = document.getElementById('series-container').children;
+    seriesData = [];
+    for (const row of rows) {
+      const geoVal = row.querySelector('.serie-geo')?.value;
+      const temVal = row.querySelector('.serie-tem')?.value;
+      seriesData.push({
+        nombre_personalizado: row.querySelector('.serie-nombre')?.value || '',
+        desagregacion_geografica_id: geoVal ? parseInt(geoVal) : null,
+        desagregacion_tematica_id: temVal ? parseInt(temVal) : null,
+        color: row.querySelector('.serie-color')?.value || '',
+        orden: parseInt(row.querySelector('.serie-orden')?.value || '0'),
+      });
+    }
+    syncSeriesToHidden();
+  }
+
+  function syncSeriesToHidden() {
+    document.getElementById('series-json-field').value = JSON.stringify(seriesData);
+  }
+
+  document.getElementById('btn-agregar-serie').addEventListener('click', () => {
+    seriesData.push({ nombre_personalizado: '', desagregacion_geografica_id: null, desagregacion_tematica_id: null, color: '#3366cc', orden: seriesData.length });
+    syncSeriesToHidden();
+    renderSeriesRows();
+  });
+
+  renderSeriesRows();
+
+  // Vista previa
+  async function actualizarPreview() {
+    const previewDiv = document.getElementById('preview-grafico');
+    previewDiv.innerHTML = '<p class="text-slate-400 text-sm"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
+
+    // Sincronizar series antes de enviar
+    syncSeriesFromUI();
+
+    // Construir FormData con todos los campos del formulario
+    const formData = new FormData(document.getElementById('form-config'));
+    const params = new URLSearchParams();
+    for (const [key, val] of formData.entries()) {
+      if (key !== 'csrfmiddlewaretoken') {
+        params.append(key, val);
+      }
+    }
+
+    try {
+      const res = await fetch(`/api/grafico-seccion/?seccion_id=${SEccion_ID}&${params.toString()}`);
+      const data = await res.json();
+
+      if (data.error) {
+        previewDiv.innerHTML = `<p class="text-red-500 text-sm">${data.error}</p>`;
+        return;
+      }
+
+      // Renderizar controles
+      const controles = document.getElementById('preview-controles');
+      controles.classList.remove('hidden');
+
+      const selAnioIni = document.getElementById('preview-ano-inicio');
+      const selAnioFin = document.getElementById('preview-ano-fin');
+      const selGeo = document.getElementById('preview-geo');
+      const selTem = document.getElementById('preview-tem');
+
+      // Poblar años
+      const anos = data.anos_disponibles || [];
+      const rangoMin = data.rango_anios_min || (anos.length ? anos[0] : null);
+      const rangoMax = data.rango_anios_max || (anos.length ? anos[anos.length - 1] : null);
+
+      selAnioIni.innerHTML = anos.map(a => `<option value="${a}" ${a == rangoMin ? 'selected' : ''}>${a}</option>`).join('');
+      selAnioFin.innerHTML = anos.map(a => `<option value="${a}" ${a == rangoMax ? 'selected' : ''}>${a}</option>`).join('');
+
+      // Poblar desagregaciones
+      selGeo.innerHTML = (data.desagregaciones_geograficas || []).map(d => `<option value="${d.id}" ${(data.desagregaciones_geograficas_predeterminadas || []).includes(d.id) ? 'selected' : ''}>${d.nombre}</option>`).join('');
+      selTem.innerHTML = (data.desagregaciones_tematicas || []).map(d => `<option value="${d.id}" ${(data.desagregaciones_tematicas_predeterminadas || []).includes(d.id) ? 'selected' : ''}>${d.nombre}</option>`).join('');
+
+      // Ocultar controles si no hay desagregaciones
+      document.getElementById('preview-geo-wrapper').classList.toggle('hidden', !data.desagregaciones_geograficas?.length);
+      document.getElementById('preview-tem-wrapper').classList.toggle('hidden', !data.desagregaciones_tematicas?.length);
+
+      // Renderizar Plotly
+      const layout = data.layout || {};
+      layout.margin = { t: 40, r: 20, b: 60, l: 60 };
+      layout.paper_bgcolor = 'rgba(0,0,0,0)';
+      layout.plot_bgcolor = 'rgba(0,0,0,0)';
+      layout.font = { family: 'Inter, system-ui, sans-serif', size: 12, color: '#333' };
+      layout.legend = { orientation: 'h', y: -0.15 };
+
+      previewDiv.innerHTML = '';
+      const divGrafico = document.createElement('div');
+      divGrafico.style.width = '100%';
+      divGrafico.style.minHeight = (data.altura_grafico || 400) + 'px';
+      previewDiv.appendChild(divGrafico);
+
+      Plotly.newPlot(divGrafico, data.series, layout, { responsive: true, displayModeBar: true, modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'], locale: 'es' });
+
+      // Tabla de datos
+      renderizarTabla(data.series);
+      document.getElementById('preview-tabla-wrapper').classList.remove('hidden');
+
+    } catch (e) {
+      console.error(e);
+      previewDiv.innerHTML = '<p class="text-red-500 text-sm">Error al cargar la vista previa.</p>';
+    }
+  }
+
+  function renderizarTabla(series) {
+    const tablaDiv = document.getElementById('preview-tabla');
+    if (!series || !series.length) return;
+
+    // Construir tabla: columnas = año, serie1, serie2, ...
+    const allYears = new Set();
+    const serieMap = {};
+    series.forEach((s, idx) => {
+      const key = `serie_${idx}`;
+      serieMap[key] = { name: s.name, values: {} };
+      (s.x || []).forEach((year, i) => {
+        allYears.add(year);
+        serieMap[key].values[year] = s.y[i];
+      });
+    });
+
+    const years = Array.from(allYears).sort();
+    let html = '<table class="w-full text-sm border border-slate-200 rounded-lg overflow-hidden"><thead class="bg-slate-50"><tr><th class="px-3 py-2 text-left font-semibold text-slate-700 border-b">Año</th>';
+    series.forEach(s => {
+      html += `<th class="px-3 py-2 text-left font-semibold text-slate-700 border-b">${s.name}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    years.forEach(year => {
+      html += `<tr class="border-b border-slate-100 hover:bg-slate-50"><td class="px-3 py-2 font-medium">${year}</td>`;
+      series.forEach((s, idx) => {
+        const val = serieMap[`serie_${idx}`].values[year];
+        html += `<td class="px-3 py-2 text-slate-600">${val !== undefined ? val : '—'}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    tablaDiv.innerHTML = html;
+  }
+
+  document.getElementById('btn-actualizar-preview').addEventListener('click', actualizarPreview);
+
+  document.getElementById('btn-toggle-tabla').addEventListener('click', function() {
+    const tabla = document.getElementById('preview-tabla');
+    const span = this.querySelector('span');
+    if (tabla.classList.contains('hidden')) {
+      tabla.classList.remove('hidden');
+      span.textContent = 'Ocultar tabla de datos';
+    } else {
+      tabla.classList.add('hidden');
+      span.textContent = 'Mostrar tabla de datos';
+    }
+  });
+
+  // Auto-actualizar preview cuando cambian los controles
+  ['preview-ano-inicio', 'preview-ano-fin', 'preview-geo', 'preview-tem'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', actualizarPreview);
+  });
+</script>
+{% endblock %}

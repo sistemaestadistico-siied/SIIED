@@ -1,0 +1,299 @@
+{% extends 'validacion/base_validacion.html' %}
+{% block title %}Manual de Uso — Panel de Validación{% endblock %}
+
+{% block validacion_content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-serif font-bold text-slate-900">Manual del Validador SIIED</h1>
+    <p class="text-slate-500 mt-1">Guía para revisar, validar y gestionar cargas de series, conjuntos de datos y formularios ICED.</p>
+  </div>
+
+  <!-- Índice rápido -->
+  <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 mb-8">
+    <p class="text-sm font-semibold text-emerald-800 mb-2 flex items-center">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>En esta guía encontrarás:
+    </p>
+    <ul class="text-sm text-emerald-700 space-y-1 ml-6">
+      <li><a href="#dashboard" class="hover:text-emerald-900 hover:underline">1. El Dashboard de Validación</a></li>
+      <li><a href="#badges" class="hover:text-emerald-900 hover:underline">2. Badges de antigüedad (NUEVA / URGENTE)</a></li>
+      <li><a href="#revisar-serie" class="hover:text-emerald-900 hover:underline">3. Cómo revisar una serie de datos</a></li>
+      <li><a href="#calculo-complejo" class="hover:text-emerald-900 hover:underline">3b. Marcar como cálculo complejo</a></li>
+      <li><a href="#revisar-conjunto-datos" class="hover:text-emerald-900 hover:underline">4. Cómo revisar conjuntos de datos</a></li>
+      <li><a href="#revisar-iced" class="hover:text-emerald-900 hover:underline">5. Cómo revisar un formulario ICED</a></li>
+      <li><a href="#decisiones" class="hover:text-emerald-900 hover:underline">6. Decisiones: Aprobar, Devolver o Rechazar</a></li>
+      <li><a href="#procesos" class="hover:text-emerald-900 hover:underline">7. Monitorear procesos en ejecución</a></li>
+      <li><a href="#crear-grafico" class="hover:text-emerald-900 hover:underline">7b. Crear gráfico simplificado</a></li>
+      <li><a href="#historial" class="hover:text-emerald-900 hover:underline">7c. Historial de validaciones</a></li>
+      <li><a href="#workspace" class="hover:text-emerald-900 hover:underline">8. Workspace unificado</a></li>
+    </ul>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <section id="dashboard" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">1</span>
+      El Dashboard de Validación
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>Al iniciar sesión llegarás al <strong>Dashboard de Validación</strong>, que organiza todas las cargas pendientes en tres bloques:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Series pendientes:</strong> cargas de datos de indicadores enviadas por recolectores o delegados.</li>
+        <li><strong>Conjunto de datos pendientes:</strong> cargas de conjuntos de conjuntos de datos con sus variables.</li>
+        <li><strong>ICED pendientes:</strong> formularios de capacidad estadística enviados por organismos (nuevo).</li>
+      </ul>
+      <p>En la parte superior verás <strong>estadísticas rápidas</strong>: total de cargas pendientes, tus revisiones recientes y un resumen de ICED.</p>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3 mt-2">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Revisa primero las cargas marcadas con <span class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-semibold">URGENTE</span> (>7 días) y luego las <span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs font-semibold">NUEVA</span> (<24h).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2 -->
+  <section id="badges" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">2</span>
+      Badges de antigüedad
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>Cada carga en la cola de validación muestra un badge que indica su antigüedad:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+          <span class="px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 shrink-0">NUEVA</span>
+          <p>Carga enviada hace menos de 24 horas. Prioridad normal.</p>
+        </div>
+        <div class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg p-3">
+          <span class="px-2 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 shrink-0">URGENTE</span>
+          <p>Carga pendiente por más de 7 días. Revisa lo antes posible.</p>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500">Las cargas entre 24h y 7d no muestran badge. El sistema calcula la antigüedad desde la fecha de carga automáticamente.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3 -->
+  <section id="revisar-serie" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">3</span>
+      Cómo revisar una serie de datos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>En el Dashboard, busca la sección <strong>"Series Pendientes"</strong> y haz clic en <strong>"Revisar"</strong> de la carga que quieres validar.</li>
+        <li>En la pantalla de revisión verás:
+          <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+            <li><strong>Resumen:</strong> indicador, usuario, código de evidencia, fecha y estado actual.</li>
+            <li><strong>Vista previa de datos:</strong> tabla con las primeras filas del archivo para verificar formato y valores.</li>
+            <li><strong>Acciones:</strong> botones para Aprobar, Devolver o Rechazar.</li>
+          </ul>
+        </li>
+        <li>Revisa que los datos sean coherentes con la metadata y la descripción del indicador.</li>
+        <li>Selecciona una decisión y, si devuelves, escribe un mensaje claro para el recolector.</li>
+      </ol>
+      <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3 mt-2">
+        <p class="text-amber-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Importante:
+        </p>
+        <p class="text-amber-700">El recolector recibirá una notificación por correo automáticamente cuando tomes una decisión. Asegúrate de que tu mensaje (en caso de devolución) sea lo suficientemente detallado.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3b -->
+  <section id="calculo-complejo" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">3b</span>
+      Marcar como cálculo complejo
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>Al revisar una serie de datos, verás un botón para <strong>marcar/desmarcar la carga como "cálculo complejo"</strong>. Esta opción le indica al Wizard del administrador cómo procesar los datos:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Cálculo complejo activado:</strong> el Wizard procesará únicamente la serie precalculada tal como la enviaste, sin aplicar extracción cartesiana.</li>
+        <li><strong>Cálculo complejo desactivado (por defecto):</strong> el Wizard aplicará extracción cartesiana para generar series por desagregación.</li>
+      </ul>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Marca esta opción cuando el indicador ya viene precalculado (ej: índices compuestos, tasas, porcentajes calculados). No la actives si los datos son valores brutos que deben desagregarse cartesianamente.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 4 -->
+  <section id="revisar-conjunto-datos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">4</span>
+      Cómo revisar conjuntos de datos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>El flujo es similar al de series, pero con componentes adicionales:</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Haz clic en <strong>"Revisar"</strong> de una carga de conjunto de datos en el Dashboard.</li>
+        <li>Verifica:
+          <ul class="list-disc list-inside ml-4 mt-1 space-y-1">
+            <li>El archivo CSV de conjuntos de datos (vista previa de columnas y filas).</li>
+            <li>La metadata de variables (código, nombre, definición, tipo de dato, unidad, fuente).</li>
+            <li>Que las variables coincidan con las columnas del CSV.</li>
+          </ul>
+        </li>
+        <li>Toma la decisión: <strong>Aprobar</strong>, <strong>Devolver</strong> o <strong>Rechazar</strong>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 5 -->
+  <section id="revisar-iced" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">5</span>
+      Cómo revisar un formulario ICED
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>Los formularios ICED (Índice de Capacidad Estadística y de Datos) se validan desde el mismo Dashboard:</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>En el Dashboard, busca la sección <strong>"ICED Pendientes"</strong> (color índigo).</li>
+        <li>Haz clic en <strong>"Revisar ICED"</strong> del organismo correspondiente.</li>
+        <li>Revisa las respuestas del formulario y verifica que estén completas.</li>
+        <li>Usa el botón <strong>"Calcular Puntajes"</strong> para previsualizar los resultados antes de persistirlos.</li>
+        <li>Decide: <strong>Aprobar</strong> (los puntajes se guardan y el organismo queda evaluado), <strong>Devolver</strong> (con observaciones para corrección) o <strong>Rechazar</strong>.</li>
+      </ol>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Si no estás seguro de una respuesta, puedes devolver el formulario con comentarios. El delegado del organismo podrá corregir y reenviar.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 6 -->
+  <section id="decisiones" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">6</span>
+      Decisiones: Aprobar, Devolver o Rechazar
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <p class="font-semibold text-emerald-800 mb-1">Aprobar</p>
+          <p class="text-emerald-700 text-xs">La carga pasa a <strong>"Aprobado"</strong> y queda lista para que el admin la procese en el Wizard. El recolector recibe confirmación.</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p class="font-semibold text-amber-800 mb-1">Devolver</p>
+          <p class="text-amber-700 text-xs">La carga vuelve a <strong>"Correcciones solicitadas"</strong>. Debes escribir un mensaje explicando qué falta o qué está mal.</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-xl p-3">
+          <p class="font-semibold text-red-800 mb-1">Rechazar</p>
+          <p class="text-red-700 text-xs">La carga pasa a <strong>"Rechazado"</strong>. Úsalo solo cuando los datos son irrecuperables o no corresponden al indicador.</p>
+        </div>
+      </div>
+      <p class="text-xs text-slate-500">Todas las decisiones generan notificaciones por correo al usuario que cargó los datos.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 7 -->
+  <section id="procesos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">7</span>
+      Monitorear procesos en ejecución
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>Como validador o administrador, puedes monitorear los procesos de extracción que están corriendo en el sistema:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Accede al <strong>Dashboard de Procesos</strong> desde el menú de administración o desde el Workspace (si tienes rol de staff).</li>
+        <li>Verás extracciones activas, cargas en procesamiento y estadísticas en tiempo real.</li>
+        <li>Haz clic en <strong>"Ver en vivo"</strong> de cualquier proceso para ver sus logs en tiempo real (actualización automática cada segundo).</li>
+      </ul>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Nota:
+        </p>
+        <p class="text-emerald-700">El Dashboard de Procesos está disponible solo para usuarios staff. Si necesitas acceso, contacta al Líder Técnico SIIED.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 7b -->
+  <section id="crear-grafico" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">7b</span>
+      Crear gráfico simplificado
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>Desde la pantalla de revisión de una serie, puedes crear un <strong>gráfico simplificado</strong> para el indicador:</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Haz clic en el botón <strong>"Crear gráfico"</strong> en la pantalla de revisión.</li>
+        <li>Completa el formulario: <strong>nombre</strong>, <strong>título</strong>, <strong>tipo de gráfico</strong> (línea, barras, etc.) y <strong>ejes</strong>.</li>
+        <li>Guarda. El gráfico quedará asociado al indicador y será visible en el portal público una vez que los datos sean procesados.</li>
+      </ol>
+      <p class="text-xs text-slate-500">Esta es una versión simplificada del editor de gráficos del Módulo Editorial, diseñada para que el validador pueda generar una visualización básica rápidamente.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 7c -->
+  <section id="historial" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">7c</span>
+      Historial de validaciones
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>El <strong>Historial</strong> te permite ver todas las cargas que han pasado por validación (no solo las tuyas):</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Ve a <strong>"Historial"</strong> en el menú.</li>
+        <li>Verás el listado completo de series y conjunto de datos con sus estados, usuarios y fechas.</li>
+        <li>Puedes filtrar por <strong>estado</strong> (aprobado, rechazado, correcciones, etc.) y por <strong>tipo</strong> (serie o conjunto de datos).</li>
+        <li>Haz clic en cualquier carga para ver su detalle, incluyendo las observaciones del validador y la vista previa de datos.</li>
+      </ol>
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Usa el historial para auditar decisiones pasadas, buscar cargas similares como referencia, o verificar el estado de cargas validadas por otros miembros del equipo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 8 -->
+  <section id="workspace" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">8</span>
+      Workspace unificado
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>Si tienes varios roles (validador, recolector, consultor, etc.), puedes acceder al <strong>Workspace SIIED</strong> (<code>/workspace/</code>) para ver todos los módulos disponibles en un solo lugar.</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>El Workspace detecta automáticamente tu rol y muestra solo los módulos a los que tienes acceso.</li>
+        <li>Desde el Workspace puedes saltar a Validación, Recolección, Reportes o el Portal de Delegado sin cerrar sesión.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Contacto -->
+  <div class="bg-slate-50 border border-slate-200 rounded-3xl p-5 text-sm text-slate-700">
+    <p class="font-semibold text-slate-800 mb-1 flex items-center">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      </svg>¿Necesitas ayuda adicional?
+    </p>
+    <p>Contacta al equipo técnico del SIIED — Subdirección de Desarrollo Integral, Depto. Administrativo de Planeación Distrital.</p>
+  </div>
+
+</div>
+{% endblock %}

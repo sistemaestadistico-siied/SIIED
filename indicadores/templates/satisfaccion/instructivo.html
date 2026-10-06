@@ -1,0 +1,658 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Instructivo - Sistema para la Medición de la Satisfacción de Usuarios Externos{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+        .hero-section {
+            background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%);
+            color: white;
+            padding: 60px 0;
+            margin-bottom: 40px;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(6,182,212,0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .step-card {
+            border-left: 4px solid #06b6d4;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+        }
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+            border-left-color: #000866;
+        }
+        
+        /* Animaciones para el Logo Protagonista */
+        @keyframes pulseLogo {
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes floatLogo {
+            0%, 100% { 
+                transform: translateY(0px);
+                filter: drop-shadow(0 8px 25px rgba(6,182,212,0.6)) drop-shadow(0 0 40px rgba(6,182,212,0.4));
+            }
+            50% { 
+                transform: translateY(-10px);
+                filter: drop-shadow(0 12px 35px rgba(6,182,212,0.8)) drop-shadow(0 0 50px rgba(6,182,212,0.6));
+            }
+        }
+        .step-number {
+            width: 45px;
+            height: 45px;
+            background: #06b6d4;
+            color: #000866;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .code-preview {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .copy-success {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: none;
+        }
+        .organismo-card {
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .organismo-card:hover {
+            border-color: #007bff;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,123,255,0.2);
+        }
+        .organismo-card.selected {
+            border-color: #28a745;
+            background-color: #e8f5e9;
+        }
+        .gmail-screenshot {
+            border: 3px solid #007bff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        /* Fix para conflicto Tailwind vs Bootstrap en el acordeón */
+        .collapse.show {
+            visibility: visible !important;
+            display: block !important;
+        }
+        .collapse:not(.show) {
+            display: none !important;
+        }
+        .collapsing {
+            visibility: visible !important;
+            display: block !important;
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Alerta de éxito al copiar -->
+<div class="alert alert-success alert-dismissible fade copy-success" role="alert">
+    <i class="bi bi-check-circle-fill"></i> ¡Código copiado al portapapeles!
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<!-- Hero Section -->
+<div class="hero-section shadow-lg">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <!-- Logo Protagonista con Efectos Impactantes -->
+                    <div class="mb-4 d-flex justify-content-center align-items-center position-relative" style="min-height: 140px;">
+                        <!-- Efecto de Resplandor Circular -->
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 200px; background: radial-gradient(circle, rgba(6,182,212,0.3) 0%, rgba(6,182,212,0.1) 40%, transparent 70%); border-radius: 50%; animation: pulseLogo 3s ease-in-out infinite; z-index: 1;"></div>
+                        
+                        <!-- Logo Principal Grande -->
+                        <img src="https://i.ibb.co/5W6twRH8/Captura-desde-2026-03-11-01-54-12.png" 
+                             alt="Sistema de Medición de Satisfacción Ciudadana" 
+                             style="height: 120px; filter: drop-shadow(0 8px 25px rgba(6,182,212,0.6)) drop-shadow(0 0 40px rgba(6,182,212,0.4)); position: relative; z-index: 2; animation: floatLogo 4s ease-in-out infinite;">
+                    </div>
+                    
+                    <!-- Título Principal -->
+                    <h1 class="display-4 mb-3 fw-bold" style="color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 2.5rem; line-height: 1.3;">
+                        Sistema para la Medición de la Satisfacción de los<br>
+                        <span style="color: #ffffff;">Diferentes Tipos de Usuarios Externos de Información Estadística</span>
+                    </h1>
+                    
+                    <!-- Subtítulo -->
+                    <p class="lead mb-3" style="color: rgba(255,255,255,0.95); font-size: 1.1rem; max-width: 900px; margin: 0 auto; font-weight: 500;">
+                        <i class="bi bi-book me-2"></i>
+                        Instructivo Oficial para Funcionarios
+                    </p>
+                    
+                    <!-- Descripción -->
+                    <p class="mb-0" style="color: rgba(255,255,255,0.85); font-size: 1rem; max-width: 800px; margin: 0 auto;">
+                        Aprende cómo incluir la encuesta de satisfacción en tus correos de respuesta a usuarios externos
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container pb-5">
+        
+        <!-- Paso 1: Seleccionar Organismo -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white;">
+                <h3 class="mb-0">
+                    <span class="step-number me-3" style="background: #06b6d4; color: #000866;">1</span>
+                    Selecciona tu Organismo
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Haz clic en tu organismo para generar el código HTML personalizado:
+                </p>
+                
+                {% if organismos %}
+                <div class="row">
+                    {% for org in organismos %}
+                    <div class="col-md-4 mb-3">
+                        <a href="?organismo={{ org.id }}" class="text-decoration-none">
+                            <div class="card organismo-card h-100 {% if organismo_seleccionado.id == org.id %}selected{% endif %}">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-building" style="font-size: 48px; color: #007bff;"></i>
+                                    <h5 class="mt-3 mb-2">{{ org.nombre }}</h5>
+                                    <p class="text-muted small mb-0">
+                                        <code>{{ org.codigo }}</code>
+                                    </p>
+                                    {% if organismo_seleccionado.id == org.id %}
+                                    <span class="badge mt-2" style="background-color: #06b6d4; color: #000866; font-weight: 600;">
+                                        <i class="bi bi-check-circle"></i> Seleccionado
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert" style="background-color: #fef3cd; border-left: 4px solid #ffc107; color: #856404;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    No hay organismos activos. Contacta al administrador del sistema.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if organismo_seleccionado %}
+        
+        <!-- Paso 2: Seleccionar Suborganismo (OBLIGATORIO) -->
+        <div id="seccion-suborganismos" class="card shadow-sm mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white;">
+                <h3 class="mb-0">
+                    <span class="step-number me-3" style="background: #06b6d4; color: #000866;">2</span>
+                    Selecciona tu Subdirección/Oficina
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Selecciona la subdirección u oficina a la que perteneces:
+                </p>
+                
+                {% if suborganismos_disponibles %}
+                <div class="row">
+                    {% for sub in suborganismos_disponibles %}
+                    <div class="col-md-6 mb-3">
+                        <a href="?organismo={{ organismo_seleccionado.id }}&suborganismo={{ sub.id }}" class="text-decoration-none">
+                            <div class="card organismo-card h-100 {% if suborganismo_seleccionado.id == sub.id %}selected{% endif %}">
+                                <div class="card-body">
+                                    <i class="bi bi-diagram-3" style="font-size: 36px; color: #17a2b8;"></i>
+                                    <h5 class="mt-3 mb-2">{{ sub.nombre }}</h5>
+                                    <p class="text-muted small mb-0">
+                                        <span class="badge bg-secondary">{{ sub.get_tipo_display }}</span>
+                                    </p>
+                                    {% if suborganismo_seleccionado.id == sub.id %}
+                                    <span class="badge mt-2" style="background-color: #06b6d4; color: #000866; font-weight: 600;">
+                                        <i class="bi bi-check-circle"></i> Seleccionado
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert" style="background-color: #fef3cd; border-left: 4px solid #ffc107; color: #856404;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Este organismo no tiene subdirecciones configuradas.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if suborganismo_seleccionado %}
+        
+        <!-- Paso 3: Seleccionar Equipo -->
+        {% if equipos_disponibles %}
+        <div id="seccion-equipos" class="card shadow-sm mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white;">
+                <h3 class="mb-0">
+                    <span class="step-number me-3" style="background: #06b6d4; color: #000866;">3</span>
+                    Selecciona tu Equipo de Trabajo
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Selecciona tu equipo de trabajo dentro de <strong>{{ suborganismo_seleccionado.nombre }}</strong>:
+                </p>
+                
+                <div class="row">
+                    <!-- Opción: Sin equipo (legacy) -->
+                    <div class="col-md-4 mb-3">
+                        <a href="?organismo={{ organismo_seleccionado.id }}" class="text-decoration-none">
+                            <div class="card organismo-card h-100 {% if not equipo_seleccionado %}selected{% endif %}">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-building" style="font-size: 48px; color: #6c757d;"></i>
+                                    <h5 class="mt-3 mb-2">Sin equipo específico</h5>
+                                    <p class="text-muted small mb-0">
+                                        Banner general del organismo
+                                    </p>
+                                    {% if not equipo_seleccionado %}
+                                    <span class="badge mt-2" style="background-color: #6c757d;">
+                                        <i class="bi bi-check-circle"></i> Seleccionado
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <!-- Equipos disponibles -->
+                    {% for equipo in equipos_disponibles %}
+                    <div class="col-md-4 mb-3">
+                        <a href="?organismo={{ organismo_seleccionado.id }}&suborganismo={{ suborganismo_seleccionado.id }}&equipo={{ equipo.id }}" class="text-decoration-none">
+                            <div class="card organismo-card h-100 {% if equipo_seleccionado.id == equipo.id %}selected{% endif %}">
+                                <div class="card-body text-center">
+                                    <i class="bi bi-people-fill" style="font-size: 48px; color: #10b981;"></i>
+                                    <h5 class="mt-3 mb-2">{{ equipo.nombre }}</h5>
+                                    <p class="text-muted small mb-0">
+                                        <code>{{ equipo.codigo }}</code>
+                                    </p>
+                                    {% if equipo_seleccionado.id == equipo.id %}
+                                    <span class="badge mt-2" style="background-color: #06b6d4; color: #000866; font-weight: 600;">
+                                        <i class="bi bi-check-circle"></i> Seleccionado
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if codigo_html %}
+        <!-- Paso 4: Vista Previa -->
+        <div id="seccion-vista-previa" class="card shadow-sm mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white;">
+                <h3 class="mb-0">
+                    <span class="step-number me-3" style="background: #06b6d4; color: #000866;">4</span>
+                    Vista Previa del Email
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Así se verá la encuesta en el correo del ciudadano:
+                </p>
+                
+                <div class="code-preview">
+                    {{ codigo_html|safe }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Paso 5: Copiar Código -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white;">
+                <h3 class="mb-0">
+                    <span class="step-number me-3" style="background: #06b6d4; color: #000866;">5</span>
+                    Copiar Banner
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Haz clic en el botón para copiar el contenido <strong>con formato</strong> (listo para pegar en Gmail):
+                </p>
+                <div class="alert" style="background-color: #ebf5ff; border-left: 4px solid #4299e1; color: #2c5282;">
+                    <i class="bi bi-info-circle"></i> <strong>Importante:</strong> Este botón copia el contenido renderizado (con formato), no el código HTML. Al pegarlo en Gmail, se verá exactamente como en la vista previa.
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-lg" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white; border: none; font-weight: 600; box-shadow: 0 4px 6px rgba(0, 8, 102, 0.3);" onclick="copiarCodigoRenderizado()">
+                        <i class="bi bi-clipboard-check"></i> Copiar Banner
+                    </button>
+                </div>
+                
+                <!-- Contenedor oculto con el HTML renderizado para copiar -->
+                <div id="contenidoRenderizado" style="position: absolute; left: -9999px; top: -9999px;">
+                    {{ codigo_html|safe }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Paso 4: Instrucciones Gmail -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white;">
+                <h3 class="mb-0">
+                    <span class="step-number me-3" style="background: #06b6d4; color: #000866;">6</span>
+                    Pegar en Gmail
+                </h3>
+            </div>
+            <div class="card-body">
+                <h5 class="mb-3">Instrucciones paso a paso para Gmail:</h5>
+                
+                <div class="row">
+                    <div class="col-lg-4 mb-4">
+                        <div class="step-card card h-100">
+                            <div class="card-body">
+                                <h6 class="mb-3" style="color: #000866;">
+                                    <i class="bi bi-1-circle-fill" style="color: #06b6d4;"></i> Haz clic en "Copiar Banner"
+                                </h6>
+                                <p class="small">
+                                    Haz clic en el botón azul "Copiar Banner" que aparece arriba. El banner de satisfacción se copiará automáticamente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 mb-4">
+                        <div class="step-card card h-100">
+                            <div class="card-body">
+                                <h6 class="mb-3" style="color: #000866;">
+                                    <i class="bi bi-2-circle-fill" style="color: #06b6d4;"></i> Abre tu correo en Gmail
+                                </h6>
+                                <p class="small">
+                                    Redacta tu respuesta al ciudadano normalmente. Puedes pegar el banner en el <strong>cuerpo del correo</strong> o en tu <strong>firma</strong>.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4 mb-4">
+                        <div class="step-card card h-100">
+                            <div class="card-body">
+                                <h6 class="mb-3" style="color: #000866;">
+                                    <i class="bi bi-3-circle-fill" style="color: #06b6d4;"></i> Pega con Ctrl+V
+                                </h6>
+                                <p class="small">
+                                    Posiciona el cursor donde quieras el banner y presiona <kbd>Ctrl</kbd> + <kbd>V</kbd> (o <kbd>Cmd</kbd> + <kbd>V</kbd> en Mac). ¡Listo!
+                                </p>
+                                <div class="alert small mt-2 mb-0" style="background-color: #e0f2fe; border-left: 4px solid #06b6d4; color: #075985;">
+                                    <i class="bi bi-check-circle"></i> Se pegará automáticamente con formato.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recomendaciones -->
+                <div class="alert mt-4" style="background-color: #ebf5ff; border-left: 4px solid #4299e1; color: #2c5282;">
+                    <h6 class="alert-heading">
+                        <i class="bi bi-lightbulb"></i> Recomendaciones:
+                    </h6>
+                    <ul class="mb-0 small">
+                        <li><strong>En la firma:</strong> Ideal para que aparezca en todos tus correos automáticamente</li>
+                        <li><strong>En el cuerpo:</strong> Úsalo cuando quieras incluirlo solo en correos específicos</li>
+                        <li><strong>Posición:</strong> Se recomienda colocarlo al final del mensaje, antes o después de tu firma</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ejemplo Visual -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, #000866 0%, #1e3a8a 100%); color: white;">
+                <h3 class="mb-0">
+                    <span class="step-number me-3" style="background: #06b6d4; color: #000866;"><i class="bi bi-image"></i></span>
+                    Ejemplo Visual
+                </h3>
+            </div>
+            <div class="card-body">
+                <h5 class="mb-3">Así debe verse en tu correo de Gmail:</h5>
+                
+                <div class="alert" style="background-color: #e6f7ff; border-left: 4px solid #4299e1; color: #2c5282;">
+                    <strong>✓ Correcto:</strong> Se ve un banner azul oscuro con el botón naranja "Califica tu experiencia"
+                </div>
+                
+                <div class="alert" style="background-color: #fef3cd; border-left: 4px solid #ffc107; color: #856404;">
+                    <strong>✗ Incorrecto:</strong> Si ves código HTML, vuelve a copiar y pegar
+                </div>
+            </div>
+        </div>
+        
+        <!-- Preguntas Frecuentes -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header" style="background: #2c5282; color: white;">
+                <h3 class="mb-0">
+                    <i class="bi bi-question-circle"></i> Preguntas Frecuentes
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="faqAccordion">
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                ¿Debo incluir esto en todos los correos?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Sí, incluye la encuesta en <strong>todos los correos de respuesta a solicitudes de información estadística</strong> de ciudadanos.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                ¿Qué pasa si el ciudadano no responde?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                No hay problema. La encuesta es <strong>opcional</strong> para el ciudadano. No afecta el servicio prestado.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                ¿Puedo ver las respuestas de mi organismo?
+                            </button>
+                        </h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Las respuestas se consolidan en el <strong>dashboard administrativo</strong>. Contacta al administrador del sistema para acceder a los reportes.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                ¿Funciona en otros clientes de correo?
+                            </button>
+                        </h2>
+                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body">
+                                Este instructivo está optimizado para <strong>Gmail</strong>. Si usas otro cliente (Outlook, etc.), el proceso puede variar. Contacta al soporte técnico.
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        
+        <!-- Mensaje cuando no hay organismo seleccionado -->
+        <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-arrow-up-circle" style="font-size: 80px; color: #007bff;"></i>
+                <h4 class="mt-3 text-muted">Selecciona tu organismo arriba para comenzar</h4>
+            </div>
+        </div>
+        
+        {% endif %}
+        
+        {% endif %}
+        
+        {% endif %}
+        
+        <!-- Soporte -->
+        <div class="card shadow-sm bg-light">
+            <div class="card-body text-center">
+                <h5><i class="bi bi-headset"></i> ¿Necesitas ayuda?</h5>
+                <p class="text-muted mb-0">
+                    Contacta al Departamento Administrativo de Planeación<br>
+                    <i class="bi bi-envelope"></i> Email: <a href="mailto:planeacion@cali.gov.co">planeacion@cali.gov.co</a>
+                </p>
+            </div>
+        </div>
+    
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copiarCodigoRenderizado() {
+            const contenedor = document.getElementById('contenidoRenderizado');
+            
+            // Hacer visible temporalmente para poder seleccionar
+            contenedor.style.position = 'fixed';
+            contenedor.style.left = '0';
+            contenedor.style.top = '0';
+            contenedor.style.opacity = '0';
+            contenedor.style.pointerEvents = 'none';
+            
+            try {
+                // Crear un rango de selección
+                const range = document.createRange();
+                range.selectNodeContents(contenedor);
+                
+                // Seleccionar el contenido
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                // Copiar al portapapeles (esto copia el HTML renderizado)
+                const copiado = document.execCommand('copy');
+                
+                // Limpiar la selección
+                selection.removeAllRanges();
+                
+                if (copiado) {
+                    // Mostrar alerta de éxito
+                    const alert = document.querySelector('.copy-success');
+                    alert.style.display = 'block';
+                    alert.classList.add('show');
+                    
+                    setTimeout(() => {
+                        alert.classList.remove('show');
+                        setTimeout(() => {
+                            alert.style.display = 'none';
+                        }, 150);
+                    }, 3000);
+                } else {
+                    throw new Error('No se pudo copiar');
+                }
+                
+            } catch (err) {
+                console.error('Error al copiar:', err);
+                alert('Error al copiar. Por favor, selecciona manualmente el contenido de la vista previa y cópialo con Ctrl+C (o Cmd+C en Mac).');
+            } finally {
+                // Ocultar de nuevo el contenedor
+                contenedor.style.position = 'absolute';
+                contenedor.style.left = '-9999px';
+                contenedor.style.top = '-9999px';
+                contenedor.style.opacity = '1';
+            }
+        }
+        
+        // Smooth scroll para flujo jerárquico: Organismo → Suborganismo → Equipo
+        {% if organismo_seleccionado %}
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const equipoSeleccionado = urlParams.get('equipo');
+                const suborganismoSeleccionado = urlParams.get('suborganismo');
+                
+                const seccionSuborganismos = document.getElementById('seccion-suborganismos');
+                const seccionEquipos = document.getElementById('seccion-equipos');
+                const seccionVistaPrevia = document.getElementById('seccion-vista-previa');
+                
+                let targetSection = null;
+                
+                // Determinar a qué sección hacer scroll según el flujo
+                if (equipoSeleccionado && seccionVistaPrevia) {
+                    // Paso 3 completado: mostrar vista previa
+                    targetSection = seccionVistaPrevia;
+                } else if (suborganismoSeleccionado && seccionEquipos) {
+                    // Paso 2 completado: mostrar equipos
+                    targetSection = seccionEquipos;
+                } else if (seccionSuborganismos) {
+                    // Paso 1 completado: mostrar suborganismos
+                    targetSection = seccionSuborganismos;
+                }
+                
+                if (targetSection) {
+                    targetSection.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start'
+                    });
+                    setTimeout(() => {
+                        window.scrollBy({ top: -20, behavior: 'smooth' });
+                    }, 500);
+                }
+            }, 300);
+        });
+        {% endif %}
+</script>
+{% endblock %}

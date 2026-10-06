@@ -1,0 +1,1799 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}{{ producto.titulo }} - Productos Académicos - SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+    .paper-container {
+        display: flex;
+        min-height: calc(100vh - 200px);
+        gap: 0;
+        background: #f5f5f5;
+    }
+
+    .paper-sidebar {
+        width: 280px;
+        background: #fff;
+        border-right: 1px solid #e0e0e0;
+        padding: 1.5rem;
+        position: sticky;
+        top: 0;
+        height: fit-content;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        font-size: 0.9rem;
+    }
+
+    .paper-sidebar h6 {
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+    }
+
+    .paper-sidebar ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    .paper-sidebar li {
+        margin-bottom: 0.35rem;
+    }
+
+    .paper-sidebar a {
+        color: #555;
+        text-decoration: none;
+        display: block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .paper-sidebar a:hover {
+        background: #f0f0f0;
+        color: #000;
+    }
+
+    .paper-sidebar .nav-active a {
+        background: #e8f0fe;
+        color: #1a73e8;
+        font-weight: 600;
+    }
+
+    .paper-sidebar .nav-subsection {
+        padding-left: 1rem;
+        font-size: 0.85rem;
+    }
+
+    .paper-main {
+        flex: 1;
+        max-width: 900px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 3rem 4rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .paper-header {
+        border-bottom: 2px solid #1a73e8;
+        padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .paper-header h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        line-height: 1.3;
+        margin-bottom: 1rem;
+    }
+
+    .paper-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #555;
+    }
+
+    .paper-meta .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .paper-meta .meta-label {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .paper-section {
+        margin-bottom: 2.5rem;
+        scroll-margin-top: 2rem;
+    }
+
+    .paper-section h2 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .paper-section h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .paper-texto {
+        line-height: 1.7;
+        font-size: 1rem;
+        color: #333;
+        text-align: left;
+    }
+
+    .paper-texto p {
+        margin-bottom: 1rem;
+    }
+
+    .paper-texto table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.5rem 0;
+        font-size: 0.9rem;
+    }
+
+    .paper-texto th,
+    .paper-texto td {
+        border: 1px solid #ddd;
+        padding: 0.6rem 0.8rem;
+        text-align: left;
+    }
+
+    .paper-texto th {
+        background: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .paper-grafico {
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .paper-grafico .grafico-container {
+        min-height: 400px;
+        width: 100%;
+    }
+
+    .paper-grafico .grafico-loading {
+        text-align: center;
+        color: #666;
+        padding: 2rem;
+    }
+
+    .paper-mapa {
+        background: #fafafa;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .paper-mapa .mapa-container {
+        min-height: 500px;
+        width: 100%;
+    }
+
+    .paper-mapa .mapa-loading {
+        text-align: center;
+        color: #666;
+        padding: 2rem;
+    }
+
+    .paper-tabla, .paper-tabla-conjunto-datos {
+        margin: 1.5rem 0;
+    }
+
+    .paper-tabla .tabla-container,
+    .paper-tabla-conjunto-datos .tabla-container {
+        overflow-x: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+    }
+
+    .paper-tabla .tabla-container table,
+    .paper-tabla-conjunto-datos .tabla-container table {
+        width: auto;
+        min-width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        margin-top: 0;
+    }
+
+    .paper-tabla .tabla-container th,
+    .paper-tabla .tabla-container td,
+    .paper-tabla-conjunto-datos .tabla-container th,
+    .paper-tabla-conjunto-datos .tabla-container td {
+        border: 1px solid #ddd;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .paper-tabla .tabla-container th,
+    .paper-tabla-conjunto-datos .tabla-container th {
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .paper-tabla .tabla-loading,
+    .paper-tabla-conjunto-datos .tabla-loading {
+        text-align: center;
+        color: #666;
+        padding: 2rem;
+    }
+
+    .paper-ficha {
+        margin: 1.5rem 0;
+    }
+
+    .paper-ficha .ficha-container {
+        overflow-x: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+    }
+
+    .paper-ficha .ficha-container table {
+        width: auto;
+        min-width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    .paper-ficha .ficha-container th,
+    .paper-ficha .ficha-container td {
+        border: 1px solid #ddd;
+        padding: 0.6rem 0.8rem;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .paper-ficha .ficha-container th {
+        background: #f8f9fa;
+        font-weight: 600;
+        width: 35%;
+    }
+
+    .paper-ficha .ficha-container td {
+        width: 65%;
+    }
+
+    .paper-ficha .ficha-section-header {
+        background: #e8f0fe !important;
+        color: #1a73e8;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+    }
+
+    .paper-ficha .ficha-loading {
+        text-align: center;
+        color: #666;
+        padding: 2rem;
+    }
+
+    /* Documento de infraestructura */
+    .paper-documento .doc-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin: 1.5rem 0;
+    }
+    .paper-documento .doc-card h4 {
+        margin: 0 0 0.4rem;
+        font-size: 1.05rem;
+        color: #1a4d8f;
+    }
+    .paper-documento .doc-tipo {
+        font-size: 0.8rem;
+        color: #666;
+        margin: 0 0 0.5rem;
+    }
+    .paper-documento .doc-desc {
+        font-size: 0.9rem;
+        color: #444;
+        margin: 0 0 0.75rem;
+    }
+    .paper-documento .doc-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    /* Sistema de información */
+    .paper-sistema .sistema-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin: 1.5rem 0;
+    }
+    .paper-sistema .sistema-card h4 {
+        margin: 0 0 0.4rem;
+        font-size: 1.05rem;
+        color: #1a4d8f;
+    }
+    .paper-sistema .sistema-meta {
+        display: flex;
+        gap: 0.4rem;
+        margin: 0.5rem 0;
+    }
+    .paper-sistema .badge {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+    .paper-sistema .badge-info { background: #e8f0fe; color: #1a4d8f; }
+    .paper-sistema .badge-secondary { background: #f1f3f4; color: #5f6368; }
+    .paper-sistema .sistema-actions { margin-top: 0.75rem; }
+
+    /* Publicaciones relacionadas */
+    .paper-publicaciones .pub-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+    .paper-publicaciones .pub-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    .paper-publicaciones .pub-card h5 {
+        margin: 0 0 0.3rem;
+        font-size: 0.95rem;
+    }
+    .paper-publicaciones .pub-card h5 a { color: #1a4d8f; }
+    .paper-publicaciones .pub-meta {
+        font-size: 0.8rem;
+        color: #666;
+        margin: 0 0 0.4rem;
+    }
+    .paper-publicaciones .badge-light {
+        display: inline-block;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        background: #f1f3f4;
+        color: #5f6368;
+    }
+
+    /* Resultado destacado (KPI) */
+    .paper-resultado-destacado {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1.5rem 2rem;
+        text-align: center;
+        margin: 1.5rem 0;
+    }
+    .paper-resultado-destacado .kpi-value {
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: #1a4d8f;
+        margin: 0.3rem 0;
+    }
+    .paper-resultado-destacado .kpi-unit {
+        color: #666;
+        font-size: 0.95rem;
+    }
+    .paper-resultado-destacado .kpi-year {
+        font-size: 0.8rem;
+        color: #888;
+        margin-top: 0.4rem;
+    }
+    .paper-resultado-destacado .kpi-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 0.4rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .paper-resultado-destacado .kpi-loading {
+        text-align: center;
+        color: #666;
+        padding: 2rem;
+    }
+
+    /* Botones de descarga */
+    .block-actions-bar {
+        display: flex;
+        gap: 0.4rem;
+        margin: 0.75rem 0 0;
+        flex-wrap: wrap;
+    }
+    .btn-descarga {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.7rem;
+        border-radius: 6px;
+        border: 1px solid #d0d7de;
+        background: #fff;
+        font-size: 0.8rem;
+        color: #333;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .btn-descarga:hover { background: #e8f0fe; border-color: #1a4d8f; }
+
+    .paper-footer {
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e0e0e0;
+        font-size: 0.8rem;
+        color: #888;
+        text-align: center;
+    }
+
+    .preview-banner {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        color: #92400e;
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .preview-banner i {
+        font-size: 1.1rem;
+    }
+
+    @media print {
+        .paper-sidebar { display: none !important; }
+        .paper-main {
+            width: 100%;
+            max-width: 100%;
+            padding: 1rem;
+            box-shadow: none;
+        }
+        .paper-section { scroll-margin-top: 0; }
+    }
+
+    @media (max-width: 768px) {
+        .paper-container { flex-direction: column; }
+        .paper-sidebar {
+            width: 100%;
+            position: relative;
+            max-height: none;
+            border-right: none;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .paper-main { padding: 1.5rem; }
+    }
+
+    /* ================================================================ */
+    /* LAYOUT PRODUCTO ESTADISTICO (tipo INEGI)                        */
+    /* ================================================================ */
+    .est-header {
+        background: #1a4d8f;
+        color: #fff;
+        padding: 1.5rem 1rem;
+    }
+    .est-header-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: flex;
+        gap: 1.25rem;
+        align-items: flex-start;
+    }
+    .est-logo {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: #fff;
+        padding: 4px;
+    }
+    .est-logo-placeholder {
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        background: #fff;
+        color: #1a4d8f;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        flex-shrink: 0;
+    }
+    .est-header-body h1 {
+        margin: 0 0 0.4rem;
+        font-size: 1.35rem;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+    .est-header-desc {
+        margin: 0 0 0.6rem;
+        opacity: 0.92;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    .est-header-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.2rem;
+        font-size: 0.72rem;
+        opacity: 0.85;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        padding-top: 0.5rem;
+        margin-top: 0.2rem;
+    }
+    .est-header-meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .est-preview-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: #f59e0b;
+        color: #fff;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .est-tabs-wrap {
+        background: #fff;
+        border-top: 1px solid #d0d7de;
+        border-bottom: 1px solid #d0d7de;
+    }
+    .est-tabs {
+        display: flex;
+        overflow-x: auto;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 0.5rem;
+        align-items: center;
+    }
+    .est-tab {
+        padding: 0.75rem 0.9rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        white-space: nowrap;
+        font-size: 0.82rem;
+        color: #57606a;
+        border-bottom: 3px solid transparent;
+        font-family: inherit;
+    }
+    .est-tab.active {
+        color: #1a4d8f;
+        border-bottom-color: #1a4d8f;
+        font-weight: 600;
+    }
+    .est-tab:hover {
+        color: #1a4d8f;
+        background: #e8f0fe;
+    }
+    .est-tab-select {
+        margin-left: auto;
+        padding: 0.4rem 0.6rem;
+        border: 1px solid #d0d7de;
+        border-radius: 5px;
+        font-size: 0.78rem;
+        color: #57606a;
+        background: #fff;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .est-temas-bar {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0.5rem 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        color: #57606a;
+        background: #f8f9fa;
+        border-bottom: 1px solid #d0d7de;
+    }
+    .est-temas-label {
+        font-weight: 600;
+        margin-right: 0.2rem;
+    }
+    .est-tema-chip {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        background: #e8f0fe;
+        color: #1a4d8f;
+        text-decoration: none;
+        font-size: 0.75rem;
+        border: 1px solid #c8ddf7;
+    }
+    .est-tema-chip:hover {
+        background: #1a4d8f;
+        color: #fff;
+        border-color: #1a4d8f;
+    }
+
+    .est-wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    .est-wrap { position: relative; }
+    .est-panel {
+        position: absolute;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(4px);
+        transition: opacity .2s ease, transform .2s ease;
+        width: calc(100% - 2rem);
+    }
+    .est-panel.active {
+        position: relative;
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+
+    /* Sub-tabs */
+    .est-sub-tabs {
+        display: flex;
+        gap: 0.15rem;
+        border-bottom: 2px solid #d0d7de;
+        margin-bottom: 0.8rem;
+        flex-wrap: wrap;
+    }
+    .est-sub-tab {
+        padding: 0.45rem 0.8rem;
+        border: none;
+        background: none;
+        cursor: pointer;
+        font-size: 0.78rem;
+        color: #57606a;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        font-family: inherit;
+    }
+    .est-sub-tab.active {
+        color: #1a4d8f;
+        border-bottom-color: #1a4d8f;
+        font-weight: 600;
+    }
+    .est-sub-tab:hover { color: #1a4d8f; }
+    .est-sub-panel { display: none; }
+    .est-sub-panel.active { display: block; }
+
+    .est-accordion {
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        background: #fff;
+        overflow: hidden;
+        margin-bottom: 0.6rem;
+    }
+    .est-accordion-presentacion { margin-bottom: 0.3rem; }
+    .est-accordion-h {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: none;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1a4d8f;
+        list-style: none;
+    }
+    .est-accordion-h::-webkit-details-marker { display: none; }
+    .est-accordion-h:hover { background: #e8f0fe; }
+    .est-accordion-b { padding: 0 1rem 1rem; }
+    /* Anular contenedores redundantes dentro de acordeones */
+    .est-accordion-b .paper-grafico,
+    .est-accordion-b .paper-mapa,
+    .est-accordion-b .paper-tabla,
+    .est-accordion-b .paper-tabla-conjunto-datos,
+    .est-accordion-b .paper-ficha,
+    .est-accordion-b .paper-documento .doc-card,
+    .est-accordion-b .paper-sistema .sistema-card,
+    .est-accordion-b .paper-publicaciones .pub-card,
+    .est-accordion-b .paper-resultado-destacado {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0.5rem 0;
+    }
+    .est-accordion-b .paper-grafico .grafico-container { min-height: 320px; }
+    .est-accordion-b .paper-mapa .mapa-container { min-height: 400px; }
+    .est-accordion[open] .est-arrow { transform: rotate(180deg); }
+    .est-arrow { transition: transform .2s; font-size: 0.7rem; }
+    .est-accordion-static { margin-bottom: 0.6rem; }
+
+    /* Presentación colapsable */
+    .est-presentacion-toggle {
+        text-align: center;
+        margin: 0.5rem 0 0.3rem;
+    }
+    .est-presentacion-collapsed .est-accordion-presentacion:not(:first-child) { display: none; }
+
+    .est-sticky-footer {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid #d0d7de;
+        padding: 0.6rem 1rem;
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 -2px 6px rgba(0,0,0,0.04);
+        z-index: 40;
+    }
+
+    @media print {
+        .est-tabs-wrap, .est-sticky-footer, .est-presentacion-toggle, .est-sub-tabs, .est-temas-bar { display: none !important; }
+        .est-panel, .est-sub-panel {
+            position: relative !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transform: none !important;
+        }
+        .est-accordion-b { display: block !important; padding: 0 1rem 1rem; }
+        .est-accordion { break-inside: avoid; }
+    }
+    @media (max-width: 640px) {
+        .est-header-inner { flex-direction: column; align-items: center; text-align: center; }
+        .est-header-meta { justify-content: center; }
+        .est-tab-select { margin-left: 0; margin-top: 0.3rem; width: 100%; }
+    }
+
+    /* =====================================================================
+       NUEVOS BLOQUES: fórmulas, visor, tabla dinámica, video, galería,
+       carrusel, infografía, acordeón, descargas
+       ===================================================================== */
+
+    /* Fórmulas MathJax */
+    .paper-formula { background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px; padding:1.5rem; margin:1rem 0; overflow-x:auto; }
+    .formula-content { text-align:center; font-size:1.1rem; }
+
+    /* Visor comparativo */
+    .paper-visor-comparativo { margin:1rem 0; }
+    .visor-comparativo-container { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:1rem; }
+    .visor-comparativo-chart { min-height:350px; margin-bottom:1rem; }
+    .visor-comparativo-table-wrapper { overflow-x:auto; position:relative; z-index:1; }
+    .visor-comparativo-table table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .visor-comparativo-table th, .visor-comparativo-table td { border:1px solid #d0d7de; padding:0.4rem 0.6rem; text-align:left; }
+    .visor-comparativo-table th { background:#e8f0fe; color:#1a4d8f; font-weight:600; }
+    .visor-comparativo-table tr:nth-child(even) { background:#f8f9fa; }
+
+    /* Tabla dinámica conjunto de datos */
+    .paper-tabla-dinamica-conjunto-datos { margin:1rem 0; }
+    .tabla-dinamica-container { background:#fff; border:1px solid #e0e0e0; border-radius:8px; padding:1rem; min-height:300px; }
+    .tabla-dinamica-container .pivot-table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    .tabla-dinamica-container .pivot-table th, .tabla-dinamica-container .pivot-table td { border:1px solid #d0d7de; padding:0.4rem 0.6rem; }
+    .tabla-dinamica-container .pivot-table th { background:#e8f0fe; color:#1a4d8f; }
+
+    /* Video embed */
+    .paper-video { position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:8px; margin:1rem 0; }
+    .paper-video iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:none; }
+
+    /* Galería */
+    .paper-galeria { margin:1rem 0; }
+    .galeria-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:1rem; }
+    .galeria-item { margin:0; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.08); }
+    .galeria-item img { width:100%; height:180px; object-fit:cover; display:block; }
+    .galeria-item figcaption { padding:0.5rem; font-size:0.85rem; color:#555; background:#fff; }
+
+    /* Carrusel */
+    .paper-carrusel { position:relative; margin:1rem 0; overflow:hidden; border-radius:8px; }
+    .carrusel-track { display:flex; transition:transform 0.4s ease; }
+    .carrusel-slide { min-width:100%; box-sizing:border-box; }
+    .carrusel-slide img { width:100%; height:400px; object-fit:cover; display:block; }
+    .carrusel-caption { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; padding:0.75rem 1rem; font-size:0.9rem; }
+    .carrusel-prev, .carrusel-next { position:absolute; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.85); border:none; width:40px; height:40px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1.2rem; color:#333; z-index:10; }
+    .carrusel-prev { left:0.5rem; }
+    .carrusel-next { right:0.5rem; }
+    .carrusel-prev:hover, .carrusel-next:hover { background:#fff; }
+
+    /* Infografía */
+    .paper-infografia { margin:1rem 0; text-align:center; }
+    .infografia-figure { margin:0; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .infografia-figure img { width:100%; max-height:600px; object-fit:contain; display:block; }
+    .infografia-figure figcaption { padding:0.75rem; font-size:0.9rem; color:#555; background:#f8f9fa; }
+
+    /* Acordeón */
+    .paper-acordeon { margin:1rem 0; border:1px solid #e0e0e0; border-radius:8px; overflow:hidden; }
+    .acordeon-item + .acordeon-item { border-top:1px solid #e0e0e0; }
+    .acordeon-header { width:100%; display:flex; justify-content:space-between; align-items:center; padding:0.9rem 1.2rem; background:#fff; border:none; cursor:pointer; font-size:0.95rem; font-weight:600; color:#1a4d8f; text-align:left; }
+    .acordeon-header:hover { background:#f8f9fa; }
+    .acordeon-icon { transition:transform 0.25s ease; color:#888; }
+    .acordeon-item.open .acordeon-icon { transform:rotate(180deg); }
+    .acordeon-body { max-height:0; overflow:hidden; transition:max-height 0.3s ease; background:#fafbfc; }
+    .acordeon-item.open .acordeon-body { max-height:800px; }
+    .acordeon-content { padding:1rem 1.2rem; color:#444; font-size:0.9rem; line-height:1.6; }
+
+    /* Descargas */
+    .paper-descargas { margin:1rem 0; }
+    .descargas-lista { list-style:none; padding:0; margin:0; }
+    .descarga-item + .descarga-item { border-top:1px solid #e0e0e0; }
+    .descarga-link { display:flex; align-items:center; gap:0.75rem; padding:0.8rem 1rem; color:#1a4d8f; text-decoration:none; border-radius:6px; transition:background 0.15s; }
+    .descarga-link:hover { background:#f0f4ff; }
+    .descarga-nombre { font-weight:600; }
+    .descarga-desc { color:#888; font-size:0.85rem; margin-left:auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if producto.es_producto_estadistico %}
+<!-- ================================================================ -->
+<!-- LAYOUT PRODUCTO ESTADISTICO (tipo INEGI)                         -->
+<!-- ================================================================ -->
+
+<header class="est-header">
+    <div class="est-header-inner">
+        {% if producto.logo %}
+        <img src="{{ producto.logo.url }}" alt="Logo" class="est-logo">
+        {% else %}
+        <div class="est-logo-placeholder"><i class="fas fa-landmark" aria-hidden="true"></i></div>
+        {% endif %}
+        <div class="est-header-body">
+            <div style="display:flex; align-items:flex-start; gap:0.75rem; flex-wrap:wrap;">
+                <h1 style="margin:0; flex:1;">{{ producto.titulo }}</h1>
+                {% if preview %}
+                <span class="est-preview-badge">
+                    <i class="fas fa-eye" aria-hidden="true"></i> Preview
+                </span>
+                {% endif %}
+            </div>
+            {% if producto.resumen %}
+            <p class="est-header-desc">{{ producto.resumen }}</p>
+            {% endif %}
+            <div class="est-header-meta">
+                {% if producto.operacion %}<span><i class="fas fa-sync-alt" aria-hidden="true"></i> {{ producto.operacion.periodicidad|default:"Operación estadística" }}</span>{% endif %}
+                {% if producto.cobertura_geografica %}<span><i class="fas fa-map-marker-alt" aria-hidden="true"></i> {{ producto.cobertura_geografica }}</span>{% endif %}
+                {% if producto.periodo_referencia %}<span><i class="fas fa-calendar-alt" aria-hidden="true"></i> {{ producto.periodo_referencia }}</span>{% endif %}
+                {% if producto.institucion %}<span><i class="fas fa-building" aria-hidden="true"></i> {{ producto.institucion }}</span>{% endif %}
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- PRESENTACIÓN FIJA (antes de tabs) -->
+{% if presentacion_secciones %}
+<div class="est-wrap" id="estPresentacion">
+    {% for seccion in presentacion_secciones %}
+    <details class="est-accordion est-accordion-presentacion" {% if forloop.first %}open{% endif %}>
+        <summary class="est-accordion-h">
+            <span>{{ seccion.titulo|default:seccion.get_tipo_seccion_display }}</span>
+            <i class="fas fa-chevron-down est-arrow"></i>
+        </summary>
+        <div class="est-accordion-b">
+            {% include "indicadores/_seccion_bloque.html" with seccion=seccion %}
+        </div>
+    </details>
+    {% endfor %}
+    <div class="est-presentacion-toggle">
+        <button class="btn-descarga" onclick="estTogglePresentacion()" id="btnTogglePresentacion">
+            <i class="fas fa-eye-slash"></i> <span>Ver menos presentación</span>
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- TABS -->
+<div class="est-tabs-wrap">
+    <nav class="est-tabs" id="estTabsNav">
+        {% for tab in tabs %}
+        <button class="est-tab{% if forloop.first %} active{% endif %}"
+                data-tab="tab-{{ tab.key }}"
+                onclick="estSwitchTab(this)">
+            {{ tab.label }}
+        </button>
+        {% endfor %}
+    </nav>
+</div>
+
+{% if producto.temas_relacionados.exists %}
+<div class="est-temas-bar">
+    <span class="est-temas-label"><i class="fas fa-tags" aria-hidden="true"></i> Temas relacionados:</span>
+    {% for tema in producto.temas_relacionados.all %}
+    <a href="{{ tema.get_absolute_url }}" class="est-tema-chip">{{ tema.nombre }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="est-wrap">
+    {% for tab in tabs %}
+    <section id="tab-{{ tab.key }}" class="est-panel{% if forloop.first %} active{% endif %}">
+        {% if tab.sub_tabs %}
+        <!-- Sub-tabs -->
+        <nav class="est-sub-tabs" id="subTabsNav-{{ tab.key }}">
+            {% for sub in tab.sub_tabs %}
+            <button class="est-sub-tab{% if forloop.first %} active{% endif %}"
+                    data-sub-tab="subtab-{{ tab.key }}-{{ forloop.counter }}"
+                    onclick="estSwitchSubTab(this, '{{ tab.key }}')">
+                {{ sub.label }}
+            </button>
+            {% endfor %}
+        </nav>
+        {% for sub in tab.sub_tabs %}
+        <div id="subtab-{{ tab.key }}-{{ forloop.counter }}" class="est-sub-panel{% if forloop.first %} active{% endif %}">
+            {% for seccion in sub.secciones %}
+            <div class="est-accordion-static">
+                <div class="est-accordion-b">
+                    {% include "indicadores/_seccion_bloque.html" with seccion=seccion %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% for seccion in tab.secciones %}
+        <details class="est-accordion" {% if forloop.first and not tab.sub_tabs %}open{% endif %}>
+            <summary class="est-accordion-h">
+                <span>
+                    {% if seccion.subnumero %}{{ seccion.subnumero }}{% else %}{{ seccion.numero_orden }}{% endif %}. {{ seccion.titulo|default:seccion.get_tipo_seccion_display }}
+                </span>
+                <i class="fas fa-chevron-down est-arrow"></i>
+            </summary>
+            <div class="est-accordion-b">
+                {% include "indicadores/_seccion_bloque.html" with seccion=seccion %}
+            </div>
+        </details>
+        {% endfor %}
+    </section>
+    {% endfor %}
+</div>
+
+<footer class="est-sticky-footer">
+    <button class="btn-descarga" onclick="window.print()">
+        <i class="fas fa-print"></i> Imprimir / PDF
+    </button>
+</footer>
+
+{% else %}
+<!-- ================================================================ -->
+<!-- LAYOUT PRODUCTO ACADEMICO CLASICO (sidebar)                        -->
+<!-- ================================================================ -->
+<div class="paper-container">
+    <aside class="paper-sidebar">
+        <h6>Contenido</h6>
+        <ul>
+            {% for seccion in secciones %}
+            <li class="{% if seccion.subnumero %}nav-subsection{% endif %}">
+                <a href="#seccion-{{ seccion.id }}">
+                    {% if seccion.subnumero %}{{ seccion.subnumero }}{% else %}{{ seccion.numero_orden }}{% endif %}. {{ seccion.titulo|default:seccion.get_tipo_seccion_display }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    <main class="paper-main">
+        {% if preview %}
+        <div class="preview-banner">
+            <i class="fas fa-eye"></i>
+            <span>Modo preview — Este paper está en estado "{{ producto.get_estado_display }}" y aún no es visible al público.</span>
+        </div>
+        {% endif %}
+        <header class="paper-header">
+            <h1>{{ producto.titulo }}</h1>
+            <div class="paper-meta">
+                {% if producto.autor %}
+                <div class="meta-item"><span class="meta-label">Autor:</span> {{ producto.autor }}</div>
+                {% endif %}
+                {% if producto.institucion %}
+                <div class="meta-item"><span class="meta-label">Institución:</span> {{ producto.institucion }}</div>
+                {% endif %}
+                {% if producto.area_tematica %}
+                <div class="meta-item"><span class="meta-label">Área temática:</span> {{ producto.area_tematica }}</div>
+                {% endif %}
+                {% if producto.fecha_publicacion %}
+                <div class="meta-item"><span class="meta-label">Publicado:</span> {{ producto.fecha_publicacion|date:"F Y" }}</div>
+                {% endif %}
+            </div>
+            {% if producto.palabras_clave %}
+            <div class="paper-meta" style="margin-top: 0.75rem;">
+                <div class="meta-item"><span class="meta-label">Palabras clave:</span> {{ producto.palabras_clave }}</div>
+            </div>
+            {% endif %}
+        </header>
+
+        {% if producto.resumen %}
+        <section class="paper-section" id="resumen">
+            <h2>Resumen</h2>
+            <div class="paper-texto"><p>{{ producto.resumen }}</p></div>
+        </section>
+        {% endif %}
+
+        {% for seccion in secciones %}
+        <section class="paper-section" id="seccion-{{ seccion.id }}">
+            {% if seccion.titulo %}
+            <h2>{% if seccion.subnumero %}{{ seccion.subnumero }}{% else %}{{ seccion.numero_orden }}{% endif %}. {{ seccion.titulo }}</h2>
+            {% endif %}
+            {% include "indicadores/_seccion_bloque.html" with seccion=seccion %}
+        </section>
+        {% endfor %}
+
+        <footer class="paper-footer">
+            <p>Producto académico del Sistema Integrado de Información Estadística Distrital (SIIED)</p>
+            <p>{{ request.build_absolute_uri }}</p>
+            <div class="footer-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn-descarga" onclick="window.print()">
+                    <i class="fas fa-print"></i> Imprimir / PDF
+                </button>
+            </div>
+        </footer>
+    </main>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js" async></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Verificar que Plotly esté disponible
+        if (typeof Plotly === 'undefined') {
+            console.error('[ProductoAcademico] Plotly.js no está cargado.');
+            return;
+        }
+
+        // =====================================================================
+        // GRÁFICOS DE INDICADOR (existente)
+        // =====================================================================
+        function cargarGraficoIndicador(container) {
+            const indicadorId = container.dataset.indicadorId;
+            if (!indicadorId) return;
+
+            const config = JSON.parse(container.dataset.config || '{}');
+            const graficoDivId = container.querySelector('.grafico-container').id;
+            const loadingDiv = container.querySelector('.grafico-loading');
+
+            const urlDesagregaciones = `{% url 'indicadores:api_get_desagregaciones' 0 %}`.replace('/0/', `/${indicadorId}/`);
+            const urlGraficos = `{% url 'indicadores:api_get_graficos' 0 %}`.replace('/0/', `/${indicadorId}/`);
+
+            Promise.all([
+                fetch(urlDesagregaciones).then(r => r.json()),
+                fetch(urlGraficos).then(r => r.json())
+            ])
+            .then(([desagregaciones, graficos]) => {
+                if (loadingDiv) loadingDiv.style.display = 'none';
+
+                const graficoDiv = document.getElementById(graficoDivId);
+                if (!graficoDiv || !Array.isArray(graficos) || graficos.length === 0 || !graficos[0].series || graficos[0].series.length === 0) {
+                    graficoDiv.innerHTML = '<p class="text-muted text-center">No hay datos disponibles para este indicador.</p>';
+                    return;
+                }
+
+                const grafico = graficos[0];
+                const layout = grafico.layout || {};
+                layout.margin = { t: 40, r: 20, b: 60, l: 60 };
+                layout.paper_bgcolor = 'rgba(0,0,0,0)';
+                layout.plot_bgcolor = 'rgba(0,0,0,0)';
+                layout.font = { family: 'Inter, system-ui, sans-serif', size: 12, color: '#333' };
+                layout.legend = { orientation: 'h', y: -0.15 };
+
+                const plotlyConfig = {
+                    responsive: true,
+                    displayModeBar: true,
+                    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+                    locale: 'es'
+                };
+
+                Plotly.newPlot(graficoDiv.id, grafico.series, layout, plotlyConfig);
+            })
+            .catch(err => {
+                console.error('[ProductoAcademico] Error cargando gráfico:', err);
+                if (loadingDiv) {
+                    loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar el gráfico.</span>';
+                }
+            });
+        }
+
+        // =====================================================================
+        // MAPA GEOGRÁFICO (Plotly choropleth)
+        // =====================================================================
+        function cargarMapaIndicador(container) {
+            const indicadorId = container.dataset.indicadorId;
+            const seccionId = container.dataset.seccionId;
+            if (!indicadorId || !seccionId) return;
+
+            const config = JSON.parse(container.dataset.config || '{}');
+            const mapaDivId = 'mapa-seccion-' + seccionId;
+            const loadingDiv = document.getElementById('loading-mapa-' + seccionId);
+            const anioDefault = config.anio_default || null;
+
+            const urlGeoJSON = `{% url 'indicadores:api_geojson_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`);
+
+            fetch(urlGeoJSON)
+                .then(r => r.json())
+                .then(geojson => {
+                    if (!geojson.features || geojson.features.length === 0) {
+                        if (loadingDiv) loadingDiv.innerHTML = '<span class="text-muted">No hay capas geográficas disponibles para este indicador.</span>';
+                        return;
+                    }
+
+                    // Calcular centro y bounds del GeoJSON
+                    let minLat = Infinity, maxLat = -Infinity;
+                    let minLon = Infinity, maxLon = -Infinity;
+                    geojson.features.forEach(feature => {
+                        if (feature.geometry && feature.geometry.coordinates) {
+                            const coords = feature.geometry.coordinates;
+                            const flatCoords = coords.flat(3);
+                            for (let i = 0; i < flatCoords.length; i += 2) {
+                                const lon = flatCoords[i];
+                                const lat = flatCoords[i + 1];
+                                if (typeof lon === 'number' && typeof lat === 'number') {
+                                    minLon = Math.min(minLon, lon);
+                                    maxLon = Math.max(maxLon, lon);
+                                    minLat = Math.min(minLat, lat);
+                                    maxLat = Math.max(maxLat, lat);
+                                }
+                            }
+                        }
+                    });
+                    const centerLat = (minLat + maxLat) / 2;
+                    const centerLon = (minLon + maxLon) / 2;
+
+                    // Cargar valores geográficos para el año por defecto o el más reciente
+                    const urlValores = `{% url 'indicadores:api_valores_geo' 0 %}`.replace('/0/', `/${indicadorId}/`)
+                        + (anioDefault ? `?anio=${anioDefault}` : '');
+
+                    return fetch(urlValores)
+                        .then(r => r.json())
+                        .then(datosGeo => {
+                            const valoresPorCodigo = {};
+                            if (datosGeo.valores) {
+                                datosGeo.valores.forEach(item => {
+                                    if (item.codigo) valoresPorCodigo[item.codigo] = item.valor;
+                                });
+                            }
+
+                            const locations = [];
+                            const z = [];
+                            const text = [];
+
+                            geojson.features.forEach(feature => {
+                                const codigo = feature.properties.codigo;
+                                const nombre = feature.properties.nombre;
+                                const valor = valoresPorCodigo[codigo];
+
+                                locations.push(codigo);
+                                z.push(valor !== undefined ? valor : null);
+                                text.push(`${nombre}: ${valor !== null && valor !== undefined ? valor.toLocaleString('es-CO') : 'Sin datos'}`);
+                            });
+
+                            const data = [{
+                                type: 'choropleth',
+                                locationmode: 'geojson-id',
+                                locations: locations,
+                                z: z,
+                                text: text,
+                                geojson: geojson,
+                                featureidkey: 'properties.codigo',
+                                colorscale: [
+                                    [0, '#f7fafc'],
+                                    [0.2, '#bee3f8'],
+                                    [0.4, '#63b3ed'],
+                                    [0.6, '#3182ce'],
+                                    [0.8, '#2c5aa0'],
+                                    [1, '#1a365d']
+                                ],
+                                colorbar: {
+                                    title: { text: 'Valor', font: { size: 12 } },
+                                    thickness: 15,
+                                    len: 0.7
+                                },
+                                marker: { line: { color: 'white', width: 1 } },
+                                zauto: true
+                            }];
+
+                            const layout = {
+                                geo: {
+                                    showframe: false, showcoastlines: false, showland: false,
+                                    showocean: false, showlakes: false, showrivers: false,
+                                    showcountries: false, showsubunits: false,
+                                    bgcolor: 'rgba(240,240,240,0.3)',
+                                    projection: { type: 'mercator' },
+                                    center: { lat: centerLat, lon: centerLon },
+                                    lonaxis: { range: [minLon - 0.02, maxLon + 0.02] },
+                                    lataxis: { range: [minLat - 0.02, maxLat + 0.02] }
+                                },
+                                margin: { r: 0, t: 20, l: 0, b: 0 },
+                                height: 500,
+                                font: { family: 'Inter, system-ui, sans-serif', size: 11 },
+                                paper_bgcolor: 'white',
+                                plot_bgcolor: 'white'
+                            };
+
+                            const plotlyConfig = {
+                                responsive: true,
+                                displayModeBar: true,
+                                displaylogo: false,
+                                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+                                locale: 'es'
+                            };
+
+                            if (loadingDiv) loadingDiv.style.display = 'none';
+                            Plotly.newPlot(mapaDivId, data, layout, plotlyConfig);
+                        });
+                })
+                .catch(err => {
+                    console.error('[ProductoAcademico] Error cargando mapa:', err);
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar el mapa.</span>';
+                    }
+                });
+        }
+
+        // =====================================================================
+        // TABLA DE DATOS DE INDICADOR
+        // =====================================================================
+        function cargarTablaIndicador(container) {
+            const indicadorId = container.dataset.indicadorId;
+            const seccionId = container.dataset.seccionId;
+            if (!indicadorId || !seccionId) return;
+
+            const config = JSON.parse(container.dataset.config || '{}');
+            const tablaDivId = 'tabla-seccion-' + seccionId;
+            const loadingDiv = document.getElementById('loading-tabla-' + seccionId);
+            const limite = config.limite_filas || 100;
+            const anioDefault = config.anio_default;
+
+            // Usar el endpoint de datos de indicadores
+            let url = `{% url 'indicadores:api_get_datos_indicadores' %}?indicadores=${indicadorId}&limit=${limite}`;
+            if (anioDefault) {
+                url += `&anio_min=${anioDefault}&anio_max=${anioDefault}`;
+            }
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    const tablaDiv = document.getElementById(tablaDivId);
+
+                    if (!data.datos || data.datos.length === 0) {
+                        tablaDiv.innerHTML = '<p class="text-muted text-center">No hay datos disponibles para este indicador.</p>';
+                        return;
+                    }
+
+                    const columnas = Object.keys(data.datos[0]);
+                    let html = '<table><thead><tr>';
+                    columnas.forEach(col => {
+                        html += `<th>${col}</th>`;
+                    });
+                    html += '</tr></thead><tbody>';
+
+                    data.datos.forEach(row => {
+                        html += '<tr>';
+                        columnas.forEach(col => {
+                            const val = row[col];
+                            html += `<td>${val !== null && val !== undefined ? val : ''}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table>';
+                    tablaDiv.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('[ProductoAcademico] Error cargando tabla de indicador:', err);
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar la tabla.</span>';
+                    }
+                });
+        }
+
+        // =====================================================================
+        // TABLA DE MICRODATA
+        // =====================================================================
+        function cargarTablaConjuntoDatos(container) {
+            const conjuntoDatosId = container.dataset.conjuntoDatosId;
+            const seccionId = container.dataset.seccionId;
+            if (!conjuntoDatosId || !seccionId) return;
+
+            const config = JSON.parse(container.dataset.config || '{}');
+            const tablaDivId = 'conjunto-datos-seccion-' + seccionId;
+            const loadingDiv = document.getElementById('loading-conjunto-datos-' + seccionId);
+            const limite = config.limite_filas || 20;
+
+            // 1) Obtener detalle de conjunto de datos para saber el nombre del archivo CSV
+            const urlDetalle = `{% url 'indicadores:api_conjunto_datos_detail' 0 %}`.replace('/0/', `/${conjuntoDatosId}/`);
+
+            fetch(urlDetalle)
+                .then(r => r.json())
+                .then(detalle => {
+                    if (!detalle.success || !detalle.conjunto_datos || !detalle.conjunto_datos.archivo) {
+                        if (loadingDiv) loadingDiv.innerHTML = '<span class="text-danger">No se encontró el archivo de conjunto de datos.</span>';
+                        return;
+                    }
+                    const fileName = detalle.conjunto_datos.archivo;
+
+                    // 2) Obtener headers y rows usando el nombre del archivo
+                    const urlHeaders = `{% url 'indicadores:api_conjunto_datos_headers' %}?file=${encodeURIComponent(fileName)}`;
+                    const urlRows = `{% url 'indicadores:api_conjunto_datos_rows' %}?file=${encodeURIComponent(fileName)}&limit=${limite}`;
+
+                    return Promise.all([
+                        fetch(urlHeaders).then(r => r.json()),
+                        fetch(urlRows).then(r => r.json())
+                    ]);
+                })
+                .then(result => {
+                    if (!result) return; // Error ya manejado arriba
+                    const [headers, rowsData] = result;
+
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    const tablaDiv = document.getElementById(tablaDivId);
+
+                    const rows = rowsData.rows || [];
+                    if (rows.length === 0) {
+                        tablaDiv.innerHTML = '<p class="text-muted text-center">No hay datos disponibles para esta conjunto de datos.</p>';
+                        return;
+                    }
+
+                    const columnas = headers.columns || Object.keys(rows[0]);
+
+                    let html = '<table><thead><tr>';
+                    columnas.forEach(col => {
+                        html += `<th>${col}</th>`;
+                    });
+                    html += '</tr></thead><tbody>';
+
+                    rows.forEach(row => {
+                        html += '<tr>';
+                        columnas.forEach(col => {
+                            const val = row[col];
+                            html += `<td>${val !== null && val !== undefined ? val : ''}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table>';
+                    tablaDiv.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('[ProductoAcademico] Error cargando conjunto de datos:', err);
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar el conjunto de datos.</span>';
+                    }
+                });
+        }
+
+        // =====================================================================
+        // FICHA TÉCNICA DE INDICADOR
+        // =====================================================================
+        function cargarFichaIndicador(container) {
+            const indicadorId = container.dataset.indicadorId;
+            const seccionId = container.dataset.seccionId;
+            if (!indicadorId || !seccionId) return;
+
+            const fichaDivId = 'ficha-seccion-' + seccionId;
+            const loadingDiv = document.getElementById('loading-ficha-' + seccionId);
+
+            const url = `{% url 'indicadores:get_indicadores_simple' %}?indicador_id=${indicadorId}`;
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    const fichaDiv = document.getElementById(fichaDivId);
+
+                    const indicador = Array.isArray(data) && data.length > 0 ? data[0] : data;
+                    if (!indicador) {
+                        fichaDiv.innerHTML = '<p class="text-muted text-center">No se encontró información del indicador.</p>';
+                        return;
+                    }
+
+                    function fmt(val) {
+                        if (val === null || val === undefined || val === '' || val === 'null' || val === 'None') return 'N/A';
+                        return String(val);
+                    }
+
+                    function row(label, val) {
+                        return `<tr><th>${label}</th><td>${fmt(val)}</td></tr>`;
+                    }
+
+                    function sectionHeader(title) {
+                        return `<tr><th colspan="2" class="ficha-section-header">${title}</th></tr>`;
+                    }
+
+                    let html = '<table>';
+                    html += '<thead><tr><th>Campo</th><th>Información</th></tr></thead><tbody>';
+
+                    html += sectionHeader('0. Identificación del Indicador');
+                    html += row('0.1 Nombre', indicador.nombre);
+                    html += row('0.2 Código', indicador.codigo_indicador);
+                    html += row('0.3 Sigla', indicador.sigla);
+                    html += row('0.4 Grupo Indicador', indicador.grupo_indicador);
+
+                    html += sectionHeader('1. Contacto Institucional');
+                    html += row('1.1 Entidad o Institución Responsable', indicador.entidad_responsable);
+                    html += row('1.2 Entidad (organismo registrado)', indicador.organismo_responsable);
+                    html += row('1.3 Área o Dependencia Responsable', indicador.suborganismo);
+                    html += row('1.4 Correo Electrónico de Contacto', indicador.correo_contacto);
+                    html += row('1.5 Número Telefónico', indicador.telefono_contacto);
+                    html += row('1.6 Fecha de Publicación de los Metadatos', indicador.fecha_publicacion_metadatos);
+
+                    html += sectionHeader('2. Características del Indicador');
+                    html += row('2.1 Nombre del Indicador', indicador.nombre);
+                    html += row('2.2 Descripción del Indicador', indicador.descripcion_indicador);
+                    html += row('2.3 Objetivo', indicador.objetivo);
+                    html += row('2.4 Cálculo del Indicador / Método de Medición', indicador.metodo_medicion);
+                    html += row('2.5 Fórmula', indicador.formula_ficha);
+                    html += row('2.6 Variables', indicador.variables);
+                    html += row('2.7 Unidad de Medida', indicador.unidad_medida);
+                    html += row('2.8 Fuente de la Información', indicador.fuente_datos);
+                    html += row('2.9 Nombre de la Operación Estadística', indicador.operacion);
+                    html += row('2.10 Nombre del Conjunto de Datos', indicador.nombre_conjunto_datos);
+                    html += row('2.11 Nomenclaturas y Clasificaciones', indicador.nomenclaturas_clasificaciones);
+                    html += row('2.12 Alcance Temático', indicador.alcance_tematico);
+                    html += row('2.13 Población Objetivo', indicador.poblacion_objetivo);
+                    html += row('2.14 Cobertura Geográfica', indicador.cobertura_geografica);
+                    html += row('2.15 Período de Referencia', indicador.periodo_referencia);
+                    html += row('2.16 Período Base', indicador.periodo_base);
+
+                    html += sectionHeader('3. Difusión');
+                    html += row('3.1 Serie Histórica Disponible', indicador.serie_historica_disponible);
+                    html += row('3.2 Frecuencia de Difusión', indicador.frecuencia_difusion);
+                    html += row('3.3 Medios de Difusión', indicador.medios_difusion);
+
+                    html += sectionHeader('4. Comentarios Adicionales');
+                    html += row('4.1 Comentarios Adicionales', indicador.comentarios_adicionales);
+
+                    html += sectionHeader('5. Referencias');
+                    html += row('5.1 Referencias (APA 7)', indicador.referencias);
+
+                    html += sectionHeader('6. Responsabilidad Institucional');
+                    html += row('6.1 Organismo Responsable', indicador.organismo_responsable);
+                    html += row('6.2 Suborganismo Responsable', indicador.suborganismo);
+                    html += row('6.3 Equipo Responsable', indicador.equipo_responsable);
+
+                    html += '</tbody></table>';
+                    fichaDiv.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('[ProductoAcademico] Error cargando ficha técnica:', err);
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar la ficha técnica.</span>';
+                    }
+                });
+        }
+
+        // =====================================================================
+        // RESULTADO DESTACADO (KPI)
+        // =====================================================================
+        function cargarResultadoDestacado(container) {
+            const indicadorId = container.dataset.indicadorId;
+            const seccionId = container.dataset.seccionId;
+            if (!indicadorId || !seccionId) return;
+
+            const config = JSON.parse(container.dataset.config || '{}');
+            const kpiContainer = document.getElementById('kpi-seccion-' + seccionId);
+            const loadingDiv = document.getElementById('loading-kpi-' + seccionId);
+            const anioDefault = config.anio_default;
+
+            // Llamar al endpoint de datos de indicadores con límite alto para obtener el más reciente
+            let url = `{% url 'indicadores:api_get_datos_indicadores' %}?indicadores=${indicadorId}&limit=1000`;
+            if (anioDefault) {
+                url += `&anio_min=${anioDefault}&anio_max=${anioDefault}`;
+            }
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    if (!data.datos || data.datos.length === 0) {
+                        if (kpiContainer) {
+                            kpiContainer.style.display = 'block';
+                            document.getElementById('kpi-valor-' + seccionId).textContent = 'Sin datos';
+                        }
+                        return;
+                    }
+                    // Ordenar por año descendente y tomar el primero
+                    const sorted = data.datos.slice().sort((a, b) => (b['Año'] || 0) - (a['Año'] || 0));
+                    const latest = sorted[0];
+                    const valor = latest['Valor'];
+                    const anio = latest['Año'];
+
+                    if (kpiContainer) {
+                        kpiContainer.style.display = 'block';
+                        const valEl = document.getElementById('kpi-valor-' + seccionId);
+                        const yearEl = document.getElementById('kpi-anio-' + seccionId);
+                        if (valEl) valEl.textContent = (valor !== null && valor !== undefined) ? Number(valor).toLocaleString('es-CO') : '—';
+                        if (yearEl) yearEl.textContent = anio ? `Año ${anio}` : '';
+                    }
+                })
+                .catch(err => {
+                    console.error('[ProductoAcademico] Error cargando resultado destacado:', err);
+                    if (loadingDiv) {
+                        loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar el resultado.</span>';
+                    }
+                });
+        }
+
+        // =====================================================================
+        // DESCARGA DE TABLAS COMO CSV
+        // =====================================================================
+        function descargarTablaComoCSV(containerId, filename) {
+            const container = document.getElementById(containerId);
+            if (!container) { alert('Tabla no encontrada'); return; }
+            const table = container.querySelector('table');
+            if (!table) { alert('No hay tabla para descargar'); return; }
+
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('th, td');
+                const rowData = [];
+                cols.forEach(col => {
+                    let text = col.textContent.replace(/"/g, '""').trim();
+                    if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+                        text = '"' + text + '"';
+                    }
+                    rowData.push(text);
+                });
+                csv.push(rowData.join(','));
+            });
+
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // =====================================================================
+        // INICIALIZACIÓN DE TODOS LOS BLOQUES DINÁMICOS
+        // =====================================================================
+        document.querySelectorAll('.paper-grafico[data-indicador-id]').forEach(cargarGraficoIndicador);
+        document.querySelectorAll('.paper-mapa[data-indicador-id]').forEach(cargarMapaIndicador);
+        document.querySelectorAll('.paper-tabla[data-indicador-id]').forEach(cargarTablaIndicador);
+        document.querySelectorAll('.paper-tabla-conjunto-datos[data-conjunto-datos-id]').forEach(cargarTablaConjuntoDatos);
+        document.querySelectorAll('.paper-ficha[data-indicador-id]').forEach(cargarFichaIndicador);
+        document.querySelectorAll('.paper-resultado-destacado[data-indicador-id]').forEach(cargarResultadoDestacado);
+
+        // ================================================================
+        // TABS DEL LAYOUT ESTADISTICO
+        // ================================================================
+        window.estSwitchTab = function(btn) {
+            const tabId = btn.dataset.tab;
+            if (!tabId) return;
+
+            document.querySelectorAll('.est-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.est-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        };
+
+        window.estSwitchSubTab = function(btn, tabKey) {
+            const subTabId = btn.dataset.subTab;
+            if (!subTabId) return;
+
+            const container = document.getElementById('tab-' + tabKey);
+            if (!container) return;
+
+            container.querySelectorAll('.est-sub-tab').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            container.querySelectorAll('.est-sub-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(subTabId).classList.add('active');
+        };
+
+        window.estTogglePresentacion = function() {
+            const wrap = document.getElementById('estPresentacion');
+            const btn = document.getElementById('btnTogglePresentacion');
+            if (!wrap || !btn) return;
+            const isCollapsed = wrap.classList.toggle('est-presentacion-collapsed');
+            const icon = btn.querySelector('i');
+            const span = btn.querySelector('span');
+            if (isCollapsed) {
+                if (icon) icon.className = 'fas fa-eye';
+                if (span) span.textContent = 'Ver más presentación';
+            } else {
+                if (icon) icon.className = 'fas fa-eye-slash';
+                if (span) span.textContent = 'Ver menos presentación';
+            }
+        };
+
+        // =====================================================================
+        // VISOR COMPARATIVO EMBEBIDO
+        // =====================================================================
+        function cargarVisorComparativo(container) {
+            const indicadoresIds = JSON.parse(container.dataset.indicadores || '[]');
+            if (!indicadoresIds.length) return;
+            const seccionId = container.dataset.seccionId;
+            const loadingDiv = document.getElementById('loading-visor-' + seccionId);
+            const chartDiv = document.getElementById('visor-chart-' + seccionId);
+            const tableDiv = document.getElementById('visor-table-' + seccionId);
+            const idsParam = indicadoresIds.join(',');
+
+            fetch(`{% url 'indicadores:api_get_datos_indicadores' %}?indicadores=${idsParam}&limit=500`)
+                .then(r => r.json())
+                .then(datosResp => {
+                if (loadingDiv) loadingDiv.style.display = 'none';
+                if (!datosResp.datos || datosResp.datos.length === 0) {
+                    chartDiv.innerHTML = '<p class="text-muted text-center">No hay datos para los indicadores seleccionados.</p>';
+                    return;
+                }
+                const datos = datosResp.datos;
+                // Agrupar por indicador
+                const porIndicador = {};
+                datos.forEach(d => {
+                    const key = d.indicador_nombre || d.indicador_id;
+                    if (!porIndicador[key]) porIndicador[key] = [];
+                    porIndicador[key].push(d);
+                });
+                // Construir series para Plotly
+                const series = Object.keys(porIndicador).map(nombre => {
+                    const rows = porIndicador[nombre].sort((a,b) => (a.anio||0)-(b.anio||0));
+                    return {
+                        x: rows.map(r => String(r.anio || r.periodo)),
+                        y: rows.map(r => parseFloat(r.valor) || 0),
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        name: nombre,
+                        line: { width: 2.5 }
+                    };
+                });
+                const layout = {
+                    margin: { t: 40, r: 20, b: 60, l: 60 },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: { family: 'Inter, system-ui, sans-serif', size: 12, color: '#333' },
+                    legend: { orientation: 'h', y: -0.2 },
+                    xaxis: { title: 'Año', gridcolor: '#eee' },
+                    yaxis: { title: 'Valor', gridcolor: '#eee' },
+                    hovermode: 'closest'
+                };
+                Plotly.newPlot(chartDiv.id, series, layout, { responsive: true, displayModeBar: false });
+                // Tabla comparativa
+                let thead = '<tr><th>Año</th>';
+                Object.keys(porIndicador).forEach(n => { thead += `<th>${n}</th>`; });
+                thead += '</tr>';
+                const years = [...new Set(datos.map(d => d.anio || d.periodo).filter(Boolean))].sort();
+                let tbody = '';
+                years.forEach(y => {
+                    tbody += `<tr><td>${y}</td>`;
+                    Object.keys(porIndicador).forEach(n => {
+                        const val = porIndicador[n].find(r => (r.anio||r.periodo) == y);
+                        tbody += `<td>${val ? val.valor : '—'}</td>`;
+                    });
+                    tbody += '</tr>';
+                });
+                tableDiv.innerHTML = `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+            }).catch(err => {
+                console.error('[VisorComparativo] Error:', err);
+                if (loadingDiv) loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error cargando visor.</span>';
+            });
+        }
+
+        // =====================================================================
+        // TABLA DINÁMICA DE MICRODATA
+        // =====================================================================
+        function cargarTablaDinamicaConjuntoDatos(container) {
+            const conjuntoDatosFile = container.dataset.conjuntoDatosFile;
+            const seccionId = container.dataset.seccionId;
+            if (!conjuntoDatosFile) return;
+            const loadingDiv = document.getElementById('loading-dinamica-' + seccionId);
+            const containerDiv = document.getElementById('dinamica-seccion-' + seccionId);
+            const url = `{% url 'indicadores:api_conjunto_datos_rows' %}?file=${encodeURIComponent(conjuntoDatosFile)}&limit=1000`;
+            fetch(url)
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(data => {
+                    if (loadingDiv) loadingDiv.style.display = 'none';
+                    if (!data || !data.rows || data.rows.length === 0) {
+                        containerDiv.innerHTML = '<p class="text-muted text-center">No hay registros disponibles para esta conjunto de datos.</p>';
+                        return;
+                    }
+                    const registros = data.rows;
+                    const columnas = data.columns || Object.keys(registros[0]);
+                    let html = '<div style="overflow-x:auto; position:relative; z-index:1;"><table class="pivot-table"><thead><tr>';
+                    columnas.forEach(col => { html += `<th>${col}</th>`; });
+                    html += '</tr></thead><tbody>';
+                    registros.forEach(row => {
+                        html += '<tr>';
+                        columnas.forEach(col => {
+                            const val = row[col];
+                            html += `<td>${val !== null && val !== undefined ? val : ''}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                    containerDiv.innerHTML = html;
+                }).catch(err => {
+                    console.error('[TablaDinamicaConjuntoDatos] Error:', err);
+                    if (loadingDiv) loadingDiv.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error cargando tabla dinámica.</span>';
+                });
+        }
+
+        // =====================================================================
+        // CARRUSEL
+        // =====================================================================
+        window.carruselState = window.carruselState || {};
+        window.carruselNext = function(seccionId) {
+            const carrusel = document.getElementById('carrusel-' + seccionId);
+            if (!carrusel) return;
+            const track = carrusel.querySelector('.carrusel-track');
+            const slides = track.querySelectorAll('.carrusel-slide');
+            const state = window.carruselState[seccionId] || 0;
+            const next = (state + 1) % slides.length;
+            window.carruselState[seccionId] = next;
+            track.style.transform = `translateX(-${next * 100}%)`;
+        };
+        window.carruselPrev = function(seccionId) {
+            const carrusel = document.getElementById('carrusel-' + seccionId);
+            if (!carrusel) return;
+            const track = carrusel.querySelector('.carrusel-track');
+            const slides = track.querySelectorAll('.carrusel-slide');
+            const state = window.carruselState[seccionId] || 0;
+            const prev = (state - 1 + slides.length) % slides.length;
+            window.carruselState[seccionId] = prev;
+            track.style.transform = `translateX(-${prev * 100}%)`;
+        };
+
+        // =====================================================================
+        // ACORDEÓN
+        // =====================================================================
+        window.toggleAcordeon = function(btn) {
+            const item = btn.closest('.acordeon-item');
+            if (!item) return;
+            const isOpen = item.classList.contains('open');
+            // Cerrar todos los demás en el mismo acordeón (comportamiento tipo acordeón)
+            const acordeon = item.closest('.paper-acordeon');
+            if (acordeon) {
+                acordeon.querySelectorAll('.acordeon-item.open').forEach(el => {
+                    if (el !== item) el.classList.remove('open');
+                });
+            }
+            item.classList.toggle('open', !isOpen);
+        };
+
+        // =====================================================================
+        // INICIALIZACIÓN DE NUEVOS BLOQUES
+        // =====================================================================
+        document.querySelectorAll('.paper-visor-comparativo[data-indicadores]').forEach(cargarVisorComparativo);
+        document.querySelectorAll('.paper-tabla-dinamica-conjunto-datos[data-conjunto-datos-id]').forEach(cargarTablaDinamicaConjuntoDatos);
+    });
+</script>
+{% endblock %}

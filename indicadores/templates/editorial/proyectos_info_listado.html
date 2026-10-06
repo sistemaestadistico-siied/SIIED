@@ -1,0 +1,116 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Productos de Información — Editorial SIIED{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+    <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-3">
+            <span class="bg-teal-100 text-teal-700 p-2.5 rounded-xl">
+                <i class="fas fa-project-diagram"></i>
+            </span>
+            Productos de Información
+        </h1>
+        <p class="mt-1 text-slate-500 ml-12">Observatorios y sistemas sectoriales de otras dependencias</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'indicadores:editorial_categoria_proyecto_crear' %}" class="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-medium text-sm hover:bg-slate-200 transition-colors">
+            <i class="fas fa-folder-plus mr-2"></i>Nueva Categoría
+        </a>
+        <a href="{% url 'indicadores:editorial_proyecto_info_crear' %}" class="px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium text-sm hover:bg-teal-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-2"></i>Nuevo Producto
+        </a>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="mb-6 flex flex-wrap gap-2">
+    <a href="{% url 'indicadores:editorial_proyectos_info' %}" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if not categoria_filtro and not estado_filtro %}bg-teal-100 text-teal-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">
+        Todos
+    </a>
+    {% for cat in categorias %}
+    <a href="?categoria={{ cat.id }}" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if categoria_filtro == cat.id|stringformat:'d' %}bg-teal-100 text-teal-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">
+        {{ cat.nombre }}
+    </a>
+    {% endfor %}
+    <span class="text-slate-300 mx-1">|</span>
+    <a href="?estado=activo" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if estado_filtro == 'activo' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">Activos</a>
+    <a href="?estado=en_desarrollo" class="px-3 py-1.5 rounded-lg text-sm font-medium {% if estado_filtro == 'en_desarrollo' %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %} transition-colors">En desarrollo</a>
+</div>
+
+<!-- Categorías (editable) -->
+{% if categorias %}
+<div class="mb-6">
+    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Categorías</h3>
+    <div class="flex flex-wrap gap-2">
+        {% for cat in categorias %}
+        <a href="{% url 'indicadores:editorial_categoria_proyecto_editar' cat.pk %}" class="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 hover:border-teal-300 hover:bg-teal-50 transition-colors">
+            {% if cat.icono %}<i class="{{ cat.icono }} text-xs"></i>{% endif %}
+            {{ cat.nombre }}
+            <span class="text-xs text-slate-400">({{ cat.proyectos.count }})</span>
+            <i class="fas fa-pencil-alt text-xs text-slate-400"></i>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Producto</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Categoría</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Responsable</th>
+                    <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for proyecto in proyectos %}
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-900">{{ proyecto.nombre }}</div>
+                        {% if proyecto.url %}<div class="text-xs text-slate-400 truncate max-w-xs">{{ proyecto.url }}</div>{% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ proyecto.categoria.nombre }}</td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ proyecto.dependencia_responsable|default:"-" }}</td>
+                    <td class="px-6 py-4 text-center">
+                        {% if proyecto.estado == 'activo' %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Activo</span>
+                        {% elif proyecto.estado == 'en_desarrollo' %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">En desarrollo</span>
+                        {% elif proyecto.estado == 'mantenimiento' %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-700">Mantenimiento</span>
+                        {% else %}
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{% url 'indicadores:editorial_proyecto_info_editar' proyecto.pk %}" class="text-teal-600 hover:text-teal-800 text-sm font-medium mr-3">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="{% url 'indicadores:editorial_proyecto_info_eliminar' proyecto.pk %}" class="text-rose-500 hover:text-rose-700 text-sm font-medium">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                        <i class="fas fa-project-diagram text-4xl mb-3 block"></i>
+                        No hay productos de información registrados
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

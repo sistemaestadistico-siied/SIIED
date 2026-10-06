@@ -1,0 +1,271 @@
+{% load static %}
+<div class="filter-manual" style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; padding: 20px; margin: 15px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: var(--admin-shadow);">
+    <h3 style="color: var(--admin-text); margin-top: 0; border-bottom: 2px solid var(--admin-primary); padding-bottom: 10px;">
+        🔍 Manual de Filtros para Extracción de Datos
+    </h3>
+    
+    <div style="margin-bottom: 20px;">
+        <p style="color: var(--admin-text);"><strong>Los filtros permiten seleccionar subconjuntos específicos de datos del CSV antes de aplicar las fórmulas de cálculo.</strong></p>
+    </div>
+
+    <div class="filter-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-success); margin-bottom: 10px;">🔧 Formato JSON de Filtros</h4>
+        
+        <div style="margin-left: 15px;">
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <p style="margin: 0 0 8px 0; font-size: 13px; color: var(--admin-text);"><strong>Formato básico:</strong></p>
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 8px; border-radius: 3px; display: block; white-space: pre-wrap;">{"nombre_columna": "valor_a_filtrar"}</code>
+                <p style="margin: 8px 0 0 0; font-size: 13px; color: var(--admin-text);">Los filtros deben estar en formato JSON válido con comillas dobles.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-accent); margin-bottom: 10px;">📋 Tipos de Filtros Soportados</h4>
+        
+        <div style="margin-left: 15px;">
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">1. Filtro de Igualdad Exacta</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"Ciudad": "Santiago de Cali"}</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Solo procesa filas donde la columna "Ciudad" sea exactamente "Santiago de Cali"</p>
+            </div>
+
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">2. Filtro por Área Geográfica</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"ÁREA GEOGRÁFICA": "Cabecera Municipal"}</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Filtra solo datos del área urbana principal</p>
+            </div>
+
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">3. Filtro por Año</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"AÑO": "2023"}</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Procesa únicamente datos del año 2023</p>
+            </div>
+
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">4. Filtros Múltiples (AND)</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px; display: block; white-space: pre-wrap;">{
+  "Ciudad": "Santiago de Cali",
+  "ÁREA GEOGRÁFICA": "Total",
+  "AÑO": "2023"
+}</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Todas las condiciones deben cumplirse simultáneamente</p>
+            </div>
+
+            <h5 style="color: var(--admin-muted); margin-bottom: 8px;">5. Filtro por Tipo de Dato</h5>
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"Tipo": "Nacimientos"}</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);">Filtra por categoría específica de datos</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-error); margin-bottom: 10px;">⚠️ Cómo Funcionan los Filtros</h4>
+        
+        <div style="margin-left: 15px; background: var(--admin-panel-2); border: 1px solid var(--admin-warning); padding: 15px; border-radius: 5px; border-left: 4px solid var(--admin-warning);">
+            <p style="margin: 0 0 10px 0; color: var(--admin-text);"><strong>Los filtros se aplican ANTES del procesamiento cartesiano:</strong></p>
+            <ul style="margin: 0; padding-left: 20px; color: var(--admin-text);">
+                <li>Se cargan todas las filas del CSV</li>
+                <li>Se aplican los filtros para seleccionar solo las filas que cumplen las condiciones</li>
+                <li>Solo las filas filtradas se procesan con el algoritmo cartesiano</li>
+                <li>Las fórmulas se evalúan únicamente sobre los datos filtrados</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="filter-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-primary-2); margin-bottom: 10px;">📊 Ejemplos Prácticos por Caso de Uso</h4>
+        
+        <div style="margin-left: 15px;">
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-accent); padding: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid var(--admin-accent);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Ejemplo 1: Población Solo Urbana</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Objetivo:</strong> Calcular indicadores solo para el área urbana</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Filtro:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"ÁREA GEOGRÁFICA": "Cabecera Municipal"}</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> Solo se procesan filas con datos urbanos</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-success); padding: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid var(--admin-success);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Ejemplo 2: Datos de un Año Específico</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Objetivo:</strong> Análisis retrospectivo del año 2020</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Filtro:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"AÑO": "2020"}</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> Solo datos del 2020, ignorando otros años</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-error); padding: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid var(--admin-error);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Ejemplo 3: Filtro Combinado Complejo</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Objetivo:</strong> Nacimientos urbanos en Cali durante 2023</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Filtro:</strong></p>
+                <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 8px; border-radius: 3px; display: block; white-space: pre-wrap; font-size: 12px;">{
+  "Ciudad": "Santiago de Cali",
+  "ÁREA GEOGRÁFICA": "Cabecera Municipal",
+  "AÑO": "2023",
+  "Tipo_Evento": "Nacimiento"
+}</code>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> Solo nacimientos urbanos de Cali en 2023</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-primary); padding: 12px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid var(--admin-primary);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Ejemplo 4: Filtro por Categoría de Establecimiento</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Objetivo:</strong> Solo datos de hospitales públicos</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Filtro:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"Tipo_Establecimiento": "Hospital", "Sector": "Público"}</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> Excluye clínicas privadas y otros tipos</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-warning); margin-bottom: 10px;">🚨 Casos Especiales y Consideraciones</h4>
+        
+        <div style="margin-left: 15px;">
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 12px; border-radius: 5px; margin-bottom: 10px;">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Sin Filtros (Procesar Todo)</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Dejar vacío o usar:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{}</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);">Procesa todas las filas del CSV sin restricciones</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 12px; border-radius: 5px; margin-bottom: 10px;">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Valores con Espacios o Caracteres Especiales</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Correcto:</strong> <code style="color: var(--admin-primary); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"ÁREA GEOGRÁFICA": "Centros Poblados y Rural Disperso"}</code></p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);">Usar comillas dobles y el texto exacto como aparece en el CSV</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-border-soft); padding: 12px; border-radius: 5px; margin-bottom: 10px;">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Filtros Sensibles a Mayúsculas</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Importante:</strong> "Cali" ≠ "CALI" ≠ "cali"</p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);">Usar exactamente el mismo formato que aparece en el archivo CSV</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section" style="margin-bottom: 25px;">
+        <h4 style="color: var(--admin-error); margin-bottom: 10px;">❌ Errores Comunes</h4>
+        
+        <div style="margin-left: 15px;">
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-error); padding: 12px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid var(--admin-error);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">❌ JSON Inválido</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Incorrecto:</strong> <code style="color: var(--admin-error); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{'Ciudad': 'Cali'}</code> (comillas simples)</p>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Incorrecto:</strong> <code style="color: var(--admin-error); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{Ciudad: "Cali"}</code> (clave sin comillas)</p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Correcto:</strong> <code style="color: var(--admin-success); background: var(--admin-bg-soft); padding: 2px 6px; border-radius: 3px;">{"Ciudad": "Cali"}</code></p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-warning); padding: 12px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid var(--admin-warning);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">⚠️ Nombres de Columnas Incorrectos</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Error:</strong> Usar nombres que no existen en el CSV</p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Solución:</strong> Verificar los nombres exactos en el archivo CSV original</p>
+            </div>
+
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-warning); padding: 12px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid var(--admin-warning);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">⚠️ Filtros Demasiado Restrictivos</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);"><strong>Problema:</strong> Filtros que no coinciden con ninguna fila</p>
+                <p style="margin: 0; font-size: 13px; color: var(--admin-text);"><strong>Resultado:</strong> No se generan datos para el indicador</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section" style="margin-bottom: 20px;">
+        <h4 style="color: var(--admin-success); margin-bottom: 10px;">💡 Consejos de Uso</h4>
+        
+        <div style="margin-left: 15px;">
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.6; color: var(--admin-text);">
+                <li><strong>Empezar sin filtros:</strong> Procesa todo primero para entender la estructura</li>
+                <li><strong>Validar JSON:</strong> Usa herramientas online para verificar la sintaxis JSON</li>
+                <li><strong>Probar incrementalmente:</strong> Añade filtros uno por uno para identificar problemas</li>
+                <li><strong>Revisar el CSV:</strong> Abre el archivo en Excel/LibreOffice para ver los valores exactos</li>
+                <li><strong>Usar el diagnóstico:</strong> El botón "Diagnosticar" muestra qué filas coinciden con los filtros</li>
+                <li><strong>Logs detallados:</strong> Usa verbosity alta para ver qué filtros se aplican</li>
+                <li><strong>Filtros geográficos:</strong> Muy útiles para indicadores por zona específica</li>
+                <li><strong>Filtros temporales:</strong> Esenciales para análisis de series de tiempo</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <h4 style="color: var(--admin-primary); margin-bottom: 10px;">🔧 Herramientas de Depuración</h4>
+        
+        <div style="margin-left: 15px;">
+            <div style="background: var(--admin-panel-2); border: 1px solid var(--admin-primary); padding: 12px; border-radius: 5px; border-left: 4px solid var(--admin-primary);">
+                <h6 style="margin: 0 0 8px 0; color: var(--admin-text);">Comando de Diagnóstico</h6>
+                <p style="margin: 0 0 5px 0; font-size: 13px; color: var(--admin-text);">Usa el botón <strong>"Diagnosticar"</strong> en la regla para ver:</p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--admin-text);">
+                    <li>Cuántas filas coinciden con los filtros</li>
+                    <li>Ejemplos de filas filtradas</li>
+                    <li>Columnas disponibles en el CSV</li>
+                    <li>Valores únicos por columna</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 20px; padding: 10px; background: var(--admin-bg-soft); border: 1px solid var(--admin-border); border-radius: 5px; text-align: center;">
+        <small style="color: var(--admin-muted);">
+            📖 Este manual está basado en el algoritmo real implementado en 
+            <code style="color: var(--admin-primary); background: var(--admin-panel); padding: 2px 6px; border-radius: 3px;">procesar_conjunto_datos_cartesiano.py</code>
+        </small>
+    </div>
+</div>
+
+<style>
+/* Estilos responsivos para el manual de filtros */
+@media (max-width: 768px) {
+    .filter-manual {
+        padding: 15px !important;
+        margin: 10px 0 !important;
+    }
+    
+    .filter-manual code {
+        word-break: break-all;
+    }
+    
+    .filter-manual div[style*="margin-left: 15px"] {
+        margin-left: 10px !important;
+    }
+}
+
+/* Mejoras de accesibilidad y compatibilidad con temas */
+.filter-manual h3, .filter-manual h4, .filter-manual h5, .filter-manual h6 {
+    font-weight: 600;
+}
+
+.filter-manual ul li {
+    margin-bottom: 4px;
+}
+
+/* Transiciones suaves para cambios de tema */
+.filter-manual, 
+.filter-manual div, 
+.filter-manual code {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Asegurar que el manual se adapte correctamente a todos los temas */
+[data-theme] .filter-manual {
+    background: var(--admin-panel) !important;
+    border-color: var(--admin-border) !important;
+    color: var(--admin-text) !important;
+}
+
+[data-theme] .filter-manual h3,
+[data-theme] .filter-manual h4,
+[data-theme] .filter-manual h5,
+[data-theme] .filter-manual h6,
+[data-theme] .filter-manual p,
+[data-theme] .filter-manual li,
+[data-theme] .filter-manual small {
+    color: var(--admin-text) !important;
+}
+
+[data-theme] .filter-manual code {
+    color: var(--admin-primary) !important;
+    background: var(--admin-bg-soft) !important;
+}
+
+/* Ajustes específicos para tema oscuro */
+[data-theme="dark"] .filter-manual {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme="dark"] .filter-manual code {
+    background: var(--admin-panel-2) !important;
+}
+</style>

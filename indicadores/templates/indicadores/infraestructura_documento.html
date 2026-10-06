@@ -1,0 +1,337 @@
+{% extends 'indicadores/infraestructura_navegacion.html' %}
+{% load static %}
+
+{% block title %}{{ documento.nombre }} - Infraestructura de Información - SIIED{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .document-header {
+        background: linear-gradient(135deg,rgb(42, 155, 247) 0%,rgb(141, 192, 240) 100%);
+        color: white;
+        padding: 2rem;
+        margin: -2rem -2rem 2rem -2rem;
+    }
+    
+    .document-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .document-meta .meta-item {
+        display: flex;
+        align-items: center;
+        background: rgba(255,255,255,0.1);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+    }
+    
+    .document-meta .meta-item i {
+        margin-right: 0.5rem;
+    }
+    
+    .document-content {
+        line-height: 1.6;
+        font-size: 1rem;
+    }
+    
+    .document-content h1,
+    .document-content h2,
+    .document-content h3,
+    .document-content h4,
+    .document-content h5,
+    .document-content h6 {
+        color: #495057;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .document-content h1 {
+        font-size: 1.75rem;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 0.5rem;
+    }
+    
+    .document-content h2 {
+        font-size: 1.5rem;
+        color: #0066cc;
+    }
+    
+    .document-content h3 {
+        font-size: 1.25rem;
+    }
+    
+    .document-content p {
+        margin-bottom: 1rem;
+        text-align: justify;
+    }
+    
+    .document-content ul,
+    .document-content ol {
+        margin-bottom: 1rem;
+        padding-left: 2rem;
+    }
+    
+    .document-content li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .document-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1.5rem 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .document-content table th,
+    .document-content table td {
+        padding: 0.75rem;
+        text-align: left;
+        border: 1px solid #dee2e6;
+    }
+    
+    .document-content table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .document-content table tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+    
+    .document-content blockquote {
+        border-left: 4px solid #0066cc;
+        margin: 1.5rem 0;
+        padding: 1rem 1.5rem;
+        background: #f8f9fa;
+        font-style: italic;
+    }
+    
+    .document-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin: 1rem 0;
+    }
+    
+    .document-actions {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-top: 2rem;
+        border: 1px solid #e9ecef;
+    }
+    
+    .document-actions h6 {
+        margin-bottom: 1rem;
+        color: #495057;
+    }
+    
+    .document-actions .btn {
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    
+    .status-publicado {
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #198754;
+    }
+    
+    .status-aprobado {
+        background-color: rgba(13, 202, 240, 0.1);
+        color: #0dcaf0;
+    }
+    
+    .status-revision {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+    
+    .status-borrador {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #6c757d;
+    }
+    
+    .document-toc {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .document-toc h6 {
+        margin-bottom: 1rem;
+        color: #495057;
+    }
+    
+    .document-toc ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+    
+    .document-toc li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .document-toc a {
+        color: #0066cc;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    
+    .document-toc a:hover {
+        text-decoration: underline;
+    }
+    
+    .print-version {
+        display: none;
+    }
+    
+    @media print {
+        .sidebar-nav,
+        .breadcrumb-custom,
+        .document-actions,
+        .back-button {
+            display: none !important;
+        }
+        
+        .infraestructura-container {
+            display: block;
+        }
+        
+        .content-area {
+            width: 100%;
+            padding: 0;
+        }
+        
+        .document-header {
+            background:rgb(79, 175, 253) !important;
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+        }
+        
+        .print-version {
+            display: block;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 2rem;
+            border-top: 1px solid #e9ecef;
+            padding-top: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block infraestructura_content %}
+<div class="content-header p-0">
+    <a href="{% url 'indicadores:infraestructura_grupo' area.slug categoria.slug subcategoria.slug grupo_documento.slug %}" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Volver a {{ grupo_documento.nombre }}
+    </a>
+    
+    <div class="document-header">
+        <div class="d-flex align-items-start justify-content-between px-4">
+            <div class="flex-grow-1">
+                <h1 class="mb-3">{{ documento.nombre }}</h1>
+                {% if documento.descripcion %}
+                    <p class="lead mb-0 opacity-75">{{ documento.descripcion }}</p>
+                {% endif %}
+                
+                <div class="document-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-tag"></i>
+                        {{ documento.get_tipo_documento_display }}
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-circle status-indicator"></i>
+                        <span class="status-badge status-{{ documento.estado }}">{{ documento.get_estado_display }}</span>
+                    </div>
+                    {% if documento.version %}
+                        <div class="meta-item">
+                            <i class="fas fa-code-branch"></i>
+                            {{ documento.version }}
+                        </div>
+                    {% endif %}
+                    {% if documento.autor %}
+                        <div class="meta-item">
+                            <i class="fas fa-user"></i>
+                            {{ documento.autor }}
+                        </div>
+                    {% endif %}
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        {{ documento.fecha_actualizacion|date:"d/m/Y" }}
+                    </div>
+                </div>
+            </div>
+            
+            {% if documento.destacado %}
+                <div class="ms-3">
+                    <span class="badge bg-warning">
+                        <i class="fas fa-star"></i>
+                        Destacado
+                    </span>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="content-body">
+    {% if documento.resumen_ejecutivo %}
+        <div class="document-toc">
+            <h6><i class="fas fa-list-ul me-2"></i>Resumen Ejecutivo</h6>
+            <p class="mb-0">{{ documento.resumen_ejecutivo }}</p>
+        </div>
+    {% endif %}
+    
+    <div class="document-content">
+        {{ documento.contenido|safe }}
+    </div>
+    
+    {% if documento.archivo_pdf or documento.archivo_word %}
+        <div class="document-actions">
+            <h6><i class="fas fa-download me-2"></i>Descargas disponibles</h6>
+            {% if documento.archivo_pdf %}
+                <a href="{{ documento.archivo_pdf.url }}" class="btn btn-outline-danger btn-sm" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i>
+                    Descargar PDF
+                </a>
+            {% endif %}
+            {% if documento.archivo_word %}
+                <a href="{{ documento.archivo_word.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                    <i class="fas fa-file-word me-1"></i>
+                    Descargar Word
+                </a>
+            {% endif %}
+            <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-print me-1"></i>
+                Imprimir
+            </button>
+        </div>
+    {% endif %}
+    
+    
+    <div class="print-version">
+        <p>Documento generado desde el Sistema Integrado de Información Estadística Distrital (SIIED)</p>
+        <p>{{ request.build_absolute_uri }}</p>
+        <p>Fecha de impresión: {% now "d/m/Y H:i" %}</p>
+    </div>
+</div>
+{% endblock %}

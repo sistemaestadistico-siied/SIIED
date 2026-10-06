@@ -1,0 +1,14 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block after_related_objects %}
+    {{ block.super }}
+    
+    {% if show_filter_manual %}
+        {% include "admin/filter_manual.html" %}
+    {% endif %}
+    
+    {% if show_formula_manual %}
+        {% include "admin/formula_manual.html" %}
+    {% endif %}
+{% endblock %}

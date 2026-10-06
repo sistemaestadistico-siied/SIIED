@@ -1,0 +1,107 @@
+{% extends "editorial/base_editorial.html" %}
+
+{% block title %}{% if evento %}Editar{% else %}Nuevo{% endif %} Evento — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <i class="fas fa-{% if evento %}edit{% else %}plus{% endif %} text-sky-500"></i>
+        {% if evento %}Editar Evento{% else %}Nuevo Evento{% endif %}
+    </h1>
+    <p class="mt-1 text-slate-500">{% if evento %}{{ evento.nombre }}{% else %}Completa la información del evento{% endif %}</p>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-3xl">
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Nombre -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.nombre.id_for_label }}">{{ form.nombre.label }}</label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}<p class="mt-1 text-sm text-red-600">{{ form.nombre.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Slug -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.slug.id_for_label }}">{{ form.slug.label }}</label>
+                {{ form.slug }}
+                {% if form.slug.errors %}<p class="mt-1 text-sm text-red-600">{{ form.slug.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Descripción -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.descripcion.id_for_label }}">{{ form.descripcion.label }}</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}<p class="mt-1 text-sm text-red-600">{{ form.descripcion.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Fecha inicio -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.fecha_inicio.id_for_label }}">{{ form.fecha_inicio.label }}</label>
+                {{ form.fecha_inicio }}
+                {% if form.fecha_inicio.errors %}<p class="mt-1 text-sm text-red-600">{{ form.fecha_inicio.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Fecha fin -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.fecha_fin.id_for_label }}">{{ form.fecha_fin.label }}</label>
+                {{ form.fecha_fin }}
+                {% if form.fecha_fin.errors %}<p class="mt-1 text-sm text-red-600">{{ form.fecha_fin.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Lugar -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.lugar.id_for_label }}">{{ form.lugar.label }}</label>
+                {{ form.lugar }}
+                {% if form.lugar.errors %}<p class="mt-1 text-sm text-red-600">{{ form.lugar.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Imagen URL -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.imagen_url.id_for_label }}">{{ form.imagen_url.label }}</label>
+                {{ form.imagen_url }}
+                {% if form.imagen_url.errors %}<p class="mt-1 text-sm text-red-600">{{ form.imagen_url.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- URL externa -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.url_externa.id_for_label }}">{{ form.url_externa.label }}</label>
+                {{ form.url_externa }}
+                {% if form.url_externa.errors %}<p class="mt-1 text-sm text-red-600">{{ form.url_externa.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Checkboxes -->
+            <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                {{ form.activo }}
+                <label class="text-sm font-medium text-slate-700 cursor-pointer" for="{{ form.activo.id_for_label }}">{{ form.activo.label }}</label>
+            </div>
+            <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+                {{ form.destacado }}
+                <label class="text-sm font-medium text-slate-700 cursor-pointer" for="{{ form.destacado.id_for_label }}">{{ form.destacado.label }}</label>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-between items-center pt-6 border-t border-slate-200">
+            <a href="{% url 'indicadores:editorial_eventos' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                <i class="fas fa-arrow-left"></i> Cancelar
+            </a>
+            <button type="submit" class="inline-flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-white rounded-xl font-medium shadow-sm hover:bg-sky-600 hover:shadow-md transition-all">
+                <i class="fas fa-save"></i> Guardar Evento
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Auto-generar slug desde nombre
+document.getElementById('id_nombre')?.addEventListener('input', function(e) {
+    const slug = e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const slugField = document.getElementById('id_slug');
+    if (slugField && !slugField.value) slugField.value = slug;
+});
+</script>
+{% endblock %}

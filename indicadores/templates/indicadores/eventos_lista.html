@@ -1,0 +1,228 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Calendario de Eventos - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-black/10">
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+    </div>
+    
+    <div class="relative container mx-auto px-4 py-16">
+        <div class="text-center">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-2xl mb-6">
+                <i class="fas fa-calendar-alt text-3xl text-white"></i>
+            </div>
+            <h1 class="text-4xl lg:text-5xl font-bold mb-4">
+                Calendario de Eventos
+            </h1>
+            <p class="text-xl text-primary-100 max-w-3xl mx-auto">
+                Eventos, talleres y actividades del Sistema Integrado de Información Estadística Distrital
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Eventos Futuros -->
+{% if eventos_futuros %}
+<div class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-calendar-plus text-primary-600 mr-3"></i>
+                Próximos Eventos
+            </h2>
+            <p class="text-gray-600 text-lg">
+                Eventos programados y actividades por venir
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for evento in eventos_futuros %}
+            <div class="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden border border-gray-100">
+                {% if evento.imagen_url %}
+                <div class="h-48 overflow-hidden">
+                    <img src="{{ evento.imagen_url }}" alt="{{ evento.nombre }}" class="w-full h-full object-cover transition-transform duration-300 hover:scale-110">
+                </div>
+                {% else %}
+                <div class="h-48 bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                    <i class="fas fa-calendar-check text-4xl text-white"></i>
+                </div>
+                {% endif %}
+                
+                <div class="p-6 space-y-4">
+                    <!-- Fecha y estado -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2 text-sm">
+                            <i class="fas fa-clock text-primary-500"></i>
+                            <span class="text-gray-600 font-medium">
+                                {{ evento.fecha_inicio|date:"d M Y" }}
+                            </span>
+                        </div>
+                        {% if evento.destacado %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                            <i class="fas fa-star mr-1"></i>
+                            Destacado
+                        </span>
+                        {% endif %}
+                        {% if evento.es_evento_actual %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                            <i class="fas fa-play mr-1"></i>
+                            En curso
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Título -->
+                    <h3 class="text-xl font-bold text-gray-800 leading-tight">
+                        {{ evento.nombre }}
+                    </h3>
+                    
+                    <!-- Ubicación -->
+                    <div class="flex items-center space-x-2 text-gray-600">
+                        <i class="fas fa-map-marker-alt text-primary-500"></i>
+                        <span class="text-sm">{{ evento.lugar }}</span>
+                    </div>
+                    
+                    <!-- Hora -->
+                    <div class="flex items-center space-x-2 text-gray-600">
+                        <i class="fas fa-clock text-primary-500"></i>
+                        <span class="text-sm">
+                            {{ evento.fecha_inicio|date:"H:i" }}
+                            {% if evento.fecha_fin %}
+                                - {{ evento.fecha_fin|date:"H:i" }}
+                                {% if evento.duracion_horas %}
+                                    ({{ evento.duracion_horas }}h)
+                                {% endif %}
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <!-- Descripción -->
+                    <p class="text-gray-600 text-sm leading-relaxed">
+                        {{ evento.descripcion|striptags|truncatewords:25 }}
+                    </p>
+                    
+                    <!-- Botones de acción -->
+                    <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                        <a href="{% url 'indicadores:evento_detalle' slug=evento.slug %}" 
+                           class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm transition-colors duration-200">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Ver detalles
+                        </a>
+                        {% if evento.url_externa %}
+                        <a href="{{ evento.url_externa }}" 
+                           target="_blank"
+                           class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                            <i class="fas fa-external-link-alt mr-2"></i>
+                            Más info
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Eventos Pasados -->
+{% if eventos_pasados %}
+<div class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">
+                <i class="fas fa-history text-gray-600 mr-3"></i>
+                Eventos Anteriores
+            </h2>
+            <p class="text-gray-600 text-lg">
+                Eventos realizados recientemente
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for evento in eventos_pasados %}
+            <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 opacity-90 hover:opacity-100">
+                {% if evento.imagen_url %}
+                <div class="h-40 overflow-hidden">
+                    <img src="{{ evento.imagen_url }}" alt="{{ evento.nombre }}" class="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-300">
+                </div>
+                {% else %}
+                <div class="h-40 bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center">
+                    <i class="fas fa-calendar-check text-3xl text-white"></i>
+                </div>
+                {% endif %}
+                
+                <div class="p-5 space-y-3">
+                    <!-- Fecha -->
+                    <div class="flex items-center space-x-2 text-sm text-gray-500">
+                        <i class="fas fa-calendar text-gray-400"></i>
+                        <span>{{ evento.fecha_inicio|date:"d M Y" }}</span>
+                        {% if evento.destacado %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            <i class="fas fa-star mr-1"></i>
+                            Destacado
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Título -->
+                    <h3 class="text-lg font-bold text-gray-700 leading-tight">
+                        {{ evento.nombre }}
+                    </h3>
+                    
+                    <!-- Ubicación -->
+                    <div class="flex items-center space-x-2 text-gray-500">
+                        <i class="fas fa-map-marker-alt text-gray-400"></i>
+                        <span class="text-sm">{{ evento.lugar|truncatechars:30 }}</span>
+                    </div>
+                    
+                    <!-- Descripción -->
+                    <p class="text-gray-600 text-sm leading-relaxed">
+                        {{ evento.descripcion|striptags|truncatewords:20 }}
+                    </p>
+                    
+                    <!-- Ver detalles -->
+                    <div class="pt-3 border-t border-gray-100">
+                        <a href="{% url 'indicadores:evento_detalle' slug=evento.slug %}" 
+                           class="inline-flex items-center text-gray-600 hover:text-primary-600 font-medium text-sm transition-colors duration-200">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Ver detalles
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Mensaje si no hay eventos -->
+{% if not eventos_futuros and not eventos_pasados %}
+<div class="py-16 bg-white">
+    <div class="container mx-auto px-4 text-center">
+        <div class="max-w-md mx-auto">
+            <div class="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-calendar-times text-3xl text-gray-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                No hay eventos programados
+            </h3>
+            <p class="text-gray-600 mb-8">
+                Actualmente no hay eventos disponibles. Vuelve pronto para ver las próximas actividades.
+            </p>
+            <a href="{% url 'indicadores:home' %}" 
+               class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                <i class="fas fa-home mr-2"></i>
+                Volver al inicio
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

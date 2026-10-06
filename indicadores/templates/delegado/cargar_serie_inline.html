@@ -1,0 +1,333 @@
+{% extends 'delegado/base_delegado.html' %}
+{% load static forms_filters %}
+
+{% block delegado_content %}
+<div class="max-w-4xl mx-auto">
+  <div class="mb-6 flex items-center gap-3">
+    <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+      <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18"/>
+      </svg>
+    </div>
+    <div>
+      <h2 class="text-xl font-bold text-slate-800">Ingreso Inline de Datos</h2>
+      <p class="text-sm text-slate-500">Ingresa los datos directamente sin subir un archivo Excel — la carga pasará a validación</p>
+    </div>
+  </div>
+
+  <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-6 flex items-start gap-3 text-sm text-slate-800">
+    <svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
+    </svg>
+    <span>Esta carga será enviada al equipo del SIIED para validación antes de ser integrada al sistema.</span>
+  </div>
+
+  <form method="post" id="form-inline">
+    {% csrf_token %}
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <h3 class="font-semibold text-slate-700">Indicador</h3>
+      </div>
+      <div class="px-6 py-4">
+        <label class="block text-sm text-slate-600 mb-1">Seleccionar indicador <span class="text-red-500">*</span></label>
+        <input type="text" id="buscar-indicador" placeholder="Buscar por código o nombre..."
+               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 mb-2"
+               autocomplete="off">
+        <select name="indicador_id" id="sel-indicador" required
+                class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          <option value="">— Selecciona un indicador —</option>
+          {% for ind in indicadores %}
+          <option value="{{ ind.id }}" data-search="{{ ind.codigo_indicador|lower }} {{ ind.nombre|lower }}"
+            {% if indicador_pre and indicador_pre.id == ind.id %}selected{% endif %}>
+            {{ ind.codigo_indicador }} — {{ ind.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+        {% if organismo %}
+        <p class="text-xs text-slate-400 mt-1">Mostrando indicadores de: <strong>{{ organismo.nombre }}</strong></p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Desagregaciones dinámicas -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <h3 class="font-semibold text-slate-700">Desagregaciones</h3>
+        <button type="button" id="btn-add-des"
+                class="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Añadir columna
+        </button>
+      </div>
+      <div class="px-6 py-4">
+        <p class="text-xs text-slate-500 mb-3">Define columnas como <em>Sexo</em>, <em>Edad</em>, <em>Localidad</em>, etc. Se crearán como columnas adicionales en la tabla de datos.</p>
+        <div id="desagregaciones-lista" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <h3 class="font-semibold text-slate-700">Datos de la Serie</h3>
+        <button type="button" id="btn-add-row"
+                class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          Añadir fila
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="tabla-datos">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wide" id="thead-row">
+              <th class="px-4 py-3 text-left w-12">#</th>
+              <th class="px-4 py-3 text-left">Año / Fecha <span class="text-red-400">*</span></th>
+              <th class="px-4 py-3 text-left">Valor <span class="text-red-400">*</span></th>
+              <th class="px-4 py-3 text-center w-16">Quitar</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-datos">
+            {% if datos_existentes %}
+              {% for fila in datos_existentes %}
+              <tr class="border-t border-slate-100 fila-dato">
+                <td class="px-4 py-2 text-slate-400 text-xs num-fila">{{ forloop.counter }}</td>
+                <td class="px-4 py-2">
+                  <input type="text" name="fecha[]" value="{{ fila.fecha|default:'' }}"
+                         class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                </td>
+                <td class="px-4 py-2">
+                  <input type="text" name="valor[]" value="{{ fila.valor|default:'' }}"
+                         class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                </td>
+                {% for des in desagregaciones_pre %}
+                <td class="px-4 py-2 des-col" data-des="{{ des }}">
+                  <input type="text" name="desagregacion_valor_{{ des }}[]" value="{{ fila|get_item:des|default:'' }}"
+                         class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                </td>
+                {% endfor %}
+                <td class="px-4 py-2 text-center">
+                  <button type="button" onclick="quitarFila(this)" class="text-slate-300 hover:text-red-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              {% for i in "12345" %}
+              <tr class="border-t border-slate-100 fila-dato">
+                <td class="px-4 py-2 text-slate-400 text-xs num-fila">{{ forloop.counter }}</td>
+                <td class="px-4 py-2">
+                  <input type="text" name="fecha[]" placeholder="ej. 2024"
+                         class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                </td>
+                <td class="px-4 py-2">
+                  <input type="text" name="valor[]" placeholder="ej. 12.5"
+                         class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                </td>
+                <td class="px-4 py-2 text-center">
+                  <button type="button" onclick="quitarFila(this)" class="text-slate-300 hover:text-red-500 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Acción: borrador o enviar a validación -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-4 mb-6">
+      <h3 class="font-semibold text-slate-700 mb-3">¿Qué deseas hacer?</h3>
+      <div class="flex flex-col sm:flex-row gap-3">
+        <label class="flex-1 flex items-start gap-3 border border-slate-200 rounded-lg p-4 cursor-pointer has-[:checked]:border-amber-400 has-[:checked]:bg-amber-50 transition-colors">
+          <input type="radio" name="accion" value="borrador" checked class="mt-0.5">
+          <div>
+            <div class="font-medium text-slate-700 text-sm">Guardar como borrador</div>
+            <div class="text-xs text-slate-500 mt-0.5">Puedes completarla más tarde antes de enviarla</div>
+          </div>
+        </label>
+        <label class="flex-1 flex items-start gap-3 border border-slate-200 rounded-lg p-4 cursor-pointer has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-50 transition-colors">
+          <input type="radio" name="accion" value="enviar" class="mt-0.5">
+          <div>
+            <div class="font-medium text-slate-700 text-sm">Enviar a validación ahora</div>
+            <div class="text-xs text-slate-500 mt-0.5">El equipo del SIIED recibirá la notificación inmediatamente</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex gap-3 justify-end">
+      <a href="{% url 'indicadores:delegado_dashboard' %}"
+         class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+        Cancelar
+      </a>
+      <button type="submit"
+              class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        Confirmar
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  let contador = {{ datos_existentes|length|default:5 }};
+  const desagregaciones = [{% for d in desagregaciones_pre %}"{{ d|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+
+  if (desagregaciones.length > 0) {
+    renderDesagregaciones();
+  }
+
+  function htmlDesInputs() {
+    return desagregaciones.map(d => `
+      <td class="px-4 py-2 des-col" data-des="${d}">
+        <input type="text" name="desagregacion_valor_${d}[]" placeholder="${d}"
+               class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
+      </td>`).join('');
+  }
+
+  function agregarColsAThead() {
+    const row = document.getElementById('thead-row');
+    row.querySelectorAll('th.des-th').forEach(th => th.remove());
+    desagregaciones.forEach(d => {
+      const th = document.createElement('th');
+      th.className = 'px-4 py-3 text-left des-th';
+      th.textContent = d;
+      row.insertBefore(th, row.lastElementChild);
+    });
+  }
+
+  function agregarColsAFilas() {
+    document.querySelectorAll('.fila-dato').forEach(tr => {
+      const btnTd = tr.lastElementChild;
+      // Guardar valores actuales
+      const valores = {};
+      tr.querySelectorAll('td.des-col').forEach(td => {
+        const inp = td.querySelector('input');
+        if (inp) valores[td.dataset.des] = inp.value;
+      });
+      tr.querySelectorAll('td.des-col').forEach(td => td.remove());
+      desagregaciones.forEach(d => {
+        const td = document.createElement('td');
+        td.className = 'px-4 py-2 des-col';
+        td.dataset.des = d;
+        const val = valores[d] !== undefined ? valores[d] : '';
+        td.innerHTML = `<input type="text" name="desagregacion_valor_${d}[]" value="${val}" placeholder="${d}"
+               class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">`;
+        tr.insertBefore(td, btnTd);
+      });
+    });
+  }
+
+  document.getElementById('btn-add-des').addEventListener('click', () => {
+    const nombre = prompt('Nombre de la columna de desagregación (ej. Sexo, Localidad):');
+    if (!nombre || !nombre.trim()) return;
+    const key = nombre.trim();
+    if (desagregaciones.includes(key)) { alert('Esa columna ya existe.'); return; }
+    desagregaciones.push(key);
+    renderDesagregaciones();
+  });
+
+  function renderDesagregaciones() {
+    const lista = document.getElementById('desagregaciones-lista');
+    lista.innerHTML = desagregaciones.map((d, i) => `
+      <span class="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-full px-3 py-1 text-xs text-slate-700">
+        ${d}
+        <input type="hidden" name="desagregacion_nombre[]" value="${d}">
+        <button type="button" onclick="quitarDes(${i})" class="text-slate-400 hover:text-red-500 ml-1">×</button>
+      </span>`).join('');
+    agregarColsAThead();
+    agregarColsAFilas();
+  }
+
+  window.quitarDes = function(idx) {
+    desagregaciones.splice(idx, 1);
+    renderDesagregaciones();
+  };
+
+  document.getElementById('btn-add-row').addEventListener('click', function () {
+    contador++;
+    const tbody = document.getElementById('tbody-datos');
+    const tr = document.createElement('tr');
+    tr.className = 'border-t border-slate-100 fila-dato';
+    tr.innerHTML = `
+      <td class="px-4 py-2 text-slate-400 text-xs num-fila">${contador}</td>
+      <td class="px-4 py-2"><input type="text" name="fecha[]" placeholder="ej. 2024"
+             class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"></td>
+      <td class="px-4 py-2"><input type="text" name="valor[]" placeholder="ej. 12.5"
+             class="w-full border border-slate-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400"></td>
+      ${htmlDesInputs()}
+      <td class="px-4 py-2 text-center">
+        <button type="button" onclick="quitarFila(this)" class="text-slate-300 hover:text-red-500 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+    tr.querySelector('input[name="fecha[]"]').focus();
+    renumerar();
+  });
+
+  function quitarFila(btn) {
+    const filas = document.querySelectorAll('.fila-dato');
+    if (filas.length > 1) { btn.closest('tr').remove(); renumerar(); }
+  }
+
+  function renumerar() {
+    document.querySelectorAll('.num-fila').forEach((td, i) => td.textContent = i + 1);
+  }
+
+  // Buscador de indicadores
+  document.getElementById('buscar-indicador').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    const sel = document.getElementById('sel-indicador');
+    Array.from(sel.options).forEach(function (opt) {
+      if (!opt.value) return;
+      const texto = opt.getAttribute('data-search') || '';
+      opt.hidden = q && !texto.includes(q);
+    });
+    if (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].hidden) {
+      sel.value = '';
+    }
+  });
+
+  // Al escoger un indicador, recargar con ?indicador_id= para que la vista
+  // precargue los datos existentes y sus columnas de desagregación.
+  const selIndicador = document.getElementById('sel-indicador');
+  selIndicador.dataset.actual = selIndicador.value;
+  selIndicador.addEventListener('change', function () {
+    if (!this.value) { this.dataset.actual = this.value; return; }
+    const hayDatos = Array.from(document.querySelectorAll('#tbody-datos input'))
+      .some(i => i.value.trim());
+    if (hayDatos && !confirm('Cambiar de indicador recargará la página y se perderán los datos ingresados. ¿Continuar?')) {
+      this.value = this.dataset.actual;
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('indicador_id', this.value);
+    window.location.href = url.toString();
+  });
+
+  document.getElementById('tabla-datos').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const inputs = [...document.querySelectorAll('#tabla-datos input')];
+      const idx = inputs.indexOf(document.activeElement);
+      if (idx >= 0 && idx < inputs.length - 1) inputs[idx + 1].focus();
+      else document.getElementById('btn-add-row').click();
+    }
+  });
+</script>
+{% endblock %}

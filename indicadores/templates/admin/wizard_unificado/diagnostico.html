@@ -1,0 +1,207 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-stethoscope"></i>
+      Diagnóstico de Procesamiento
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Validación Previa:</strong> Se ejecutó el diagnóstico para verificar que la configuración sea correcta.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Estado del diagnóstico -->
+    <div class="form-section">
+      {% if diagnostico_exitoso %}
+      <div class="success-box">
+        <i class="fas fa-check-circle"></i>
+        <strong>¡Diagnóstico Exitoso!</strong> La configuración es válida y está lista para procesar.
+      </div>
+      {% else %}
+      <div class="error-box">
+        <i class="fas fa-times-circle"></i>
+        <strong>Diagnóstico con Errores</strong> Revisa los errores y vuelve al paso anterior para corregir.
+      </div>
+      {% endif %}
+    </div>
+    
+    <!-- Salida del diagnóstico -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-terminal"></i>
+        Salida del Diagnóstico
+      </h4>
+      
+      <div class="diagnostico-output">
+        {{ diagnostico_output|safe }}
+      </div>
+    </div>
+    
+    <!-- Resumen de configuración -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-list-check"></i>
+        Resumen de Configuración
+      </h4>
+      
+      <div class="resumen-grid">
+        <div class="resumen-item">
+          <strong>Conjunto de datos:</strong>
+          <span>{{ conjunto_datos_nombre }}</span>
+        </div>
+        <div class="resumen-item">
+          <strong>Indicador:</strong>
+          <span>{{ indicador_nombre }}</span>
+        </div>
+        <div class="resumen-item">
+          <strong>Fórmula:</strong>
+          <code>{{ formula }}</code>
+        </div>
+        <div class="resumen-item">
+          <strong>Columna Fecha:</strong>
+          <span>{{ columna_fecha }}</span>
+        </div>
+        <div class="resumen-item">
+          <strong>Columnas Fuente:</strong>
+          <span>{{ columnas_fuente }}</span>
+        </div>
+        <div class="resumen-item">
+          <strong>Desagregaciones:</strong>
+          <span>{{ total_desagregaciones }} detectadas</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Confirmación -->
+    {% if diagnostico_exitoso %}
+    <div class="form-section">
+      <div class="form-group">
+        {{ wizard.form.confirmar_procesamiento }}
+        <label for="{{ wizard.form.confirmar_procesamiento.id_for_label }}">
+          {{ wizard.form.confirmar_procesamiento.label }}
+        </label>
+      </div>
+      
+      {{ wizard.form.diagnostico_output_json }}
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Volver a Regla
+      </button>
+      
+      {% if diagnostico_exitoso %}
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-rocket"></i>
+        Procesar Conjunto de datos
+      </button>
+      {% else %}
+      <button type="button" class="btn btn-warning" onclick="location.reload()">
+        <i class="fas fa-redo"></i>
+        Reintentar Diagnóstico
+      </button>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<style>
+.success-box {
+  background: rgba(16, 185, 129, 0.1);
+  border: 2px solid #10b981;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.success-box i {
+  font-size: 2rem;
+  color: #10b981;
+}
+
+.success-box strong {
+  color: #10b981;
+  font-size: 1.1rem;
+}
+
+.diagnostico-output {
+  background: #1e1e1e;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.diagnostico-output pre {
+  margin: 0;
+  color: #d4d4d4;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.resumen-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resumen-item strong {
+  color: var(--admin-text);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.resumen-item span {
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+}
+
+.resumen-item code {
+  background: rgba(6, 182, 212, 0.1);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--wizard-primary);
+  font-size: 0.85rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,405 @@
+{% extends "delegado/base_delegado.html" %}
+{% block title %}Dashboard — Portal del Delegado{% endblock %}
+{% block delegado_content %}
+
+<!-- Hero del dashboard -->
+<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200 mb-8">
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-serif font-bold text-slate-900">Bienvenido/a, {{ user.get_full_name|default:user.username }}</h1>
+                {% if organismo %}
+                <p class="text-slate-600 mt-1">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    {{ organismo.nombre }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Acceso rápido al manual -->
+<div class="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-3xl shadow-lg p-8 text-white mb-8">
+    <div class="flex items-center justify-between">
+        <div class="flex-1">
+            <div class="flex items-center gap-4 mb-3">
+                <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-serif font-bold">¿Primera vez aquí?</h3>
+                    <p class="text-emerald-100 text-sm">Consulta el manual de uso paso a paso</p>
+                </div>
+            </div>
+            <p class="text-sm text-emerald-50 mb-4">
+                Aprende cómo cargar series de datos, conjuntos de datos, descargar plantillas y entender los estados de tus cargas.
+            </p>
+            <div class="flex gap-4">
+                <a href="{% url 'indicadores:delegado_manual' %}"
+                   class="inline-flex items-center gap-2 bg-white text-emerald-700 hover:bg-emerald-50 font-semibold px-6 py-3 rounded-xl transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    Ver Manual Completo
+                </a>
+                <a href="{% url 'indicadores:delegado_plantillas' %}"
+                   class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-medium px-6 py-3 rounded-xl transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Descargar Plantillas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas de correcciones pendientes -->
+{% if alertas %}
+<div class="bg-amber-50 border border-amber-300 rounded-2xl p-6 mb-8">
+    <div class="flex items-start gap-3">
+        <div class="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+        </div>
+        <div class="flex-1">
+            <h3 class="font-semibold text-amber-800 mb-2">Tienes cargas que requieren correcciones</h3>
+            <ul class="space-y-3">
+                {% for alerta in alertas %}
+                <li class="text-sm text-amber-700 bg-amber-100/60 rounded-lg p-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-semibold">{{ alerta.codigo_evidencia }}</span>
+                                {% if alerta.indicador %}
+                                <span class="text-xs text-amber-600">
+                                    {% if alerta.indicador.codigo_indicador %}<span class="font-mono">{{ alerta.indicador.codigo_indicador }}</span> · {% endif %}{{ alerta.indicador.nombre|truncatewords:6 }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% if alerta.observaciones_validador %}
+                            <p class="text-xs text-amber-600 mt-1">{{ alerta.observaciones_validador|truncatewords:12 }}</p>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'indicadores:delegado_detalle_serie' alerta.id %}"
+                           class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg whitespace-nowrap transition-colors">
+                            Corregir →
+                        </a>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tarjetas de resumen -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ stats.total_indicadores }}</div>
+        <p class="text-sm text-slate-600 mt-1">Indicadores a mi cargo</p>
+    </div>
+    
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Revisión</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ stats.series_pendientes }}</div>
+        <p class="text-sm text-slate-600 mt-1">Cargas en revisión</p>
+    </div>
+    
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Aprobadas</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ stats.series_aprobadas }}</div>
+        <p class="text-sm text-slate-600 mt-1">Series aprobadas</p>
+    </div>
+    
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Correcciones</span>
+        </div>
+        <div class="text-3xl font-bold text-slate-900">{{ stats.series_rechazadas }}</div>
+        <p class="text-sm text-slate-600 mt-1">Con correcciones</p>
+    </div>
+</div>
+
+<!-- FICED — Formulario de Capacidad Estadística -->
+<div class="mb-10">
+    <a href="{% url 'indicadores:delegado_ficed' %}" 
+       class="block bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-3xl p-8 shadow-sm hover:shadow-md transition-all duration-200 group">
+        <div class="flex items-start gap-6">
+            <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                    <h3 class="font-serif font-bold text-xl">Formulario FICED — Índice de Capacidad Estadística</h3>
+                    {% if ficed %}
+                        {% if ficed.estado == 'enviado' %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                Enviado
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                En progreso
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-white/20 text-white">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Nuevo
+                        </span>
+                    {% endif %}
+                </div>
+                <p class="text-slate-100 text-sm mb-4">
+                    {% if ficed %}
+                        {% if ficed.estado == 'enviado' or ficed.estado == 'validado' %}
+                            {% widthratio ficed.puntaje_global 1 100 as iced_pct_delegado %}
+                            Tu formulario del período {{ ficed.periodo }} ha sido
+                            {% if ficed.estado == 'validado' %}validado{% else %}enviado{% endif %}.
+                            Puntaje ICED: <span class="font-bold text-white">{{ iced_pct_delegado }}%</span> —
+                            Nivel: <span class="font-bold text-white">{{ ficed.nivel_global_display }}</span>
+                        {% else %}
+                            Continúa diligenciando tu formulario del período {{ ficed.periodo }}.
+                            Progreso actual: módulos completados.
+                        {% endif %}
+                    {% else %}
+                        Completa el Formulario de Capacidad Estadística Distrital (FICED) para el período {{ periodo_actual }}.
+                        Evalúa las dimensiones: Entorno Institucional, Infraestructura, Metodología y Accesibilidad.
+                    {% endif %}
+                </p>
+                <div class="flex items-center gap-2 text-sm font-medium">
+                    <span>{% if ficed.estado == 'enviado' or ficed.estado == 'validado' %}Ver resultado{% else %}{% if ficed %}Continuar formulario{% else %}Iniciar formulario{% endif %}{% endif %}</span>
+                    <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+            </div>
+            {% if ficed %}{% if ficed.estado == 'enviado' or ficed.estado == 'validado' %}
+            {% widthratio ficed.puntaje_global 1 100 as iced_pct_dg %}
+            {% widthratio ficed.puntaje_b 1 100 as iced_b %}
+            {% widthratio ficed.puntaje_c 1 100 as iced_c %}
+            {% widthratio ficed.puntaje_d 1 100 as iced_d %}
+            {% widthratio ficed.puntaje_e 1 100 as iced_e %}
+            <div class="hidden md:flex items-center gap-4">
+                <div class="text-center">
+                    <div class="text-3xl font-bold text-white">{{ iced_pct_dg }}%</div>
+                    <div class="text-xs text-slate-200">Puntaje</div>
+                </div>
+                <div class="w-px h-12 bg-white/30"></div>
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-white">{{ iced_b }}</div>
+                    <div class="text-xs text-slate-200">B</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-white">{{ iced_c }}</div>
+                    <div class="text-xs text-slate-200">C</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-white">{{ iced_d }}</div>
+                    <div class="text-xs text-slate-200">D</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-lg font-semibold text-white">{{ iced_e }}</div>
+                    <div class="text-xs text-slate-200">E</div>
+                </div>
+            </div>
+            {% endif %}{% endif %}
+        </div>
+    </a>
+</div>
+
+<!-- Acciones rápidas -->
+<div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
+    <a href="{% url 'indicadores:delegado_cargar_serie' %}"
+       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+        </div>
+        <div>
+            <h3 class="font-serif font-bold text-lg mb-1">Cargar Serie</h3>
+            <p class="text-emerald-100 text-xs">Subir datos de indicador (Excel)</p>
+        </div>
+    </a>
+    <a href="{% url 'indicadores:delegado_cargar_conjunto_datos' %}"
+       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+            </svg>
+        </div>
+        <div>
+            <h3 class="font-serif font-bold text-lg mb-1">Cargar Conjuntos de datos</h3>
+            <p class="text-emerald-100 text-xs">Subir conjuntos de datos (Excel)</p>
+        </div>
+    </a>
+    <a href="{% url 'indicadores:delegado_cargar_serie_inline' %}"
+       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18"/>
+            </svg>
+        </div>
+        <div>
+            <h3 class="font-serif font-bold text-lg mb-1">Datos Inline</h3>
+            <p class="text-emerald-100 text-xs">Ingresar datos sin Excel</p>
+        </div>
+    </a>
+    <a href="{% url 'indicadores:delegado_cargar_metadata_form' %}"
+       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+        </div>
+        <div>
+            <h3 class="font-serif font-bold text-lg mb-1">Metadata</h3>
+            <p class="text-emerald-100 text-xs">Completar metadata web</p>
+        </div>
+    </a>
+    <a href="{% url 'indicadores:delegado_actualizar_existente' %}"
+       class="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+        <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+        </div>
+        <div>
+            <h3 class="font-serif font-bold text-lg mb-1">Actualizar</h3>
+            <p class="text-slate-100 text-xs">Buscar y editar existentes</p>
+        </div>
+    </a>
+</div>
+
+<!-- Últimas cargas -->
+<div class="grid lg:grid-cols-2 gap-8">
+
+    <!-- Series recientes -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-serif font-bold text-white">Últimas series cargadas</h2>
+                <a href="{% url 'indicadores:delegado_historial' %}?tipo=series" class="text-sm text-slate-300 hover:text-white transition-colors">Ver todo</a>
+            </div>
+        </div>
+        <div class="p-8">
+        {% if ultimas_series %}
+        <div class="space-y-4">
+            {% for carga in ultimas_series %}
+            <div class="flex items-center justify-between py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors -mx-4 px-4 rounded-lg">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">
+                        {{ carga.indicador.nombre|truncatewords:5|default:"Sin indicador" }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        {% if carga.indicador.codigo_indicador %}<span class="font-mono">{{ carga.indicador.codigo_indicador }}</span> · {% endif %}{{ carga.codigo_evidencia }} · {{ carga.fecha_carga|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium estado-{{ carga.estado }}">
+                        {{ carga.get_estado_display }}
+                    </span>
+                    <a href="{% url 'indicadores:delegado_detalle_serie' carga.id %}"
+                       class="text-slate-600 hover:text-slate-800 text-xs">Ver →</a>
+                    {% if carga.indicador %}
+                    <a href="{% url 'indicadores:delegado_cargar_serie_inline' %}?indicador_id={{ carga.indicador.id }}"
+                       class="text-slate-600 hover:text-slate-800 text-xs">Datos</a>
+                    <a href="{% url 'indicadores:delegado_cargar_metadata_form' %}?indicador_id={{ carga.indicador.id }}"
+                       class="text-slate-600 hover:text-slate-800 text-xs">Meta</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 text-center py-6">Aún no has subido series de datos.</p>
+        {% endif %}
+    </div>
+
+    <!-- Conjunto de datos reciente -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="font-semibold text-gray-800">Últimas cargas de conjuntos de datos</h2>
+            <a href="{% url 'indicadores:delegado_historial' %}?tipo=conjunto de datos" class="text-sm text-slate-600 hover:underline">Ver todo</a>
+        </div>
+        {% if ultimos_conjuntos_datos %}
+        <div class="space-y-3">
+            {% for carga in ultimos_conjuntos_datos %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">
+                        {{ carga.conjunto_datos.nombre|truncatewords:5|default:"Sin conjunto_datos" }}
+                    </p>
+                    <p class="text-xs text-gray-400">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium estado-{{ carga.estado }}">
+                        {{ carga.get_estado_display }}
+                    </span>
+                    <a href="{% url 'indicadores:delegado_detalle_conjunto_datos' carga.id %}"
+                       class="text-slate-600 hover:text-slate-800 text-xs">Ver →</a>
+                    {% if carga.conjunto_datos %}
+                    <a href="{% url 'indicadores:delegado_cargar_variables_form' %}?conjunto_datos_id={{ carga.conjunto_datos.id }}"
+                       class="text-slate-600 hover:text-slate-800 text-xs">Vars</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 text-center py-6">Aún no has subido conjuntos de datos.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

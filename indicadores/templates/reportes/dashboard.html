@@ -1,0 +1,593 @@
+{% extends 'reportes/base_reportes.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Observabilidad — SIIED{% endblock %}
+
+{% block extra_head %}
+<style>
+    .stat-card { transition: all 0.2s ease; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .accordion-content.active { max-height: 2000px; }
+</style>
+{% endblock %}
+
+{% block reportes_content %}
+<!-- Hero del dashboard -->
+<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200 mb-8">
+    <div class="container mx-auto px-6 py-8">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-3xl font-serif font-bold text-slate-900">Dashboard de Observabilidad</h1>
+                <p class="text-slate-600 mt-1">Indicadores y conjunto de datos disponibles en el SIIED</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas y Notificaciones -->
+{% if alertas %}
+<div class="mb-8 space-y-3">
+    {% for alerta in alertas %}
+    <div class="{% if alerta.tipo == 'warning' %}bg-yellow-50 border-l-4 border-yellow-500{% elif alerta.tipo == 'info' %}bg-blue-50 border-l-4 border-blue-500{% elif alerta.tipo == 'success' %}bg-green-50 border-l-4 border-green-500{% endif %} p-4 rounded-lg">
+        <div class="flex items-center">
+            <div class="w-8 h-8 {% if alerta.tipo == 'warning' %}bg-yellow-100{% elif alerta.tipo == 'info' %}bg-blue-100{% elif alerta.tipo == 'success' %}bg-green-100{% endif %} rounded-lg flex items-center justify-center mr-4">
+                <svg class="w-4 h-4 {% if alerta.tipo == 'warning' %}text-yellow-600{% elif alerta.tipo == 'info' %}text-blue-600{% elif alerta.tipo == 'success' %}text-green-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {% if alerta.tipo == 'warning' %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    {% elif alerta.tipo == 'info' %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    {% elif alerta.tipo == 'success' %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    {% endif %}
+                </svg>
+            </div>
+            <div>
+                <p class="font-semibold {% if alerta.tipo == 'warning' %}text-yellow-800{% elif alerta.tipo == 'info' %}text-blue-800{% elif alerta.tipo == 'success' %}text-green-800{% endif %}">{{ alerta.titulo }}</p>
+                <p class="text-sm {% if alerta.tipo == 'warning' %}text-yellow-700{% elif alerta.tipo == 'info' %}text-blue-700{% elif alerta.tipo == 'success' %}text-green-700{% endif %} mt-1">{{ alerta.mensaje }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Estadísticas Generales -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <!-- Card 1: Total Indicadores -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-slate-900">{{ total_indicadores }}</p>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</p>
+            </div>
+        </div>
+        <p class="text-slate-700 font-semibold">Indicadores Activos</p>
+    </div>
+
+    <!-- Card 2: Con Datos -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-sky-500 to-sky-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                </svg>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-slate-900">{{ indicadores_con_datos }}</p>
+                <p class="text-xs font-semibold text-emerald-500 uppercase tracking-wider">{{ porcentaje_con_datos }}%</p>
+            </div>
+        </div>
+        <p class="text-slate-700 font-semibold">Con Datos</p>
+        <div class="mt-3 bg-slate-200 rounded-full h-2">
+            <div class="bg-sky-500 h-2 rounded-full transition-all duration-500" style="width: {{ porcentaje_con_datos }}%"></div>
+        </div>
+    </div>
+
+    <!-- Card 3: Con Gráficos -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-slate-900">{{ indicadores_con_graficos }}</p>
+                <p class="text-xs font-semibold text-emerald-500 uppercase tracking-wider">{{ porcentaje_con_graficos }}%</p>
+            </div>
+        </div>
+        <p class="text-slate-700 font-semibold">Con Gráficos</p>
+        <div class="mt-3 bg-slate-200 rounded-full h-2">
+            <div class="bg-purple-500 h-2 rounded-full transition-all duration-500" style="width: {{ porcentaje_con_graficos }}%"></div>
+        </div>
+    </div>
+
+    <!-- Card 4: Con Mapa -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                </svg>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-slate-900">{{ indicadores_con_mapa }}</p>
+                <p class="text-xs font-semibold text-emerald-500 uppercase tracking-wider">{{ porcentaje_con_mapa }}%</p>
+            </div>
+        </div>
+        <p class="text-slate-700 font-semibold">Con Mapa Activo</p>
+        <div class="mt-3 bg-slate-200 rounded-full h-2">
+            <div class="bg-orange-500 h-2 rounded-full transition-all duration-500" style="width: {{ porcentaje_con_mapa }}%"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Análisis por Dominio, Tema y Subtema -->
+<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-10">
+    <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
+        <h2 class="text-xl font-serif font-bold text-white">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            Análisis por Dominio, Tema y Subtema
+        </h2>
+    </div>
+    <div class="p-8">
+        {% for dominio in dominios_stats %}
+        <div class="mb-6 border border-slate-200 rounded-2xl overflow-hidden">
+            <!-- Dominio Header -->
+            <div class="bg-slate-50 p-4 cursor-pointer hover:bg-slate-100 transition-colors" onclick="toggleDominio('dominio-{{ forloop.counter }}', this)">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-4">
+                        <div class="w-3 h-12 rounded-lg" style="background-color: {{ dominio.color }}"></div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-800">{{ dominio.nombre }}</h3>
+                            <p class="text-sm text-gray-600">{{ dominio.total_indicadores }} indicadores</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-blue-600">{{ dominio.con_datos }}</p>
+                            <p class="text-xs text-gray-500">Con Datos</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-purple-600">{{ dominio.con_graficos }}</p>
+                            <p class="text-xs text-gray-500">Con Gráficos</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-orange-600">{{ dominio.con_mapa }}</p>
+                            <p class="text-xs text-gray-500">Con Mapa</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-600">{{ dominio.porcentaje_datos }}%</div>
+                            <p class="text-xs text-gray-500">Completado</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-indigo-600">{{ dominio.promedio_metadatos|default:0 }}%</div>
+                            <p class="text-xs text-gray-500">Metadatos</p>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 transition-transform icon-dominio"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Temas (Accordion Content) -->
+            <div class="hidden border-t border-gray-200" id="dominio-{{ forloop.counter }}">
+                <div class="p-4 bg-white">
+                    {% for tema in dominio.temas %}
+                    <div class="mb-4 border-l-2 border-gray-300 pl-4">
+                        <div class="flex justify-between items-center mb-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition" onclick="toggleTema('tema-{{ forloop.parentloop.counter }}-{{ forloop.counter }}', this)">
+                            <div class="flex items-center">
+                                <i class="fas fa-chevron-right text-gray-400 text-xs mr-2 transition-transform icon-tema"></i>
+                                <h4 class="font-semibold text-gray-700">{{ tema.nombre }}</h4>
+                            </div>
+                            <div class="flex items-center space-x-4 text-sm">
+                                <span class="text-gray-600">{{ tema.total_indicadores }} ind.</span>
+                                <span class="text-blue-600 font-semibold">{{ tema.con_datos }} datos</span>
+                                <span class="text-purple-600 font-semibold">{{ tema.con_graficos }} gráf.</span>
+                                <span class="text-orange-600 font-semibold">{{ tema.con_mapa }} mapa</span>
+                                <span class="text-indigo-600 font-semibold">{{ tema.promedio_metadatos|default:0 }}% metadatos</span>
+                            </div>
+                        </div>
+                                                <!-- Subtemas -->
+                        <div class="space-y-2 mt-2 hidden" id="tema-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                            {% for subtema in tema.subtemas %}
+                            <div class="border border-gray-200 rounded overflow-hidden">
+                                <div class="bg-gray-50 p-3 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition" onclick="toggleSubtema('subtema-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}', this)">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-chevron-right text-gray-400 text-xs mr-2 transition-transform icon-subtema"></i>
+                                        <p class="text-sm font-medium text-gray-700">{{ subtema.nombre }}</p>
+                                    </div>
+                                    <div class="flex items-center space-x-3 text-xs">
+                                        <span class="px-2 py-1 bg-gray-200 text-gray-700 rounded">{{ subtema.total_indicadores }} total</span>
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded font-semibold">{{ subtema.con_datos }} datos</span>
+                                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded">{{ subtema.con_graficos }} gráf.</span>
+                                        <span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded">{{ subtema.promedio_metadatos|default:0 }}% meta</span>
+                                        <div class="w-16 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-green-500 h-2 rounded-full" style="width: {{ subtema.porcentaje_datos }}%"></div>
+                                        </div>
+                                        <span class="text-green-600 font-semibold">{{ subtema.porcentaje_datos }}%</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Lista de Indicadores del Subtema -->
+                                <div id="subtema-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" class="hidden bg-white border-t border-gray-200">
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-100">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Indicador</th>
+                                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Datos</th>
+                                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Rango Años</th>
+                                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Metadatos</th>
+                                                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-100">
+                                                {% for ind in subtema.indicadores %}
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-4 py-2 text-xs text-gray-600 font-mono">{{ ind.codigo }}</td>
+                                                    <td class="px-4 py-2 text-xs text-gray-800">
+                                                        <a href="{% url 'indicadores:subtema_detalle' dominio.slug tema.slug subtema.slug %}?indicador={{ ind.id }}" class="text-blue-600 hover:text-blue-800 hover:underline flex items-center" target="_blank" title="Ver en visor estándar">
+                                                            {{ ind.nombre }}
+                                                            <i class="fas fa-external-link-alt ml-1 text-[10px] text-gray-400"></i>
+                                                        </a>
+                                                        <a href="{% url 'indicadores:subtema_detalle_3d' dominio.slug tema.slug subtema.slug %}?indicador={{ ind.id }}" class="text-cyan-600 hover:text-cyan-800 hover:underline flex items-center mt-1" target="_blank" title="Ver en visor 3D">
+                                                            <span class="text-[10px] font-semibold">Ver en 3D</span>
+                                                            <i class="fas fa-cube ml-1 text-[10px]"></i>
+                                                        </a>
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center">
+                                                        {% if ind.tiene_datos %}
+                                                            <span class="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">{{ ind.total_datos }}</span>
+                                                        {% else %}
+                                                            <span class="text-xs text-gray-400">-</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center text-xs">
+                                                        {% if ind.tiene_datos %}
+                                                            <span class="text-gray-700 font-semibold">{{ ind.fecha_min|date:"Y" }}</span>
+                                                            <span class="text-gray-400 mx-1">-</span>
+                                                            <span class="text-green-600 font-semibold">{{ ind.fecha_max|date:"Y" }}</span>
+                                                        {% else %}
+                                                            <span class="text-gray-400 italic">Sin datos</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center">
+                                                        <div class="flex items-center justify-center">
+                                                            <div class="w-12 bg-gray-200 rounded-full h-1.5 mr-2">
+                                                                <div class="{% if ind.porcentaje_metadatos > 80 %}bg-green-500{% elif ind.porcentaje_metadatos > 50 %}bg-yellow-500{% else %}bg-red-500{% endif %} h-1.5 rounded-full" style="width: {{ ind.porcentaje_metadatos }}%"></div>
+                                                            </div>
+                                                            <span class="text-xs font-semibold text-gray-700">{{ ind.porcentaje_metadatos }}%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-4 py-2 text-center">
+                                                        {% if ind.tiene_datos %}
+                                                            <i class="fas fa-check-circle text-green-500" title="Con datos"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-exclamation-circle text-yellow-500" title="Sin datos"></i>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Indicadores con Datos - Análisis Temporal -->
+{% if indicadores_con_fechas %}
+<div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+        <h2 class="text-2xl font-bold text-white">
+            <i class="fas fa-calendar-check mr-2"></i>Indicadores con Datos - Top 20 Más Recientes
+        </h2>
+    </div>
+    <div class="p-6">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Datos</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Más Antigua</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Más Reciente</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for indicador in indicadores_con_fechas %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-semibold text-gray-900">{{ indicador.codigo_indicador }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-gray-700">{{ indicador.nombre|truncatewords:10 }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">{{ indicador.total_datos }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-sm text-gray-600">{{ indicador.fecha_min|date:"Y-m-d" }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-sm font-semibold text-green-600">{{ indicador.fecha_max|date:"Y-m-d" }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Activo</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Indicadores Sin Datos (Pendientes) -->
+{% if indicadores_sin_datos %}
+<div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+    <div class="bg-gradient-to-r from-yellow-600 to-yellow-700 px-6 py-4">
+        <h2 class="text-2xl font-bold text-white">
+            <i class="fas fa-exclamation-triangle mr-2"></i>Indicadores Sin Datos (Pendientes) - Primeros 50
+        </h2>
+        <p class="text-yellow-100 text-sm mt-1">Total sin datos: {{ total_sin_datos }} indicadores</p>
+    </div>
+    <div class="p-6">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dominio</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tema</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organismo</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for indicador in indicadores_sin_datos %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-semibold text-gray-900">{{ indicador.codigo_indicador }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-gray-700">{{ indicador.nombre|truncatewords:8 }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-xs text-gray-600">{{ indicador.subtema.tema.dominio.nombre|truncatewords:3 }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-xs text-gray-600">{{ indicador.subtema.tema.nombre|truncatewords:3 }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-xs text-gray-600">{{ indicador.organismo_responsable.nombre|default:"—"|truncatewords:3 }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded">Pendiente</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Indicadores Desactualizados -->
+{% if indicadores_desactualizados %}
+<div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+    <div class="bg-gradient-to-r from-orange-600 to-orange-700 px-6 py-4">
+        <h2 class="text-2xl font-bold text-white">
+            <i class="fas fa-clock mr-2"></i>Indicadores Desactualizados — Sin datos en más de 2 años
+        </h2>
+        <p class="text-orange-100 text-sm mt-1">{{ indicadores_desactualizados|length }} indicadores mostrados (más antiguos primero)</p>
+    </div>
+    <div class="p-6">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organismo</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Último Dato</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Antigüedad</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for indicador in indicadores_desactualizados %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-semibold text-gray-900">{{ indicador.codigo_indicador }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-gray-700">{{ indicador.nombre|truncatewords:8 }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-xs text-gray-600">{{ indicador.organismo_responsable.nombre|default:"—"|truncatewords:3 }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="text-sm text-gray-600">{{ indicador.ultima_fecha|date:"Y-m-d" }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">Desactualizado</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Trazabilidad: Últimos cambios y actividad por organismo -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Últimos cambios -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
+            <h3 class="text-lg font-bold text-white">
+                <i class="fas fa-history mr-2"></i>Últimos Cambios Registrados
+            </h3>
+        </div>
+        <div class="p-5">
+            {% if ultimos_cambios %}
+            <div class="space-y-3">
+                {% for cambio in ultimos_cambios %}
+                <div class="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0">
+                    <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-800 truncate">
+                            {{ cambio.indicador.nombre|truncatewords:6|default:"Indicador" }}
+                        </p>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            {% if cambio.indicador.codigo_indicador %}<span class="font-mono">{{ cambio.indicador.codigo_indicador }}</span> · {% endif %}
+                            {{ cambio.usuario.get_full_name|default:cambio.usuario.username }} · {{ cambio.fecha|date:"d/m/Y H:i" }}
+                        </p>
+                        {% if cambio.observacion %}
+                        <p class="text-xs text-slate-400 mt-1">{{ cambio.observacion|truncatewords:10 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400 text-center py-6">No hay cambios registrados.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Cambios por organismo -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-4">
+            <h3 class="text-lg font-bold text-white">
+                <i class="fas fa-building mr-2"></i>Actividad por Organismo (últimos 6 meses)
+            </h3>
+        </div>
+        <div class="p-5">
+            {% if cambios_por_organismo %}
+            <div class="space-y-3">
+                {% for org in cambios_por_organismo %}
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </div>
+                        <span class="text-sm font-medium text-slate-700">{{ org.organismo_origen__nombre|default:"Sin organismo" }}</span>
+                    </div>
+                    <span class="px-3 py-1 bg-teal-100 text-teal-700 text-xs font-semibold rounded-full">{{ org.total }} cambios</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400 text-center py-6">No hay actividad registrada.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Accesos Rápidos -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
+            <h3 class="text-xl font-bold text-white">
+                <i class="fas fa-chart-line mr-2"></i>Reportes de Indicadores
+            </h3>
+        </div>
+        <div class="p-6 space-y-3">
+            <a href="{% url 'indicadores:reportes_indicadores' %}" 
+               class="block w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
+                <i class="fas fa-file-excel mr-2"></i>Generar Reportes de Indicadores
+            </a>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gradient-to-r from-sky-600 to-sky-700 px-6 py-4">
+            <h3 class="text-xl font-bold text-white">
+                <i class="fas fa-database mr-2"></i>Reportes de Conjunto de datos
+            </h3>
+        </div>
+        <div class="p-6 space-y-3">
+            <a href="{% url 'indicadores:reportes_conjuntos_datos' %}" 
+               class="block w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
+                <i class="fas fa-table mr-2"></i>Generar Reportes de Conjunto de datos
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleDominio(id, element) {
+    const content = document.getElementById(id);
+    const icon = element.querySelector('.icon-dominio');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.classList.add('rotate-90');
+    } else {
+        content.classList.add('hidden');
+        icon.classList.remove('rotate-90');
+    }
+}
+
+function toggleSubtema(id, element) {
+    const content = document.getElementById(id);
+    const icon = element.querySelector('.icon-subtema');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.classList.add('rotate-90');
+    } else {
+        content.classList.add('hidden');
+        icon.classList.remove('rotate-90');
+    }
+}
+
+function toggleTema(id, element) {
+    const content = document.getElementById(id);
+    const icon = element.querySelector('.icon-tema');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.classList.add('rotate-90');
+    } else {
+        content.classList.add('hidden');
+        icon.classList.remove('rotate-90');
+    }
+}
+</script>
+{% endblock %}

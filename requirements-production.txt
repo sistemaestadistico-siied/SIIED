@@ -1,0 +1,16 @@
+# Requirements para producción
+# Este archivo incluye solo lo necesario para ejecutar la aplicación en producción
+# Instalación: pip install -r requirements-production.txt
+
+# Incluir requirements base
+-r requirements-base.txt
+
+# Servidor WSGI para producción (elegir uno)
+# gunicorn==21.2.0
+# uwsgi==2.0.23
+
+# Monitoreo y logging (opcional)
+# sentry-sdk==1.40.0
+
+# NOTA: Si usas funcionalidades de ML/NLP/TTS en producción,
+# también instala: pip install -r requirements-ml.txt

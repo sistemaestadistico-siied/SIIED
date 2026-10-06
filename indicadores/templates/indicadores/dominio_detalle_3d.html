@@ -1,0 +1,175 @@
+{% extends 'indicadores/base.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+    .storybook-wrapper { background: radial-gradient(circle at top, #fff6e8 0%, #fef3f2 35%, #f4fbf7 100%); }
+    .storybook-panel { background: linear-gradient(135deg, rgba(255, 214, 186, 0.55), rgba(255, 255, 255, 0.7)); border: 1px solid rgba(253, 186, 116, 0.5); }
+    .storybook-title { font-family: 'Baloo 2', 'Nunito', system-ui; }
+</style>
+
+<!-- Fondo tipo libro -->
+<div class="min-h-screen relative overflow-hidden storybook-wrapper">
+    <div class="absolute inset-0 pointer-events-none opacity-10" style="background-image: url('data:image/svg+xml,%3Csvg width=\'200\' height=\'200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23f97316\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'6\'/%3E%3Ccircle cx=\'120\' cy=\'80\' r=\'4\'/%3E%3Ccircle cx=\'170\' cy=\'140\' r=\'5\'/%3E%3C/g%3E%3C/svg%3E');"></div>
+    
+    <div class="container mx-auto px-4 py-8 relative z-10">
+        <!-- Encabezado del capítulo -->
+        <div class="storybook-panel rounded-[28px] shadow-xl p-6 lg:p-8 mb-8">
+            <div class="flex flex-col md:flex-row items-center gap-6">
+                <div class="w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-white border-4 border-amber-200 shadow-lg flex items-center justify-center">
+                    {% if dominio.imagen_url %}
+                    <img src="{{ dominio.imagen_url }}" alt="{{ dominio.nombre }}" class="w-24 h-24 object-contain">
+                    {% elif dominio.icono %}
+                    <i class="{{ dominio.icono }} text-5xl text-amber-500"></i>
+                    {% else %}
+                    <img src="https://i.ibb.co/gZH2yJLd/Chat-GPT-Image-15-mar-2026-02-18-16-p-m.png" alt="Logo Capítulo" class="w-24 h-24 object-contain" loading="lazy">
+                    {% endif %}
+                </div>
+                <div class="flex-1 text-center md:text-left">
+                    <p class="uppercase tracking-wide text-sm text-amber-600 font-semibold">Capítulo</p>
+                    <h1 class="storybook-title text-3xl lg:text-4xl font-extrabold text-slate-900">{{ dominio.nombre }}</h1>
+                    <p class="text-slate-600 text-base mt-2">Explora las secciones temáticas y descubre los datos clave con la guía de Don Datico.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Breadcrumb -->
+        <nav class="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-500 mb-8">
+            <a href="{% url 'indicadores:home' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">
+                <span>🏠</span>Inicio
+            </a>
+            <a href="{% url 'indicadores:dominios_3d' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">
+                <span>📚</span>Capítulos
+            </a>
+            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-slate-100 text-slate-500">{{ dominio.nombre }}</span>
+        </nav>
+
+        <!-- Layout tipo libro abierto -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Página izquierda: Ilustración del capítulo -->
+            <aside class="lg:col-span-1">
+                <div class="bg-white rounded-3xl shadow-xl p-6 border border-amber-100 sticky top-8">
+                    <div class="w-32 h-32 rounded-[28px] bg-gradient-to-br from-amber-400 to-pink-400 flex items-center justify-center mx-auto mb-4">
+                        {% if dominio.imagen_url %}
+                        <img src="{{ dominio.imagen_url }}" alt="{{ dominio.nombre }}" class="w-24 h-24 object-contain">
+                        {% elif dominio.icono %}
+                        <i class="{{ dominio.icono }} text-5xl text-white"></i>
+                        {% else %}
+                        <img src="https://i.ibb.co/gZH2yJLd/Chat-GPT-Image-15-mar-2026-02-18-16-p-m.png" alt="Decoración" class="w-24 h-24 object-contain" loading="lazy">
+                        {% endif %}
+                    </div>
+                    <h2 class="storybook-title text-2xl font-bold text-slate-900 text-center">{{ dominio.nombre }}</h2>
+                    <p class="text-slate-500 text-sm text-center mt-2">Capítulo activo</p>
+                    <div class="mt-6 bg-amber-50 rounded-2xl p-4 text-center">
+                        <p class="text-sm font-semibold text-amber-700">Tip:</p>
+                        <p class="text-sm text-amber-600">Selecciona una sección para desbloquear nuevas misiones.</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Página derecha: Contenido del capítulo -->
+            <main class="lg:col-span-3">
+                <div class="relative">
+                    <!-- Sombra de página -->
+                    <div class="absolute -inset-1 bg-gray-400 rounded-2xl transform translate-x-2 translate-y-2"></div>
+                    
+                    <!-- Página principal -->
+                    <div class="relative bg-white rounded-2xl shadow-2xl p-8 border-4 border-amber-700" style="box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);">
+                        <!-- Líneas de cuaderno -->
+                        <div class="absolute inset-0 opacity-5 rounded-2xl" style="background-image: repeating-linear-gradient(transparent, transparent 35px, #8B4513 35px, #8B4513 36px);"></div>
+                        
+                        <div class="relative">
+                            {% if dominio.descripcion %}
+                                <!-- Caja de historia/descripción -->
+                                <div class="mb-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 border-4 border-blue-300 shadow-inner">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <span class="text-3xl">📜</span>
+                                        <h3 class="text-xl font-black text-blue-800" style="font-family: 'Comic Sans MS', cursive;">
+                                            Historia del Capítulo
+                                        </h3>
+                                    </div>
+                                    <div class="prose max-w-none text-gray-700" style="font-family: 'Comic Sans MS', cursive; font-size: 1.1rem;">
+                                        {{ dominio.descripcion|safe }}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <!-- Título de secciones -->
+                            <div class="mb-6 text-center">
+                                <h2 class="text-4xl font-black text-amber-900 mb-2" style="font-family: 'Comic Sans MS', cursive; text-shadow: 2px 2px 0px #FFD700;">
+                                    🎯 Secciones del Capítulo
+                                </h2>
+                                <p class="text-lg text-amber-700 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                                    ¡Haz clic en una sección para continuar!
+                                </p>
+                            </div>
+                            
+                            {% if temas %}
+                                <!-- Grid de secciones como mini páginas -->
+                                <div class="grid grid-cols-2 sm:grid-cols-3 gap-6 text-center">
+                                    {% for tema in temas %}
+                                        <a href="{% url 'indicadores:tema_detalle_3d' dominio.slug tema.slug %}" class="group block">
+                                            <div class="relative transform transition-all duration-300 hover:scale-110 hover:-rotate-3">
+                                                <!-- Sombra mini -->
+                                                <div class="absolute -inset-1 bg-gray-300 rounded-xl transform translate-x-1 translate-y-1 group-hover:translate-x-2 group-hover:translate-y-2 transition-transform"></div>
+                                                
+                                                <!-- Mini página -->
+                                                <div class="relative bg-gradient-to-br from-white to-yellow-50 rounded-xl p-4 border-3 border-amber-600 shadow-lg">
+                                                    <!-- Ilustración de la sección -->
+                                                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center mx-auto mb-3 shadow-md border-2 border-white group-hover:rotate-12 transition-transform">
+                                                        {% if tema.imagen_url %}
+                                                            <img src="{{ tema.imagen_url }}" alt="{{ tema.nombre }}" class="h-14 w-14 object-cover rounded-full">
+                                                        {% elif tema.icono %}
+                                                            <i class="{{ tema.icono }} text-3xl text-white"></i>
+                                                        {% else %}
+                                                            <svg class="h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                                                            </svg>
+                                                        {% endif %}
+                                                    </div>
+                                                    
+                                                    <h3 class="text-base font-black text-amber-900 group-hover:text-purple-600 transition-colors" style="font-family: 'Comic Sans MS', cursive;">
+                                                        {{ tema.nombre }}
+                                                    </h3>
+                                                    
+                                                    <!-- Estrellitas -->
+                                                    <div class="text-yellow-500 text-xs mt-1">⭐⭐</div>
+                                                    
+                                                    <!-- Esquina doblada mini -->
+                                                    <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[15px] border-l-transparent border-b-[15px] border-b-gray-200 group-hover:border-b-yellow-200 transition-colors"></div>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="bg-yellow-100 rounded-2xl p-8 text-center border-4 border-yellow-400">
+                                    <span class="text-6xl mb-4 block">📭</span>
+                                    <p class="text-xl text-gray-600 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                                        No hay secciones disponibles en este capítulo todavía
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Esquina doblada -->
+                        <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[35px] border-l-transparent border-b-[35px] border-b-gray-300"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Decoración inferior -->
+        <div class="mt-12 text-center">
+            <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-xl border-3 border-amber-600">
+                <span class="text-4xl">🎨</span>
+                <p class="text-lg font-bold text-amber-900" style="font-family: 'Comic Sans MS', cursive;">
+                    ¡Cada sección tiene sorpresas!
+                </p>
+                <span class="text-4xl">🎪</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

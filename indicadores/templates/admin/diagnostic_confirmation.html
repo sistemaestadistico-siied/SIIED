@@ -1,0 +1,92 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}Confirmar procesamiento de datos{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .diagnostic-output {
+        background-color: #000000;
+        border: 1px solid #00ffff;
+        padding: 15px;
+        margin: 20px 0;
+        font-family: monospace;
+        white-space: pre-wrap;
+        max-height: 500px;
+        overflow-y: auto;
+        color: #00ffff;
+        box-shadow: 0 0 10px #00ffff;
+    }
+    .confirmation-message {
+        background-color: #001a33;
+        border-left: 4px solid #00ffff;
+        padding: 15px;
+        margin: 20px 0;
+        color: #ffffff;
+    }
+    .button {
+        padding: 10px 15px;
+        margin-right: 10px;
+        text-decoration: none;
+        border-radius: 3px;
+        display: inline-block;
+        border: 1px solid #00ffff;
+    }
+    .button-primary {
+        background-color: #000000;
+        color: #00ffff;
+        box-shadow: 0 0 5px #00ffff;
+    }
+    .button-secondary {
+        background-color: #000000;
+        color: #ffffff;
+    }
+    .module {
+        background-color: #000000;
+        color: #ffffff;
+    }
+    .module h1, .module h2 {
+        color: #00ffff;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    {% if regla %}
+    &rsaquo; <a href="{% url 'admin:indicadores_reglaextraccion_changelist' %}">Reglas de extracción</a>
+    {% elif indicador %}
+    &rsaquo; <a href="{% url 'admin:indicadores_indicador_changelist' %}">Indicadores</a>
+    {% endif %}
+    &rsaquo; Confirmar procesamiento
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+    {% if indicador %}
+    <h1>Diagnóstico para {{ indicador.nombre }}</h1>
+    {% elif regla %}
+    <h1>Diagnóstico para {{ regla.indicador.nombre }}</h1>
+    {% else %}
+    <h1>Diagnóstico de Procesamiento</h1>
+    {% endif %}
+    
+    <div class="confirmation-message">
+        <h2>Resultados del diagnóstico</h2>
+        <p>Antes de proceder con el procesamiento de datos, revise cuidadosamente los resultados del diagnóstico:</p>
+    </div>
+    
+    <div class="diagnostic-output">{{ diagnostic_output|linebreaks }}</div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="submit-row">
+            <input type="submit" value="Confirmar y procesar datos" class="default button-primary" name="_continue">
+            <a href="../" class="button button-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

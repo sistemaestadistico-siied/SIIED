@@ -1,0 +1,156 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{% if editando %}Editar{% else %}Crear{% endif %} Organismo{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>
+            <i class="bi bi-building"></i> 
+            {% if editando %}Editar Organismo: {{ organismo.nombre }}{% else %}Crear Nuevo Organismo{% endif %}
+        </h1>
+        <a href="{% url 'satisfaccion_organismos' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-{% if editando %}warning{% else %}primary{% endif %} text-{% if editando %}dark{% else %}white{% endif %}">
+            <h5 class="mb-0">
+                <i class="bi bi-{% if editando %}pencil{% else %}plus-circle{% endif %}"></i>
+                {% if editando %}Modificar datos del organismo{% else %}Ingrese los datos del nuevo organismo{% endif %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">{{ form.nombre.label }} <span class="text-danger">*</span></label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="text-danger small">{{ form.nombre.errors }}</div>
+                        {% endif %}
+                        {% if form.nombre.help_text %}
+                            <small class="text-muted">{{ form.nombre.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">{{ form.codigo.label }} <span class="text-danger">*</span></label>
+                        {{ form.codigo }}
+                        {% if form.codigo.errors %}
+                            <div class="text-danger small">{{ form.codigo.errors }}</div>
+                        {% endif %}
+                        {% if form.codigo.help_text %}
+                            <small class="text-muted">{{ form.codigo.help_text }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">{{ form.email_contacto.label }}</label>
+                        {{ form.email_contacto }}
+                        {% if form.email_contacto.errors %}
+                            <div class="text-danger small">{{ form.email_contacto.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">{{ form.responsable.label }}</label>
+                        {{ form.responsable }}
+                        {% if form.responsable.errors %}
+                            <div class="text-danger small">{{ form.responsable.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">{{ form.descripcion.label }}</label>
+                    {{ form.descripcion }}
+                    {% if form.descripcion.errors %}
+                        <div class="text-danger small">{{ form.descripcion.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-4">
+                    <div class="form-check">
+                        {{ form.activo }}
+                        <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                            {{ form.activo.label }}
+                        </label>
+                    </div>
+                    {% if form.activo.help_text %}
+                        <small class="text-muted">{{ form.activo.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'satisfaccion_organismos' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-{% if editando %}warning{% else %}success{% endif %}">
+                        <i class="bi bi-{% if editando %}save{% else %}plus-circle{% endif %}"></i>
+                        {% if editando %}Guardar Cambios{% else %}Crear Organismo{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if editando %}
+    <!-- URLs del organismo -->
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-link-45deg"></i> URLs Generadas</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-lightning-fill"></i> URL Calificación Rápida
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" 
+                               value="/satisfaccion/{{ organismo.codigo }}/rapida/?r=[1-5]" 
+                               id="url-rapida" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copiarURL('url-rapida')">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <small class="text-muted">Reemplace [1-5] con la calificación deseada</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-file-text"></i> URL Formulario Completo
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" 
+                               value="/satisfaccion/{{ organismo.codigo }}/" 
+                               id="url-completa" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copiarURL('url-completa')">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+</div>
+
+<script>
+    function copiarURL(elementId) {
+        const input = document.getElementById(elementId);
+        input.select();
+        navigator.clipboard.writeText(input.value).then(function() {
+            alert('URL copiada al portapapeles');
+        });
+    }
+</script>
+{% endblock %}

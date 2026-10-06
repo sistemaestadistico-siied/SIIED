@@ -1,0 +1,2255 @@
+{% extends 'indicadores/taller/base_taller.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* ==================== */
+    /* CENTRO DE CONTROL GAMIFICADO */
+    /* ==================== */
+    
+    body {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.03) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 1;
+    }
+    
+    .pantalla-completa {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        z-index: 2;
+    }
+    
+    /* Header de control - Estilo Centro de Misión */
+    .header-control {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+        backdrop-filter: blur(20px);
+        padding: 20px 30px;
+        border-bottom: 3px solid #FFD700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .header-control::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #FFD700, transparent);
+        animation: scanLine 3s linear infinite;
+    }
+    
+    @keyframes scanLine {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+    
+    .header-facilitador {
+        display: flex;
+        align-items: center;
+        gap: 25px;
+    }
+    
+    .header-facilitador h2 {
+        color: #FFD700;
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 900;
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        animation: titleGlow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes titleGlow {
+        from { text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+        to { text-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3); }
+    }
+    
+    .header-info {
+        text-align: right;
+        color: #94a3b8;
+    }
+    
+    .header-info .organismo {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 5px;
+    }
+    
+    .header-info .facilitador {
+        color: #FFD700;
+        font-size: 0.9rem;
+    }
+    
+    /* Controles de actividad - Estilo Consola */
+    .controles-actividad {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-actividad {
+        padding: 12px 20px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        color: #94a3b8;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.9rem;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+    
+    .btn-actividad::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        transition: left 0.5s;
+    }
+    
+    .btn-actividad:hover::before {
+        left: 100%;
+    }
+    
+    .btn-actividad:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 215, 0, 0.3);
+        color: #FFD700;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+    }
+    
+    .btn-actividad.activa {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+        border-color: #FFD700;
+        color: #FFD700;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        animation: pulseActive 1s ease-in-out infinite;
+    }
+    
+    @keyframes pulseActive {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.02); }
+    }
+    
+    /* Área de contenido principal */
+    .contenido-principal {
+        position: relative;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 0;
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Vistas de contenido */
+    .vista-contenido {
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .vista-contenido::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    .vista-contenido::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+    }
+    
+    .vista-contenido::-webkit-scrollbar-thumb {
+        background: rgba(255, 215, 0, 0.3);
+        border-radius: 4px;
+    }
+    
+    /* Panel lateral de participantes - Estilo Escuadrón */
+    .panel-participantes {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+        border-left: 3px solid #FFD700;
+        padding: 20px;
+        overflow-y: auto;
+        backdrop-filter: blur(20px);
+        box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+        position: relative;
+    }
+    
+    .panel-participantes::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #FFD700, transparent);
+        animation: topScan 4s linear infinite;
+    }
+    
+    @keyframes topScan {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    .panel-participantes h3 {
+        color: #FFD700;
+        margin: 0 0 20px 0;
+        font-size: 1.3rem;
+        border-bottom: 2px solid #FFD700;
+        padding-bottom: 10px;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+    
+    .participante-item {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        border-left: 4px solid;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .participante-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+        transition: left 0.5s;
+    }
+    
+    .participante-item:hover::before {
+        left: 100%;
+    }
+    
+    .participante-item:hover {
+        transform: translateX(5px);
+        background: rgba(0, 0, 0, 0.5);
+    }
+    
+    .participante-nombre {
+        color: white;
+        font-weight: bold;
+        font-size: 0.95rem;
+        margin-bottom: 5px;
+    }
+    
+    .participante-area {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+    }
+    
+    .participante-rol {
+        color: #FFD700;
+        font-size: 0.8rem;
+        font-style: italic;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .participante-rol::before {
+        content: '👤';
+        font-size: 0.9rem;
+    }
+    
+    /* Footer con stats - Estilo Dashboard */
+    .footer-stats {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+        backdrop-filter: blur(20px);
+        padding: 20px 30px;
+        border-top: 3px solid #FFD700;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+        position: relative;
+    }
+    
+    .stat-box {
+        text-align: center;
+        padding: 10px 20px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s;
+    }
+    
+    .stat-box:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 215, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+    }
+    
+    .stat-valor {
+        color: #FFD700;
+        font-size: 2.5rem;
+        font-weight: 900;
+        display: block;
+        text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+        animation: numberGlow 2s ease-in-out infinite alternate;
+    }
+    
+    @keyframes numberGlow {
+        from { text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); }
+        to { text-shadow: 0 0 25px rgba(255, 215, 0, 0.6), 0 0 35px rgba(255, 215, 0, 0.3); }
+    }
+    
+    .stat-label {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        display: block;
+        margin-top: 5px;
+        font-weight: 500;
+    }
+    
+    /* Iframe para el mapa 3D */
+    #iframe-mapa {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    /* Resultados del quiz - Estilo Análisis de Datos */
+    .resultados-quiz {
+        padding: 30px;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .pregunta-resultado {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+        backdrop-filter: blur(20px);
+        padding: 30px;
+        border-radius: 20px;
+        border: 2px solid rgba(255, 215, 0, 0.3);
+        margin-bottom: 25px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s;
+    }
+    
+    .pregunta-resultado:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 215, 0, 0.5);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    .pregunta-titulo {
+        color: #FFD700;
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin-bottom: 25px;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+    
+    .barra-resultado {
+        margin-bottom: 20px;
+    }
+    
+    .barra-label {
+        color: white;
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .barra-label span:last-child {
+        background: rgba(255, 215, 0, 0.2);
+        padding: 4px 8px;
+        border-radius: 6px;
+        color: #FFD700;
+        font-weight: bold;
+    }
+    
+    .barra-visual {
+        height: 40px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .barra-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #FFD700, #FFA500);
+        transition: width 1s ease-out;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding-right: 15px;
+        font-weight: bold;
+        color: #1a472a;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .barra-fill::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+    
+    /* Mural de roles - Estilo Escuadrón */
+    .mural-roles {
+        padding: 30px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        max-height: 100%;
+        overflow-y: auto;
+    }
+    
+    .familia-mural {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+        backdrop-filter: blur(20px);
+        padding: 25px;
+        border-radius: 20px;
+        border: 2px solid;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .familia-mural::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+        transition: left 0.5s;
+    }
+    
+    .familia-mural:hover::before {
+        left: 100%;
+    }
+    
+    .familia-mural:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    .familia-mural h4 {
+        color: white;
+        margin: 0 0 20px 0;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+    
+    .participante-mini {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        font-size: 0.85rem;
+        color: white;
+        transition: all 0.3s;
+        border-left: 3px solid rgba(255, 215, 0, 0.5);
+    }
+    
+    .participante-mini:hover {
+        background: rgba(0, 0, 0, 0.5);
+        transform: translateX(5px);
+    }
+    
+    .participante-mini strong {
+        display: block;
+        color: #FFD700;
+        margin-bottom: 3px;
+        font-size: 0.9rem;
+    }
+    
+    /* ==================== */
+    /* ESTILOS RESPONSIVE   */
+    /* ==================== */
+    
+    @media (max-width: 1200px) {
+        .contenido-principal {
+            grid-template-columns: 1fr 300px;
+        }
+        
+        .mural-roles {
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .header-control {
+            flex-direction: column;
+            gap: 20px;
+            padding: 15px 20px;
+        }
+        
+        .header-facilitador {
+            flex-direction: column;
+            text-align: center;
+            gap: 15px;
+        }
+        
+        .header-facilitador h2 {
+            font-size: 1.5rem;
+        }
+        
+        .controles-actividad {
+            justify-content: center;
+            flex-wrap: wrap;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+        
+        .btn-actividad {
+            padding: 10px 16px;
+            font-size: 0.8rem;
+            min-width: 100px;
+            flex: 0 0 auto;
+        }
+        
+        .contenido-principal {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr auto;
+            height: calc(100vh - 180px); /* Ajustar altura para evitar ocultamiento */
+        }
+        
+        .vista-contenido {
+            height: 100%;
+            overflow-y: auto;
+            min-height: 400px; /* Altura mínima para evitar ocultamiento */
+        }
+        
+        /* Asegurar que el mapa 3D y flujos sean visibles */
+        #vista-mapa, #vista-flujos, #vista-subsistemas, #vista-quiz, #vista-roles, #vista-ficha_p1, #vista-ficha_p2 {
+            min-height: 400px;
+            overflow: visible;
+        }
+        
+        #iframe-mapa {
+            min-height: 400px;
+            width: 100%;
+            height: auto;
+        }
+        
+        .panel-participantes {
+            border-left: none;
+            border-top: 3px solid #FFD700;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .footer-stats {
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px 15px;
+        }
+        
+        .stat-box {
+            padding: 6px 12px;
+            min-width: 100px;
+            flex: 1 1 auto;
+        }
+        
+        .stat-valor {
+            font-size: 1.8rem;
+        }
+        
+        .stat-label {
+            font-size: 0.7rem;
+        }
+        
+        .mural-roles {
+            grid-template-columns: 1fr;
+            padding: 15px;
+        }
+        
+        .resultados-quiz {
+            padding: 15px;
+        }
+        
+        .pregunta-resultado {
+            padding: 15px;
+        }
+        
+        /* Contenedores de contenido responsive */
+        .vista-contenido > div[style*="max-width"] {
+            max-width: 100% !important;
+            padding: 15px !important;
+        }
+        
+        /* Iframes responsive */
+        iframe {
+            max-width: 100%;
+            height: auto;
+            min-height: 400px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .header-control {
+            padding: 10px 15px;
+        }
+        
+        .header-facilitador h2 {
+            font-size: 1.3rem;
+        }
+        
+        .controles-actividad {
+            gap: 6px;
+            overflow-x: auto;
+            justify-content: flex-start;
+        }
+        
+        .btn-actividad {
+            padding: 8px 12px;
+            font-size: 0.7rem;
+            min-width: 90px;
+            flex: 0 0 auto;
+        }
+        
+        .contenido-principal {
+            height: calc(100vh - 200px);
+        }
+        
+        .vista-contenido {
+            min-height: 350px;
+        }
+        
+        /* Asegurar visibilidad en móviles pequeños */
+        #vista-mapa, #vista-flujos, #vista-subsistemas, #vista-quiz, #vista-roles, #vista-ficha_p1, #vista-ficha_p2 {
+            min-height: 350px;
+            overflow: visible;
+        }
+        
+        #iframe-mapa {
+            min-height: 350px;
+        }
+        
+        .panel-participantes {
+            padding: 10px;
+            max-height: 200px;
+        }
+        
+        .footer-stats {
+            padding: 8px 12px;
+            gap: 8px;
+        }
+        
+        .stat-box {
+            padding: 4px 8px;
+            min-width: 80px;
+            flex: 1 1 auto;
+        }
+        
+        .stat-valor {
+            font-size: 1.4rem;
+        }
+        
+        .stat-label {
+            font-size: 0.6rem;
+        }
+        
+        .mural-roles {
+            padding: 10px;
+        }
+        
+        .familia-mural {
+            padding: 12px;
+        }
+        
+        .pregunta-resultado {
+            padding: 12px;
+        }
+        
+        .pregunta-titulo {
+            font-size: 1rem;
+        }
+        
+        /* Contenedores responsive */
+        .vista-contenido > div[style*="max-width"] {
+            max-width: 100% !important;
+            padding: 10px !important;
+        }
+        
+        /* Iframes en móviles pequeños */
+        iframe {
+            min-height: 350px;
+        }
+    }
+    
+    /* Optimizaciones para tablets */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .contenido-principal {
+            grid-template-columns: 1fr 280px;
+        }
+        
+        .header-facilitador {
+            gap: 20px;
+        }
+        
+        .mural-roles {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+    }
+    
+    /* Animaciones adicionales para roles gamificados */
+    @keyframes alertPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes donDaticoArtistic {
+        0%, 100% { 
+            transform: translateY(0px) scale(1);
+            filter: drop-shadow(0 8px 20px rgba(129,212,250,0.6)) drop-shadow(0 0 30px rgba(129,212,250,0.3));
+        }
+        25% { 
+            transform: translateY(-3px) scale(1.02);
+            filter: drop-shadow(0 10px 25px rgba(129,212,250,0.7)) drop-shadow(0 0 40px rgba(129,212,250,0.4));
+        }
+        50% { 
+            transform: translateY(-5px) scale(1.03);
+            filter: drop-shadow(0 12px 30px rgba(129,212,250,0.8)) drop-shadow(0 0 50px rgba(129,212,250,0.5));
+        }
+        75% { 
+            transform: translateY(-3px) scale(1.02);
+            filter: drop-shadow(0 10px 25px rgba(129,212,250,0.7)) drop-shadow(0 0 40px rgba(129,212,250,0.4));
+        }
+    }
+    
+    .familia-mural {
+        animation: fadeInUp 0.6s ease-out forwards;
+        opacity: 0;
+    }
+    
+    /* Efectos de rendimiento */
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+    
+    .participante-mini strong {
+        display: block;
+        color: #FFD700;
+        margin-bottom: 3px;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="pantalla-completa">
+    <!-- Header de control - Taller de Ecosistema de Datos -->
+    <div class="header-control">
+        <div class="header-facilitador">
+            <div style="display: flex; align-items: center; gap: 25px;">
+                <img src="{% static 'indicadores/images/unnamed.png' %}" alt="SIIED" style="height: 60px; filter: drop-shadow(0 4px 8px rgba(129,212,250,0.5));">
+                <div style="border-left: 3px solid rgba(255,215,0,0.3); height: 50px;"></div>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <img src="https://i.ibb.co/1Gw0gZfm/Captura-desde-2026-03-11-01-59-37.png" 
+                         alt="Taller Ecosistema Logo" 
+                         style="height: 50px; filter: drop-shadow(0 4px 8px rgba(129,212,250,0.45));">
+                    <div>
+                        <h2>Taller de Ecosistema de Datos</h2>
+                        <div style="font-size: 1rem; color: #94a3b8; margin-top: 5px;">
+                            {{ sesion.nombre_sesion }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-info">
+                <div class="organismo">{{ sesion.organismo.nombre }}</div>
+                <div class="facilitador">Facilitador: {{ sesion.facilitador }}</div>
+                <div style="position: relative; margin-top: 15px;">
+                    <!-- Don Dático con imagen PNG sin fondo y efectos artísticos -->
+                    <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Dático" 
+                         style="width: 100px; height: 100px; object-fit: contain; filter: drop-shadow(0 8px 20px rgba(129,212,250,0.6)) drop-shadow(0 0 30px rgba(129,212,250,0.3)); animation: donDaticoArtistic 3s ease-in-out infinite;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="controles-actividad">
+            <button class="btn-actividad" data-actividad="espera">⏸️ Espera</button>
+            <button class="btn-actividad" data-actividad="quiz">🎮 Quiz</button>
+            <button class="btn-actividad" data-actividad="roles">👥 Roles</button>
+            <button class="btn-actividad" data-actividad="subsistemas">🏢 Subsistemas</button>
+            <button class="btn-actividad" data-actividad="ficha_p1">📝 Ficha P1</button>
+            <button class="btn-actividad" data-actividad="flujos">🔄 Flujos</button>
+            <button class="btn-actividad" data-actividad="ficha_p2">📊 Ficha P2</button>
+            <button class="btn-actividad" data-actividad="mapa3d">🗺️ Mapa 3D</button>
+            <button class="btn-actividad" data-actividad="cierre">✅ Cierre</button>
+        </div>
+    </div>
+    
+    <!-- Contenido principal -->
+    <div class="contenido-principal">
+        <!-- Área de vistas (columna izquierda) -->
+        <div style="position: relative; overflow: hidden;">
+            <!-- Vista: Mapa 3D (por defecto) -->
+            <div id="vista-mapa" class="vista-contenido">
+                <iframe id="iframe-mapa" src="{% url 'indicadores:taller_mapa_3d' sesion.id %}"></iframe>
+            </div>
+            
+            <!-- Vista: Quiz Gamificado con Don Datico -->
+            <div id="vista-quiz" class="vista-contenido" style="display: none;">
+                <div style="max-width: 1200px; margin: 0 auto; padding: 40px;">
+                    <!-- Don Datico -->
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <img src="{% static 'indicadores/images/don datico.png' %}" 
+                             alt="Don Dático" 
+                             style="width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 8px 20px rgba(129,212,250,0.6)) drop-shadow(0 0 30px rgba(129,212,250,0.3)); animation: donDaticoArtistic 3s ease-in-out infinite; margin-bottom: 15px;">
+                        <h2 style="color: #FFD700; margin: 0;">El Quiz</h2>
+                        <p style="color: #F5F5DC; font-size: 1.1rem; margin-top: 10px;">
+                            "¡Bienvenidos al ecosistema de datos! Respondamos juntos estas preguntas para conocernos mejor."
+                        </p>
+                    </div>
+                    
+                    <!-- Carrusel de Preguntas (Facilitador) -->
+                    <div id="carrusel-preguntas" style="display: none;">
+                        <!-- Pregunta Actual -->
+                        <div id="pregunta-actual-container" style="background: linear-gradient(135deg, rgba(45, 80, 22, 0.95), rgba(74, 124, 44, 0.95)); padding: 40px; border-radius: 20px; border: 4px solid #FFD700; margin-bottom: 30px;">
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <span id="numero-pregunta" style="color: #FFD700; font-size: 1.2rem; font-weight: bold;">Pregunta 1 de 11</span>
+                            </div>
+                            <h3 id="texto-pregunta" style="color: white; font-size: 1.8rem; text-align: center; margin-bottom: 30px; line-height: 1.4;"></h3>
+                            
+                            <!-- Opciones -->
+                            <div id="opciones-pregunta" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;"></div>
+                            
+                            <!-- Estado del juego -->
+                            <div id="estado-juego" style="text-align: center; padding: 20px; background: rgba(255, 215, 0, 0.2); border-radius: 12px; margin-top: 20px;">
+                                <div style="color: #FFD700; font-size: 1.1rem; font-weight: bold; margin-bottom: 10px;">
+                                    📊 Estado del Quiz
+                                </div>
+                                <div style="color: white; font-size: 0.95rem;">
+                                    <span id="participantes-respondieron">0</span> de <span id="total-participantes-quiz">0</span> participantes han respondido esta pregunta
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Controles de Navegación del Carrusel -->
+                        <div style="display: flex; justify-content: center; gap: 20px; align-items: center;">
+                            <button id="btn-pregunta-anterior" onclick="preguntaAnterior()" style="padding: 15px 30px; font-size: 1.1rem; background: linear-gradient(135deg, #6B7280, #4B5563); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.3s;">
+                                ⬅️ Anterior
+                            </button>
+                            <div style="color: #FFD700; font-size: 1.1rem; font-weight: bold; padding: 0 20px;">
+                                <span id="indicador-pregunta">1 / 11</span>
+                            </div>
+                            <button id="btn-pregunta-siguiente" onclick="preguntaSiguiente()" style="padding: 15px 30px; font-size: 1.1rem; background: linear-gradient(135deg, #10B981, #059669); border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4); transition: all 0.3s;">
+                                Siguiente ➡️
+                            </button>
+                        </div>
+                        
+                        <!-- Botón Ver Resultados (solo al final) -->
+                        <div style="text-align: center; margin-top: 30px;">
+                            <button id="btn-ver-resultados-carrusel" onclick="verResultadosQuiz()" style="display: none; padding: 20px 40px; font-size: 1.3rem; background: linear-gradient(135deg, #8B5CF6, #7C3AED); border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4); transition: all 0.3s;">
+                                📊 Ver Resultados Finales
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Botón Iniciar Quiz -->
+                    <div id="controles-inicio-quiz" style="text-align: center;">
+                        <button id="btn-iniciar-quiz" onclick="iniciarQuizCarrusel()" style="padding: 20px 40px; font-size: 1.3rem; background: linear-gradient(135deg, #FFD700, #FFA500); border: none; border-radius: 15px; color: #1a472a; font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4); transition: all 0.3s;">
+                            🎮 Iniciar Quiz Gamificado
+                        </button>
+                    </div>
+                    
+                    <!-- Resultados finales -->
+                    <div id="resultados-finales" style="display: none; margin-top: 40px;">
+                        <h3 style="color: #FFD700; text-align: center; font-size: 2rem; margin-bottom: 30px;">🏆 Resultados del Quiz</h3>
+                        <div id="resultados-quiz-container"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vista: Mural de Roles -->
+            <div id="vista-roles" class="vista-contenido" style="display: none;">
+                <div class="mural-roles" id="mural-roles-container"></div>
+            </div>
+            
+            <!-- Vista: Subsistemas -->
+            <div id="vista-subsistemas" class="vista-contenido" style="display: none;">
+                <div style="padding: 30px; max-width: 1000px; margin: 0 auto;">
+                    <h2 style="color: #FFD700; margin-bottom: 20px;">🏢 Subsistemas del Ecosistema de Datos</h2>
+                    
+                    <div style="background: rgba(255, 215, 0, 0.2); border: 2px solid #FFD700; border-radius: 12px; padding: 20px; margin-bottom: 30px; text-align: center;">
+                        <div style="color: #FFD700; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">
+                            <span id="stat-subsistemas-total">0</span> Subsistemas Identificados
+                        </div>
+                        <div style="color: #F5F5DC; font-size: 0.9rem;">
+                            <span id="stat-subsistemas-predefinidos">0</span> pre-definidos • 
+                            <span id="stat-subsistemas-taller">0</span> del taller
+                        </div>
+                    </div>
+                    
+                    <div id="subsistemas-facilitador-container"></div>
+                </div>
+            </div>
+            
+            <!-- Vista: Flujos de Datos -->
+            <div id="vista-flujos" class="vista-contenido" style="display: none;">
+                <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
+                    <h2 style="color: #FFD700; margin-bottom: 20px;">🔄 Mapa de Flujos de Datos</h2>
+                    
+                    <div style="background: rgba(255, 215, 0, 0.2); border: 2px solid #FFD700; border-radius: 12px; padding: 20px; margin-bottom: 30px; text-align: center;">
+                        <div style="color: #FFD700; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">
+                            <span id="stat-flujos-total">0</span> Flujos Registrados
+                        </div>
+                        <div style="color: #F5F5DC; font-size: 0.9rem;">
+                            <span id="stat-flujos-internos">0</span> internos • 
+                            <span id="stat-flujos-inter">0</span> entre subsistemas • 
+                            <span id="stat-flujos-externos">0</span> externos
+                        </div>
+                    </div>
+                    
+                    <div id="flujos-facilitador-container"></div>
+                </div>
+            </div>
+            
+            <!-- Vista: Ficha P1 (Creación de Datos) -->
+            <div id="vista-ficha_p1" class="vista-contenido" style="display: none;">
+                <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
+                    <h2 style="color: #FFD700; margin-bottom: 20px;">📝 Creación de Datos (Ficha P1)</h2>
+                    
+                    <div style="background: rgba(255, 215, 0, 0.2); border: 2px solid #FFD700; border-radius: 12px; padding: 20px; margin-bottom: 30px; text-align: center;">
+                        <div style="color: #FFD700; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">
+                            <span id="stat-datos-creados">0</span> Datos Identificados
+                        </div>
+                        <div style="color: #F5F5DC; font-size: 0.9rem;">
+                            Datos creados por los participantes para ser mapeados en flujos
+                        </div>
+                    </div>
+                    
+                    <div id="ficha-p1-facilitador-container"></div>
+                </div>
+            </div>
+            
+            <!-- Vista: Ficha P2 (Clasificación) -->
+            <div id="vista-ficha_p2" class="vista-contenido" style="display: none;">
+                <div style="padding: 30px; max-width: 1200px; margin: 0 auto;">
+                    <h2 style="color: #FFD700; margin-bottom: 20px;">📊 Clasificación y Valor (Ficha P2)</h2>
+                    
+                    <div style="background: rgba(255, 215, 0, 0.2); border: 2px solid #FFD700; border-radius: 12px; padding: 20px; margin-bottom: 30px; text-align: center;">
+                        <div style="color: #FFD700; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px;">
+                            <span id="stat-clasificaciones-total">0</span> Datos Clasificados
+                        </div>
+                        <div style="color: #F5F5DC; font-size: 0.9rem;">
+                            Clasificación por nivel de sensibilidad y valor estratégico
+                        </div>
+                    </div>
+                    
+                    <div id="ficha-p2-facilitador-container"></div>
+                </div>
+            </div>
+            
+            <!-- Vista: Cierre y Reportes -->
+            <div id="vista-cierre" class="vista-contenido" style="display: none;">
+                <div style="padding: 40px; max-width: 1400px; margin: 0 auto;">
+                    <!-- Header de cierre -->
+                    <div style="text-align: center; margin-bottom: 40px;">
+                        <div style="font-size: 4rem; margin-bottom: 15px;">🎉</div>
+                        <h2 style="color: #FFD700; margin: 0; font-size: 2.5rem;">¡Taller Completado!</h2>
+                        <p style="color: #F5F5DC; font-size: 1.2rem; margin-top: 10px;">
+                            Resumen del Ecosistema de Datos Identificado
+                        </p>
+                    </div>
+                    
+                    <!-- Métricas principales -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;">
+                        <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.2)); border: 3px solid #EF4444; border-radius: 16px; padding: 25px; text-align: center;">
+                            <div style="color: #FFD700; font-size: 3rem; font-weight: 900;" id="cierre-participantes">0</div>
+                            <div style="color: white; font-size: 1.1rem; margin-top: 10px;">Participantes</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.2)); border: 3px solid #3B82F6; border-radius: 16px; padding: 25px; text-align: center;">
+                            <div style="color: #FFD700; font-size: 3rem; font-weight: 900;" id="cierre-roles">0</div>
+                            <div style="color: white; font-size: 1.1rem; margin-top: 10px;">Roles Identificados</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.2)); border: 3px solid #10B981; border-radius: 16px; padding: 25px; text-align: center;">
+                            <div style="color: #FFD700; font-size: 3rem; font-weight: 900;" id="cierre-datos">0</div>
+                            <div style="color: white; font-size: 1.1rem; margin-top: 10px;">Datos Creados</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(124, 58, 237, 0.2)); border: 3px solid #8B5CF6; border-radius: 16px; padding: 25px; text-align: center;">
+                            <div style="color: #FFD700; font-size: 3rem; font-weight: 900;" id="cierre-flujos">0</div>
+                            <div style="color: white; font-size: 1.1rem; margin-top: 10px;">Flujos Mapeados</div>
+                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.2)); border: 3px solid #F59E0B; border-radius: 16px; padding: 25px; text-align: center;">
+                            <div style="color: #FFD700; font-size: 3rem; font-weight: 900;" id="cierre-clasificaciones">0</div>
+                            <div style="color: white; font-size: 1.1rem; margin-top: 10px;">Datos Clasificados</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reportes disponibles -->
+                    <div style="background: linear-gradient(135deg, rgba(26, 71, 42, 0.95), rgba(45, 80, 22, 0.95)); border: 3px solid #FFD700; border-radius: 20px; padding: 30px; margin-bottom: 30px;">
+                        <h3 style="color: #FFD700; margin: 0 0 25px 0; font-size: 1.8rem; text-align: center;">
+                            📊 Reportes Generados
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+                            <!-- Reporte Ejecutivo -->
+                            <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 25px; border-left: 5px solid #EF4444;">
+                                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                                    <div style="font-size: 2.5rem;">📈</div>
+                                    <div>
+                                        <h4 style="color: #FFD700; margin: 0; font-size: 1.3rem;">Reporte Ejecutivo</h4>
+                                        <p style="color: #F5F5DC; margin: 5px 0 0 0; font-size: 0.9rem;">Para directivos</p>
+                                    </div>
+                                </div>
+                                <ul style="color: white; font-size: 0.9rem; line-height: 1.8; margin: 15px 0; padding-left: 20px;">
+                                    <li>Resumen de participación</li>
+                                    <li>Top 10 roles identificados</li>
+                                    <li>Mapa 3D del ecosistema</li>
+                                    <li>Estadísticas clave</li>
+                                </ul>
+                                <button onclick="descargarReporte('ejecutivo')" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #EF4444, #DC2626); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                    📥 Descargar PDF
+                                </button>
+                            </div>
+                            
+                            <!-- Reporte Técnico -->
+                            <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 25px; border-left: 5px solid #3B82F6;">
+                                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                                    <div style="font-size: 2.5rem;">🔧</div>
+                                    <div>
+                                        <h4 style="color: #FFD700; margin: 0; font-size: 1.3rem;">Reporte Técnico</h4>
+                                        <p style="color: #F5F5DC; margin: 5px 0 0 0; font-size: 0.9rem;">Para equipo SIIED</p>
+                                    </div>
+                                </div>
+                                <ul style="color: white; font-size: 0.9rem; line-height: 1.8; margin: 15px 0; padding-left: 20px;">
+                                    <li>Análisis por familia de roles</li>
+                                    <li>Matriz de flujos de datos</li>
+                                    <li>Identificación de silos</li>
+                                    <li>Recomendaciones técnicas</li>
+                                </ul>
+                                <button onclick="descargarReporte('tecnico')" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #3B82F6, #2563EB); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                    📥 Descargar PDF
+                                </button>
+                            </div>
+                            
+                            <!-- Reporte para el Organismo -->
+                            <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 25px; border-left: 5px solid #10B981;">
+                                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                                    <div style="font-size: 2.5rem;">🏢</div>
+                                    <div>
+                                        <h4 style="color: #FFD700; margin: 0; font-size: 1.3rem;">Reporte Organismo</h4>
+                                        <p style="color: #F5F5DC; margin: 5px 0 0 0; font-size: 0.9rem;">Para todo el equipo</p>
+                                    </div>
+                                </div>
+                                <ul style="color: white; font-size: 0.9rem; line-height: 1.8; margin: 15px 0; padding-left: 20px;">
+                                    <li>Ecosistema identificado</li>
+                                    <li>Fortalezas y oportunidades</li>
+                                    <li>Próximos pasos sugeridos</li>
+                                    <li>Plan de acción</li>
+                                </ul>
+                                <button onclick="descargarReporte('organismo')" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10B981, #059669); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                    📥 Descargar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Exportar datos -->
+                    <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(124, 58, 237, 0.2)); border: 3px solid #8B5CF6; border-radius: 20px; padding: 30px;">
+                        <h3 style="color: #FFD700; margin: 0 0 20px 0; font-size: 1.5rem; text-align: center;">
+                            💾 Exportar Datos del Taller
+                        </h3>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <button onclick="exportarDatos('participantes')" style="padding: 15px; background: rgba(255, 255, 255, 0.1); border: 2px solid #FFD700; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                👥 Participantes (CSV)
+                            </button>
+                            <button onclick="exportarDatos('roles')" style="padding: 15px; background: rgba(255, 255, 255, 0.1); border: 2px solid #FFD700; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                🎭 Roles (CSV)
+                            </button>
+                            <button onclick="exportarDatos('datos')" style="padding: 15px; background: rgba(255, 255, 255, 0.1); border: 2px solid #FFD700; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                📊 Datos (CSV)
+                            </button>
+                            <button onclick="exportarDatos('flujos')" style="padding: 15px; background: rgba(255, 255, 255, 0.1); border: 2px solid #FFD700; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                🔄 Flujos (CSV)
+                            </button>
+                            <button onclick="exportarDatos('clasificaciones')" style="padding: 15px; background: rgba(255, 255, 255, 0.1); border: 2px solid #FFD700; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                🏷️ Clasificaciones (CSV)
+                            </button>
+                            <button onclick="exportarDatos('completo')" style="padding: 15px; background: linear-gradient(135deg, #FFD700, #FFA500); border: none; border-radius: 10px; color: #1a472a; font-weight: bold; cursor: pointer; font-size: 1rem; transition: all 0.3s;">
+                                📦 Todo (ZIP)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensaje de agradecimiento -->
+                    <div style="text-align: center; margin-top: 40px; padding: 30px; background: rgba(255, 215, 0, 0.1); border-radius: 16px;">
+                        <img src="{% static 'indicadores/images/don datico.png' %}" 
+                             alt="Don Dático" 
+                             style="width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 6px 15px rgba(129,212,250,0.5)) drop-shadow(0 0 20px rgba(129,212,250,0.25)); animation: donDaticoArtistic 3s ease-in-out infinite; margin-bottom: 15px;">
+                        <h3 style="color: #FFD700; margin: 0 0 15px 0; font-size: 1.8rem;">
+                            ¡Gracias por participar!
+                        </h3>
+                        <p style="color: #F5F5DC; font-size: 1.1rem; line-height: 1.6; max-width: 800px; margin: 0 auto;">
+                            Don Datico y el equipo SIIED agradecen su colaboración en la identificación del ecosistema de datos. 
+                            Los resultados de este taller serán fundamentales para mejorar la gestión de datos en {{ sesion.organismo.nombre }}.
+                        </p>
+                        <div style="margin-top: 25px; color: #FFD700; font-size: 1.2rem; font-weight: bold;">
+                            ¡Éxito en el ecosistema de datos!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Panel lateral de participantes (columna derecha) -->
+        <div class="panel-participantes">
+            <h3>👥 Participantes Conectados</h3>
+            <div id="lista-participantes"></div>
+        </div>
+    </div>
+    
+    <!-- Footer con stats -->
+    <div class="footer-stats">
+        <div class="stat-box">
+            <span class="stat-valor" id="stat-participantes">0</span>
+            <span class="stat-label">Participantes</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-valor" id="stat-respuestas">0</span>
+            <span class="stat-label">Respuestas Quiz</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-valor" id="stat-roles">0</span>
+            <span class="stat-label">Roles Asignados</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-valor" id="stat-flujos">0</span>
+            <span class="stat-label">Flujos Mapeados</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-valor" id="stat-tiempo">00:00</span>
+            <span class="stat-label">Tiempo Sesión</span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const SESION_ID = {{ sesion.id }};
+const CODIGO_FACILITADOR = '{{ sesion.codigo_acceso }}';
+
+// Cache para evitar re-renders innecesarios
+let lastDataHash = {
+    participantes: '',
+    subsistemas: '',
+    flujos: '',
+    roles: ''
+};
+
+const COLORES_FAMILIA = {
+    'A': '#F59E0B',
+    'B': '#F97316',
+    'C': '#3B82F6',
+    'D': '#8B5CF6',
+    'E': '#10B981',
+    'F': '#EF4444'
+};
+
+let actividadActual = '{{ sesion.actividad_actual }}';
+let tiempoInicio = new Date();
+let intervalSubsistemas = null;
+
+// Esperar a que el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    // Marcar actividad actual
+    const actBtn = document.querySelector(`[data-actividad="${actividadActual}"]`);
+    if (actBtn) actBtn.classList.add('activa');
+
+    // Cambiar actividad
+    document.querySelectorAll('.btn-actividad').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const actividad = e.target.dataset.actividad;
+            
+            try {
+                // Actualizar en el servidor
+                const response = await fetch(`/taller/sesion/${SESION_ID}/cambiar-actividad/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Facilitador-Token': CODIGO_FACILITADOR
+                    },
+                    body: JSON.stringify({ actividad: actividad })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Cambiar vista localmente
+                    cambiarVista(actividad);
+                    
+                    document.querySelectorAll('.btn-actividad').forEach(b => b.classList.remove('activa'));
+                    e.target.classList.add('activa');
+                    actividadActual = actividad;
+                    
+                    console.log(`✅ Actividad cambiada a: ${actividad}`);
+                } else {
+                    console.error('Error del servidor:', data.error);
+                }
+            } catch (error) {
+                console.error('Error cambiando actividad:', error);
+            }
+        });
+    });
+
+    // Iniciar polling de participantes
+    actualizarParticipantes();
+    setInterval(actualizarParticipantes, 5000);
+    
+    // Actualizar reloj
+    setInterval(actualizarTiempo, 1000);
+});
+
+function cambiarVista(actividad) {
+    // Detener polling de subsistemas si estaba activo
+    if (intervalSubsistemas) {
+        clearInterval(intervalSubsistemas);
+        intervalSubsistemas = null;
+    }
+    
+    // Ocultar todas las vistas
+    document.querySelectorAll('.vista-contenido').forEach(v => v.style.display = 'none');
+    
+    // Mostrar la vista correspondiente
+    if (actividad === 'mapa3d' || actividad === 'espera') {
+        document.getElementById('vista-mapa').style.display = 'block';
+    } else if (actividad === 'quiz') {
+        document.getElementById('vista-quiz').style.display = 'block';
+        
+    } else if (actividad === 'roles') {
+        document.getElementById('vista-roles').style.display = 'block';
+        cargarMuralRoles();
+    } else if (actividad === 'subsistemas' || actividad === 'dialogos') {
+        document.getElementById('vista-subsistemas').style.display = 'block';
+        cargarSubsistemasFacilitador();
+        
+        // Polling cada 5 segundos (optimizado para 30+ participantes)
+        intervalSubsistemas = setInterval(() => {
+            cargarSubsistemasFacilitador();
+        }, 5000);
+    } else if (actividad === 'flujos') {
+        document.getElementById('vista-flujos').style.display = 'block';
+        cargarFlujosFacilitador();
+        
+        // Polling cada 5 segundos (optimizado para 30+ participantes)
+        intervalSubsistemas = setInterval(() => {
+            cargarFlujosFacilitador();
+        }, 5000);
+    } else if (actividad === 'ficha_p1') {
+        document.getElementById('vista-ficha_p1').style.display = 'block';
+        cargarDatosFacilitador();
+        
+        intervalSubsistemas = setInterval(() => {
+            cargarDatosFacilitador();
+        }, 3000);
+    } else if (actividad === 'ficha_p2') {
+        document.getElementById('vista-ficha_p2').style.display = 'block';
+        cargarClasificacionesFacilitador();
+        
+        intervalSubsistemas = setInterval(() => {
+            cargarClasificacionesFacilitador();
+        }, 3000);
+    } else if (actividad === 'cierre') {
+        document.getElementById('vista-cierre').style.display = 'block';
+        cargarEstadisticasCierre();
+    }
+}
+
+// Actualizar participantes
+async function actualizarParticipantes() {
+    try {
+        const response = await fetch(`/taller/api/ecosistema/grafo/${SESION_ID}/`, {
+            headers: {
+                'X-Facilitador-Token': CODIGO_FACILITADOR
+            }
+        });
+        const data = await response.json();
+        
+        // Calcular hash de datos para evitar re-renders innecesarios
+        const dataHash = JSON.stringify({
+            count: data.participantes.length,
+            roles: data.participantes.filter(p => p.rol_primario__nombre).length,
+            flujos: data.flujos?.length || 0
+        });
+        
+        // Solo actualizar si los datos cambiaron
+        if (lastDataHash.participantes === dataHash) {
+            return; // Sin cambios, evitar re-render
+        }
+        lastDataHash.participantes = dataHash;
+            
+        const container = document.getElementById('lista-participantes');
+        container.innerHTML = '';
+        
+        data.participantes.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'participante-item';
+            item.style.borderLeftColor = COLORES_FAMILIA[p.rol_primario__familia__codigo] || '#6B7280';
+            
+            // Sanitizar con DOMPurify para prevenir XSS
+            const htmlContent = `
+                <div class="participante-nombre">${p.nombre_completo}</div>
+                <div class="participante-area">${p.area_funcional}</div>
+                ${p.rol_primario__nombre ? `<div class="participante-rol">${p.rol_primario__nombre}</div>` : ''}
+            `;
+            item.innerHTML = DOMPurify.sanitize(htmlContent);
+            container.appendChild(item);
+        });
+        
+        // Actualizar stats
+        document.getElementById('stat-participantes').textContent = data.participantes.length;
+        document.getElementById('stat-flujos').textContent = (data.flujos ? data.flujos.length : 0);
+        
+        const rolesAsignados = data.participantes.filter(p => p.rol_primario__nombre).length;
+        document.getElementById('stat-roles').textContent = rolesAsignados;
+        
+    } catch (error) {
+        console.error('Error actualizando participantes:', error);
+    }
+}
+
+// Cargar subsistemas (vista facilitador)
+async function cargarSubsistemasFacilitador() {
+    try {
+        const response = await fetch(`/taller/api/subsistemas/${SESION_ID}/`);
+        const data = await response.json();
+        
+        const subsistemas = data.subsistemas;
+        
+        // Actualizar estadísticas
+        const predefinidos = subsistemas.filter(s => !s.identificado_en_taller).length;
+        const delTaller = subsistemas.filter(s => s.identificado_en_taller).length;
+        
+        document.getElementById('stat-subsistemas-total').textContent = subsistemas.length;
+        document.getElementById('stat-subsistemas-predefinidos').textContent = predefinidos;
+        document.getElementById('stat-subsistemas-taller').textContent = delTaller;
+        
+        // Renderizar subsistemas
+        const container = document.getElementById('subsistemas-facilitador-container');
+        
+        if (subsistemas.length === 0) {
+            const emptyHtml = `
+                <div style="background: rgba(139,0,0,0.3); border: 2px solid #DC2626; border-radius: 12px; padding: 30px; text-align: center;">
+                    <div style="color: #FFD700; font-size: 1.2rem; margin-bottom: 10px;">
+                        ⚠🗺️ No hay subsistemas identificados
+                    </div>
+                    <div style="color: #F5F5DC; font-size: 0.9rem;">
+                        Creá subsistemas predefinidos desde el Admin de Django antes del taller
+                    </div>
+                </div>
+            `;
+            container.innerHTML = DOMPurify.sanitize(emptyHtml);
+            return;
+        }
+        
+        // Agrupar por tipo
+        const porTipo = {};
+        subsistemas.forEach(s => {
+            if (!porTipo[s.tipo]) {
+                porTipo[s.tipo] = [];
+            }
+            porTipo[s.tipo].push(s);
+        });
+        
+        const subsistemaHtml = Object.entries(porTipo).map(([tipo, items]) => `
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #FFD700; margin-bottom: 15px; font-size: 1.2rem;">
+                    📂 ${items[0].tipo} (${items.length})
+                </h3>
+                <div style="display: grid; gap: 15px;">
+                    ${items.map(s => `
+                        <div style="background: rgba(255,255,255,0.1); border-left: 4px solid ${s.identificado_en_taller ? '#4CAF50' : '#FFD700'}; border-radius: 12px; padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <div style="color: white; font-weight: bold; font-size: 1.2rem; margin-bottom: 8px;">
+                                        ${s.identificado_en_taller ? '✨' : '📋'} ${s.nombre}
+                                    </div>
+                                    ${s.descripcion ? `
+                                        <div style="color: #F5F5DC; font-size: 0.9rem; line-height: 1.5;">
+                                            ${s.descripcion}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <div style="background: ${s.identificado_en_taller ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 215, 0, 0.3)'}; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; color: white; white-space: nowrap;">
+                                        ${s.identificado_en_taller ? '✨ Del Taller' : '📋 Pre-definido'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+        container.innerHTML = DOMPurify.sanitize(subsistemaHtml);
+        
+    } catch (error) {
+        console.error('Error cargando subsistemas:', error);
+    }
+}
+
+// Cargar flujos (vista facilitador)
+async function cargarFlujosFacilitador() {
+    try {
+        const response = await fetch(`/taller/api/flujos/${SESION_ID}/`);
+        const data = await response.json();
+        
+        const flujos = data.flujos || [];
+        
+        // Calcular estadísticas
+        const internos = flujos.filter(f => f.tipo === 'interno').length;
+        const interSub = flujos.filter(f => f.tipo === 'inter_sub').length;
+        const externos = flujos.filter(f => f.tipo === 'externo').length;
+        
+        document.getElementById('stat-flujos-total').textContent = flujos.length;
+        document.getElementById('stat-flujos-internos').textContent = internos;
+        document.getElementById('stat-flujos-inter').textContent = interSub;
+        document.getElementById('stat-flujos-externos').textContent = externos;
+        
+        const container = document.getElementById('flujos-facilitador-container');
+        
+        if (flujos.length === 0) {
+            container.innerHTML = `
+                <div style="background: rgba(139,0,0,0.3); border: 2px solid #DC2626; border-radius: 12px; padding: 30px; text-align: center;">
+                    <div style="color: #FFD700; font-size: 1.2rem; margin-bottom: 10px;">
+                        ⚠🗺️ No hay flujos registrados
+                    </div>
+                    <div style="color: #F5F5DC; font-size: 0.9rem;">
+                        Los participantes aún no han mapeado sus flujos de datos
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        // Agrupar por tipo
+        const porTipo = {
+            'interno': { nombre: '🔴 Flujos Internos', color: '#DC2626', flujos: [] },
+            'inter_sub': { nombre: '🔵 Flujos Entre Subsistemas', color: '#3B82F6', flujos: [] },
+            'externo': { nombre: '🟢 Flujos Externos', color: '#10B981', flujos: [] }
+        };
+        
+        flujos.forEach(f => {
+            if (porTipo[f.tipo]) {
+                porTipo[f.tipo].flujos.push(f);
+            }
+        });
+        
+        container.innerHTML = Object.entries(porTipo)
+            .filter(([_, grupo]) => grupo.flujos.length > 0)
+            .map(([tipo, grupo]) => `
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: ${grupo.color}; margin-bottom: 15px; font-size: 1.2rem;">
+                        ${grupo.nombre} (${grupo.flujos.length})
+                    </h3>
+                    <div style="display: grid; gap: 15px;">
+                        ${grupo.flujos.map(f => `
+                            <div style="background: rgba(255,255,255,0.1); border-left: 4px solid ${grupo.color}; border-radius: 12px; padding: 20px;">
+                                <div style="display: grid; grid-template-columns: 1fr auto; gap: 15px; align-items: start;">
+                                    <div>
+                                        <div style="color: white; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px;">
+                                            ${f.descripcion_datos}
+                                        </div>
+                                        <div style="color: #F5F5DC; font-size: 0.95rem; margin-bottom: 12px; line-height: 1.6;">
+                                            <strong style="color: #FFD700;">Flujo:</strong><br>
+                                            📥 <strong>Recibe de:</strong> ${f.recibe_de || 'N/A'}<br>
+                                            👤 <strong>Maneja:</strong> ${f.participante.nombre} (${f.participante.rol_nombre})<br>
+                                            📤 <strong>Envía a:</strong> ${f.envia_a || 'N/A'}
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+                                            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px;">
+                                                <div style="color: #FFD700; font-size: 0.75rem; font-weight: bold;">FRECUENCIA</div>
+                                                <div style="color: white; font-size: 0.9rem;">${f.frecuencia || 'N/A'}</div>
+                                            </div>
+                                            <div style="background: rgba(255,255,255,0.1); padding: 8px; border-radius: 6px;">
+                                                <div style="color: #FFD700; font-size: 0.75rem; font-weight: bold;">FORMATO</div>
+                                                <div style="color: white; font-size: 0.9rem;">${f.formato || 'N/A'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        
+    } catch (error) {
+        console.error('Error cargando flujos:', error);
+    }
+}
+
+// Cargar mural de roles - Versión Gamificada
+async function cargarMuralRoles() {
+    try {
+        const response = await fetch(`/taller/api/roles/mural/${SESION_ID}/`);
+        const data = await response.json();
+        
+        const container = document.getElementById('mural-roles-container');
+        container.innerHTML = '';
+        
+        // Header de estadísticas gamificado
+        const statsHeader = document.createElement('div');
+        statsHeader.style.cssText = 'background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.1)); border: 2px solid #FFD700; border-radius: 16px; padding: 25px; margin-bottom: 30px; text-align: center; backdrop-filter: blur(10px); position: relative; overflow: hidden;';
+        statsHeader.innerHTML = `
+            <div style="position: absolute; top: 0; left: -100%; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #FFD700, transparent); animation: scanLine 3s linear infinite;"></div>
+            <div style="font-size: 3rem; margin-bottom: 10px;">👥</div>
+            <div style="color: #FFD700; font-size: 1.8rem; font-weight: 900; text-shadow: 0 0 15px rgba(255,215,0,0.4); margin-bottom: 10px;">
+                Escuadrón Completo
+            </div>
+            <div style="color: white; font-size: 1.2rem;">
+                <span style="color: #FFD700; font-weight: bold;">${data.total_participantes}</span> participantes con roles asignados
+            </div>
+            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 20px;">
+                <div style="background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 20px; color: #94a3b8; font-size: 0.9rem;">
+                    🎯 ${data.familias.length} familias activas
+                </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 20px; color: #94a3b8; font-size: 0.9rem;">
+                    📊 ${(data.total_participantes / data.familias.length).toFixed(1)} promedio por familia
+                </div>
+            </div>
+        `;
+        container.appendChild(statsHeader);
+        
+        // Familias con participantes - Estilo Escuadrones
+        data.familias.forEach((familia, index) => {
+            const card = document.createElement('div');
+            card.className = 'familia-mural';
+            card.style.borderColor = familia.color_hex;
+            card.style.animationDelay = `${index * 0.1}s`;
+            
+            // Calcular porcentaje de cobertura
+            const totalRolesPosibles = familia.participantes.reduce((acc, p) => acc + (p.rol_secundario ? 2 : 1), 0);
+            const maxRolesPosibles = familia.participantes.length * 2;
+            const cobertura = Math.round((totalRolesPosibles / maxRolesPosibles) * 100);
+            
+            card.innerHTML = `
+                <h4 style="color: ${familia.color_hex}; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.5rem;">${familia.codigo === 'A' ? '🟡' : familia.codigo === 'B' ? '🟠' : familia.codigo === 'C' ? '🔵' : familia.codigo === 'D' ? '🟣' : familia.codigo === 'E' ? '🟢' : '🔴'}</span>
+                        ${familia.nombre}
+                    </span>
+                    <span style="background: rgba(255,255,255,0.1); padding: 4px 12px; border-radius: 15px; font-size: 0.9rem;">
+                        ${familia.participantes.length} miembros
+                    </span>
+                </h4>
+                
+                <!-- Barra de progreso del escuadrón -->
+                <div style="background: rgba(0,0,0,0.3); border-radius: 10px; height: 8px; margin-bottom: 15px; overflow: hidden;">
+                    <div style="width: ${cobertura}%; height: 100%; background: linear-gradient(90deg, ${familia.color_hex}, ${familia.color_hex}88); transition: width 1s ease-out; border-radius: 10px;"></div>
+                </div>
+                <div style="text-align: center; margin-bottom: 15px; color: #94a3b8; font-size: 0.8rem;">
+                    Cobertura: ${cobertura}% • ${totalRolesPosibles}/${maxRolesPosibles} roles asignados
+                </div>
+                
+                ${familia.participantes.map(p => `
+                    <div class="participante-mini" style="position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); animation: shimmer 2s infinite;"></div>
+                        <strong style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 1.2rem;">👤</span>
+                            ${p.nombre}
+                            ${p.rol_secundario ? '<span style="background: rgba(255,215,0,0.2); color: #FFD700; padding: 2px 6px; border-radius: 8px; font-size: 0.7rem;">DUAL</span>' : ''}
+                        </strong>
+                        <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 5px;">
+                            <span style="color: white;">🏢</span> ${p.area}
+                        </div>
+                        <div style="font-size: 0.85rem; color: ${familia.color_hex}; margin-top: 3px; font-weight: bold;">
+                            🎯 ${p.rol_primario}
+                            ${p.rol_secundario ? `<br><span style="color: #94a3b8; font-weight: normal;">+ ${p.rol_secundario}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+            container.appendChild(card);
+        });
+        
+        // Roles huérfanos - Estilo Alerta de Misión
+        if (data.roles_huerfanos && data.roles_huerfanos.length > 0) {
+            const huerfanos = document.createElement('div');
+            huerfanos.style.cssText = 'background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(220,38,38,0.1)); border: 2px solid #EF4444; border-radius: 16px; padding: 20px; margin-top: 25px; backdrop-filter: blur(10px); position: relative; overflow: hidden;';
+            huerfanos.innerHTML = `
+                <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #EF4444, transparent); animation: alertPulse 2s infinite;"></div>
+                <h4 style="color: #EF4444; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; font-size: 1.2rem;">
+                    <span style="font-size: 1.5rem;">⚠️</span>
+                    Alerta de Misión: Roles sin asignar
+                </h4>
+                <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; margin-bottom: 10px;">
+                    <div style="color: #EF4444; font-weight: bold; font-size: 1.1rem; margin-bottom: 8px;">
+                        ${data.roles_huerfanos.length} roles disponibles
+                    </div>
+                    <div style="color: white; font-size: 0.9rem; line-height: 1.6;">
+                        ${data.roles_huerfanos.map(r => `
+                            <div style="background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: 6px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>${r.nombre}</span>
+                                <span style="background: rgba(239,68,68,0.2); color: #EF4444; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">${r.familia}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div style="text-align: center; color: #94a3b8; font-size: 0.8rem; font-style: italic;">
+                    💡 Considera reasignar participantes para cubrir estos roles críticos
+                </div>
+            `;
+            container.appendChild(huerfanos);
+        }
+        
+        // Actualizar stat con animación
+        const statElement = document.getElementById('stat-roles');
+        const currentValue = parseInt(statElement.textContent) || 0;
+        const targetValue = data.total_participantes;
+        
+        // Animación de contador
+        let current = currentValue;
+        const increment = (targetValue - currentValue) / 20;
+        const timer = setInterval(() => {
+            current += increment;
+            if ((increment > 0 && current >= targetValue) || (increment < 0 && current <= targetValue)) {
+                statElement.textContent = targetValue;
+                clearInterval(timer);
+            } else {
+                statElement.textContent = Math.round(current);
+            }
+        }, 50);
+        
+    } catch (error) {
+        console.error('Error cargando mural de roles:', error);
+    }
+}
+
+// Actualizar tiempo de sesión
+function actualizarTiempo() {
+    const ahora = new Date();
+    const diff = Math.floor((ahora - tiempoInicio) / 1000);
+    const horas = Math.floor(diff / 3600);
+    const minutos = Math.floor((diff % 3600) / 60);
+    const segundos = diff % 60;
+    
+    const tiempo = `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+    document.getElementById('stat-tiempo').textContent = tiempo;
+}
+
+// Cargar inicial
+actualizarParticipantes();
+</script>
+
+<script>
+// ============================================================================
+// DATOS (FICHA P1 Y CURADURÍA)
+// ============================================================================
+
+async function cargarDatosFacilitador() {
+    try {
+        const response = await fetch(`/taller/api/datos/${SESION_ID}/`);
+        const data = await response.json();
+        
+        const container = document.getElementById('ficha-p1-facilitador-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        document.getElementById('stat-datos-creados').textContent = data.datos ? data.datos.length : 0;
+        
+        if (!data.datos || data.datos.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; color: #F5F5DC; padding: 40px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                    <span style="font-size: 3rem; display: block; margin-bottom: 15px;">📄</span>
+                    Esperando a que los participantes creen datos...
+                </div>
+            `;
+            return;
+        }
+        
+        // Crear lista de datos
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;';
+        
+        data.datos.forEach(dato => {
+            const card = document.createElement('div');
+            card.style.cssText = 'background: rgba(45, 80, 22, 0.8); border: 2px solid #FFD700; border-radius: 12px; padding: 20px; position: relative;';
+            card.innerHTML = `
+                <h3 style="color: #FFD700; margin-top: 0; font-size: 1.3rem;">${dato.nombre}</h3>
+                <div style="color: #F5F5DC; font-size: 0.9rem; margin-bottom: 15px;">
+                    👤 Creado por: ${dato.creado_por}
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="prepararFusion(${dato.id}, '${dato.nombre}')" style="flex: 1; padding: 8px; background: #3B82F6; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        🔗 Fusionar
+                    </button>
+                    <button onclick="eliminarDato(${dato.id})" style="flex: 1; padding: 8px; background: #EF4444; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        🗑️ Eliminar
+                    </button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+        
+        container.appendChild(grid);
+        
+    } catch (error) {
+        console.error('Error cargando datos:', error);
+    }
+}
+
+let datoAFusionar = null;
+
+function prepararFusion(id, nombre) {
+    if (!datoAFusionar) {
+        datoAFusionar = { id, nombre };
+        alert(`Seleccionaste "${nombre}" para fusionar. Ahora hacé clic en "Fusionar" en el dato MAESTRO (el que querés conservar).`);
+    } else {
+        if (datoAFusionar.id === id) {
+            alert('No podés fusionar un dato consigo mismo.');
+            datoAFusionar = null;
+            return;
+        }
+        
+        if (confirm(`¿Seguro que querés fusionar "${datoAFusionar.nombre}" dentro de "${nombre}"?\n\n"${datoAFusionar.nombre}" desaparecerá y sus flujos apuntarán a "${nombre}".`)) {
+            ejecutarFusion(datoAFusionar.id, id);
+        }
+        datoAFusionar = null;
+    }
+}
+
+async function ejecutarFusion(origenId, maestroId) {
+    try {
+        const response = await fetch(`/taller/api/datos/${SESION_ID}/fusionar/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                dato_origen_id: origenId,
+                dato_maestro_id: maestroId
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            cargarDatosFacilitador();
+        } else {
+            alert('Error fusionando: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error en fusión:', error);
+    }
+}
+
+async function eliminarDato(id) {
+    if (confirm('¿Estás seguro de eliminar este dato? Si ya tiene flujos asociados, podría causar problemas.')) {
+        try {
+            const response = await fetch(`/taller/api/datos/${SESION_ID}/eliminar/${id}/`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                cargarDatosFacilitador();
+            } else {
+                alert('Error eliminando: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Error al eliminar:', error);
+        }
+    }
+}
+</script>
+
+<script>
+// ============================================================================
+// CLASIFICACIONES (FICHA P2) FACILITADOR
+// ============================================================================
+
+async function cargarClasificacionesFacilitador() {
+    try {
+        // Cargar clasificaciones y flujos
+        const [clasificacionesResponse, flujosResponse] = await Promise.all([
+            fetch(`/taller/api/clasificaciones/${SESION_ID}/`),
+            fetch(`/taller/api/flujos/${SESION_ID}/`)
+        ]);
+        
+        const clasificacionesData = await clasificacionesResponse.json();
+        const flujosData = await flujosResponse.json();
+        
+        const container = document.getElementById('ficha-p2-facilitador-container');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        const clasificaciones = clasificacionesData.clasificaciones || [];
+        const flujos = flujosData.flujos || [];
+        document.getElementById('stat-clasificaciones-total').textContent = clasificaciones.length;
+        
+        if (clasificaciones.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; color: #F5F5DC; padding: 40px; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                    <span style="font-size: 3rem; display: block; margin-bottom: 15px;">📊</span>
+                    Esperando clasificaciones de los participantes...
+                </div>
+            `;
+            return;
+        }
+        
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;';
+        
+        clasificaciones.forEach(c => {
+            const card = document.createElement('div');
+            
+            // Colores según nivel
+            let borderColor = '#FFD700'; // defecto
+            let nivelLabel = c.nivel || 'Sin nivel';
+            if (c.nivel === 'estrategico') { borderColor = '#8B5CF6'; nivelLabel = 'Estratégico'; }
+            else if (c.nivel === 'tactico') { borderColor = '#3B82F6'; nivelLabel = 'Táctico'; }
+            else if (c.nivel === 'operativo') { borderColor = '#10B981'; nivelLabel = 'Operativo'; }
+            
+            // Encontrar flujos relacionados con este dato
+            const flujosRelacionados = flujos.filter(f => {
+                const coincideExacto = f.descripcion_datos === c.nombre_dato;
+                const coincideTrim = f.descripcion_datos?.trim() === c.nombre_dato?.trim();
+                const coincideCase = f.descripcion_datos?.toLowerCase() === c.nombre_dato?.toLowerCase();
+                
+                return coincideExacto || coincideTrim || coincideCase;
+            });
+            
+            // Extraer productores y consumidores únicos de los flujos
+            const productores = new Set();
+            const consumidores = new Set();
+            
+            flujosRelacionados.forEach(flujo => {
+                // Productores (quien le da datos al participante)
+                if (flujo.recibe_de && flujo.recibe_de !== 'N/A' && flujo.recibe_de !== '') {
+                    productores.add(flujo.recibe_de);
+                }
+                
+                // Consumidores (quien recibe datos del participante)
+                if (flujo.envia_a && flujo.envia_a !== 'N/A' && flujo.envia_a !== '') {
+                    consumidores.add(flujo.envia_a);
+                }
+            });
+            
+            const productoresList = Array.from(productores).length > 0 ? Array.from(productores).join(', ') : 'N/A';
+            const consumidoresList = Array.from(consumidores).length > 0 ? Array.from(consumidores).join(', ') : 'N/A';
+            
+            card.style.cssText = `background: rgba(45, 80, 22, 0.8); border: 2px solid ${borderColor}; border-radius: 12px; padding: 15px;`;
+            card.innerHTML = `
+                <div style="color: ${borderColor}; font-weight: bold; font-size: 1.1rem; margin-bottom: 10px;">
+                    ${c.nombre_dato}
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <span style="background: ${borderColor}40; color: ${borderColor}; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                        ${nivelLabel}
+                    </span>
+                    <span style="background: #FFD70040; color: #FFD700; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">
+                        ${flujosRelacionados.length} flujo${flujosRelacionados.length !== 1 ? 's' : ''}
+                    </span>
+                </div>
+                <div style="color: #F5F5DC; font-size: 0.85rem;">
+                    <strong>Produce:</strong> ${productoresList}<br>
+                    <strong>Consume:</strong> ${consumidoresList}<br>
+                    <strong>Sensibilidad:</strong> ${c.sensibilidad || 'N/A'}<br>
+                    <strong>Uso:</strong> ${c.para_que_se_usa || 'N/A'}<br>
+                    <strong>Valor Público:</strong> ${c.valor_publico || 'N/A'}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+        
+        container.appendChild(grid);
+        
+    } catch (error) {
+        console.error('Error cargando clasificaciones:', error);
+    }
+}
+</script>
+
+<script>
+// ============================================================================
+// CARRUSEL DE PREGUNTAS DEL QUIZ (FACILITADOR)
+// ============================================================================
+
+let preguntasQuizFacilitador = [];
+let preguntaActualIndex = 0;
+
+async function iniciarQuizCarrusel() {
+    try {
+        // Cargar preguntas del quiz
+        const response = await fetch('/taller/api/quiz/preguntas/');
+        preguntasQuizFacilitador = await response.json();
+        
+        if (preguntasQuizFacilitador.length === 0) {
+            alert('No hay preguntas configuradas para el quiz');
+            return;
+        }
+        
+        // Ocultar botón de inicio y mostrar carrusel
+        document.getElementById('controles-inicio-quiz').style.display = 'none';
+        document.getElementById('carrusel-preguntas').style.display = 'block';
+        
+        // Mostrar primera pregunta
+        preguntaActualIndex = 0;
+        mostrarPreguntaCarrusel();
+        
+    } catch (error) {
+        console.error('Error iniciando quiz:', error);
+        alert('Error al cargar el quiz');
+    }
+}
+
+function mostrarPreguntaCarrusel() {
+    const pregunta = preguntasQuizFacilitador[preguntaActualIndex];
+    const totalPreguntas = preguntasQuizFacilitador.length;
+    
+    // Actualizar número de pregunta
+    document.getElementById('numero-pregunta').textContent = `Pregunta ${preguntaActualIndex + 1} de ${totalPreguntas}`;
+    document.getElementById('indicador-pregunta').textContent = `${preguntaActualIndex + 1} / ${totalPreguntas}`;
+    
+    // Actualizar texto de la pregunta
+    document.getElementById('texto-pregunta').textContent = pregunta.texto;
+    
+    // Renderizar opciones
+    const opcionesContainer = document.getElementById('opciones-pregunta');
+    opcionesContainer.innerHTML = pregunta.opciones.map(opc => `
+        <div style="background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 215, 0, 0.5); border-radius: 12px; padding: 20px; text-align: center; color: white; font-size: 1.1rem; line-height: 1.5;">
+            ${opc.texto}
+        </div>
+    `).join('');
+    
+    // Actualizar estado de botones de navegación
+    const btnAnterior = document.getElementById('btn-pregunta-anterior');
+    const btnSiguiente = document.getElementById('btn-pregunta-siguiente');
+    const btnResultados = document.getElementById('btn-ver-resultados-carrusel');
+    
+    // Deshabilitar "Anterior" si estamos en la primera pregunta
+    if (preguntaActualIndex === 0) {
+        btnAnterior.disabled = true;
+        btnAnterior.style.opacity = '0.5';
+        btnAnterior.style.cursor = 'not-allowed';
+    } else {
+        btnAnterior.disabled = false;
+        btnAnterior.style.opacity = '1';
+        btnAnterior.style.cursor = 'pointer';
+    }
+    
+    // Mostrar botón de resultados solo en la última pregunta
+    if (preguntaActualIndex === totalPreguntas - 1) {
+        btnSiguiente.style.display = 'none';
+        btnResultados.style.display = 'inline-block';
+    } else {
+        btnSiguiente.style.display = 'inline-block';
+        btnResultados.style.display = 'none';
+    }
+    
+    // Actualizar estadísticas de participantes (simulado por ahora)
+    actualizarEstadisticasQuiz();
+}
+
+function preguntaAnterior() {
+    if (preguntaActualIndex > 0) {
+        preguntaActualIndex--;
+        mostrarPreguntaCarrusel();
+    }
+}
+
+function preguntaSiguiente() {
+    if (preguntaActualIndex < preguntasQuizFacilitador.length - 1) {
+        preguntaActualIndex++;
+        mostrarPreguntaCarrusel();
+    }
+}
+
+async function actualizarEstadisticasQuiz() {
+    try {
+        // Obtener número total de participantes
+        const response = await fetch(`/taller/api/ecosistema/grafo/${SESION_ID}/`, {
+            headers: {
+                'X-Facilitador-Token': CODIGO_FACILITADOR
+            }
+        });
+        const data = await response.json();
+        const totalParticipantes = data.participantes ? data.participantes.length : 0;
+        
+        document.getElementById('total-participantes-quiz').textContent = totalParticipantes;
+        
+        // TODO: Implementar conteo real de respuestas por pregunta
+        // Por ahora mostramos 0
+        document.getElementById('participantes-respondieron').textContent = '0';
+        
+    } catch (error) {
+        console.error('Error actualizando estadísticas quiz:', error);
+    }
+}
+
+async function verResultadosQuiz() {
+    try {
+        // Ocultar carrusel
+        document.getElementById('carrusel-preguntas').style.display = 'none';
+        
+        // Mostrar resultados
+        const resultadosDiv = document.getElementById('resultados-finales');
+        resultadosDiv.style.display = 'block';
+        
+        const container = document.getElementById('resultados-quiz-container');
+        container.innerHTML = '<div style="text-align: center; color: #F5F5DC; padding: 40px;">Cargando resultados...</div>';
+        
+        // TODO: Cargar resultados reales del API
+        // Por ahora mostramos un resumen básico
+        container.innerHTML = `
+            <div style="background: rgba(45, 80, 22, 0.8); border: 2px solid #FFD700; border-radius: 12px; padding: 30px; text-align: center;">
+                <div style="color: #FFD700; font-size: 1.5rem; font-weight: bold; margin-bottom: 20px;">
+                    🎉 Quiz Completado
+                </div>
+                <div style="color: #F5F5DC; font-size: 1.1rem; line-height: 1.8;">
+                    Se han revisado todas las ${preguntasQuizFacilitador.length} preguntas del quiz.<br>
+                    Los participantes han compartido sus perspectivas sobre el ecosistema de datos.
+                </div>
+                <button onclick="reiniciarQuiz()" style="margin-top: 30px; padding: 15px 30px; background: linear-gradient(135deg, #FFD700, #FFA500); border: none; border-radius: 12px; color: #1a472a; font-weight: bold; cursor: pointer; font-size: 1.1rem;">
+                    🔄 Reiniciar Quiz
+                </button>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error mostrando resultados:', error);
+    }
+}
+
+function reiniciarQuiz() {
+    document.getElementById('resultados-finales').style.display = 'none';
+    document.getElementById('controles-inicio-quiz').style.display = 'block';
+    preguntaActualIndex = 0;
+}
+</script>
+
+<script>
+// ============================================================================
+// CIERRE DEL TALLER - REPORTES Y EXPORTACIONES
+// ============================================================================
+
+async function cargarEstadisticasCierre() {
+    try {
+        // Obtener datos del ecosistema
+        const response = await fetch(`/taller/api/ecosistema/grafo/${SESION_ID}/`, {
+            headers: {
+                'X-Facilitador-Token': CODIGO_FACILITADOR
+            }
+        });
+        const data = await response.json();
+        
+        // Obtener datos creados
+        const responseDatos = await fetch(`/taller/api/datos/${SESION_ID}/`);
+        const dataDatos = await responseDatos.json();
+        
+        // Obtener clasificaciones
+        const responseClasif = await fetch(`/taller/api/clasificaciones/${SESION_ID}/`);
+        const dataClasif = await responseClasif.json();
+        
+        // Actualizar métricas
+        document.getElementById('cierre-participantes').textContent = data.participantes.length;
+        
+        const rolesAsignados = data.participantes.filter(p => p.rol_primario__nombre).length;
+        document.getElementById('cierre-roles').textContent = rolesAsignados;
+        
+        document.getElementById('cierre-datos').textContent = (dataDatos.datos || []).length;
+        document.getElementById('cierre-flujos').textContent = (data.flujos || []).length;
+        document.getElementById('cierre-clasificaciones').textContent = (dataClasif.clasificaciones || []).length;
+        
+        console.log('✅ Estadísticas de cierre cargadas');
+        
+    } catch (error) {
+        console.error('Error cargando estadísticas de cierre:', error);
+        // Valores por defecto en caso de error
+        document.getElementById('cierre-participantes').textContent = '0';
+        document.getElementById('cierre-roles').textContent = '0';
+        document.getElementById('cierre-datos').textContent = '0';
+        document.getElementById('cierre-flujos').textContent = '0';
+        document.getElementById('cierre-clasificaciones').textContent = '0';
+    }
+}
+
+async function descargarReporte(tipo) {
+    try {
+        // Mostrar mensaje de generación
+        const btn = event.target;
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '⏳ Generando...';
+        btn.disabled = true;
+        
+        // Llamar al endpoint de generación de reportes
+        const response = await fetch(`/taller/api/reporte/${SESION_ID}/${tipo}/`, {
+            method: 'GET'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error generando el reporte');
+        }
+        
+        // Descargar el archivo
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reporte_${tipo}_sesion_${SESION_ID}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Restaurar botón
+        btn.innerHTML = '✅ Descargado';
+        setTimeout(() => {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+        }, 2000);
+        
+        console.log(`✅ Reporte ${tipo} descargado`);
+        
+    } catch (error) {
+        console.error('Error descargando reporte:', error);
+        alert('⚠️ Error generando el reporte. Por favor, intenta nuevamente o contacta al administrador.');
+        
+        // Restaurar botón
+        event.target.innerHTML = '❌ Error';
+        setTimeout(() => {
+            event.target.innerHTML = '📥 Descargar PDF';
+            event.target.disabled = false;
+        }, 2000);
+    }
+}
+
+async function exportarDatos(tipo) {
+    try {
+        // Mostrar mensaje de exportación
+        const btn = event.target;
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '⏳ Exportando...';
+        btn.disabled = true;
+        
+        let url = '';
+        let filename = '';
+        
+        if (tipo === 'completo') {
+            url = `/taller/api/exportar/${SESION_ID}/completo/`;
+            filename = `taller_completo_sesion_${SESION_ID}.zip`;
+        } else {
+            url = `/taller/api/exportar/${SESION_ID}/${tipo}/`;
+            filename = `${tipo}_sesion_${SESION_ID}.csv`;
+        }
+        
+        // Llamar al endpoint de exportación
+        const response = await fetch(url, {
+            method: 'GET'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error exportando los datos');
+        }
+        
+        // Descargar el archivo
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        document.body.removeChild(a);
+        
+        // Restaurar botón
+        btn.innerHTML = '✅ Descargado';
+        setTimeout(() => {
+            btn.innerHTML = textoOriginal;
+            btn.disabled = false;
+        }, 2000);
+        
+        console.log(`✅ Datos de ${tipo} exportados`);
+        
+    } catch (error) {
+        console.error('Error exportando datos:', error);
+        alert('⚠️ Error exportando los datos. Por favor, intenta nuevamente o contacta al administrador.');
+        
+        // Restaurar botón
+        event.target.innerHTML = '❌ Error';
+        setTimeout(() => {
+            event.target.innerHTML = event.target.textContent.includes('ZIP') ? '📦 Todo (ZIP)' : event.target.textContent;
+            event.target.disabled = false;
+        }, 2000);
+    }
+}
+</script>
+
+
+{
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+<style>
+  .wd-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+  .wd-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .wd-card { background: var(--body-bg, white); border-radius: 0.5rem; padding: 1rem; border: 1px solid var(--border-color, #e2e8f0); text-align: center; }
+  .wd-card .value { font-size: 1.75rem; font-weight: 700; }
+  .wd-card .label { font-size: 0.75rem; color: var(--body-quiet-color, #64748b); text-transform: uppercase; letter-spacing: 0.05em; }
+  .wd-card.aprobadas .value { color: #059669; }
+  .wd-card.pendientes .value { color: #2563eb; }
+  .wd-card.correcciones .value { color: #d97706; }
+  .wd-card.procesadas .value { color: #7c3aed; }
+  .wd-filters { background: var(--darkened-bg, #f8fafc); border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
+  .wd-filters .field { display: flex; flex-direction: column; gap: 0.25rem; }
+  .wd-filters label { font-size: 0.7rem; color: var(--body-quiet-color, #475569); font-weight: 600; text-transform: uppercase; }
+  .wd-filters input, .wd-filters select { padding: 0.4rem 0.6rem; border: 1px solid var(--border-color, #cbd5e1); border-radius: 0.375rem; font-size: 0.85rem; background: var(--body-bg, white); color: var(--body-fg, #000); }
+  .wd-filters button { padding: 0.4rem 1rem; border: none; border-radius: 0.375rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+  .wd-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .wd-table th { background: var(--darkened-bg, #f1f5f9); color: var(--body-quiet-color, #475569); font-weight: 600; text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border-color, #e2e8f0); white-space: nowrap; }
+  .wd-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--hairline-color, #f1f5f9); vertical-align: middle; }
+  .wd-table tr:hover td { background: var(--selected-row, #f8fafc); }
+  .badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 9999px; font-weight: 600; display: inline-block; }
+  .badge-serie { background: var(--selected-bg, #dbeafe); color: var(--link-fg, #1e40af); }
+  .badge-conjunto de datos { background: var(--selected-bg, #ede9fe); color: #5b21b6; }
+  .badge-estado { text-transform: capitalize; }
+  .badge-origen { background: var(--darkened-bg, #f3f4f6); color: var(--body-fg, #374151); }
+  .wd-actions { display: flex; gap: 0.4rem; flex-wrap: nowrap; }
+  .wd-actions a { font-size: 0.75rem; padding: 0.3rem 0.5rem; border-radius: 0.3rem; text-decoration: none; font-weight: 600; white-space: nowrap; }
+  .btn-procesar { background: var(--selected-bg, #e0e7ff); color: var(--link-fg, #4338ca); }
+  .btn-devolver { background: var(--selected-row, #fef3c7); color: #92400e; }
+  .pagination { display: flex; justify-content: center; gap: 0.25rem; margin-top: 1.5rem; }
+  .pagination a, .pagination span { padding: 0.35rem 0.65rem; border-radius: 0.375rem; font-size: 0.85rem; text-decoration: none; }
+  .pagination a { background: var(--darkened-bg, #f1f5f9); color: var(--body-quiet-color, #475569); }
+  .pagination a:hover { background: var(--selected-row, #e2e8f0); }
+  .pagination .current { background: var(--button-bg, #4338ca); color: var(--button-fg, white); font-weight: 600; }
+  .observacion-snippet { color: #92400e; font-size: 0.75rem; margin-top: 0.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wd-container">
+
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.25rem;">
+    <h1 style="font-size: 1.5rem; font-weight: 700; margin: 0;">
+      <i class="fas fa-magic" style="color: var(--link-fg, #7c3aed);"></i> Wizard Unificado — Dashboard
+    </h1>
+    <a href="{% url 'wizard_admin_unificado' %}" style="background: var(--button-bg, #4338ca); color: var(--button-fg, white); padding: 0.5rem 1.2rem; border-radius: 0.375rem; text-decoration: none; font-weight: 600; font-size: 0.9rem; white-space: nowrap;">
+      <i class="fas fa-rocket"></i> Iniciar Wizard
+    </a>
+  </div>
+  <p style="color: var(--body-quiet-color, #64748b); margin-bottom: 1.5rem; font-size: 0.9rem;">
+    Visualiza todas las cargas, selecciona una para procesar o devolver.
+  </p>
+
+  <!-- Tarjetas resumen -->
+  <div class="wd-cards">
+    <div class="wd-card aprobadas">
+      <div class="value">{{ resumen.aprobadas }}</div>
+      <div class="label">Series Aprobadas</div>
+    </div>
+    <div class="wd-card pendientes">
+      <div class="value">{{ resumen.pendientes }}</div>
+      <div class="label">Series Pendientes</div>
+    </div>
+    <div class="wd-card correcciones">
+      <div class="value">{{ resumen.correcciones }}</div>
+      <div class="label">Correcciones Solicitadas</div>
+    </div>
+    <div class="wd-card procesadas">
+      <div class="value">{{ resumen.procesadas_hoy }}</div>
+      <div class="label">Procesadas Hoy</div>
+    </div>
+    <div class="wd-card pendientes">
+      <div class="value">{{ resumen.conjuntos_datos_pendientes }}</div>
+      <div class="label">Conjunto de datos Pendientes</div>
+    </div>
+    <div class="wd-card aprobadas">
+      <div class="value">{{ resumen.conjuntos_datos_aprobados }}</div>
+      <div class="label">Conjunto de datos Aprobadas</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" class="wd-filters">
+    <div class="field">
+      <label>Buscar</label>
+      <input type="text" name="q" value="{{ busqueda }}" placeholder="Código, indicador o usuario..." style="width: 220px;">
+    </div>
+    <div class="field">
+      <label>Estado</label>
+      <select name="estado">
+        <option value="">Todos</option>
+        {% for e in estados %}
+        {% if e %}
+        <option value="{{ e }}" {% if estado_filtro == e %}selected{% endif %}>{{ e|title }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Origen</label>
+      <select name="origen">
+        {% for o in origenes %}
+        <option value="{{ o }}" {% if origen_filtro == o %}selected{% endif %}>{{ o|default:"Todos"|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>Tipo</label>
+      <select name="tipo">
+        {% for t in tipos %}
+        <option value="{{ t }}" {% if tipo_filtro == t %}selected{% endif %}>{{ t|default:"Todos"|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <button type="submit" style="background: var(--button-bg, #4338ca); color: var(--button-fg, white);">Filtrar</button>
+    </div>
+    {% if estado_filtro or origen_filtro or tipo_filtro or busqueda %}
+    <div class="field">
+      <label>&nbsp;</label>
+      <a href="{% url 'wizard_dashboard' %}" style="color: var(--body-quiet-color, #64748b); font-size: 0.85rem; padding: 0.4rem 0.8rem; text-decoration: none; border: 1px solid var(--border-color, #cbd5e1); border-radius: 0.375rem; display: inline-block;">Limpiar</a>
+    </div>
+    {% endif %}
+  </form>
+
+  <!-- Tabla -->
+  <div style="overflow-x: auto;">
+    <table class="wd-table">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Código</th>
+          <th>Indicador / Conjunto de datos</th>
+          <th>Estado</th>
+          <th>Origen</th>
+          <th>Usuario</th>
+          <th>Fecha</th>
+          <th style="text-align: right;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            {% if item.tipo == 'serie' %}
+            <span class="badge badge-serie">Serie</span>
+            {% else %}
+            <span class="badge badge-conjunto de datos">Conjunto de datos</span>
+            {% endif %}
+          </td>
+          <td style="font-family: monospace; font-size: 0.8rem;">{{ item.codigo }}</td>
+          <td>
+            <div style="font-weight: 500; color: var(--body-fg, #1e293b);">{{ item.nombre|truncatewords:6 }}</div>
+            {% if item.observaciones_admin %}
+            <div class="observacion-snippet"><i class="fas fa-sticky-note"></i> {{ item.observaciones_admin|truncatewords:8 }}</div>
+            {% endif %}
+          </td>
+          <td><span class="badge badge-estado estado-{{ item.estado }}">{{ item.estado|title }}</span></td>
+          <td><span class="badge badge-origen">{{ item.origen }}</span></td>
+          <td>{{ item.usuario }}</td>
+          <td style="white-space: nowrap; color: var(--body-quiet-color, #64748b);">{{ item.fecha|date:"d/m/Y H:i" }}</td>
+          <td style="text-align: right;">
+            <div class="wd-actions">
+              {% if item.estado == 'aprobado' or item.estado == 'pendiente' %}
+                {% if item.tipo == 'serie' %}
+                <a href="{% url 'wizard_admin_unificado' %}?carga_serie={{ item.id }}" class="btn-procesar">Procesar</a>
+                {% else %}
+                <a href="{% url 'wizard_admin_unificado' %}?carga_conjunto_datos={{ item.id }}" class="btn-procesar">Procesar</a>
+                {% endif %}
+              {% endif %}
+              {% if item.estado == 'aprobado' or item.estado == 'pendiente' %}
+              <a href="{% url 'wizard_solicitar_correccion' carga_id=item.id %}?next=dashboard" class="btn-devolver">Devolver</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align: center; color: var(--body-quiet-color, #94a3b8); padding: 2rem;">
+            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+            No se encontraron cargas con los filtros aplicados.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginacion -->
+  {% if items.paginator.num_pages > 1 %}
+  <div class="pagination">
+    {% if items.has_previous %}
+    <a href="?{% if busqueda %}q={{ busqueda }}&{% endif %}{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if origen_filtro %}origen={{ origen_filtro }}&{% endif %}{% if tipo_filtro %}tipo={{ tipo_filtro }}&{% endif %}page={{ items.previous_page_number }}">←</a>
+    {% endif %}
+    {% for num in items.paginator.page_range %}
+      {% if num == items.number %}
+      <span class="current">{{ num }}</span>
+      {% elif num > items.number|add:-3 and num < items.number|add:3 %}
+      <a href="?{% if busqueda %}q={{ busqueda }}&{% endif %}{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if origen_filtro %}origen={{ origen_filtro }}&{% endif %}{% if tipo_filtro %}tipo={{ tipo_filtro }}&{% endif %}page={{ num }}">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if items.has_next %}
+    <a href="?{% if busqueda %}q={{ busqueda }}&{% endif %}{% if estado_filtro %}estado={{ estado_filtro }}&{% endif %}{% if origen_filtro %}origen={{ origen_filtro }}&{% endif %}{% if tipo_filtro %}tipo={{ tipo_filtro }}&{% endif %}page={{ items.next_page_number }}">→</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

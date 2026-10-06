@@ -1,0 +1,191 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-chart-line"></i>
+      Configurar Indicador
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>¿Crear nuevo o asociar existente?</strong> Define el indicador que se generará con el procesamiento cartesiano.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Opción: Crear o Asociar -->
+    <div class="form-section">
+      <div class="form-group">
+        <label>{{ wizard.form.opcion.label }}</label>
+        {{ wizard.form.opcion }}
+      </div>
+    </div>
+
+    <!-- Crear Nuevo Indicador -->
+    <div class="form-section" id="section-crear-nuevo" style="display: none;">
+      <h4>
+        <i class="fas fa-plus-circle"></i>
+        Crear Nuevo Indicador
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.codigo_indicador.id_for_label }}">
+          {{ wizard.form.codigo_indicador.label }}
+        </label>
+        {{ wizard.form.codigo_indicador }}
+        {{ wizard.form.codigo_indicador.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.nombre.id_for_label }}">
+          {{ wizard.form.nombre.label }}
+        </label>
+        {{ wizard.form.nombre }}
+        {{ wizard.form.nombre.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.sigla.id_for_label }}">
+          {{ wizard.form.sigla.label }}
+        </label>
+        {{ wizard.form.sigla }}
+        {{ wizard.form.sigla.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.subtema.id_for_label }}">
+          {{ wizard.form.subtema.label }}
+        </label>
+        {{ wizard.form.subtema }}
+        {{ wizard.form.subtema.errors }}
+      </div>
+    </div>
+
+    <!-- Asociar Existente -->
+    <div class="form-section" id="section-asociar-existente" style="display: none;">
+      <h4>
+        <i class="fas fa-link"></i>
+        Asociar a Indicador Existente
+      </h4>
+      
+      <div id="indicador-search-container"></div>
+
+      <div class="form-group">
+        <label for="{{ wizard.form.indicador_existente.id_for_label }}">
+          {{ wizard.form.indicador_existente.label }}
+        </label>
+        {{ wizard.form.indicador_existente }}
+        {{ wizard.form.indicador_existente.errors }}
+      </div>
+      
+      <div class="warning-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Advertencia:</strong> Los datos existentes del indicador serán reemplazados con el procesamiento cartesiano.
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const opcionRadios = document.querySelectorAll('input[name="{{ wizard.form.opcion.html_name }}"]');
+  const sectionCrear = document.getElementById('section-crear-nuevo');
+  const sectionAsociar = document.getElementById('section-asociar-existente');
+  
+  function updateSections() {
+    const selectedValue = document.querySelector('input[name="{{ wizard.form.opcion.html_name }}"]:checked')?.value;
+    
+    sectionCrear.style.display = 'none';
+    sectionAsociar.style.display = 'none';
+    
+    if (selectedValue === 'crear_nuevo') {
+      sectionCrear.style.display = 'block';
+    } else if (selectedValue === 'asociar_existente') {
+      sectionAsociar.style.display = 'block';
+    }
+  }
+  
+  opcionRadios.forEach(radio => {
+    radio.addEventListener('change', updateSections);
+  });
+  
+  updateSections();
+
+  // ---- Buscador de indicadores (creado dinámicamente) ----
+  var indicadorSelect = document.querySelector('select[name="{{ wizard.form.indicador_existente.html_name }}"]');
+  var searchContainer = document.getElementById('indicador-search-container');
+
+  if (indicadorSelect && searchContainer) {
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Buscar por nombre, código o subtema...';
+    searchInput.autocomplete = 'off';
+    searchInput.style.cssText = 'display:block!important;width:100%;padding:8px 12px;border:1px solid #aaa;border-radius:4px;font-size:14px;background-color:#ffffff;color:#222222;box-sizing:border-box;margin-bottom:6px;height:36px;';
+
+    var counterEl = document.createElement('small');
+    counterEl.style.cssText = 'display:block;margin-bottom:6px;color:#666;font-size:12px;';
+
+    searchContainer.appendChild(searchInput);
+    searchContainer.appendChild(counterEl);
+
+    Array.from(indicadorSelect.options).forEach(function(opt) {
+      if (!opt.value) return;
+      var raw = opt.text.trim();
+      var m = raw.match(/^\[([^\]]+)\]\s*/);
+      var codigo = m ? m[1] : '';
+      var resto  = m ? raw.slice(m[0].length) : raw;
+      opt.setAttribute('data-search', (codigo + ' ' + resto.split(/\s+•\s+/).join(' ')).toLowerCase().trim());
+    });
+
+    var totalInd = Array.from(indicadorSelect.options).filter(function(o){ return o.value; }).length;
+    counterEl.textContent = totalInd + ' indicadores';
+
+    searchInput.addEventListener('input', function() {
+      var q = this.value.toLowerCase().trim();
+      var cur = indicadorSelect.value;
+      var vis = 0;
+      Array.from(indicadorSelect.options).forEach(function(opt) {
+        if (!opt.value) { opt.hidden = false; return; }
+        var match = !q || (opt.getAttribute('data-search') || '').includes(q);
+        opt.hidden = !match && opt.value !== cur;
+        if (!opt.hidden && opt.value) vis++;
+      });
+      counterEl.textContent = q ? (vis + ' de ' + totalInd + ' indicadores') : (totalInd + ' indicadores');
+    });
+
+    indicadorSelect.addEventListener('change', function() {
+      searchInput.value = '';
+      Array.from(indicadorSelect.options).forEach(function(opt){ opt.hidden = false; });
+      counterEl.textContent = totalInd + ' indicadores';
+    });
+  }
+});
+</script>
+{% endblock %}

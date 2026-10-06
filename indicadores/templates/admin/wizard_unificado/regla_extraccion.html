@@ -1,0 +1,281 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-cogs"></i>
+      Crear Regla de Extracción
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Procesamiento Cartesiano:</strong> Define cómo se calculará el indicador a partir de el conjunto de datos.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Columnas disponibles -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-columns"></i>
+        Columnas Disponibles en la Conjunto de datos
+      </h4>
+      
+      <div class="columnas-preview">
+        {% for columna in columnas_disponibles %}
+        <div class="columna-badge">
+          <i class="fas fa-table"></i>
+          {{ columna }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- Configuración de la regla -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-wrench"></i>
+        Configuración de la Regla
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.columna_fecha.id_for_label }}">
+          <i class="fas fa-calendar"></i>
+          {{ wizard.form.columna_fecha.label }}
+        </label>
+        {{ wizard.form.columna_fecha }}
+        {% if wizard.form.columna_fecha.help_text %}
+        <span class="helptext">{{ wizard.form.columna_fecha.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.columna_fecha.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.columnas_fuente.id_for_label }}">
+          <i class="fas fa-database"></i>
+          {{ wizard.form.columnas_fuente.label }}
+        </label>
+        {{ wizard.form.columnas_fuente }}
+        {% if wizard.form.columnas_fuente.help_text %}
+        <span class="helptext">{{ wizard.form.columnas_fuente.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.columnas_fuente.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.formula.id_for_label }}">
+          <i class="fas fa-calculator"></i>
+          {{ wizard.form.formula.label }}
+        </label>
+        {{ wizard.form.formula }}
+        {% if wizard.form.formula.help_text %}
+        <span class="helptext">{{ wizard.form.formula.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.formula.errors }}
+        
+        <div class="formula-examples">
+          <strong>Ejemplos de fórmulas:</strong>
+          <ul>
+            <li><code>(nacimientos / poblacion) * 1000</code> - Tasa por mil habitantes</li>
+            <li><code>sum(ingresos) / count()</code> - Promedio de ingresos</li>
+            <li><code>(defunciones / poblacion) * 100000</code> - Tasa por cien mil</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.filtros_json.id_for_label }}">
+          <i class="fas fa-filter"></i>
+          {{ wizard.form.filtros_json.label }}
+        </label>
+        {{ wizard.form.filtros_json }}
+        {% if wizard.form.filtros_json.help_text %}
+        <span class="helptext">{{ wizard.form.filtros_json.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.filtros_json.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.orden_desagregaciones.id_for_label }}">
+          <i class="fas fa-sort"></i>
+          {{ wizard.form.orden_desagregaciones.label }}
+        </label>
+        {{ wizard.form.orden_desagregaciones }}
+        {% if wizard.form.orden_desagregaciones.help_text %}
+        <span class="helptext">{{ wizard.form.orden_desagregaciones.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.orden_desagregaciones.errors }}
+      </div>
+
+      <!-- Botón Diagnosticar -->
+      <div class="form-group" style="margin-top:1.5rem;">
+        <button type="button" id="btn-diagnosticar"
+                data-carga-id="{{ carga_conjunto_datos_id|default:'' }}"
+                class="btn btn-secondary"
+                style="background: var(--wizard-primary); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 500;">
+          <i class="fas fa-stethoscope"></i> Diagnosticar regla
+        </button>
+        <span id="diag-spinner" style="display:none; margin-left:0.5rem;">
+          <i class="fas fa-spinner fa-spin"></i> Analizando...
+        </span>
+      </div>
+
+      <!-- Resultado del diagnóstico -->
+      <div id="diag-resultado" style="display:none; margin-top:1rem;"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente: Diagnóstico
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.columnas-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.columna-badge {
+  padding: 0.5rem 1rem;
+  background: var(--wizard-primary);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formula-examples {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(6, 182, 212, 0.05);
+  border-left: 3px solid var(--wizard-primary);
+  border-radius: 4px;
+}
+
+.formula-examples strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--admin-text);
+}
+
+.formula-examples ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.formula-examples li {
+  margin-bottom: 0.5rem;
+  color: var(--admin-muted);
+}
+
+.formula-examples code {
+  background: rgba(6, 182, 212, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--wizard-primary);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('btn-diagnosticar');
+    const spinner = document.getElementById('diag-spinner');
+    const resultado = document.getElementById('diag-resultado');
+    if (!btn) return;
+
+    btn.addEventListener('click', function() {
+        const cargaId = btn.getAttribute('data-carga-id');
+        if (!cargaId) {
+            resultado.innerHTML = '<div class="error-box"><i class="fas fa-exclamation-triangle"></i> No se encontró carga de conjunto de datos para diagnosticar.</div>';
+            resultado.style.display = 'block';
+            return;
+        }
+
+        // Leer valores del formulario
+        const columnaFecha = document.querySelector('[name$="columna_fecha"]').value;
+        const columnasFuente = document.querySelector('[name$="columnas_fuente"]').value;
+        const formula = document.querySelector('[name$="formula"]').value;
+        const filtrosJson = document.querySelector('[name$="filtros_json"]').value;
+        const ordenDesag = document.querySelector('[name$="orden_desagregaciones"]').value;
+
+        if (!columnaFecha || !columnasFuente || !formula) {
+            resultado.innerHTML = '<div class="error-box"><i class="fas fa-exclamation-triangle"></i> Completa al menos Columna de Fecha, Columnas Fuente y Fórmula antes de diagnosticar.</div>';
+            resultado.style.display = 'block';
+            return;
+        }
+
+        btn.disabled = true;
+        spinner.style.display = 'inline';
+        resultado.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('carga_conjunto_datos_id', cargaId);
+        formData.append('columna_fecha', columnaFecha);
+        formData.append('columnas_fuente', columnasFuente);
+        formData.append('formula', formula);
+        formData.append('filtros_json', filtrosJson);
+        formData.append('orden_desagregaciones', ordenDesag);
+
+        // CSRF token
+        const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        if (csrfInput) formData.append('csrfmiddlewaretoken', csrfInput.value);
+
+        fetch('/admin/wizard/diagnostico-ajax/', {
+            method: 'POST',
+            body: formData,
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+            if (data.error) {
+                resultado.innerHTML = '<div class="error-box"><i class="fas fa-exclamation-triangle"></i> ' + data.error + '</div>';
+            } else {
+                resultado.innerHTML = data.html;
+            }
+            resultado.style.display = 'block';
+        })
+        .catch(err => {
+            btn.disabled = false;
+            spinner.style.display = 'none';
+            resultado.innerHTML = '<div class="error-box"><i class="fas fa-exclamation-triangle"></i> Error de conexión: ' + err + '</div>';
+            resultado.style.display = 'block';
+        });
+    });
+});
+</script>
+{% endblock %}

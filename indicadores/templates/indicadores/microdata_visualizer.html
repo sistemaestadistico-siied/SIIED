@@ -1,0 +1,655 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}Página eliminada{% endblock %}
+
+{% block extra_css %}
+<!-- Página descontinuada: sin estilos adicionales -->
+{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="bg-white shadow rounded-lg p-6 my-12">
+    <h1 class="text-2xl font-bold text-gray-800">Visualizador de Conjuntos de datos eliminado</h1>
+    <p class="text-gray-600 mt-2">Esta página ha sido retirada del sistema. Si llegaste aquí por un enlace antiguo, por favor vuelve al <a href="/" class="text-primary-600 underline">inicio</a>.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}
+{% comment %}
+  const $list = $('#columnsList');
+  let current = {file: null, total: 0};
+  let headers = [];
+  let selectedColumns = [];
+  let pendingCtrl = null; // AbortController for in-flight requests
+  let fetched = { rows: [], columns: [] }; // last fetched dataset for preview/pivot
+
+  function fmtBytes(n){ if(!n && n !== 0) return ''; const units=['B','KB','MB','GB']; let i=0; while(n>=1024 && i<units.length-1){n/=1024;i++;} return n.toFixed(1)+' '+units[i]; }
+
+  // Utilidad: construir TSV a partir de la tabla HTML de Pivot (con row/colspan)
+  function tsvFromPivotTable(table) {
+    const rows = Array.from(table.querySelectorAll('tr'));
+    const matrix = [];
+    const rowspanMap = {};
+    let maxCols = 0;
+    function sanitize(text) { return String(text || '').replace(/\t/g, ' ').replace(/\n/g, ' ').trim(); }
+    rows.forEach(tr => {
+      const out = [];
+      let col = 0;
+      const cells = Array.from(tr.querySelectorAll('th,td'));
+      const decremented = new Set();
+      function advanceToFreeCol() {
+        while (true) {
+          if (out[col] === undefined) {
+            if (rowspanMap[col] && rowspanMap[col] > 0) {
+              out[col] = '';
+              rowspanMap[col] -= 1;
+              decremented.add(col);
+              col += 1;
+              continue;
+            }
+            break;
+          }
+          col += 1;
+        }
+      }
+      cells.forEach(td => {
+        const colspan = parseInt(td.getAttribute('colspan') || '1', 10);
+        const rowspan = parseInt(td.getAttribute('rowspan') || '1', 10);
+        const text = sanitize(td.innerText);
+        advanceToFreeCol();
+        out[col] = text;
+        for (let k = 1; k < colspan; k++) { out[col + k] = ''; }
+        for (let k = 0; k < colspan; k++) {
+          const idx = col + k;
+          if (rowspan > 1) { rowspanMap[idx] = (rowspanMap[idx] || 0) + (rowspan - 1); }
+        }
+        col += colspan;
+      });
+      Object.keys(rowspanMap).forEach(key => {
+        const idx = parseInt(key, 10);
+        if (rowspanMap[idx] && rowspanMap[idx] > 0 && !decremented.has(idx)) {
+          if (out[idx] === undefined) out[idx] = '';
+          rowspanMap[idx] -= 1;
+        }
+      });
+      maxCols = Math.max(maxCols, out.length);
+      matrix.push(out);
+    });
+    const lines = matrix.map(arr => {
+      if (arr.length < maxCols) arr = arr.concat(new Array(maxCols - arr.length).fill(''));
+      return arr.join('\t');
+    });
+    return lines.join('\n');
+  }
+
+  // Matriz (AOA) desde tabla HTML del Pivot (con manejo de rowspan/colspan)
+  function matrixFromPivotTable(table) {
+    const rows = Array.from(table.querySelectorAll('tr'));
+    const matrix = [];
+    const rowspanMap = {};
+    let maxCols = 0;
+    function sanitize(text) { return String(text || '').replace(/\t/g, ' ').replace(/\n/g, ' ').trim(); }
+    rows.forEach(tr => {
+      const out = [];
+      let col = 0;
+      const cells = Array.from(tr.querySelectorAll('th,td'));
+      const decremented = new Set();
+      function advanceToFreeCol() {
+        while (true) {
+          if (out[col] === undefined) {
+            if (rowspanMap[col] && rowspanMap[col] > 0) {
+              out[col] = '';
+              rowspanMap[col] -= 1;
+              decremented.add(col);
+              col += 1;
+              continue;
+            }
+            break;
+          }
+          col += 1;
+        }
+      }
+      cells.forEach(td => {
+        const colspan = parseInt(td.getAttribute('colspan') || '1', 10);
+        const rowspan = parseInt(td.getAttribute('rowspan') || '1', 10);
+        const text = sanitize(td.innerText);
+        advanceToFreeCol();
+        out[col] = text;
+        for (let k = 1; k < colspan; k++) { out[col + k] = ''; }
+        for (let k = 0; k < colspan; k++) {
+          const idx = col + k;
+          if (rowspan > 1) { rowspanMap[idx] = (rowspanMap[idx] || 0) + (rowspan - 1); }
+        }
+        col += colspan;
+      });
+      Object.keys(rowspanMap).forEach(key => {
+        const idx = parseInt(key, 10);
+        if (rowspanMap[idx] && rowspanMap[idx] > 0 && !decremented.has(idx)) {
+          if (out[idx] === undefined) out[idx] = '';
+          rowspanMap[idx] -= 1;
+        }
+      });
+      maxCols = Math.max(maxCols, out.length);
+      matrix.push(out);
+    });
+    // Normalizar ancho
+    matrix.forEach((row, i) => { if (row.length < maxCols) matrix[i] = row.concat(new Array(maxCols - row.length).fill('')); });
+    return matrix;
+  }
+
+  function csvFromMatrix(matrix) {
+    function escapeCSV(val){
+      const s = String(val ?? '');
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+      return s;
+    }
+    return matrix.map(row => row.map(escapeCSV).join(',')).join('\n');
+  }
+
+  function matrixFromTSVText(tsv){
+    return String(tsv || '').split(/\r?\n/).map(line => line.split('\t'));
+  }
+
+  function isPlainObject(o){ return Object.prototype.toString.call(o) === '[object Object]'; }
+
+  function renderPreview(rows, columns){
+    const $out = $('#output');
+    $out.empty();
+    const maxR = 50;
+    const maxC = 12;
+    const sampleRows = Array.isArray(rows) ? rows.slice(0, maxR) : [];
+    let cols = Array.isArray(columns) && columns.length ? columns.slice(0, maxC) : [];
+    if (!cols.length && sampleRows.length) {
+      const r0 = sampleRows[0];
+      if (isPlainObject(r0)) cols = Object.keys(r0).slice(0, maxC);
+      else if (Array.isArray(r0)) cols = r0.map((_, i) => 'col'+i).slice(0, maxC);
+    }
+    const table = document.createElement('table');
+    table.className = 'min-w-full text-xs border';
+    const thead = document.createElement('thead');
+    const trh = document.createElement('tr');
+    cols.forEach(c=>{ const th=document.createElement('th'); th.className='border px-2 py-1 text-left bg-gray-50'; th.textContent=c; trh.appendChild(th); });
+    thead.appendChild(trh);
+    table.appendChild(thead);
+    const tbody = document.createElement('tbody');
+    sampleRows.forEach(r=>{
+      const tr = document.createElement('tr');
+      cols.forEach((c, idx)=>{
+        const td = document.createElement('td'); td.className='border px-2 py-1';
+        let v = '';
+        if (isPlainObject(r)) v = r[c];
+        else if (Array.isArray(r)) v = r[idx];
+        td.textContent = (v===undefined || v===null) ? '' : String(v);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    $out.append('<div class="text-sm text-gray-600 mb-2">Vista previa (máx 50 filas, 12 columnas). Pulsa "Construir Pivot" para la tabla dinámica.</div>');
+    $out.append(table);
+  }
+
+  // Unifica lógica de botones de descarga (TSV/CSV/XLSX/PNG)
+  function bindDownloadButtons(){
+    try {
+      const current = $('.pvtRenderer').val();
+      const $btnTSV = $('#pivotjs-descargar-tsv');
+      const $btnPNG = $('#pivotjs-descargar-grafico');
+      const $btnCSV = $('#pivotjs-descargar-csv');
+      const $btnXLSX = $('#pivotjs-descargar-xlsx');
+      const $ta = $('#output .pvtRendererArea textarea');
+      const htmlTable = document.querySelector('#output .pvtRendererArea table.pvtTable');
+
+      // Reset estado y handlers
+      $btnTSV.hide().off('click');
+      $btnCSV.hide().off('click');
+      $btnXLSX.hide().off('click');
+      $btnPNG.hide().off('click');
+
+      if (current === 'Exportar TSV' && $ta.length) {
+        // TSV directo del textarea
+        $btnTSV.show().on('click', () => {
+          const blob = new Blob([$ta.val()], { type: 'text/tab-separated-values;charset=utf-8;' });
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'export.tsv'; a.click(); URL.revokeObjectURL(a.href);
+        });
+        // CSV desde TSV preservando vacíos y con BOM
+        $btnCSV.show().on('click', () => {
+          const rows = matrixFromTSVText($ta.val());
+          if (window.XLSX) {
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'export.csv'; a.click(); URL.revokeObjectURL(a.href);
+          } else {
+            const csv = csvFromMatrix(rows);
+            const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'export.csv'; a.click(); URL.revokeObjectURL(a.href);
+          }
+        });
+        if (window.XLSX) {
+          $btnXLSX.show().on('click', () => {
+            const rows = matrixFromTSVText($ta.val());
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(wb, ws, 'Pivot');
+            XLSX.writeFile(wb, 'tabla.xlsx');
+          });
+        }
+      } else if (htmlTable) {
+        // TSV desde tabla HTML (maneja rowspan/colspan)
+        $btnTSV.show().on('click', () => {
+          const tsv = tsvFromPivotTable(htmlTable);
+          const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8;' });
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'export.tsv'; a.click(); URL.revokeObjectURL(a.href);
+        });
+        // CSV desde tabla HTML con BOM
+        $btnCSV.show().on('click', () => {
+          if (window.XLSX) {
+            const ws = XLSX.utils.table_to_sheet(htmlTable, { raw: true });
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'export.csv'; a.click(); URL.revokeObjectURL(a.href);
+          } else {
+            const matrix = matrixFromPivotTable(htmlTable);
+            const csv = csvFromMatrix(matrix);
+            const blob = new Blob(['\ufeff', csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'export.csv'; a.click(); URL.revokeObjectURL(a.href);
+          }
+        });
+        if (window.XLSX) {
+          $btnXLSX.show().on('click', () => {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(htmlTable, { raw: true });
+            XLSX.utils.book_append_sheet(wb, ws, 'Pivot');
+            XLSX.writeFile(wb, 'tabla.xlsx');
+          });
+        }
+      }
+
+      // PNG para cualquier renderer con contenido visible
+      const areaEl = document.querySelector('#output .pvtRendererArea');
+      if (areaEl && areaEl.children && areaEl.children.length) {
+        $btnPNG.show().on('click', async () => {
+          try {
+            const canvas = await html2canvas(areaEl, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a'); a.href = dataURL; a.download = 'grafico.png'; a.click(); URL.revokeObjectURL(a.href);
+          } catch (err) { console.warn('No se pudo capturar la imagen:', err); }
+        });
+      }
+    } catch (e) { /* no-op */ }
+  }
+
+  function loadDatasets(){
+    fetch('{% url "indicadores:api_conjunto_datos_list" %}')
+      .then(r=>r.json())
+      .then(data=>{
+        const items = (data.datasets||[]);
+        $select.empty();
+        if(items.length===0){
+          $select.append('<option value="">(Sin archivos CSV en conjunto de datos/)</option>');
+          return;
+        }
+        items.forEach(it=>{
+          const label = it.label + (it.size? ' ('+fmtBytes(it.size)+')':'' );
+          const opt = $('<option>').val(it.file).text(label);
+          $select.append(opt);
+        });
+        if(!$select.val() && items[0]){ $select.val(items[0].file); }
+      })
+      .catch(()=>{ $select.empty().append('<option value="">(Error cargando lista)</option>'); });
+  }
+
+  function renderPivot(rows, columns){
+    const pu = $.pivotUtilities || {};
+    const isES = !!(pu.locales && pu.locales.es);
+    const baseAggregators = isES ? (pu.locales.es.aggregators || pu.aggregators) : (pu.aggregators || {});
+    let baseRenderers = isES ? (pu.locales.es.renderers || pu.renderers) : (pu.renderers || {});
+    const exportRenderers = pu.export_renderers || {};
+    const plotlyRenderers = pu.plotly_renderers || {};
+    let activeRenderers = $.extend({}, baseRenderers, exportRenderers, plotlyRenderers);
+    function renameRenderer(oldKey, newKey) {
+      if (activeRenderers[oldKey]) { if (!activeRenderers[newKey]) activeRenderers[newKey] = activeRenderers[oldKey]; delete activeRenderers[oldKey]; }
+    }
+    renameRenderer('TSV Export', 'Exportar TSV');
+
+    const currentRenderer = $('.pvtRenderer').val();
+    const currentAggregator = $('.pvtAggregator').val();
+    const defaultAgg = isES ? 'Recuento' : 'Count';
+    let desiredAggregator = (currentAggregator && baseAggregators[currentAggregator])
+      ? currentAggregator
+      : (baseAggregators[defaultAgg] ? defaultAgg : (Object.keys(baseAggregators)[0] || defaultAgg));
+    if (typeof baseAggregators[desiredAggregator] !== 'function') {
+      const firstAgg = Object.keys(baseAggregators)[0];
+      desiredAggregator = firstAgg || defaultAgg;
+    }
+    let desiredRenderer = (currentRenderer && activeRenderers[currentRenderer]) ? currentRenderer : (isES ? 'Tabla' : 'Table');
+    if (!activeRenderers[desiredRenderer]) {
+      const firstRend = Object.keys(activeRenderers)[0];
+      desiredRenderer = firstRend || (isES ? 'Tabla' : 'Table');
+    }
+
+    const options = {
+      rows: [],
+      cols: [],
+      vals: [],
+      aggregators: baseAggregators,
+      renderers: activeRenderers,
+      aggregatorName: desiredAggregator,
+      rendererName: desiredRenderer,
+      hiddenAttributes: [],
+      derivedAttributes: {},
+      ...(isES ? { localeStrings: (pu.locales.es.localeStrings || {}) } : {}),
+      unusedAttrsVertical: true,
+      autoSortUnusedAttrs: true,
+      menuLimit: 1000,
+      rendererOptions: {},
+      onRefresh: function(){
+        try {
+          bindDownloadButtons();
+        } catch (e) { /* no-op */ }
+      }
+    };
+
+    $('#output').pivotUI(rows || [], options, true);
+
+    // Inicializar estado de botones post-render
+    try {
+      bindDownloadButtons();
+      // Asegurar rebinding si el usuario cambia de renderer manualmente
+      $('.pvtRenderer').off('change.__btns').on('change.__btns', function(){
+        bindDownloadButtons();
+      });
+    } catch(e) { /* no-op */ }
+  }
+
+  function loadRows(){
+    const file = $select.val();
+    if(!file){ return; }
+
+    const url = new URL('{% url "indicadores:api_conjunto_datos_rows" %}', window.location.origin);
+    url.searchParams.set('file', file);
+    // Filtros por año (si se suministran)
+    const ai = ($anioIni.val()||'').trim();
+    const af = ($anioFin.val()||'').trim();
+    if(ai) url.searchParams.set('anio_inicio', ai);
+    if(af) url.searchParams.set('anio_fin', af);
+    // Tomar columnas seleccionadas del panel si existe selección
+    const cols = getSelectedColumns();
+    if(!cols.length){
+      $meta.text('Selecciona al menos 1 columna antes de cargar.');
+      return;
+    }
+    // Confirmación si la selección es muy grande
+    if (cols.length > 40) {
+      const proceed = window.confirm(`Has seleccionado ${cols.length} columnas. Esto puede ser lento. ¿Deseas continuar?`);
+      if (!proceed) { $meta.text('Carga cancelada. Reduce el número de columnas.'); return; }
+    }
+    url.searchParams.set('columns', cols.join(','));
+    // Límite de filas (clamp 1..10000)
+    let lim = parseInt(($limit.val()||'').trim(), 10);
+    if (isNaN(lim)) lim = 2000;
+    lim = Math.max(1, Math.min(10000, lim));
+    // Guardar tamaño total de celdas del fetch (filas * columnas)
+    const SOFT_FETCH_CELLS = 200000; // ~200k celdas
+    let estCells = lim * Math.max(1, cols.length);
+    if (estCells > SOFT_FETCH_CELLS) {
+      const newLim = Math.max(1, Math.floor(SOFT_FETCH_CELLS / Math.max(1, cols.length)));
+      const proceed = window.confirm(`La solicitud (~${estCells.toLocaleString()} celdas) es grande. Se propone reducir el límite a ${newLim} para evitar bloqueos. ¿Aplicar?`);
+      if (!proceed) { $meta.text('Carga cancelada por tamaño de solicitud. Reduce columnas o límite.'); return; }
+      lim = newLim;
+      $limit.val(String(lim));
+    }
+    url.searchParams.set('limit', String(lim));
+
+    // Cancelar petición previa si existe
+    if (pendingCtrl) { try { pendingCtrl.abort(); } catch(e){} }
+    pendingCtrl = new AbortController();
+
+    // Deshabilitar UI mientras carga
+    const $btnBuild = $('#btnBuildPivot');
+    const $btnLoadSel = $('#btnLoadSelected');
+    const $btnHdr = $('#btnHeaders');
+    $btnBuild.prop('disabled', true);
+    $btnLoadSel.prop('disabled', true);
+    $btnHdr.prop('disabled', true);
+    $meta.text('Cargando filas (vista previa)... Esto puede tardar si hay muchas columnas.');
+    try { console.debug('[Conjunto de datos] loadRows URL:', url.toString(), '| cols:', cols, '| años:', ai, af, '| limit:', lim); } catch(e){}
+    fetch(url.toString(), { signal: pendingCtrl.signal })
+      .then(r=>{
+        if(!r.ok){ throw new Error('HTTP '+r.status); }
+        return r.json();
+      })
+      .then(data=>{
+        try { console.debug('[Conjunto de datos] API response:', data); } catch(e){}
+        if(data.error){ $meta.text('Error: '+data.error); return; }
+        current.file = data.file; current.total = data.total||0;
+        fetched.rows = Array.isArray(data.rows) ? data.rows : [];
+        fetched.columns = Array.isArray(data.columns) ? data.columns : cols;
+        // Renderizar vista previa, no Pivot aún
+        renderPreview(fetched.rows, fetched.columns);
+        const colsInfo = cols.length ? ` | Columnas: ${cols.length}` : '';
+        const yrInfo = (ai || af) ? ` | Filtro año: ${ai||'..'}-${af||'..'}` : '';
+        const rowsCount = (data && Array.isArray(data.rows)) ? data.rows.length : 0;
+        $meta.text(`Filas cargadas: ${current.total} (muestra: ${rowsCount} / límite: ${lim})${colsInfo}${yrInfo}. Vista previa lista. Pulsa "Construir Pivot" para continuar.`);
+        if (rowsCount === 0) {
+          try { console.warn('[Conjunto de datos] La respuesta no contiene filas. Verifique parámetros y filtros.'); } catch(e){}
+        }
+        // Habilitar construir pivot
+        $('#btnBuildPivot').prop('disabled', false);
+      })
+      .catch((err)=>{
+        if (err && err.name === 'AbortError') { $meta.text('Carga cancelada.'); return; }
+        console.error('[Conjunto de datos] Error cargando datos:', err); $meta.text('Error cargando datos');
+      })
+      .finally(()=>{ pendingCtrl = null; $('#btnLoadSelected').prop('disabled', false); $('#btnHeaders').prop('disabled', false); });
+  }
+
+  function getSelectedColumns(){
+    const cols = [];
+    $list.find('input[type="checkbox"]').each(function(){ if(this.checked){ cols.push(this.value); } });
+    return cols;
+  }
+
+  function renderHeaders(cols){
+    headers = cols || [];
+    $list.empty();
+    if(!headers.length){
+      $list.append('<div class="text-gray-500">(Sin columnas detectadas)</div>');
+    } else {
+      headers.forEach(c=>{
+        const id = 'col_'+c.replace(/[^a-zA-Z0-9_-]/g,'_');
+        const item = $(`
+          <label class="flex items-center gap-2 py-1">
+            <input type="checkbox" class="form-checkbox" value="${c}" id="${id}" />
+            <span>${c}</span>
+          </label>
+        `);
+        $list.append(item);
+      });
+    }
+    $panel.removeClass('hidden');
+  }
+
+  function loadHeaders(){
+    const file = $select.val();
+    if(!file){ return; }
+    const url = new URL('{% url "indicadores:api_conjunto_datos_headers" %}', window.location.origin);
+    url.searchParams.set('file', file);
+    $meta.text('Cargando columnas...');
+    fetch(url.toString())
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.error){ $meta.text('Error: '+data.error); return; }
+        renderHeaders(data.columns||[]);
+        $meta.text('Columnas cargadas. Selecciona y luego presiona "Cargar seleccionadas".');
+      })
+      .catch(()=>{ $meta.text('Error cargando columnas'); });
+  }
+
+  $('#btnHeaders').on('click', ()=> { loadHeaders(); });
+  $('#btnLoadSelected').on('click', ()=> { selectedColumns = getSelectedColumns(); loadRows(); });
+
+  // Construir Pivot bajo demanda con guardas de tamaño (evita bloqueos)
+  $('#btnBuildPivot').on('click', ()=>{
+    const rowsCount = Array.isArray(fetched.rows) ? fetched.rows.length : 0;
+    const colsCount = Array.isArray(fetched.columns) ? fetched.columns.length : 0;
+    const approxCells = rowsCount * Math.max(1, colsCount);
+    // Umbral conservador para PivotTable.js
+    const HARD_LIMIT = 200000; // ~200k celdas
+    if (approxCells > HARD_LIMIT) {
+      const ok = window.confirm(`Estás a punto de construir un Pivot con ~${approxCells.toLocaleString()} celdas (${rowsCount} x ${colsCount}). Esto puede ser muy lento o congelar el navegador. ¿Deseas continuar?`);
+      if (!ok) { $meta.text('Construcción de Pivot cancelada por tamaño. Reduce filas/columnas.'); return; }
+    }
+    try {
+      renderPivot(fetched.rows || [], fetched.columns || []);
+      $meta.text($meta.text() + ' | Pivot construido.');
+    } catch(e) {
+      console.error('[Conjunto de datos] Error construyendo Pivot:', e);
+      $meta.text('Error construyendo Pivot: '+(e && e.message ? e.message : 'desconocido'));
+    }
+  });
+
+  $('#btnClearPivot').on('click', ()=>{
+    try { if (pendingCtrl) pendingCtrl.abort(); } catch(e){}
+    pendingCtrl = null;
+    fetched = { rows: [], columns: [] };
+    $('#output').empty();
+    $('#btnBuildPivot').prop('disabled', true);
+    $meta.text('Vista limpia. Selecciona columnas y carga filas para una nueva vista previa.');
+  });
+
+  $('#btnSelectAll').on('click', ()=>{
+    const count = $list.find('input[type="checkbox"]').length;
+    if (count > 60) {
+      const ok = window.confirm(`Vas a seleccionar ${count} columnas. Esto puede causar lentitud severa. ¿Continuar?`);
+      if (!ok) return;
+    }
+    $list.find('input[type="checkbox"]').prop('checked', true);
+  });
+  $('#btnClearAll').on('click', ()=>{ $list.find('input[type="checkbox"]').prop('checked', false); });
+
+  // Al cambiar dataset: cargar headers, no filas (evita carga pesada sin selección)
+  $select.on('change', () => { $meta.text('Cargando columnas...'); loadHeaders(); });
+
+  // Autocargar al presionar Enter en filtros de año
+  $anioIni.add($anioFin).add($limit).on('keydown', function(e){
+    if (e.key === 'Enter') { e.preventDefault(); loadRows(); }
+  });
+
+  // Inicializar
+  loadDatasets();
+
+  // Posicionamiento robusto de la caja de filtros de PivotTable
+  let lastPivotClickTarget = null;
+  // Registrar último elemento clicado que puede abrir filtro
+  $(document).on('mousedown', '.pvtAxisContainer .pvtAttr, .pvtAxisContainer .pvtTriangle, .pvtUnused .pvtAttr, .pvtRows .pvtAxisLabel, .pvtCols .pvtAxisLabel', function(){
+    lastPivotClickTarget = this;
+  });
+  // Crear un único observer global para detectar aparición de .pvtFilterBox
+  if (!window.__pivotFilterObserver) {
+    const observer = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        // Buscar nodos agregados que sean o contengan .pvtFilterBox
+        const nodes = Array.from(m.addedNodes || []);
+        for (const n of nodes) {
+          if (!(n instanceof HTMLElement)) continue;
+          let fb = null;
+          if (n.matches && n.matches('.pvtFilterBox')) fb = n;
+          else fb = n.querySelector ? n.querySelector('.pvtFilterBox') : null;
+          if (fb) {
+            try {
+              const root = document.querySelector('#output .pvtUi') || document.querySelector('#pivotContainer') || document.body;
+              if (fb.parentElement !== root) root.appendChild(fb);
+              const anchor = (lastPivotClickTarget instanceof Element) ? lastPivotClickTarget : root;
+              const rootRect = root.getBoundingClientRect();
+              const r = anchor.getBoundingClientRect();
+              let top = (r.bottom - rootRect.top + 6);
+              let left = (r.left - rootRect.left);
+              fb.style.position = 'absolute';
+              fb.style.top = top + 'px';
+              fb.style.left = left + 'px';
+              fb.style.zIndex = '9999';
+              const fr = fb.getBoundingClientRect();
+              const margin = 8;
+              const maxLeft = rootRect.width - fr.width - margin;
+              const maxTop = rootRect.height - fr.height - margin;
+              if (left > maxLeft) left = Math.max(margin, maxLeft);
+              if (top > maxTop) top = Math.max(margin, maxTop);
+              fb.style.left = left + 'px';
+              fb.style.top = top + 'px';
+            } catch (e) { /* noop */ }
+          }
+        }
+
+        // Manejar cambios de atributos (reutilización del mismo .pvtFilterBox)
+        if (m.type === 'attributes') {
+          const t = m.target;
+          if (t && t instanceof HTMLElement) {
+            const fb = t.matches?.('.pvtFilterBox') ? t : (t.querySelector ? t.querySelector('.pvtFilterBox') : null);
+            if (fb) {
+              try {
+                const root = document.querySelector('#output .pvtUi') || document.querySelector('#pivotContainer') || document.body;
+                if (fb.parentElement !== root) root.appendChild(fb);
+                const anchor = (lastPivotClickTarget instanceof Element) ? lastPivotClickTarget : root;
+                const rootRect = root.getBoundingClientRect();
+                const r = anchor.getBoundingClientRect();
+                let top = (r.bottom - rootRect.top + 6);
+                let left = (r.left - rootRect.left);
+                fb.style.position = 'absolute';
+                fb.style.zIndex = '9999';
+                fb.style.top = top + 'px';
+                fb.style.left = left + 'px';
+                const fr = fb.getBoundingClientRect();
+                const margin = 8;
+                const maxLeft = rootRect.width - fr.width - margin;
+                const maxTop = rootRect.height - fr.height - margin;
+                if (left > maxLeft) left = Math.max(margin, maxLeft);
+                if (top > maxTop) top = Math.max(margin, maxTop);
+                fb.style.left = left + 'px';
+                fb.style.top = top + 'px';
+              } catch (e) { /* noop */ }
+            }
+          }
+        }
+      }
+    });
+    // También observar cambios de atributos (p. ej., cambios en style/display cuando el filtro se reutiliza)
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    window.__pivotFilterObserver = observer;
+  }
+
+  // Reposicionar después de click cuando Pivot reutiliza el mismo elemento de filtro (no hay nodos añadidos)
+  $(document).on('click', '.pvtAxisContainer .pvtAttr, .pvtAxisContainer .pvtTriangle, .pvtUnused .pvtAttr, .pvtRows .pvtAxisLabel, .pvtCols .pvtAxisLabel', function(){
+    // Esperar a que el filtro cambie su visibilidad/posición interna
+    setTimeout(() => {
+      try {
+        const fb = document.querySelector('.pvtFilterBox');
+        if (!fb) return;
+        const root = document.querySelector('#output .pvtUi') || document.querySelector('#pivotContainer') || document.body;
+        if (fb.parentElement !== root) root.appendChild(fb);
+        const anchor = (lastPivotClickTarget instanceof Element) ? lastPivotClickTarget : root;
+        const rootRect = root.getBoundingClientRect();
+        const r = anchor.getBoundingClientRect();
+        let top = (r.bottom - rootRect.top + 6);
+        let left = (r.left - rootRect.left);
+        fb.style.position = 'absolute';
+        fb.style.zIndex = '9999';
+        fb.style.top = top + 'px';
+        fb.style.left = left + 'px';
+        // Ajuste dentro del contenedor raíz
+        const fr = fb.getBoundingClientRect();
+        const margin = 8;
+        const maxLeft = rootRect.width - fr.width - margin;
+        const maxTop = rootRect.height - fr.height - margin;
+        if (left > maxLeft) left = Math.max(margin, maxLeft);
+        if (top > maxTop) top = Math.max(margin, maxTop);
+        fb.style.left = left + 'px';
+        fb.style.top = top + 'px';
+      } catch (e) { /* noop */ }
+    }, 0);
+  });
+})();
+</script>
+{% endcomment %}

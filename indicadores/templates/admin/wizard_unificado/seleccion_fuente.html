@@ -1,0 +1,489 @@
+  {% extends "admin/wizard_unificado/base.html" %}
+  {% load i18n static %}
+
+  {% block extra_css %}
+  {{ block.super }}
+  {% endblock %}
+
+  {% block wizard_content %}
+  <div class="wizard-form">
+    <div class="form-section">
+      <h3>
+        <i class="fas fa-folder-open"></i>
+        Selecciona la Fuente de Datos
+      </h3>
+      
+      <div class="info-box">
+        <i class="fas fa-info-circle"></i>
+        <strong>¿Qué deseas procesar?</strong> Selecciona desde dónde iniciar el procesamiento. 
+        El wizard se adaptará automáticamente según tu selección.
+      </div>
+      
+      <div class="guide-box">
+        <h4><i class="fas fa-lightbulb"></i> Guía rápida:</h4>
+        <ul>
+          <li><strong>Cargas Pendientes:</strong> Usa esta opción si los archivos ya fueron subidos por los delegados a través del portal de recolección.</li>
+          <li><strong>Actualizar Indicador:</strong> Usa esta opción si quieres actualizar un indicador existente con nuevos datos.</li>
+        </ul>
+      </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ wizard.management_form }}
+      
+      {% if wizard.form.errors %}
+      <div class="error-box">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Hay errores en el formulario:</strong>
+        {{ wizard.form.errors }}
+      </div>
+      {% endif %}
+      
+      <!-- Tipo de Fuente -->
+      <div class="form-section">
+        <div class="form-group">
+          <label for="{{ wizard.form.tipo_fuente.id_for_label }}">
+            {{ wizard.form.tipo_fuente.label }}
+          </label>
+          {{ wizard.form.tipo_fuente }}
+          {% if wizard.form.tipo_fuente.help_text %}
+          <span class="helptext">{{ wizard.form.tipo_fuente.help_text }}</span>
+          {% endif %}
+          {{ wizard.form.tipo_fuente.errors }}
+        </div>
+      </div>
+
+      <!-- Cargas Pendientes -->
+      <div class="form-section" id="section-cargas-pendientes" style="display: none;">
+
+        <div class="form-group">
+          <label for="{{ wizard.form.carga_conjunto_datos.id_for_label }}">
+            {{ wizard.form.carga_conjunto_datos.label }}
+          </label>
+          <input type="text" class="wizard-search" data-target="{{ wizard.form.carga_conjunto_datos.html_name }}"
+                placeholder="Buscar carga de conjunto de datos..."
+                style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:6px;margin-bottom:0.5rem;font-size:0.9rem;">
+          {{ wizard.form.carga_conjunto_datos }}
+          {% if wizard.form.carga_conjunto_datos.help_text %}
+          <span class="helptext">{{ wizard.form.carga_conjunto_datos.help_text }}</span>
+          {% endif %}
+          {{ wizard.form.carga_conjunto_datos.errors }}
+          <div id="preview-carga-conjunto-datos" class="carga-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="form-group">
+          <label for="{{ wizard.form.carga_serie.id_for_label }}">
+            {{ wizard.form.carga_serie.label }}
+          </label>
+          <input type="text" class="wizard-search" data-target="{{ wizard.form.carga_serie.html_name }}"
+                placeholder="Buscar carga de serie..."
+                style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:6px;margin-bottom:0.5rem;font-size:0.9rem;">
+          {{ wizard.form.carga_serie }}
+          {% if wizard.form.carga_serie.help_text %}
+          <span class="helptext">{{ wizard.form.carga_serie.help_text }}</span>
+          {% endif %}
+          {{ wizard.form.carga_serie.errors }}
+          <div id="preview-carga-serie" class="carga-preview" style="display:none;"></div>
+        </div>
+        
+        <div class="info-box">
+          <i class="fas fa-lightbulb"></i>
+          <strong>Tip:</strong> Puedes seleccionar ambas cargas para el Flujo Completo (validación con serie). Esto es útil cuando quieres validar que los datos de la serie coinciden con los datos generados desde el conjunto de datos.
+        </div>
+      </div>
+
+      <!-- Subir Archivos Nuevos -->
+      <div class="form-section" id="section-subir-archivos" style="display: none;">
+        <h3>
+          <i class="fas fa-cloud-upload-alt"></i>
+          Subir Archivos Nuevos
+        </h3>
+        
+        <div class="warning-box">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Nota:</strong> Si subes archivos directamente, no se generará código de evidencia para cuenta de cobro.
+          Se recomienda usar el módulo de recolección.
+        </div>
+        
+        <!-- Campos de archivos según tipo -->
+        <div id="upload-conjunto-datos" style="display: none;">
+          <div class="form-group">
+            <label for="{{ wizard.form.archivo_conjunto_datos.id_for_label }}">
+              {{ wizard.form.archivo_conjunto_datos.label }}
+            </label>
+            {{ wizard.form.archivo_conjunto_datos }}
+            {{ wizard.form.archivo_conjunto_datos.errors }}
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ wizard.form.archivo_metadata_variables.id_for_label }}">
+              {{ wizard.form.archivo_metadata_variables.label }}
+            </label>
+            {{ wizard.form.archivo_metadata_variables }}
+            {{ wizard.form.archivo_metadata_variables.errors }}
+          </div>
+        </div>
+        
+        <div id="upload-serie" style="display: none;">
+          <div class="form-group">
+            <label for="{{ wizard.form.archivo_datos.id_for_label }}">
+              {{ wizard.form.archivo_datos.label }}
+            </label>
+            {{ wizard.form.archivo_datos }}
+            {{ wizard.form.archivo_datos.errors }}
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ wizard.form.archivo_metadata_indicador.id_for_label }}">
+              {{ wizard.form.archivo_metadata_indicador.label }}
+            </label>
+            {{ wizard.form.archivo_metadata_indicador }}
+            {{ wizard.form.archivo_metadata_indicador.errors }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Actualizar Existente -->
+      <div class="form-section" id="section-actualizar-existente" style="display: none;">
+        <h3>
+          <i class="fas fa-sync-alt"></i>
+          Actualizar Indicador Existente
+        </h3>
+        
+        <div class="info-box">
+          <i class="fas fa-info-circle"></i>
+          <strong>¿Cuándo usar esta opción?</strong> Usa esta opción cuando ya existe un indicador en el sistema y quieres actualizarlo con nuevos datos sin recrearlo desde cero.
+        </div>
+        
+        <div id="ind-search-container-flujo-c"
+           data-select-name="{{ wizard.form.indicador_existente.html_name }}"></div>
+
+        <div class="form-group">
+          <label for="{{ wizard.form.indicador_existente.id_for_label }}">
+            {{ wizard.form.indicador_existente.label }}
+          </label>
+          {{ wizard.form.indicador_existente }}
+          {% if wizard.form.indicador_existente.help_text %}
+          <span class="helptext">{{ wizard.form.indicador_existente.help_text }}</span>
+          {% endif %}
+          {{ wizard.form.indicador_existente.errors }}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="wizard-actions">
+        <a href="{% url 'indicadores:cargas_dashboard' %}" class="btn btn-secondary">
+          <i class="fas fa-times"></i>
+          Cancelar
+        </a>
+        
+        <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.next }}" class="btn btn-primary">
+          Siguiente
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const tipoFuenteRadios = document.querySelectorAll('input[name="{{ wizard.form.tipo_fuente.html_name }}"]');
+    const sectionCargas = document.getElementById('section-cargas-pendientes');
+    const sectionSubir = document.getElementById('section-subir-archivos');
+    const sectionActualizar = document.getElementById('section-actualizar-existente');
+    const uploadConjuntoDatos = document.getElementById('upload-conjunto-datos');
+    const uploadSerie = document.getElementById('upload-serie');
+    
+    // Obtener los selects
+    const cargaConjuntoDatosSelect = document.querySelector('select[name="{{ wizard.form.carga_conjunto_datos.html_name }}"]');
+    const cargaSerieSelect = document.querySelector('select[name="{{ wizard.form.carga_serie.html_name }}"]');
+    
+    // Variables para guardar valores seleccionados
+    let savedConjuntoDatosValue = cargaConjuntoDatosSelect ? cargaConjuntoDatosSelect.value : '';
+    let savedSerieValue = cargaSerieSelect ? cargaSerieSelect.value : '';
+    
+    function updateSections() {
+      const selectedValue = document.querySelector('input[name="{{ wizard.form.tipo_fuente.html_name }}"]:checked')?.value;
+      
+      console.log('Tipo de fuente seleccionado:', selectedValue);
+      
+      // Guardar valores actuales antes de ocultar
+      if (cargaConjuntoDatosSelect) {
+        savedConjuntoDatosValue = cargaConjuntoDatosSelect.value;
+      }
+      if (cargaSerieSelect) {
+        savedSerieValue = cargaSerieSelect.value;
+      }
+      
+      // Ocultar todas las secciones
+      sectionCargas.style.display = 'none';
+      sectionSubir.style.display = 'none';
+      sectionActualizar.style.display = 'none';
+      uploadConjuntoDatos.style.display = 'none';
+      uploadSerie.style.display = 'none';
+      
+      // Mostrar sección según selección
+      if (selectedValue === 'carga_pendiente') {
+        sectionCargas.style.display = 'block';
+        
+        // Restaurar valores guardados
+        setTimeout(() => {
+          if (cargaConjuntoDatosSelect && savedConjuntoDatosValue) {
+            cargaConjuntoDatosSelect.value = savedConjuntoDatosValue;
+          }
+          if (cargaSerieSelect && savedSerieValue) {
+            cargaSerieSelect.value = savedSerieValue;
+          }
+        }, 10);
+        
+      } else if (selectedValue === 'nuevo_conjunto_datos') {
+        sectionSubir.style.display = 'block';
+        uploadConjuntoDatos.style.display = 'block';
+      } else if (selectedValue === 'nueva_serie') {
+        sectionSubir.style.display = 'block';
+        uploadSerie.style.display = 'block';
+      } else if (selectedValue === 'actualizar_existente') {
+        sectionActualizar.style.display = 'block';
+      }
+    }
+    
+    // Escuchar cambios en tipo de fuente
+    tipoFuenteRadios.forEach(radio => {
+      radio.addEventListener('change', updateSections);
+    });
+    
+    // Monitorear cambios en los selects y guardar valores
+    if (cargaConjuntoDatosSelect) {
+      cargaConjuntoDatosSelect.addEventListener('change', function(e) {
+        savedConjuntoDatosValue = this.value;
+        console.log('Carga Conjunto de datos seleccionada:', this.value, this.options[this.selectedIndex].text);
+        console.log('Valor guardado:', savedConjuntoDatosValue);
+      });
+    }
+    
+    if (cargaSerieSelect) {
+      cargaSerieSelect.addEventListener('change', function(e) {
+        savedSerieValue = this.value;
+        console.log('Carga Serie seleccionada:', this.value, this.options[this.selectedIndex].text);
+        console.log('Valor guardado:', savedSerieValue);
+      });
+    }
+    
+    // Debug: Antes de enviar el formulario
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        // Asegurar que los valores estén establecidos antes de enviar
+        if (cargaConjuntoDatosSelect && savedConjuntoDatosValue) {
+          cargaConjuntoDatosSelect.value = savedConjuntoDatosValue;
+        }
+        if (cargaSerieSelect && savedSerieValue) {
+          cargaSerieSelect.value = savedSerieValue;
+        }
+        
+        const formData = new FormData(form);
+        console.log('=== Datos del formulario al enviar ===');
+        for (let [key, value] of formData.entries()) {
+          console.log(key + ':', value);
+        }
+      });
+    }
+    
+    // Buscador en selects del wizard
+    document.querySelectorAll('.wizard-search').forEach(function(searchInput) {
+      searchInput.addEventListener('input', function() {
+        var q = this.value.toLowerCase().trim();
+        var targetName = this.getAttribute('data-target');
+        var select = document.querySelector('select[name="' + targetName + '"]');
+        if (!select) return;
+        
+        var selectedValue = select.value;
+        
+        Array.from(select.options).forEach(function(opt) {
+          if (!opt.value) return; // skip empty label
+          // NUNCA ocultar la opción seleccionada actualmente
+          var isSelected = opt.value === selectedValue;
+          opt.hidden = !isSelected && q && opt.textContent.toLowerCase().indexOf(q) === -1;
+        });
+      });
+    });
+    
+    // Limpiar campo de búsqueda cuando el usuario selecciona un item
+    document.querySelectorAll('select').forEach(function(select) {
+      select.addEventListener('change', function() {
+        var targetName = this.getAttribute('name');
+        var searchInput = document.querySelector('.wizard-search[data-target="' + targetName + '"]');
+        if (searchInput) {
+          searchInput.value = '';
+          // Mostrar todas las opciones de nuevo
+          Array.from(select.options).forEach(function(opt) {
+            opt.hidden = false;
+          });
+        }
+      });
+    });
+
+    // Inicializar
+    updateSections();
+
+    // ---- Preview con badge de estado para cargas ----
+    const ESTADO_CONFIG = {
+      'Pendiente':                    { cls: 'estado-pendiente',   icon: 'clock' },
+      'Aprobado - listo para procesar':{ cls: 'estado-aprobado',   icon: 'check-circle' },
+      'Aprobado':                     { cls: 'estado-aprobado',    icon: 'check-circle' },
+      'Enviado para validación':      { cls: 'estado-enviado',     icon: 'paper-plane' },
+      'En revisión por validador':    { cls: 'estado-revision',    icon: 'search' },
+      'Exitoso':                      { cls: 'estado-exitoso',     icon: 'check-double' },
+      'Procesado e integrado al sistema': { cls: 'estado-procesado', icon: 'database' },
+      'Error':                        { cls: 'estado-error',       icon: 'times-circle' },
+      'Rechazado por validador':      { cls: 'estado-rechazado',   icon: 'ban' },
+      'Correcciones solicitadas':     { cls: 'estado-correcciones',icon: 'edit' },
+      'Borrador (no enviado)':        { cls: 'estado-borrador',    icon: 'file' },
+      'Procesando':                   { cls: 'estado-procesando',  icon: 'spinner' },
+    };
+
+    function parseCargaLabel(text) {
+      // Formato: "[Estado Display] CÓDIGO - usuario (dd/mm/yyyy) → Indicador"
+      const m = text.match(/^\[(.+?)\]\s+(.+?)\s+-\s+(.+?)\s+\((\d{2}\/\d{2}\/\d{4})\)(.*)?$/);
+      if (!m) return { raw: text };
+      const estado    = m[1].trim();
+      const codigo    = m[2].trim();
+      const usuario   = m[3].trim();
+      const fecha     = m[4];
+      const extra     = (m[5] || '').replace(/^[\s→•]+/, '').trim();
+      return { estado, codigo, usuario, fecha, extra };
+    }
+
+    function renderPreview(selectEl, previewEl) {
+      const opt = selectEl.options[selectEl.selectedIndex];
+      if (!opt || !opt.value) { previewEl.style.display = 'none'; return; }
+
+      const { estado, codigo, usuario, fecha, extra } = parseCargaLabel(opt.text);
+      if (!estado) { previewEl.style.display = 'none'; return; }
+
+      const cfg = ESTADO_CONFIG[estado] || { cls: 'estado-desconocido', icon: 'question-circle' };
+      const extraHtml = extra
+        ? `<span class="cp-row"><span class="cp-key">Indicador/Detalle:</span><span class="cp-val">${extra}</span></span>`
+        : '';
+
+      previewEl.innerHTML = `
+        <span class="carga-estado-badge ${cfg.cls}">
+          <i class="fas fa-${cfg.icon}"></i> ${estado}
+        </span>
+        <div class="cp-grid">
+          <span class="cp-row"><span class="cp-key">Código:</span><span class="cp-val">${codigo}</span></span>
+          <span class="cp-row"><span class="cp-key">Usuario:</span><span class="cp-val">${usuario}</span></span>
+          <span class="cp-row"><span class="cp-key">Fecha:</span><span class="cp-val">${fecha}</span></span>
+          ${extraHtml}
+        </div>`;
+      previewEl.style.display = 'block';
+    }
+
+    [
+      ['{{ wizard.form.carga_conjunto_datos.html_name }}', 'preview-carga-conjunto-datos'],
+      ['{{ wizard.form.carga_serie.html_name }}',     'preview-carga-serie'],
+    ].forEach(([name, previewId]) => {
+      const sel = document.querySelector(`select[name="${name}"]`);
+      const prv = document.getElementById(previewId);
+      if (!sel || !prv) return;
+      sel.addEventListener('change', () => renderPreview(sel, prv));
+      renderPreview(sel, prv); // mostrar si ya hay valor
+    });
+
+    // ---- Buscador indicador_existente (Flujo C: Actualizar) ----
+    var indContainer = document.getElementById('ind-search-container-flujo-c');
+    if (indContainer) {
+      var indSelectName = indContainer.getAttribute('data-select-name');
+      var indSelect = indSelectName ? document.querySelector('select[name="' + indSelectName + '"]') : null;
+      if (indSelect) {
+        var indInput = document.createElement('input');
+        indInput.type = 'text';
+        indInput.placeholder = 'Buscar por nombre, código o subtema...';
+        indInput.autocomplete = 'off';
+        indInput.style.cssText = 'display:block!important;width:100%;padding:8px 12px;border:1px solid #aaa;border-radius:4px;font-size:14px;background-color:#ffffff;color:#222222;box-sizing:border-box;margin-bottom:6px;height:36px;';
+        var indCounter = document.createElement('small');
+        indCounter.style.cssText = 'display:block;margin-bottom:6px;color:#666;font-size:12px;';
+        indContainer.appendChild(indInput);
+        indContainer.appendChild(indCounter);
+
+        Array.from(indSelect.options).forEach(function(opt) {
+          if (!opt.value) return;
+          var raw = opt.text.trim();
+          var m = raw.match(/^\[([^\]]+)\]\s*/);
+          var codigo = m ? m[1] : '';
+          var resto = m ? raw.slice(m[0].length) : raw;
+          opt.setAttribute('data-search', (codigo + ' ' + resto.split(/\s+•\s+/).join(' ')).toLowerCase().trim());
+        });
+
+        var indTotal = Array.from(indSelect.options).filter(function(o){ return o.value; }).length;
+        indCounter.textContent = indTotal + ' indicadores';
+
+        indInput.addEventListener('input', function() {
+          var q = this.value.toLowerCase().trim();
+          var cur = indSelect.value;
+          var vis = 0;
+          Array.from(indSelect.options).forEach(function(opt) {
+            if (!opt.value) { opt.hidden = false; return; }
+            var match = !q || (opt.getAttribute('data-search') || '').includes(q);
+            opt.hidden = !match && opt.value !== cur;
+            if (!opt.hidden && opt.value) vis++;
+          });
+          indCounter.textContent = q ? (vis + ' de ' + indTotal + ' indicadores') : (indTotal + ' indicadores');
+        });
+
+        indSelect.addEventListener('change', function() {
+          indInput.value = '';
+          Array.from(indSelect.options).forEach(function(opt){ opt.hidden = false; });
+          indCounter.textContent = indTotal + ' indicadores';
+        });
+      }
+    }
+  });
+  </script>
+
+  <style>
+  .carga-preview {
+    margin-top: 0.6rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    background: var(--admin-panel-2);
+  }
+
+  .carga-estado-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+  }
+
+  .estado-pendiente    { background: #e5e7eb; color: #374151; }
+  .estado-aprobado     { background: #d1fae5; color: #065f46; }
+  .estado-enviado      { background: #dbeafe; color: #1e40af; }
+  .estado-revision     { background: #ede9fe; color: #5b21b6; }
+  .estado-exitoso      { background: #ccfbf1; color: #0f766e; }
+  .estado-procesado    { background: #ccfbf1; color: #0f766e; }
+  .estado-error        { background: #fee2e2; color: #991b1b; }
+  .estado-rechazado    { background: #fee2e2; color: #991b1b; }
+  .estado-correcciones { background: #fef3c7; color: #92400e; }
+  .estado-borrador     { background: #f3f4f6; color: #6b7280; }
+  .estado-procesando   { background: #fef9c3; color: #854d0e; }
+  .estado-desconocido  { background: #f3f4f6; color: #6b7280; }
+
+  .cp-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.85rem;
+  }
+
+  .cp-row { display: flex; gap: 0.5rem; }
+  .cp-key { color: var(--admin-text-muted, #888); font-weight: 500; min-width: 80px; }
+  .cp-val { color: var(--admin-text); word-break: break-word; }
+  </style>
+  {% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'reportes/base_reportes.html' %}
+
+{% block title %}Reportes de Indicadores{% endblock %}
+
+{% block reportes_content %}
+<div class="mb-6">
+    <a href="{% url 'indicadores:reportes_dashboard' %}" 
+       class="inline-flex items-center text-slate-600 hover:text-emerald-700 transition-colors duration-200">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+        </svg>Volver al Dashboard
+    </a>
+</div>
+
+<h1 class="text-2xl font-serif font-bold text-slate-900 mb-6">Reportes de Indicadores</h1>
+
+<!-- Sección de Descargas Masivas e Información -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- Descargas Masivas -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6">
+            <h2 class="text-xl font-serif font-bold text-white">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>Descargas Masivas
+            </h2>
+        </div>
+        <div class="p-6">
+            <p class="text-slate-600 mb-4">
+                Descargue datos o metadata de todos los indicadores en un solo archivo Excel.
+            </p>
+            <div class="space-y-3">
+                <a href="{% url 'indicadores:reportes_descargar_datos_indicador_masivo' %}" 
+                   class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>Descargar Todos los Datos
+                </a>
+                <a href="{% url 'indicadores:reportes_descargar_metadata_indicador_masivo' %}" 
+                   class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
+                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>Descargar Toda la Metadata
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
+            <h2 class="text-xl font-serif font-bold text-white">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>Información
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div class="flex items-center">
+                    <div class="bg-emerald-100 rounded-full p-3 mr-4">
+                        <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Total de Indicadores</p>
+                        <p class="text-3xl font-bold text-slate-800">{{ indicadores.count }}</p>
+                    </div>
+                </div>
+                <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4">
+                    <p class="text-sm text-slate-700">
+                        <svg class="w-4 h-4 inline mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Los datos incluyen <strong>todas las desagregaciones geográficas y temáticas</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Indicadores -->
+<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
+        <h2 class="text-xl font-serif font-bold text-white">
+            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+            </svg>Indicadores Disponibles
+        </h2>
+    </div>
+    <div class="p-6">
+        {% if indicadores %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                ID
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Código
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Nombre
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        {% for indicador in indicadores %}
+                        <tr class="hover:bg-slate-50 transition duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded font-mono text-sm">{{ indicador.id }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="font-semibold text-slate-900">{{ indicador.codigo_indicador }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="text-slate-700">{{ indicador.nombre }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex space-x-2">
+                                    <a href="{% url 'indicadores:reportes_descargar_datos_indicador' indicador.id %}" 
+                                       class="inline-flex items-center px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition duration-200"
+                                       title="Descargar Datos con Desagregaciones">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                                        </svg>Datos
+                                    </a>
+                                    <a href="{% url 'indicadores:reportes_descargar_metadata_indicador' indicador.id %}" 
+                                       class="inline-flex items-center px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition duration-200"
+                                       title="Descargar Metadata">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                        </svg>Metadata
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-16">
+                <svg class="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                </svg>
+                <p class="text-slate-500 text-lg">No hay indicadores disponibles</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% extends 'reportes/base_reportes.html' %}
+{% load static %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .timeline-item { position:relative; padding-left:1.5rem; border-left:2px solid #e2e8f0; margin-left:0.5rem; }
+  .timeline-item::before { content:''; position:absolute; left:-5px; top:6px; width:8px; height:8px; border-radius:50%; background:#10b981; }
+  .timeline-item.warning::before { background:#f59e0b; }
+  .timeline-item.error::before { background:#ef4444; }
+  .timeline-item.info::before { background:#3b82f6; }
+  .heatmap-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:2px; }
+  .heatmap-cell { height: 20px; border-radius: 2px; }
+  .card-trazabilidad { background:white; border-radius:0.75rem; border:1px solid #e2e8f0; padding:1rem; }
+  .filtro-form { display:flex; flex-wrap:wrap; gap:0.75rem; align-items:flex-end; }
+  .filtro-form label { display:block; font-size:0.75rem; color:#64748b; margin-bottom:0.25rem; }
+  .filtro-form input, .filtro-form select { padding:0.4rem 0.6rem; border:1px solid #cbd5e1; border-radius:0.375rem; font-size:0.875rem; }
+  .badge-tipo { font-size:0.7rem; padding:0.15rem 0.4rem; border-radius:9999px; font-weight:600; }
+  .tipo-carga_serie_wizard { background:#dbeafe; color:#1d4ed8; }
+  .tipo-carga_conjunto_datos_wizard { background:#e0e7ff; color:#3730a3; }
+  .tipo-carga_completa_wizard { background:#dcfce7; color:#166534; }
+  .tipo-actualizacion_manual_admin { background:#fef3c7; color:#92400e; }
+  .tipo-cambio_metadatos { background:#fce7f3; color:#be185d; }
+  .tipo-cambio_desagregaciones { background:#ccfbf1; color:#0f766e; }
+  .tipo-eliminacion_datos { background:#fee2e2; color:#991b1b; }
+  .tipo-procesamiento_microdata { background:#f3e8ff; color:#7c3aed; }
+</style>
+{% endblock %}
+
+{% block reportes_content %}
+<div class="mb-6">
+  <h2 class="text-xl font-bold text-slate-900">Trazabilidad de Cambios</h2>
+  <p class="text-sm text-slate-600 mt-1">Auditoría de modificaciones por organismo y usuario.</p>
+</div>
+
+<!-- Filtros -->
+<div class="card-trazabilidad mb-6">
+  <form method="get" class="filtro-form">
+    <div>
+      <label for="id_org_origen">Organismo Origen</label>
+      <select name="organismo_origen" id="id_org_origen">
+        <option value="">Todos</option>
+        {% for o in organismos %}
+        <option value="{{ o.id }}" {% if filtros.organismo_origen == o.id|stringformat:"s" %}selected{% endif %}>{{ o.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="id_org_resp">Organismo Responsable</label>
+      <select name="organismo_responsable" id="id_org_resp">
+        <option value="">Todos</option>
+        {% for o in organismos %}
+        <option value="{{ o.id }}" {% if filtros.organismo_responsable == o.id|stringformat:"s" %}selected{% endif %}>{{ o.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="id_tipo">Tipo Evento</label>
+      <select name="tipo_evento" id="id_tipo">
+        <option value="">Todos</option>
+        {% for val, label in tipos_evento %}
+        <option value="{{ val }}" {% if filtros.tipo_evento == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="id_desde">Desde</label>
+      <input type="date" name="fecha_desde" id="id_desde" value="{{ filtros.fecha_desde }}">
+    </div>
+    <div>
+      <label for="id_hasta">Hasta</label>
+      <input type="date" name="fecha_hasta" id="id_hasta" value="{{ filtros.fecha_hasta }}">
+    </div>
+    <div>
+      <label for="id_ind">Indicador</label>
+      <input type="text" name="indicador" id="id_ind" placeholder="Buscar..." value="{{ filtros.indicador }}">
+    </div>
+    <div class="flex gap-2">
+      <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700">Filtrar</button>
+      <a href="{% url 'indicadores:reportes_trazabilidad' %}" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50">Limpiar</a>
+      <a href="{% url 'indicadores:exportar_trazabilidad_excel' %}?organismo_origen={{ filtros.organismo_origen }}&organismo_responsable={{ filtros.organismo_responsable }}&tipo_evento={{ filtros.tipo_evento }}&fecha_desde={{ filtros.fecha_desde }}&fecha_hasta={{ filtros.fecha_hasta }}&indicador={{ filtros.indicador }}"
+         class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+         <i class="fas fa-file-excel mr-1"></i>Exportar Excel
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Stats cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+  <div class="card-trazabilidad">
+    <div class="text-2xl font-bold text-slate-900">{{ total_cambios }}</div>
+    <div class="text-xs text-slate-500 uppercase tracking-wide">Total cambios filtrados</div>
+  </div>
+  <div class="card-trazabilidad">
+    <div class="text-2xl font-bold text-emerald-600">{{ cambios_30d }}</div>
+    <div class="text-xs text-slate-500 uppercase tracking-wide">Últimos 30 días</div>
+  </div>
+  <div class="card-trazabilidad">
+    <div class="text-sm font-semibold text-slate-700 mb-1">Top Origen</div>
+    {% for o in top_organismos_origen %}
+    <div class="text-xs text-slate-600 truncate" title="{{ o.organismo_origen__nombre }}">{{ o.organismo_origen__nombre|default:"Sin organismo" }}: {{ o.total }}</div>
+    {% empty %}
+    <div class="text-xs text-slate-400">Sin datos</div>
+    {% endfor %}
+  </div>
+  <div class="card-trazabilidad">
+    <div class="text-sm font-semibold text-slate-700 mb-1">Top Responsable</div>
+    {% for o in top_organismos_resp %}
+    <div class="text-xs text-slate-600 truncate" title="{{ o.organismo_responsable__nombre }}">{{ o.organismo_responsable__nombre|default:"Sin organismo" }}: {{ o.total }}</div>
+    {% empty %}
+    <div class="text-xs text-slate-400">Sin datos</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Tabla + Timeline -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Tabla principal -->
+  <div class="lg:col-span-2 card-trazabilidad overflow-x-auto">
+    <h3 class="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">Registros</h3>
+    <table class="w-full text-sm text-left">
+      <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b">
+        <tr>
+          <th class="px-3 py-2">Fecha</th>
+          <th class="px-3 py-2">Usuario</th>
+          <th class="px-3 py-2">Origen → Responsable</th>
+          <th class="px-3 py-2">Evento</th>
+          <th class="px-3 py-2">Indicador</th>
+          <th class="px-3 py-2 text-right">Filas</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for r in page_obj %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-3 py-2 whitespace-nowrap text-slate-600">{{ r.fecha|date:"Y-m-d H:i" }}</td>
+          <td class="px-3 py-2 whitespace-nowrap">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                {{ r.usuario.username|default:"S"|first|upper }}
+              </div>
+              <span class="text-slate-700">{{ r.usuario.username|default:"Sistema" }}</span>
+            </div>
+          </td>
+          <td class="px-3 py-2 text-slate-600 text-xs">
+            <span title="Origen">{{ r.organismo_origen.nombre|default:"—" }}</span>
+            <span class="text-slate-400 mx-1">→</span>
+            <span title="Responsable">{{ r.organismo_responsable.nombre|default:"—" }}</span>
+          </td>
+          <td class="px-3 py-2">
+            <span class="badge-tipo tipo-{{ r.tipo_evento }}">{{ r.get_tipo_evento_display }}</span>
+          </td>
+          <td class="px-3 py-2 text-slate-700 truncate max-w-[200px]" title="{{ r.indicador.nombre }}">{{ r.indicador.nombre|default:"—" }}</td>
+          <td class="px-3 py-2 text-right text-slate-600">{{ r.filas_afectadas }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="px-3 py-6 text-center text-slate-400">No se encontraron registros con los filtros aplicados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Paginación -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="flex justify-between items-center mt-4 text-xs">
+      <span class="text-slate-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      <div class="flex gap-1">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&organismo_origen={{ filtros.organismo_origen }}&organismo_responsable={{ filtros.organismo_responsable }}&tipo_evento={{ filtros.tipo_evento }}&fecha_desde={{ filtros.fecha_desde }}&fecha_hasta={{ filtros.fecha_hasta }}&indicador={{ filtros.indicador }}"
+           class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50">← Anterior</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&organismo_origen={{ filtros.organismo_origen }}&organismo_responsable={{ filtros.organismo_responsable }}&tipo_evento={{ filtros.tipo_evento }}&fecha_desde={{ filtros.fecha_desde }}&fecha_hasta={{ filtros.fecha_hasta }}&indicador={{ filtros.indicador }}"
+           class="px-3 py-1 bg-white border border-slate-200 rounded hover:bg-slate-50">Siguiente →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar: Heatmap + Timeline mini -->
+  <div class="space-y-4">
+    <!-- Heatmap -->
+    <div class="card-trazabilidad">
+      <h3 class="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">Actividad por Mes (6m)</h3>
+      <div id="heatmap-container" class="space-y-1">
+        {% regroup heatmap_data by organismo_origen__nombre as org_meses %}
+        {% for org in org_meses %}
+        <div class="flex items-center gap-2 text-xs">
+          <div class="w-24 truncate text-slate-600" title="{{ org.grouper|default:"Sin organismo" }}">{{ org.grouper|default:"Sin organismo" }}</div>
+          <div class="flex-1 flex gap-1">
+            {% for m in org.list %}
+            <div class="flex-1 h-4 rounded {% if m.total >= 10 %}bg-emerald-700{% elif m.total >= 6 %}bg-emerald-500{% elif m.total >= 3 %}bg-emerald-300{% elif m.total >= 1 %}bg-emerald-100{% else %}bg-slate-100{% endif %}" title="{{ m.mes|date:"Y-m" }}: {{ m.total }}"></div>
+            {% empty %}
+            <div class="flex-1 h-4 rounded bg-slate-100"></div>
+            {% endfor %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="text-xs text-slate-400 text-center py-4">Sin datos de heatmap.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Timeline mini -->
+    <div class="card-trazabilidad">
+      <h3 class="text-sm font-bold text-slate-700 mb-3 uppercase tracking-wide">Timeline Reciente</h3>
+      {% for r in page_obj|slice:":5" %}
+      <div class="timeline-item {% if r.tipo_evento == 'eliminacion_datos' %}error{% elif r.tipo_evento == 'cambio_metadatos' %}warning{% else %}info{% endif %} mb-3">
+        <div class="text-[11px] text-slate-500">{{ r.fecha|date:"Y-m-d H:i" }}</div>
+        <div class="text-xs text-slate-700 font-medium">{{ r.get_tipo_evento_display }}</div>
+        <div class="text-[11px] text-slate-500 truncate">{{ r.usuario.username|default:"Sistema" }} → {{ r.indicador.nombre|default:"—" }}</div>
+      </div>
+      {% empty %}
+      <div class="text-xs text-slate-400 text-center py-4">Sin registros recientes.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

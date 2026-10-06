@@ -1,0 +1,122 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Productos Académicos — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <i class="fas fa-book text-indigo-500"></i> Gestión de Productos
+    </h1>
+    <p class="mt-1 text-slate-500">
+        {% if es_educativo %}
+        Productos Educativos (Infantil y Adolescente)
+        {% else %}
+        Productos Académicos y Papers
+        {% endif %}
+    </p>
+</div>
+
+<!-- Barra de acciones -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div class="flex flex-wrap gap-3">
+        <a href="{% url 'indicadores:editorial_productos_wizard' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-medium shadow-sm hover:bg-indigo-700 hover:shadow-md transition-all">
+            <i class="fas fa-magic"></i> Crear con Wizard
+        </a>
+        <a href="{% url 'indicadores:editorial_productos' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-indigo-200 hover:text-indigo-700 transition-all">
+            <i class="fas fa-book"></i> Académicos
+        </a>
+        <a href="{% url 'indicadores:editorial_productos' %}?tipo=educativo" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-emerald-200 hover:text-emerald-700 transition-all">
+            <i class="fas fa-graduation-cap"></i> Educativos
+        </a>
+    </div>
+    
+    <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer"
+            onchange="window.location.href='?estado=' + this.value + '{% if tipo_filtro %}&tipo={{ tipo_filtro }}{% endif %}'">
+        <option value="">Todos los estados</option>
+        <option value="borrador" {% if estado_filtro == 'borrador' %}selected{% endif %}>Borradores</option>
+        <option value="revision" {% if estado_filtro == 'revision' %}selected{% endif %}>En revisión</option>
+        <option value="publicado" {% if estado_filtro == 'publicado' %}selected{% endif %}>Publicados</option>
+    </select>
+</div>
+
+<!-- Listado de productos -->
+{% if productos %}
+<div class="space-y-6">
+    {% for producto in productos %}
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 
+                border-l-4 {% if producto.estado == 'publicado' %}border-l-emerald-500{% elif producto.estado == 'revision' %}border-l-amber-500{% else %}border-l-slate-400{% endif %}">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
+            <div class="flex-1 min-w-0">
+                <h3 class="text-lg md:text-xl font-bold text-slate-900 mb-2 truncate">
+                    {{ producto.titulo }}
+                </h3>
+                <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500">
+                    <span class="flex items-center gap-1.5"><i class="fas fa-user text-slate-400"></i> {{ producto.autor|default:"Sin autor" }}</span>
+                    <span class="flex items-center gap-1.5"><i class="fas fa-calendar text-slate-400"></i> {{ producto.updated_at|date:"d M Y" }}</span>
+                    {% if es_educativo %}
+                    <span class="flex items-center gap-1.5"><i class="fas fa-users text-slate-400"></i> {{ producto.get_publico_display }}</span>
+                    <span class="flex items-center gap-1.5"><i class="fas fa-star text-slate-400"></i> {{ producto.puntos_totales }} puntos</span>
+                    {% else %}
+                    <span class="flex items-center gap-1.5"><i class="fas fa-file-alt text-slate-400"></i> {{ producto.secciones.count }} secciones</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
+                         {% if producto.estado == 'publicado' %}bg-emerald-100 text-emerald-700{% elif producto.estado == 'revision' %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                {{ producto.get_estado_display }}
+            </span>
+        </div>
+        
+        {% if es_educativo %}
+            {% if producto.resumen_infantil %}
+            <p class="text-slate-600 text-sm mb-5 line-clamp-2">
+                {{ producto.resumen_infantil|truncatewords:30 }}
+            </p>
+            {% endif %}
+        {% else %}
+            {% if producto.resumen %}
+            <p class="text-slate-600 text-sm mb-5 line-clamp-2">
+                {{ producto.resumen|truncatewords:30 }}
+            </p>
+            {% endif %}
+        {% endif %}
+        
+        <div class="flex flex-wrap gap-3">
+            <a href="{% url 'indicadores:editorial_producto_editar' producto.slug %}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                <i class="fas fa-edit"></i> Editar
+            </a>
+            <a href="{% url 'indicadores:editorial_producto_secciones' producto.slug %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 hover:border-indigo-200 hover:text-indigo-700 transition-all">
+                <i class="fas fa-list"></i> Secciones
+            </a>
+            <a href="{% url 'indicadores:editorial_producto_preview' producto.slug %}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-all">
+                <i class="fas fa-eye"></i> Preview
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-16 bg-white rounded-2xl shadow-sm border border-slate-200">
+    <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-inbox text-slate-300 text-3xl"></i>
+    </div>
+    <h3 class="text-lg font-semibold text-slate-700 mb-2">No hay productos</h3>
+    <p class="text-slate-400 mb-6 max-w-md mx-auto">
+        {% if es_educativo %}
+        No se encontraron productos educativos.
+        {% else %}
+        No se encontraron productos académicos.
+        {% endif %}
+    </p>
+    <a href="{% url 'indicadores:editorial_productos_wizard' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors">
+        <i class="fas fa-magic"></i> Crear el primero con Wizard
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

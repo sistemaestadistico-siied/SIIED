@@ -1,0 +1,145 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}{{ aliado.nombre }} - Aliado{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'indicadores:home' %}">Inicio</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ aliado.nombre }}</li>
+                </ol>
+            </nav>
+
+            <!-- Header del patrocinador -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            {% if aliado.logo_url %}
+                                <img src="{{ aliado.logo_url }}" alt="Logo de {{ aliado.nombre }}" 
+                                     class="img-fluid" style="max-height: 120px;">
+                            {% else %}
+                                <div class="bg-light d-flex align-items-center justify-content-center" 
+                                     style="height: 120px; border-radius: 8px;">
+                                    <i class="fas fa-building fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h1 class="mb-3">{{ aliado.nombre }}</h1>
+                            {% if aliado.fecha_inicio_alianza %}
+                                <p class="text-muted mb-2">
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    Alianza desde: {{ aliado.fecha_inicio_alianza|date:"F Y" }}
+                                    {% if aliado.fecha_fin_alianza %}
+                                        hasta {{ aliado.fecha_fin_alianza|date:"F Y" }}
+                                    {% endif %}
+                                </p>
+                            {% endif %}
+                            {% if aliado.url_externa %}
+                                <p class="mb-0">
+                                    <a href="{{ aliado.url_externa }}" target="_blank" class="btn btn-outline-primary">
+                                        <i class="fas fa-external-link-alt me-2"></i>
+                                        Visitar sitio web
+                                    </a>
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenido de la alianza -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-handshake me-2"></i>
+                        Sobre nuestra alianza
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="content-rich-text">
+                        {{ aliado.descripcion|safe }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón de regreso -->
+            <div class="mt-4 text-center">
+                <a href="{% url 'indicadores:home' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Volver al inicio
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.content-rich-text {
+    line-height: 1.6;
+}
+
+.content-rich-text h1,
+.content-rich-text h2,
+.content-rich-text h3,
+.content-rich-text h4,
+.content-rich-text h5,
+.content-rich-text h6 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.content-rich-text p {
+    margin-bottom: 1rem;
+    text-align: justify;
+}
+
+.content-rich-text ul,
+.content-rich-text ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+}
+
+.content-rich-text blockquote {
+    border-left: 4px solid #007bff;
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    font-style: italic;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0 4px 4px 0;
+}
+
+.content-rich-text img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+.content-rich-text table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+.content-rich-text table th,
+.content-rich-text table td {
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.content-rich-text table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+</style>
+{% endblock %}

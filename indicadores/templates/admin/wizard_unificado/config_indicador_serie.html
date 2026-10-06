@@ -1,0 +1,270 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-chart-line"></i>
+      Configurar Indicador
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>¿Crear nuevo o asociar existente?</strong> Puedes crear un nuevo indicador o asociar los datos a uno existente.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Opción: Crear o Asociar -->
+    <div class="form-section">
+      <div class="form-group">
+        <label>{{ wizard.form.opcion.label }}</label>
+        {{ wizard.form.opcion }}
+      </div>
+    </div>
+
+    <!-- Crear Nuevo Indicador -->
+    <div class="form-section" id="section-crear-nuevo" style="display: none;">
+      <h4>
+        <i class="fas fa-plus-circle"></i>
+        Crear Nuevo Indicador
+      </h4>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.codigo_indicador.id_for_label }}">
+          {{ wizard.form.codigo_indicador.label }}
+        </label>
+        {{ wizard.form.codigo_indicador }}
+        {{ wizard.form.codigo_indicador.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.nombre_indicador.id_for_label }}">
+          {{ wizard.form.nombre_indicador.label }}
+        </label>
+        {{ wizard.form.nombre_indicador }}
+        {{ wizard.form.nombre_indicador.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.sigla.id_for_label }}">
+          {{ wizard.form.sigla.label }}
+        </label>
+        {{ wizard.form.sigla }}
+        {{ wizard.form.sigla.errors }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ wizard.form.subtema.id_for_label }}">
+          {{ wizard.form.subtema.label }}
+        </label>
+        {{ wizard.form.subtema }}
+        {% if wizard.form.subtema.help_text %}
+        <span class="helptext">{{ wizard.form.subtema.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.subtema.errors }}
+      </div>
+    </div>
+
+    <!-- Asociar Existente -->
+    <div class="form-section" id="section-asociar-existente" style="display: none;">
+      <h4>
+        <i class="fas fa-link"></i>
+        Asociar a Indicador Existente
+      </h4>
+
+      <div id="indicador-search-container"></div>
+
+      <div class="form-group" id="indicador-form-group">
+        <label for="{{ wizard.form.indicador_existente.id_for_label }}">
+          {{ wizard.form.indicador_existente.label }}
+        </label>
+        {{ wizard.form.indicador_existente }}
+        {{ wizard.form.indicador_existente.errors }}
+      </div>
+
+      <!-- Preview del indicador seleccionado -->
+      <div id="indicador-preview" style="display:none;" class="indicador-preview-card">
+        <h5><i class="fas fa-chart-line"></i> Indicador seleccionado</h5>
+        <div class="indicador-preview-body" id="indicador-preview-body"></div>
+      </div>
+
+      <div class="warning-box" style="margin-top:1rem;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Advertencia:</strong> Los datos existentes del indicador serán reemplazados por los del archivo cargado.
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.indicador-preview-card {
+  background: var(--admin-panel-2, #f0f9ff);
+  border: 1px solid var(--admin-border, #d1d5db);
+  border-left: 4px solid var(--admin-primary, #2196f3);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-top: 0.75rem;
+}
+
+.indicador-preview-card h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--admin-text, #111827);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.indicador-preview-body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 1rem;
+  font-size: 0.875rem;
+}
+
+.indicador-preview-body .pkey {
+  color: var(--admin-text-muted, #6b7280);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.indicador-preview-body .pval {
+  color: var(--admin-text, #111827);
+  word-break: break-word;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ---- Mostrar/ocultar secciones según opción ----
+  const opcionRadios = document.querySelectorAll('input[name="{{ wizard.form.opcion.html_name }}"]');
+  const sectionCrear   = document.getElementById('section-crear-nuevo');
+  const sectionAsociar = document.getElementById('section-asociar-existente');
+
+  function updateSections() {
+    const val = document.querySelector('input[name="{{ wizard.form.opcion.html_name }}"]:checked')?.value;
+    sectionCrear.style.display   = val === 'crear_nuevo'       ? 'block' : 'none';
+    sectionAsociar.style.display = val === 'asociar_existente' ? 'block' : 'none';
+  }
+
+  opcionRadios.forEach(r => r.addEventListener('change', updateSections));
+  updateSections();
+
+  // ---- Buscador de indicadores: creado dinámicamente desde JS ----
+  var indicadorSelect = document.querySelector('select[name="{{ wizard.form.indicador_existente.html_name }}"]');
+  var searchContainer = document.getElementById('indicador-search-container');
+
+  if (indicadorSelect && searchContainer) {
+    // Crear input dinámicamente para evitar cualquier CSS del admin que oculte inputs del template
+    var searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Buscar por nombre, código o subtema...';
+    searchInput.autocomplete = 'off';
+    searchInput.setAttribute('name', '_buscar_ind');
+    searchInput.style.cssText = 'display:block!important;width:100%;padding:8px 12px;border:1px solid #aaa;border-radius:4px;font-size:14px;background-color:#ffffff;color:#222222;box-sizing:border-box;margin-bottom:6px;height:36px;';
+
+    var counterEl = document.createElement('small');
+    counterEl.id = 'indicador-search-counter';
+    counterEl.style.cssText = 'display:block;margin-bottom:6px;color:#666;font-size:12px;';
+
+    searchContainer.appendChild(searchInput);
+    searchContainer.appendChild(counterEl);
+
+    // Enriquecer opciones con data-search
+    Array.from(indicadorSelect.options).forEach(function(opt) {
+      if (!opt.value) return;
+      var raw = opt.text.trim();
+      var codigoMatch = raw.match(/^\[([^\]]+)\]\s*/);
+      var codigo = codigoMatch ? codigoMatch[1] : '';
+      var resto  = codigoMatch ? raw.slice(codigoMatch[0].length) : raw;
+      var partes = resto.split(/\s+•\s+/);
+      opt.setAttribute('data-search', (codigo + ' ' + partes.join(' ')).toLowerCase().trim());
+    });
+
+    var totalInd = Array.from(indicadorSelect.options).filter(function(o) { return o.value; }).length;
+    counterEl.textContent = totalInd + ' indicadores';
+
+    searchInput.addEventListener('input', function() {
+      var q = this.value.toLowerCase().trim();
+      var currentVal = indicadorSelect.value;
+      var visible = 0;
+      Array.from(indicadorSelect.options).forEach(function(opt) {
+        if (!opt.value) { opt.hidden = false; return; }
+        var texto = opt.getAttribute('data-search') || '';
+        var match = !q || texto.includes(q);
+        opt.hidden = !match && opt.value !== currentVal;
+        if (!opt.hidden && opt.value) visible++;
+      });
+      counterEl.textContent = q ? (visible + ' de ' + totalInd + ' indicadores') : (totalInd + ' indicadores');
+      if (q && indicadorSelect.options[indicadorSelect.selectedIndex] && indicadorSelect.options[indicadorSelect.selectedIndex].hidden) {
+        indicadorSelect.value = '';
+      }
+    });
+
+    indicadorSelect.addEventListener('change', function() {
+      searchInput.value = '';
+      Array.from(indicadorSelect.options).forEach(function(opt) { opt.hidden = false; });
+      counterEl.textContent = totalInd + ' indicadores';
+    });
+  }
+
+  // ---- Preview del indicador seleccionado ----
+  var preview     = document.getElementById('indicador-preview');
+  var previewBody = document.getElementById('indicador-preview-body');
+
+  if (indicadorSelect && preview && previewBody) {
+    function parseOption(text) {
+      var codeMatch = text.match(/^\[([^\]]+)\]\s*/);
+      var codigo = codeMatch ? codeMatch[1] : null;
+      var rest   = codeMatch ? text.slice(codeMatch[0].length) : text;
+      var dotIdx = rest.lastIndexOf(' • ');
+      var nombre  = dotIdx >= 0 ? rest.slice(0, dotIdx) : rest;
+      var subtema = dotIdx >= 0 ? rest.slice(dotIdx + 3) : null;
+      return { codigo: codigo, nombre: nombre, subtema: subtema };
+    }
+
+    function showPreview() {
+      var opt = indicadorSelect.options[indicadorSelect.selectedIndex];
+      if (!opt || !opt.value) { preview.style.display = 'none'; return; }
+      var p = parseOption(opt.text);
+      var html = '';
+      if (p.codigo)  html += '<span class="pkey">Código:</span><span class="pval">' + p.codigo + '</span>';
+      html += '<span class="pkey">Nombre:</span><span class="pval">' + p.nombre + '</span>';
+      if (p.subtema) html += '<span class="pkey">Subtema:</span><span class="pval">' + p.subtema + '</span>';
+      previewBody.innerHTML = html;
+      preview.style.display = 'block';
+    }
+
+    indicadorSelect.addEventListener('change', showPreview);
+    showPreview();
+  }
+});
+</script>
+{% endblock %}

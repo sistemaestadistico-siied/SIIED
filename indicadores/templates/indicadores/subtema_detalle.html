@@ -1,0 +1,2474 @@
+{% extends 'indicadores/base.html' %}
+{% block content %}
+{% load static %}
+
+<!-- Mensaje de orientación para móviles -->
+<div class="portrait:block landscape:hidden md:hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg p-6 text-center max-w-sm mx-auto">
+        <div class="mb-4">
+            <svg class="w-16 h-16 mx-auto text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+            </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Rota tu dispositivo</h3>
+        <p class="text-gray-600 text-sm">Para una mejor experiencia visualizando gráficos y mapas estadísticos, por favor gira tu dispositivo a orientación horizontal.</p>
+    </div>
+</div>
+
+<!-- SheetJS library for Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb mb-6 text-sm text-gray-600">
+        <a href="{% url 'indicadores:home' %}" class="text-blue-600 hover:underline">Inicio</a> /
+        <a href="{% url 'indicadores:dominios' %}" class="text-blue-600 hover:underline">Dominios</a> /
+        <a href="{% url 'indicadores:dominio_detalle' dominio.slug %}" class="text-blue-600 hover:underline">{{ dominio.nombre }}</a> /
+        <a href="{% url 'indicadores:tema_detalle' dominio.slug tema.slug %}" class="text-blue-600 hover:underline">{{ tema.nombre }}</a> /
+        <span class="text-gray-800">{{ subtema_actual.nombre }}</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
+        <!-- Columna Izquierda (Sidebar de Indicadores) -->
+        <aside class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow-md p-4 lg:p-6 lg:sticky lg:top-8">
+                <!-- Icono y nombre del subtema -->
+                <div class="text-center mb-6">
+                    <div class="w-24 h-24 rounded-full bg-teal-500 flex items-center justify-center mx-auto mb-4">
+                        {% if subtema_actual.imagen_url %}
+                            <img src="{{ subtema_actual.imagen_url }}" alt="{{ subtema_actual.nombre }}" class="h-16 w-16 object-contain">
+                        {% elif subtema_actual.icono %}
+                            <i class="{{ subtema_actual.icono }} text-4xl text-white"></i>
+                        {% else %}
+                            <svg class="h-16 w-16 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-lg font-bold text-blue-800">{{ subtema_actual.nombre }}</h2>
+                </div>
+
+
+
+                <!-- Navegación de Indicadores -->
+                <h3 class="text-md font-semibold text-left text-gray-800 mb-3 border-b pb-2">Indicadores</h3>
+                <nav id="indicadores-nav" class="flex flex-col space-y-1 text-left">
+                    {% for indicador in indicadores %}
+                        <a href="#" data-indicador-id="{{ indicador.id }}" data-indicador-nombre="{{ indicador.nombre }}" data-mostrar-mapa="{{ indicador.mostrar_mapa|yesno:'true,false' }}"
+                           class="indicador-link px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                            <span>{{ indicador.nombre }}</span>
+                        </a>
+                    {% empty %}
+                        <p class="text-sm text-gray-500 px-3 py-2">No hay indicadores disponibles.</p>
+                    {% endfor %}
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Columna Derecha (Contenido Principal) -->
+        <main class="lg:col-span-3">
+            <div class="bg-white rounded-lg shadow-md p-4 lg:p-6">
+                <!-- Título del indicador seleccionado -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                    <h1 id="indicador-titulo" class="text-xl lg:text-2xl font-bold text-primary-800">Selecciona un indicador</h1>
+                    <button id="conjunto-datos-access-btn" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 text-sm lg:text-base">
+                        <i class="fas fa-table mr-2"></i>
+                        Acceder a Agregaciones de Conjunto de datos
+                    </button>
+                </div>
+                <div class="border-b-2 border-primary-200 pb-2 mb-6"></div>
+
+                <!-- Filtros globales de Desagregaciones (colapsables) -->
+                <div class="mb-6">
+                    <button id="toggle-filtros-globales" type="button"
+                            class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                        <i class="fas fa-filter"></i>
+                        Filtros globales
+                        <i id="toggle-filtros-icon" class="fas fa-chevron-down transition-transform duration-200"></i>
+                    </button>
+                    <div id="filtros-globales-panel" class="hidden mt-3 p-4 bg-gray-50 rounded-lg">
+                    <!-- Un control de filtro por cada dominio de desagregación -->
+                    <div id="filtro-dominios" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+                    <!-- Selects planos (estado canónico, ocultos cuando hay dominios) -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Selector de desagregaciones geográficas -->
+                        <div id="filtro-desagregaciones-geograficas">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Desagregaciones Geográficas</label>
+                            <select id="desagregaciones-geograficas" multiple class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                                <!-- Las opciones se llenarán dinámicamente -->
+                            </select>
+                        </div>
+
+                        <!-- Selector de desagregaciones temáticas -->
+                        <div id="filtro-desagregaciones-tematicas">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Desagregaciones Temáticas</label>
+                            <select id="desagregaciones-tematicas" multiple class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                                <!-- Las opciones se llenarán dinámicamente -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex space-x-2">
+                        <button id="aplicar-filtros" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            Aplicar Filtros de Desagregaciones
+                        </button>
+                        <button id="limpiar-filtros" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                            Limpiar Desagregaciones
+                        </button>
+                    </div>
+                    </div>
+                </div>
+                
+                <!-- Contenedor para los gráficos dinámicos -->
+                <div id="graficos-container" class="mt-4"></div>
+
+                <!-- Contenedor para metadatos del indicador -->
+                <div id="metadatos-container" class="mt-6"></div>
+                
+                <!-- Botón para mostrar/ocultar mapa -->
+                <div class="mt-8">
+                    <button id="toggle-mapa-btn" class="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors duration-200">
+                        <i class="fas fa-map mr-2"></i>
+                        <span id="toggle-mapa-text">Mostrar Mapa Geográfico</span>
+                    </button>
+                </div>
+                
+                <!-- Contenedor para mapa coroplético -->
+                <div id="mapa-container" class="mt-4 hidden">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-bold text-primary-800">Mapa Geográfico</h3>
+                            <div class="text-sm text-gray-600">
+                                <i class="fas fa-map text-primary-600 mr-1"></i>
+                                Distribución territorial del indicador
+                            </div>
+                        </div>
+                        
+                        <!-- Controles específicos del mapa -->
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Control de año para el mapa -->
+                                <div>
+                                    <label for="mapa-ano-slider" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Año del Mapa: <span id="mapa-ano-display" class="font-bold text-primary-600">2025</span>
+                                    </label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="range" id="mapa-ano-slider" class="flex-1" min="1985" max="2042" value="2025">
+                                        <button id="mapa-restablecer-ano" class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                                            Restablecer
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Selector de desagregaciones temáticas para el mapa -->
+                                <div>
+                                    <label for="mapa-desagregaciones-tematicas" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Filtros Temáticos del Mapa
+                                    </label>
+                                    <select id="mapa-desagregaciones-tematicas" multiple class="w-full p-2 border border-gray-300 rounded-md text-sm mb-2">
+                                        <!-- Se llenarán dinámicamente -->
+                                    </select>
+                                    <div class="flex space-x-2">
+                                        <button id="mapa-aplicar-filtros" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">
+                                            Aplicar Filtros
+                                        </button>
+                                        <button id="mapa-limpiar-filtros" class="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600">
+                                            Limpiar Filtros
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="mapa-plotly" style="height: 600px; width: 100%; position: relative; z-index: 1; background: white;"></div>
+                        <div id="mapa-loading" class="text-center p-8 text-gray-600">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Cargando mapa geográfico...
+                        </div>
+                        <div id="mapa-error" class="text-center p-8 text-red-600 hidden">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            No hay datos geográficos disponibles para este indicador
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales para el mapa
+    let mapaAnoSeleccionado = new Date().getFullYear(); // Año actual por defecto
+    let mapaDesagregacionesTematicas = []; // Array de IDs de desagregaciones temáticas seleccionadas
+    
+    // Variables para control de peticiones asíncronas
+    let currentMapController = null;
+    let currentChartController = null;
+    let currentIndicadorId = null;
+    
+    // Cache de datos completos del mapa para filtrado reactivo
+    let mapaDataCache = {
+        datosCompletos: null,
+        geojson: null,
+        indicadorId: null
+    };
+
+document.addEventListener('DOMContentLoaded', function() {
+    // --- COMPROBACIÓN DE PLOTLY ---
+    if (typeof Plotly === 'undefined') {
+        console.error('[FATAL DEBUG] La librería Plotly.js no está cargada. Los gráficos no funcionarán.');
+        const graficosContainer = document.getElementById('graficos-container');
+        if (graficosContainer) {
+            graficosContainer.innerHTML = `
+                <div class="text-center p-8 text-red-600">
+                    <p><strong>Error Crítico:</strong> La librería Plotly.js no se ha cargado correctamente.</p>
+                    <p class="text-sm text-gray-500 mt-2">Por favor, contacte al administrador del sistema.</p>
+                </div>`;
+        }
+        return; // Detener la ejecución si Plotly no está disponible
+    }
+
+    // --- REFERENCIAS A ELEMENTOS DOM ---
+    const nav = document.getElementById('indicadores-nav');
+    const indicadorTitulo = document.getElementById('indicador-titulo');
+    const graficosContainer = document.getElementById('graficos-container');
+    const aplicarFiltrosBtn = document.getElementById('aplicar-filtros');
+    const limpiarFiltrosBtn = document.getElementById('limpiar-filtros');
+    const desagregacionesGeograficasSelect = document.getElementById('desagregaciones-geograficas');
+    const desagregacionesTematicasSelect = document.getElementById('desagregaciones-tematicas');
+    const conjuntoDatosAccessBtn = document.getElementById('conjunto-datos-access-btn');
+    
+    // Variables para almacenar el indicador actualmente seleccionado y el rango de años
+    let indicadorActual = null;
+    let rangoAnios = { min: 2010, max: 2025, min_disponible: 2010, max_disponible: 2025 };
+    let anoSeleccionadoUnico = null; // Para preservar el año seleccionado en gráficos pie/pirámide
+
+    // Estado independiente por gráfico (años y desagregaciones)
+    const estadoPorGrafico = {};
+    const abortControllersPorGrafico = {};
+
+    // Variables globales para debounce (declaradas aquí para evitar conflictos)
+    let timeoutIdRango;
+    let timeoutIdUnico;
+
+    // Control para cancelar peticiones de gráficos en curso cuando cambian rápido los sliders
+    let graficoAbortController = null;
+
+    // Persistencia en memoria del último año único seleccionado por indicador (por ID)
+    const ultimoAnoPorIndicador = {};
+    
+    // Variables para almacenar selecciones de desagregaciones
+    let desagregacionesGeograficas = [];
+    let desagregacionesTematicas = [];
+
+    // ---- FILTROS POR DOMINIO DE DESAGREGACIÓN ----
+    // Datos de dominios del indicador actual (respuesta 'dominios' del API)
+    let dominiosData = [];
+    // Conjunto del catálogo de consulta enlazado al indicador actual (si existe):
+    // cuando está presente se renderiza el cuadro de consulta en vez de gráficos
+    let catalogoConsultaActual = null;
+    // Mapa dominioId -> <select> de los controles globales por dominio
+    const filtroDominiosSelects = {};
+
+    // Renderiza un <select multiple> por cada dominio dentro de `container`.
+    // `selectsMap` se llena con dominioId -> select. `onChange` se invoca tras cada cambio.
+    function renderFiltrosDominios(container, dominios, selectsMap, onChange) {
+        container.innerHTML = '';
+        Object.keys(selectsMap).forEach(k => delete selectsMap[k]);
+        if (!dominios || dominios.length === 0) return false;
+
+        dominios.forEach(dom => {
+            const wrap = document.createElement('div');
+            if (dom.dominio_padre) wrap.className = 'pl-3 border-l-2 border-primary-200';
+            const label = document.createElement('label');
+            label.className = 'block text-sm font-medium text-gray-700 mb-1';
+            label.textContent = dom.nombre;
+            wrap.appendChild(label);
+            const sel = document.createElement('select');
+            sel.multiple = true;
+            sel.dataset.dominioId = dom.id;
+            sel.dataset.dominioTipo = dom.tipo;
+            sel.dataset.dominioPadre = dom.dominio_padre || '';
+            sel.className = 'w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-primary-500 focus:border-primary-500';
+            (dom.desagregaciones || []).forEach(d => {
+                const o = document.createElement('option');
+                o.value = d.id;
+                o.textContent = d.nombre;
+                o.dataset.padre = d.desagregacion_padre || '';
+                o.selected = d.predeterminada || false;
+                sel.appendChild(o);
+            });
+            sel.addEventListener('change', () => {
+                actualizarCascadaDominios(selectsMap);
+                if (onChange) onChange();
+            });
+            wrap.appendChild(sel);
+            container.appendChild(wrap);
+            selectsMap[dom.id] = sel;
+        });
+        actualizarCascadaDominios(selectsMap);
+        return true;
+    }
+
+    // Cascada: en dominios hijos, deshabilita opciones cuyo padre no está seleccionado.
+    function actualizarCascadaDominios(selectsMap) {
+        Object.values(selectsMap).forEach(sel => {
+            const padreId = sel.dataset.dominioPadre;
+            if (!padreId || !selectsMap[padreId]) return;
+            const padresSel = new Set(Array.from(selectsMap[padreId].selectedOptions).map(o => o.value));
+            Array.from(sel.options).forEach(o => {
+                if (!o.dataset.padre) return; // sin vínculo padre: siempre disponible
+                const habilitar = padresSel.size === 0 || padresSel.has(o.dataset.padre);
+                o.disabled = !habilitar;
+                if (!habilitar && o.selected) o.selected = false;
+            });
+        });
+    }
+
+    // Devuelve {geo: [ids], tem: [ids]} con la selección de todos los selects por dominio.
+    function recolectarSeleccionDominios(selectsMap) {
+        const geo = [], tem = [];
+        Object.values(selectsMap).forEach(sel => {
+            const ids = Array.from(sel.selectedOptions).map(o => o.value);
+            if (sel.dataset.dominioTipo === 'geografica') geo.push(...ids); else tem.push(...ids);
+        });
+        return { geo, tem };
+    }
+
+    // Aplica una selección previa (ids geo/tem) a los selects por dominio.
+    function aplicarSeleccionDominios(selectsMap, geoIds, temIds) {
+        const geoSet = new Set((geoIds || []).map(String));
+        const temSet = new Set((temIds || []).map(String));
+        Object.values(selectsMap).forEach(sel => {
+            const target = sel.dataset.dominioTipo === 'geografica' ? geoSet : temSet;
+            Array.from(sel.options).forEach(o => { o.selected = target.has(o.value); });
+        });
+        actualizarCascadaDominios(selectsMap);
+    }
+
+    // Sincroniza los selects maestros ocultos con la unión de la selección por dominio.
+    function sincronizarSelectsMaestros() {
+        const sel = recolectarSeleccionDominios(filtroDominiosSelects);
+        const geoSet = new Set(sel.geo.map(String));
+        const temSet = new Set(sel.tem.map(String));
+        Array.from(desagregacionesGeograficasSelect.options).forEach(o => { o.selected = geoSet.has(o.value); });
+        Array.from(desagregacionesTematicasSelect.options).forEach(o => { o.selected = temSet.has(o.value); });
+    }
+
+    // ---- FORMATEO NUMÉRICO GLOBAL (1 decimal, locale ES en valores; años sin formateo) ----
+    // ---- CUADRO DE CONSULTA (catálogo de consulta) ----
+    // Renderiza la tabla del conjunto enlazado en el slot de gráficos,
+    // con buscador client-side y botón hacia el catálogo público.
+    function _esc(v) {
+        return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function toggleControlesIndicador(ocultar) {
+        const filtros = document.getElementById('toggle-filtros-globales');
+        const mapa = document.getElementById('toggle-mapa-btn');
+        const conjunto = document.getElementById('conjunto-datos-access-btn');
+        if (filtros) filtros.style.display = ocultar ? 'none' : '';
+        if (mapa) mapa.style.display = ocultar ? 'none' : '';
+        if (conjunto) conjunto.style.display = ocultar ? 'none' : '';
+        if (ocultar) {
+            const panel = document.getElementById('filtros-globales-panel');
+            if (panel) panel.classList.add('hidden');
+        }
+    }
+
+    function renderCuadroConsulta(conjunto) {
+        toggleControlesIndicador(true);
+        const cols = conjunto.columnas || [];
+        const filas = conjunto.filas || [];
+        const wrap = document.createElement('div');
+        wrap.className = 'grafico-item mb-10 bg-white rounded-lg shadow-sm border border-teal-200 p-4';
+        wrap.innerHTML = `
+            <div class="flex items-center justify-between mb-3 border-b pb-2">
+                <h3 class="text-lg font-bold text-slate-800">
+                    <i class="fas fa-book-open text-teal-600 mr-2"></i>${_esc(conjunto.nombre)}
+                </h3>
+                <span class="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded font-medium">${_esc(conjunto.tipo_display || 'Catálogo de consulta')}</span>
+            </div>
+            <p class="text-sm text-slate-600 mb-4">
+                Este indicador se resuelve como <strong>cuadro de consulta</strong> del catálogo:
+                son datos de referencia (directorios y listados), no una serie estadística.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 mb-3">
+                <input type="text" id="cuadro-consulta-buscar" placeholder="Buscar en el cuadro..."
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-teal-300">
+                <a href="${_esc(conjunto.url)}" class="px-4 py-2 bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-teal-700 transition-colors whitespace-nowrap text-center">
+                    <i class="fas fa-external-link-alt mr-1"></i>Ver en catálogo de consulta
+                </a>
+            </div>
+            <div class="text-xs text-gray-500 mb-2" id="cuadro-consulta-count"></div>
+            <div class="overflow-x-auto max-h-[480px] overflow-y-auto border border-gray-200 rounded-md">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>${cols.map(c => `<th class="px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase whitespace-nowrap border-b">${_esc(c)}</th>`).join('')}</tr>
+                    </thead>
+                    <tbody id="cuadro-consulta-body" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>`;
+        graficosContainer.appendChild(wrap);
+
+        const tbody = wrap.querySelector('#cuadro-consulta-body');
+        const count = wrap.querySelector('#cuadro-consulta-count');
+        function pintarFilas(lista) {
+            tbody.innerHTML = lista.map(f =>
+                `<tr class="hover:bg-teal-50">${cols.map(c => `<td class="px-3 py-2 text-gray-700 whitespace-nowrap">${_esc(f[c]) || '—'}</td>`).join('')}</tr>`
+            ).join('');
+            count.textContent = `${lista.length} registro(s)`;
+        }
+        pintarFilas(filas);
+        wrap.querySelector('#cuadro-consulta-buscar').addEventListener('input', e => {
+            const q = e.target.value.toLowerCase().trim();
+            pintarFilas(q ? filas.filter(f => Object.values(f).some(v => String(v ?? '').toLowerCase().includes(q))) : filas);
+        });
+    }
+
+    function aplicarFormatoNumerico(grafico) {
+        try {
+            grafico.layout = grafico.layout || {};
+            grafico.layout.xaxis = grafico.layout.xaxis || {};
+            grafico.layout.yaxis = grafico.layout.yaxis || {};
+
+            const tipoGraf = (grafico.tipo_grafico || '').toLowerCase();
+
+            // Limpiar formatos previos para no afectar ejes no numéricos
+            delete grafico.layout.xaxis.tickformat;
+            delete grafico.layout.yaxis.tickformat;
+
+            // Por defecto (line, bar, area): valores en Y con 1 decimal, años en X como enteros sin agrupación
+            if (tipoGraf === 'bar_horizontal') {
+                grafico.layout.xaxis.tickformat = ',.1f';
+                // Y suele ser categórico; no aplicar formato
+            } else if (tipoGraf === 'pie') {
+                // Ejes no aplican en pie
+            } else if (tipoGraf === 'piramide_poblacional') {
+                // Valores en X con 1 decimal; Y es categórico
+                grafico.layout.xaxis.tickformat = ',.1f';
+            } else {
+                // line, bar, area, etc.
+                grafico.layout.yaxis.tickformat = ',.1f';
+                // Años en X: enteros sin separadores ni decimales
+                grafico.layout.xaxis.tickformat = 'd';
+            }
+
+            // Formato de hover por traza (se respeta locale 'es' para separadores)
+            (grafico.series || []).forEach(trace => {
+                const tipo = (trace.type || '').toLowerCase();
+                if (tipo === 'pie') {
+                    trace.hovertemplate = '%{label}: %{value:.1f} (%{percent:.1%})<extra></extra>';
+                    if (!trace.texttemplate && (trace.textinfo || '').includes('percent')) {
+                        trace.texttemplate = '%{percent:.1%}';
+                    }
+                } else {
+                    const horizontal = trace.orientation === 'h';
+                    if (horizontal) {
+                        trace.hovertemplate = '%{y}: %{x:.1f}<extra>%{fullData.name}</extra>';
+                    } else {
+                        trace.hovertemplate = '%{x}: %{y:.1f}<extra>%{fullData.name}</extra>';
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn('[DEBUG] No se pudo aplicar formato numérico al gráfico:', e);
+        }
+    }
+
+    // Helper: renderizar un gráfico Plotly con ajustes por tipo
+    function renderizarPlotly(graficoData, divId) {
+        aplicarFormatoNumerico(graficoData);
+        if (graficoData.tipo_grafico === 'piramide_poblacional') {
+            try {
+                const categorias = (graficoData.series?.[0]?.y) ? graficoData.series[0].y.slice() : null;
+                graficoData.layout = graficoData.layout || {};
+                graficoData.layout.margin = { t: 40, b: 40, l: 120, r: 120 };
+                graficoData.layout.yaxis = { type: 'category', automargin: true, ticks: 'outside' };
+                if (categorias?.length) {
+                    graficoData.layout.yaxis.tickmode = 'array';
+                    graficoData.layout.yaxis.tickvals = categorias;
+                    graficoData.layout.yaxis.ticktext = categorias;
+                    graficoData.layout.yaxis.range = [-0.5, categorias.length - 0.5];
+                    graficoData.layout.yaxis.categoryorder = 'array';
+                }
+                graficoData.layout.barmode = 'overlay';
+                if (typeof graficoData.layout.bargap === 'undefined') graficoData.layout.bargap = 0.1;
+            } catch (e) { console.warn('[DEBUG] Ajustes pirámide:', e); }
+        }
+        graficoData.layout = graficoData.layout || {};
+        graficoData.layout.hoverlabel = {
+            font: { size: 16, family: 'Arial, sans-serif' },
+            bgcolor: 'rgba(0,0,0,0.8)', bordercolor: 'white', borderwidth: 1
+        };
+        if (graficoData.tipo_grafico === 'piramide_poblacional') {
+            graficoData.series?.forEach(s => { s.textposition = 'none'; s.textinfo = 'none'; });
+        }
+        Plotly.newPlot(divId, graficoData.series, graficoData.layout, {
+            responsive: true, displayModeBar: 'top', displaylogo: false,
+            modeBarButtonsToRemove: [], locale: 'es'
+        });
+    }
+
+    // Helper: recargar un único gráfico con parámetros propios
+    function recargarGraficoIndividual(graficoId, itemContainer) {
+        const estado = estadoPorGrafico[graficoId];
+        if (!estado) return;
+        if (abortControllersPorGrafico[graficoId]) {
+            try { abortControllersPorGrafico[graficoId].abort(); } catch (e) {}
+        }
+        abortControllersPorGrafico[graficoId] = new AbortController();
+        const plotDiv = itemContainer.querySelector('.grafico-plot');
+        plotDiv.innerHTML = '<div class="text-center p-4 text-gray-500 text-sm"><i class="fas fa-spinner fa-spin mr-1"></i> Actualizando...</div>';
+        let url = `{% url 'indicadores:api_get_grafico' 0 %}`.replace('/0/', `/${graficoId}/`);
+        const params = new URLSearchParams();
+        if (estado.anoInicio) params.append('ano_inicio', estado.anoInicio);
+        if (estado.anoFin) params.append('ano_fin', estado.anoFin);
+        estado.desagGeo.forEach(id => params.append('desagregaciones_geograficas', id));
+        estado.desagTem.forEach(id => params.append('desagregaciones_tematicas', id));
+        if (params.toString()) url += '?' + params.toString();
+        fetch(url, { signal: abortControllersPorGrafico[graficoId].signal })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+                const tipoRecarga = data.tipo_grafico || '';
+                const esSinGrafico = (tipoRecarga === 'sin_grafico');
+                const esTablaDinamica = (tipoRecarga === 'tabla_dinamica');
+                if (esTablaDinamica) {
+                    // La tabla repivotada ocupa el slot del gráfico
+                    plotDiv.style.display = '';
+                    plotDiv.innerHTML = generarTablaPivotadaHTML(data);
+                } else if (esSinGrafico) {
+                    plotDiv.style.display = 'none';
+                } else {
+                    plotDiv.style.display = '';
+                    renderizarPlotly(data, `grafico-plot-${graficoId}`);
+                }
+                const tabla = itemContainer.querySelector('.grafico-tabla');
+                if (tabla) {
+                    tabla.innerHTML = '';
+                    generarTablaDatos(data, graficoId, tabla, {
+                        forzarVisible: esSinGrafico || esTablaDinamica
+                    });
+                }
+            })
+            .catch(err => {
+                if (err?.name === 'AbortError') return;
+                console.error('[DEBUG] Error recargando gráfico', graficoId, err);
+                plotDiv.innerHTML = '<div class="text-center p-4 text-red-600 text-sm">Error al actualizar.</div>';
+            });
+    }
+
+    // Función principal para cargar gráficos de un indicador
+    function cargarGrafico(indicadorLink, anoInicio = null, anoFin = null) {
+        const indicadorId = indicadorLink.dataset.indicadorId;
+        const indicadorNombre = indicadorLink.dataset.indicadorNombre;
+
+        if (currentChartController) currentChartController.abort();
+        currentChartController = new AbortController();
+
+        let url = `{% url 'indicadores:api_get_graficos' 0 %}`.replace('/0/', `/${indicadorId}/`);
+        const params = new URLSearchParams();
+        if (anoInicio !== null && anoInicio !== undefined) params.append('ano_inicio', anoInicio);
+        if (anoFin !== null && anoFin !== undefined) params.append('ano_fin', anoFin);
+        const geoSel = Array.from(desagregacionesGeograficasSelect.selectedOptions).map(o => o.value);
+        const temSel = Array.from(desagregacionesTematicasSelect.selectedOptions).map(o => o.value);
+        geoSel.forEach(id => params.append('desagregaciones_geograficas', id));
+        temSel.forEach(id => params.append('desagregaciones_tematicas', id));
+        if (params.toString()) url += '?' + params.toString();
+
+        nav.querySelectorAll('.indicador-link').forEach(l => l.classList.remove('bg-primary-100', 'text-primary-800', 'font-bold'));
+        indicadorLink.classList.add('bg-primary-100', 'text-primary-800', 'font-bold');
+        indicadorTitulo.textContent = indicadorNombre;
+        if (conjuntoDatosAccessBtn) conjuntoDatosAccessBtn.disabled = false;
+        graficosContainer.innerHTML = '<div class="text-center p-8"><p class="text-gray-600">Cargando gráficos...</p></div>';
+        toggleControlesIndicador(false);
+
+        cargarMetadatosIndicador(indicadorId);
+
+        // Cargar desagregaciones (el render de gráficos espera este promise
+        // para tener dominiosData disponible en los controles por dominio)
+        const dominiosPromise = fetch(`{% url 'indicadores:api_get_desagregaciones' 0 %}`.replace('/0/', `/${indicadorId}/`))
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(data => {
+                // Si el indicador está enlazado al catálogo de consulta,
+                // el fetch de gráficos (que llegará vacío) se reemplaza por el cuadro.
+                catalogoConsultaActual = data.catalogo_consulta || null;
+                const filtroGeo = document.getElementById('filtro-desagregaciones-geograficas');
+                const filtroTem = document.getElementById('filtro-desagregaciones-tematicas');
+                desagregacionesGeograficasSelect.innerHTML = '';
+                desagregacionesTematicasSelect.innerHTML = '';
+                if (data.desagregaciones_geograficas?.length > 0) {
+                    filtroGeo.style.display = 'block';
+                    data.desagregaciones_geograficas.forEach(d => {
+                        const o = document.createElement('option');
+                        o.value = d.id; o.textContent = d.nombre; o.selected = d.predeterminada || false;
+                        desagregacionesGeograficasSelect.appendChild(o);
+                    });
+                } else { filtroGeo.style.display = 'none'; }
+                if (data.desagregaciones_tematicas?.length > 0) {
+                    filtroTem.style.display = 'block';
+                    data.desagregaciones_tematicas.forEach(d => {
+                        const o = document.createElement('option');
+                        o.value = d.id; o.textContent = d.nombre; o.selected = d.predeterminada || false;
+                        desagregacionesTematicasSelect.appendChild(o);
+                    });
+                } else { filtroTem.style.display = 'none'; }
+
+                // Controles por dominio: si el API devuelve 'dominios', reemplazan
+                // visualmente a los selects planos (que quedan como estado oculto)
+                dominiosData = data.dominios || [];
+                const filtroDominiosDiv = document.getElementById('filtro-dominios');
+                if (renderFiltrosDominios(filtroDominiosDiv, dominiosData, filtroDominiosSelects, sincronizarSelectsMaestros)) {
+                    filtroGeo.style.display = 'none';
+                    filtroTem.style.display = 'none';
+                    sincronizarSelectsMaestros();
+                } else {
+                    filtroDominiosDiv.innerHTML = '';
+                }
+
+                if (data.rango_anios) {
+                    rangoAnios.min_disponible = data.rango_anios.min;
+                    rangoAnios.max_disponible = data.rango_anios.max;
+                    rangoAnios.min = rangoAnios.min_disponible;
+                    rangoAnios.max = rangoAnios.max_disponible;
+                }
+            })
+            .catch(err => console.error('[DEBUG] Error desagregaciones:', err));
+
+        if (graficoAbortController) { try { graficoAbortController.abort(); } catch (e) {} }
+        graficoAbortController = new AbortController();
+
+        fetch(url, { signal: graficoAbortController.signal })
+            .then(r => { if (!r.ok) throw new Error('Status ' + r.status); return r.json(); })
+            .then(graficosData => dominiosPromise.then(() => {
+                graficosContainer.innerHTML = '';
+                if (catalogoConsultaActual) {
+                    renderCuadroConsulta(catalogoConsultaActual);
+                    return;
+                }
+                graficosData.forEach((grafico, index) => {
+                    const graficoId = grafico.id;
+                    const tipo = grafico.tipo_grafico || 'line';
+                    const esAnoUnico = (tipo === 'pie' || tipo === 'piramide_poblacional' || tipo === 'treemap');
+                    if (!estadoPorGrafico[graficoId]) {
+                        estadoPorGrafico[graficoId] = {
+                            anoInicio: esAnoUnico ? rangoAnios.max : rangoAnios.min,
+                            anoFin: esAnoUnico ? rangoAnios.max : rangoAnios.max,
+                            desagGeo: [], desagTem: []
+                        };
+                    }
+                    const item = document.createElement('div');
+                    item.className = 'grafico-item mb-10 bg-white rounded-lg shadow-sm border border-gray-200 p-4';
+                    item.dataset.graficoId = graficoId;
+                    item.innerHTML = `
+                        <div class="flex items-center justify-between mb-3 border-b pb-2">
+                            <h3 class="text-lg font-bold text-slate-800">${grafico.nombre || 'Gráfico'}</h3>
+                            <span class="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">${tipo}</span>
+                        </div>
+                        <div class="grafico-controles mb-3 p-3 bg-gray-50 rounded-md">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="controles-ano">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">${esAnoUnico ? 'Año' : 'Rango de Años'}</label>
+                                    <div class="controles-ano-inputs"></div>
+                                </div>
+                                <div class="controles-desagregaciones">
+                                    <label class="block text-xs font-medium text-gray-600 mb-1">Desagregaciones</label>
+                                    <div class="controles-dominios-grafico grid grid-cols-1 gap-2"></div>
+                                    <div class="flex gap-2 controles-desag-planos">
+                                        <select class="desag-geo-select w-1/2 text-xs border rounded p-1" multiple></select>
+                                        <select class="desag-tem-select w-1/2 text-xs border rounded p-1" multiple></select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2 flex gap-2">
+                                <button class="btn-aplicar-grafico px-3 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Aplicar</button>
+                                <button class="btn-limpiar-grafico px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Limpiar</button>
+                            </div>
+                        </div>
+                        <div class="grafico-plot" id="grafico-plot-${graficoId}"></div>
+                        <div class="grafico-tabla mt-3"></div>
+                    `;
+                    graficosContainer.appendChild(item);
+
+                    const desagGeoSel = item.querySelector('.desag-geo-select');
+                    const desagTemSel = item.querySelector('.desag-tem-select');
+                    // Controles por dominio para este gráfico (fallback: selects planos)
+                    const selectsMapGrafico = {};
+                    const dominiosGraficoDiv = item.querySelector('.controles-dominios-grafico');
+                    const planosDiv = item.querySelector('.controles-desag-planos');
+                    const usaDominios = renderFiltrosDominios(dominiosGraficoDiv, dominiosData, selectsMapGrafico, null);
+                    if (usaDominios) {
+                        planosDiv.style.display = 'none';
+                        // Reaplicar selección previa del gráfico si existe
+                        aplicarSeleccionDominios(selectsMapGrafico, estadoPorGrafico[graficoId].desagGeo, estadoPorGrafico[graficoId].desagTem);
+                    } else {
+                        Array.from(desagregacionesGeograficasSelect.options).forEach(opt => {
+                            const o = document.createElement('option');
+                            o.value = opt.value; o.textContent = opt.textContent;
+                            desagGeoSel.appendChild(o);
+                        });
+                        Array.from(desagregacionesTematicasSelect.options).forEach(opt => {
+                            const o = document.createElement('option');
+                            o.value = opt.value; o.textContent = opt.textContent;
+                            desagTemSel.appendChild(o);
+                        });
+                    }
+
+                    const controlesAnoDiv = item.querySelector('.controles-ano-inputs');
+                    if (esAnoUnico) {
+                        const val = estadoPorGrafico[graficoId].anoFin || rangoAnios.max;
+                        controlesAnoDiv.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <span class="ano-unico-display text-sm font-semibold text-primary-600">${val}</span>
+                                <input type="range" class="ano-unico-slider flex-1" min="${rangoAnios.min_disponible}" max="${rangoAnios.max_disponible}" value="${val}">
+                            </div>`;
+                        const slider = controlesAnoDiv.querySelector('.ano-unico-slider');
+                        const display = controlesAnoDiv.querySelector('.ano-unico-display');
+                        slider.addEventListener('input', function() { display.textContent = this.value; });
+                        slider.addEventListener('change', function() {
+                            estadoPorGrafico[graficoId].anoInicio = this.value;
+                            estadoPorGrafico[graficoId].anoFin = this.value;
+                        });
+                    } else {
+                        const vMin = estadoPorGrafico[graficoId].anoInicio || rangoAnios.min;
+                        const vMax = estadoPorGrafico[graficoId].anoFin || rangoAnios.max;
+                        controlesAnoDiv.innerHTML = `
+                            <div class="flex items-center gap-2">
+                                <input type="number" class="ano-min-input w-20 text-xs border rounded p-1" min="${rangoAnios.min_disponible}" max="${rangoAnios.max_disponible}" value="${vMin}">
+                                <span class="text-gray-500">-</span>
+                                <input type="number" class="ano-max-input w-20 text-xs border rounded p-1" min="${rangoAnios.min_disponible}" max="${rangoAnios.max_disponible}" value="${vMax}">
+                            </div>`;
+                    }
+
+                    item.querySelector('.btn-aplicar-grafico').addEventListener('click', () => {
+                        const aMin = item.querySelector('.ano-min-input');
+                        const aMax = item.querySelector('.ano-max-input');
+                        const aUni = item.querySelector('.ano-unico-slider');
+                        if (aUni) {
+                            estadoPorGrafico[graficoId].anoInicio = aUni.value;
+                            estadoPorGrafico[graficoId].anoFin = aUni.value;
+                        } else if (aMin && aMax) {
+                            estadoPorGrafico[graficoId].anoInicio = aMin.value;
+                            estadoPorGrafico[graficoId].anoFin = aMax.value;
+                        }
+                        if (usaDominios) {
+                            const selDom = recolectarSeleccionDominios(selectsMapGrafico);
+                            estadoPorGrafico[graficoId].desagGeo = selDom.geo;
+                            estadoPorGrafico[graficoId].desagTem = selDom.tem;
+                        } else {
+                            estadoPorGrafico[graficoId].desagGeo = Array.from(desagGeoSel.selectedOptions).map(o => o.value);
+                            estadoPorGrafico[graficoId].desagTem = Array.from(desagTemSel.selectedOptions).map(o => o.value);
+                        }
+                        recargarGraficoIndividual(graficoId, item);
+                    });
+
+                    item.querySelector('.btn-limpiar-grafico').addEventListener('click', () => {
+                        desagGeoSel.selectedIndex = -1; desagTemSel.selectedIndex = -1;
+                        Object.values(selectsMapGrafico).forEach(s => { s.selectedIndex = -1; });
+                        actualizarCascadaDominios(selectsMapGrafico);
+                        estadoPorGrafico[graficoId].desagGeo = [];
+                        estadoPorGrafico[graficoId].desagTem = [];
+                        if (esAnoUnico) {
+                            const s = item.querySelector('.ano-unico-slider');
+                            if (s) { s.value = rangoAnios.max; item.querySelector('.ano-unico-display').textContent = rangoAnios.max; }
+                            estadoPorGrafico[graficoId].anoInicio = rangoAnios.max;
+                            estadoPorGrafico[graficoId].anoFin = rangoAnios.max;
+                        } else {
+                            const mn = item.querySelector('.ano-min-input');
+                            const mx = item.querySelector('.ano-max-input');
+                            if (mn) mn.value = rangoAnios.min; if (mx) mx.value = rangoAnios.max;
+                            estadoPorGrafico[graficoId].anoInicio = rangoAnios.min;
+                            estadoPorGrafico[graficoId].anoFin = rangoAnios.max;
+                        }
+                        recargarGraficoIndividual(graficoId, item);
+                    });
+
+                    const esSinGrafico = (tipo === 'sin_grafico');
+                    const esTablaDinamica = (tipo === 'tabla_dinamica');
+                    if (esTablaDinamica) {
+                        // La tabla dinámica ocupa el slot del gráfico
+                        const plotEl = item.querySelector('.grafico-plot');
+                        plotEl.style.display = '';
+                        plotEl.innerHTML = generarTablaPivotadaHTML(grafico);
+                        generarTablaDatos(grafico, graficoId, item.querySelector('.grafico-tabla'), {
+                            forzarVisible: true
+                        });
+                    } else if (esSinGrafico) {
+                        // Sin gráfico: la tabla de datos es el acceso principal
+                        item.querySelector('.grafico-plot').style.display = 'none';
+                        generarTablaDatos(grafico, graficoId, item.querySelector('.grafico-tabla'), {
+                            forzarVisible: true
+                        });
+                    } else {
+                        renderizarPlotly(grafico, `grafico-plot-${graficoId}`);
+                        generarTablaDatos(grafico, graficoId, item.querySelector('.grafico-tabla'));
+                    }
+                });
+            }))
+            .catch(error => {
+                if (error?.name === 'AbortError' || error?.code === 20) { console.log('[DEBUG] Fetch cancelado.'); return; }
+                console.error('[DEBUG] Error cargando gráficos:', error);
+                graficosContainer.innerHTML = '<div class="text-center p-8 text-red-600"><p>Error al cargar los datos.</p></div>';
+            })
+            .finally(() => { currentChartController = null; });
+    }
+    // Cargar indicador inicial (por parámetro URL o el primero por defecto)
+    const urlParams = new URLSearchParams(window.location.search);
+    const indicadorIdParam = urlParams.get('indicador') || window.location.hash.replace('#indicador-', '');
+    
+    let indicadorACargar = null;
+    
+    if (indicadorIdParam) {
+        indicadorACargar = nav.querySelector(`.indicador-link[data-indicador-id="${indicadorIdParam}"]`);
+    }
+    
+    if (!indicadorACargar) {
+        indicadorACargar = nav.querySelector('.indicador-link');
+    }
+
+    if (indicadorACargar) {
+        console.log('[DEBUG] Cargando indicador inicial:', indicadorACargar.dataset.indicadorId);
+        
+        // Marcar como activo
+        indicadorACargar.classList.add('active');
+        
+        indicadorActual = indicadorACargar;
+        if (conjuntoDatosAccessBtn) conjuntoDatosAccessBtn.disabled = false;
+        // Cargar primero las desagregaciones para inicializar los controles, luego el gráfico
+        cargarDesagregacionesYGrafico(indicadorACargar);
+        // Cargar mapa geográfico solo si el indicador debe mostrar mapa
+        if (indicadorACargar.dataset.mostrarMapa === 'true') {
+            cargarMapaGeografico(indicadorACargar);
+        }
+    } else {
+        console.log('[DEBUG] No se encontró ningún indicador para cargar por defecto.');
+    }
+    
+    // Función para controlar la visibilidad del mapa según el indicador
+    function controlarVisibilidadMapa(indicadorLink) {
+        const mostrarMapa = indicadorLink.dataset.mostrarMapa === 'true';
+        const toggleMapaBtn = document.getElementById('toggle-mapa-btn');
+        const mapaContainer = document.getElementById('mapa-container');
+        
+        if (toggleMapaBtn && mapaContainer) {
+            if (mostrarMapa) {
+                // Mostrar botón de mapa
+                toggleMapaBtn.parentElement.style.display = 'block';
+            } else {
+                // Ocultar botón y contenedor de mapa
+                toggleMapaBtn.parentElement.style.display = 'none';
+                mapaContainer.classList.add('hidden');
+                // Actualizar texto del botón para el próximo indicador que sí tenga mapa
+                document.getElementById('toggle-mapa-text').textContent = 'Mostrar Mapa Geográfico';
+            }
+        }
+    }
+
+    // Función para cargar desagregaciones y luego el gráfico con sincronización
+    function cargarDesagregacionesYGrafico(indicadorLink) {
+        const indicadorId = indicadorLink.dataset.indicadorId;
+        const indicadorNombre = indicadorLink.dataset.indicadorNombre;
+        
+        // Resaltar el indicador activo
+        nav.querySelectorAll('.indicador-link').forEach(l => l.classList.remove('bg-primary-100', 'text-primary-800', 'font-bold'));
+        indicadorLink.classList.add('bg-primary-100', 'text-primary-800', 'font-bold');
+        // Actualizar título
+        indicadorTitulo.textContent = indicadorNombre;
+        
+        // Controlar visibilidad del mapa según el indicador
+        controlarVisibilidadMapa(indicadorLink);
+        
+        // Cargar desagregaciones primero
+        fetch(`{% url 'indicadores:api_get_desagregaciones' 0 %}`.replace('/0/', `/${indicadorId}/`))
+            .then(response => {
+                if (!response.ok) throw new Error(`Error en la respuesta del servidor. Estado: ${response.status}`);
+                return response.json();
+            })
+            .then(desagregacionesData => {
+                // Configurar desagregaciones
+                const filtroDesagregacionesGeograficas = document.getElementById('filtro-desagregaciones-geograficas');
+                const filtroDesagregacionesTematicas = document.getElementById('filtro-desagregaciones-tematicas');
+                
+                desagregacionesGeograficasSelect.innerHTML = '';
+                desagregacionesTematicasSelect.innerHTML = '';
+                
+                // Configurar desagregaciones geográficas
+                if (desagregacionesData.desagregaciones_geograficas && desagregacionesData.desagregaciones_geograficas.length > 0) {
+                    filtroDesagregacionesGeograficas.style.display = 'block';
+                    desagregacionesGeograficasSelect.innerHTML = '';
+                    desagregacionesData.desagregaciones_geograficas.forEach(desag => {
+                        const option = document.createElement('option');
+                        option.value = desag.id;
+                        option.textContent = desag.nombre;
+                        option.selected = desag.predeterminada || false;
+                        desagregacionesGeograficasSelect.appendChild(option);
+                    });
+                } else {
+                    filtroDesagregacionesGeograficas.style.display = 'none';
+                }
+                
+                // Configurar desagregaciones temáticas
+                if (desagregacionesData.desagregaciones_tematicas && desagregacionesData.desagregaciones_tematicas.length > 0) {
+                    filtroDesagregacionesTematicas.style.display = 'block';
+                    desagregacionesTematicasSelect.innerHTML = '';
+                    desagregacionesData.desagregaciones_tematicas.forEach(desag => {
+                        const option = document.createElement('option');
+                        option.value = desag.id;
+                        option.textContent = desag.nombre;
+                        option.selected = desag.predeterminada || false;
+                        desagregacionesTematicasSelect.appendChild(option);
+                    });
+                } else {
+                    filtroDesagregacionesTematicas.style.display = 'none';
+                }
+
+                // Controles por dominio (un filtro por cada dominio de desagregación)
+                dominiosData = desagregacionesData.dominios || [];
+                const filtroDominiosDiv = document.getElementById('filtro-dominios');
+                if (renderFiltrosDominios(filtroDominiosDiv, dominiosData, filtroDominiosSelects, sincronizarSelectsMaestros)) {
+                    filtroDesagregacionesGeograficas.style.display = 'none';
+                    filtroDesagregacionesTematicas.style.display = 'none';
+                    sincronizarSelectsMaestros();
+                } else {
+                    filtroDominiosDiv.innerHTML = '';
+                }
+
+                // Configurar el rango de años
+                if (desagregacionesData.rango_anios) {
+                    rangoAnios = desagregacionesData.rango_anios;
+                    
+                    // Al cambiar de indicador, restablecer cualquier selección previa de año único
+                    anoSeleccionadoUnico = null;
+                    
+                    console.log('[DEBUG] Valores de rango configurados:', {
+                        min: rangoAnios.min,
+                        max: rangoAnios.max,
+                        min_disponible: rangoAnios.min_disponible,
+                        max_disponible: rangoAnios.max_disponible
+                    });
+
+                    // Cargar el gráfico con los valores por defecto
+                    cargarGrafico(indicadorLink, rangoAnios.min, rangoAnios.max);
+                }
+            })
+            .catch(error => {
+                console.error('[DEBUG] Error al cargar desagregaciones:', error);
+            });
+    }
+
+    // Añadir evento de clic a todos los enlaces de indicadores
+    nav.addEventListener('click', function(event) {
+        const link = event.target.closest('.indicador-link');
+        if (link) {
+            event.preventDefault();
+            
+            // Remover clase active de todos los indicadores
+            nav.querySelectorAll('.indicador-link').forEach(l => l.classList.remove('active'));
+            
+            // Agregar clase active al indicador seleccionado
+            link.classList.add('active');
+            
+            indicadorActual = link;
+            if (conjuntoDatosAccessBtn) conjuntoDatosAccessBtn.disabled = false;
+            cargarDesagregacionesYGrafico(link);
+            if (link.dataset.mostrarMapa === 'true') {
+                cargarMapaGeografico(link);
+            }
+        }
+    });
+
+    
+    // Acceder a agregaciones de conjunto de datos del indicador actual
+    if (conjuntoDatosAccessBtn) {
+        conjuntoDatosAccessBtn.addEventListener('click', function() {
+            if (!indicadorActual) {
+                alert('No hay indicador seleccionado.');
+                return;
+            }
+            
+            const indicadorId = indicadorActual.dataset.indicadorId;
+            
+            // Redirigir a la página de detalle de conjunto de datos
+            window.location.href = `{% url 'indicadores:conjunto_datos_detalle' 0 %}`.replace('/0/', `/${indicadorId}/`);
+        });
+    }
+    
+    // Función para cargar mapa geográfico
+    function cargarMapaGeografico(indicadorLink) {
+        const indicadorId = indicadorLink.dataset.indicadorId;
+        console.log('[DEBUG] Cargando mapa geográfico para indicador ID:', indicadorId);
+        
+        // Cancelar petición anterior del mapa si existe
+        if (currentMapController) {
+            currentMapController.abort();
+            console.log('[DEBUG] Cancelando petición anterior del mapa');
+        }
+        
+        // Crear nuevo controlador para esta petición
+        currentMapController = new AbortController();
+        currentIndicadorId = indicadorId;
+        
+        const mapaContainer = document.getElementById('mapa-container');
+        const mapaLoading = document.getElementById('mapa-loading');
+        const mapaError = document.getElementById('mapa-error');
+        const mapaPlotly = document.getElementById('mapa-plotly');
+        
+        if (!mapaContainer || !mapaLoading || !mapaError || !mapaPlotly) {
+            console.warn('[DEBUG] Elementos del mapa no encontrados');
+            return;
+        }
+        
+        // Si el contenedor del mapa está oculto, no cargar el mapa
+        if (mapaContainer.classList.contains('hidden')) {
+            console.log('[DEBUG] Contenedor del mapa oculto - no cargar mapa');
+            return;
+        }
+        
+        // Configurar controles del mapa
+        configurarControlesMapa(indicadorId);
+        
+        // Mostrar loading y ocultar error
+        mapaLoading.classList.remove('hidden');
+        mapaError.classList.add('hidden');
+        mapaPlotly.style.display = 'none';
+        
+        // Verificar si necesitamos cargar datos completos o solo filtrar
+        const filtrosActuales = JSON.stringify(mapaDesagregacionesTematicas || []);
+        const necesitaCargarDatos = !mapaDataCache.datosCompletos || 
+                                   mapaDataCache.indicadorId !== indicadorId ||
+                                   mapaDataCache.anoCache !== mapaAnoSeleccionado ||
+                                   mapaDataCache.filtrosCache !== filtrosActuales ||
+                                   !mapaDataCache.geojson;
+        
+        let promiseChain;
+        
+        if (necesitaCargarDatos) {
+            console.log('[DEBUG] Cargando datos completos del mapa para indicador:', indicadorId);
+            console.log('[DEBUG] Filtros temáticos actuales:', mapaDesagregacionesTematicas);
+            
+            // Cargar datos con filtros temáticos aplicados si existen
+            const urlValoresGeo = `{% url 'indicadores:api_test_valores_geo' 0 %}`.replace('/0/', `/${indicadorId}/`);
+            const paramsCompletos = new URLSearchParams();
+            paramsCompletos.append('anio', mapaAnoSeleccionado);
+            
+            // Agregar filtros temáticos si están seleccionados
+            if (mapaDesagregacionesTematicas && mapaDesagregacionesTematicas.length > 0) {
+                console.log('[DEBUG] Aplicando filtros temáticos en carga:', mapaDesagregacionesTematicas);
+                mapaDesagregacionesTematicas.forEach(id => {
+                    paramsCompletos.append('desagregaciones_tematicas', id);
+                });
+            } else {
+                console.log('[DEBUG] No hay filtros temáticos para aplicar');
+            }
+            
+            const urlValoresGeoCompletos = urlValoresGeo + '?' + paramsCompletos.toString();
+            console.log('[DEBUG] URL final para valores_geo:', urlValoresGeoCompletos);
+            
+            // Cargar datos completos y GeoJSON en paralelo
+            promiseChain = Promise.all([
+                fetch(urlValoresGeoCompletos, { signal: currentMapController.signal }).then(response => response.json()),
+                fetch(`{% url 'indicadores:api_geojson_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`), { signal: currentMapController.signal }).then(response => response.json())
+            ]);
+        } else {
+            console.log('[DEBUG] Usando datos en cache y aplicando filtros localmente');
+            console.log('[DEBUG] PROBLEMA: Cache hit cuando hay filtros temáticos activos:', mapaDesagregacionesTematicas);
+            
+            // Si hay filtros temáticos, forzar recarga desde backend
+            if (mapaDesagregacionesTematicas && mapaDesagregacionesTematicas.length > 0) {
+                console.log('[DEBUG] Forzando recarga desde backend debido a filtros temáticos');
+                
+                let urlValoresGeoFiltrados = `{% url 'indicadores:api_test_valores_geo' 0 %}`.replace('/0/', `/${indicadorId}/`);
+                const paramsFiltrados = new URLSearchParams();
+                paramsFiltrados.append('anio', mapaAnoSeleccionado);
+                mapaDesagregacionesTematicas.forEach(id => {
+                    paramsFiltrados.append('desagregaciones_tematicas', id);
+                });
+                urlValoresGeoFiltrados += '?' + paramsFiltrados.toString();
+                console.log('[DEBUG] URL con filtros:', urlValoresGeoFiltrados);
+                
+                promiseChain = Promise.all([
+                    fetch(urlValoresGeoFiltrados, { signal: currentMapController.signal }).then(response => response.json()),
+                    Promise.resolve(mapaDataCache.geojson)
+                ]);
+            } else {
+                // Usar datos en cache solo si no hay filtros
+                promiseChain = Promise.resolve([mapaDataCache.datosCompletos, mapaDataCache.geojson]);
+            }
+        }
+        
+        promiseChain.then(([datosGeo, geojson]) => {
+            console.log('[DEBUG] Datos geográficos:', datosGeo);
+            console.log('[DEBUG] GeoJSON:', geojson);
+            
+            // Guardar en cache si son datos nuevos
+            if (necesitaCargarDatos) {
+                mapaDataCache.datosCompletos = datosGeo;
+                mapaDataCache.geojson = geojson;
+                mapaDataCache.indicadorId = indicadorId;
+                mapaDataCache.anoCache = mapaAnoSeleccionado;
+                mapaDataCache.filtrosCache = filtrosActuales;
+                console.log('[DEBUG] Datos guardados en cache para año:', mapaAnoSeleccionado, 'filtros:', filtrosActuales);
+            }
+            
+            if (!geojson.features || geojson.features.length === 0) {
+                throw new Error('No hay geometrías disponibles');
+            }
+            
+            if (!datosGeo.valores || datosGeo.valores.length === 0) {
+                console.log('[DEBUG] Respuesta valores_geo completa:', datosGeo);
+                throw new Error('No hay datos geográficos disponibles');
+            }
+            
+            // Aplicar filtros temáticos localmente si están seleccionados
+            let datosFiltrados = datosGeo;
+            if (mapaDesagregacionesTematicas.length > 0) {
+                console.log('[DEBUG] Aplicando filtros temáticos localmente:', mapaDesagregacionesTematicas);
+                // Aquí aplicaríamos el filtrado local - por ahora usar datos completos
+                // TODO: Implementar filtrado local basado en desagregaciones temáticas
+            }
+            
+            // Crear mapa de valores por código DESPUÉS del filtrado
+            const valoresPorCodigo = {};
+            datosGeo.valores.forEach(item => {
+                if (item.codigo) {
+                    valoresPorCodigo[item.codigo] = item.valor;
+                    console.log(`[DEBUG] Valor encontrado: ${item.codigo} = ${item.valor}`);
+                }
+            });
+            
+            console.log('[DEBUG] Valores por código:', valoresPorCodigo);
+            
+            // Verificar si hay datos válidos (no nulos/undefined)
+            const valoresValidos = Object.values(valoresPorCodigo).filter(v => v !== null && v !== undefined);
+            if (valoresValidos.length === 0) {
+                throw new Error('No hay valores numéricos válidos en los datos geográficos');
+            }
+            
+            // Preparar datos para el mapa coroplético
+            const locations = [];
+            const z = [];
+            const text = [];
+            const customdata = [];
+            
+            geojson.features.forEach(feature => {
+                const codigo = feature.properties.codigo;
+                const nombreElemento = feature.properties.nombre;
+                const capaId = feature.properties.capa_id;
+                
+                // Buscar valor: primero por código directo, luego por capa_id
+                let itemDatos = datosGeo.valores.find(v => v.codigo === codigo);
+                if (!itemDatos && capaId) {
+                    // Si no encuentra por código directo, buscar por capa_id
+                    itemDatos = datosGeo.valores.find(v => v.capa_id === capaId);
+                }
+                
+                const valor = itemDatos ? itemDatos.valor : null;
+                const nombreCapa = itemDatos ? itemDatos.nombre_capa : 'Sin datos';
+                
+                if (valor !== null && valor !== undefined) {
+                    locations.push(codigo);
+                    z.push(valor);
+                    text.push(`${nombreCapa}: ${valor.toLocaleString('es-CO')}<br>${nombreElemento}`);
+                    customdata.push({
+                        nombre_elemento: nombreElemento,
+                        nombre_capa: nombreCapa,
+                        valor: valor,
+                        codigo: codigo
+                    });
+                }
+            });
+            if (locations.length === 0) {
+                throw new Error('No se pudieron asociar datos con geometrías');
+            }
+            
+            // Crear mapa choropleth (colorete) con geometrías
+            const data = [{
+                type: 'choropleth',
+                locationmode: 'geojson-id',
+                geojson: geojson,
+                locations: locations,
+                z: z,
+                text: text,
+                colorscale: [
+                    [0, '#FF0000'],      // Rojo brillante
+                    [0.25, '#FF8C00'],   // Naranja
+                    [0.5, '#FFD700'],    // Amarillo dorado
+                    [0.75, '#32CD32'],   // Verde lima
+                    [1, '#0000FF']       // Azul brillante
+                ],
+                showscale: true,
+                colorbar: {
+                    title: 'Valor',
+                    titleside: 'right',
+                    thickness: 15,
+                    len: 0.7
+                },
+                hovertemplate: '<b>%{text}</b><br>Valor: %{z}<extra></extra>',
+                marker: {
+                    line: {
+                        color: 'white',
+                        width: 2
+                    }
+                }
+            }];
+            
+            // Agregar campo id a las features del GeoJSON para choropleth
+            geojson.features.forEach(feature => {
+                if (!feature.id && feature.properties.codigo) {
+                    feature.id = feature.properties.codigo;
+                }
+            });
+            
+            console.log('[DEBUG] Datos choropleth preparados:', {
+                locations: locations,
+                z: z,
+                geojson_features: geojson.features.length,
+                first_feature_id: geojson.features[0]?.id
+            });
+            
+            // Calcular el centro y zoom basado en las geometrías
+            let minLat = Infinity, maxLat = -Infinity;
+            let minLon = Infinity, maxLon = -Infinity;
+            
+            geojson.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    const coords = feature.geometry.coordinates;
+                    const flatCoords = coords.flat(3);
+                    for (let i = 0; i < flatCoords.length; i += 2) {
+                        const lon = flatCoords[i];
+                        const lat = flatCoords[i + 1];
+                        if (typeof lon === 'number' && typeof lat === 'number') {
+                            minLon = Math.min(minLon, lon);
+                            maxLon = Math.max(maxLon, lon);
+                            minLat = Math.min(minLat, lat);
+                            maxLat = Math.max(maxLat, lat);
+                        }
+                    }
+                }
+            });
+            
+            const centerLat = (minLat + maxLat) / 2;
+            const centerLon = (minLon + maxLon) / 2;
+            
+            const layout = {
+                geo: {
+                    showframe: false,
+                    showcoastlines: false,
+                    showland: false,
+                    showocean: false,
+                    showlakes: false,
+                    showrivers: false,
+                    showcountries: false,
+                    showsubunits: false,
+                    bgcolor: 'rgba(240,240,240,0.3)',
+                    projection: {
+                        type: 'mercator'
+                    },
+                    center: {
+                        lat: centerLat,
+                        lon: centerLon
+                    },
+                    lonaxis: {
+                        range: [minLon - 0.02, maxLon + 0.02]
+                    },
+                    lataxis: {
+                        range: [minLat - 0.02, maxLat + 0.02]
+                    }
+                },
+                margin: {r: 0, t: 0, l: 0, b: 0},
+                height: 600,
+                font: {
+                    family: 'Arial, sans-serif',
+                    size: 12
+                },
+                paper_bgcolor: 'white',
+                plot_bgcolor: 'white'
+            };
+            
+            const config = {
+                responsive: true,
+                displayModeBar: true,
+                displaylogo: false,
+                modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+                locale: 'es'
+            };
+            
+            // Ocultar loading y mostrar mapa
+            mapaLoading.classList.add('hidden');
+            mapaPlotly.style.display = 'block';
+            
+            // Crear el mapa
+            Plotly.newPlot('mapa-plotly', data, layout, config);
+            
+            console.log('[DEBUG] Mapa geográfico creado exitosamente');
+        })
+        .catch(error => {
+            // Solo mostrar error si no fue cancelación
+            if (error.name !== 'AbortError') {
+                console.error('[DEBUG] Error al cargar mapa geográfico:', error);
+                mapaLoading.classList.add('hidden');
+                mapaError.classList.remove('hidden');
+                mapaPlotly.style.display = 'none';
+            } else {
+                console.log('[DEBUG] Petición del mapa cancelada correctamente');
+            }
+        })
+        .finally(() => {
+            // Limpiar controlador si esta petición fue completada
+            if (currentMapController && currentIndicadorId === indicadorId) {
+                currentMapController = null;
+            }
+        });
+    }
+    
+    // Función para configurar controles específicos del mapa
+    function configurarControlesMapa(indicadorId) {
+        const mapaAnoSlider = document.getElementById('mapa-ano-slider');
+        const mapaAnoDisplay = document.getElementById('mapa-ano-display');
+        const mapaRestablecerBtn = document.getElementById('mapa-restablecer-ano');
+        const mapaDesagregacionesSelect = document.getElementById('mapa-desagregaciones-tematicas');
+        
+        // Configurar slider de año del mapa SOLO UNA VEZ
+        if (mapaAnoSlider && mapaAnoDisplay && !mapaAnoSlider.hasAttribute('data-configured')) {
+            // Actualizar rango según datos disponibles del indicador
+            if (rangoAnios.min_disponible && rangoAnios.max_disponible) {
+                console.log('[DEBUG] Configurando rango del mapa:', rangoAnios.min_disponible, '-', rangoAnios.max_disponible);
+                
+                mapaAnoSlider.min = rangoAnios.min_disponible;
+                mapaAnoSlider.max = rangoAnios.max_disponible;
+                
+                // Usar año actual si está dentro del rango, sino usar el más cercano
+                const anoActual = new Date().getFullYear();
+                let anoInicial;
+                if (anoActual >= rangoAnios.min_disponible && anoActual <= rangoAnios.max_disponible) {
+                    anoInicial = anoActual;
+                } else if (anoActual < rangoAnios.min_disponible) {
+                    anoInicial = rangoAnios.min_disponible;
+                } else {
+                    anoInicial = rangoAnios.max_disponible;
+                }
+                
+                // Establecer valor inicial
+                mapaAnoSlider.value = anoInicial;
+                mapaAnoSeleccionado = anoInicial;
+                mapaAnoDisplay.textContent = anoInicial;
+                
+                console.log('[DEBUG] Año inicial del mapa configurado:', anoInicial);
+            } else {
+                console.warn('[DEBUG] No hay datos de rango de años disponibles para el mapa');
+            }
+            
+            // Event listener para cambios en el slider (solo una vez)
+            let timeoutId;
+            mapaAnoSlider.addEventListener('input', function() {
+                const anoSeleccionado = parseInt(this.value);
+                mapaAnoDisplay.textContent = anoSeleccionado;
+                mapaAnoSeleccionado = anoSeleccionado;
+                
+                // Debounce para evitar demasiadas llamadas
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    const indicador = indicadorActual || document.querySelector('.indicador-link.active');
+                    if (indicador) {
+                        cargarMapaGeografico(indicador);
+                    }
+                }, 300);
+            });
+            
+            // Marcar como configurado
+            mapaAnoSlider.setAttribute('data-configured', 'true');
+        }
+        
+        // Configurar botón restablecer año del mapa
+        if (mapaRestablecerBtn && mapaAnoSlider && mapaAnoDisplay) {
+            mapaRestablecerBtn.addEventListener('click', function() {
+                // Restablecer al año actual, no al máximo disponible
+                const anoActual = new Date().getFullYear();
+                let anoRestablecer;
+                if (anoActual >= rangoAnios.min_disponible && anoActual <= rangoAnios.max_disponible) {
+                    anoRestablecer = anoActual;
+                } else if (anoActual < rangoAnios.min_disponible) {
+                    anoRestablecer = rangoAnios.min_disponible;
+                } else {
+                    anoRestablecer = rangoAnios.max_disponible;
+                }
+                
+                mapaAnoSlider.value = anoRestablecer;
+                mapaAnoDisplay.textContent = anoRestablecer;
+                mapaAnoSeleccionado = anoRestablecer;
+                
+                const indicador = indicadorActual || document.querySelector('.indicador-link.active');
+                if (indicador) {
+                    cargarMapaGeografico(indicador);
+                }
+            });
+        }
+        
+        // Cargar desagregaciones temáticas para el selector del mapa
+        if (mapaDesagregacionesSelect && indicadorId) {
+            console.log('[DEBUG] Cargando desagregaciones temáticas para mapa, indicador:', indicadorId);
+            
+            // Limpiar desagregaciones temáticas del mapa antes de cargar nuevas
+            mapaDesagregacionesSelect.innerHTML = '';
+            // NO limpiar mapaDesagregacionesTematicas aquí - mantener filtros seleccionados
+            
+            console.log('[DEBUG] Manteniendo filtros temáticos del mapa:', mapaDesagregacionesTematicas);
+            
+            // NO usar setTimeout - cargar directamente desde la API
+            fetch(`{% url 'indicadores:api_get_desagregaciones' 0 %}`.replace('/0/', `/${indicadorId}/`))
+                .then(response => response.json())
+                .then(desagregacionesData => {
+                    console.log('[DEBUG] Desagregaciones cargadas para mapa:', desagregacionesData);
+                    
+                    // Cargar desagregaciones temáticas específicas para este indicador
+                    if (desagregacionesData.desagregaciones_tematicas && desagregacionesData.desagregaciones_tematicas.length > 0) {
+                        // Agrupar desagregaciones por dominio para encontrar "Total" de cada uno
+                        const dominiosTotales = new Map();
+                        
+                        desagregacionesData.desagregaciones_tematicas.forEach(desag => {
+                            const option = document.createElement('option');
+                            option.value = desag.id;
+                            option.textContent = desag.nombre;
+                            mapaDesagregacionesSelect.appendChild(option);
+                            console.log('[DEBUG] Agregada desagregación al mapa:', desag.nombre);
+                            
+                            // Identificar desagregaciones "Total" por dominio
+                            if (desag.nombre && (desag.nombre.toLowerCase() === 'total' || desag.nombre.toLowerCase().includes('total'))) {
+                                if (!dominiosTotales.has(desag.dominio_id)) {
+                                    dominiosTotales.set(desag.dominio_id, desag.id);
+                                    console.log('[DEBUG] Total encontrado para dominio', desag.dominio_id, ':', desag.nombre);
+                                }
+                            }
+                        });
+                        
+                        // Auto-seleccionar desagregaciones "Total" si no hay filtros previos
+                        if (mapaDesagregacionesTematicas.length === 0 && dominiosTotales.size > 0) {
+                            mapaDesagregacionesTematicas = Array.from(dominiosTotales.values());
+                            console.log('[DEBUG] Auto-seleccionando desagregaciones Total para mapa:', mapaDesagregacionesTematicas);
+                            
+                            // Marcar las opciones como seleccionadas en el select
+                            Array.from(mapaDesagregacionesSelect.options).forEach(option => {
+                                if (mapaDesagregacionesTematicas.includes(option.value)) {
+                                    option.selected = true;
+                                }
+                            });
+                        }
+                    } else {
+                        // Si no hay desagregaciones temáticas, limpiar filtros del mapa
+                        console.log('[DEBUG] Indicador sin desagregaciones temáticas - limpiando filtros del mapa');
+                        mapaDesagregacionesTematicas = [];
+                    }
+                })
+                .catch(error => {
+                    console.error('[DEBUG] Error cargando desagregaciones para mapa:', error);
+                });
+                    
+            // Configurar botones de filtros del mapa (solo una vez)
+            if (!mapaDesagregacionesSelect.hasAttribute('data-listener-added')) {
+                const mapaAplicarBtn = document.getElementById('mapa-aplicar-filtros');
+                const mapaLimpiarBtn = document.getElementById('mapa-limpiar-filtros');
+                        
+                // Botón aplicar filtros
+                if (mapaAplicarBtn) {
+                    mapaAplicarBtn.addEventListener('click', function() {
+                        mapaDesagregacionesTematicas = Array.from(mapaDesagregacionesSelect.selectedOptions).map(option => option.value);
+                        console.log('[DEBUG] Aplicando filtros temáticos al mapa (reactivo):', mapaDesagregacionesTematicas);
+                        
+                        // Recargar mapa completo como hace el selector de año
+                        const indicador = indicadorActual || document.querySelector('.indicador-link.active');
+                        if (indicador) {
+                            cargarMapaGeografico(indicador);
+                        }
+                    });
+                }
+                        
+                // Botón limpiar filtros
+                if (mapaLimpiarBtn) {
+                    mapaLimpiarBtn.addEventListener('click', function() {
+                        // Deseleccionar todas las opciones
+                        Array.from(mapaDesagregacionesSelect.options).forEach(option => {
+                            option.selected = false;
+                        });
+                        
+                        mapaDesagregacionesTematicas = [];
+                        console.log('[DEBUG] Limpiando filtros temáticos del mapa (reactivo)');
+                        
+                        // Recargar mapa completo como hace el selector de año
+                        const indicador = indicadorActual || document.querySelector('.indicador-link.active');
+                        if (indicador) {
+                            cargarMapaGeografico(indicador);
+                        }
+                    });
+                }
+                
+                mapaDesagregacionesSelect.setAttribute('data-listener-added', 'true');
+            }
+        }
+    }
+    
+    // Función para aplicar filtros temáticos al mapa de forma reactiva
+    function aplicarFiltrosTematicosMapaReactivo(desagregacionesIds) {
+        console.log('[DEBUG] Aplicando filtros temáticos al mapa (reactivo):', desagregacionesIds);
+        
+        if (!mapaDataCache.geojson) {
+            console.warn('[DEBUG] No hay GeoJSON en cache para aplicar filtros');
+            return;
+        }
+        
+        // Si no hay filtros, cargar datos completos para el año actual
+        if (!desagregacionesIds || desagregacionesIds.length === 0) {
+            console.log('[DEBUG] Sin filtros temáticos - cargando datos completos para año:', mapaAnoSeleccionado);
+            
+            let urlValoresGeoCompletos = `{% url 'indicadores:api_test_valores_geo' 0 %}`.replace('/0/', `/${mapaDataCache.indicadorId}/`);
+            const paramsCompletos = new URLSearchParams();
+            paramsCompletos.append('anio', mapaAnoSeleccionado);
+            urlValoresGeoCompletos += '?' + paramsCompletos.toString();
+            
+            fetch(urlValoresGeoCompletos)
+                .then(response => response.json())
+                .then(datosCompletos => {
+                    console.log('[DEBUG] Datos completos recibidos para año:', mapaAnoSeleccionado);
+                    
+                    const valoresPorCodigo = {};
+                    if (datosCompletos.valores) {
+                        datosCompletos.valores.forEach(item => {
+                            if (item.codigo) {
+                                valoresPorCodigo[item.codigo] = item.valor;
+                            }
+                        });
+                    }
+                    
+                    // Actualizar cache con datos del año actual
+                    mapaDataCache.datosCompletos = datosCompletos;
+                    mapaDataCache.anoCache = mapaAnoSeleccionado;
+                    
+                    actualizarMapaConValores(mapaDataCache.geojson, valoresPorCodigo);
+                })
+                .catch(error => {
+                    console.error('[DEBUG] Error al cargar datos completos:', error);
+                });
+            return;
+        }
+        
+        // Para filtros temáticos, hacer llamada al backend con año y filtros
+        console.log('[DEBUG] Aplicando filtros temáticos al backend para año:', mapaAnoSeleccionado);
+        
+        let urlValoresGeoFiltrados = `{% url 'indicadores:api_valores_geo' 0 %}`.replace('/0/', `/${mapaDataCache.indicadorId}/`);
+        const paramsFiltrados = new URLSearchParams();
+        paramsFiltrados.append('anio', mapaAnoSeleccionado);
+        desagregacionesIds.forEach(id => {
+            paramsFiltrados.append('desagregaciones_tematicas', id);
+        });
+        urlValoresGeoFiltrados += '?' + paramsFiltrados.toString();
+        
+        fetch(urlValoresGeoFiltrados)
+            .then(response => response.json())
+            .then(datosFiltrados => {
+                console.log('[DEBUG] Datos filtrados recibidos del backend:', datosFiltrados);
+                
+                console.log('[DEBUG] Datos filtrados recibidos:', datosFiltrados);
+                
+                // Verificar que hay valores válidos
+                const valoresValidos = datosFiltrados.valores ? datosFiltrados.valores.filter(v => v.valor !== null && !isNaN(v.valor)) : [];
+                if (valoresValidos.length === 0) {
+                    console.warn('[DEBUG] No hay valores numéricos válidos después del filtrado');
+                    // Crear datos vacíos en el formato correcto
+                    const datosVacios = { valores: [] };
+                    actualizarMapaConValores(mapaDataCache.geojson, datosVacios);
+                    return;
+                }
+                
+                // Actualizar el mapa con los valores filtrados (formato completo)
+                actualizarMapaConValores(mapaDataCache.geojson, datosFiltrados);
+            })
+            .catch(error => {
+                console.error('[DEBUG] Error al aplicar filtros temáticos:', error);
+            });
+    }
+    
+    // Función para actualizar el mapa con nuevos valores
+    function actualizarMapaConValores(geojson, datosGeo) {
+        console.log('[DEBUG] Iniciando actualización del mapa');
+        console.log('[DEBUG] GeoJSON features:', geojson.features.length);
+        console.log('[DEBUG] Datos geográficos:', datosGeo);
+        
+        const mapaPlotly = document.getElementById('mapa-plotly');
+        if (!mapaPlotly) {
+            console.error('[DEBUG] Elemento mapa-plotly no encontrado');
+            return;
+        }
+        
+        // Preparar datos para Plotly (igual que en cargarMapaGeografico)
+        const locations = [];
+        const z = [];
+        const text = [];
+        const customdata = [];
+        
+        let valoresEncontrados = 0;
+        
+        geojson.features.forEach(feature => {
+            const codigo = feature.properties.codigo;
+            const nombreElemento = feature.properties.nombre;
+            const capaId = feature.properties.capa_id;
+            
+            // Buscar valor: primero por código directo, luego por capa_id
+            let itemDatos = datosGeo.valores.find(v => v.codigo === codigo);
+            if (!itemDatos && capaId) {
+                // Si no encuentra por código directo, buscar por capa_id
+                itemDatos = datosGeo.valores.find(v => v.capa_id === capaId);
+            }
+            
+            const valor = itemDatos ? itemDatos.valor : null;
+            const nombreCapa = itemDatos ? itemDatos.nombre_capa : 'Sin datos';
+            
+            if (valor !== null && valor !== undefined) {
+                console.log('[DEBUG] Valor encontrado:', codigo, '=', valor, '(capa_id:', capaId, ')');
+                valoresEncontrados++;
+            }
+            
+            locations.push(codigo);
+            z.push(valor);
+            text.push(`${nombreCapa}: ${valor !== null ? valor.toLocaleString('es-CO') : 'Sin datos'}<br>${nombreElemento}`);
+            customdata.push({
+                nombre_elemento: nombreElemento,
+                nombre_capa: nombreCapa,
+                valor: valor,
+                codigo: codigo
+            });
+        });
+        
+        console.log('[DEBUG] Valores encontrados:', valoresEncontrados, 'de', geojson.features.length);
+        
+        if (locations.length === 0) {
+            throw new Error('No se pudieron asociar datos con geometrías');
+        }
+        
+        // Crear el mapa coroplético con Plotly (usar choropleth sin mapbox)
+        const data = [{
+            type: 'choropleth',
+            locationmode: 'geojson-id',
+            locations: locations,
+            z: z,
+            text: text,
+            customdata: customdata,
+            geojson: geojson,
+            featureidkey: 'properties.codigo',
+            colorscale: [
+                [0, '#f7fafc'],
+                [0.2, '#bee3f8'],
+                [0.4, '#63b3ed'],
+                [0.6, '#3182ce'],
+                [0.8, '#2c5aa0'],
+                [1, '#1a365d']
+            ],
+            colorbar: {
+                title: {
+                    text: 'Valor',
+                    font: {size: 14}
+                },
+                thickness: 15,
+                len: 0.7
+            },
+            marker: {
+                line: {
+                    color: 'white',
+                    width: 1
+                }
+            },
+            zauto: true,
+            zmin: null,
+            zmax: null
+        }];
+        
+        // Calcular el centro y zoom basado en las geometrías (igual que cargarMapaGeografico)
+        let minLat = Infinity, maxLat = -Infinity;
+        let minLon = Infinity, maxLon = -Infinity;
+        
+        geojson.features.forEach(feature => {
+            if (feature.geometry && feature.geometry.coordinates) {
+                const coords = feature.geometry.coordinates;
+                const flatCoords = coords.flat(3);
+                for (let i = 0; i < flatCoords.length; i += 2) {
+                    const lon = flatCoords[i];
+                    const lat = flatCoords[i + 1];
+                    if (typeof lon === 'number' && typeof lat === 'number') {
+                        minLon = Math.min(minLon, lon);
+                        maxLon = Math.max(maxLon, lon);
+                        minLat = Math.min(minLat, lat);
+                        maxLat = Math.max(maxLat, lat);
+                    }
+                }
+            }
+        });
+        
+        const centerLat = (minLat + maxLat) / 2;
+        const centerLon = (minLon + maxLon) / 2;
+        
+        const layout = {
+            geo: {
+                showframe: false,
+                showcoastlines: false,
+                showland: false,
+                showocean: false,
+                showlakes: false,
+                showrivers: false,
+                showcountries: false,
+                showsubunits: false,
+                bgcolor: 'rgba(240,240,240,0.3)',
+                projection: {
+                    type: 'mercator'
+                },
+                center: {
+                    lat: centerLat,
+                    lon: centerLon
+                },
+                lonaxis: {
+                    range: [minLon - 0.02, maxLon + 0.02]
+                },
+                lataxis: {
+                    range: [minLat - 0.02, maxLat + 0.02]
+                }
+            },
+            margin: {r: 0, t: 0, l: 0, b: 0},
+            height: 600,
+            font: {
+                family: 'Arial, sans-serif',
+                size: 12
+            },
+            paper_bgcolor: 'white',
+            plot_bgcolor: 'white'
+        };
+        
+        const config = {
+            responsive: true,
+            displayModeBar: true,
+            displaylogo: false,
+            modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+            locale: 'es'
+        };
+        
+        console.log('[DEBUG] Actualizando gráfico Plotly...');
+        
+        try {
+            // Forzar recreación del mapa para asegurar actualización visual
+            console.log('[DEBUG] Usando Plotly.newPlot para forzar actualización visual');
+            Plotly.newPlot(mapaPlotly, data, layout, config);
+            
+            // Mostrar el mapa
+            const mapaLoading = document.getElementById('mapa-loading');
+            const mapaError = document.getElementById('mapa-error');
+            
+            if (mapaLoading) mapaLoading.classList.add('hidden');
+            if (mapaError) mapaError.classList.add('hidden');
+            mapaPlotly.style.display = 'block';
+            
+            console.log('[DEBUG] Mapa actualizado exitosamente');
+        } catch (error) {
+            console.error('[DEBUG] Error al actualizar mapa Plotly:', error);
+            
+            // Mostrar error
+            const mapaError = document.getElementById('mapa-error');
+            if (mapaError) {
+                mapaError.classList.remove('hidden');
+                mapaError.textContent = 'Error al actualizar el mapa: ' + error.message;
+            }
+        }
+    }
+    
+    // Toggle del panel de filtros globales (inicia colapsado)
+    document.getElementById('toggle-filtros-globales').addEventListener('click', function() {
+        const panel = document.getElementById('filtros-globales-panel');
+        const icon = document.getElementById('toggle-filtros-icon');
+        const oculto = panel.classList.toggle('hidden');
+        icon.classList.toggle('rotate-180', !oculto);
+    });
+
+    // Aplicar filtros globales de desagregación (recarga todos los gráficos)
+    aplicarFiltrosBtn.addEventListener('click', function() {
+        if (indicadorActual) {
+            cargarGrafico(indicadorActual, rangoAnios.min, rangoAnios.max);
+        }
+    });
+
+    // Limpiar filtros de desagregaciones globales (recarga todos los gráficos)
+    limpiarFiltrosBtn.addEventListener('click', function() {
+        desagregacionesGeograficasSelect.selectedIndex = -1;
+        desagregacionesTematicasSelect.selectedIndex = -1;
+        // Limpiar también los controles por dominio
+        Object.values(filtroDominiosSelects).forEach(sel => { sel.selectedIndex = -1; });
+        actualizarCascadaDominios(filtroDominiosSelects);
+        if (indicadorActual) {
+            cargarGrafico(indicadorActual, rangoAnios.min, rangoAnios.max);
+        }
+    });
+
+    // Tabla dinámica (repivotada): series como filas, años como columnas.
+    // Va en el slot del gráfico — la tabla de datos sigue normal.
+    function generarTablaPivotadaHTML(grafico) {
+        const fmt = v => {
+            if (v === null || v === undefined || v === 'N/A') return 'N/A';
+            const n = Number(v);
+            return Number.isNaN(n) ? String(v) : n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+        };
+        const anosSet = new Set();
+        (grafico.series || []).forEach(s => (s.x || []).forEach(x => anosSet.add(x)));
+        const anos = Array.from(anosSet).sort();
+        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
+        html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
+        anos.forEach(a => { html += `<th class="py-2 px-4 border-b text-right">${a}</th>`; });
+        html += '</tr></thead><tbody>';
+        (grafico.series || []).forEach(s => {
+            const mapa = {};
+            (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
+            html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+            anos.forEach(a => {
+                const v = mapa[a] !== undefined ? mapa[a] : 'N/A';
+                html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    // Función para generar tabla de datos a partir de los datos del gráfico
+    function generarTablaDatos(grafico, index, container, opciones) {
+        opciones = opciones || {};
+        // Preservar el estado de visibilidad si la tabla ya fue inicializada
+        // (ej. al recargar por cambio de filtros); en la primera carga inicia oculta
+        const yaInicializada = container.dataset.tablaInicializada === '1';
+        let estabaVisible = yaInicializada && !container.classList.contains('hidden');
+        // Tipos sin gráfico (sin_grafico / tabla_dinamica): la tabla es el
+        // acceso principal a los datos, siempre visible
+        if (opciones.forzarVisible) estabaVisible = true;
+        container.dataset.tablaInicializada = '1';
+
+        // Eliminar botones previos insertados fuera del contenedor para evitar duplicados
+        while (container.previousElementSibling &&
+               (container.previousElementSibling.classList.contains('grafico-tabla-toggle') ||
+                container.previousElementSibling.classList.contains('download-buttons-container'))) {
+            container.previousElementSibling.remove();
+        }
+
+        // Formateador numérico: hasta 6 decimales, separador decimal coma
+        function formatearNumero(valor) {
+            if (valor === null || valor === undefined || valor === 'N/A') return 'N/A';
+            const num = Number(valor);
+            if (Number.isNaN(num)) return String(valor);
+            // toLocaleString con es-ES para coma decimal, hasta 6 decimales (sin ceros forzados)
+            return num.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+        }
+        // Formateador para CSV/Excel: hasta 6 decimales con coma decimal
+        function formatearValorCSV(valor) {
+            if (typeof valor !== 'number' || Number.isNaN(valor)) return valor;
+            return String(parseFloat(valor.toFixed(6))).replace('.', ',');
+        }
+        // Crear botón para mostrar/ocultar tabla
+        const toggleButton = document.createElement('button');
+        toggleButton.className = 'grafico-tabla-toggle mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300';
+        toggleButton.textContent = 'Mostrar/Ocultar Datos en Tabla';
+        toggleButton.addEventListener('click', function() {
+            const tablaOculta = container.classList.toggle('hidden');
+            // Los botones de descarga siguen el mismo estado que la tabla:
+            // tabla visible => botones visibles; tabla oculta => botones ocultos
+            const downloadContainer = toggleButton.nextElementSibling;
+            if (downloadContainer && downloadContainer.classList.contains('download-buttons-container')) {
+                downloadContainer.classList.toggle('hidden', tablaOculta);
+            }
+        });
+
+        // Estado inicial consistente: tabla y botones comparten visibilidad.
+        // Primera carga: ocultos. Recargas por filtros: se preserva el estado previo.
+        container.classList.toggle('hidden', !estabaVisible);
+
+        // Insertar el botón antes del contenedor de la tabla
+        container.parentNode.insertBefore(toggleButton, container);
+        
+        // Generar la tabla según el tipo de gráfico
+        let tablaHTML = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
+        let datosCSV = [];
+        
+        // Para gráficos pie
+        if (grafico.tipo_grafico === 'pie' && grafico.series.length > 0 && grafico.series[0].type === 'pie') {
+            const pieData = grafico.series[0];
+            
+            // Encabezados de la tabla
+            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<th class="py-2 px-4 border-b text-left">Segmento</th>';
+            tablaHTML += '<th class="py-2 px-4 border-b text-left">Valor</th>';
+            tablaHTML += '</tr></thead><tbody>';
+            
+            // Encabezados CSV
+            datosCSV.push(['Segmento', 'Valor']);
+            
+            // Generar filas de datos
+            if (pieData.labels && pieData.values) {
+                for (let i = 0; i < pieData.labels.length; i++) {
+                    tablaHTML += '<tr class="hover:bg-gray-50">';
+                    tablaHTML += `<td class="py-2 px-4 border-b">${pieData.labels[i] || 'N/A'}</td>`;
+                    const v = pieData.values[i] !== undefined ? pieData.values[i] : 'N/A';
+                    tablaHTML += `<td class="py-2 px-4 border-b">${formatearNumero(v)}</td>`;
+                    tablaHTML += '</tr>';
+                    
+                    // Datos CSV
+                    const vCsv = pieData.values[i] !== undefined ? pieData.values[i] : 'N/A';
+                    datosCSV.push([pieData.labels[i] || 'N/A', formatearValorCSV(vCsv)]);
+                }
+            }
+        }
+        // Para gráficos treemap
+        else if (grafico.tipo_grafico === 'treemap' && grafico.series.length > 0 && grafico.series[0].type === 'treemap') {
+            const treemapData = grafico.series[0];
+            
+            // Encabezados de la tabla
+            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<th class="py-2 px-4 border-b text-left">Categoría</th>';
+            tablaHTML += '<th class="py-2 px-4 border-b text-left">Valor</th>';
+            tablaHTML += '</tr></thead><tbody>';
+            
+            // Encabezados CSV
+            datosCSV.push(['Categoría', 'Valor']);
+            
+            // Generar filas de datos
+            if (treemapData.labels && treemapData.values) {
+                for (let i = 0; i < treemapData.labels.length; i++) {
+                    tablaHTML += '<tr class="hover:bg-gray-50">';
+                    tablaHTML += `<td class="py-2 px-4 border-b">${treemapData.labels[i] || 'N/A'}</td>`;
+                    const v = treemapData.values[i] !== undefined ? treemapData.values[i] : 'N/A';
+                    tablaHTML += `<td class="py-2 px-4 border-b">${formatearNumero(v)}</td>`;
+                    tablaHTML += '</tr>';
+                    
+                    // Datos CSV
+                    const vCsv = treemapData.values[i] !== undefined ? treemapData.values[i] : 'N/A';
+                    datosCSV.push([treemapData.labels[i] || 'N/A', formatearValorCSV(vCsv)]);
+                }
+            }
+        }
+        // Para gráficos pirámide poblacional
+        else if (grafico.tipo_grafico === 'piramide_poblacional' && grafico.series.length > 0) {
+            // Encabezados de la tabla
+            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<th class="py-2 px-4 border-b text-left">Rango de Edad</th>';
+            
+            // Agregar encabezados para cada serie (género)
+            const encabezados = ['Rango de Edad'];
+            grafico.series.forEach(serie => {
+                tablaHTML += `<th class="py-2 px-4 border-b text-left">${serie.name || 'Serie'}</th>`;
+                encabezados.push(serie.name || 'Serie');
+            });
+            
+            tablaHTML += '</tr></thead><tbody>';
+            
+            // Encabezados CSV
+            datosCSV.push(encabezados);
+            
+            // Para pirámide, usar los valores de y (rangos de edad) como filas
+            if (grafico.series[0] && grafico.series[0].y) {
+                const rangosEdad = grafico.series[0].y;
+                
+                // Generar filas de datos
+                for (let i = 0; i < rangosEdad.length; i++) {
+                    tablaHTML += '<tr class="hover:bg-gray-50">';
+                    tablaHTML += `<td class="py-2 px-4 border-b">${rangosEdad[i] || 'N/A'}</td>`;
+                    
+                    // Valores de cada serie
+                    const filaCSV = [rangosEdad[i] || 'N/A'];
+                    grafico.series.forEach(serie => {
+                        const valor = serie.x && serie.x[i] !== undefined ? Math.abs(serie.x[i]) : 'N/A';
+                        tablaHTML += `<td class="py-2 px-4 border-b">${formatearNumero(valor)}</td>`;
+                        filaCSV.push(formatearValorCSV(valor));
+                    });
+                    
+                    tablaHTML += '</tr>';
+                    datosCSV.push(filaCSV);
+                }
+            }
+        }
+        // Tabla repivotada: solo cuando se pide explícitamente (opciones.pivotada).
+        // El tipo tabla_dinamica NO pivotea la tabla de datos: la repivotada
+        // va en el slot del gráfico (generarTablaPivotadaHTML).
+        else if (opciones.pivotada) {
+            // Recolectar todos los años/categorías X presentes en las series
+            const anosSet = new Set();
+            grafico.series.forEach(serie => {
+                (serie.x || []).forEach(x => anosSet.add(x));
+            });
+            const anos = Array.from(anosSet).sort();
+
+            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<th class="py-2 px-4 border-b text-left">Categoría</th>';
+            const encabezados = ['Categoría'];
+            anos.forEach(a => {
+                tablaHTML += `<th class="py-2 px-4 border-b text-right">${a}</th>`;
+                encabezados.push(a);
+            });
+            tablaHTML += '</tr></thead><tbody>';
+            datosCSV.push(encabezados);
+
+            grafico.series.forEach(serie => {
+                // Mapa x -> y para alinear valores con las columnas de años
+                const mapa = {};
+                (serie.x || []).forEach((x, i) => { mapa[x] = (serie.y || [])[i]; });
+                tablaHTML += '<tr class="hover:bg-gray-50">';
+                tablaHTML += `<td class="py-2 px-4 border-b">${serie.name || 'Serie'}</td>`;
+                const filaCSV = [serie.name || 'Serie'];
+                anos.forEach(a => {
+                    const valor = mapa[a] !== undefined ? mapa[a] : 'N/A';
+                    tablaHTML += `<td class="py-2 px-4 border-b text-right">${formatearNumero(valor)}</td>`;
+                    filaCSV.push(formatearValorCSV(valor));
+                });
+                tablaHTML += '</tr>';
+                datosCSV.push(filaCSV);
+            });
+        }
+        // Para otros tipos de gráficos (line, bar, etc.)
+        else {
+            // Para barras horizontales, los datos están intercambiados
+            const esBarraHorizontal = grafico.tipo_grafico === 'bar_horizontal';
+            
+            // Encabezados de la tabla
+            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += `<th class="py-2 px-4 border-b text-left">${esBarraHorizontal ? 'Categoría' : 'Año'}</th>`;
+            
+            // Agregar encabezados para cada serie
+            const encabezados = [esBarraHorizontal ? 'Categoría' : 'Año'];
+            grafico.series.forEach(serie => {
+                tablaHTML += `<th class="py-2 px-4 border-b text-left">${serie.name || 'Serie'}</th>`;
+                encabezados.push(serie.name || 'Serie');
+            });
+            
+            tablaHTML += '</tr></thead><tbody>';
+            
+            // Encabezados CSV
+            datosCSV.push(encabezados);
+            
+            // Filas = UNIÓN ordenada de los x de todas las series (los años
+            // no se toman solo de la primera serie: si esa serie está vacía
+            // o tiene menos años, la columna Año quedaba 'N/A'/desalineada).
+            const xSet = new Set();
+            grafico.series.forEach(serie => {
+                const datosX = esBarraHorizontal ? serie.y : serie.x;
+                (datosX || []).forEach(x => xSet.add(x));
+            });
+            const xsOrdenados = Array.from(xSet).sort();
+            
+            // Mapa x -> valor por serie (en barras horizontales está invertido)
+            const mapasSerie = grafico.series.map(serie => {
+                const xs = esBarraHorizontal ? serie.y : serie.x;
+                const ys = esBarraHorizontal ? serie.x : serie.y;
+                const mapa = {};
+                (xs || []).forEach((x, i) => { mapa[x] = (ys || [])[i]; });
+                return mapa;
+            });
+            
+            // Generar filas de datos
+            xsOrdenados.forEach(x => {
+                tablaHTML += '<tr class="hover:bg-gray-50">';
+                
+                // Año/Categoría (primera columna)
+                const categoriaAno = x !== undefined && x !== null ? x : 'N/A';
+                tablaHTML += `<td class="py-2 px-4 border-b">${categoriaAno}</td>`;
+                
+                // Valores de cada serie alineados por x
+                const filaCSV = [categoriaAno];
+                mapasSerie.forEach(mapa => {
+                    const valor = mapa[x] !== undefined ? mapa[x] : 'N/A';
+                    tablaHTML += `<td class="py-2 px-4 border-b">${formatearNumero(valor)}</td>`;
+                    filaCSV.push(formatearValorCSV(valor));
+                });
+                
+                tablaHTML += '</tr>';
+                datosCSV.push(filaCSV);
+            });
+        }
+        
+        tablaHTML += '</tbody></table></div>';
+        
+        // Insertar la tabla en el contenedor
+        container.innerHTML = tablaHTML;
+        
+        // Crear contenedor para botones de descarga (visibilidad ligada a la tabla)
+        const downloadContainer = document.createElement('div');
+        downloadContainer.className = 'mt-2 ml-2 flex space-x-2 download-buttons-container' + (estabaVisible ? '' : ' hidden');
+        
+        // Crear botón para descargar CSV
+        const downloadButton = document.createElement('button');
+        downloadButton.className = 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600';
+        downloadButton.textContent = 'Descargar Tabla CSV';
+        downloadButton.addEventListener('click', function() {
+            descargarCSV(datosCSV, `datos-grafico-${index}.csv`);
+        });
+        
+        // Crear botón para descargar Excel
+        const downloadExcelButton = document.createElement('button');
+        downloadExcelButton.className = 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700';
+        downloadExcelButton.textContent = 'Descargar Tabla en Microsoft Excel';
+        downloadExcelButton.addEventListener('click', function() {
+            descargarExcel(datosCSV, `datos-grafico-${index}.xlsx`);
+        });
+        
+        // Agregar botones al contenedor
+        downloadContainer.appendChild(downloadButton);
+        downloadContainer.appendChild(downloadExcelButton);
+        
+        // Insertar el contenedor después del botón de mostrar/ocultar
+        toggleButton.parentNode.insertBefore(downloadContainer, toggleButton.nextSibling);
+    }
+    
+    // Función para descargar datos en formato CSV
+    function descargarCSV(datos, nombreArchivo) {
+        // Convertir los datos a formato CSV con separador ';' (compatibilidad ES) y comillas cuando aplica
+        const delimiter = ';';
+        let csvContent = '';
+        datos.forEach(function(rowArray) {
+            const row = rowArray.map((cell) => {
+                let s = cell === null || cell === undefined ? '' : String(cell);
+                // Escapar comillas dobles
+                if (s.includes('"')) s = s.replace(/"/g, '""');
+                // Encerrar en comillas si contiene delimitador, coma o saltos de línea
+                if (s.includes(delimiter) || s.includes(',') || s.includes('\n')) {
+                    s = '"' + s + '"';
+                }
+                return s;
+            }).join(delimiter);
+            csvContent += row + '\n';
+        });
+        
+        // Crear un blob con el contenido CSV
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        
+        // Crear un enlace de descarga
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', nombreArchivo);
+        link.style.visibility = 'hidden';
+        
+        // Agregar el enlace al documento, hacer clic y removerlo
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // Función para descargar datos en formato Excel
+    function descargarExcel(datos, nombreArchivo) {
+        // Crear workbook y worksheet
+        const wb = XLSX.utils.book_new();
+        
+        // Convertir datos a formato de hoja de cálculo
+        const ws = XLSX.utils.aoa_to_sheet(datos);
+        
+        // Agregar la hoja al workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+        
+        // Generar el archivo Excel y descargarlo
+        XLSX.writeFile(wb, nombreArchivo);
+    }
+    
+    // Función para cargar metadatos del indicador
+    function cargarMetadatosIndicador(indicadorId) {
+        fetch(`{% url 'indicadores:get_indicadores_simple' %}?indicador_id=${indicadorId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    mostrarMetadatosIndicador(data[0]);
+                }
+            })
+            .catch(error => {
+                console.error('Error al cargar metadatos:', error);
+            });
+    }
+    
+    // Función para mostrar metadatos del indicador
+    function mostrarMetadatosIndicador(indicador) {
+        const metadatosContainer = document.getElementById('metadatos-container');
+        if (!metadatosContainer) return;
+
+        metadatosContainer.innerHTML = '';
+
+        const toggleMetadatosButton = document.createElement('button');
+        toggleMetadatosButton.className = 'mb-4 px-4 py-2 bg-blue-200 text-blue-700 rounded hover:bg-blue-300';
+        toggleMetadatosButton.textContent = 'Mostrar/Ocultar Ficha Técnica';
+
+        const tablaMetadatosContainer = document.createElement('div');
+        tablaMetadatosContainer.className = 'hidden mt-4';
+
+        function fmt(val) {
+            if (val === null || val === undefined || val === '' || val === 'null' || val === 'None') return 'N/A';
+            return String(val);
+        }
+
+        function sectionHeader(title) {
+            return `<tr><td colspan="2" class="py-2 px-4 bg-slate-100 font-bold text-slate-700 border-b border-slate-200">${title}</td></tr>`;
+        }
+
+        function row(label, val) {
+            return `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b font-medium text-gray-700 w-1/3">${label}</td><td class="py-2 px-4 border-b text-gray-600">${fmt(val)}</td></tr>`;
+        }
+
+        let tablaHTML = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
+        tablaHTML += '<thead><tr class="bg-blue-100"><th class="py-2 px-4 border-b text-left font-semibold">Campo</th><th class="py-2 px-4 border-b text-left font-semibold">Información</th></tr></thead><tbody>';
+
+        // Sección 0: Identificación
+        tablaHTML += sectionHeader('0. Identificación del Indicador');
+        tablaHTML += row('0.1 Nombre del Indicador', indicador.nombre);
+        tablaHTML += row('0.2 Código del Indicador', indicador.codigo_indicador);
+        tablaHTML += row('0.3 Sigla', indicador.sigla);
+        tablaHTML += row('0.4 Grupo Indicador', indicador.grupo_indicador);
+
+        // Sección 1: Contacto Institucional
+        tablaHTML += sectionHeader('1. Contacto Institucional');
+        tablaHTML += row('1.1 Entidad o Institución Responsable', indicador.entidad_responsable);
+        tablaHTML += row('1.2 Entidad (organismo registrado)', indicador.organismo_responsable);
+        tablaHTML += row('1.3 Área o Dependencia Responsable', indicador.suborganismo);
+        tablaHTML += row('1.4 Correo Electrónico de Contacto', indicador.correo_contacto);
+        tablaHTML += row('1.5 Número Telefónico', indicador.telefono_contacto);
+        tablaHTML += row('1.6 Fecha de Publicación de los Metadatos', indicador.fecha_publicacion_metadatos);
+
+        // Sección 2: Características del Indicador
+        tablaHTML += sectionHeader('2. Características del Indicador');
+        tablaHTML += row('2.1 Nombre del Indicador', indicador.nombre);
+        tablaHTML += row('2.2 Descripción del Indicador', indicador.descripcion_indicador);
+        tablaHTML += row('2.3 Objetivo', indicador.objetivo);
+        tablaHTML += row('2.4 Cálculo del Indicador / Método de Medición', indicador.metodo_medicion);
+        tablaHTML += row('2.5 Fórmula', indicador.formula_ficha);
+        tablaHTML += row('2.6 Variables', indicador.variables);
+        tablaHTML += row('2.7 Unidad de Medida', indicador.unidad_medida);
+        tablaHTML += row('2.8 Fuente de la Información', indicador.fuente_datos);
+        tablaHTML += row('2.9 Nombre de la Operación Estadística', indicador.operacion);
+        tablaHTML += row('2.10 Nombre del Conjunto de Datos', indicador.nombre_conjunto_datos);
+        tablaHTML += row('2.11 Nomenclaturas y Clasificaciones', indicador.nomenclaturas_clasificaciones);
+        tablaHTML += row('2.12 Alcance Temático', indicador.alcance_tematico);
+        tablaHTML += row('2.13 Población Objetivo', indicador.poblacion_objetivo);
+        tablaHTML += row('2.14 Cobertura Geográfica', indicador.cobertura_geografica);
+        tablaHTML += row('2.15 Período de Referencia', indicador.periodo_referencia);
+        tablaHTML += row('2.16 Período Base', indicador.periodo_base);
+
+        // Sección 3: Difusión
+        tablaHTML += sectionHeader('3. Difusión');
+        tablaHTML += row('3.1 Serie Histórica Disponible', indicador.serie_historica_disponible);
+        tablaHTML += row('3.2 Frecuencia de Difusión', indicador.frecuencia_difusion);
+        tablaHTML += row('3.3 Medios de Difusión', indicador.medios_difusion);
+
+        // Sección 4: Comentarios
+        tablaHTML += sectionHeader('4.1 Comentarios Adicionales');
+        tablaHTML += row('4.1 Comentarios Adicionales', indicador.comentarios_adicionales);
+
+        // Sección 5: Referencias (SDMX)
+        tablaHTML += sectionHeader('5. Referencias');
+        tablaHTML += row('5.1 Referencias (APA 7)', indicador.referencias);
+
+        // Sección 6: Responsabilidad Institucional (SDMX)
+        tablaHTML += sectionHeader('6. Responsabilidad Institucional');
+        tablaHTML += row('6.1 Organismo Responsable', indicador.organismo_responsable);
+        tablaHTML += row('6.2 Suborganismo Responsable', indicador.suborganismo);
+        tablaHTML += row('6.3 Equipo Responsable', indicador.equipo_responsable);
+
+        tablaHTML += '</tbody></table></div>';
+
+        const downloadMetadatosContainer = document.createElement('div');
+        downloadMetadatosContainer.className = 'mt-4 flex space-x-2';
+
+        const downloadMetadatosCSVButton = document.createElement('button');
+        downloadMetadatosCSVButton.className = 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600';
+        downloadMetadatosCSVButton.textContent = 'Descargar Ficha Técnica CSV';
+        downloadMetadatosCSVButton.addEventListener('click', function() {
+            descargarMetadatosCSV(indicador, `ficha-tecnica-${indicador.nombre.replace(/[^a-zA-Z0-9]/g, '-')}.csv`);
+        });
+
+        const downloadMetadatosExcelButton = document.createElement('button');
+        downloadMetadatosExcelButton.className = 'px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700';
+        downloadMetadatosExcelButton.textContent = 'Descargar Ficha Técnica en Microsoft Excel';
+        downloadMetadatosExcelButton.addEventListener('click', function() {
+            descargarMetadatosExcel(indicador, `ficha-tecnica-${indicador.nombre.replace(/[^a-zA-Z0-9]/g, '-')}.xlsx`);
+        });
+
+        downloadMetadatosContainer.appendChild(downloadMetadatosCSVButton);
+        downloadMetadatosContainer.appendChild(downloadMetadatosExcelButton);
+
+        tablaMetadatosContainer.innerHTML = tablaHTML;
+        tablaMetadatosContainer.appendChild(downloadMetadatosContainer);
+
+        toggleMetadatosButton.addEventListener('click', function() {
+            tablaMetadatosContainer.classList.toggle('hidden');
+        });
+
+        metadatosContainer.appendChild(toggleMetadatosButton);
+        metadatosContainer.appendChild(tablaMetadatosContainer);
+    }
+    
+    // Función para descargar metadatos en formato CSV (MSD)
+    function descargarMetadatosCSV(indicador, nombreArchivo) {
+        const campos = [
+            { key: 'nombre', label: '2.1 Nombre del Indicador' },
+            { key: 'codigo_indicador', label: '0.2 Código del Indicador' },
+            { key: 'sigla', label: '0.3 Sigla' },
+            { key: 'grupo_indicador', label: '0.4 Grupo Indicador' },
+            { key: 'entidad_responsable', label: '1.1 Entidad o Institución Responsable' },
+            { key: 'organismo_responsable', label: '1.2 Entidad (organismo registrado)' },
+            { key: 'suborganismo', label: '1.3 Área o Dependencia Responsable' },
+            { key: 'correo_contacto', label: '1.4 Correo Electrónico' },
+            { key: 'telefono_contacto', label: '1.5 Número Telefónico' },
+            { key: 'fecha_publicacion_metadatos', label: '1.6 Fecha de Publicación de los Metadatos' },
+            { key: 'descripcion_indicador', label: '2.2 Descripción del Indicador' },
+            { key: 'objetivo', label: '2.3 Objetivo' },
+            { key: 'metodo_medicion', label: '2.4 Cálculo / Método de Medición' },
+            { key: 'formula_ficha', label: '2.5 Fórmula' },
+            { key: 'variables', label: '2.6 Variables' },
+            { key: 'unidad_medida', label: '2.7 Unidad de Medida' },
+            { key: 'fuente_datos', label: '2.8 Fuente de la Información' },
+            { key: 'operacion', label: '2.9 Nombre de la Operación Estadística' },
+            { key: 'nombre_conjunto_datos', label: '2.10 Nombre del Conjunto de Datos' },
+            { key: 'nomenclaturas_clasificaciones', label: '2.11 Nomenclaturas y Clasificaciones' },
+            { key: 'alcance_tematico', label: '2.12 Alcance Temático' },
+            { key: 'poblacion_objetivo', label: '2.13 Población Objetivo' },
+            { key: 'cobertura_geografica', label: '2.14 Cobertura Geográfica' },
+            { key: 'periodo_referencia', label: '2.15 Período de Referencia' },
+            { key: 'periodo_base', label: '2.16 Período Base' },
+            { key: 'serie_historica_disponible', label: '3.1 Serie Histórica Disponible' },
+            { key: 'frecuencia_difusion', label: '3.2 Frecuencia de Difusión' },
+            { key: 'medios_difusion', label: '3.3 Medios de Difusión' },
+            { key: 'comentarios_adicionales', label: '4.1 Comentarios Adicionales' },
+            { key: 'referencias', label: '5.1 Referencias (APA 7)' },
+            { key: 'equipo_responsable', label: '6.3 Equipo Responsable' },
+            ];
+        
+        const delimiter = ';';
+        let csvContent = '';
+        
+        // Agregar encabezados
+        csvContent += 'Campo' + delimiter + 'Información\n';
+        
+        // Agregar datos
+        campos.forEach(campo => {
+            const valor = indicador[campo.key] || 'N/A';
+            let valorEscapado = String(valor);
+            // Escapar comillas dobles
+            if (valorEscapado.includes('"')) valorEscapado = valorEscapado.replace(/"/g, '""');
+            // Encerrar en comillas si contiene delimitador, coma o saltos de línea
+            if (valorEscapado.includes(delimiter) || valorEscapado.includes(',') || valorEscapado.includes('\n')) {
+                valorEscapado = '"' + valorEscapado + '"';
+            }
+            csvContent += campo.label + delimiter + valorEscapado + '\n';
+        });
+        
+        // Crear blob y descargar
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', nombreArchivo);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+    
+    // Función para descargar metadatos en formato Excel (MSD)
+    function descargarMetadatosExcel(indicador, nombreArchivo) {
+        const campos = [
+            { key: 'nombre', label: '2.1 Nombre del Indicador' },
+            { key: 'codigo_indicador', label: '0.2 Código del Indicador' },
+            { key: 'sigla', label: '0.3 Sigla' },
+            { key: 'grupo_indicador', label: '0.4 Grupo Indicador' },
+            { key: 'entidad_responsable', label: '1.1 Entidad o Institución Responsable' },
+            { key: 'organismo_responsable', label: '1.2 Entidad (organismo registrado)' },
+            { key: 'suborganismo', label: '1.3 Área o Dependencia Responsable' },
+            { key: 'correo_contacto', label: '1.4 Correo Electrónico' },
+            { key: 'telefono_contacto', label: '1.5 Número Telefónico' },
+            { key: 'fecha_publicacion_metadatos', label: '1.6 Fecha de Publicación de los Metadatos' },
+            { key: 'descripcion_indicador', label: '2.2 Descripción del Indicador' },
+            { key: 'objetivo', label: '2.3 Objetivo' },
+            { key: 'metodo_medicion', label: '2.4 Cálculo / Método de Medición' },
+            { key: 'formula_ficha', label: '2.5 Fórmula' },
+            { key: 'variables', label: '2.6 Variables' },
+            { key: 'unidad_medida', label: '2.7 Unidad de Medida' },
+            { key: 'fuente_datos', label: '2.8 Fuente de la Información' },
+            { key: 'operacion', label: '2.9 Nombre de la Operación Estadística' },
+            { key: 'nombre_conjunto_datos', label: '2.10 Nombre del Conjunto de Datos' },
+            { key: 'nomenclaturas_clasificaciones', label: '2.11 Nomenclaturas y Clasificaciones' },
+            { key: 'alcance_tematico', label: '2.12 Alcance Temático' },
+            { key: 'poblacion_objetivo', label: '2.13 Población Objetivo' },
+            { key: 'cobertura_geografica', label: '2.14 Cobertura Geográfica' },
+            { key: 'periodo_referencia', label: '2.15 Período de Referencia' },
+            { key: 'periodo_base', label: '2.16 Período Base' },
+            { key: 'serie_historica_disponible', label: '3.1 Serie Histórica Disponible' },
+            { key: 'frecuencia_difusion', label: '3.2 Frecuencia de Difusión' },
+            { key: 'medios_difusion', label: '3.3 Medios de Difusión' },
+            { key: 'comentarios_adicionales', label: '4.1 Comentarios Adicionales' },
+            { key: 'referencias', label: '5.1 Referencias (APA 7)' },
+            { key: 'equipo_responsable', label: '6.3 Equipo Responsable' },
+            ];
+        
+        // Crear datos para Excel
+        const datosExcel = [];
+        datosExcel.push(['Campo', 'Información']); // Encabezados
+        
+        campos.forEach(campo => {
+            const valor = indicador[campo.key] || 'N/A';
+            datosExcel.push([campo.label, valor]);
+        });
+        
+        // Crear workbook y worksheet
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(datosExcel);
+        
+        // Agregar la hoja al workbook
+        XLSX.utils.book_append_sheet(wb, ws, 'Ficha Técnica');
+        
+        // Generar el archivo Excel y descargarlo
+        XLSX.writeFile(wb, nombreArchivo);
+    }
+    
+    // Función para toggle del mapa
+    function initToggleMapaButton() {
+        const toggleBtn = document.getElementById('toggle-mapa-btn');
+        const mapaContainer = document.getElementById('mapa-container');
+        const toggleText = document.getElementById('toggle-mapa-text');
+        
+        if (toggleBtn && mapaContainer && toggleText) {
+            toggleBtn.addEventListener('click', function() {
+                const isHidden = mapaContainer.classList.contains('hidden');
+                
+                if (isHidden) {
+                    // Mostrar mapa
+                    mapaContainer.classList.remove('hidden');
+                    toggleText.textContent = 'Ocultar Mapa Geográfico';
+                    
+                    // Si hay un indicador activo, cargar el mapa después de un pequeño delay
+                    // para asegurar que el contenedor esté visible
+                    const indicadorActivo = document.querySelector('.indicador-link.active');
+                    if (indicadorActivo) {
+                        setTimeout(() => {
+                            cargarMapaGeografico(indicadorActivo);
+                        }, 100);
+                    }
+                } else {
+                    // Ocultar mapa
+                    mapaContainer.classList.add('hidden');
+                    toggleText.textContent = 'Mostrar Mapa Geográfico';
+                }
+            });
+        }
+    }
+    
+    // Inicializar el botón toggle inmediatamente (ya estamos en DOMContentLoaded)
+    initToggleMapaButton();
+    
+    // Función para generar opciones de años
+    function generarOpcionesAnos(min, max, selected) {
+        let opciones = '';
+        for (let ano = max; ano >= min; ano--) {
+            const isSelected = ano == selected ? 'selected' : '';
+            opciones += `<option value="${ano}" ${isSelected}>${ano}</option>`;
+        }
+        return opciones;
+    }
+    
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}{{ titulo_form }} — Editorial SIIED{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <a href="{% url 'indicadores:editorial_documentos' %}" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">
+        <i class="fas fa-arrow-left mr-1"></i> Volver a Documentos
+    </a>
+    <h1 class="text-2xl font-bold text-slate-900 mt-3">{{ titulo_form }}</h1>
+</div>
+
+<!-- Formulario -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-4xl">
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            Por favor corrige los errores señalados.
+            <ul class="mt-2 list-disc list-inside">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <li>{{ field }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        
+        <!-- Sección: Información básica -->
+        <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+            <i class="fas fa-info-circle text-amber-500 mr-2"></i>Información básica
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Nombre *</label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.nombre.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Slug *</label>
+                {{ form.slug }}
+                {% if form.slug.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.slug.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Grupo de Documento *</label>
+                {{ form.grupo_documento }}
+                {% if form.grupo_documento.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.grupo_documento.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Tipo de Documento</label>
+                {{ form.tipo_documento }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Estado</label>
+                {{ form.estado }}
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Descripción</label>
+                {{ form.descripcion }}
+            </div>
+        </div>
+        
+        <!-- Sección: Contenido -->
+        <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+            <i class="fas fa-file-alt text-amber-500 mr-2"></i>Contenido
+        </h3>
+        <div class="mb-8">
+            <label class="block text-sm font-semibold text-slate-700 mb-2">Contenido del documento</label>
+            {{ form.contenido }}
+            {% if form.contenido.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.contenido.errors.0 }}</p>{% endif %}
+        </div>
+        
+        <!-- Sección: Metadatos -->
+        <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+            <i class="fas fa-tags text-amber-500 mr-2"></i>Metadatos y versión
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Versión</label>
+                {{ form.version }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Autor</label>
+                {{ form.autor }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Fecha revisión</label>
+                {{ form.fecha_revision }}
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Palabras clave</label>
+                {{ form.palabras_clave }}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Ícono (CSS)</label>
+                {{ form.icono }}
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Resumen ejecutivo</label>
+                {{ form.resumen_ejecutivo }}
+            </div>
+        </div>
+        
+        <!-- Sección: Archivos -->
+        <h3 class="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+            <i class="fas fa-paperclip text-amber-500 mr-2"></i>Archivos adjuntos
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Archivo PDF</label>
+                {{ form.archivo_pdf }}
+                {% if documento.archivo_pdf %}
+                <p class="mt-1 text-xs text-slate-500">Actual: {{ documento.archivo_pdf.name }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Archivo Word</label>
+                {{ form.archivo_word }}
+                {% if documento.archivo_word %}
+                <p class="mt-1 text-xs text-slate-500">Actual: {{ documento.archivo_word.name }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Sección: Presentación -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Orden</label>
+                {{ form.orden }}
+            </div>
+            <div class="flex items-end gap-6">
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    {{ form.activo }}
+                    <span class="text-sm font-medium text-slate-700">Activo</span>
+                </label>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    {{ form.destacado }}
+                    <span class="text-sm font-medium text-slate-700">Destacado</span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Botones -->
+        <div class="flex items-center gap-4 pt-6 border-t border-slate-200">
+            <button type="submit" class="px-6 py-3 bg-amber-600 text-white rounded-xl font-medium hover:bg-amber-700 transition-colors shadow-sm">
+                <i class="fas fa-save mr-2"></i>Guardar Documento
+            </button>
+            <a href="{% url 'indicadores:editorial_documentos' %}" class="px-6 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors">
+                Cancelar
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

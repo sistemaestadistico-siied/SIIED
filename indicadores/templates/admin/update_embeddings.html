@@ -1,0 +1,538 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.embeddings-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.embeddings-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.embeddings-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.embeddings-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #667eea;
+}
+
+.stat-card.success {
+    border-left-color: #10b981;
+}
+
+.stat-card.warning {
+    border-left-color: #f59e0b;
+}
+
+.stat-card.info {
+    border-left-color: #3b82f6;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0.5rem 0;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.info-box {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-box h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.info-box ul {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+    line-height: 1.8;
+}
+
+.info-box li {
+    margin-bottom: 0.5rem;
+}
+
+.update-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: center;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.update-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.update-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.update-button .spinner {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.update-button.loading .spinner {
+    display: block;
+}
+
+.update-button.loading .button-text {
+    display: none;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.progress-container {
+    display: none;
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.progress-container.show {
+    display: block;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.result-message {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    display: none;
+}
+
+.result-message.show {
+    display: block;
+}
+
+.result-message.success {
+    background: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+}
+
+.result-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+}
+
+.result-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.result-stat {
+    text-align: center;
+    padding: 0.75rem;
+    background: rgba(102, 126, 234, 0.1);
+    border-radius: 8px;
+}
+
+.result-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.result-stat-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    transition: all 0.2s;
+}
+
+.back-link:hover {
+    color: #764ba2;
+    gap: 0.75rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="embeddings-container">
+    <a href="{% url 'admin:index' %}" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Volver al Admin
+    </a>
+
+    <div class="embeddings-header">
+        <h1>
+            <i class="fas fa-brain"></i>
+            Actualizar Embeddings Vectoriales
+        </h1>
+        <p>Vectorización de indicadores para búsqueda semántica con IA</p>
+    </div>
+
+    <!-- Estadísticas Actuales -->
+    <div class="stats-grid">
+        <div class="stat-card info">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value">{{ total_indicadores }}</div>
+            <div class="stat-label">Total Indicadores</div>
+        </div>
+
+        <div class="stat-card success">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value">{{ embeddings_existentes }}</div>
+            <div class="stat-label">Con Embeddings</div>
+        </div>
+
+        <div class="stat-card warning">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-value">{{ sin_embeddings }}</div>
+            <div class="stat-label">Sin Vectorizar</div>
+        </div>
+
+        <div class="stat-card {% if porcentaje_cobertura >= 90 %}success{% elif porcentaje_cobertura >= 50 %}warning{% else %}info{% endif %}">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value">{{ porcentaje_cobertura }}%</div>
+            <div class="stat-label">Cobertura</div>
+        </div>
+    </div>
+
+    <!-- Información -->
+    <div class="info-box">
+        <h2>
+            <i class="fas fa-info-circle" style="color: #3b82f6;"></i>
+            ¿Qué son los Embeddings?
+        </h2>
+        <p style="color: #6b7280; margin-bottom: 1rem;">
+            Los embeddings son representaciones vectoriales de los indicadores que permiten al chat IA 
+            realizar búsquedas semánticas inteligentes. Cada indicador se convierte en un vector de 384 dimensiones 
+            que captura su significado.
+        </p>
+
+        <h3 style="margin: 1.5rem 0 0.75rem 0; color: #1f2937; font-size: 1.1rem;">
+            <i class="fas fa-magic" style="color: #667eea;"></i>
+            ¿Cuándo actualizar?
+        </h3>
+        <ul style="color: #6b7280;">
+            <li><strong>Después de agregar nuevos indicadores</strong> al sistema</li>
+            <li><strong>Cuando se modifican nombres o descripciones</strong> de indicadores existentes</li>
+            <li><strong>Si el chat no encuentra indicadores</strong> que sabes que existen</li>
+            <li><strong>Periódicamente</strong> para mantener la base de datos sincronizada</li>
+        </ul>
+
+        <div style="background: rgba(251, 191, 36, 0.1); border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 8px; margin-top: 1.5rem;">
+            <div style="display: flex; align-items: start; gap: 0.75rem;">
+                <i class="fas fa-lightbulb" style="color: #f59e0b; font-size: 1.25rem; margin-top: 0.25rem;"></i>
+                <div>
+                    <strong style="color: #92400e;">Proceso Inteligente:</strong>
+                    <p style="color: #78350f; margin: 0.5rem 0 0 0;">
+                        Solo se procesarán los indicadores que <strong>no tienen embeddings</strong>. 
+                        Los indicadores ya vectorizados no se reprocesarán, haciendo el proceso rápido y eficiente.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de Actualización -->
+    <form method="post" id="updateForm" onsubmit="return handleSubmit(event)">
+        {% csrf_token %}
+        
+        <!-- Opción de Regeneración Forzada -->
+        <div style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+            <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; user-select: none;">
+                <input type="checkbox" name="force" value="1" id="forceCheckbox" onchange="updateButtonText()" 
+                       style="width: 20px; height: 20px; cursor: pointer; accent-color: #667eea;">
+                <div>
+                    <div style="font-weight: 600; color: #1f2937; font-size: 1.05rem; margin-bottom: 0.25rem;">
+                        <i class="fas fa-redo" style="color: #f59e0b;"></i>
+                        Forzar Regeneración Completa
+                    </div>
+                    <div style="font-size: 0.9rem; color: #6b7280;">
+                        Regenera <strong>todos</strong> los embeddings, incluso los que ya existen. 
+                        Útil cuando se modifica el modelo o la estructura de datos.
+                        {% if sin_embeddings == 0 %}
+                        <span style="color: #f59e0b; font-weight: 600;">⚠️ Recomendado: No hay indicadores pendientes</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </label>
+        </div>
+        
+        <button type="submit" id="updateButton" class="update-button">
+            <div class="spinner"></div>
+            <span class="button-text" id="buttonText">
+                <i class="fas fa-sync-alt"></i>
+                <span id="buttonTextContent">Actualizar Embeddings ({{ sin_embeddings }} pendientes)</span>
+            </span>
+        </button>
+    </form>
+
+    <!-- Contenedor de Progreso -->
+    <div id="progressContainer" class="progress-container">
+        <h3 style="margin: 0 0 1rem 0; color: #1f2937;">
+            <i class="fas fa-cog fa-spin" style="color: #667eea;"></i>
+            Procesando...
+        </h3>
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <p id="progressText" style="text-align: center; color: #6b7280; margin: 0.5rem 0 0 0;">
+            Iniciando proceso...
+        </p>
+
+        <!-- Mensaje de Resultado -->
+        <div id="resultMessage" class="result-message">
+            <div id="resultContent"></div>
+            <div id="resultStats" class="result-stats" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateButtonText() {
+    const checkbox = document.getElementById('forceCheckbox');
+    const buttonTextContent = document.getElementById('buttonTextContent');
+    const totalIndicadores = {{ total_indicadores }};
+    const sinEmbeddings = {{ sin_embeddings }};
+    
+    if (checkbox.checked) {
+        buttonTextContent.innerHTML = `<i class="fas fa-redo"></i> Regenerar TODOS los Embeddings (${totalIndicadores} indicadores)`;
+    } else {
+        buttonTextContent.innerHTML = `<i class="fas fa-sync-alt"></i> Actualizar Embeddings (${sinEmbeddings} pendientes)`;
+    }
+}
+
+function handleSubmit(event) {
+    event.preventDefault();
+    updateEmbeddings();
+    return false;
+}
+
+async function updateEmbeddings() {
+    const button = document.getElementById('updateButton');
+    const form = document.getElementById('updateForm');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const resultMessage = document.getElementById('resultMessage');
+    const resultContent = document.getElementById('resultContent');
+    const resultStats = document.getElementById('resultStats');
+
+    // Deshabilitar botón y mostrar spinner
+    button.disabled = true;
+    button.classList.add('loading');
+
+    // Mostrar contenedor de progreso
+    progressContainer.classList.add('show');
+    resultMessage.classList.remove('show');
+
+    // Verificar si es regeneración forzada
+    const isForce = document.getElementById('forceCheckbox').checked;
+    const progressMessage = isForce ? 'Regenerando TODOS los embeddings...' : 'Procesando embeddings...';
+
+    // Simular progreso
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        progressFill.style.width = progress + '%';
+        progressText.textContent = `${progressMessage} ${Math.round(progress)}%`;
+    }, 500);
+
+    try {
+        // Usar FormData para enviar el formulario con CSRF token incluido
+        const formData = new FormData(form);
+
+        // Hacer la petición
+        const response = await fetch('{% url "admin_update_embeddings" %}', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const data = await response.json();
+
+        // Completar progreso
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+        progressText.textContent = '¡Proceso completado!';
+
+        // Mostrar resultado
+        setTimeout(() => {
+            if (data.success) {
+                resultMessage.classList.add('success');
+                resultMessage.classList.remove('error');
+                
+                const iconHtml = data.force 
+                    ? '<i class="fas fa-redo" style="font-size: 1.5rem; color: #f59e0b;"></i>'
+                    : '<i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>';
+                
+                resultContent.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 600;">
+                        ${iconHtml}
+                        ${data.message}
+                    </div>
+                    ${data.force ? '<div style="margin-top: 0.5rem; font-size: 0.9rem; color: #f59e0b;"><i class="fas fa-info-circle"></i> Se regeneraron todos los embeddings desde cero</div>' : ''}
+                `;
+
+                // Mostrar estadísticas
+                if (data.stats) {
+                    resultStats.style.display = 'grid';
+                    resultStats.innerHTML = `
+                        <div class="result-stat">
+                            <div class="result-stat-value">${data.stats.procesados}</div>
+                            <div class="result-stat-label">${data.force ? 'Regenerados' : 'Procesados'}</div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-stat-value">${data.stats.embeddings_despues}</div>
+                            <div class="result-stat-label">Total Vectorizados</div>
+                        </div>
+                        <div class="result-stat">
+                            <div class="result-stat-value">${data.stats.sin_procesar}</div>
+                            <div class="result-stat-label">Pendientes</div>
+                        </div>
+                    `;
+                }
+
+                // Recargar página después de 3 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                resultMessage.classList.add('error');
+                resultMessage.classList.remove('success');
+                resultContent.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 600;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 1.5rem;"></i>
+                        ${data.message}
+                    </div>
+                    ${data.error ? `<div style="margin-top: 0.75rem; font-size: 0.9rem; opacity: 0.8;">${data.error}</div>` : ''}
+                `;
+            }
+
+            resultMessage.classList.add('show');
+
+            // Re-habilitar botón
+            button.disabled = false;
+            button.classList.remove('loading');
+        }, 500);
+
+    } catch (error) {
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+
+        resultMessage.classList.add('error');
+        resultMessage.classList.remove('success');
+        resultContent.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 600;">
+                <i class="fas fa-exclamation-circle" style="font-size: 1.5rem;"></i>
+                Error de conexión
+            </div>
+            <div style="margin-top: 0.75rem; font-size: 0.9rem; opacity: 0.8;">${error.message}</div>
+        `;
+        resultMessage.classList.add('show');
+
+        // Re-habilitar botón
+        button.disabled = false;
+        button.classList.remove('loading');
+    }
+}
+</script>
+{% endblock %}

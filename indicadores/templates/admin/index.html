@@ -1,0 +1,2083 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static admin_list admin_urls %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/fontawesome.min.css' %}">
+<style>
+/* ================================================================
+   SISTEMA DE DISEÑO UNIFICADO - Admin Dashboard
+   Paleta de colores coherente para todo el panel
+   ================================================================ */
+
+:root {
+  /* Colores Principales */
+  --primary: #4f46e5;
+  --primary-light: #818cf8;
+  --primary-dark: #3730a3;
+  
+  /* Estados */
+  --success: #10b981;
+  --success-light: #34d399;
+  --warning: #f59e0b;
+  --warning-light: #fbbf24;
+  --danger: #f43f5e;
+  --danger-light: #fb7185;
+  --info: #0ea5e9;
+  --info-light: #38bdf8;
+  
+  /* Neutros */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  
+}
+
+/* ================================================================
+   COMPONENTES BASE
+   ================================================================ */
+
+.card-base {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.card-base:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.section-title-unified {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--slate-200);
+}
+
+.section-title-unified i {
+  color: var(--primary);
+  font-size: 1.5rem;
+}
+
+/* ================================================================
+   SECCIONES ESPECÍFICAS
+   ================================================================ */
+
+.section-recent { --section-color: var(--slate-500); }
+.section-flujo { --section-color: var(--primary); }
+.section-wizard { --section-color: var(--info); }
+.section-chat { --section-color: var(--success); }
+.section-system { --section-color: var(--slate-600); }
+
+.section-recent .section-title-unified i { color: var(--slate-500); }
+.section-flujo .section-title-unified i { color: var(--primary); }
+.section-wizard .section-title-unified i { color: var(--info); }
+.section-chat .section-title-unified i { color: var(--success); }
+.section-system .section-title-unified i { color: var(--slate-600); }
+
+/* ================================================================
+   TARJETAS DE MÉTRICAS UNIFICADAS
+   ================================================================ */
+
+.metric-card {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  border-top: 3px solid var(--card-color, var(--slate-400));
+}
+
+.metric-card .metric-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--card-color, var(--slate-600));
+}
+
+.metric-card .metric-label {
+  font-size: 0.8rem;
+  color: var(--admin-muted);
+  margin-top: 0.25rem;
+}
+
+.metric-card .metric-sublabel {
+  font-size: 0.7rem;
+  color: var(--admin-muted);
+  margin-top: 0.25rem;
+}
+
+/* Colores de métricas */
+.metric-pending { --card-color: var(--warning); }
+.metric-approved { --card-color: var(--success); }
+.metric-info { --card-color: var(--info); }
+.metric-primary { --card-color: var(--primary); }
+.metric-danger { --card-color: var(--danger); }
+.metric-neutral { --card-color: var(--slate-500); }
+
+/* ================================================================
+   BOTONES Y ENLACES UNIFICADOS
+   ================================================================ */
+
+.btn-quick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-quick:hover {
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+.btn-primary { background: rgba(79, 70, 229, 0.1); border-color: rgba(79, 70, 229, 0.3); color: var(--primary); }
+.btn-primary:hover { background: var(--primary); color: white; }
+
+.btn-success { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: var(--success); }
+.btn-success:hover { background: var(--success); color: white; }
+
+.btn-info { background: rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.3); color: var(--info); }
+.btn-info:hover { background: var(--info); color: white; }
+
+.btn-warning { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: var(--warning); }
+.btn-warning:hover { background: var(--warning); color: white; }
+
+/* ================================================================
+   CONFIG GROUPS UNIFICADOS
+   ================================================================ */
+
+.config-group-unified {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border-left: 4px solid var(--group-color, var(--slate-400));
+}
+
+.config-group-unified .group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--group-color, var(--admin-text));
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.config-group-primary { --group-color: var(--primary); }
+.config-group-success { --group-color: var(--success); }
+.config-group-info { --group-color: var(--info); }
+.config-group-warning { --group-color: var(--warning); }
+.config-group-danger { --group-color: var(--danger); }
+
+/* ================================================================
+   ALERTAS Y NOTIFICACIONES
+   ================================================================ */
+
+.alert-unified {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+
+.alert-warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--warning);
+  color: var(--admin-text);
+}
+
+/* App Icons */
+.app-icon {
+  font-size: 1.5rem;
+  color: var(--admin-primary);
+  background: rgba(13, 110, 253, 0.1);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.app-card {
+  background: var(--admin-panel) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+}
+
+.app-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  border-color: var(--admin-primary) !important;
+}
+
+.app-card-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  background: var(--admin-panel-2);
+}
+
+.app-card-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.app-card-body {
+  padding: 1.5rem;
+  flex-grow: 1;
+}
+
+.model-card {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 180px;
+}
+
+.model-icon {
+  font-size: 2rem;
+  color: var(--admin-primary);
+  background: rgba(13, 110, 253, 0.1);
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.model-icon.male { color: #4299e1; background: rgba(66, 153, 225, 0.1); }
+.model-icon.female { color: #d53f8c; background: rgba(213, 63, 140, 0.1); }
+.model-icon.gender-neutral { color: #38a169; background: rgba(56, 161, 105, 0.1); }
+
+.model-name {
+  font-weight: 600;
+  color: var(--admin-text);
+  margin-bottom: 0.5rem;
+}
+
+.model-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.model-actions a {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.model-actions a:hover {
+  text-decoration: none;
+}
+
+.model-actions .view {
+  background: var(--admin-primary);
+  color: white;
+}
+
+.model-actions .add {
+  background: var(--admin-success);
+  color: white;
+}
+
+.app-models {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.models-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.admin-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.recent-actions-card {
+  margin-bottom: 3rem;
+}
+
+/* Hierarchy Styles */
+.hierarchy-section {
+  margin: 3rem 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin-bottom: 2rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--admin-border);
+}
+
+.hierarchy-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hierarchy-level {
+  display: flex;
+  justify-content: center;
+}
+
+.hierarchy-card {
+  background: var(--admin-panel);
+  border: 2px solid var(--admin-border);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  min-width: 200px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.hierarchy-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.15);
+}
+
+.dominio-card { border-color: #3b82f6; }
+.dominio-card:hover { border-color: #1d4ed8; box-shadow: 0 12px 30px -8px rgba(59, 130, 246, 0.3); }
+
+.tema-card { border-color: #10b981; }
+.tema-card:hover { border-color: #047857; box-shadow: 0 12px 30px -8px rgba(16, 185, 129, 0.3); }
+
+.subtema-card { border-color: #f59e0b; }
+.subtema-card:hover { border-color: #d97706; box-shadow: 0 12px 30px -8px rgba(245, 158, 11, 0.3); }
+
+.indicador-card { border-color: #ef4444; }
+.indicador-card:hover { border-color: #dc2626; box-shadow: 0 12px 30px -8px rgba(239, 68, 68, 0.3); }
+
+.dato-card { border-color: #06b6d4; }
+.dato-card:hover { border-color: #0891b2; box-shadow: 0 12px 30px -8px rgba(6, 182, 212, 0.3); }
+
+.hierarchy-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 1.75rem;
+  color: white;
+}
+
+.dominio-card .hierarchy-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.tema-card .hierarchy-icon { background: linear-gradient(135deg, #10b981, #047857); }
+.subtema-card .hierarchy-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.indicador-card .hierarchy-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.dato-card .hierarchy-icon { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+
+.hierarchy-card h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.hierarchy-card p {
+  margin: 0 0 1.5rem 0;
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+}
+
+.hierarchy-link {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  background: var(--admin-primary);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.hierarchy-link:hover {
+  background: var(--admin-primary-dark);
+  text-decoration: none;
+  color: white;
+}
+
+.hierarchy-arrow {
+  color: var(--admin-muted);
+  font-size: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+/* Configuration Section */
+.config-section {
+  margin: 3rem 0;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.config-group {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.config-group-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.config-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.config-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--admin-text);
+  transition: all 0.2s ease;
+}
+
+.config-card:hover {
+  background: var(--admin-primary);
+  color: white;
+  text-decoration: none;
+  transform: translateX(4px);
+}
+
+.config-card i {
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+}
+
+/* System Section */
+.system-section {
+  margin: 2rem 0;
+}
+
+.system-models {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.system-model-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--admin-text);
+  transition: all 0.2s ease;
+}
+
+.system-model-card:hover {
+  background: var(--admin-panel-2);
+  text-decoration: none;
+  color: var(--admin-text);
+  transform: translateY(-2px);
+}
+
+.system-model-icon {
+  font-size: 1.25rem;
+  color: var(--admin-primary);
+  width: 24px;
+  text-align: center;
+}
+
+.system-model-name {
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.system-model-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.view-btn, .add-btn {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.view-btn {
+  background: var(--admin-primary);
+  color: white;
+}
+
+.add-btn {
+  background: var(--admin-success);
+  color: white;
+}
+
+.app-icon.small {
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 1rem;
+  }
+  
+  .hierarchy-flow {
+    gap: 0.5rem;
+  }
+  
+  .hierarchy-card {
+    padding: 1.5rem;
+    min-width: 160px;
+  }
+  
+  .config-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .system-models {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Recent Actions */
+.recent-actions {
+  margin-top: 2rem;
+  grid-column: 1 / -1;
+}
+
+.recent-actions h2 {
+  margin-bottom: 1.5rem;
+  color: var(--admin-text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.recent-actions h2 i {
+  color: var(--admin-primary);
+}
+
+.action-list {
+  background: var(--admin-panel) !important;
+  border: 1px solid var(--admin-border) !important;
+  border-radius: 0.75rem !important;
+  padding: 1.5rem;
+}
+
+.action-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.action-item:last-child {
+  border-bottom: none;
+}
+
+.action-icon {
+  font-size: 1.25rem;
+  color: var(--admin-muted);
+  width: 2rem;
+  text-align: center;
+}
+
+.action-content {
+  flex-grow: 1;
+}
+
+.action-time {
+  font-size: 0.85rem;
+  color: var(--admin-muted);
+  white-space: nowrap;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .app-card-header {
+    padding: 1.25rem;
+  }
+  
+  .app-card-body {
+    padding: 1.25rem;
+  }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+  <!-- Recent Actions Section at Top -->
+  {% if recent_actions %}
+  <div class="app-card recent-actions-card section-recent">
+    <div class="app-card-header">
+      <div class="app-icon" style="background: rgba(100, 116, 139, 0.1); color: var(--slate-500);">
+        <i class="fas fa-history"></i>
+      </div>
+      <div style="flex-grow: 1;">
+        <h3 class="app-card-title">{% translate 'Recent actions' %}</h3>
+        <div class="text-sm" style="color: var(--admin-muted);">
+          <a href="{% url 'admin:admin_logentry_changelist' %}" class="hover:text-primary hover:underline">
+            <i class="fas fa-external-link-alt mr-1"></i> {% translate 'View all activity' %}
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="app-card-body">
+      <div class="action-list">
+        {% for log_entry in recent_actions %}
+        <div class="action-item">
+          <div class="action-icon">
+            {% if log_entry.is_addition %}
+              <i class="fas fa-plus-circle text-success"></i>
+            {% elif log_entry.is_change %}
+              <i class="fas fa-edit text-warning"></i>
+            {% elif log_entry.is_deletion %}
+              <i class="fas fa-trash-alt text-danger"></i>
+            {% endif %}
+          </div>
+          <div class="action-content">
+            <div>
+              {% if log_entry.is_deletion or not log_entry.get_admin_url %}
+                {{ log_entry.object_repr }}
+              {% else %}
+                <a href="{{ log_entry.get_admin_url }}" class="text-primary">{{ log_entry.object_repr }}</a>
+              {% endif %}
+              <span class="text-muted">{{ log_entry.content_type.name|capfirst }}</span>
+            </div>
+            <div class="text-muted small">
+              <i class="fas fa-user"></i> {{ log_entry.user.get_username }}
+              <span class="mx-2">•</span>
+              <i class="far fa-clock"></i> {{ log_entry.action_time|timesince }} {% translate 'ago' %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ================================================================ -->
+  <!-- FLUJO DELEGADO / VALIDACIÓN: Métricas en tiempo real           -->
+  <!-- ================================================================ -->
+  {% if delegado_stats %}
+  <div class="section-flujo" style="margin: 2rem 0;">
+    <h2 class="section-title-unified">
+      <i class="fas fa-inbox"></i>
+      Flujo de Recolección — Organismos
+    </h2>
+
+    <!-- Alerta si hay pendientes -->
+    {% if delegado_stats.total_pendientes %}
+    <div class="alert-unified alert-warning" style="margin-bottom: 1.25rem;">
+      <i class="fas fa-bell" style="font-size:1.1rem;"></i>
+      <span style="font-weight:600;">
+        {{ delegado_stats.total_pendientes }} carga{{ delegado_stats.total_pendientes|pluralize }} pendiente{{ delegado_stats.total_pendientes|pluralize }} de validación.
+      </span>
+      <a href="{% url 'indicadores:validacion_dashboard' %}" class="btn-quick btn-warning" style="margin-left:auto;">
+        Ir al panel validador
+      </a>
+    </div>
+    {% endif %}
+
+    <!-- Tarjetas de métricas -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem;">
+
+      <!-- Pendientes -->
+      <div class="metric-card metric-pending">
+        <div class="metric-value">{{ delegado_stats.total_pendientes }}</div>
+        <div class="metric-label">En validación</div>
+        <div class="metric-sublabel">
+          {{ delegado_stats.series_pendientes }} serie{{ delegado_stats.series_pendientes|pluralize }} · {{ delegado_stats.conjunto_datos_pendientes }} conjunto de datos
+        </div>
+      </div>
+
+      <!-- Aprobadas listas para wizard -->
+      <div class="metric-card metric-approved">
+        <div class="metric-value">{{ delegado_stats.series_aprobadas }}</div>
+        <div class="metric-label">Series aprobadas</div>
+        <div class="metric-sublabel">Listas para wizard</div>
+      </div>
+
+      <!-- Conjunto de datos aprobadas -->
+      <div class="metric-card metric-primary">
+        <div class="metric-value">{{ delegado_stats.conjunto_datos_aprobadas }}</div>
+        <div class="metric-label">Conjuntos de datos aprobados</div>
+        <div class="metric-sublabel">Listas para wizard</div>
+      </div>
+
+      <!-- Procesadas -->
+      <div class="metric-card metric-info">
+        <div class="metric-value">{{ delegado_stats.series_procesadas }}</div>
+        <div class="metric-label">Series procesadas</div>
+        <div class="metric-sublabel">Integradas al SIIED</div>
+      </div>
+
+      <!-- Exitosas (wizard) -->
+      <div class="metric-card metric-success">
+        <div class="metric-value">{{ delegado_stats.series_exitoso }}</div>
+        <div class="metric-label">Series exitosas</div>
+        <div class="metric-sublabel">Procesadas por wizard</div>
+      </div>
+
+      <!-- Conjunto de datos exitosas -->
+      <div class="metric-card metric-success">
+        <div class="metric-value">{{ delegado_stats.conjunto_datos_exitoso }}</div>
+        <div class="metric-label">Conjuntos de datos exitosos</div>
+        <div class="metric-sublabel">Procesadas por wizard</div>
+      </div>
+
+      <!-- Con correcciones pendientes -->
+      <div class="metric-card metric-danger">
+        <div class="metric-value">{{ delegado_stats.series_correcciones }}</div>
+        <div class="metric-label">Con correcciones</div>
+        <div class="metric-sublabel">Rechazadas o en ajuste</div>
+      </div>
+
+      <!-- Cálculo complejo aprobado -->
+      <div class="metric-card metric-neutral">
+        <div class="metric-value">{{ delegado_stats.series_calculo_complejo }}</div>
+        <div class="metric-label">Cálculo complejo</div>
+        <div class="metric-sublabel">Aprobadas, sin extracción</div>
+      </div>
+
+      <!-- Borradores incompletos -->
+      <div class="metric-card" style="--card-color: var(--slate-400);">
+        <div class="metric-value" style="color: var(--slate-500);">{{ delegado_stats.borradores_incompletos }}</div>
+        <div class="metric-label">Borradores</div>
+        <div class="metric-sublabel">Sin enviar aún</div>
+      </div>
+
+    </div>
+
+    <!-- Accesos rápidos del flujo -->
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem;">
+      <a href="{% url 'indicadores:validacion_dashboard' %}" class="btn-quick btn-primary">
+        <i class="fas fa-clipboard-check"></i> Panel Validación
+      </a>
+      <a href="{% url 'admin:indicadores_cargaserieindicador_changelist' %}" class="btn-quick btn-success">
+        <i class="fas fa-chart-line"></i> Ver Series
+      </a>
+      <a href="{% url 'admin:indicadores_cargaconjuntodatos_changelist' %}" class="btn-quick btn-info">
+        <i class="fas fa-database"></i> Ver Conjunto de datos
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Wizard Admin Unificado Section -->
+  <div class="config-section section-wizard" style="margin-top: 2rem;">
+    <h2 class="section-title-unified">
+      <i class="fas fa-magic"></i>
+      Wizard de Procesamiento de Indicadores ✨
+    </h2>
+    <div class="config-grid">
+      <div class="config-group-unified config-group-info">
+        <h3 class="group-title">
+          <i class="fas fa-wand-magic-sparkles"></i>
+          Procesamiento Inteligente
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'wizard_dashboard' %}" class="config-card" style="border-left: 4px solid var(--info);">
+            <i class="fas fa-rocket" style="color: var(--info); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>🚀 Iniciar Wizard</strong></span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1.25rem; background: rgba(14, 165, 233, 0.15); border-radius: 8px; font-size: 0.9rem; color: var(--admin-text); border: 1px solid rgba(14, 165, 233, 0.3);">
+          <div style="font-weight: 700; margin-bottom: 0.75rem; font-size: 1rem;">
+            <i class="fas fa-star"></i> Flujos Disponibles:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.8;">
+            <li><strong>Flujo A:</strong> Procesar Conjunto de datos con producto cartesiano</li>
+            <li><strong>Flujo B:</strong> Importar serie de datos directamente</li>
+            <li><strong>Flujo C:</strong> Conjunto de datos + Serie (validación completa)</li>
+            <li><strong>Flujo D:</strong> Actualizar indicador existente</li>
+          </ul>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(245, 158, 11, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border-left: 4px solid var(--warning);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-lightbulb"></i> El wizard se adapta automáticamente:
+          </div>
+          <p style="margin: 0;">
+            Selecciona cargas pendientes del módulo de recolección o sube archivos nuevos. 
+            El wizard detecta el caso de uso y muestra solo los pasos necesarios.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Características del Wizard -->
+      <div class="config-group-unified config-group-info">
+        <h3 class="group-title" style="color: var(--info);">
+          <i class="fas fa-tasks"></i>
+          Características del Wizard
+        </h3>
+        <div style="padding: 1rem;">
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info);">
+              <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Preview con Univer.js</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">Visualiza datos como hoja de cálculo Excel</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info-light);">
+              <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Carga Automática de Metadata</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">Extrae ficha técnica desde CSV</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--primary-light);">
+              <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Creación de Desagregaciones</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">Detecta y crea faltantes automáticamente</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--primary-light);">
+              <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Diagnóstico y Validación</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">Verifica antes de procesar</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--slate-300);">
+              <i class="fas fa-check-circle" style="color: var(--success); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Configuración de Gráficos</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">Crea gráficos al finalizar (opcional)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-link"></i>
+          Accesos Rápidos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'workspace_dashboard' %}" class="config-card">
+            <i class="fas fa-th-large"></i>
+            <span>Workspace Unificado</span>
+          </a>
+          <a href="{% url 'indicadores:admin_procesos_dashboard' %}" class="config-card">
+            <i class="fas fa-server"></i>
+            <span>Procesos en Ejecución</span>
+          </a>
+          <a href="{% url 'indicadores:cargas_dashboard' %}" class="config-card">
+            <i class="fas fa-inbox"></i>
+            <span>Ver Cargas Pendientes</span>
+          </a>
+          <a href="{% url 'admin:indicadores_cargaconjuntodatos_changelist' %}" class="config-card">
+            <i class="fas fa-database"></i>
+            <span>Cargas de Conjuntos de Datos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_cargaserieindicador_changelist' %}" class="config-card">
+            <i class="fas fa-chart-line"></i>
+            <span>Cargas de Series</span>
+          </a>
+          <a href="{% url 'admin:indicadores_procesoextraccion_changelist' %}" class="config-card">
+            <i class="fas fa-cogs"></i>
+            <span>Procesos de Extracción</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Reiniciar Servicios -->
+      <div class="config-group-unified config-group-danger">
+        <h3 class="group-title" style="color: var(--danger);">
+          <i class="fas fa-power-off"></i>
+          Gestión de Servicios
+        </h3>
+        <div style="padding: 1rem;">
+          <p style="margin-bottom: 1rem; color: var(--admin-text);">
+            Reinicia los servicios del servidor de aplicaciones en el orden correcto (Gunicorn -> Apache2). Útil tras actualizar código o configuración.
+          </p>
+          <form action="{% url 'restart_services' %}" method="post" onsubmit="return confirm('¿Estás seguro de que quieres reiniciar los servicios Gunicorn y Apache2? Esto causará una breve interrupción.');">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 1rem;">
+              <label for="sudo_user" style="display: block; margin-bottom: 0.5rem; color: var(--admin-text); font-weight: 600;">Usuario Sudo:</label>
+              <input type="text" id="sudo_user" name="sudo_user" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--slate-300); border-radius: 4px; box-sizing: border-box; background: var(--admin-bg); color: var(--admin-text);" placeholder="Ej: admin">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+              <label for="sudo_password" style="display: block; margin-bottom: 0.5rem; color: var(--admin-text); font-weight: 600;">Contraseña Sudo:</label>
+              <input type="password" id="sudo_password" name="sudo_password" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--slate-300); border-radius: 4px; box-sizing: border-box; background: var(--admin-bg); color: var(--admin-text);" placeholder="Tu contraseña sudo">
+            </div>
+
+            <button type="submit" class="btn btn-danger w-full" style="background-color: var(--danger); color: white; padding: 0.75rem; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; transition: background 0.2s;">
+              <i class="fas fa-sync-alt mr-2"></i> Reiniciar Servicios (Gunicorn + Apache2)
+            </button>
+          </form>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Chat AI Configuration Section -->
+  <div class="config-section section-chat" style="margin-top: 2rem;">
+    <h2 class="section-title-unified">
+      <i class="fas fa-robot"></i>
+      Configuración del Agente IA - Don Datico 🦜
+    </h2>
+    <div class="config-grid">
+      <div class="config-group-unified config-group-success">
+        <h3 class="group-title">
+          <i class="fas fa-sliders-h"></i>
+          Parámetros del Chat
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin_chat_config' %}" class="config-card" style="border-left: 4px solid var(--success);">
+            <i class="fas fa-cogs" style="color: var(--success);"></i>
+            <span><strong>Configurar Parámetros</strong></span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-info-circle"></i> Parámetros Configurables:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem;">
+            <li>Límites de historial y mensajes</li>
+            <li>Configuración de herramientas (tools)</li>
+            <li>Caché y rendimiento</li>
+            <li>Búsqueda semántica</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="config-group-unified config-group-success" style="--group-color: var(--success-light);">
+        <h3 class="group-title" style="color: var(--success);">
+          <i class="fas fa-comments"></i>
+          Contextos y Prompts
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin_chat_contexts' %}" class="config-card" style="border-left: 4px solid var(--success);">
+            <i class="fas fa-file-alt" style="color: var(--success);"></i>
+            <span><strong>Editar Contextos</strong></span>
+          </a>
+          <a href="{% url 'admin_chat_suggestions' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-lightbulb" style="color: var(--primary);"></i>
+            <span><strong>Consultas Sugeridas</strong></span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(16, 185, 129, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-lightbulb"></i> Contextos Disponibles:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem;">
+            <li><strong>Base:</strong> Personalidad de Don Datico</li>
+            <li><strong>Herramientas:</strong> Instrucciones de uso</li>
+            <li><strong>Conversacional:</strong> Respuestas sin tools</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="config-group-unified config-group-primary">
+        <h3 class="group-title">
+          <i class="fas fa-brain"></i>
+          Base de Conocimiento
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin_update_embeddings' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-sync-alt" style="color: var(--primary);"></i>
+            <span><strong>Actualizar Embeddings</strong></span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(79, 70, 229, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-info-circle"></i> Vectorización RAG:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem;">
+            <li>Actualiza embeddings de indicadores, productos académicos y documentos</li>
+            <li>Mejora búsqueda semántica del chat (RAG)</li>
+            <li>Ejecutar después de agregar o publicar contenido nuevo</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="config-group-unified config-group-slate">
+        <h3 class="group-title">
+          <i class="fas fa-chart-line"></i>
+          Estado del Sistema
+        </h3>
+        <div style="padding: 1rem;">
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-brain" style="color: var(--primary);"></i>
+                <span>Modelo IA</span>
+              </div>
+              <span style="font-weight: 600; color: var(--primary);">Cerebras</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-database" style="color: var(--success);"></i>
+                <span>Embeddings</span>
+              </div>
+              <span style="font-weight: 600; color: var(--success);">Activo</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-tools" style="color: var(--warning);"></i>
+                <span>Herramientas</span>
+              </div>
+              <span style="font-weight: 600; color: var(--warning);">12 Tools</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Management Section -->
+  <div class="config-section" style="margin-top: 2rem;">
+    <h2 class="section-title-unified">
+      <i class="fas fa-users-cog"></i>
+      Gestión de Usuarios y Roles
+    </h2>
+    <div class="config-grid">
+      <div class="config-group-unified config-group-primary">
+        <h3 class="group-title">
+          <i class="fas fa-user-shield"></i>
+          Perfiles y Permisos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_perfilrecolector_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-id-card" style="color: var(--primary);"></i>
+            <span><strong>Perfiles de Usuarios</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_perfilrecolector_add' %}" class="config-card" style="border-left: 4px solid var(--slate-500);">
+            <i class="fas fa-user-plus" style="color: var(--slate-500);"></i>
+            <span>Crear Nuevo Perfil</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(79, 70, 229, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-info-circle"></i> Roles Disponibles:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem;">
+            <li><strong>Recolector de Datos:</strong> Acceso al módulo de recolección</li>
+            <li><strong>Consultor de Reportes:</strong> Acceso al módulo de reportes</li>
+            <li><strong>Recolector y Consultor:</strong> Acceso a ambos módulos</li>
+            <li><strong>Editor:</strong> Acceso al módulo editorial</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-users"></i>
+          Usuarios del Sistema
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:auth_user_changelist' %}" class="config-card">
+            <i class="fas fa-users"></i>
+            <span>Ver Todos los Usuarios</span>
+          </a>
+          <a href="{% url 'admin:auth_user_add' %}" class="config-card">
+            <i class="fas fa-user-plus"></i>
+            <span>Crear Usuario</span>
+          </a>
+          <a href="{% url 'admin:auth_group_changelist' %}" class="config-card">
+            <i class="fas fa-users-cog"></i>
+            <span>Grupos de Permisos</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(79, 70, 229, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-lightbulb"></i> Proceso Rápido:
+          </div>
+          <ol style="margin: 0; padding-left: 1.5rem;">
+            <li>Crear usuario en <strong>Auth > Users</strong></li>
+            <li>Crear perfil en <strong>Perfiles de Usuarios</strong></li>
+            <li>Asignar rol según necesidad</li>
+          </ol>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-chart-pie"></i>
+          Estadísticas de Acceso
+        </h3>
+        <div style="padding: 1rem;">
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-user-tie" style="color: var(--primary);"></i>
+                <span>Administradores</span>
+              </div>
+              <span style="font-weight: 600; color: var(--primary);">{{ user_stats.staff_count|default:0 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-upload" style="color: var(--slate-500);"></i>
+                <span>Recolectores</span>
+              </div>
+              <span style="font-weight: 600; color: var(--slate-500);">{{ user_stats.recolector_count|default:0 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-chart-bar" style="color: var(--success);"></i>
+                <span>Consultores</span>
+              </div>
+              <span style="font-weight: 600; color: var(--success);">{{ user_stats.consultor_count|default:0 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-clipboard-check" style="color: var(--warning);"></i>
+                <span>Validadores</span>
+              </div>
+              <span style="font-weight: 600; color: var(--warning);">{{ user_stats.validador_count|default:0 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-building" style="color: var(--danger);"></i>
+                <span>Delegados</span>
+              </div>
+              <span style="font-weight: 600; color: var(--danger);">{{ user_stats.delegado_count|default:0 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-pen-fancy" style="color: var(--primary);"></i>
+                <span>Editores</span>
+              </div>
+              <span style="font-weight: 600; color: var(--primary);">{{ user_stats.editor_count|default:0 }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-users" style="color: var(--info);"></i>
+                <span>Ambos Roles</span>
+              </div>
+              <span style="font-weight: 600; color: var(--info);">{{ user_stats.ambos_count|default:0 }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editorial Section -->
+  <div class="config-section" style="margin-top: 2rem;">
+    <h2 class="section-title-unified">
+      <i class="fas fa-pen-fancy"></i>
+      Módulo Editorial
+    </h2>
+    <div class="config-grid">
+      <div class="config-group-unified config-group-primary">
+        <h3 class="group-title">
+          <i class="fas fa-external-link-alt"></i>
+          Acceso Directo
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'indicadores:editorial_dashboard' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-pen-fancy" style="color: var(--primary); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>Abrir Editorial</strong></span>
+          </a>
+        </div>
+        {% if editorial_stats %}
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(79, 70, 229, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-chart-bar"></i> Resumen Editorial:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.6;">
+            <li><strong>Productos académicos:</strong> {{ editorial_stats.productos_count }} total ({{ editorial_stats.productos_publicados }} publicados, {{ editorial_stats.productos_borrador }} borradores)</li>
+            <li><strong>Noticias activas:</strong> {{ editorial_stats.noticias_count }}</li>
+            <li><strong>Eventos:</strong> {{ editorial_stats.eventos_count }}</li>
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="config-group-unified config-group-success">
+        <h3 class="group-title" style="color: var(--success);">
+          <i class="fas fa-book"></i>
+          Productos Académicos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_productoacademico_changelist' %}" class="config-card" style="border-left: 4px solid var(--success);">
+            <i class="fas fa-book" style="color: var(--success); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>Ver Papers</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_productoacademico_add' %}" class="config-card" style="border-left: 4px solid var(--success-light);">
+            <i class="fas fa-plus-circle" style="color: var(--success-light);"></i>
+            <span>Nuevo Paper</span>
+          </a>
+          <a href="{% url 'admin:indicadores_seccionpaper_changelist' %}" class="config-card" style="border-left: 4px solid var(--info);">
+            <i class="fas fa-list-ol" style="color: var(--info);"></i>
+            <span>Secciones</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="config-group-unified config-group-info">
+        <h3 class="group-title" style="color: var(--info);">
+          <i class="fas fa-file-alt"></i>
+          Documentos de Infraestructura
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'indicadores:editorial_infraestructura_arbol' %}" class="config-card" style="border-left: 4px solid var(--info);">
+            <i class="fas fa-sitemap" style="color: var(--info); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>Árbol Jerarquía</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_areainfraestructura_changelist' %}" class="config-card" style="border-left: 4px solid var(--info-light);">
+            <i class="fas fa-layer-group" style="color: var(--info-light);"></i>
+            <span>Áreas</span>
+          </a>
+          <a href="{% url 'admin:indicadores_documentoinfraestructura_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
+            <i class="fas fa-file-alt" style="color: var(--primary-light);"></i>
+            <span>Documentos</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="config-group-unified config-group-warning">
+        <h3 class="group-title" style="color: var(--warning);">
+          <i class="fas fa-newspaper"></i>
+          Contenido Web
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_noticiabanner_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning);">
+            <i class="fas fa-newspaper" style="color: var(--warning); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>Noticias</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_evento_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning-light);">
+            <i class="fas fa-calendar-alt" style="color: var(--warning-light);"></i>
+            <span>Eventos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_aliado_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
+            <i class="fas fa-handshake" style="color: var(--primary-light);"></i>
+            <span>Aliados</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hierarchical Organization -->
+  <div class="hierarchy-section">
+    <h2 class="section-title">
+      <i class="fas fa-sitemap"></i>
+      Estructura Principal de Indicadores
+    </h2>
+    <div class="hierarchy-flow">
+      <div class="hierarchy-level level-1">
+        <div class="hierarchy-card dominio-card">
+          <div class="hierarchy-icon">
+            <i class="fas fa-globe-americas"></i>
+          </div>
+          <h4>Dominios</h4>
+          <p>Categorías principales</p>
+          <a href="{% url 'admin:indicadores_menudominio_changelist' %}" class="hierarchy-link">Gestionar</a>
+        </div>
+      </div>
+      
+      <div class="hierarchy-arrow">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+      
+      <div class="hierarchy-level level-2">
+        <div class="hierarchy-card tema-card">
+          <div class="hierarchy-icon">
+            <i class="fas fa-layer-group"></i>
+          </div>
+          <h4>Temas</h4>
+          <p>Agrupaciones temáticas</p>
+          <a href="{% url 'admin:indicadores_menutema_changelist' %}" class="hierarchy-link">Gestionar</a>
+        </div>
+      </div>
+      
+      <div class="hierarchy-arrow">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+      
+      <div class="hierarchy-level level-3">
+        <div class="hierarchy-card subtema-card">
+          <div class="hierarchy-icon">
+            <i class="fas fa-tags"></i>
+          </div>
+          <h4>Subtemas</h4>
+          <p>Categorías específicas</p>
+          <a href="{% url 'admin:indicadores_menusubtema_changelist' %}" class="hierarchy-link">Gestionar</a>
+        </div>
+      </div>
+      
+      <div class="hierarchy-arrow">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+      
+      <div class="hierarchy-level level-4">
+        <div class="hierarchy-card indicador-card">
+          <div class="hierarchy-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h4>Indicadores</h4>
+          <p>Métricas y estadísticas</p>
+          <a href="{% url 'admin:indicadores_indicador_changelist' %}" class="hierarchy-link">Gestionar</a>
+        </div>
+      </div>
+      
+      <div class="hierarchy-arrow">
+        <i class="fas fa-arrow-down"></i>
+      </div>
+      
+      <div class="hierarchy-level level-5">
+        <div class="hierarchy-card dato-card">
+          <div class="hierarchy-icon">
+            <i class="fas fa-database"></i>
+          </div>
+          <h4>Datos</h4>
+          <p>Valores y registros</p>
+          <a href="{% url 'admin:indicadores_dato_changelist' %}" class="hierarchy-link">Gestionar</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Organismos Section (Central) -->
+  <div class="config-section section-organismos" style="margin-top: 2rem;">
+    <h2 class="section-title-unified">
+      <i class="fas fa-building"></i>
+      Organismos de la Alcaldía
+    </h2>
+    <div class="config-grid">
+      <div class="config-group-unified config-group-info">
+        <h3 class="group-title" style="color: var(--info);">
+          <i class="fas fa-sitemap"></i>
+          Gestión de Organismos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_organismo_changelist' %}" class="config-card" style="border-left: 4px solid var(--info);">
+            <i class="fas fa-building" style="color: var(--info); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>🏢 Ver Organismos</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_organismo_add' %}" class="config-card" style="border-left: 4px solid var(--info-light);">
+            <i class="fas fa-plus-circle" style="color: var(--info-light);"></i>
+            <span>Agregar Organismo</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1.25rem; background: rgba(14, 165, 233, 0.15); border-radius: 8px; font-size: 0.9rem; color: var(--admin-text); border: 1px solid rgba(14, 165, 233, 0.3);">
+          <div style="font-weight: 700; margin-bottom: 0.75rem; font-size: 1rem;">
+            <i class="fas fa-info-circle"></i> Rol Central:
+          </div>
+          <p style="margin: 0; line-height: 1.6;">
+            Los organismos son la base para múltiples módulos: satisfacción ciudadana, talleres del ecosistema de datos, y el futuro Hall de Poder Estadístico.
+          </p>
+        </div>
+      </div>
+
+      <!-- Accesos a Suborganismos y Equipos -->
+      <div class="config-group-unified config-group-primary">
+        <h3 class="group-title" style="color: var(--primary);">
+          <i class="fas fa-layer-group"></i>
+          Suborganismos (Oficinas/Subdirecciones)
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_suborganismo_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-sitemap" style="color: var(--primary); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>🏢 Ver Suborganismos</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_suborganismo_add' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
+            <i class="fas fa-plus-circle" style="color: var(--primary-light);"></i>
+            <span>Agregar Suborganismo</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="config-group-unified config-group-success">
+        <h3 class="group-title" style="color: var(--success);">
+          <i class="fas fa-users"></i>
+          Equipos de Trabajo
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_equipoorganismo_changelist' %}" class="config-card" style="border-left: 4px solid var(--success);">
+            <i class="fas fa-users-cog" style="color: var(--success); font-size: 1.5rem;"></i>
+            <span style="font-size: 1.1rem;"><strong>👥 Ver Equipos</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_equipoorganismo_add' %}" class="config-card" style="border-left: 4px solid var(--success-light);">
+            <i class="fas fa-plus-circle" style="color: var(--success-light);"></i>
+            <span>Agregar Equipo</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Talleres del Ecosistema de Datos Section -->
+  <div class="config-section section-talleres" style="margin-top: 2rem;">
+    <h2 class="section-title-unified">
+      <i class="fas fa-users"></i>
+      🌴 Talleres del Ecosistema de Datos
+    </h2>
+    <div class="config-grid">
+      <div class="config-group-unified config-group-success">
+        <h3 class="group-title" style="color: var(--success);">
+          <i class="fas fa-calendar-check"></i>
+          Sesiones y Participantes
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_sesiontaller_changelist' %}" class="config-card" style="border-left: 4px solid var(--success);">
+            <i class="fas fa-chalkboard-teacher" style="color: var(--success);"></i>
+            <span><strong>Sesiones de Taller</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_participantetaller_changelist' %}" class="config-card" style="border-left: 4px solid var(--success-light);">
+            <i class="fas fa-users" style="color: var(--success-light);"></i>
+            <span>Participantes</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(34, 197, 94, 0.15); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(34, 197, 94, 0.3);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-lightbulb"></i> Acceso Directo:
+          </div>
+          <p style="margin: 0;">
+            Crear sesión → Compartir código → Participantes se unen sin login
+          </p>
+        </div>
+      </div>
+      
+      <div class="config-group-unified config-group-warning">
+        <h3 class="group-title" style="color: var(--warning);">
+          <i class="fas fa-user-tag"></i>
+          Roles del Ecosistema
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_familiarol_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning);">
+            <i class="fas fa-layer-group" style="color: var(--warning);"></i>
+            <span><strong>Familias de Roles (A-F)</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_rolecosistema_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning-light);">
+            <i class="fas fa-id-badge" style="color: var(--warning-light);"></i>
+            <span>28 Roles del Ecosistema</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(251, 191, 36, 0.15); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(251, 191, 36, 0.3);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-info-circle"></i> 6 Familias:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.6;">
+            <li>A: Producción y calidad</li>
+            <li>B: Gestión y gobierno</li>
+            <li>C: Infraestructura</li>
+            <li>D: Análisis y narrativa</li>
+            <li>E: Intermediación</li>
+            <li>F: Estrategia</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="config-group-unified config-group-primary">
+        <h3 class="group-title">
+          <i class="fas fa-question-circle"></i>
+          Quiz y Actividades
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_preguntaquiz_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-clipboard-question" style="color: var(--primary);"></i>
+            <span><strong>Preguntas del Quiz</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_respuestaquiz_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
+            <i class="fas fa-check-square" style="color: var(--primary-light);"></i>
+            <span>Respuestas (solo lectura)</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(79, 70, 229, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(79, 70, 229, 0.2);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-info-circle"></i> Nota:
+          </div>
+          <p style="margin: 0;">
+            Las opciones de respuesta se editan directamente desde cada pregunta del quiz.
+          </p>
+        </div>
+      </div>
+      
+      <div class="config-group-unified config-group-primary">
+        <h3 class="group-title" style="color: var(--primary);">
+          <i class="fas fa-project-diagram"></i>
+          Mapeo del Ecosistema
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_fichadatospersonal_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-id-card" style="color: var(--primary);"></i>
+            <span>Fichas de Datos (P1)</span>
+          </a>
+          <a href="{% url 'admin:indicadores_datoecosistema_changelist' %}" class="config-card" style="border-left: 4px solid var(--info);">
+            <i class="fas fa-database" style="color: var(--info);"></i>
+            <span><strong>Datos del Ecosistema</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_subsistemaorganismo_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
+            <i class="fas fa-cubes" style="color: var(--primary-light);"></i>
+            <span>Subsistemas</span>
+          </a>
+          <a href="{% url 'admin:indicadores_flujodatos_changelist' %}" class="config-card" style="border-left: 4px solid var(--info-light);">
+            <i class="fas fa-exchange-alt" style="color: var(--info-light);"></i>
+            <span>Flujos de Datos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_clasificaciondato_changelist' %}" class="config-card" style="border-left: 4px solid var(--slate-400);">
+            <i class="fas fa-tags" style="color: var(--slate-400);"></i>
+            <span>Clasificación Dual (P2)</span>
+          </a>
+          <a href="{% url 'admin:indicadores_propositodato_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning);">
+            <i class="fas fa-bullseye" style="color: var(--warning);"></i>
+            <span><strong>Propósitos del Dato</strong></span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(99, 102, 241, 0.2);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-info-circle"></i> Flujo del Taller:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.6;">
+            <li><strong>Ficha P1:</strong> Crear datos colaborativamente</li>
+            <li><strong>Datos del Ecosistema:</strong> Fusionar duplicados</li>
+            <li><strong>Flujos:</strong> Mapear origen y destino</li>
+            <li><strong>Ficha P2:</strong> Clasificar importancia + sensibilidad + propósito</li>
+            <li><strong>Propósitos:</strong> 10 opciones predefinidas (Dimensión D)</li>
+            <li><strong>Mapa 3D:</strong> Visualización con Three.js</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="config-group-unified config-group-info">
+        <h3 class="group-title" style="color: var(--info);">
+          <i class="fas fa-desktop"></i>
+          Pantallas del Taller
+        </h3>
+        <div style="padding: 1rem;">
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info);">
+              <i class="fas fa-mobile-alt" style="color: var(--info); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Interfaz Participante</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/unirse/ (móvil)</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info-light);">
+              <i class="fas fa-tv" style="color: var(--info-light); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Pantalla Facilitador</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/pantalla/&lt;id&gt;/ (proyección)</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--primary);">
+              <i class="fas fa-cube" style="color: var(--primary); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Mapa 3D Ecosistema</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/mapa3d/&lt;id&gt;/ (Three.js)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration Section -->
+  <div class="config-section">
+    <h2 class="section-title">
+      <i class="fas fa-cogs"></i>
+      Configuración y Herramientas
+    </h2>
+    <div class="config-grid">
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-chart-bar"></i>
+          Visualización
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_grafico_changelist' %}" class="config-card">
+            <i class="fas fa-chart-pie"></i>
+            <span>Gráficos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-filter"></i>
+          Desagregaciones
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_dominiodesagregacion_changelist' %}" class="config-card">
+            <i class="fas fa-folder-open"></i>
+            <span>Dominios</span>
+          </a>
+          <a href="{% url 'admin:indicadores_desagregacion_changelist' %}" class="config-card">
+            <i class="fas fa-list"></i>
+            <span>Desagregaciones</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-map"></i>
+          Información Geográfica
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_nivelgeografico_changelist' %}" class="config-card">
+            <i class="fas fa-layer-group"></i>
+            <span>Niveles Geográficos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_capageo_changelist' %}" class="config-card">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>Capas Geográficas</span>
+          </a>
+          <a href="{% url 'admin:indicadores_elementogeo_changelist' %}" class="config-card">
+            <i class="fas fa-map-pin"></i>
+            <span>Elementos Geográficos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-database"></i>
+          Fuentes de Datos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_operacionestadistica_changelist' %}" class="config-card">
+            <i class="fas fa-poll"></i>
+            <span>Operaciones</span>
+          </a>
+          <a href="{% url 'admin:indicadores_conjuntodatos_changelist' %}" class="config-card">
+            <i class="fas fa-file-csv"></i>
+            <span>Conjunto de datos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_variableconjuntodatos_changelist' %}" class="config-card">
+            <i class="fas fa-list-ul"></i>
+            <span>Variables Conjunto de datos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-cog"></i>
+          Procesamiento
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_reglaextraccion_changelist' %}" class="config-card">
+            <i class="fas fa-code"></i>
+            <span>Reglas de Extracción</span>
+          </a>
+          <a href="{% url 'admin:indicadores_procesoextraccion_changelist' %}" class="config-card">
+            <i class="fas fa-play-circle"></i>
+            <span>Procesos de Extracción</span>
+          </a>
+          <a href="{% url 'admin:indicadores_procesolog_changelist' %}" class="config-card">
+            <i class="fas fa-file-alt"></i>
+            <span>Logs de Procesos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-newspaper"></i>
+          Contenido
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_noticiabanner_changelist' %}" class="config-card">
+            <i class="fas fa-newspaper"></i>
+            <span>Noticias</span>
+          </a>
+          <a href="{% url 'admin:indicadores_aliado_changelist' %}" class="config-card">
+            <i class="fas fa-handshake"></i>
+            <span>Aliados</span>
+          </a>
+          <a href="{% url 'admin:indicadores_evento_changelist' %}" class="config-card">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Eventos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-desktop"></i>
+          Sistemas de Consulta
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_categoriainformacion_changelist' %}" class="config-card">
+            <i class="fas fa-folder"></i>
+            <span>Categorías</span>
+          </a>
+          <a href="{% url 'admin:indicadores_sistemainformacion_changelist' %}" class="config-card">
+            <i class="fas fa-link"></i>
+            <span>Sistemas</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-eye"></i>
+          Productos de Información
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_categoriaproyecto_changelist' %}" class="config-card">
+            <i class="fas fa-folder"></i>
+            <span>Categorías</span>
+          </a>
+          <a href="{% url 'admin:indicadores_proyectoinformacion_changelist' %}" class="config-card">
+            <i class="fas fa-project-diagram"></i>
+            <span>Productos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-building"></i>
+          Infraestructura de Información
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_areainfraestructura_changelist' %}" class="config-card">
+            <i class="fas fa-layer-group"></i>
+            <span>Áreas</span>
+          </a>
+          <a href="{% url 'admin:indicadores_categoriainfraestructura_changelist' %}" class="config-card">
+            <i class="fas fa-folder"></i>
+            <span>Categorías</span>
+          </a>
+          <a href="{% url 'admin:indicadores_subcategoriainfraestructura_changelist' %}" class="config-card">
+            <i class="fas fa-folder-open"></i>
+            <span>Subcategorías</span>
+          </a>
+          <a href="{% url 'admin:indicadores_grupodocumento_changelist' %}" class="config-card">
+            <i class="fas fa-folder-open"></i>
+            <span>Grupos de Documentos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_documentoinfraestructura_changelist' %}" class="config-card">
+            <i class="fas fa-file-alt"></i>
+            <span>Documentos</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-graduation-cap"></i>
+          Productos Académicos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_productoacademico_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-book" style="color: var(--primary);"></i>
+            <span><strong>Ver Papers</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_productoacademico_add' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
+            <i class="fas fa-plus-circle" style="color: var(--primary-light);"></i>
+            <span>Nuevo Paper</span>
+          </a>
+          <a href="{% url 'admin:indicadores_seccionpaper_changelist' %}" class="config-card" style="border-left: 4px solid var(--info);">
+            <i class="fas fa-list-ol" style="color: var(--info);"></i>
+            <span>Secciones</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-tachometer-alt"></i>
+          Monitoreo y Validación
+        </h3>
+        <div class="config-cards">
+          <a href="/admin/monitoring/" class="config-card">
+            <i class="fas fa-chart-line"></i>
+            <span>Dashboard de Monitoreo</span>
+          </a>
+          <a href="{% url 'admin:indicadores_indicador_changelist' %}" class="config-card" title="Usar botón 'Validar Datos' en la lista">
+            <i class="fas fa-check-circle"></i>
+            <span>Validaciones de Datos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-smile"></i>
+          Satisfacción Ciudadana
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'satisfaccion_dashboard' %}" class="config-card">
+            <i class="fas fa-chart-pie"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="{% url 'admin:indicadores_equipoorganismo_changelist' %}" class="config-card">
+            <i class="fas fa-users"></i>
+            <span>Equipos de Organismos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_respuestasatisfaccionrapida_changelist' %}" class="config-card">
+            <i class="fas fa-bolt"></i>
+            <span>Respuestas Rápidas</span>
+          </a>
+          <a href="{% url 'admin:indicadores_respuestasatisfaccioncompleta_changelist' %}" class="config-card">
+            <i class="fas fa-file-alt"></i>
+            <span>Respuestas Completas</span>
+          </a>
+          <a href="{% url 'indicadores:satisfaccion_instructivo' %}" class="config-card">
+            <i class="fas fa-book"></i>
+            <span>Instructivo</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(251, 191, 36, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(251, 191, 36, 0.2);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--warning);">
+            <i class="fas fa-info-circle"></i> Nota:
+          </div>
+          <p style="margin: 0;">
+            Los organismos ahora tienen su propia sección arriba, ya que son usados por múltiples módulos.
+          </p>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-cloud-upload-alt"></i>
+          Recolección de Datos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'indicadores:cargas_dashboard' %}" class="config-card">
+            <i class="fas fa-inbox"></i>
+            <span>Cargas del Equipo</span>
+          </a>
+          <a href="{% url 'admin:indicadores_cargaserieindicador_changelist' %}" class="config-card">
+            <i class="fas fa-chart-line"></i>
+            <span>Series de Indicadores</span>
+          </a>
+          <a href="{% url 'admin:indicadores_cargaconjuntodatos_changelist' %}" class="config-card">
+            <i class="fas fa-database"></i>
+            <span>Conjunto de datos</span>
+          </a>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-calendar-alt"></i>
+          Calendario de Difusión Estadística
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_calendariodifusion_changelist' %}" class="config-card" style="border-left: 4px solid #1e6b3a;">
+            <i class="fas fa-calendar-check" style="color: #1e6b3a;"></i>
+            <span><strong>Ver Calendario</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_calendariodifusion_add' %}" class="config-card" style="border-left: 4px solid #3c7a5a;">
+            <i class="fas fa-plus-circle" style="color: #3c7a5a;"></i>
+            <span>Agregar Producto</span>
+          </a>
+          <a href="{% url 'indicadores:calendario_difusion' %}" class="config-card" style="border-left: 4px solid #5a9a7a;" target="_blank">
+            <i class="fas fa-external-link-alt" style="color: #5a9a7a;"></i>
+            <span>Vista Pública</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(30, 107, 58, 0.08); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(30, 107, 58, 0.2);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem; color: #1e6b3a;">
+            <i class="fas fa-info-circle"></i> Calendario de Difusión:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.6;">
+            <li><strong>Organismos:</strong> Secretaría de Paz, Turismo, Educación, Deporte</li>
+            <li><strong>Productos:</strong> Tableros, reportes, investigaciones, operaciones estadísticas</li>
+            <li><strong>Periodicidades:</strong> Mensual, Trimestral, Semestral, Anual, Bienal, Eventual</li>
+            <li><strong>Vista pública:</strong> /calendario-difusion/</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="config-group">
+        <h3 class="config-group-title">
+          <i class="fas fa-award"></i>
+          ICED — Capacidad Estadística
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_icedformulario_changelist' %}" class="config-card" style="border-left: 4px solid #6366f1;">
+            <i class="fas fa-file-alt" style="color: #6366f1;"></i>
+            <span><strong>Formularios ICED</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_icedrecursohumano_changelist' %}" class="config-card" style="border-left: 4px solid #818cf8;">
+            <i class="fas fa-user-tie" style="color: #818cf8;"></i>
+            <span>Recursos Humanos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_icedpersonacontacto_changelist' %}" class="config-card" style="border-left: 4px solid #a5b4fc;">
+            <i class="fas fa-address-book" style="color: #a5b4fc;"></i>
+            <span>Personas de Contacto</span>
+          </a>
+          <a href="{% url 'admin:indicadores_icedmacroproceso_changelist' %}" class="config-card" style="border-left: 4px solid #4f46e5;">
+            <i class="fas fa-sitemap" style="color: #4f46e5;"></i>
+            <span><strong>Estructura MOP</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_icedproceso_changelist' %}" class="config-card" style="border-left: 4px solid #7c3aed;">
+            <i class="fas fa-project-diagram" style="color: #7c3aed;"></i>
+            <span>Procesos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_icedsubproceso_changelist' %}" class="config-card" style="border-left: 4px solid #8b5cf6;">
+            <i class="fas fa-code-branch" style="color: #8b5cf6;"></i>
+            <span>Subprocesos</span>
+          </a>
+          <a href="{% url 'admin:indicadores_icedprocedimiento_changelist' %}" class="config-card" style="border-left: 4px solid #a78bfa;">
+            <i class="fas fa-tasks" style="color: #a78bfa;"></i>
+            <span>Procedimientos</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(99, 102, 241, 0.08); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(99, 102, 241, 0.2);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem; color: #6366f1;">
+            <i class="fas fa-info-circle"></i> Módulo ICED v2:
+          </div>
+          <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.6;">
+            <li><strong>Formularios:</strong> 42 preguntas en 5 módulos (A-E), JSONField por módulo</li>
+            <li><strong>Puntaje:</strong> B×25% + C×25% + D×25% + E×25% (escala 0-1)</li>
+            <li><strong>Estructura MOP:</strong> MacroProceso → Proceso → Subproceso → Procedimiento (P7)</li>
+            <li><strong>Validación:</strong> /validacion/iced/ (flujo delegado→validador)</li>
+          </ul>
+        </div>
+      </div>
+      
+  <!-- System Administration -->
+  {% if app_list %}
+    {% for app in app_list %}
+      {% if app.app_label != 'indicadores' %}
+      <div class="system-section">
+        <h2 class="section-title">
+          <div class="app-icon small">
+            {% if app.app_label == 'auth' %}
+              <i class="fas fa-users-cog"></i>
+            {% elif app.app_label == 'sessions' %}
+              <i class="fas fa-plug"></i>
+            {% elif app.app_label == 'sites' %}
+              <i class="fas fa-globe"></i>
+            {% else %}
+              <i class="fas fa-folder"></i>
+            {% endif %}
+          </div>
+          {{ app.name }}
+        </h2>
+        <div class="system-models">
+          {% for model in app.models %}
+          <a href="{{ model.admin_url }}" class="system-model-card">
+            <div class="system-model-icon">
+              {% if 'user' in model.name|lower %}
+                <i class="fas fa-user"></i>
+              {% elif 'group' in model.name|lower %}
+                <i class="fas fa-users"></i>
+              {% elif 'session' in model.name|lower %}
+                <i class="fas fa-clock"></i>
+              {% elif 'site' in model.name|lower %}
+                <i class="fas fa-globe"></i>
+              {% else %}
+                <i class="fas fa-file-alt"></i>
+              {% endif %}
+            </div>
+            <span class="system-model-name">{{ model.name }}</span>
+            <div class="system-model-actions">
+              <span class="view-btn">{% translate 'View' %}</span>
+              {% if not model.view_only %}
+              <span class="add-btn">{% translate 'Add' %}</span>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  {% else %}
+    <div class="app-card">
+      <div class="app-card-body">
+        <p>{% translate "You don't have permission to view or edit anything." %}</p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

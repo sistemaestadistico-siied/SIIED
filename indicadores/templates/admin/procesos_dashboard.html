@@ -1,0 +1,156 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Dashboard de Procesos{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+  › Dashboard de Procesos
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Dashboard de Procesos en Ejecución</h1>
+
+<!-- Stats Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+  <div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; padding: 1rem; text-align: center;">
+    <div style="font-size: 2rem; font-weight: bold; color: var(--wizard-primary);">{{ stats.extraccion_activos }}</div>
+    <div style="font-size: 0.875rem; color: var(--admin-muted);">Extracciones activas</div>
+  </div>
+  <div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; padding: 1rem; text-align: center;">
+    <div style="font-size: 2rem; font-weight: bold; color: #f59e0b;">{{ stats.extraccion_pendientes }}</div>
+    <div style="font-size: 0.875rem; color: var(--admin-muted);">Extracciones pendientes</div>
+  </div>
+  <div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; padding: 1rem; text-align: center;">
+    <div style="font-size: 2rem; font-weight: bold; color: #10b981;">{{ stats.series_procesando }}</div>
+    <div style="font-size: 0.875rem; color: var(--admin-muted);">Series procesando</div>
+  </div>
+  <div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; padding: 1rem; text-align: center;">
+    <div style="font-size: 2rem; font-weight: bold; color: #8b5cf6;">{{ stats.conjunto_datos_procesando }}</div>
+    <div style="font-size: 0.875rem; color: var(--admin-muted);">Conjunto de datos procesando</div>
+  </div>
+  <div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; padding: 1rem; text-align: center;">
+    <div style="font-size: 2rem; font-weight: bold; color: var(--admin-text);">{{ stats.total_hoy }}</div>
+    <div style="font-size: 0.875rem; color: var(--admin-muted);">Total hoy</div>
+  </div>
+</div>
+
+<!-- Procesos de Extracción -->
+<div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; margin-bottom: 2rem; overflow: hidden;">
+  <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--admin-border); font-weight: 600; font-size: 1.1rem;">
+    <i class="fas fa-cogs" style="color: var(--wizard-primary);"></i> Procesos de Extracción
+  </div>
+  {% if procesos_extraccion %}
+  <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+    <thead>
+      <tr style="background: var(--admin-panel-2); text-align: left;">
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">ID</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Indicador</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Estado</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Inicio</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in procesos_extraccion %}
+      <tr style="border-bottom: 1px solid var(--admin-border);">
+        <td style="padding: 0.75rem 1rem;">#{{ p.id }}</td>
+        <td style="padding: 0.75rem 1rem;">{{ p.indicador.nombre|default:"Sin indicador"|truncatewords:6 }}</td>
+        <td style="padding: 0.75rem 1rem;">
+          <span style="display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+            {% if p.estado == 'procesando' %}background: #dbeafe; color: #1e40af;{% elif p.estado == 'pendiente' %}background: #fef3c7; color: #92400e;{% else %}background: #e5e7eb; color: #374151;{% endif %}">
+            {{ p.get_estado_display }}
+          </span>
+        </td>
+        <td style="padding: 0.75rem 1rem; color: var(--admin-muted);">{{ p.started_at|default:p.created_at|date:"d/m/Y H:i" }}</td>
+        <td style="padding: 0.75rem 1rem;">
+          <a href="{% url 'indicadores:proceso_en_vivo' p.id %}" style="color: var(--wizard-primary); text-decoration: none; font-weight: 500;">
+            <i class="fas fa-eye"></i> Ver en vivo
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding: 2rem; text-align: center; color: var(--admin-muted);">
+    <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 0.5rem; color: #10b981;"></i>
+    <p>No hay procesos de extracción activos</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Cargas de Series -->
+<div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; margin-bottom: 2rem; overflow: hidden;">
+  <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--admin-border); font-weight: 600; font-size: 1.1rem;">
+    <i class="fas fa-chart-line" style="color: #10b981;"></i> Cargas de Series en Procesamiento
+  </div>
+  {% if cargas_series %}
+  <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+    <thead>
+      <tr style="background: var(--admin-panel-2); text-align: left;">
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Código</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Indicador</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Usuario</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cargas_series %}
+      <tr style="border-bottom: 1px solid var(--admin-border);">
+        <td style="padding: 0.75rem 1rem; font-family: monospace;">{{ c.codigo_evidencia }}</td>
+        <td style="padding: 0.75rem 1rem;">{{ c.indicador.nombre|default:"Sin indicador"|truncatewords:6 }}</td>
+        <td style="padding: 0.75rem 1rem;">{{ c.usuario.get_full_name|default:c.usuario.username }}</td>
+        <td style="padding: 0.75rem 1rem; color: var(--admin-muted);">{{ c.fecha_carga|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding: 2rem; text-align: center; color: var(--admin-muted);">
+    <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 0.5rem; color: #10b981;"></i>
+    <p>No hay cargas de series en procesamiento</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Cargas de Conjunto de datos -->
+<div style="background: var(--admin-panel); border: 1px solid var(--admin-border); border-radius: 8px; margin-bottom: 2rem; overflow: hidden;">
+  <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--admin-border); font-weight: 600; font-size: 1.1rem;">
+    <i class="fas fa-database" style="color: #8b5cf6;"></i> Cargas de Conjunto de datos en Procesamiento
+  </div>
+  {% if cargas_conjuntos_datos %}
+  <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+    <thead>
+      <tr style="background: var(--admin-panel-2); text-align: left;">
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Código</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Conjunto de datos</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Usuario</th>
+        <th style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--admin-border);">Fecha</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cargas_conjuntos_datos %}
+      <tr style="border-bottom: 1px solid var(--admin-border);">
+        <td style="padding: 0.75rem 1rem; font-family: monospace;">{{ c.codigo_evidencia }}</td>
+        <td style="padding: 0.75rem 1rem;">{{ c.conjunto_datos.nombre|default:"Sin conjunto_datos"|truncatewords:6 }}</td>
+        <td style="padding: 0.75rem 1rem;">{{ c.usuario.get_full_name|default:c.usuario.username }}</td>
+        <td style="padding: 0.75rem 1rem; color: var(--admin-muted);">{{ c.fecha_carga|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding: 2rem; text-align: center; color: var(--admin-muted);">
+    <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 0.5rem; color: #10b981;"></i>
+    <p>No hay cargas de conjunto de datos en procesamiento</p>
+  </div>
+  {% endif %}
+</div>
+
+<div style="margin-top: 1rem;">
+  <a href="{% url 'admin:index' %}" class="btn btn-secondary">← Volver al Admin</a>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Archivo de Noticias - {{ block.super }}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-black/10">
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+    </div>
+
+    <div class="relative container mx-auto px-4 py-16">
+        <div class="text-center">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-2xl mb-6">
+                <i class="fas fa-newspaper text-3xl text-white"></i>
+            </div>
+            <h1 class="text-4xl lg:text-5xl font-bold mb-4">
+                Noticias Institucionales
+            </h1>
+            <p class="text-xl text-primary-100 max-w-3xl mx-auto">
+                Archivo de noticias del Sistema Integrado de Información Estadística Distrital
+            </p>
+        </div>
+
+        <!-- Buscador -->
+        <form method="get" action="{% url 'indicadores:noticias_lista' %}" class="max-w-xl mx-auto mt-8">
+            <div class="relative">
+                <input type="text" name="q" value="{{ q }}"
+                       placeholder="Buscar en el archivo de noticias..."
+                       class="w-full rounded-2xl bg-white/95 text-gray-800 pl-12 pr-28 py-3.5 text-sm shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-300">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <button type="submit"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 transition-colors">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Listado de noticias -->
+<div class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+
+        {% if q %}
+        <div class="mb-8 flex items-center justify-between flex-wrap gap-3">
+            <p class="text-gray-600">
+                <i class="fas fa-filter mr-1 text-primary-600"></i>
+                {{ total }} resultado{{ total|pluralize }} para <strong>"{{ q }}"</strong>
+            </p>
+            <a href="{% url 'indicadores:noticias_lista' %}"
+               class="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium">
+                <i class="fas fa-times mr-1"></i> Limpiar búsqueda
+            </a>
+        </div>
+        {% endif %}
+
+        {% if noticias %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for noticia in noticias %}
+            <article class="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden border border-gray-100 flex flex-col">
+                {% if noticia.imagen_url %}
+                <div class="h-48 overflow-hidden">
+                    <img src="{{ noticia.imagen_url }}" alt="{{ noticia.titulo }}"
+                         class="w-full h-full object-cover transition-transform duration-300 hover:scale-105">
+                </div>
+                {% else %}
+                <div class="h-48 bg-gradient-to-br from-sky-500 to-primary-600 flex items-center justify-center">
+                    <i class="fas fa-newspaper text-4xl text-white/80"></i>
+                </div>
+                {% endif %}
+
+                <div class="p-6 space-y-3 flex-1 flex flex-col">
+                    <!-- Fecha y subtítulo -->
+                    <div class="flex items-center flex-wrap gap-2 text-sm">
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-800 border border-sky-200">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            {{ noticia.fecha_publicacion|date:"d M Y" }}
+                        </span>
+                        {% if noticia.subtitulo %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                            <i class="fas fa-tag mr-1"></i>
+                            {{ noticia.subtitulo|truncatechars:30 }}
+                        </span>
+                        {% endif %}
+                        {% if noticia.evento_origen_id %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200" title="Registro del calendario de eventos">
+                            <i class="fas fa-archive mr-1"></i>
+                            Evento archivado
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Título -->
+                    <h3 class="text-lg font-bold text-gray-800 leading-tight">
+                        {{ noticia.titulo }}
+                    </h3>
+
+                    <!-- Descripción -->
+                    <p class="text-gray-600 text-sm leading-relaxed flex-1">
+                        {{ noticia.descripcion|striptags|truncatewords:35 }}
+                    </p>
+
+                    <!-- Estadísticas (resumen) -->
+                    {% if noticia.estadisticas.all %}
+                    <div class="flex flex-wrap gap-x-4 gap-y-1 pt-2">
+                        {% for estadistica in noticia.estadisticas.all|slice:":3" %}
+                        <span class="inline-flex items-center text-xs text-sky-700">
+                            <i class="fas fa-check-circle mr-1 text-sky-500"></i>
+                            {{ estadistica.titulo }}: <strong class="ml-1">{{ estadistica.valor }}</strong>
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Enlaces -->
+                    <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+                        {% if noticia.enlace_principal %}
+                        <a href="{{ noticia.enlace_principal }}" target="_blank"
+                           class="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm transition-colors">
+                            <i class="fas fa-external-link-alt mr-2"></i>
+                            {{ noticia.texto_enlace_principal|default:"Leer más" }}
+                        </a>
+                        {% else %}
+                        <span class="text-xs text-gray-400 italic">Noticia del archivo</span>
+                        {% endif %}
+                        {% if noticia.enlaces.all %}
+                        <span class="text-xs text-gray-400">
+                            <i class="fas fa-link mr-1"></i>{{ noticia.enlaces.all|length }} enlace{{ noticia.enlaces.all|length|pluralize }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <!-- Paginación -->
+        {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="mt-12 flex items-center justify-center gap-2" aria-label="Paginación de noticias">
+            {% if page_obj.has_previous %}
+            <a href="?page=1{% if q %}&q={{ q|urlencode }}{% endif %}"
+               class="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                <i class="fas fa-angle-double-left"></i>
+            </a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+               class="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                <i class="fas fa-angle-left"></i>
+            </a>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                <span class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-600 text-white font-semibold">{{ num }}</span>
+                {% elif num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
+                <a href="?page={{ num }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+                   class="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-700 transition-colors">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+               class="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if q %}&q={{ q|urlencode }}{% endif %}"
+               class="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-700 transition-colors">
+                <i class="fas fa-angle-double-right"></i>
+            </a>
+            {% endif %}
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <!-- Estado vacío -->
+        <div class="max-w-md mx-auto text-center py-8">
+            <div class="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-newspaper text-3xl text-gray-400"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                {% if q %}Sin resultados{% else %}No hay noticias publicadas{% endif %}
+            </h3>
+            <p class="text-gray-600 mb-8">
+                {% if q %}
+                No se encontraron noticias que coincidan con tu búsqueda. Intenta con otros términos.
+                {% else %}
+                Aún no hay noticias en el archivo. Vuelve pronto para ver las novedades.
+                {% endif %}
+            </p>
+            <a href="{% url 'indicadores:home' %}"
+               class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                <i class="fas fa-home mr-2"></i>
+                Volver al inicio
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

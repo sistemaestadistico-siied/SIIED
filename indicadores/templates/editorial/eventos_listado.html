@@ -1,0 +1,100 @@
+{% extends "editorial/base_editorial.html" %}
+{% load static %}
+
+{% block title %}Eventos — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<!-- Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <i class="fas fa-calendar-alt text-sky-500"></i> Gestión de Eventos
+    </h1>
+    <p class="mt-1 text-slate-500">Administra eventos, talleres y actividades del SIIED</p>
+</div>
+
+<!-- Barra de acciones -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div class="flex flex-wrap gap-3">
+        <a href="{% url 'indicadores:editorial_evento_crear' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-sky-600 text-white rounded-xl font-medium shadow-sm hover:bg-sky-700 hover:shadow-md transition-all">
+            <i class="fas fa-plus"></i> Crear Evento
+        </a>
+        <a href="{% url 'indicadores:editorial_eventos_calendario' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 hover:border-sky-200 hover:text-sky-700 transition-all">
+            <i class="fas fa-calendar"></i> Vista de Calendario
+        </a>
+    </div>
+    
+    <select class="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent cursor-pointer"
+            onchange="window.location.href='?estado=' + this.value">
+        <option value="">Todos los eventos</option>
+        <option value="proximos" {% if estado_filtro == 'proximos' %}selected{% endif %}>Próximos</option>
+        <option value="pasados" {% if estado_filtro == 'pasados' %}selected{% endif %}>Pasados</option>
+        <option value="activos" {% if estado_filtro == 'activos' %}selected{% endif %}>Solo activos</option>
+    </select>
+</div>
+
+<!-- Listado de eventos -->
+{% if eventos %}
+<div class="space-y-6">
+    {% for evento in eventos %}
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 border-l-4 border-l-sky-500">
+        
+        <div class="flex flex-col md:flex-row gap-5 items-start">
+            <!-- Fecha visual -->
+            <div class="flex-shrink-0 w-20 text-center bg-gradient-to-br from-sky-500 to-sky-600 text-white rounded-xl p-3 shadow-lg shadow-sky-200">
+                <div class="text-3xl font-black leading-none">{{ evento.fecha_inicio|date:"d" }}</div>
+                <div class="text-xs font-bold uppercase mt-1 opacity-90">{{ evento.fecha_inicio|date:"M" }}</div>
+            </div>
+            
+            <!-- Info principal -->
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-3">
+                    <h3 class="text-xl font-bold text-slate-900">{{ evento.nombre }}</h3>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap
+                                 {% if evento.activo %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                        {% if evento.activo %}Activo{% else %}Inactivo{% endif %}
+                    </span>
+                </div>
+                
+                <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500 mb-4">
+                    <span class="flex items-center gap-1.5"><i class="fas fa-clock text-sky-400"></i> {{ evento.fecha_inicio|date:"H:i" }} - {{ evento.fecha_fin|date:"H:i" }}</span>
+                    <span class="flex items-center gap-1.5"><i class="fas fa-map-marker-alt text-sky-400"></i> {{ evento.lugar|default:"Sin ubicación" }}</span>
+                </div>
+                
+                {% if evento.descripcion %}
+                <p class="text-slate-600 text-sm mb-5 line-clamp-2">{{ evento.descripcion|truncatewords:30 }}</p>
+                {% endif %}
+                
+                <div class="flex flex-wrap gap-3">
+                    <a href="{% url 'indicadores:editorial_evento_editar' evento.pk %}" class="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 transition-colors">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <a href="{% url 'indicadores:editorial_evento_eliminar' evento.pk %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-rose-200 text-rose-600 text-sm font-medium rounded-lg hover:bg-rose-50 transition-all">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-16 bg-white rounded-2xl shadow-sm border border-slate-200">
+    <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-calendar-times text-slate-300 text-3xl"></i>
+    </div>
+    <h3 class="text-lg font-semibold text-slate-700 mb-2">No hay eventos</h3>
+    <p class="text-slate-400 mb-6 max-w-md mx-auto">
+        {% if estado_filtro %}
+        No se encontraron eventos con el filtro seleccionado.
+        {% else %}
+        No hay eventos registrados aún.
+        {% endif %}
+    </p>
+    <a href="{% url 'indicadores:editorial_evento_crear' %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-sky-600 text-white rounded-xl font-medium hover:bg-sky-700 transition-colors">
+        <i class="fas fa-plus"></i> Crear el primero
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Gestión de Organismos - Satisfacción{% endblock %}
+
+{% block extrastyle %}
+<style>
+    .url-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 12px;
+        word-break: break-all;
+    }
+    .copy-btn {
+        cursor: pointer;
+    }
+    .badge-activo {
+        background-color: #28a745;
+    }
+    .badge-inactivo {
+        background-color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-building"></i> Gestión de Organismos</h1>
+        <a href="{% url 'satisfaccion_dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <!-- Formulario para crear nuevo organismo -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Crear Nuevo Organismo</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">{{ form.nombre.label }}</label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="text-danger small">{{ form.nombre.errors }}</div>
+                        {% endif %}
+                        {% if form.nombre.help_text %}
+                            <small class="text-muted">{{ form.nombre.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">{{ form.codigo.label }}</label>
+                        {{ form.codigo }}
+                        {% if form.codigo.errors %}
+                            <div class="text-danger small">{{ form.codigo.errors }}</div>
+                        {% endif %}
+                        {% if form.codigo.help_text %}
+                            <small class="text-muted">{{ form.codigo.help_text }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">{{ form.email_contacto.label }}</label>
+                        {{ form.email_contacto }}
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">{{ form.responsable.label }}</label>
+                        {{ form.responsable }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">{{ form.descripcion.label }}</label>
+                        {{ form.descripcion }}
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <div class="form-check mt-4">
+                            {{ form.activo }}
+                            <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                                {{ form.activo.label }}
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end mb-3">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-save"></i> Crear Organismo
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Lista de organismos existentes -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-list"></i> Organismos Registrados ({{ organismos.count }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Organismo</th>
+                            <th>Código</th>
+                            <th>Estado</th>
+                            <th>URLs Generadas</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for org in organismos %}
+                        <tr>
+                            <td>
+                                <strong>{{ org.nombre }}</strong>
+                                {% if org.descripcion %}
+                                    <br><small class="text-muted">{{ org.descripcion|truncatewords:15 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code>{{ org.codigo }}</code>
+                            </td>
+                            <td>
+                                {% if org.activo %}
+                                    <span class="badge badge-activo">Activo</span>
+                                {% else %}
+                                    <span class="badge badge-inactivo">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <!-- URL Rápida -->
+                                <div class="mb-2">
+                                    <small class="text-muted d-block mb-1">
+                                        <i class="bi bi-lightning-fill"></i> Calificación Rápida:
+                                    </small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control url-box" 
+                                               value="{{ org.url_rapida }}" 
+                                               id="url-rapida-{{ org.id }}" readonly>
+                                        <button class="btn btn-outline-secondary copy-btn" 
+                                                type="button"
+                                                onclick="copiarURL('url-rapida-{{ org.id }}')">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- URL Completa -->
+                                <div>
+                                    <small class="text-muted d-block mb-1">
+                                        <i class="bi bi-file-text"></i> Formulario Completo:
+                                    </small>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control url-box" 
+                                               value="{{ org.url_completa }}" 
+                                               id="url-completa-{{ org.id }}" readonly>
+                                        <button class="btn btn-outline-secondary copy-btn" 
+                                                type="button"
+                                                onclick="copiarURL('url-completa-{{ org.id }}')">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{% url 'satisfaccion_organismo_editar' org.id %}" 
+                                   class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No hay organismos registrados. Cree uno usando el formulario de arriba.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instrucciones -->
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Instrucciones de Uso</h5>
+        </div>
+        <div class="card-body">
+            <ol>
+                <li class="mb-2">
+                    <strong>Crear un organismo:</strong> Complete el formulario con el nombre y código único del organismo.
+                </li>
+                <li class="mb-2">
+                    <strong>Copiar URLs:</strong> Use los botones de copiar para obtener las URLs que debe incluir en los correos de respuesta.
+                </li>
+                <li class="mb-2">
+                    <strong>Formulario Completo:</strong> Esta URL lleva al formulario detallado de satisfacción. Es el destino del banner actual.
+                </li>
+                <li class="mb-2">
+                    <strong>URL Rápida (legacy):</strong> Solo existe para correos enviados con el banner antiguo de emojis. Registra la calificación del clic y redirige al formulario completo.
+                </li>
+                <li class="mb-2">
+                    <strong>Banner para correos:</strong> Genere el banner listo para copiar/pegar desde el 
+                    <a href="{% url 'indicadores:satisfaccion_instructivo' %}">instructivo</a> o desde 
+                    <a href="{% url 'indicadores:satisfaccion_banners_suborganismo' %}">banners por suborganismo</a>.
+                </li>
+            </ol>
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    function copiarURL(elementId) {
+        const input = document.getElementById(elementId);
+        input.select();
+        input.setSelectionRange(0, 99999); // Para móviles
+        
+        navigator.clipboard.writeText(input.value).then(function() {
+            // Mostrar feedback visual
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="bi bi-check"></i>';
+            btn.classList.add('btn-success');
+            btn.classList.remove('btn-outline-secondary');
+            
+            setTimeout(function() {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-secondary');
+            }, 2000);
+        }, function(err) {
+            alert('Error al copiar: ' + err);
+        });
+    }
+</script>
+{% endblock %}

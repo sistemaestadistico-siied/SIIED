@@ -1,0 +1,158 @@
+{% extends "validacion/base_validacion.html" %}
+{% block title %}Historial de Validaciones{% endblock %}
+{% block validacion_content %}
+
+<div class="mb-6">
+    <h1 class="text-2xl font-serif font-bold text-slate-900">Historial de Validaciones</h1>
+    <p class="text-slate-500 text-sm mt-1">Todas las cargas de delegados y su estado de validación.</p>
+</div>
+
+<!-- Métricas globales -->
+<div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-3 text-center">
+        <p class="text-2xl font-bold text-slate-700">{{ stats.total_series }}</p>
+        <p class="text-xs text-slate-400">Series totales</p>
+    </div>
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-3 text-center">
+        <p class="text-2xl font-bold text-emerald-600">{{ stats.series_aprobadas }}</p>
+        <p class="text-xs text-slate-400">Aprobadas</p>
+    </div>
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-3 text-center">
+        <p class="text-2xl font-bold text-amber-500">{{ stats.series_pendientes }}</p>
+        <p class="text-xs text-slate-400">Pendientes</p>
+    </div>
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-3 text-center">
+        <p class="text-2xl font-bold text-slate-700">{{ stats.total_conjunto_datos }}</p>
+        <p class="text-xs text-slate-400">Conjunto de datos totales</p>
+    </div>
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-3 text-center">
+        <p class="text-2xl font-bold text-emerald-600">{{ stats.conjuntos_datos_aprobados }}</p>
+        <p class="text-xs text-slate-400">Conjunto de datos aprobadas</p>
+    </div>
+</div>
+
+<!-- Filtros -->
+<form method="get" class="bg-white rounded-3xl border border-slate-200 shadow-sm p-4 mb-6 flex flex-wrap gap-4 items-end">
+    <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Tipo</label>
+        <select name="tipo" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+            <option value="todos" {% if filtro_tipo == 'todos' %}selected{% endif %}>Todos</option>
+            <option value="series" {% if filtro_tipo == 'series' %}selected{% endif %}>Series de Datos</option>
+            <option value="conjunto_datos" {% if filtro_tipo == 'conjunto_datos' %}selected{% endif %}>Conjuntos de datos</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Estado</label>
+        <select name="estado" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+            <option value="todos">Todos</option>
+            {% for val, label in estados_disponibles %}
+            <option value="{{ val }}" {% if filtro_estado == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm px-4 py-2 rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition">Filtrar</button>
+</form>
+
+<!-- Series -->
+{% if filtro_tipo in 'todos,series' %}
+<div class="bg-white rounded-3xl shadow-sm border border-slate-200 mb-6">
+    <div class="px-6 py-4 border-b border-slate-200">
+        <h2 class="font-semibold text-slate-800 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>Series de Datos
+        </h2>
+    </div>
+    {% if series %}
+    <div class="divide-y divide-slate-50">
+        {% for carga in series %}
+        <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50">
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                    {% if carga.usuario.perfil_recolector.organismo %}
+                    <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                        {{ carga.usuario.perfil_recolector.organismo.nombre|truncatewords:3 }}
+                    </span>
+                    {% endif %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium estado-{{ carga.estado }}">
+                        {{ carga.get_estado_display }}
+                    </span>
+                </div>
+                <p class="text-sm font-medium text-slate-800">{{ carga.indicador.nombre|truncatewords:7|default:"Sin indicador" }}</p>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    <code class="font-mono">{{ carga.codigo_evidencia }}</code> ·
+                    {{ carga.fecha_carga|date:"d/m/Y H:i" }} ·
+                    {{ carga.usuario.get_full_name|default:carga.usuario.username }}
+                    {% if carga.validado_por %} · Validado por {{ carga.validado_por.get_full_name|default:carga.validado_por.username }}{% endif %}
+                </p>
+                {% if carga.observaciones_validador %}
+                <p class="text-xs text-amber-600 mt-1 truncate max-w-lg">💬 {{ carga.observaciones_validador }}</p>
+                {% endif %}
+            </div>
+            <div class="shrink-0">
+                <a href="{% url 'indicadores:validacion_revisar_serie' carga.id %}"
+                   class="text-emerald-600 hover:text-emerald-800 text-sm font-medium whitespace-nowrap">
+                    {% if carga.estado in 'enviado,en_revision' %}Revisar →{% else %}Ver detalles →{% endif %}
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-400 text-center py-8">No hay series con los filtros seleccionados.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Conjunto de datos -->
+{% if filtro_tipo in 'todos,conjunto_datos' %}
+<div class="bg-white rounded-3xl shadow-sm border border-slate-200">
+    <div class="px-6 py-4 border-b border-slate-200">
+        <h2 class="font-semibold text-slate-800 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+            </svg>Conjuntos de datos
+        </h2>
+    </div>
+    {% if conjunto_datos %}
+    <div class="divide-y divide-slate-50">
+        {% for carga in conjunto_datos %}
+        <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50">
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                    {% if carga.usuario.perfil_recolector.organismo %}
+                    <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                        {{ carga.usuario.perfil_recolector.organismo.nombre|truncatewords:3 }}
+                    </span>
+                    {% endif %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium estado-{{ carga.estado }}">
+                        {{ carga.get_estado_display }}
+                    </span>
+                </div>
+                <p class="text-sm font-medium text-slate-800">{{ carga.conjunto_datos.nombre|truncatewords:7|default:"Sin conjunto_datos" }}</p>
+                <p class="text-xs text-slate-400 mt-0.5">
+                    <code class="font-mono">{{ carga.codigo_evidencia }}</code> ·
+                    {{ carga.fecha_carga|date:"d/m/Y H:i" }} ·
+                    {{ carga.usuario.get_full_name|default:carga.usuario.username }}
+                    {% if carga.validado_por %} · Validado por {{ carga.validado_por.get_full_name|default:carga.validado_por.username }}{% endif %}
+                </p>
+                {% if carga.observaciones_validador %}
+                <p class="text-xs text-amber-600 mt-1 truncate max-w-lg">💬 {{ carga.observaciones_validador }}</p>
+                {% endif %}
+            </div>
+            <div class="shrink-0">
+                <a href="{% url 'indicadores:validacion_revisar_conjunto_datos' carga.id %}"
+                   class="text-emerald-600 hover:text-emerald-800 text-sm font-medium whitespace-nowrap">
+                    {% if carga.estado in 'enviado,en_revision' %}Revisar →{% else %}Ver detalles →{% endif %}
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-slate-400 text-center py-8">No hay conjuntos de datos con los filtros seleccionados.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

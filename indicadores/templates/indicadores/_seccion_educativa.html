@@ -1,0 +1,19 @@
+{% load static %}
+{# Partial para renderizar bloques educativos según tipo #}
+
+{% if seccion.tipo_bloque == 'narrativa_guiada' %}
+    <div class="edu-narrativa">
+        <div class="edu-personaje">
+            <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico" class="edu-avatar">
+            <div class="edu-globo-dialogo">
+                {{ seccion.contenido|safe }}
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <div class="edu-bloque-generico">
+        {{ seccion.contenido|safe }}
+    </div>
+{% endif %}
+

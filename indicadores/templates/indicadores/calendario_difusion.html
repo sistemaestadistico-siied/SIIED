@@ -1,0 +1,259 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Calendario de Difusión Estadística{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Paleta cálida: terracota, ámbar y crema — radicalmente diferente al navy+verde */
+
+    .module-header {
+        background: linear-gradient(to bottom, #faf6f0 0%, #ffffff 100%);
+        border-bottom: 1px solid #e8d5c0;
+        position: relative;
+    }
+    .module-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #d4a03d, transparent);
+    }
+    .stat-box {
+        background: #ffffff;
+        border: 1px solid #e8d5c0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+    .stat-box:hover {
+        border-color: #d4a03d;
+        box-shadow: 0 4px 12px -2px rgba(212, 160, 61, 0.15);
+    }
+    .stat-number {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #3d1f1f;
+        line-height: 1;
+    }
+    .stat-label {
+        font-size: 0.875rem;
+        color: #8a6d5a;
+        margin-top: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .organismo-card {
+        background: #ffffff;
+        border: 1px solid #e8d5c0;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .organismo-card:hover {
+        border-color: #d4a03d;
+        box-shadow: 0 20px 25px -5px rgba(61, 31, 31, 0.05), 0 8px 10px -6px rgba(61, 31, 31, 0.02);
+    }
+    .organismo-header {
+        background: #faf6f0;
+        border-bottom: 1px solid #e8d5c0;
+        padding: 1.25rem 1.5rem;
+    }
+    .producto-row {
+        border-bottom: 1px solid #faf6f0;
+        padding: 1rem 1.5rem;
+    }
+    .producto-row:last-child {
+        border-bottom: none;
+    }
+    .tag-periodicidad {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .tag-mensual     { background: #fff3e0; color: #7a4e1e; }
+    .tag-trimestral  { background: #fce4ec; color: #7a1e3e; }
+    .tag-semestral   { background: #f3e5f5; color: #5a1e7a; }
+    .tag-anual       { background: #e8f5e9; color: #1e5a2e; }
+    .tag-bienal      { background: #e0f7fa; color: #1e5a7a; }
+    .tag-eventual    { background: #fff8e1; color: #7a5a1e; }
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        border: 2px dashed #e8d5c0;
+        border-radius: 12px;
+        color: #8a6d5a;
+    }
+    .breadcrumb-link {
+        color: #a85c32;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.875rem;
+    }
+    .breadcrumb-link:hover {
+        color: #7a3e1e;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="module-header py-12">
+    <div class="container mx-auto px-4 max-w-6xl">
+        <div class="mb-4">
+            <a href="{% url 'indicadores:home' %}" class="breadcrumb-link">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Volver al inicio
+            </a>
+        </div>
+
+        <div class="flex items-start gap-4">
+            <img src="https://i.ibb.co/LX0KCkcJ/Gemini-Generated-Image-16nz8w16nz8w16nz.png"
+                 alt="Calendario de Difusión Estadística"
+                 class="w-16 h-16 object-contain flex-shrink-0 mt-1">
+            <div>
+                <h1 class="text-4xl font-serif font-bold text-[#3d1f1f] mb-2">
+                    Calendario de <span class="text-[#a85c32]">Difusión Estadística</span>
+                </h1>
+                <p class="text-lg text-[#8a6d5a] max-w-3xl">
+                    Programación de publicaciones de productos estadísticos por observatorio y organismo de la Administración Distrital.
+                </p>
+            </div>
+        </div>
+
+        <!-- Estadísticas globales -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_organismos }}</div>
+                <div class="stat-label">Organismos</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_productos }}</div>
+                <div class="stat-label">Productos</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_observatorios }}</div>
+                <div class="stat-label">Observatorios</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ periodicidad_counts|length }}</div>
+                <div class="stat-label">Periodicidades</div>
+            </div>
+        </div>
+
+        <!-- Distribución por periodicidad -->
+        {% if periodicidad_counts %}
+        <div class="flex flex-wrap gap-2 mt-6">
+            {% for per, count in periodicidad_counts.items %}
+                <span class="inline-flex items-center px-3 py-1 bg-white border border-[#e8d5c0] rounded-lg text-sm text-[#3d1f1f]">
+                    <span class="w-2 h-2 rounded-full bg-[#d4a03d] mr-2"></span>
+                    {{ per }}: <strong class="ml-1">{{ count }}</strong>
+                </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container mx-auto px-4 max-w-6xl py-8">
+    {% if organismos_data %}
+        <div class="space-y-6">
+            {% for data in organismos_data %}
+            <div class="organismo-card">
+                <!-- Encabezado del organismo -->
+                <div class="organismo-header">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <div>
+                            <h2 class="text-xl font-serif font-bold text-[#3d1f1f]">
+                                {{ data.organismo.nombre }}
+                            </h2>
+                            {% if data.observatorios %}
+                                <p class="text-sm text-[#8a6d5a] mt-1">
+                                    {% for obs in data.observatorios %}
+                                        <span class="inline-flex items-center gap-1 mr-3">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-[#c4942a]"></span>
+                                            {{ obs }}
+                                        </span>
+                                    {% endfor %}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-flex items-center px-3 py-1 bg-[#faf6f0] border border-[#e8d5c0] rounded-lg text-sm font-semibold text-[#3d1f1f]">
+                                {{ data.productos|length }} producto{{ data.productos|length|pluralize }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de productos -->
+                <div class="divide-y divide-[#faf6f0]">
+                    {% for producto in data.productos %}
+                    <div class="producto-row">
+                        <div class="flex flex-col md:flex-row md:items-start gap-3">
+                            <div class="flex-1">
+                                <p class="font-medium text-[#3d1f1f] text-sm leading-relaxed">
+                                    {{ producto.producto }}
+                                </p>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <span class="tag-periodicidad tag-{{ producto.periodicidad }}">
+                                        {{ producto.get_periodicidad_display }}
+                                    </span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                                                {% if producto.tipo_cifras == 'final' %}bg-[#fff3e0] text-[#a85c32]
+                                                {% else %}bg-[#fce4ec] text-[#7a1e3e]{% endif %}">
+                                        {{ producto.get_tipo_cifras_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="md:w-48 flex-shrink-0 text-sm space-y-1">
+                                {% if producto.fecha_publicacion %}
+                                    <div class="flex items-center gap-1.5 text-[#8a6d5a]">
+                                        <svg class="w-4 h-4 text-[#a85c32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>{{ producto.fecha_publicacion }}</span>
+                                    </div>
+                                {% endif %}
+                                {% if producto.periodo_referencia %}
+                                    <div class="flex items-center gap-1.5 text-[#8a6d5a]">
+                                        <svg class="w-4 h-4 text-[#c4942a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span>Ref: {{ producto.periodo_referencia }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[#faf6f0] flex items-center justify-center">
+                <svg class="w-8 h-8 text-[#c4a882]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-[#3d1f1f] mb-2">No hay productos registrados</h3>
+            <p class="text-[#8a9a8a]">Pronto se agregarán productos al calendario de difusión estadística</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

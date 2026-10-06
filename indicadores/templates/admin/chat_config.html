@@ -1,0 +1,527 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+.config-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.config-header {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+}
+
+.config-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.config-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+.config-section {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.config-section h2 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    color: #333;
+    border-bottom: 2px solid #10b981;
+    padding-bottom: 0.5rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-field label {
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.form-field input[type="number"],
+.form-field input[type="text"] {
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.form-field input:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.form-field input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.help-text {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 0.25rem;
+}
+
+.btn-save {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-left: 1rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+    color: white;
+    text-decoration: none;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 2rem;
+}
+
+
+
+.info-box {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+    color: black;
+}
+
+.info-box i {
+    color: #2196f3;
+    margin-right: 0.5rem;
+}
+
+.current-values {
+    background: #f5f5f5;
+    padding: 1rem;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="config-container">
+    <!-- Breadcrumbs -->
+    <nav style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <a href="{% url 'admin:index' %}" style="color: #10b981; text-decoration: none;">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+        <span style="margin: 0 0.5rem; color: #999;">›</span>
+        <span style="color: #666;">Configuración del Chat</span>
+    </nav>
+
+    <div class="config-header">
+        <h1><i class="fas fa-robot"></i> Configuración del Chat - Don Datico 🦜</h1>
+        <p>Ajusta los parámetros de funcionamiento del agente de inteligencia artificial</p>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="info-box">
+        <i class="fas fa-info-circle"></i>
+        <strong>Nota:</strong> Los cambios se guardan en el archivo <code>chat_config.py</code> automáticamente.
+    </div>
+    
+    <div class="info-box" style="background: #d1ecf1; border-left: 4px solid #0c5460;">
+        <i class="fas fa-server"></i>
+        <strong>Producción:</strong> Si Gunicorn está configurado con <code>--reload</code>, 
+        los cambios se aplicarán automáticamente en unos segundos. 
+        De lo contrario, necesitarás reiniciar el servidor: 
+        <code>sudo systemctl restart gunicorn</code>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="config-section">
+            <h2><i class="fas fa-history"></i> Historial de Conversación</h2>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.MAX_HISTORY_MESSAGES.id_for_label }}">
+                        {{ form.MAX_HISTORY_MESSAGES.label }}
+                    </label>
+                    {{ form.MAX_HISTORY_MESSAGES }}
+                    <span class="help-text">{{ form.MAX_HISTORY_MESSAGES.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.MAX_MESSAGE_LENGTH.id_for_label }}">
+                        {{ form.MAX_MESSAGE_LENGTH.label }}
+                    </label>
+                    {{ form.MAX_MESSAGE_LENGTH }}
+                    <span class="help-text">{{ form.MAX_MESSAGE_LENGTH.help_text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h2><i class="fas fa-tools"></i> Herramientas (Tools)</h2>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.MAX_TOOL_ROUNDS.id_for_label }}">
+                        {{ form.MAX_TOOL_ROUNDS.label }}
+                    </label>
+                    {{ form.MAX_TOOL_ROUNDS }}
+                    <span class="help-text">{{ form.MAX_TOOL_ROUNDS.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.TOOL_TIMEOUT_SECONDS.id_for_label }}">
+                        {{ form.TOOL_TIMEOUT_SECONDS.label }}
+                    </label>
+                    {{ form.TOOL_TIMEOUT_SECONDS }}
+                    <span class="help-text">{{ form.TOOL_TIMEOUT_SECONDS.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.MAX_TOOL_CHAIN_LENGTH.id_for_label }}">
+                        {{ form.MAX_TOOL_CHAIN_LENGTH.label }}
+                    </label>
+                    {{ form.MAX_TOOL_CHAIN_LENGTH }}
+                    <span class="help-text">{{ form.MAX_TOOL_CHAIN_LENGTH.help_text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h2><i class="fas fa-database"></i> Caché y Rendimiento</h2>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.CONTEXT_CACHE_TIMEOUT.id_for_label }}">
+                        {{ form.CONTEXT_CACHE_TIMEOUT.label }}
+                    </label>
+                    {{ form.CONTEXT_CACHE_TIMEOUT }}
+                    <span class="help-text">{{ form.CONTEXT_CACHE_TIMEOUT.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.CONTEXT_CACHE_KEY.id_for_label }}">
+                        {{ form.CONTEXT_CACHE_KEY.label }}
+                    </label>
+                    {{ form.CONTEXT_CACHE_KEY }}
+                    <span class="help-text">{{ form.CONTEXT_CACHE_KEY.help_text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h2><i class="fas fa-server"></i> Gestión de Requests</h2>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.REQUEST_MAX_AGE_MINUTES.id_for_label }}">
+                        {{ form.REQUEST_MAX_AGE_MINUTES.label }}
+                    </label>
+                    {{ form.REQUEST_MAX_AGE_MINUTES }}
+                    <span class="help-text">{{ form.REQUEST_MAX_AGE_MINUTES.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.CLEANUP_MAX_TIME.id_for_label }}">
+                        {{ form.CLEANUP_MAX_TIME.label }}
+                    </label>
+                    {{ form.CLEANUP_MAX_TIME }}
+                    <span class="help-text">{{ form.CLEANUP_MAX_TIME.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.MAX_ACTIVE_SESSIONS.id_for_label }}">
+                        {{ form.MAX_ACTIVE_SESSIONS.label }}
+                    </label>
+                    {{ form.MAX_ACTIVE_SESSIONS }}
+                    <span class="help-text">{{ form.MAX_ACTIVE_SESSIONS.help_text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h2><i class="fas fa-search"></i> Búsqueda y Datos Relevantes</h2>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.MAX_RELEVANT_DATA_LENGTH.id_for_label }}">
+                        {{ form.MAX_RELEVANT_DATA_LENGTH.label }}
+                    </label>
+                    {{ form.MAX_RELEVANT_DATA_LENGTH }}
+                    <span class="help-text">{{ form.MAX_RELEVANT_DATA_LENGTH.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.SEARCH_TOP_K.id_for_label }}">
+                        {{ form.SEARCH_TOP_K.label }}
+                    </label>
+                    {{ form.SEARCH_TOP_K }}
+                    <span class="help-text">{{ form.SEARCH_TOP_K.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.MIN_SIMILARITY_THRESHOLD.id_for_label }}">
+                        {{ form.MIN_SIMILARITY_THRESHOLD.label }}
+                    </label>
+                    {{ form.MIN_SIMILARITY_THRESHOLD }}
+                    <span class="help-text">{{ form.MIN_SIMILARITY_THRESHOLD.help_text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section">
+            <h2><i class="fas fa-brain"></i> Memoria y Contexto</h2>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.ENABLE_CONTEXT_MEMORY.id_for_label }}">
+                        {{ form.ENABLE_CONTEXT_MEMORY }}
+                        {{ form.ENABLE_CONTEXT_MEMORY.label }}
+                    </label>
+                    <span class="help-text">{{ form.ENABLE_CONTEXT_MEMORY.help_text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-section" style="border: 2px solid #10b981; background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));">
+            <h2 style="color: #059669;"><i class="fas fa-robot"></i> API Principal (Cerebras/OpenAI) 🦜</h2>
+            
+            <!-- API Key destacada -->
+            <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-field">
+                        <label for="{{ form.CEREBRAS_API_KEY.id_for_label }}" style="color: #dc2626; font-weight: 700;">
+                            <i class="fas fa-key"></i> {{ form.CEREBRAS_API_KEY.label }}
+                        </label>
+                        {{ form.CEREBRAS_API_KEY }}
+                        <span class="help-text" style="color: #991b1b;">
+                            <i class="fas fa-exclamation-triangle"></i> {{ form.CEREBRAS_API_KEY.help_text }}
+                        </span>
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.CEREBRAS_BASE_URL.id_for_label }}" style="color: #059669; font-weight: 700;">
+                            <i class="fas fa-link"></i> {{ form.CEREBRAS_BASE_URL.label }}
+                        </label>
+                        {{ form.CEREBRAS_BASE_URL }}
+                        <span class="help-text">{{ form.CEREBRAS_BASE_URL.help_text }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.CEREBRAS_MODEL.id_for_label }}">
+                        {{ form.CEREBRAS_MODEL.label }}
+                    </label>
+                    {{ form.CEREBRAS_MODEL }}
+                    <span class="help-text">{{ form.CEREBRAS_MODEL.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.CEREBRAS_MAX_TOKENS.id_for_label }}">
+                        {{ form.CEREBRAS_MAX_TOKENS.label }}
+                    </label>
+                    {{ form.CEREBRAS_MAX_TOKENS }}
+                    <span class="help-text">{{ form.CEREBRAS_MAX_TOKENS.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.CEREBRAS_TEMPERATURE.id_for_label }}">
+                        {{ form.CEREBRAS_TEMPERATURE.label }}
+                    </label>
+                    {{ form.CEREBRAS_TEMPERATURE }}
+                    <span class="help-text">{{ form.CEREBRAS_TEMPERATURE.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.CEREBRAS_TOP_P.id_for_label }}">
+                        {{ form.CEREBRAS_TOP_P.label }}
+                    </label>
+                    {{ form.CEREBRAS_TOP_P }}
+                    <span class="help-text">{{ form.CEREBRAS_TOP_P.help_text }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="config-section" style="border: 2px solid #3b82f6; background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(37, 99, 235, 0.05));">
+            <h2 style="color: #2563eb;"><i class="fas fa-server"></i> API Respaldo (Ollama/LocalAI) 🦙</h2>
+            
+            <!-- Configuración API Respaldo -->
+            <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-field">
+                        <label for="{{ form.OLLAMA_API_KEY.id_for_label }}">
+                            <i class="fas fa-key"></i> {{ form.OLLAMA_API_KEY.label }}
+                        </label>
+                        {{ form.OLLAMA_API_KEY }}
+                        <span class="help-text">{{ form.OLLAMA_API_KEY.help_text }}</span>
+                    </div>
+                    <div class="form-field">
+                        <label for="{{ form.OLLAMA_BASE_URL.id_for_label }}">
+                            <i class="fas fa-network-wired"></i> {{ form.OLLAMA_BASE_URL.label }}
+                        </label>
+                        {{ form.OLLAMA_BASE_URL }}
+                        <span class="help-text">{{ form.OLLAMA_BASE_URL.help_text }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_MODEL.id_for_label }}">
+                        {{ form.OLLAMA_MODEL.label }}
+                    </label>
+                    {{ form.OLLAMA_MODEL }}
+                    <span class="help-text">{{ form.OLLAMA_MODEL.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_MAX_TOKENS.id_for_label }}">
+                        {{ form.OLLAMA_MAX_TOKENS.label }}
+                    </label>
+                    {{ form.OLLAMA_MAX_TOKENS }}
+                    <span class="help-text">{{ form.OLLAMA_MAX_TOKENS.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_TEMPERATURE.id_for_label }}">
+                        {{ form.OLLAMA_TEMPERATURE.label }}
+                    </label>
+                    {{ form.OLLAMA_TEMPERATURE }}
+                    <span class="help-text">{{ form.OLLAMA_TEMPERATURE.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_TOP_P.id_for_label }}">
+                        {{ form.OLLAMA_TOP_P.label }}
+                    </label>
+                    {{ form.OLLAMA_TOP_P }}
+                    <span class="help-text">{{ form.OLLAMA_TOP_P.help_text }}</span>
+                </div>
+            </div>
+            
+            <!-- Configuración avanzada de Ollama -->
+            <h3 style="color: #2563eb; margin-top: 1.5rem; border-top: 1px solid #bfdbfe; padding-top: 1rem;">
+                <i class="fas fa-cogs"></i> Configuración Avanzada de Respaldo
+            </h3>
+            <div class="form-grid">
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_CLIENT_TIMEOUT_SECONDS.id_for_label }}">
+                        {{ form.OLLAMA_CLIENT_TIMEOUT_SECONDS.label }}
+                    </label>
+                    {{ form.OLLAMA_CLIENT_TIMEOUT_SECONDS }}
+                    <span class="help-text">{{ form.OLLAMA_CLIENT_TIMEOUT_SECONDS.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_STREAM_TIMEOUT_SECONDS.id_for_label }}">
+                        {{ form.OLLAMA_STREAM_TIMEOUT_SECONDS.label }}
+                    </label>
+                    {{ form.OLLAMA_STREAM_TIMEOUT_SECONDS }}
+                    <span class="help-text">{{ form.OLLAMA_STREAM_TIMEOUT_SECONDS.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_MAX_CONTEXT_TOKENS.id_for_label }}">
+                        {{ form.OLLAMA_MAX_CONTEXT_TOKENS.label }}
+                    </label>
+                    {{ form.OLLAMA_MAX_CONTEXT_TOKENS }}
+                    <span class="help-text">{{ form.OLLAMA_MAX_CONTEXT_TOKENS.help_text }}</span>
+                </div>
+                <div class="form-field">
+                    <label for="{{ form.OLLAMA_TRUNCATE_MESSAGES_COUNT.id_for_label }}">
+                        {{ form.OLLAMA_TRUNCATE_MESSAGES_COUNT.label }}
+                    </label>
+                    {{ form.OLLAMA_TRUNCATE_MESSAGES_COUNT }}
+                    <span class="help-text">{{ form.OLLAMA_TRUNCATE_MESSAGES_COUNT.help_text }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="submit" class="btn-save">
+                <i class="fas fa-save"></i> Guardar Configuración
+            </button>
+            <a href="{% url 'admin:index' %}" class="btn-cancel">
+                <i class="fas fa-arrow-left"></i> Volver al Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Confirmación antes de salir si hay cambios sin guardar
+let formChanged = false;
+const form = document.querySelector('form');
+const inputs = form.querySelectorAll('input, textarea, select');
+
+inputs.forEach(input => {
+    input.addEventListener('change', () => {
+        formChanged = true;
+    });
+});
+
+// Advertir al usuario si intenta salir sin guardar
+window.addEventListener('beforeunload', (e) => {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = '¿Seguro que quieres salir? Hay cambios sin guardar.';
+        return e.returnValue;
+    }
+});
+
+// Resetear flag al enviar el formulario
+form.addEventListener('submit', () => {
+    formChanged = false;
+});
+</script>
+{% endblock %}

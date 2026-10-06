@@ -1,0 +1,222 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="{% static 'indicadores/css/admin-themes.css' %}?v=2.0">
+  <script>
+    // Aplicar tema INMEDIATAMENTE antes de que se renderice la página
+    (function() {
+      const savedTheme = localStorage.getItem('admin-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      // Limpiar cualquier tema intermedio guardado anteriormente
+      if (savedTheme === 'intermediate') {
+        localStorage.setItem('admin-theme', 'dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <style>
+    /* Light Theme - Capacidad Estadística Style */
+    [data-theme="light"] {
+      --admin-bg: #f8fafc;
+      --admin-bg-soft: #f1f5f9;
+      --admin-panel: #ffffff;
+      --admin-panel-2: #f8fafc;
+      --admin-text: #1e293b;
+      --admin-muted: #64748b;
+      --admin-primary: #0f766e;
+      --admin-primary-2: #115e59;
+      --admin-accent: #14b8a6;
+      --admin-success: #22c55e;
+      --admin-error: #ef4444;
+      --admin-warning: #f59e0b;
+      --admin-border: #e2e8f0;
+      --admin-border-soft: #f1f5f9;
+      --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --admin-hover-bg: rgba(15, 118, 110, 0.05);
+      --logo-invert: 0;
+    }
+
+    /* Dark Theme - Modern Dark */
+    [data-theme="dark"] {
+      --admin-bg: #0f172a;
+      --admin-bg-soft: #1e293b;
+      --admin-panel: #1e293b;
+      --admin-panel-2: #334155;
+      --admin-text: #f1f5f9;
+      --admin-muted: #94a3b8;
+      --admin-primary: #14b8a6;
+      --admin-primary-2: #0d9488;
+      --admin-accent: #2dd4bf;
+      --admin-success: #22c55e;
+      --admin-error: #ef4444;
+      --admin-warning: #f59e0b;
+      --admin-border: #334155;
+      --admin-border-soft: #475569;
+      --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+      --admin-hover-bg: rgba(20, 184, 166, 0.1);
+      --logo-invert: 1;
+    }
+    
+    /* Login Page Styles */
+    .login {
+      background: var(--admin-bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .login .card {
+      background: var(--admin-panel);
+      border: 1px solid var(--admin-border);
+      border-radius: 1.5rem;
+      box-shadow: var(--admin-shadow);
+      overflow: hidden;
+      max-width: 400px;
+      width: 100%;
+    }
+    
+    .login .card-header {
+      background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-2) 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .login .card-body {
+      padding: 2rem;
+    }
+    
+    .login .form-control {
+      background: var(--admin-bg-soft);
+      border: 1px solid var(--admin-border);
+      border-radius: 0.75rem;
+      color: var(--admin-text);
+      padding: 0.75rem 1rem;
+      transition: all 0.2s;
+    }
+    
+    .login .form-control:focus {
+      border-color: var(--admin-primary);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+      outline: none;
+    }
+    
+    .login .btn {
+      border-radius: 0.75rem;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      transition: all 0.2s;
+    }
+    
+    .login .btn-primary {
+      background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-2) 100%);
+      border: none;
+      color: white;
+    }
+    
+    .login .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3);
+    }
+    
+    .login .form-label {
+      color: var(--admin-text);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .login .alert {
+      border-radius: 0.75rem;
+      border: none;
+      padding: 1rem;
+    }
+  </style>
+{% endblock %}
+
+{% block branding %}
+<div style="display: flex; align-items: center; gap: 1rem;">
+  <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; text-decoration: none;">
+    <img src="{% static 'indicadores/images/alcaldia-logo.png' %}" alt="Alcaldía de Santiago de Cali" 
+         style="height: 40px; margin-right: 12px; filter: brightness(0) invert(var(--logo-invert, 0));">
+  </a>
+  <h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+      {{ site_header|default:_('Sistema Integrado de Información Estadística Distrital') }}
+    </a>
+  </h1>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+  {{ block.super }}
+{% endblock %}
+
+{% block footer %}
+  {{ block.super }}
+  <!-- Theme Toggle Button -->
+  <button class="theme-toggle-admin" id="theme-toggle-admin" title="{% trans 'Change theme' %}">
+    <i class="fas fa-moon"></i>
+  </button>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.getElementById('theme-toggle-admin');
+    const html = document.documentElement;
+    const icon = themeToggle.querySelector('i');
+    
+    // Available themes and their icons (solo light y dark)
+    const themes = [
+      { name: 'light', icon: 'fa-sun', label: '{% trans "Light" %}' },
+      { name: 'dark', icon: 'fa-moon', label: '{% trans "Dark" %}' }
+    ];
+    
+    // Load saved theme or default to dark
+    let currentTheme = localStorage.getItem('admin-theme') || 'dark';
+    
+    // Apply theme
+    function applyTheme(themeName) {
+      html.setAttribute('data-theme', themeName);
+      localStorage.setItem('admin-theme', themeName);
+      
+      // Update button icon
+      const theme = themes.find(t => t.name === themeName) || themes[0];
+      icon.className = `fas ${theme.icon}`;
+      themeToggle.setAttribute('aria-label', `${theme.label} theme`);
+      themeToggle.title = `{% trans 'Change theme' %} (${theme.label})`;
+      
+      // If dark theme, ensure dark-specific styles are applied
+      if (themeName === 'dark') {
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+      }
+    }
+    
+    // Cycle through themes on click
+    themeToggle.addEventListener('click', function() {
+      const currentIndex = themes.findIndex(t => t.name === currentTheme);
+      const nextIndex = (currentIndex + 1) % themes.length;
+      currentTheme = themes[nextIndex].name;
+      applyTheme(currentTheme);
+    });
+    
+    // Initialize theme
+    applyTheme(currentTheme);
+    
+    // Add keyboard navigation
+    themeToggle.addEventListener('keydown', function(e) {
+      if (['Enter', ' '].includes(e.key)) {
+        e.preventDefault();
+        this.click();
+      }
+    });
+  });
+  </script>
+{% endblock %}

@@ -1,0 +1,462 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Módulo de Capacidad Estadística{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilo institucional - Transparencia y solidez */
+    
+    .module-header {
+        background: linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%);
+        border-bottom: 1px solid #e2e8f0;
+        position: relative;
+    }
+    
+    .module-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #d97706, transparent);
+    }
+    
+    .logo-container {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        border: 2px solid #d97706;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 10px 40px -10px rgba(15, 23, 42, 0.3);
+    }
+    
+    .stat-box {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+    
+    .stat-box:hover {
+        border-color: #d97706;
+        box-shadow: 0 4px 12px -2px rgba(217, 119, 6, 0.1);
+    }
+    
+    .stat-number {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1;
+    }
+    
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-top: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .organismo-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .organismo-card:hover {
+        border-color: #d97706;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    }
+    
+    .organismo-header {
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1.5rem;
+    }
+    
+    .module-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border: 1px solid;
+    }
+    
+    .tag-ecosistema {
+        background: #f0fdfa;
+        border-color: #14b8a6;
+        color: #0f766e;
+    }
+    
+    .tag-satisfaccion {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #1e40af;
+    }
+    
+    .tag-indicadores {
+        background: #f0fdf4;
+        border-color: #22c55e;
+        color: #166534;
+    }
+    
+    .progress-container {
+        background: #f1f5f9;
+        border-radius: 9999px;
+        height: 6px;
+        overflow: hidden;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        border-radius: 9999px;
+        transition: width 0.6s ease;
+    }
+    
+    .progress-amber {
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+    }
+    
+    .progress-teal {
+        background: linear-gradient(90deg, #14b8a6 0%, #0d9488 100%);
+    }
+    
+    .progress-slate {
+        background: linear-gradient(90deg, #64748b 0%, #475569 100%);
+    }
+    
+    .btn-institutional {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        background: #0f172a;
+        color: #ffffff;
+        font-weight: 500;
+        border-radius: 6px;
+        border: 1px solid #0f172a;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-institutional:hover {
+        background: #1e293b;
+        border-color: #d97706;
+    }
+    
+    .btn-institutional svg {
+        width: 1rem;
+        height: 1rem;
+        transition: transform 0.2s ease;
+    }
+    
+    .btn-institutional:hover svg {
+        transform: translateX(3px);
+    }
+    
+    .section-title {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #0f172a;
+        position: relative;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 2px;
+        background: #d97706;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+    }
+    
+    .rank-number {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #94a3b8;
+        width: 2.5rem;
+        height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #ffffff;
+    }
+    
+    .rank-number.top {
+        color: #d97706;
+        border-color: #d97706;
+        background: #fffbeb;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header Institucional -->
+<div class="module-header py-12">
+    <div class="container mx-auto px-4 max-w-7xl">
+        <div class="flex flex-col lg:flex-row gap-8 items-start">
+            <!-- Logo institucional -->
+            <div class="flex-shrink-0">
+                <div class="logo-container">
+                    <img src="https://i.ibb.co/3yxxzQdZ/Gemini-Generated-Image-wshxxvwshxxvwshx-1.png" 
+                         alt="Módulo de Capacidad Estadística" 
+                         class="w-32 h-32 object-contain">
+                </div>
+
+            </div>
+            
+            <!-- Información del módulo -->
+            <div class="flex-1 space-y-4">
+                <div>
+   
+                    <h1 class="text-4xl font-serif font-bold text-slate-900">
+                        Módulo de Capacidad <span class="text-amber-700">Estadística</span>
+                    </h1>
+                </div>
+                
+                <p class="text-lg text-slate-600 leading-relaxed max-w-3xl">
+                    Transparencia institucional en la gestión estadística. Evaluación integral de capacidades, 
+                    recursos y desempeño de los organismos de la Administración Distrital.
+                </p>
+                
+                <!-- Fuentes de datos -->
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <span class="module-tag tag-ecosistema">
+                        <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                        Ecosistema de Datos
+                    </span>
+                    <span class="module-tag tag-satisfaccion">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        Satisfacción Ciudadana
+                    </span>
+                    <span class="module-tag tag-indicadores">
+                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        Indicadores y Operaciones
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estadísticas Globales -->
+<div class="bg-white border-b border-slate-200">
+    <div class="container mx-auto px-4 max-w-7xl py-8">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_organismos }}</div>
+                <div class="stat-label">Organismos</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_indicadores }}</div>
+                <div class="stat-label">Indicadores</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_equipos }}</div>
+                <div class="stat-label">Equipos</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_sesiones }}</div>
+                <div class="stat-label">Talleres Ecosistema</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{ stats_globales.total_evaluaciones|floatformat:0 }}</div>
+                <div class="stat-label">Evaluaciones Satisfacción</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Listado de Organismos -->
+<div class="container mx-auto px-4 max-w-7xl py-12">
+    <h2 class="section-title">Hojas de Vida Estadìstica de Organismos</h2>
+    
+    {% if organismos %}
+        <div class="space-y-6">
+            {% for organismo in organismos %}
+            <div class="organismo-card">
+                <div class="organismo-header">
+                    <div class="flex items-start gap-4">
+                        <!-- Ranking -->
+                        <div class="rank-number {% if forloop.counter <= 3 %}top{% endif %}">
+                            {{ forloop.counter }}
+                        </div>
+                        
+                        <!-- Info principal -->
+                        <div class="flex-1">
+                            <h3 class="text-xl font-serif font-bold text-slate-900 mb-1">
+                                {{ organismo.nombre }}
+                            </h3>
+                            {% if organismo.descripcion %}
+                                <p class="text-slate-600 text-sm">{{ organismo.descripcion|truncatewords:25 }}</p>
+                            {% endif %}
+                            
+                            <!-- Métricas por módulo -->
+                            <div class="flex flex-wrap gap-4 mt-4 text-sm">
+                                {% if organismo.total_indicadores %}
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                        <span class="text-slate-600">{{ organismo.total_indicadores }} indicadores</span>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if organismo.total_equipos %}
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+                                        <span class="text-slate-600">{{ organismo.total_equipos }} equipos</span>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if organismo.total_sesiones_taller %}
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-teal-500"></span>
+                                        <span class="text-slate-600">{{ organismo.total_sesiones_taller }} talleres</span>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if organismo.total_respuestas_rapidas or organismo.total_respuestas_completas %}
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                        <span class="text-slate-600">{{ organismo.total_respuestas_rapidas|add:organismo.total_respuestas_completas }} evaluaciones</span>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if organismo.ficed %}
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full 
+                                            {% if organismo.ficed.puntaje_global >= 75 %}bg-emerald-500
+                                            {% elif organismo.ficed.puntaje_global >= 60 %}bg-amber-500
+                                            {% else %}bg-red-500{% endif %}">
+                                        </span>
+                                        <span class="text-slate-600 font-medium">
+                                            ICED: {{ organismo.ficed.puntaje_global|floatformat:1 }}/100
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Botón de acción -->
+                        <div class="flex-shrink-0">
+                            <a href="{% url 'indicadores:organismo_detalle' organismo.codigo %}" 
+                               class="btn-institutional">
+                                Ver Hoja de Vida
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Métricas detalladas -->
+                <div class="p-6 bg-white">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <!-- Satisfacción Ciudadana -->
+                        {% if organismo.promedio_satisfaccion %}
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                    Satisfacción Ciudadana
+                                </span>
+                                <span class="text-sm font-bold text-slate-900">{{ organismo.promedio_satisfaccion|floatformat:1 }}/5.0</span>
+                            </div>
+                            <div class="progress-container">
+                                {% widthratio organismo.promedio_satisfaccion|floatformat:0 5 20 as porcentaje_sat %}
+                                <div class="progress-fill progress-slate" style="width: {{ porcentaje_sat }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Índice de Madurez -->
+                        {% if organismo.indice_madurez_ecosistema > 0 %}
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                                    Madurez del Ecosistema
+                                </span>
+                                <span class="text-sm font-bold text-slate-900">{{ organismo.indice_madurez_ecosistema|floatformat:1 }}/100</span>
+                            </div>
+                            <div class="progress-container">
+                                {% widthratio organismo.indice_madurez_ecosistema|floatformat:0 100 100 as porcentaje_mad %}
+                                <div class="progress-fill progress-teal" style="width: {{ porcentaje_mad }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-slate-900 mb-2">No hay organismos registrados</h3>
+            <p class="text-slate-500">Pronto se agregarán organismos al módulo de capacidad estadística</p>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animación sutil de entrada
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.organismo-card');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }, index * 80);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+        
+        cards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(15px)';
+            card.style.transition = 'all 0.4s ease';
+            observer.observe(card);
+        });
+    });
+</script>
+{% endblock %}

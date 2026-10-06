@@ -1,0 +1,323 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block content %}
+
+<!-- Hero Section with Emerald/Teal Theme -->
+<div class="relative bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 overflow-hidden">
+    <!-- Patrón de fondo -->
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\"/%3E%3C/g%3E%3C/svg%3E');"></div>
+    </div>
+
+    <!-- Elementos decorativos flotantes -->
+    <div class="absolute top-8 right-12 w-20 h-20 bg-emerald-500/10 rounded-lg rotate-12 animate-pulse"></div>
+    <div class="absolute bottom-8 left-16 w-16 h-16 bg-teal-400/15 rounded-full animate-bounce"></div>
+    <div class="absolute top-1/3 right-1/4 w-12 h-12 bg-cyan-300/20 rounded-lg rotate-45 animate-ping"></div>
+
+    <div class="relative container mx-auto px-4 py-16">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <!-- Logo y título principal -->
+            <div class="space-y-8">
+                <!-- Logo del inventario -->
+                <div class="flex justify-center lg:justify-start">
+                    <div class="w-80 h-32 flex items-center justify-center bg-white/5 backdrop-blur-sm rounded-2xl border border-emerald-500/20 shadow-2xl overflow-hidden">
+                        <img src="https://i.ibb.co/nKy9qDK/Captura-desde-2026-03-15-14-09-00.png"
+                             alt="Logo Inventario de Operaciones"
+                             class="max-w-full max-h-full object-contain"
+                             loading="lazy">
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <h1 class="text-3xl lg:text-5xl font-bold text-white leading-tight">
+                        Inventario de Operaciones
+                        <span class="block text-emerald-300">Estadísticas del Distrito</span>
+                    </h1>
+
+                    <p class="text-xl text-emerald-50 leading-relaxed">
+                        Accede al catálogo completo de operaciones estadísticas oficiales.
+                        <span class="font-semibold text-white">Explora, filtra y consulta</span>
+                        información detallada sobre metodologías, fuentes y procesos de recolección de datos del Distrito.
+                    </p>
+
+                    <!-- Estadísticas rápidas -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-emerald-50">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                            <span class="font-medium">{{ total }} Operaciones Registradas</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-teal-400 rounded-full animate-pulse"></div>
+                            <span class="font-medium">{{ organismos_data|length }} Organismos</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+                            <span class="font-medium">Datos Verificados</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                            <span class="font-medium">Diccionario de Datos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de búsqueda y filtros -->
+            <div class="space-y-8">
+                <!-- Panel de filtros -->
+                <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-emerald-500/20">
+                    <h3 class="text-2xl font-bold text-emerald-300 mb-6 text-center">Búsqueda y Filtros</h3>
+
+                    <!-- Formulario de filtros -->
+                    <form method="get" class="space-y-4">
+                        <div class="grid grid-cols-1 gap-4">
+                            <!-- Dropdown Organismo -->
+                            <div>
+                                <label class="block text-sm font-medium text-emerald-200 mb-2">Organismo</label>
+                                <select name="organismo" id="organismo-select" class="w-full bg-white/10 border border-emerald-400/30 rounded-lg px-4 py-3 text-white placeholder-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent">
+                                    <option value="" class="text-gray-800">Todos los organismos</option>
+                                    {% for organismo, suborganismos in organismos_data.items %}
+                                        <option value="{{ organismo }}" {% if organismo == organismo_filter %}selected{% endif %} class="text-gray-800">{{ organismo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Dropdown Suborganismo -->
+                            <div>
+                                <label class="block text-sm font-medium text-emerald-200 mb-2">Suborganismo</label>
+                                <select name="suborganismo" id="suborganismo-select" class="w-full bg-white/10 border border-emerald-400/30 rounded-lg px-4 py-3 text-white placeholder-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent">
+                                    <option value="" class="text-gray-800">Todos los suborganismos</option>
+                                    <!-- Las opciones se llenarán dinámicamente -->
+                                </select>
+                            </div>
+
+                            <!-- Buscador -->
+                            <div>
+                                <label class="block text-sm font-medium text-emerald-200 mb-2">Búsqueda</label>
+                                <input type="text" name="q" value="{{ q }}" placeholder="Buscar por nombre, área, tema, SICODE..."
+                                       class="w-full bg-white/10 border border-emerald-400/30 rounded-lg px-4 py-3 text-white placeholder-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent" />
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                            <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-6 py-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                                <i class="fas fa-search mr-2"></i>Aplicar Filtros
+                            </button>
+                            <a href="{% url 'indicadores:inventario_operaciones' %}" class="text-emerald-200 hover:text-white transition-colors duration-300 underline">
+                                Limpiar Filtros
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Línea decorativa inferior -->
+        <div class="mt-12 flex justify-center">
+            <div class="w-48 h-1 bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent rounded-full"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Espaciado -->
+<div class="py-8"></div>
+
+<div class="container mx-auto px-4 pb-8">
+  <!-- Breadcrumb -->
+  <div class="breadcrumb mb-6 text-sm">
+    <a href="{% url 'indicadores:home' %}" class="text-emerald-600 hover:text-emerald-700 hover:underline transition-colors duration-300">Inicio</a>
+    / <span class="text-emerald-800">Inventario de Operaciones Estadísticas</span>
+  </div>
+
+  <!-- Resumen -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+    <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg px-4 py-3 shadow-sm">
+      <div class="text-emerald-800 font-medium">Total registros: <span class="font-bold text-emerald-900">{{ total }}</span></div>
+    </div>
+  </div>
+
+  <!-- Mensaje de orientación para móviles en tablas complejas -->
+  <div class="portrait:block landscape:hidden md:hidden bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center space-x-3">
+      <i class="fas fa-mobile-alt text-emerald-600 text-xl"></i>
+      <div>
+        <h4 class="font-semibold text-emerald-800">Mejor experiencia en horizontal</h4>
+        <p class="text-sm text-emerald-700">Para visualizar todas las columnas de la tabla, rota tu dispositivo a orientación horizontal.</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tabla de operaciones -->
+  <div class="overflow-x-auto bg-white rounded-xl shadow-xl border border-emerald-100">
+    <table class="min-w-full divide-y divide-emerald-100">
+      <thead class="bg-gradient-to-r from-emerald-600 to-teal-600">
+        <tr>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Organismo</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Suborganismo</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[200px]">Nombre</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">Área</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">Tema</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Metodología</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">SICODE</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[80px]">ADDA</th>
+          <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Detalle</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-emerald-50">
+        {% for op in operaciones %}
+        <tr class="hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition-colors duration-200">
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 font-medium">{{ op.organismo|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.suborganismo|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-emerald-700 font-semibold">
+            <a href="{% url 'indicadores:operacion_detalle' op.pk %}" class="hover:text-emerald-800 hover:underline transition-colors duration-300">{{ op.nombre }}</a>
+          </td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.area_tem|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.tema|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.tipo_oe_i|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm">
+            {% if op.sicode %}
+              <span class="inline-flex items-center gap-1 lg:gap-2 px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs">
+                <span class="h-1.5 w-1.5 lg:h-2 lg:w-2 bg-emerald-500 rounded-full animate-pulse"></span>{{ op.sicode }}
+              </span>
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm">
+            {% if op.link_adda %}
+              <a href="{{ op.link_adda }}" class="inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-3 py-1 lg:py-1.5 rounded-lg bg-teal-600 text-white hover:bg-teal-700 transition-colors duration-300 text-xs" target="_blank" rel="noopener">
+                <i class="fas fa-external-link-alt text-xs"></i><span class="hidden lg:inline">Ver</span>
+              </a>
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm">
+            <a href="{% url 'indicadores:operacion_detalle' op.pk %}"
+               class="inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-1 lg:py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-xs">
+              <i class="fas fa-eye text-xs"></i><span class="hidden lg:inline">Ver Detalle</span>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+            <div class="flex flex-col items-center space-y-3">
+              <i class="fas fa-search text-4xl text-emerald-300"></i>
+              <p class="text-lg font-medium">No se encontraron operaciones con los criterios de búsqueda.</p>
+              <p class="text-sm text-gray-400">Intente ajustar los filtros o la búsqueda.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Información adicional si hay muchos resultados -->
+  {% if total > 100 %}
+  <div class="text-center text-emerald-700 mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+    <p class="font-medium">Mostrando todos los {{ total }} registros. Use los filtros para refinar la búsqueda.</p>
+  </div>
+  {% endif %}
+
+
+  <!-- Diccionario de datos -->
+  <div class="mt-12">
+    <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-4">
+      <div class="w-12 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+        <i class="fas fa-book text-white text-xl"></i>
+      </div>
+      Diccionario de datos del inventario
+    </h2>
+    {% if diccionario %}
+    <!-- Mensaje de orientación para diccionario -->
+    <div class="portrait:block landscape:hidden md:hidden bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-4">
+      <div class="flex items-center space-x-3">
+        <i class="fas fa-book text-emerald-600 text-lg"></i>
+        <div>
+          <h5 class="font-semibold text-emerald-800">Diccionario completo</h5>
+          <p class="text-sm text-emerald-700">Rota tu dispositivo para ver todas las descripciones completas.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="overflow-x-auto bg-white rounded-xl shadow-xl border border-emerald-100">
+      <table class="min-w-full divide-y divide-emerald-100">
+        <thead class="bg-gradient-to-r from-emerald-600 to-teal-600">
+          <tr>
+            <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Variable</th>
+            <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[300px]">Descripción</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-emerald-50">
+          {% for item in diccionario %}
+          <tr class="hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition-colors duration-200">
+            <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm font-bold text-emerald-800">{{ item.variable }}</td>
+            <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700 whitespace-pre-line leading-relaxed">{{ item.descripcion }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-8 text-center">
+        <div class="flex flex-col items-center space-y-4">
+          <i class="fas fa-database text-5xl text-emerald-400"></i>
+          <div>
+            <h3 class="text-lg font-semibold text-emerald-800 mb-2">Diccionario no disponible</h3>
+            <p class="text-emerald-700">No se pudo cargar el diccionario de datos.</p>
+            <p class="text-sm text-emerald-600 mt-2">Verifique el archivo <code class="bg-emerald-100 px-2 py-1 rounded text-xs">docs/OOEE_ICED_completa_V3_Andrés_24072025.xlsx - Hoja 2.csv</code></p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const organismoSelect = document.getElementById('organismo-select');
+    const suborganismoSelect = document.getElementById('suborganismo-select');
+
+    // Datos de jerarquía desde el backend
+    const organismosData = {{ organismos_data|safe }};
+
+    // Función para actualizar suborganismos basado en organismo seleccionado
+    function actualizarSuborganismos() {
+        const organismoSeleccionado = organismoSelect.value;
+
+        // Limpiar opciones actuales
+        suborganismoSelect.innerHTML = '<option value="" class="text-gray-800">Todos los suborganismos</option>';
+
+        if (organismoSeleccionado && organismosData[organismoSeleccionado]) {
+            // Agregar suborganismos del organismo seleccionado
+            organismosData[organismoSeleccionado].forEach(suborganismo => {
+                const option = document.createElement('option');
+                option.value = suborganismo;
+                option.textContent = suborganismo;
+                option.className = 'text-gray-800'; // Aplicar clase para texto oscuro
+
+                // Mantener selección si coincide con filtro actual
+                if (suborganismo === '{{ suborganismo_filter }}') {
+                    option.selected = true;
+                }
+
+                suborganismoSelect.appendChild(option);
+            });
+        }
+    }
+
+    // Inicializar suborganismos al cargar la página
+    actualizarSuborganismos();
+
+    // Actualizar suborganismos cuando cambie el organismo
+    organismoSelect.addEventListener('change', function() {
+        suborganismoSelect.value = ''; // Resetear suborganismo
+        actualizarSuborganismos();
+    });
+});
+</script>
+{% endblock %}

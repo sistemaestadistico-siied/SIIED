@@ -1,0 +1,992 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% load chat_filters %}
+
+{% block title %}FICED — {{ current_step_label }} — SIIED{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/iced/iced_widgets.css' %}">
+<style>
+    :root {
+        --iced-primary: #000866;
+        --iced-accent: #d97706;
+        --iced-success: #059669;
+        --iced-bg: #f8fafc;
+        --iced-card: #ffffff;
+        --iced-border: #e2e8f0;
+        --iced-text: #0f172a;
+        --iced-muted: #64748b;
+    }
+
+    .iced-wrapper {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    /* Progress bar */
+    .iced-progress {
+        margin-bottom: 2.5rem;
+    }
+    .iced-progress-bar {
+        background: var(--iced-border);
+        border-radius: 999px;
+        height: 8px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+    }
+    .iced-progress-fill {
+        background: linear-gradient(90deg, var(--iced-primary), var(--iced-accent));
+        height: 100%;
+        border-radius: 999px;
+        transition: width 0.5s ease;
+    }
+    .iced-steps {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .iced-step-pill {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        border: 1px solid var(--iced-border);
+        color: var(--iced-muted);
+        background: white;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+    .iced-step-pill.current {
+        background: var(--iced-primary);
+        color: white;
+        border-color: var(--iced-primary);
+    }
+    .iced-step-pill.done {
+        background: var(--iced-success);
+        color: white;
+        border-color: var(--iced-success);
+    }
+
+    /* Card de formulario */
+    .iced-card {
+        background: var(--iced-card);
+        border: 1px solid var(--iced-border);
+        border-radius: 1rem;
+        padding: 2rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .iced-card-title {
+        font-family: 'Georgia', serif;
+        font-size: 1.75rem;
+        color: var(--iced-primary);
+        margin-bottom: 0.5rem;
+    }
+    .iced-card-subtitle {
+        color: var(--iced-muted);
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--iced-border);
+    }
+
+    /* Form fields */
+    .iced-field {
+        margin-bottom: 1.75rem;
+    }
+    .iced-field > label,
+    .iced-field-label {
+        display: block;
+        font-weight: 600;
+        color: var(--iced-text);
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+    .iced-field .helptext {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--iced-muted);
+        margin-top: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .iced-input,
+    .iced-textarea,
+    .iced-select {
+        width: 100%;
+        padding: 0.65rem 0.9rem;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--iced-text);
+        background: white;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .iced-input:focus,
+    .iced-textarea:focus,
+    .iced-select:focus {
+        outline: none;
+        border-color: var(--iced-primary);
+        box-shadow: 0 0 0 3px rgba(0, 8, 102, 0.1);
+    }
+    .iced-input[readonly] {
+        background: #f1f5f9;
+        color: var(--iced-muted);
+    }
+
+    /* Radio and checkbox */
+    .iced-radio-group,
+    .iced-checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .iced-radio-group label,
+    .iced-checkbox-group label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.6rem 0.9rem;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        transition: all 0.15s ease;
+    }
+    .iced-radio-group label:hover,
+    .iced-checkbox-group label:hover {
+        border-color: var(--iced-primary);
+        background: #f8fafc;
+    }
+    .iced-radio-group input,
+    .iced-checkbox-group input {
+        margin-top: 3px;
+        flex-shrink: 0;
+    }
+
+    /* Conditional fields - el contenedor se oculta/muestra via data-conditional */
+    /* No usar .iced-conditional en campos internos, solo en contenedores */
+
+    /* Campos de porcentaje (P21) - layout horizontal */
+    .iced-percentage-row {
+        display: grid;
+        grid-template-columns: 1fr 100px;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .iced-percentage-row:last-child {
+        border-bottom: none;
+    }
+    .iced-percentage-row .iced-field-label {
+        font-weight: 400;
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    .iced-percentage-row input {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Prevenir desbordamiento del formulario */
+    .iced-card {
+        overflow-x: hidden;
+        max-width: 100%;
+    }
+    
+    /* Widgets condicionales anidados (ej: P10 tabla debajo de radio) */
+    .iced-field[data-conditional] .iced-field-label {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.75rem;
+    }
+    .iced-field[data-conditional] .helptext {
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-bottom: 0.75rem;
+        display: block;
+    }
+    /* Indentación para campos condicionales que siguen a un grupo */
+    .iced-radio-group + .iced-field[data-conditional],
+    .iced-checkbox-group + .iced-field[data-conditional] {
+        margin-top: -0.5rem;
+        margin-left: 1.5rem;
+        padding-left: 1rem;
+        border-left: 3px solid #e2e8f0;
+    }
+    
+    /* Tablas anchas (P23) - scroll horizontal */
+    .iced-widget-table-wrapper {
+        overflow-x: auto;
+        overflow-y: hidden;
+        margin: 1rem 0;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* Forzar visualización de scrollbar */
+    .iced-widget-table-wrapper::-webkit-scrollbar {
+        height: 10px;
+    }
+    .iced-widget-table-wrapper::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 5px;
+    }
+    .iced-widget-table-wrapper::-webkit-scrollbar-thumb {
+        background: #3b82f6;
+        border-radius: 5px;
+    }
+    .iced-widget-table-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #2563eb;
+    }
+    /* Noticia de scroll para tablas anchas */
+    .iced-scroll-notice {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.75rem;
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 0.375rem;
+        font-size: 0.85rem;
+        color: #92400e;
+        font-weight: 500;
+    }
+    .iced-scroll-icon {
+        font-size: 1rem;
+    }
+    .iced-widget-table {
+        min-width: 1400px;
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .iced-widget-table th {
+        background: #f8fafc;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        color: #475569;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: normal;
+        word-wrap: break-word;
+        min-width: 80px;
+        max-width: 200px;
+        text-align: left;
+        line-height: 1.2;
+    }
+    .iced-widget-table td {
+        padding: 0.5rem;
+        border-bottom: 1px solid #f1f5f9;
+        text-align: left;
+    }
+
+    /* Buttons */
+    .iced-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--iced-border);
+        gap: 1rem;
+    }
+    .iced-btn {
+        padding: 0.7rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    .iced-btn-primary {
+        background: var(--iced-primary);
+        color: white;
+    }
+    .iced-btn-primary:hover {
+        background: #000a80;
+        box-shadow: 0 4px 12px rgba(0, 8, 102, 0.3);
+    }
+    .iced-btn-secondary {
+        background: white;
+        color: var(--iced-text);
+        border: 1px solid var(--iced-border);
+    }
+    .iced-btn-secondary:hover {
+        background: #f1f5f9;
+    }
+    .iced-btn-save {
+        background: transparent;
+        color: var(--iced-muted);
+        border: 1px dashed var(--iced-border);
+        font-size: 0.85rem;
+    }
+    .iced-btn-save:hover {
+        color: var(--iced-primary);
+        border-color: var(--iced-primary);
+    }
+
+    /* Error */
+    .iced-field .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 0.25rem 0 0;
+    }
+    .iced-field .errorlist li {
+        color: #dc2626;
+        font-size: 0.85rem;
+    }
+
+    /* JSON table builders */
+    .iced-table-builder {
+        border: 1px solid var(--iced-border);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        background: #fafbfc;
+        margin-top: 0.5rem;
+    }
+    .iced-table-builder table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .iced-table-builder th {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: var(--iced-muted);
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--iced-border);
+        text-align: left;
+    }
+    .iced-table-builder td {
+        padding: 0.4rem;
+    }
+    .iced-table-builder input {
+        width: 100%;
+        padding: 0.4rem 0.6rem;
+        border: 1px solid var(--iced-border);
+        border-radius: 0.35rem;
+        font-size: 0.85rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+        .iced-card { padding: 1.25rem; }
+        .iced-card-title { font-size: 1.35rem; }
+        .iced-steps { gap: 0.35rem; }
+        .iced-step-pill { font-size: 0.65rem; padding: 0.25rem 0.5rem; }
+        .iced-actions { flex-direction: column; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="iced-wrapper">
+    
+    <!-- Header -->
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <p style="font-size: 0.85rem; color: var(--iced-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem;">
+            Formulario de Capacidad Estadística Distrital
+        </p>
+        <h1 style="font-family: Georgia, serif; font-size: 2rem; color: var(--iced-primary); margin: 0;">
+            FICED — Vigencia {{ periodo_actual|default:"2026" }}
+        </h1>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div class="iced-progress">
+        <div class="iced-progress-bar">
+            <div class="iced-progress-fill" style="width: {{ progress_percent }}%;"></div>
+        </div>
+        <div class="iced-steps">
+            {% for step in steps_info %}
+            <span class="iced-step-pill {% if step.is_current %}current{% elif step.is_done %}done{% endif %}">
+                {% if step.is_done %}✓ {% endif %}{{ step.label }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="iced-card">
+        <h2 class="iced-card-title">{{ current_step_label }}</h2>
+        <p class="iced-card-subtitle">
+            Paso {{ current_step_index|add:1 }} de {{ total_steps }}
+            {% if current_step_index == 0 %}
+                — Información básica del organismo y responsable. Este módulo no puntúa.
+            {% elif current_step_index == 1 %}
+                — Marco normativo y estructura organizacional para la información estadística.
+            {% elif current_step_index == 2 %}
+                — Herramientas tecnológicas, recurso humano y recursos financieros.
+            {% elif current_step_index == 3 %}
+                — Operaciones estadísticas, indicadores, analítica y observatorios.
+            {% elif current_step_index == 4 %}
+                — Uso, difusión y satisfacción de usuarios de la información estadística.
+            {% endif %}
+        </p>
+
+        {% if formulario_actual and formulario_actual.estado == 'devuelto' and formulario_actual.observaciones_validador %}
+        <!-- Observaciones del validador (formulario devuelto para corrección) -->
+        <div style="margin-bottom: 1.25rem; padding: 1rem 1.25rem; background: #fffbeb; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 0.5rem;">
+            <p style="margin: 0 0 0.35rem; font-weight: 700; color: #92400e; font-size: 0.9rem;">
+                🔄 Formulario devuelto para corrección
+            </p>
+            <p style="margin: 0; color: #78350f; font-size: 0.875rem; white-space: pre-line;">{{ formulario_actual.observaciones_validador }}</p>
+            <p style="margin: 0.5rem 0 0; color: #92400e; font-size: 0.8rem;">
+                Corrija lo indicado y vuelva a enviar el formulario desde el paso de Revisión y Envío.
+            </p>
+        </div>
+        {% endif %}
+
+        <form method="post" id="iced-form" novalidate>
+            {% csrf_token %}
+            {{ wizard.management_form }}
+
+            {% if wizard.form.errors %}
+            <div class="iced-form-errors-banner" style="background:#fef2f2; border:1px solid #fca5a5; border-left:4px solid #dc2626; color:#b91c1c; padding:0.75rem 1rem; border-radius:0.5rem; margin-bottom:1rem;">
+                <strong>⚠ Hay errores en este paso.</strong> Revise los campos marcados en rojo más abajo para corregirlos antes de continuar.
+            </div>
+            {% endif %}
+            {% if wizard.form.non_field_errors %}
+            <div class="iced-nonfield-errors" style="background:#fef2f2; border:1px solid #fca5a5; border-left:4px solid #dc2626; color:#b91c1c; padding:0.75rem 1rem; border-radius:0.5rem; margin-bottom:1rem;">
+                <ul class="errorlist" style="margin:0; padding-left:1.25rem;">
+                    {% for error in wizard.form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if wizard.steps.current == 'revision' and resumen_revision %}
+            <!-- Resumen de respuestas por paso (solo lectura) -->
+            <div class="iced-revision-resumen" style="margin-bottom: 1.5rem;">
+                <p style="color: var(--iced-muted, #64748b); font-size: 0.9rem; margin-bottom: 1rem;">
+                    Revise el resumen de sus respuestas antes de enviar. Si necesita corregir algo, use el botón «Anterior» para volver al paso correspondiente.
+                </p>
+                {% for paso in resumen_revision %}
+                <details class="iced-revision-paso" style="margin-bottom: 0.5rem; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem 0.75rem;">
+                    <summary style="cursor: pointer; font-weight: 600;">
+                        {{ paso.label }}
+                        <span style="font-weight: 400; color: var(--iced-muted, #64748b); font-size: 0.85rem;">
+                            — {{ paso.total }} respuesta{{ paso.total|pluralize }}
+                        </span>
+                    </summary>
+                    {% if paso.respuestas %}
+                    <dl style="margin: 0.5rem 0 0.25rem; font-size: 0.85rem;">
+                        {% for campo, valor in paso.respuestas.items %}
+                        <div style="display: flex; gap: 0.5rem; padding: 0.15rem 0; border-bottom: 1px dashed #f1f5f9;">
+                            <dt style="min-width: 40%; color: #475569; word-break: break-word;">{{ campo }}</dt>
+                            <dd style="margin: 0; color: #0f172a; word-break: break-word;">{{ valor }}</dd>
+                        </div>
+                        {% endfor %}
+                    </dl>
+                    {% else %}
+                    <p style="margin: 0.5rem 0 0.25rem; font-size: 0.85rem; color: #b45309;">
+                        ⚠ Este paso no tiene respuestas diligenciadas.
+                    </p>
+                    {% endif %}
+                </details>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% for field in wizard.form %}
+                {% with show_if=field.field.widget.attrs|get_item:'data-show-if' %}
+                {# Campos hidden simples SIN label: renderizar solo el input #}
+                {# Campos hidden CON label: pasar al contenedor para mostrar como separador de sección #}
+                {% if field.field.widget.input_type == 'hidden' and not 'iced-json-field' in field.field.widget.attrs.class|default:'' and not field.label %}
+                    {{ field }}
+                {% else %}
+                <div class="iced-field" 
+                     {% if show_if %}
+                     data-conditional="{{ show_if }}"
+                     style="display: none;"
+                     {% endif %}>
+                    
+                    {# Separadores de sección: HiddenInput con label pero sin iced-json-field #}
+                    {% if field.field.widget.input_type == 'hidden' and not 'iced-json-field' in field.field.widget.attrs.class|default:'' and field.label %}
+                        {% if '_intro' in field.name or 'intro' in field.name %}
+                            {# Intro de pregunta: mostrar como label normal #}
+                            <label class="iced-field-label" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: block;">{{ field.label }}</label>
+                        {% else %}
+                            {# Separador de subsección: mostrar como header destacado #}
+                            <h3 class="iced-section-header" style="
+                                background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+                                border-left: 4px solid #3b82f6;
+                                padding: 0.75rem 1rem;
+                                margin: 1.5rem 0 0.5rem 0;
+                                font-size: 1rem;
+                                font-weight: 600;
+                                color: #1e293b;
+                                border-radius: 0 0.375rem 0.375rem 0;
+                            ">{{ field.label }}</h3>
+                            {% if field.help_text %}
+                                <div class="iced-info-block" style="
+                                    background: #f8fafc;
+                                    border-left: 3px solid #94a3b8;
+                                    padding: 0.75rem 1rem;
+                                    margin: 0 0 1rem 0;
+                                    font-size: 0.9rem;
+                                    color: #475569;
+                                    border-radius: 0 0.375rem 0.375rem 0;
+                                    line-height: 1.5;
+                                ">{{ field.help_text|safe }}</div>
+                            {% endif %}
+                        {% endif %}
+                        {{ field }}
+                    {% elif field.field.widget.input_type == 'hidden' and 'iced-json-field' in field.field.widget.attrs.class|default:'' %}
+                        {# JSON fields: render con widget de tabla interactiva #}
+                        {% if show_if %}
+                            {# Widget condicional: estilo compacto/inline #}
+                            <div class="iced-conditional-widget" style="margin-top: 0.75rem; padding: 0.75rem; background: #f8fafc; border-radius: 0.375rem; border-left: 3px solid #3b82f6;">
+                                <label class="iced-field-label" style="font-size: 0.9rem; font-weight: 500; margin-bottom: 0.5rem; display: block;">{{ field.label }}</label>
+                                {% if field.help_text %}
+                                    <span class="helptext" style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem; display: block;">{{ field.help_text|safe }}</span>
+                                {% endif %}
+                        {% else %}
+                            {# Widget normal #}
+                            <label class="iced-field-label">{{ field.label }}</label>
+                            {% if field.help_text %}
+                                <span class="helptext">{{ field.help_text|safe }}</span>
+                            {% endif %}
+                        {% endif %}
+                        {% with widget_type=field.field.widget.attrs|get_item:'data-iced-widget' widget_config=field.field.widget.attrs|get_item:'data-config' %}
+                        {# Advertencia de scroll para tablas anchas #}
+                        {% if widget_type == 'checkbox-tabla' or widget_type == 'tabla-simple' or widget_type == 'tabla-compleja' or widget_type == 'rrhh-tabla' %}
+                        <div class="iced-scroll-notice">
+                            <span class="iced-scroll-icon">↔️</span>
+                            <span>Deslice horizontalmente para ver todas las columnas</span>
+                        </div>
+                        {% endif %}
+                        {% if widget_type %}
+                        <div class="iced-table-builder"
+                             data-iced-widget="{{ widget_type }}"
+                             data-config='{{ widget_config }}'
+                             data-target="{{ field.html_name }}"></div>
+                        {% else %}
+                        <div class="iced-table-builder">
+                            <p style="color: var(--iced-muted); font-size: 0.85rem;">
+                                Utilice la tabla interactiva para completar esta sección.
+                            </p>
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                        {% if show_if %}</div>{% endif %}
+                        {{ field }}
+                    {% elif field.field.widget.input_type == 'radio' %}
+                        <label class="iced-field-label">{{ field.label }}</label>
+                        {% if field.help_text %}
+                            <span class="helptext">{{ field.help_text|safe }}</span>
+                        {% endif %}
+                        <div class="iced-radio-group">
+                            {% for choice in field %}
+                                {{ choice }}
+                            {% endfor %}
+                        </div>
+                    {% elif field.field.widget.input_type == 'checkbox' %}
+                        <label class="iced-field-label">{{ field.label }}</label>
+                        {% if field.help_text %}
+                            <span class="helptext">{{ field.help_text|safe }}</span>
+                        {% endif %}
+                        <div class="iced-checkbox-group">
+                            {% for choice in field %}
+                                {{ choice }}
+                            {% endfor %}
+                        </div>
+                    {% elif field.field.widget.template_name == 'django/forms/widgets/textarea.html' %}
+                        <label for="{{ field.id_for_label }}" class="iced-field-label">{{ field.label }}</label>
+                        {% if field.help_text %}
+                            <span class="helptext">{{ field.help_text|safe }}</span>
+                        {% endif %}
+                        {{ field }}
+                    {% elif field.field.widget.input_type == 'number' %}
+                        {# Campos numéricos (porcentajes) - layout horizontal #}
+                        <div class="iced-percentage-row">
+                            <label for="{{ field.id_for_label }}" class="iced-field-label">{{ field.label }}</label>
+                            {{ field }}
+                        </div>
+                        {% if field.help_text %}
+                            <span class="helptext">{{ field.help_text|safe }}</span>
+                        {% endif %}
+                    {% else %}
+                        <label for="{{ field.id_for_label }}" class="iced-field-label">{{ field.label }}</label>
+                        {% if field.help_text %}
+                            <span class="helptext">{{ field.help_text|safe }}</span>
+                        {% endif %}
+                        {{ field }}
+                    {% endif %}
+                    
+                    {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                {% endif %}  {# endif del if-else de campos hidden #}
+                {% endwith %}
+            {% endfor %}
+
+            <!-- Acciones -->
+            <div class="iced-actions">
+                <div>
+                    {% if wizard.steps.prev %}
+                        <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="iced-btn iced-btn-secondary">
+                            ← Anterior
+                        </button>
+                    {% else %}
+                        <a href="{% url 'indicadores:iced_landing' %}" class="iced-btn iced-btn-secondary">
+                            ← Volver al inicio
+                        </a>
+                    {% endif %}
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button type="button" id="btn-guardar-parcial" class="iced-btn iced-btn-save">
+                        💾 Guardar borrador
+                    </button>
+                    
+                    {% if wizard.steps.next %}
+                        <button type="submit" class="iced-btn iced-btn-primary">
+                            Siguiente →
+                        </button>
+                    {% else %}
+                        <button type="submit" class="iced-btn iced-btn-primary" style="background: var(--iced-success);">
+                            ✓ Enviar formulario
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Estructura MOP real (MacroProceso→Proceso→Subproceso→Procedimiento)
+    // serializada por el backend. Solo se inyecta en el paso 'entorno' (P7).
+    window.MOP_DATA = {% if mop_data_json %}{{ mop_data_json|safe }}{% else %}null{% endif %};
+    // Organismos activos para columnas tipo 'organismo' (P10.2, etc.)
+    window.ORGANISMOS = {% if organismos_json %}{{ organismos_json|safe }}{% else %}[]{% endif %};
+</script>
+<script src="{% static 'indicadores/iced/iced_widgets.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // --- Lógica condicional: mostrar/ocultar campos ---
+    const conditionalFields = document.querySelectorAll('[data-conditional]');
+    console.log('[Conditional] Campos condicionales encontrados:', conditionalFields.length);
+    
+    // Función para evaluar una sola condición (fieldname=val1,val2 o fieldname!=val1,val2)
+    function evaluateSingleCondition(condition) {
+        // Detectar operador de negación !=
+        let isNegation = false;
+        let parts;
+        
+        if (condition.includes('!=')) {
+            isNegation = true;
+            parts = condition.split('!=');
+        } else {
+            parts = condition.split('=');
+        }
+        
+        if (parts.length !== 2) return false;
+        
+        const fieldName = parts[0];
+        const expectedValues = parts[1].split(',');
+        
+        let result = false;
+        
+        // Check radios
+        const radios = document.querySelectorAll('input[name$="' + fieldName + '"][type="radio"]:checked');
+        if (radios.length > 0) {
+            result = expectedValues.includes(radios[0].value);
+        }
+        
+        // Check checkboxes
+        const checkboxes = document.querySelectorAll('input[name$="' + fieldName + '"][type="checkbox"]:checked');
+        if (checkboxes.length > 0) {
+            const checkedValues = Array.from(checkboxes).map(cb => cb.value);
+            result = expectedValues.some(v => checkedValues.includes(v));
+        }
+        
+        // Check checkbox-tabla (JSON field - iced-json-field)
+        const jsonField = document.querySelector('input[name="' + fieldName + '"].iced-json-field, input[name$="' + fieldName + '"].iced-json-field');
+        if (jsonField) {
+            try {
+                const data = JSON.parse(jsonField.value || '{}');
+                result = expectedValues.some(val => {
+                    const option = data[val];
+                    return option && option.seleccion === true;
+                });
+            } catch (e) {
+                result = false;
+            }
+        }
+        
+        // Check select
+        const selects = document.querySelectorAll('select[name$="' + fieldName + '"]');
+        if (selects.length > 0) {
+            result = expectedValues.includes(selects[0].value);
+        }
+        
+        // Aplicar negación si es necesario
+        return isNegation ? !result : result;
+    }
+    
+    function evaluateConditionals() {
+        conditionalFields.forEach(function(field, index) {
+            const condition = field.dataset.conditional;
+            console.log('[Conditional] Evaluando campo', index, 'condición:', condition);
+            
+            // Soporte para múltiples condiciones con AND (separadas por espacio)
+            // Ej: "p27_articulacion=1,2,3 p28_como_articulan=otro" significa: P27 es 1,2,3 Y P28 incluye 'otro'
+            const subConditions = condition.trim().split(/\s+/);
+            console.log('[Conditional] Sub-condiciones:', subConditions);
+            
+            // Evaluar todas las sub-condiciones (operador AND)
+            let allMatch = true;
+            for (const subCondition of subConditions) {
+                if (!evaluateSingleCondition(subCondition)) {
+                    allMatch = false;
+                    break;
+                }
+            }
+            
+            console.log('[Conditional] Todas las condiciones cumplidas:', allMatch);
+            
+            // Un campo con errores de validación NUNCA debe quedar oculto:
+            // si se oculta, el wizard bloquea el avance sin mostrar el motivo.
+            const tieneErrores = field.querySelector('.errorlist') !== null;
+            const mostrar = allMatch || tieneErrores;
+            
+            const wasHidden = field.style.display === 'none';
+            field.style.display = mostrar ? 'block' : 'none';
+            console.log('[Conditional] Nuevo display:', field.style.display);
+            
+            // Si el campo se acaba de mostrar y tiene widget, inicializarlo
+            if (mostrar && wasHidden) {
+                console.log('[Conditional] Campo mostrado, inicializando widgets...');
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('initWidgets', { detail: field }));
+                }, 10);
+            }
+        });
+    }
+    
+    // Event delegation: captura cambios de radios, checkboxes, selects y hidden inputs
+    // incluso los creados dinámicamente por widgets JS
+    document.addEventListener('change', function(e) {
+        const target = e.target;
+        if (
+            target.tagName === 'SELECT' ||
+            (target.tagName === 'INPUT' && ['radio','checkbox','hidden'].includes(target.type))
+        ) {
+            evaluateConditionals();
+        }
+    });
+    
+    evaluateConditionals();
+    
+    // Tras un POST con errores, llevar al usuario al primer campo con error
+    const primerError = document.querySelector('.iced-field .errorlist');
+    if (primerError) {
+        const campoError = primerError.closest('.iced-field');
+        if (campoError) {
+            setTimeout(() => campoError.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+        }
+    }
+    
+    // --- Exclusiva en checkboxes (ej: "Ninguna" limpia las demás) ---
+    const exclusiveOptions = ['ninguna', 'ninguno', 'no_se_incluyen', 'no_participa', 'no_difunde', 'no_realiza', 'no_articulan', 'no_es_necesario'];
+
+    document.addEventListener('change', function(e) {
+        const cb = e.target;
+        if (cb.tagName !== 'INPUT' || cb.type !== 'checkbox') return;
+
+        const name = cb.name;
+        const value = cb.value;
+        const isExclusive = exclusiveOptions.includes(value);
+
+        if (isExclusive && cb.checked) {
+            document.querySelectorAll('input[name="' + name + '"]').forEach(function(other) {
+                if (other.value !== value) {
+                    other.checked = false;
+                    other.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        } else if (!isExclusive && cb.checked) {
+            document.querySelectorAll('input[name="' + name + '"]').forEach(function(other) {
+                if (exclusiveOptions.includes(other.value)) {
+                    other.checked = false;
+                    other.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        }
+    });
+    
+    // --- Función de guardado parcial reutilizable ---
+    function guardarBorrador(silencioso = false) {
+        return new Promise((resolve, reject) => {
+            // Sincronizar todos los widgets JSON antes de guardar
+            document.querySelectorAll('.iced-json-field').forEach(function(field) {
+                field.dispatchEvent(new Event('sync'));
+            });
+
+            // Limpiar valores de campos condicionales que estén ocultos
+            document.querySelectorAll('[data-conditional]').forEach(function(field) {
+                if (field.style.display === 'none') {
+                    field.querySelectorAll('input, select, textarea').forEach(function(input) {
+                        if (input.type === 'checkbox' || input.type === 'radio') {
+                            input.checked = false;
+                        } else if (input.type === 'hidden' && input.classList.contains('iced-json-field')) {
+                            // El JSON vacío debe respetar el tipo del widget:
+                            // [] para listas, {} para mapas. Un '{}' en un widget
+                            // de lista rompe .map/.forEach al re-inicializar.
+                            const widgetsLista = ['tabla-simple', 'tabla-compleja',
+                                'desplegables-multiples', 'rrhh-tabla',
+                                'personas-contacto-inline', 'estructura-mop'];
+                            const wtype = input.dataset.icedWidget || '';
+                            input.value = widgetsLista.includes(wtype) ? '[]' : '{}';
+                        } else {
+                            input.value = '';
+                        }
+                    });
+                }
+            });
+            
+            const formData = new FormData(document.getElementById('iced-form'));
+            const respuestas = {};
+            for (const [key, value] of formData.entries()) {
+                if (key.startsWith('csrfmiddleware') || key.startsWith('iced_wizard_view')) continue;
+                if (respuestas[key]) {
+                    if (!Array.isArray(respuestas[key])) {
+                        respuestas[key] = [respuestas[key]];
+                    }
+                    respuestas[key].push(value);
+                } else {
+                    respuestas[key] = value;
+                }
+            }
+            console.log('[Guardar] Respuestas a enviar:', respuestas);
+            
+            const paso = '{{ wizard.steps.current }}';
+            const formularioId = '{{ formulario_id|default:"" }}';
+            
+            fetch('{% url "indicadores:iced_guardar_parcial" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                },
+                body: JSON.stringify({
+                    paso: paso,
+                    respuestas: respuestas,
+                    formulario_id: formularioId || null,
+                }),
+            })
+            .then(async r => {
+                const data = await r.json();
+                if (!r.ok || !data.ok) {
+                    throw new Error(data.error || data.detail || 'Error desconocido');
+                }
+                return data;
+            })
+            .then(data => {
+                // Actualizar URL sin recargar la página (pushState)
+                if (data.formulario_id && !formularioId) {
+                    const newUrl = window.location.pathname.replace('/nuevo/', '/' + data.formulario_id + '/');
+                    window.history.pushState({formulario_id: data.formulario_id}, '', newUrl);
+                }
+                resolve(data);
+            })
+            .catch(err => {
+                console.error('Error guardando:', err);
+                if (!silencioso) {
+                    alert('Error al guardar: ' + (err.message || 'Error desconocido'));
+                }
+                reject(err);
+            });
+        });
+    }
+    
+    // --- Guardado parcial vía AJAX (botón manual) ---
+    const btnGuardar = document.getElementById('btn-guardar-parcial');
+    if (btnGuardar) {
+        btnGuardar.addEventListener('click', function() {
+            const originalText = btnGuardar.textContent;
+            btnGuardar.textContent = '💾 Guardando...';
+            btnGuardar.disabled = true;
+            
+            guardarBorrador(true)
+                .then(data => {
+                    btnGuardar.textContent = '✓ Guardado (ID: ' + data.formulario_id + ')';
+                    btnGuardar.style.color = 'var(--iced-success)';
+                    btnGuardar.style.borderColor = 'var(--iced-success)';
+                    setTimeout(() => {
+                        btnGuardar.textContent = '💾 Guardar borrador';
+                        btnGuardar.style.color = '';
+                        btnGuardar.style.borderColor = '';
+                        btnGuardar.disabled = false;
+                    }, 2000);
+                })
+                .catch(err => {
+                    btnGuardar.textContent = '✗ Error';
+                    btnGuardar.style.color = '#dc2626';
+                    setTimeout(() => {
+                        btnGuardar.textContent = '💾 Guardar borrador';
+                        btnGuardar.style.color = '';
+                        btnGuardar.disabled = false;
+                    }, 3000);
+                });
+        });
+    }
+    
+    // --- Guardado automático al avanzar (Siguiente/Enviar) ---
+    const form = document.getElementById('iced-form');
+    const btnSiguiente = form.querySelector('button[type="submit"]:not([name])');
+    
+    if (form && btnSiguiente) {
+        form.addEventListener('submit', function(e) {
+            // Solo interceptar si es el botón principal (Siguiente/Enviar)
+            const submitter = e.submitter;
+            if (!submitter || submitter.type !== 'submit' || submitter.name) {
+                return; // Permitir submit normal para otros botones (Anterior)
+            }
+            
+            e.preventDefault();
+
+            // En el último paso (revisión) pedir confirmación explícita de envío
+            const esUltimoPaso = {{ wizard.steps.next|yesno:"false,true" }};
+            if (esUltimoPaso && !confirm('¿Está seguro de enviar el formulario? Una vez enviado no podrá editarlo hasta que sea revisado.')) {
+                return;
+            }
+
+            // Guardar borrador primero
+            guardarBorrador(true)
+                .then(() => {
+                    // Después de guardar, enviar el formulario normalmente
+                    form.submit();
+                })
+                .catch(() => {
+                    // Si falla el guardado, preguntar al usuario si quiere continuar
+                    if (confirm('No se pudo guardar el borrador. ¿Desea continuar de todos modos?')) {
+                        form.submit();
+                    }
+                });
+        });
+    }
+});
+</script>
+{% endblock %}

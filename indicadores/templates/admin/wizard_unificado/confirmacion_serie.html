@@ -1,0 +1,225 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-check-circle"></i>
+      Confirmación Final
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Revisa la configuración:</strong> Verifica que todo esté correcto antes de importar los datos.
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <!-- Resumen de configuración -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-list-check"></i>
+        Resumen de Configuración
+      </h4>
+      
+      <div class="resumen-grid">
+        <!-- Indicador -->
+        <div class="resumen-card">
+          <div class="resumen-header">
+            <i class="fas fa-chart-line"></i>
+            <h5>Indicador</h5>
+          </div>
+          <div class="resumen-content">
+            <div class="resumen-item">
+              <strong>Código:</strong>
+              <span>{{ indicador_config.codigo|default:"N/A" }}</span>
+            </div>
+            <div class="resumen-item">
+              <strong>Nombre:</strong>
+              <span>{{ indicador_config.nombre|default:"N/A" }}</span>
+            </div>
+            <div class="resumen-item">
+              <strong>Subtema:</strong>
+              <span>{{ indicador_config.subtema|default:"N/A" }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Archivo -->
+        <div class="resumen-card">
+          <div class="resumen-header">
+            <i class="fas fa-file-csv"></i>
+            <h5>Archivo de Datos</h5>
+          </div>
+          <div class="resumen-content">
+            <div class="resumen-item">
+              <strong>Archivo:</strong>
+              <span>{{ carga_serie.archivo_datos_xlsx.name }}</span>
+            </div>
+            <div class="resumen-item">
+              <strong>Filas:</strong>
+              <span>{{ filas_count }}</span>
+            </div>
+            <div class="resumen-item">
+              <strong>Columnas:</strong>
+              <span>{{ columnas_count }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mapeo -->
+        <div class="resumen-card">
+          <div class="resumen-header">
+            <i class="fas fa-map-signs"></i>
+            <h5>Mapeo de Columnas</h5>
+          </div>
+          <div class="resumen-content">
+            <div class="resumen-item">
+              <strong>Columna Fecha:</strong>
+              <span>{{ mapeo.columna_fecha|default:"N/A" }}</span>
+            </div>
+            <div class="resumen-item">
+              <strong>Columna Valor:</strong>
+              <span>{{ mapeo.columna_valor|default:"N/A" }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Desagregaciones -->
+        <div class="resumen-card">
+          <div class="resumen-header">
+            <i class="fas fa-tags"></i>
+            <h5>Desagregaciones</h5>
+          </div>
+          <div class="resumen-content">
+            <div class="resumen-item">
+              <strong>Geográficas:</strong>
+              <span>{{ desag_geograficas_count }} detectadas</span>
+            </div>
+            <div class="resumen-item">
+              <strong>Temáticas:</strong>
+              <span>{{ desag_tematicas_count }} detectadas</span>
+            </div>
+            <div class="resumen-item">
+              <strong>Faltantes:</strong>
+              <span>{{ desag_faltantes_count }} se crearán</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Opciones de importación -->
+    <div class="form-section">
+      <h4>
+        <i class="fas fa-cog"></i>
+        Opciones de Importación
+      </h4>
+      
+      <div class="form-group">
+        {{ wizard.form.eliminar_datos_existentes }}
+        <label for="{{ wizard.form.eliminar_datos_existentes.id_for_label }}">
+          {{ wizard.form.eliminar_datos_existentes.label }}
+        </label>
+        {% if wizard.form.eliminar_datos_existentes.help_text %}
+        <span class="helptext">{{ wizard.form.eliminar_datos_existentes.help_text }}</span>
+        {% endif %}
+      </div>
+      
+      <div class="form-group">
+        {{ wizard.form.confirmar_importacion }}
+        <label for="{{ wizard.form.confirmar_importacion.id_for_label }}">
+          {{ wizard.form.confirmar_importacion.label }}
+        </label>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-rocket"></i>
+        Importar Datos
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.resumen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.resumen-card {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.resumen-header {
+  background: var(--wizard-primary);
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.resumen-header i {
+  font-size: 1.25rem;
+}
+
+.resumen-header h5 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.resumen-content {
+  padding: 1.5rem;
+}
+
+.resumen-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.resumen-item:last-child {
+  border-bottom: none;
+}
+
+.resumen-item strong {
+  color: var(--admin-text);
+  font-size: 0.9rem;
+}
+
+.resumen-item span {
+  color: var(--admin-muted);
+  font-size: 0.9rem;
+  text-align: right;
+}
+</style>
+{% endblock %}

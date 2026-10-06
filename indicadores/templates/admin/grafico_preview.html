@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .header {
+            border-bottom: 3px solid #2196f3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 16px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #2196f3;
+        }
+        .info-card h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-card p {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .controls {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .controls h3 {
+            margin: 0 0 15px 0;
+            color: #1976d2;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        .control-group select, .control-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #2196f3;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #1976d2;
+        }
+        .btn-secondary {
+            background: #757575;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #616161;
+        }
+        #grafico-container {
+            min-height: 500px;
+            margin-top: 20px;
+        }
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #666;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #2196f3;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+    {% load static %}
+
+</head>
+<body>
+    <div class="container">
+        <a href="{% url 'admin:indicadores_grafico_change' grafico.id %}" class="back-link">← Volver al Admin</a>
+        
+        <div class="header">
+            <h1>📊 {{ grafico.nombre }}</h1>
+            <p>Indicador: {{ indicador.nombre }}</p>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Tipo de Gráfico</h3>
+                <p>{{ grafico.get_tipo_grafico_display }}</p>
+            </div>
+            <div class="info-card">
+                <h3>Series Configuradas</h3>
+                <p>{{ grafico.series.count }}</p>
+            </div>
+            <div class="info-card">
+                <h3>Datos Disponibles</h3>
+                <p>{{ indicador.datos.count|default:"0" }}</p>
+            </div>
+            <div class="info-card">
+                <h3>Estado</h3>
+                <p>{% if grafico.activo %}✅ Activo{% else %}❌ Inactivo{% endif %}</p>
+            </div>
+        </div>
+
+        {% if grafico.series.count > 0 %}
+        <div class="controls">
+            <h3>🎛️ Controles de Visualización</h3>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                <div class="control-group">
+                    <label for="ano-inicio">Año Inicio:</label>
+                    <input type="number" id="ano-inicio" min="1985" max="2042" value="2020">
+                </div>
+                <div class="control-group">
+                    <label for="ano-fin">Año Fin:</label>
+                    <input type="number" id="ano-fin" min="1985" max="2042" value="2025">
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:15px;">
+                <div class="control-group">
+                    <label for="desag-geo">Desagregaciones Geográficas:</label>
+                    <select id="desag-geo" multiple size="5">
+                        <!-- Se llenarán dinámicamente -->
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="desag-tem">Desagregaciones Temáticas:</label>
+                    <select id="desag-tem" multiple size="5">
+                        <!-- Se llenarán dinámicamente -->
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top:15px; display:flex; gap:10px;">
+                <button class="btn btn-primary" onclick="actualizarGrafico()">🔄 Actualizar Gráfico</button>
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">🗑️ Limpiar Filtros</button>
+            </div>
+        </div>
+
+        <div id="grafico-container">
+            <div class="loading">⏳ Cargando gráfico...</div>
+        </div>
+        {% else %}
+        <div style="background:#ffebee; padding:30px; border-radius:6px; text-align:center; border:2px solid #f44336;">
+            <p style="color:#d32f2f; font-size:18px; margin:0;">
+                ⚠️ <strong>Este gráfico no tiene series configuradas.</strong><br>
+                <small style="color:#666;">Agrega series en el admin para poder visualizar el gráfico.</small>
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        const indicadorId = {{ indicador.id }};
+        const graficoId = {{ grafico.id }};
+
+        // Cargar desagregaciones disponibles
+        async function cargarDesagregaciones() {
+            try {
+                const response = await fetch(`{% url 'indicadores:api_get_desagregaciones' 0 %}`.replace('/0/', `/${indicadorId}/`))
+                
+                const data = await response.json();
+                
+                const selectGeo = document.getElementById('desag-geo');
+                const selectTem = document.getElementById('desag-tem');
+                
+                selectGeo.innerHTML = '';
+                selectTem.innerHTML = '';
+                
+                if (data.desagregaciones_geograficas) {
+                    data.desagregaciones_geograficas.forEach(desag => {
+                        const option = document.createElement('option');
+                        option.value = desag.id;
+                        option.textContent = desag.nombre;
+                        if (desag.predeterminada) option.selected = true;
+                        selectGeo.appendChild(option);
+                    });
+                }
+                
+                if (data.desagregaciones_tematicas) {
+                    data.desagregaciones_tematicas.forEach(desag => {
+                        const option = document.createElement('option');
+                        option.value = desag.id;
+                        option.textContent = desag.nombre;
+                        if (desag.predeterminada) option.selected = true;
+                        selectTem.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando desagregaciones:', error);
+            }
+        }
+
+        // Actualizar gráfico
+        async function actualizarGrafico() {
+            const container = document.getElementById('grafico-container');
+            container.innerHTML = '<div class="loading">⏳ Actualizando gráfico...</div>';
+            
+            try {
+                const anoInicio = document.getElementById('ano-inicio').value;
+                const anoFin = document.getElementById('ano-fin').value;
+                
+                const selectGeo = document.getElementById('desag-geo');
+                const selectTem = document.getElementById('desag-tem');
+                
+                const desagGeo = Array.from(selectGeo.selectedOptions).map(opt => opt.value);
+                const desagTem = Array.from(selectTem.selectedOptions).map(opt => opt.value);
+                
+                // Construir URL con parámetros
+                const params = new URLSearchParams();
+                if (anoInicio) params.append('ano_inicio', anoInicio);
+                if (anoFin) params.append('ano_fin', anoFin);
+                desagGeo.forEach(id => params.append('desagregaciones_geograficas', id));
+                desagTem.forEach(id => params.append('desagregaciones_tematicas', id));
+                
+                const url = `{% url 'indicadores:api_get_graficos' 0 %}`.replace('/0/', `/${indicadorId}/`);
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const graficoData = data.find(g => g.id === graficoId);
+                
+                if (graficoData && graficoData.series && graficoData.series.length > 0) {
+                    container.innerHTML = '<div id="plotly-grafico" style="height:600px;"></div>';
+                    
+                    const layout = {
+                        ...graficoData.layout,
+                        height: 600
+                    };
+                    
+                    const config = {
+                        responsive: true,
+                        displayModeBar: true,
+                        displaylogo: false,
+                        locale: 'es'
+                    };
+                    
+                    Plotly.newPlot('plotly-grafico', graficoData.series, layout, config);
+                } else {
+                    container.innerHTML = '<div style="text-align:center; padding:60px; color:#666;">⚠️ No hay datos disponibles con los filtros seleccionados</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error actualizando gráfico:', error);
+                container.innerHTML = '<div style="text-align:center; padding:60px; color:#f44336;">❌ Error al cargar el gráfico: ' + error.message + '</div>';
+            }
+        }
+
+        // Limpiar filtros
+        function limpiarFiltros() {
+            document.getElementById('ano-inicio').value = '2020';
+            document.getElementById('ano-fin').value = '2025';
+            document.getElementById('desag-geo').selectedIndex = -1;
+            document.getElementById('desag-tem').selectedIndex = -1;
+            actualizarGrafico();
+        }
+
+        // Cargar al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarDesagregaciones().then(() => {
+                actualizarGrafico();
+            });
+        });
+    </script>
+</body>
+</html>

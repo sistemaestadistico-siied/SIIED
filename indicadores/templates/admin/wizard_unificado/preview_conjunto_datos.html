@@ -1,0 +1,403 @@
+{% extends "admin/wizard_unificado/base.html" %}
+{% load i18n static %}
+
+{% block wizard_content %}
+<div class="wizard-form">
+  <div class="form-section">
+    <h3>
+      <i class="fas fa-database"></i>
+      Preview de Conjunto de datos
+    </h3>
+    
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <strong>Vista Previa Interactiva:</strong> Explora el conjunto de datos antes de continuar. 
+      Esta será la base para el procesamiento cartesiano.
+    </div>
+  </div>
+
+  <!-- Estadísticas del archivo -->
+  <div class="form-section">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <i class="fas fa-table"></i>
+        <div class="stat-value">{{ filas_count }}</div>
+        <div class="stat-label">Filas (Registros)</div>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-columns"></i>
+        <div class="stat-value">{{ columnas_count }}</div>
+        <div class="stat-label">Columnas (Variables)</div>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-file"></i>
+        <div class="stat-value">{{ archivo_size }}</div>
+        <div class="stat-label">Tamaño</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Validación Automática de Datos -->
+  <div class="form-section">
+    <button type="button" id="btn-validar-datos" class="btn btn-secondary" style="width: 100%; margin-bottom: 1rem;">
+      <i class="fas fa-stethoscope"></i> Validar Datos del Archivo
+    </button>
+    <div id="panel-validacion" style="display:none;">
+      <div class="validacion-tabs">
+        <button type="button" class="tab-btn active" data-tab="errores">❌ Errores (<span id="count-errores">0</span>)</button>
+        <button type="button" class="tab-btn" data-tab="warnings">⚠️ Warnings (<span id="count-warnings">0</span>)</button>
+        <button type="button" class="tab-btn" data-tab="info">ℹ️ Info (<span id="count-info">0</span>)</button>
+      </div>
+      <div id="validacion-contenido"></div>
+    </div>
+  </div>
+
+  <!-- Botón para abrir preview -->
+  <div class="form-section">
+    <button type="button" id="load-sheet-btn" class="btn btn-primary" style="width: 100%;">
+      <i class="fas fa-database"></i>
+      Ver Preview de Conjunto de datos en Tabla
+    </button>
+  </div>
+
+  <!-- Modal Fullscreen para preview -->
+  <div class="sheet-fullscreen" id="sheet-fullscreen" style="display: none;">
+    <div class="sheet-header">
+      <div class="sheet-title">
+        <span>Preview de Conjunto de datos</span>
+        <span id="sheet-title-name" style="opacity: 0.8; font-weight: normal;">{{ carga_conjunto_datos.archivo_microdata_xlsx.name }}</span>
+      </div>
+      <div class="sheet-actions">
+        <button class="sheet-btn" id="export-excel">
+          <i class="fas fa-file-excel"></i> Exportar Excel
+        </button>
+        <button class="sheet-btn" id="export-csv">
+          <i class="fas fa-file-csv"></i> Exportar CSV
+        </button>
+        <button class="sheet-btn sheet-close" id="sheet-close">
+          <i class="fas fa-times"></i> Cerrar
+        </button>
+      </div>
+    </div>
+    <div class="sheet-content">
+      <div id="univer-container" style="width: 100%; height: 100%;"></div>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ wizard.management_form }}
+    
+    {% if wizard.form.errors %}
+    <div class="error-box">
+      <i class="fas fa-exclamation-triangle"></i>
+      <strong>Hay errores en el formulario:</strong>
+      {{ wizard.form.errors }}
+    </div>
+    {% endif %}
+    
+    <div class="form-section">
+      <div class="form-group">
+        {{ wizard.form.confirmar_preview }}
+        <label for="{{ wizard.form.confirmar_preview.id_for_label }}">
+          {{ wizard.form.confirmar_preview.label }}
+        </label>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="wizard-actions">
+      <button type="submit" name="wizard_goto_step" value="{{ wizard.steps.prev }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i>
+        Anterior
+      </button>
+      
+      <button type="submit" class="btn btn-primary">
+        Siguiente
+        <i class="fas fa-arrow-right"></i>
+      </button>
+    </div>
+  </form>
+</div>
+
+<style>
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--admin-panel-2);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card i {
+  font-size: 2rem;
+  color: var(--wizard-primary);
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--admin-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Fullscreen Modal */
+.sheet-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #ffffff;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+}
+
+.sheet-header {
+  background: linear-gradient(135deg, var(--wizard-primary), var(--wizard-primary-dark));
+  color: white;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sheet-btn {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sheet-btn:hover {
+  background: rgba(255,255,255,0.3);
+  border-color: rgba(255,255,255,0.5);
+}
+
+.sheet-close {
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.3);
+}
+
+.sheet-close:hover {
+  background: rgba(239,68,68,0.3);
+}
+
+.sheet-content {
+  flex: 1;
+  background: #f8fafc;
+  position: relative;
+  overflow: hidden;
+}
+
+#univer-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  const csvData = `{{ csv_data|safe }}`;
+  let dataLoaded = false;
+  
+  const sheetFullscreen = document.getElementById('sheet-fullscreen');
+  const loadSheetBtn = document.getElementById('load-sheet-btn');
+  const sheetCloseBtn = document.getElementById('sheet-close');
+  const container = document.getElementById('univer-container');
+  
+  loadSheetBtn.addEventListener('click', async function() {
+    if (dataLoaded) {
+      sheetFullscreen.style.display = 'flex';
+      return;
+    }
+    
+    container.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; gap: 1rem;">
+        <div class="spinner" style="border: 4px solid #e5e7eb; border-top: 4px solid var(--wizard-primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;"></div>
+        <p style="color: #1f2937;">Cargando conjunto de datos...</p>
+      </div>
+    `;
+    
+    sheetFullscreen.style.display = 'flex';
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    try {
+      const lines = csvData.trim().split('\n');
+      const headers = lines[0].split(',');
+      const rows = lines.slice(1);
+      
+      container.innerHTML = `
+        <div style="width: 100%; height: 100%; display: flex; flex-direction: column; background: white; overflow: hidden;">
+          <div style="padding: 10px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+            <strong>📊 Conjunto de datos</strong> (${rows.length + 1} registros × ${headers.length} variables)
+          </div>
+          <div style="flex: 1; overflow: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+              <thead style="position: sticky; top: 0; background: #f5f5f5; z-index: 10;">
+                <tr>
+                  ${headers.map(h => `<th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-weight: 600;">${h.trim()}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(row => {
+                  const cells = row.split(',');
+                  return `<tr>${cells.map(cell => `<td style="border: 1px solid #ddd; padding: 8px;">${cell.trim()}</td>`).join('')}</tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      
+      dataLoaded = true;
+    } catch (error) {
+      console.error('Error:', error);
+      container.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Error: ${error.message}</div>`;
+    }
+  });
+  
+  sheetCloseBtn.addEventListener('click', function() {
+    sheetFullscreen.style.display = 'none';
+  });
+  
+  const style = document.createElement('style');
+  style.textContent = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+  document.head.appendChild(style);
+  
+  // Exportar a Excel
+  document.getElementById('export-excel').addEventListener('click', function() {
+    const rows = csvData.trim().split('\n').map(row => row.split(','));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, 'Conjunto de datos');
+    XLSX.writeFile(wb, 'conjunto de datos.xlsx');
+  });
+  
+  // Exportar a CSV
+  document.getElementById('export-csv').addEventListener('click', function() {
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'conjunto de datos.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  });
+});
+
+// ========== VALIDACIÓN AUTOMÁTICA DE DATOS ==========
+(function() {
+  const btnValidar = document.getElementById('btn-validar-datos');
+  const panel = document.getElementById('panel-validacion');
+  const contenido = document.getElementById('validacion-contenido');
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+  const cargaId = {{ carga_conjunto_datos.id }};
+  const SEVERIDAD_ICONOS = { error: '❌', warning: '⚠️', info: 'ℹ️' };
+  let resultadoCache = null;
+
+  btnValidar.addEventListener('click', async function() {
+    btnValidar.disabled = true;
+    btnValidar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Validando...';
+    try {
+      const res = await fetch('/api/wizard/validar-datos/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ carga_id: cargaId, tipo_carga: 'conjunto_datos' })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      resultadoCache = data;
+      document.getElementById('count-errores').textContent = data.resumen.total_errores;
+      document.getElementById('count-warnings').textContent = data.resumen.total_warnings;
+      document.getElementById('count-info').textContent = data.resumen.total_info;
+      panel.style.display = 'block';
+      renderTab('errores');
+      document.querySelectorAll('.tab-btn').forEach(tab => {
+        tab.addEventListener('click', function() {
+          document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          renderTab(this.dataset.tab);
+        });
+      });
+    } catch (err) {
+      contenido.innerHTML = `<div class="error-box">Error al validar: ${err.message}</div>`;
+      panel.style.display = 'block';
+    } finally {
+      btnValidar.disabled = false;
+      btnValidar.innerHTML = '<i class="fas fa-stethoscope"></i> Revalidar Datos';
+    }
+  });
+
+  function renderTab(tab) {
+    if (!resultadoCache) return;
+    const items = resultadoCache[tab] || [];
+    if (items.length === 0) {
+      contenido.innerHTML = `<div class="validacion-vacio">No hay ${tab} para mostrar.</div>`;
+      return;
+    }
+    contenido.innerHTML = items.map(p => `
+      <div class="validacion-item validacion-${p.severidad}">
+        <span class="validacion-icono">${SEVERIDAD_ICONOS[p.severidad]}</span>
+        <div class="validacion-mensaje">${p.mensaje}</div>
+      </div>
+    `).join('');
+  }
+})();
+</script>
+
+<style>
+.validacion-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+.tab-btn { padding: 0.4rem 0.8rem; border: 1px solid var(--admin-border); border-radius: 6px; background: var(--admin-panel-2); color: var(--admin-text); cursor: pointer; font-size: 0.875rem; }
+.tab-btn.active { background: var(--admin-primary); color: white; border-color: var(--admin-primary); }
+#validacion-contenido { max-height: 300px; overflow-y: auto; }
+.validacion-item { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.6rem 0.8rem; margin-bottom: 0.4rem; border-radius: 6px; font-size: 0.875rem; }
+.validacion-error { background: rgba(239,68,68,0.08); border-left: 3px solid #ef4444; }
+.validacion-warning { background: rgba(245,158,11,0.08); border-left: 3px solid #f59e0b; }
+.validacion-info { background: rgba(59,130,246,0.08); border-left: 3px solid #3b82f6; }
+.validacion-vacio { padding: 1rem; color: var(--admin-text-secondary); text-align: center; font-size: 0.9rem; }
+</style>
+{% endblock %}

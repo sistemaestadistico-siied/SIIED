@@ -1,0 +1,91 @@
+{% extends "editorial/base_editorial.html" %}
+
+{% block title %}Vista previa: {{ noticia.titulo }} — Editorial{% endblock %}
+
+{% block editorial_content %}
+
+<div class="mb-6 flex items-center justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            <i class="fas fa-eye text-amber-500"></i> Vista Previa
+        </h1>
+        <p class="mt-1 text-slate-500">Así se verá la noticia en el sitio público</p>
+    </div>
+    <div class="flex gap-3">
+        <a href="{% url 'indicadores:editorial_noticias' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-all">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+        <a href="{% url 'indicadores:editorial_noticia_editar' noticia.pk %}" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-all">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+    </div>
+</div>
+
+<!-- Simulación de la noticia como se ve en público -->
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-4xl mx-auto">
+    {% if noticia.imagen_url %}
+    <div class="h-64 md:h-80 w-full">
+        <img src="{{ noticia.imagen_url }}" alt="{{ noticia.titulo }}" class="w-full h-full object-cover">
+    </div>
+    {% endif %}
+
+    <div class="p-6 md:p-10">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full uppercase tracking-wide">Noticia</span>
+            {% if noticia.activa %}
+            <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">Activa</span>
+            {% else %}
+            <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full">Inactiva</span>
+            {% endif %}
+        </div>
+
+        <h1 class="text-3xl md:text-4xl font-bold text-slate-900 mb-2">{{ noticia.titulo }}</h1>
+        {% if noticia.subtitulo %}
+        <p class="text-xl text-slate-500 mb-6">{{ noticia.subtitulo }}</p>
+        {% endif %}
+
+        <p class="text-sm text-slate-400 mb-6">Publicada el {{ noticia.fecha_publicacion|date:"d \d\e F \d\e Y" }}</p>
+
+        {% if noticia.descripcion %}
+        <div class="prose prose-slate max-w-none mb-8">
+            <p class="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap">{{ noticia.descripcion }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Estadísticas -->
+        {% if noticia.estadisticas.exists %}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {% for est in noticia.estadisticas.all|dictsort:"orden" %}
+            <div class="bg-slate-50 rounded-xl p-4 text-center">
+                <div class="text-2xl font-bold text-emerald-600">{{ est.valor }}</div>
+                <div class="text-sm text-slate-600 mt-1">{{ est.titulo }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Enlace principal -->
+        {% if noticia.enlace_principal %}
+        <a href="{{ noticia.enlace_principal }}" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-all shadow-sm mb-6">
+            {{ noticia.texto_enlace_principal|default:"Leer más" }}
+            <i class="fas fa-arrow-right"></i>
+        </a>
+        {% endif %}
+
+        <!-- Enlaces relacionados -->
+        {% if noticia.enlaces.exists %}
+        <div class="border-t border-slate-200 pt-6">
+            <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-4">Enlaces relacionados</h3>
+            <div class="flex flex-wrap gap-3">
+                {% for enlace in noticia.enlaces.all|dictsort:"orden" %}
+                <a href="{{ enlace.url }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all text-sm">
+                    <i class="fas fa-external-link-alt text-slate-400"></i>
+                    {{ enlace.titulo }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
