@@ -1,0 +1,66 @@
+{% extends "taller/wizard_base.html" %}
+{% load static %}
+
+{% block title %}Ficha · {{ fuente.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.ficha-wrap { max-width: 900px; margin: 0 auto; padding: 24px 16px 60px; }
+.ficha-header {
+    background: linear-gradient(135deg, #1a3050, #0a1628);
+    color: #fff; border-radius: 12px; padding: 24px 28px; margin-bottom: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.ficha-header h1 { font-size: 1.6rem; margin: 0 0 6px; }
+.ficha-header .ficha-org { font-size: 0.95rem; opacity: 0.8; }
+.ficha-header .ficha-badge {
+    display: inline-block; background: rgba(111,206,143,0.2); color: #6fce8f;
+    padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; margin-top: 8px;
+}
+.ficha-section {
+    background: #fff; border-radius: 10px; padding: 20px 24px; margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.ficha-section h2 {
+    font-size: 1.05rem; color: #1a3050; margin: 0 0 14px;
+    padding-bottom: 8px; border-bottom: 2px solid #e2e8f0;
+}
+.ficha-row { display: flex; gap: 12px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; }
+.ficha-row:last-child { border-bottom: none; }
+.ficha-label { flex-shrink: 0; width: 220px; font-weight: 600; color: #4a5568; font-size: 0.88rem; }
+.ficha-value { color: #1a202c; font-size: 0.88rem; word-break: break-word; }
+.ficha-back {
+    display: inline-block; margin-bottom: 16px; color: #3182ce; text-decoration: none;
+    font-size: 0.9rem; font-weight: 600;
+}
+.ficha-back:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+    .ficha-row { flex-direction: column; gap: 2px; }
+    .ficha-label { width: auto; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ficha-wrap">
+    <a href="javascript:history.back()" class="ficha-back">← Volver</a>
+
+    <div class="ficha-header">
+        <h1>{{ fuente.nombre }}</h1>
+        <div class="ficha-org">{{ fuente.inscripcion.organismo.nombre }} · {{ fuente.inscripcion.equipo_responsable }}</div>
+        <span class="ficha-badge">Conjunto de datos</span>
+    </div>
+
+    {% for seccion in secciones %}
+    <div class="ficha-section">
+        <h2>{{ seccion.titulo }}</h2>
+        {% for label, value in seccion.items %}
+        <div class="ficha-row">
+            <div class="ficha-label">{{ label }}</div>
+            <div class="ficha-value">{{ value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

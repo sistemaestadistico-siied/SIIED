@@ -1,0 +1,47 @@
+{% extends 'taller/wizard_base.html' %}
+
+{% block title %}Ficha Técnica · Taller{% endblock %}
+
+{% block content %}
+<div class="wizard-wrap">
+    <div class="wizard-card">
+        <div class="wizard-header">
+            <span class="fase-tag">Taller técnico · 15 de septiembre de 2026</span>
+            <h1>Formulario del Taller</h1>
+            <p>Gestión de datos institucionales: caracterización, protección, integración y uso. Diligencie una ficha por fuente de datos y por reto de análisis.</p>
+        </div>
+        <div class="wizard-body">
+            <div class="nota">
+                <strong>Recorrido:</strong> Identificación → F1 Caracterización de datos → F2 Formulación del reto de análisis → F3 Seguridad y privacidad. Algunos organismos pueden iniciar directamente desde F2 si lo prefieren. Su avance se guarda paso a paso y podrá retomarlo si cierra el navegador en este equipo.
+            </div>
+            <div class="fase-pills" style="padding: 0 0 18px;">
+                {% for clave, f in fases.items %}
+                    <div class="fase-pill activa" style="background: {{ f.color }}; border-color: {{ f.borde }};">{{ f.nombre }}</div>
+                {% endfor %}
+            </div>
+            <ul style="display: block;">
+                {% for p in pasos %}
+                    <li style="padding: 4px 0; font-size: 12.5px; font-weight: 600; color: #2d3748;">
+                        {{ forloop.counter }}. {{ p.titulo }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="wizard-nav">
+            {% if inscripcion %}
+                <form method="post">{% csrf_token %}
+                    <button type="submit" name="accion" value="nuevo" class="btn btn-secundario">Comenzar de nuevo</button>
+                </form>
+                <form method="post">{% csrf_token %}
+                    <button type="submit" name="accion" value="continuar" class="btn">Continuar donde iba →</button>
+                </form>
+            {% else %}
+                <span></span>
+                <form method="post">{% csrf_token %}
+                    <button type="submit" name="accion" value="nuevo" class="btn">Comenzar →</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

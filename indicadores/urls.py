@@ -7,12 +7,13 @@ from . import views_monitoring
 from . import views_recoleccion
 from . import views_reportes
 from . import views_satisfaccion
-from . import views_taller
 from . import views_delegado
 from . import views_validacion
 from . import views_iced
 from . import views_educativos
 from . import views_editorial
+from . import views_taller
+from . import views_catalogo
 
 # Custom path converter for organismo codes with accented characters
 class OrganismoCodeConverter:
@@ -270,99 +271,38 @@ urlpatterns = [
     path('admin/satisfaccion/exportar-rapidas-csv/', views_satisfaccion.exportar_respuestas_rapidas_csv, name='exportar_respuestas_rapidas_csv'),
     path('admin/satisfaccion/exportar-completas-csv/', views_satisfaccion.exportar_respuestas_completas_csv, name='exportar_respuestas_completas_csv'),
 
-    # ========================================================================
-    # TALLERES DE IDENTIFICACIÓN DEL ECOSISTEMA DE DATOS
-    # ========================================================================
-    
-    # Participante (sin autenticación, usa token)
-    path('taller/unirse/', views_taller.taller_unirse, name='taller_unirse'),
-    path('taller/api/areas/', views_taller.taller_obtener_areas, name='taller_obtener_areas'),
-    path('taller/participante/', views_taller.taller_participante, name='taller_participante'),
-    path('taller/sesion/<int:sesion_id>/estado/', views_taller.taller_estado_sesion, name='taller_estado_sesion'),
-    path('taller/sesion/<int:sesion_id>/cambiar-actividad/', views_taller.taller_cambiar_actividad, name='taller_cambiar_actividad'),
-    
-    # Pantalla principal (facilitador)
-    path('taller/pantalla/<int:sesion_id>/', views_taller.taller_pantalla_principal, name='taller_pantalla_principal'),
-    path('taller/mapa3d/<int:sesion_id>/', views_taller.taller_mapa_3d, name='taller_mapa_3d'),
-    
-    # Quiz
-    path('taller/api/quiz/preguntas/', views_taller.quiz_preguntas, name='taller_quiz_preguntas'),
-    path('taller/api/quiz/responder/', views_taller.quiz_responder, name='taller_quiz_responder'),
-    path('taller/api/quiz/resultados/<int:sesion_id>/<int:pregunta_id>/', views_taller.quiz_resultados, name='taller_quiz_resultados'),
-    
-    # Roles
-    path('taller/api/roles/familias/', views_taller.roles_familias, name='taller_roles_familias'),
-    path('taller/api/roles/asignar/', views_taller.roles_asignar, name='taller_roles_asignar'),
-    path('taller/api/roles/mural/<int:sesion_id>/', views_taller.roles_mural, name='taller_roles_mural'),
-    
-    # Subsistemas
-    path('taller/api/subsistemas/<int:sesion_id>/', views_taller.subsistemas_listar, name='taller_subsistemas_listar'),
-    path('taller/api/subsistemas/proponer/', views_taller.subsistema_proponer, name='taller_subsistema_proponer'),
-    path('taller/api/subsistemas/<int:sesion_id>/validar/', views_taller.subsistema_validar, name='taller_subsistema_validar'),
-    
-    # Ficha de datos
-    path('taller/api/ficha/guardar/', views_taller.ficha_guardar, name='taller_ficha_guardar'),
-    
-    # Flujos
-    path('taller/api/flujo/registrar/', views_taller.flujo_registrar, name='taller_flujo_registrar'),
-    path('taller/api/flujos/<int:sesion_id>/', views_taller.flujos_sesion, name='taller_flujos_sesion'),
-    
-    # Clasificación
-    path('taller/api/clasificacion/registrar/', views_taller.clasificacion_registrar, name='taller_clasificacion_registrar'),
-    path('taller/api/clasificacion/guardar/', views_taller.clasificacion_guardar, name='taller_clasificacion_guardar'),
-    path('taller/api/clasificaciones/<int:sesion_id>/', views_taller.clasificaciones_sesion, name='taller_clasificaciones_sesion'),
-    
-    # Relaciones entre Datos (Dato → Dato)
-    path('taller/api/relacion-dato/crear/', views_taller.relacion_dato_crear, name='taller_relacion_dato_crear'),
-    path('taller/api/relaciones-dato/<int:sesion_id>/', views_taller.relaciones_dato_sesion, name='taller_relaciones_dato_sesion'),
-    path('taller/api/relacion-dato/<int:sesion_id>/validar/', views_taller.relacion_dato_validar, name='taller_relacion_dato_validar'),
-    path('taller/api/datos-linaje/<int:sesion_id>/', views_taller.api_datos_linaje, name='taller_api_datos_linaje'),
-    
-    # Organismos
-    path('taller/api/organismos/', views_taller.organismos_lista, name='taller_organismos_lista'),
-    
-    # Jerarquía Organizacional (Suborganismos y Equipos)
-    path('taller/api/suborganismos/<int:organismo_id>/', views_taller.api_suborganismos, name='api_suborganismos'),
-    path('taller/api/equipos/suborganismo/<int:suborganismo_id>/', views_taller.api_equipos_suborganismo, name='api_equipos_suborganismo'),
-    path('taller/api/equipos/organismo/<int:organismo_id>/', views_taller.api_equipos_organismo, name='api_equipos_organismo'),
-    
-    # Validación Grupal
-    path('taller/api/validacion/registrar/', views_taller.validacion_registrar, name='taller_validacion_registrar'),
-    path('taller/api/validacion/resumen/<int:sesion_id>/', views_taller.validacion_resumen, name='taller_validacion_resumen'),
-    
-    # Mapa 3D (datos completos)
-    path('taller/api/ecosistema/grafo/<int:sesion_id>/', views_taller.api_ecosistema_grafo, name='taller_ecosistema_grafo'),
-    
-    # Mapa del Dato — Vista centrada en un dato (Torres 2026)
-    path('taller/mapa-dato/<int:dato_id>/', views_taller.taller_mapa_dato, name='taller_mapa_dato'),
-    path('taller/api/dato/grafo/<int:dato_id>/', views_taller.api_dato_grafo, name='taller_dato_grafo'),
-    
-    # Mapa de Ciudad
-    path('taller/mapa-ciudad/', views_taller.taller_mapa_ciudad, name='taller_mapa_ciudad'),
-    path('taller/api/ecosistema/ciudad/', views_taller.ecosistema_grafo_ciudad, name='taller_ecosistema_ciudad'),
-    path('taller/api/ecosistema/ciudad/expandido/', views_taller.ecosistema_ciudad_expandido, name='taller_ecosistema_ciudad_expandido'),
-    
-    # Vista Institucional — Consulta Nivel Estratégico
-    path('ecosistema/', views_taller.ecosistema_institucional_ciudad, name='ecosistema_institucional_ciudad'),
-    path('ecosistema/organismo/<int:sesion_id>/', views_taller.ecosistema_institucional_organismo, name='ecosistema_institucional_organismo'),
-    
-    # Exportación GEXF
-    path('taller/api/ecosistema/grafo/<int:sesion_id>/export/gexf/', views_taller.ecosistema_export_gexf, name='taller_export_gexf'),
-    path('taller/api/ecosistema/ciudad/export/gexf/', views_taller.ecosistema_ciudad_export_gexf, name='taller_ciudad_export_gexf'),
-    path('taller/api/ecosistema/ciudad/expandido/export/gexf/', views_taller.ecosistema_ciudad_expandido_export_gexf, name='taller_ciudad_expandido_export_gexf'),
-    
-    # Datos (Fichas P1 y P2)
-    path('taller/api/datos/<int:sesion_id>/', views_taller.api_datos_ecosistema, name='api_datos_ecosistema'),
-    path('taller/api/datos/<int:sesion_id>/fusionar/', views_taller.api_fusionar_datos, name='api_fusionar_datos'),
-    path('taller/api/datos/<int:sesion_id>/eliminar/<int:dato_id>/', views_taller.api_eliminar_dato, name='api_eliminar_dato'),
+    # ================================================================
+    # TALLER DE ECOSISTEMAS DE DATOS (instrumento F1/F2/F3)
+    # ================================================================
+    path('taller/', views_taller.landing_page, name='taller_landing'),
+    path('taller/cartel/', views_taller.cartel, name='taller_cartel'),
+    path('taller/api/suborganismos/<int:organismo_id>/', views_taller.api_suborganismos, name='taller_api_suborganismos'),
+    path('taller/api/ecosistema/', views_taller.api_ecosistema, name='taller_api_ecosistema'),
+    path('taller/inscripcion/', views_taller.wizard_inicio, name='taller_wizard'),
+    path('taller/inscripcion/paso/<slug:slug>/', views_taller.wizard_paso, name='taller_wizard_paso'),
+    path('taller/inscripcion/confirmacion/', views_taller.wizard_confirmacion, name='taller_wizard_confirmacion'),
+    path('taller/dashboard/', views_taller.dashboard, name='taller_dashboard'),
+    path('taller/dashboard/exportar/', views_taller.dashboard_export, name='taller_dashboard_export'),
+    path('taller/dashboard/exportar-excel/', views_taller.dashboard_export_excel, name='taller_dashboard_export_excel'),
+    path('taller/dashboard/exportar-variables/', views_taller.dashboard_export_variables, name='taller_dashboard_export_variables'),
+    path('taller/dashboard/informe/', views_taller.dashboard_informe, name='taller_dashboard_informe'),
+    path('taller/dashboard/presentacion/', views_taller.presentacion, name='taller_presentacion'),
+    path('taller/dashboard/casos-f2/', views_taller.casos_f2, name='taller_casos_f2'),
+    path('taller/dashboard/casos-f2/excel/', views_taller.casos_f2_excel, name='taller_casos_f2_excel'),
+    path('taller/dashboard/informe-excel/', views_taller.reporte_excel, name='taller_reporte_excel'),
+    path('taller/nubes/<str:nombre>.svg', views_taller.nube_svg, name='taller_nube_svg'),
+    path('taller/ecosistema/', views_taller.ecosistema, name='taller_ecosistema'),
+    path('taller/ecosistema/gexf/', views_taller.ecosistema_gexf, name='taller_ecosistema_gexf'),
+    path('taller/ecosistema/svg/', views_taller.ecosistema_svg, name='taller_ecosistema_svg'),
+    path('taller/ecosistema/metodologia/', views_taller.ecosistema_metodologia, name='taller_ecosistema_metodologia'),
+    path('taller/ecosistema/modelo-datos/', views_taller.modelo_datos, name='taller_modelo_datos'),
 
-    path('taller/api/datos_participante/<int:sesion_id>/', views_taller.api_datos_participante, name='api_datos_participante'),
-
-    # Cierre del taller - Reportes y Exportaciones
-    path('taller/api/clasificaciones/<int:sesion_id>/', views_taller.api_clasificaciones_sesion, name='api_clasificaciones_sesion'),
-    path('taller/api/reporte/<int:sesion_id>/<str:tipo>/', views_taller.generar_reporte_pdf, name='generar_reporte_pdf'),
-    path('taller/api/exportar/<int:sesion_id>/<str:tipo>/', views_taller.exportar_datos_csv, name='exportar_datos_csv'),
-    path('taller/api/exportar/<int:sesion_id>/completo/', views_taller.exportar_completo_zip, name='exportar_completo_zip'),
+    # ================================================================
+    # CATÁLOGO DE DATOS (módulo independiente)
+    # ================================================================
+    path('catalogo/', views_catalogo.catalogo_datos, name='catalogo_datos'),
+    path('catalogo/ficha/<int:fuente_id>/', views_catalogo.ficha_conjunto, name='catalogo_ficha'),
+    path('catalogo/api/fuentes/', views_catalogo.api_fuentes_catalogo, name='catalogo_api_fuentes'),
 
     # ========================================================================
     # PORTAL DEL DELEGADO DE ORGANISMO

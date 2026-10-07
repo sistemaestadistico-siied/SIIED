@@ -1,0 +1,69 @@
+{% extends 'taller/wizard_base.html' %}
+
+{% block title %}Confirmación · Taller Técnico{% endblock %}
+
+{% block content %}
+<div class="wizard-wrap">
+    <div class="wizard-card">
+        <div class="wizard-header">
+            <span class="fase-tag">Último paso</span>
+            <h1>Revisar y enviar</h1>
+            <p>Verifique la información antes de enviar el formulario.</p>
+        </div>
+        <div class="wizard-body">
+            <div class="nota">
+                <strong>Responsable:</strong> {{ inscripcion.nombre_completo }} · {{ inscripcion.correo }}<br>
+                <strong>Organismo:</strong> {{ inscripcion.organismo.nombre }}{% if inscripcion.suborganismo %} · {{ inscripcion.suborganismo.nombre }}{% endif %}<br>
+                <strong>Fuentes de datos (F1):</strong> {{ inscripcion.fuentes.count }} fuente(s)
+                {% if inscripcion.fuentes.all %}
+                    — {% for f in inscripcion.fuentes.all %}{{ f.nombre|default:"(sin nombre)" }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                {% endif %}
+            </div>
+            <ul style="display: block;">
+                {% for p in pasos %}
+                    <li style="padding: 4px 0; font-size: 12.5px; font-weight: 600; color: #2d3748;">
+                        {{ forloop.counter }}. {{ p.titulo }}
+                        — <a href="{% url 'indicadores:taller_wizard_paso' p.slug %}" style="color: #007bb5;">editar</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            {% if ocha %}
+            <div class="ocha-result">
+                <h3>Resultado metodología OCHA – Naciones Unidas</h3>
+                <table class="ocha-table">
+                    <thead>
+                        <tr>
+                            <th>Pregunta / criterio</th>
+                            <th>Respuesta</th>
+                            <th>Regla</th>
+                            <th>Factor de riesgo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in ocha.factores %}
+                        <tr class="{% if f.es_riesgo %}riesgo{% endif %}">
+                            <td>{{ f.pregunta }}</td>
+                            <td>{{ f.respuesta|default:'—' }}</td>
+                            <td>{{ f.regla }}</td>
+                            <td>{% if f.es_riesgo %}SÍ{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="ocha-summary">
+                    <strong>Factores de riesgo identificados: {{ ocha.total_riesgos }} de {{ ocha.total_criterios }}</strong>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="wizard-nav">
+            {% with ultimo=pasos|last %}
+                <a class="btn btn-secundario" href="{% url 'indicadores:taller_wizard_paso' ultimo.slug %}">← Anterior</a>
+            {% endwith %}
+            <form method="post">{% csrf_token %}
+                <button type="submit" class="btn">Enviar formulario ✔</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

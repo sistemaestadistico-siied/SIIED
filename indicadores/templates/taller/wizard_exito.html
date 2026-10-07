@@ -1,0 +1,29 @@
+{% extends 'taller/wizard_base.html' %}
+
+{% block title %}Formulario enviado · Taller Técnico{% endblock %}
+
+{% block content %}
+<div class="wizard-wrap">
+    <div class="wizard-card">
+        <div class="wizard-header" style="background: linear-gradient(135deg, #1a7a3d, #2f9e57);">
+            <span class="fase-tag">Registro exitoso</span>
+            <h1>¡Formulario enviado!</h1>
+            <p>Gracias, {{ inscripcion.nombre_completo }}. Su ficha quedó registrada para el taller.</p>
+        </div>
+        <div class="wizard-body">
+            <div class="nota">
+                <strong>📅 Martes, 15 de septiembre de 2026</strong> · ⏰ 2:00 p.m. a 5:00 p.m.<br>
+                📍 Hotel Aristi, Cra. 9 #10-04, Sala San Francisco<br>
+                💻 <strong>¡Indispensable llevar computador!</strong>
+            </div>
+            <p style="font-size: 13px; color: #2d3748;">
+                Si desea registrar otra fuente de datos u otro reto de análisis, puede diligenciar una nueva ficha.
+            </p>
+        </div>
+        <div class="wizard-nav">
+            <a class="btn btn-secundario" href="{% url 'indicadores:taller_cartel' %}">Ver el cartel</a>
+            <a class="btn" href="{% url 'indicadores:taller_wizard' %}">Diligenciar otra ficha →</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

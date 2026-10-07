@@ -1,3414 +1,2408 @@
-"""
-Vistas para el sistema de talleres de identificación del ecosistema de datos.
-Usa JsonResponse directamente, sin Django REST Framework.
-"""
-import csv
-import json
-import logging
-import random
-import re
-import secrets
-import zipfile
-from datetime import datetime
-from io import BytesIO, StringIO
-from functools import wraps
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_http_methods, require_POST, require_GET
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.clickjacking import xframe_options_exempt, xframe_options_sameorigin
-from django.db.models import Count, Q, Prefetch
-from django.utils import timezone
-from django.core.cache import cache
-from django.core.exceptions import PermissionDenied
-
-# ReportLab imports
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-
-import xml.etree.ElementTree as ET
-
-from .models import (
-    SesionTaller, ParticipanteTaller, FamiliaRol, RolEcosistema,
-    PreguntaQuiz, OpcionQuiz, RespuestaQuiz, FichaDatosPersonal,
-    SubsistemaOrganismo, FlujoDatos, ClasificacionDato, Organismo,
-    DatoEcosistema, ValidacionEcosistema, RelacionDato
-)
-
-
-# ============================================================================
-# CONSTANTES
-# ============================================================================
-
-ACTIVIDADES_VALIDAS = [
-    'espera', 'quiz', 'roles', 'subsistemas', 
-    'ficha_p1', 'flujos', 'ficha_p2', 'mapa3d', 'validacion', 'cierre'
-]
-
-AREAS_COMUNES_PREDEFINIDAS = [
-    'Dirección',
-    'Subdirección de Planeación',
-    'Subdirección de Desarrollo Integral',
-    'Subdirección Administrativa y Financiera',
-    'Oficina de Control Interno',
-    'Oficina Asesora Jurídica',
-    'Oficina de Comunicaciones',
-    'Oficina de Sistemas',
-    'Secretaría General',
-    'Área Técnica',
-    'Área Operativa',
-    'Área Misional',
-]
-
-# Logger del módulo
-logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# DECORADORES DE SEGURIDAD
-# ============================================================================
-
-def requiere_facilitador(view_func):
-    """
-    Decorador que verifica que el request provenga del facilitador de la sesión.
-    Usa el header X-Facilitador-Token o verifica la sesión del request.
-    """
-    @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
-        # Obtener sesion_id de kwargs o del request
-        sesion_id = kwargs.get('sesion_id')
-        if not sesion_id and request.method == 'POST':
-            try:
-                data = json.loads(request.body)
-                sesion_id = data.get('sesion_id')
-            except:
-                pass
-        
-        if not sesion_id:
-            return JsonResponse({'error': 'Sesión no especificada'}, status=400)
-        
-        # Verificar token de facilitador en header
-        facilitador_token = request.headers.get('X-Facilitador-Token')
-        if not facilitador_token:
-            return JsonResponse({'error': 'Token de facilitador requerido'}, status=403)
-        
-        try:
-            sesion = SesionTaller.objects.get(id=sesion_id)
-            # El código de acceso de la sesión actúa como token de facilitador
-            if facilitador_token != sesion.codigo_acceso:
-                return JsonResponse({'error': 'Token de facilitador inválido'}, status=403)
-        except SesionTaller.DoesNotExist:
-            return JsonResponse({'error': 'Sesión no encontrada'}, status=404)
-        
-        return view_func(request, *args, **kwargs)
-    return _wrapped_view
-
-
-def requiere_participante_activo(view_func):
-    """
-    Decorador que verifica que el participante tenga un token válido y esté activo.
-    Extrae el token del body JSON.
-    """
-    @wraps(view_func)
-    def _wrapped_view(request, *args, **kwargs):
-        try:
-            data = json.loads(request.body)
-            token = data.get('token')
-        except (json.JSONDecodeError, AttributeError):
-            logger.warning(f"Token no encontrado en body JSON - {view_func.__name__}")
-            return JsonResponse({'error': 'Token requerido en body JSON'}, status=400)
-        
-        if not token:
-            logger.warning(f"Token vacío en body JSON - {view_func.__name__}")
-            return JsonResponse({'error': 'Token de participante requerido'}, status=400)
-        
-        # Buscar participante por token
-        try:
-            participante = ParticipanteTaller.objects.get(token_sesion=token)
-        except ParticipanteTaller.DoesNotExist:
-            logger.warning(f"Token no encontrado en BD: {token[:20]}... - {view_func.__name__}")
-            return JsonResponse({
-                'error': 'Token inválido',
-                'debug': f'Token recibido: {token[:20]}...'
-            }, status=403)
-        
-        # Verificar que esté activo (presente)
-        if not participante.presente:
-            logger.warning(f"Participante {participante.id} no está activo (presente=False) - {view_func.__name__}")
-            return JsonResponse({
-                'error': 'Participante no activo',
-                'participante_id': participante.id
-            }, status=403)
-        
-        # Adjuntar participante al request para uso posterior
-        request.participante = participante
-        logger.info(f"Participante {participante.id} ({participante.nombre_completo}) autenticado - {view_func.__name__}")
-        
-        return view_func(request, *args, **kwargs)
-    return _wrapped_view
-
-
-def rate_limit_polling(max_requests=20, window_seconds=60):
-    """
-    Decorador de rate limiting para endpoints de polling.
-    Limita a max_requests por window_seconds por IP.
-    """
-    def decorator(view_func):
-        @wraps(view_func)
-        def _wrapped_view(request, *args, **kwargs):
-            # Obtener IP del cliente
-            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-            if x_forwarded_for:
-                ip = x_forwarded_for.split(',')[0]
-            else:
-                ip = request.META.get('REMOTE_ADDR')
-            
-            # Crear cache key
-            cache_key = f'rate_limit_polling_{ip}_{view_func.__name__}'
-            
-            # Obtener contador actual
-            request_count = cache.get(cache_key, 0)
-            
-            if request_count >= max_requests:
-                logger.warning(f"Rate limit exceeded for IP {ip} on {view_func.__name__}")
-                return JsonResponse({
-                    'error': 'Demasiadas solicitudes. Por favor espera un momento.',
-                    'retry_after': window_seconds
-                }, status=429)
-            
-            # Incrementar contador
-            cache.set(cache_key, request_count + 1, window_seconds)
-            
-            return view_func(request, *args, **kwargs)
-        return _wrapped_view
-    return decorator
-
-
-# ============================================================================
-# VISTAS DE PARTICIPANTE (autenticación por token de sesión)
-# ============================================================================
-
-@require_GET
-def taller_obtener_areas(request):
-    """
-    Obtiene las áreas/dependencias disponibles para un código de sesión.
-    """
-    codigo = request.GET.get('codigo', '').strip().upper()
-    
-    if not codigo:
-        return JsonResponse({'error': 'Falta código'}, status=400)
-    
-    try:
-        sesion = SesionTaller.objects.select_related('organismo').get(codigo_acceso=codigo)
-    except SesionTaller.DoesNotExist:
-        return JsonResponse({'error': 'Código inválido'}, status=404)
-    
-    # Obtener áreas únicas de participantes previos de este organismo
-    areas_previas = ParticipanteTaller.objects.filter(
-        sesion__organismo=sesion.organismo
-    ).values_list('area_funcional', flat=True).distinct().order_by('area_funcional')
-    
-    # Combinar y eliminar duplicados
-    todas_areas = list(set(list(areas_previas) + AREAS_COMUNES_PREDEFINIDAS))
-    todas_areas.sort()
-    
-    return JsonResponse({
-        'success': True,
-        'organismo': sesion.organismo.nombre,
-        'organismo_id': sesion.organismo.id,
-        'areas': todas_areas
-    })
-
-
-@csrf_exempt
-def taller_unirse(request):
-    """
-    Página para que participantes se unan a una sesión con código de acceso.
-    GET: muestra formulario
-    POST: registra participante y genera token
-    
-    NOTA: Este endpoint requiere @csrf_exempt porque es el punto de entrada
-    público donde los participantes se registran. Se valida con código de sesión.
-    """
-    if request.method == 'GET':
-        return render(request, 'indicadores/taller/unirse.html')
-    
-    # POST: registrar participante
-    codigo = request.POST.get('codigo_acceso', '').strip().upper()
-    
-    # Datos personales completos
-    primer_nombre = request.POST.get('primer_nombre', '').strip()
-    segundo_nombre = request.POST.get('segundo_nombre', '').strip()
-    primer_apellido = request.POST.get('primer_apellido', '').strip()
-    segundo_apellido = request.POST.get('segundo_apellido', '').strip()
-    email = request.POST.get('email', '').strip()
-    numero_contacto = request.POST.get('numero_contacto', '').strip()
-    
-    # Generar nombre completo
-    nombre_completo = request.POST.get('nombre_completo', '').strip()
-    if not nombre_completo:
-        nombre_completo = f"{primer_nombre} {segundo_nombre} {primer_apellido} {segundo_apellido}".replace('  ', ' ').strip()
-    
-    cargo = request.POST.get('cargo', '').strip()
-    tipo_vinculacion = request.POST.get('tipo_vinculacion', '').strip()
-    
-    # Jerarquía organizacional (suborganismo OBLIGATORIO, equipo opcional)
-    suborganismo_id = request.POST.get('suborganismo_id', '').strip()
-    equipo_id = request.POST.get('equipo_id', '').strip()
-    
-    # Autorización de datos personales
-    autoriza = request.POST.get('autoriza_datos_personales', '').lower() == 'true'
-    
-    # Debug logging
-    import logging
-    logger = logging.getLogger(__name__)
-    logger.info(f"Registro taller - codigo: {codigo}, nombre: {primer_nombre} {primer_apellido}, suborganismo_id: {suborganismo_id}, equipo_id: {equipo_id}")
-    
-    if not all([codigo, primer_nombre, primer_apellido, tipo_vinculacion, suborganismo_id]):
-        logger.warning(f"Faltan datos - codigo: {bool(codigo)}, nombre: {bool(primer_nombre)}, apellido: {bool(primer_apellido)}, tipo_vinc: {bool(tipo_vinculacion)}, suborganismo: {bool(suborganismo_id)}")
-        return JsonResponse({
-            'error': 'Faltan datos requeridos (código, nombres, tipo de vinculación, subdirección)'
-        }, status=400)
-    
-    if not autoriza:
-        return JsonResponse({
-            'error': 'Debes autorizar el tratamiento de datos personales para continuar'
-        }, status=400)
-    
-    try:
-        sesion = SesionTaller.objects.get(codigo_acceso=codigo)
-    except SesionTaller.DoesNotExist:
-        return JsonResponse({
-            'error': 'Código de acceso inválido'
-        }, status=404)
-    
-    if sesion.estado not in ['preparacion', 'activa']:
-        return JsonResponse({
-            'error': 'Esta sesión ya finalizó'
-        }, status=400)
-    
-    # Generar token único
-    token = secrets.token_urlsafe(48)
-    
-    # Crear participante con datos completos
-    participante = ParticipanteTaller.objects.create(
-        sesion=sesion,
-        primer_nombre=primer_nombre,
-        segundo_nombre=segundo_nombre,
-        primer_apellido=primer_apellido,
-        segundo_apellido=segundo_apellido,
-        nombre_completo=nombre_completo,
-        email=email,
-        numero_contacto=numero_contacto,
-        cargo=cargo,
-        area_funcional='',  # Ya no se usa - usar jerarquía estructurada
-        tipo_vinculacion=tipo_vinculacion,
-        suborganismo_id=suborganismo_id if suborganismo_id else None,
-        equipo_id=equipo_id if equipo_id else None,
-        autoriza_datos_personales=autoriza,
-        fecha_autorizacion=timezone.now() if autoriza else None,
-        token_sesion=token,
-        presente=True
-    )
-    
-    # Crear respuesta con cookies HttpOnly para seguridad
-    response = JsonResponse({
-        'success': True,
-        'participante_id': participante.id,
-        'sesion_id': sesion.id,
-        'organismo': sesion.organismo.nombre,
-        'actividad_actual': sesion.actividad_actual
-    })
-    
-    # Configurar cookies HttpOnly (más seguro que localStorage)
-    response.set_cookie(
-        'taller_token',
-        value=token,
-        max_age=86400,  # 24 horas
-        httponly=True,  # No accesible desde JavaScript
-        secure=False,  # TODO: Cambiar a True en producción con HTTPS
-        samesite='Lax'  # Protección CSRF
-    )
-    
-    response.set_cookie(
-        'taller_sesion_id',
-        value=str(sesion.id),
-        max_age=86400,
-        httponly=False,  # Necesario para JavaScript
-        secure=False,
-        samesite='Lax'
-    )
-    
-    response.set_cookie(
-        'taller_participante_id',
-        value=str(participante.id),
-        max_age=86400,
-        httponly=False,
-        secure=False,
-        samesite='Lax'
-    )
-    
-    return response
-
-
-@require_GET
-@rate_limit_polling(max_requests=60, window_seconds=60)
-def taller_estado_sesion(request, sesion_id):
-    """
-    Retorna el estado actual de la sesión (actividad, participantes, etc).
-    Usado por el frontend para polling cada 3 segundos.
-    Rate limited: 60 requests por minuto por IP (permite polling cada 1 segundo).
-    """
-    cache_key = f'sesion_estado_{sesion_id}'
-    datos = cache.get(cache_key)
-    if datos is None:
-        sesion = get_object_or_404(SesionTaller, id=sesion_id)
-        datos = {
-            'sesion_id': sesion.id,
-            'estado': sesion.estado,
-            'actividad_actual': sesion.actividad_actual,
-            'num_participantes': sesion.participantes.filter(presente=True).count()
-        }
-        cache.set(cache_key, datos, timeout=3)
-    return JsonResponse(datos)
-
-
-@csrf_exempt
-@require_POST
-def taller_cambiar_actividad(request, sesion_id):
-    """
-    Cambia la actividad actual de la sesión.
-    Usado por el facilitador desde la pantalla principal.
-    REQUIERE: Header X-Facilitador-Token con el código de la sesión.
-    """
-    # Verificar token de facilitador
-    facilitador_token = request.headers.get('X-Facilitador-Token')
-    if not facilitador_token:
-        return JsonResponse({'error': 'Token de facilitador requerido'}, status=403)
-    
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    # Validar que el token coincida con el código de la sesión
-    if facilitador_token != sesion.codigo_acceso:
-        return JsonResponse({'error': 'Token de facilitador inválido'}, status=403)
-    
-    try:
-        data = json.loads(request.body)
-        nueva_actividad = data.get('actividad')
-        
-        if not nueva_actividad:
-            return JsonResponse({'error': 'Falta actividad'}, status=400)
-        
-        # Validar que la actividad sea válida usando constante
-        if nueva_actividad not in ACTIVIDADES_VALIDAS:
-            return JsonResponse({'error': 'Actividad inválida'}, status=400)
-        
-        # Actualizar la actividad
-        sesion.actividad_actual = nueva_actividad
-        sesion.save()
-        cache.delete(f'sesion_estado_{sesion_id}')
-        
-        return JsonResponse({
-            'success': True,
-            'actividad_actual': sesion.actividad_actual
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-
-
-# ============================================================================
-# QUIZ INTERACTIVO
-# ============================================================================
-
-@require_GET
-def quiz_preguntas(request):
-    """Lista todas las preguntas activas del quiz con sus opciones."""
-    preguntas = PreguntaQuiz.objects.filter(activa=True).prefetch_related('opciones').order_by('orden', 'numero')
-    
-    data = []
-    for p in preguntas:
-        data.append({
-            'id': p.id,
-            'numero': p.numero,
-            'texto': p.texto,
-            'tipo': p.tipo,
-            'opciones': [
-                {
-                    'id': o.id,
-                    'letra': o.letra,
-                    'texto': o.texto
-                }
-                for o in p.opciones.all().order_by('orden')
-            ]
-        })
-    
-    return JsonResponse(data, safe=False)
-
-
-@require_POST
-@requiere_participante_activo
-def quiz_responder(request):
-    """
-    Registra la respuesta de un participante a una pregunta del quiz.
-    Body: {token, pregunta_id, opcion_id}
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-    
-    pregunta_id = data.get('pregunta_id')
-    opcion_id = data.get('opcion_id')
-    
-    if not all([pregunta_id, opcion_id]):
-        return JsonResponse({'error': 'Faltan parámetros (pregunta_id, opcion_id)'}, status=400)
-    
-    try:
-        participante = request.participante
-        pregunta = PreguntaQuiz.objects.get(id=pregunta_id)
-        opcion = OpcionQuiz.objects.get(id=opcion_id, pregunta=pregunta)
-    except (PreguntaQuiz.DoesNotExist, OpcionQuiz.DoesNotExist):
-        return JsonResponse({'error': 'Datos inválidos'}, status=404)
-    
-    # Crear o actualizar respuesta
-    RespuestaQuiz.objects.update_or_create(
-        participante=participante,
-        pregunta=pregunta,
-        defaults={'opcion_seleccionada': opcion}
-    )
-    
-    return JsonResponse({'success': True})
-
-
-@require_GET
-def quiz_resultados(request, sesion_id, pregunta_id):
-    """
-    Obtiene los resultados en tiempo real de una pregunta para una sesión.
-    Usado por la pantalla de proyección.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    pregunta = get_object_or_404(PreguntaQuiz, id=pregunta_id)
-    
-    # Contar respuestas por opción
-    participantes_ids = sesion.participantes.filter(presente=True).values_list('id', flat=True)
-    respuestas = RespuestaQuiz.objects.filter(
-        participante_id__in=participantes_ids,
-        pregunta=pregunta
-    ).values('opcion_seleccionada__letra', 'opcion_seleccionada__texto').annotate(
-        count=Count('id')
-    )
-    
-    total_participantes = len(participantes_ids)
-    total_respuestas = sum(r['count'] for r in respuestas)
-    
-    resultados = []
-    for r in respuestas:
-        resultados.append({
-            'letra': r['opcion_seleccionada__letra'],
-            'texto': r['opcion_seleccionada__texto'],
-            'count': r['count'],
-            'porcentaje': round((r['count'] / total_respuestas * 100) if total_respuestas > 0 else 0, 1)
-        })
-    
-    return JsonResponse({
-        'pregunta_id': pregunta.id,
-        'pregunta_texto': pregunta.texto,
-        'total_participantes': total_participantes,
-        'total_respuestas': total_respuestas,
-        'resultados': resultados
-    })
-
-
-# ============================================================================
-# SELECTOR DE ROLES
-# ============================================================================
-
-@require_GET
-def roles_familias(request):
-    """Lista todas las familias de roles con sus roles."""
-    familias = FamiliaRol.objects.prefetch_related('roles').order_by('codigo')
-    
-    data = []
-    for f in familias:
-        data.append({
-            'codigo': f.codigo,
-            'nombre': f.nombre,
-            'descripcion': f.descripcion,
-            'color_hex': f.color_hex,
-            'icono': f.icono,
-            'imagen_url': f.imagen_url,
-            'roles': [
-                {
-                    'id': r.id,
-                    'numero': r.numero,
-                    'nombre': r.nombre,
-                    'descripcion_narrativa': r.descripcion_narrativa,
-                    'descripcion_completa': r.descripcion_completa,
-                    'icono': r.icono,
-                    'imagen_url': r.imagen_url
-                }
-                for r in f.roles.all().order_by('numero')
-            ]
-        })
-    
-    return JsonResponse(data, safe=False)
-
-
-@csrf_exempt
-@require_POST
-@requiere_participante_activo
-def roles_asignar(request):
-    """
-    Asigna un rol primario (y opcionalmente secundario) a un participante.
-    Body: {token, rol_primario_id, rol_secundario_id?}
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-        rol_primario_id = data.get('rol_primario_id')
-        rol_secundario_id = data.get('rol_secundario_id')
-        
-        participante = request.participante
-        
-        participante.rol_primario_id = rol_primario_id
-        if rol_secundario_id:
-            participante.rol_secundario_id = rol_secundario_id
-        participante.save()
-        
-        return JsonResponse({'success': True})
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-
-
-@require_GET
-def roles_mural(request, sesion_id):
-    """
-    Obtiene el estado del mural de roles para una sesión.
-    Muestra participantes agrupados por familia.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    # Participantes presentes con rol asignado
-    participantes = sesion.participantes.filter(
-        presente=True,
-        rol_primario__isnull=False
-    ).select_related('rol_primario__familia', 'rol_secundario')
-    
-    # Agrupar por familia
-    familias_data = {}
-    for p in participantes:
-        familia_codigo = p.rol_primario.familia.codigo
-        if familia_codigo not in familias_data:
-            familias_data[familia_codigo] = {
-                'codigo': familia_codigo,
-                'nombre': p.rol_primario.familia.nombre,
-                'color_hex': p.rol_primario.familia.color_hex,
-                'participantes': []
-            }
-        
-        familias_data[familia_codigo]['participantes'].append({
-            'nombre': p.nombre_completo,
-            'area': p.area_funcional,
-            'rol_primario': p.rol_primario.nombre,
-            'rol_secundario': p.rol_secundario.nombre if p.rol_secundario else None
-        })
-    
-    # Roles huérfanos (sin nadie asignado)
-    roles_asignados = set(participantes.values_list('rol_primario_id', flat=True))
-    roles_huerfanos = RolEcosistema.objects.exclude(id__in=roles_asignados).select_related('familia')
-    
-    return JsonResponse({
-        'sesion_id': sesion.id,
-        'total_participantes': participantes.count(),
-        'familias': list(familias_data.values()),
-        'roles_huerfanos': [
-            {
-                'id': r.id,
-                'nombre': r.nombre,
-                'familia': r.familia.nombre
-            }
-            for r in roles_huerfanos
-        ]
-    })
-
-
-# ============================================================================
-# SUBSISTEMAS DEL ORGANISMO
-# ============================================================================
-
-@require_GET
-def subsistemas_listar(request, sesion_id):
-    """
-    Lista todos los subsistemas de una sesión (predefinidos + identificados en taller).
-    Para que participantes y facilitador vean la lista completa.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    subsistemas = SubsistemaOrganismo.objects.filter(sesion=sesion).order_by('nombre')
-    
-    return JsonResponse({
-        'subsistemas': [
-            {
-                'id': s.id,
-                'nombre': s.nombre,
-                'tipo': s.get_tipo_display(),
-                'tipo_codigo': s.tipo,
-                'descripcion': s.descripcion or '',
-                'identificado_en_taller': s.identificado_en_taller,
-                'aprobado': True  # Los que están en BD ya están aprobados
-            }
-            for s in subsistemas
-        ]
-    })
-
-
-@require_POST
-@requiere_participante_activo
-def subsistema_proponer(request):
-    """
-    Participante propone un nuevo subsistema que falta.
-    Queda pendiente de aprobación del facilitador.
-    Body: {token, nombre, tipo, descripcion}
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-        nombre = data.get('nombre', '').strip()
-        tipo = data.get('tipo', 'otro')
-        descripcion = data.get('descripcion', '').strip()
-        
-        if not nombre:
-            return JsonResponse({'error': 'Nombre requerido'}, status=400)
-        
-        participante = request.participante
-        
-        # Crear subsistema con identificado_en_taller=True
-        subsistema = SubsistemaOrganismo.objects.create(
-            sesion=participante.sesion,
-            nombre=nombre,
-            tipo=tipo,
-            descripcion=descripcion or f"Propuesto por {participante.nombre_completo}",
-            identificado_en_taller=True
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'subsistema': {
-                'id': subsistema.id,
-                'nombre': subsistema.nombre,
-                'tipo': subsistema.get_tipo_display()
-            }
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-
-
-@require_POST
-@requiere_facilitador
-def subsistema_validar(request, sesion_id):
-    """
-    Facilitador valida/aprueba subsistemas propuestos por participantes.
-    Body: {subsistema_id, accion: 'aprobar'|'rechazar'}
-    REQUIERE: Header X-Facilitador-Token con el código de la sesión.
-    """
-    try:
-        data = json.loads(request.body)
-        subsistema_id = data.get('subsistema_id')
-        accion = data.get('accion')
-        
-        sesion = get_object_or_404(SesionTaller, id=sesion_id)
-        subsistema = get_object_or_404(SubsistemaOrganismo, id=subsistema_id, sesion=sesion)
-        
-        if accion == 'rechazar':
-            subsistema.delete()
-            return JsonResponse({'success': True, 'mensaje': 'Subsistema rechazado'})
-        
-        # Si es 'aprobar', ya está creado, solo confirmamos
-        return JsonResponse({
-            'success': True,
-            'mensaje': 'Subsistema aprobado',
-            'subsistema': {
-                'id': subsistema.id,
-                'nombre': subsistema.nombre
-            }
-        })
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-
-
-# ============================================================================
-# FICHA DE DATOS PERSONAL
-# ============================================================================
-
-@require_POST
-@requiere_participante_activo
-def ficha_guardar(request):
-    """
-    Guarda la ficha de caracterización de un participante (4 preguntas).
-    Body: {token, datos_que_manejo, que_hago_con_ellos, a_quien_entrego, de_quien_recibo}
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-    
-    participante = request.participante
-    
-    # Crear o actualizar ficha
-    ficha, created = FichaDatosPersonal.objects.update_or_create(
-        participante=participante,
-        defaults={
-            'datos_que_manejo': data.get('datos_que_manejo', ''),
-            'que_hago_con_ellos': data.get('que_hago_con_ellos', ''),
-            'a_quien_entrego': data.get('a_quien_entrego', ''),
-            'de_quien_recibo': data.get('de_quien_recibo', ''),
-            'sistemas_mencionados': data.get('sistemas_mencionados', '')
-        }
-    )
-    
-    return JsonResponse({
-        'success': True,
-        'ficha_id': ficha.id,
-        'created': created
-    })
-
-
-# ============================================================================
-# FLUJOS DE DATOS
-# ============================================================================
-
-@require_POST
-@requiere_participante_activo
-def flujo_registrar(request):
-    """
-    Registra un flujo de datos manejado por un participante.
-    
-    Modelo: [De dónde recibo] → [Participante con Rol X] → [A dónde envío]
-    
-    Body: {token, tipo, rol_usado, recibe_de_*, envia_a_*, descripcion_datos, frecuencia?, formato?}
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-    
-    # Validar que tenga dato o descripción
-    if not data.get('dato_id') and not data.get('descripcion_datos'):
-        return JsonResponse({'error': 'Falta dato o descripción de datos'}, status=400)
-    
-    participante = request.participante
-    
-    # Resolver DatoEcosistema por id
-    dato_obj = None
-    if data.get('dato_id'):
-        try:
-            dato_obj = DatoEcosistema.objects.get(
-                id=data['dato_id'],
-                sesion=participante.sesion,
-                es_maestro=True
-            )
-        except DatoEcosistema.DoesNotExist:
-            return JsonResponse({'error': 'Dato no encontrado en esta sesión'}, status=400)
-    
-    # Extraer datos específicos de la descripción (legacy/complemento)
-    descripcion = data.get('descripcion_datos', '') or (dato_obj.nombre if dato_obj else '')
-    datos_especificos = [d.strip() for d in re.split(r'[,;\n]+', descripcion) if d.strip()]
-    
-    # RECIBE DE
-    recibe_de_org = None
-    recibe_de_sociedad_civil = data.get('recibe_de_sociedad_civil', False)
-    recibe_de_entidad_externa = data.get('recibe_de_entidad_externa', '')
-    recibe_de_tipo_entidad = data.get('recibe_de_tipo_entidad', '')
-    
-    # Si viene organismo_id, buscar el organismo
-    if data.get('recibe_de_organismo_id'):
-        try:
-            recibe_de_org = Organismo.objects.get(id=data.get('recibe_de_organismo_id'), activo=True)
-        except Organismo.DoesNotExist:
-            pass
-    
-    # ENVÍA A
-    envia_a_org = None
-    envia_a_sociedad_civil = data.get('envia_a_sociedad_civil', False)
-    envia_a_entidad_externa = data.get('envia_a_entidad_externa', '')
-    envia_a_tipo_entidad = data.get('envia_a_tipo_entidad', '')
-    
-    # Si viene organismo_id, buscar el organismo
-    if data.get('envia_a_organismo_id'):
-        try:
-            envia_a_org = Organismo.objects.get(id=data.get('envia_a_organismo_id'), activo=True)
-        except Organismo.DoesNotExist:
-            pass
-    
-    # Crear flujo con participante en el centro
-    flujo = FlujoDatos.objects.create(
-        sesion=participante.sesion,
-        participante=participante,  # Obligatorio - centro del flujo
-        tipo=data.get('tipo', 'interno'),
-        rol_usado=data.get('rol_usado', 'primario'),
-        # De dónde recibe
-        recibe_de_participante_id=data.get('recibe_de_participante_id'),
-        recibe_de_subsistema_id=data.get('recibe_de_subsistema_id'),
-        recibe_de_sociedad_civil=recibe_de_sociedad_civil,
-        recibe_de_organismo=recibe_de_org,
-        recibe_de_entidad_externa=recibe_de_entidad_externa,
-        recibe_de_tipo_entidad=recibe_de_tipo_entidad,
-        # A dónde envía
-        envia_a_participante_id=data.get('envia_a_participante_id'),
-        envia_a_subsistema_id=data.get('envia_a_subsistema_id'),
-        envia_a_sociedad_civil=envia_a_sociedad_civil,
-        envia_a_organismo=envia_a_org,
-        envia_a_entidad_externa=envia_a_entidad_externa,
-        envia_a_tipo_entidad=envia_a_tipo_entidad,
-        # Dato como nodo (Torres 2026)
-        dato=dato_obj,
-        # Caracterización
-        descripcion_datos=descripcion,
-        datos_especificos=datos_especificos,
-        frecuencia=data.get('frecuencia'),
-        formato=data.get('formato'),
-        # Tipo de interacción (Torres/ODI)
-        tipo_interaccion_recibe=data.get('tipo_interaccion_recibe', ''),
-        tipo_interaccion_envia=data.get('tipo_interaccion_envia', '')
-    )
-    
-    return JsonResponse({
-        'success': True,
-        'flujo_id': flujo.id
-    })
-
-
-@require_GET
-def flujos_sesion(request, sesion_id):
-    """
-    Obtiene todos los flujos de una sesión para el mapa 3D.
-    
-    Modelo: [De dónde recibe] → [Participante con Rol X] → [A dónde envía]
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    flujos = sesion.flujos.select_related(
-        'participante', 
-        'participante__rol_primario',
-        'participante__rol_secundario',
-        'recibe_de_participante', 
-        'recibe_de_subsistema',
-        'envia_a_participante', 
-        'envia_a_subsistema',
-        'dato'
-    )
-    
-    data = []
-    for f in flujos:
-        # Determinar de dónde recibe
-        if f.recibe_de_participante:
-            recibe_de = f.recibe_de_participante.nombre_completo
-            recibe_de_tipo = 'participante'
-            recibe_de_id = f.recibe_de_participante.id
-        elif f.recibe_de_subsistema:
-            recibe_de = f.recibe_de_subsistema.nombre
-            recibe_de_tipo = 'subsistema'
-            recibe_de_id = f.recibe_de_subsistema.id
-        else:
-            # Priorizar campos nuevos sobre los viejos
-            recibe_de = f.recibe_de_entidad_externa or f.recibe_de_externo or 'N/A'
-            recibe_de_tipo = 'externo'
-            recibe_de_id = None
-        
-        # Determinar a dónde envía
-        if f.envia_a_participante:
-            envia_a = f.envia_a_participante.nombre_completo
-            envia_a_tipo = 'participante'
-            envia_a_id = f.envia_a_participante.id
-        elif f.envia_a_subsistema:
-            envia_a = f.envia_a_subsistema.nombre
-            envia_a_tipo = 'subsistema'
-            envia_a_id = f.envia_a_subsistema.id
-        else:
-            # Priorizar campos nuevos sobre los viejos
-            envia_a = f.envia_a_entidad_externa or f.envia_a_externo or 'N/A'
-            envia_a_tipo = 'externo'
-            envia_a_id = None
-        
-        # Determinar rol usado
-        rol_usado = f.participante.rol_primario if f.rol_usado == 'primario' else f.participante.rol_secundario
-        rol_nombre = rol_usado.nombre if rol_usado else 'Sin rol'
-        
-        data.append({
-            'id': f.id,
-            'tipo': f.tipo,
-            # Participante que maneja el flujo (centro)
-            'participante': {
-                'id': f.participante.id,
-                'nombre': f.participante.nombre_completo,
-                'token': f.participante.token_sesion,
-                'rol_usado': f.rol_usado,
-                'rol_nombre': rol_nombre
-            },
-            # De dónde recibe
-            'recibe_de': recibe_de,
-            'recibe_de_tipo': recibe_de_tipo,
-            'recibe_de_id': recibe_de_id,
-            # A dónde envía
-            'envia_a': envia_a,
-            'envia_a_tipo': envia_a_tipo,
-            'envia_a_id': envia_a_id,
-            # Dato como nodo (Torres 2026)
-            'dato': {
-                'id': f.dato.id,
-                'nombre': f.dato.nombre,
-                'nivel': f.dato.nivel,
-                'sensibilidad': f.dato.sensibilidad,
-            } if f.dato else None,
-            # Caracterización
-            'descripcion_datos': f.descripcion_datos,
-            'frecuencia': f.frecuencia,
-            'formato': f.formato,
-            # Tipo de interacción (Torres/ODI)
-            'tipo_interaccion_recibe': f.tipo_interaccion_recibe,
-            'tipo_interaccion_envia': f.tipo_interaccion_envia,
-            # Para compatibilidad con vistas anteriores
-            'origen': recibe_de,
-            'destino': envia_a
-        })
-    
-    return JsonResponse({'flujos': data})
-
-
-# ============================================================================
-# CLASIFICACIÓN DE DATOS (O/T/E)
-# ============================================================================
-
-@require_POST
-@requiere_participante_activo
-def clasificacion_guardar(request):
-    """
-    Guarda una clasificación de dato (operativo/táctico/estratégico).
-    Body: {token, nombre_dato, nivel, para_que_se_usa?, valor_publico?}
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-    
-    participante = request.participante
-    
-    # Resolver DatoEcosistema por id
-    dato_obj = None
-    if data.get('dato_id'):
-        try:
-            dato_obj = DatoEcosistema.objects.get(
-                id=data['dato_id'],
-                sesion=participante.sesion,
-                es_maestro=True
-            )
-        except DatoEcosistema.DoesNotExist:
-            return JsonResponse({'error': 'Dato no encontrado en esta sesión'}, status=400)
-    
-    nivel = data.get('nivel')
-    sensibilidad = data.get('sensibilidad')
-    principales_usuarios = data.get('principales_usuarios', '')
-    proposito_detallado = data.get('proposito_detallado', '')
-    valor_publico = data.get('valor_publico', '')
-    
-    clasificacion = ClasificacionDato.objects.create(
-        sesion=participante.sesion,
-        participante=participante,
-        dato=dato_obj,
-        nombre_dato=data.get('nombre_dato', '') or (dato_obj.nombre if dato_obj else ''),
-        nivel=nivel,
-        sensibilidad=sensibilidad,
-        para_que_se_usa=data.get('para_que_se_usa'),
-        valor_publico=valor_publico,
-        # Sección C — Conexiones (Torres)
-        principales_usuarios=principales_usuarios,
-        proposito_detallado=proposito_detallado
-    )
-    
-    # Sincronizar clasificación al nodo-dato (la última clasificación gana)
-    if dato_obj:
-        updated_fields = []
-        if nivel and not dato_obj.nivel:
-            dato_obj.nivel = nivel
-            updated_fields.append('nivel')
-        if sensibilidad and not dato_obj.sensibilidad:
-            dato_obj.sensibilidad = sensibilidad
-            updated_fields.append('sensibilidad')
-        if principales_usuarios and not dato_obj.principales_usuarios:
-            dato_obj.principales_usuarios = principales_usuarios
-            updated_fields.append('principales_usuarios')
-        if proposito_detallado and not dato_obj.proposito_detallado:
-            dato_obj.proposito_detallado = proposito_detallado
-            updated_fields.append('proposito_detallado')
-        if valor_publico and not dato_obj.valor_publico:
-            dato_obj.valor_publico = valor_publico
-            updated_fields.append('valor_publico')
-        if updated_fields:
-            dato_obj.save(update_fields=updated_fields)
-    
-    return JsonResponse({
-        'success': True,
-        'clasificacion_id': clasificacion.id,
-        'dato_actualizado': bool(dato_obj)
-    })
-
-
-@require_GET
-def clasificaciones_sesion(request, sesion_id):
-    """Obtiene todas las clasificaciones de una sesión."""
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    clasificaciones = sesion.clasificaciones.select_related('dato').all()
-    clasificaciones_list = []
-    for c in clasificaciones:
-        clasificaciones_list.append({
-            'id': c.id,
-            'nombre_dato': c.nombre_dato or (c.dato.nombre if c.dato else ''),
-            'nivel': c.nivel,
-            'sensibilidad': c.sensibilidad,
-            'para_que_se_usa': c.para_que_se_usa,
-            'principales_usuarios': c.principales_usuarios,
-            'proposito_detallado': c.proposito_detallado,
-            'dato': {
-                'id': c.dato.id,
-                'nombre': c.dato.nombre,
-                'nivel': c.dato.nivel,
-            } if c.dato else None,
-        })
-    
-    # Contar por nivel
-    stats = sesion.clasificaciones.values('nivel').annotate(count=Count('id'))
-    
-    return JsonResponse({
-        'clasificaciones': clasificaciones_list,
-        'stats': {s['nivel']: s['count'] for s in stats}
-    })
-
-
-# ============================================================================
-# VALIDACIÓN GRUPAL DEL ECOSISTEMA
-# ============================================================================
-
-@csrf_exempt
-@require_POST
-@requiere_participante_activo
-def validacion_registrar(request):
-    """
-    Registra observaciones de validación grupal de un participante.
-    Body: {token, sugerencias_roles, flujos_validados, flujos_faltantes, 
-           datos_faltantes, actores_faltantes, observacion_general}
-    """
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-    
-    participante = request.participante
-    
-    validacion, created = ValidacionEcosistema.objects.update_or_create(
-        sesion=participante.sesion,
-        participante=participante,
-        defaults={
-            'sugerencias_roles': data.get('sugerencias_roles', []),
-            'flujos_validados': data.get('flujos_validados', []),
-            'flujos_faltantes': data.get('flujos_faltantes', ''),
-            'datos_faltantes': data.get('datos_faltantes', ''),
-            'actores_faltantes': data.get('actores_faltantes', ''),
-            'observacion_general': data.get('observacion_general', ''),
-        }
-    )
-    
-    return JsonResponse({
-        'success': True,
-        'validacion_id': validacion.id,
-        'created': created
-    })
-
-
-@require_GET
-@requiere_facilitador
-def validacion_resumen(request, sesion_id):
-    """
-    Resumen de validaciones grupales de una sesión para el facilitador.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    validaciones = sesion.validaciones.select_related('participante').all()
-    
-    data = []
-    for v in validaciones:
-        data.append({
-            'participante': v.participante.nombre_completo,
-            'sugerencias_roles': v.sugerencias_roles,
-            'flujos_validados': v.flujos_validados,
-            'flujos_faltantes': v.flujos_faltantes,
-            'datos_faltantes': v.datos_faltantes,
-            'actores_faltantes': v.actores_faltantes,
-            'observacion_general': v.observacion_general,
-            'fecha': v.fecha.isoformat() if v.fecha else None,
-        })
-    
-    return JsonResponse({
-        'total_participantes': sesion.participantes.filter(presente=True).count(),
-        'total_validaciones': validaciones.count(),
-        'validaciones': data
-    })
-
-
-# ============================================================================
-# MAPA 3D DEL ECOSISTEMA (datos completos)
-# ============================================================================
-
-@require_GET
-@requiere_facilitador
-def api_ecosistema_grafo(request, sesion_id):
-    """
-    Retorna datos del ecosistema para renderizar el mapa 3D.
-    Incluye participantes, subsistemas, flujos y clasificaciones.
-    Optimizado con select_related para reducir queries con 30+ participantes.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    # Participantes con sus roles (optimizado con select_related)
-    participantes = sesion.participantes.filter(presente=True).select_related(
-        'rol_primario__familia',
-        'rol_secundario'
-    ).values(
-        'id', 'nombre_completo', 'area_funcional', 'cargo',
-        'rol_primario__id', 'rol_primario__nombre', 'rol_primario__familia__codigo', 'rol_primario__familia__color_hex',
-        'rol_secundario__id', 'rol_secundario__nombre'
-    )
-    
-    # Subsistemas
-    subsistemas = sesion.subsistemas.values(
-        'id', 'nombre', 'tipo', 'pos_x', 'pos_y', 'pos_z'
-    )
-    
-    # Flujos con nuevo modelo (optimizado con select_related para todos los FK)
-    flujos_data = []
-    for f in sesion.flujos.select_related(
-        'participante', 'participante__rol_primario', 'participante__rol_secundario',
-        'recibe_de_participante', 'recibe_de_subsistema', 'recibe_de_organismo',
-        'envia_a_participante', 'envia_a_subsistema', 'envia_a_organismo',
-        'dato'
-    ):
-        # Determinar rol usado
-        rol = f.participante.rol_primario if f.rol_usado == 'primario' else f.participante.rol_secundario
-        
-        flujos_data.append({
-            'id': f.id,
-            'tipo': f.tipo,
-            # Participante central que maneja el flujo
-            'participante_id': f.participante.id,
-            'participante_nombre': f.participante.nombre_completo,
-            'rol_usado': f.rol_usado,
-            'rol_nombre': rol.nombre if rol else 'Sin rol',
-            # De dónde recibe
-            'recibe_de_participante_id': f.recibe_de_participante_id,
-            'recibe_de_subsistema_id': f.recibe_de_subsistema_id,
-            'recibe_de_sociedad_civil': f.recibe_de_sociedad_civil,
-            'recibe_de_organismo_id': f.recibe_de_organismo_id,
-            'recibe_de_organismo_nombre': f.recibe_de_organismo.nombre if f.recibe_de_organismo else None,
-            'recibe_de_entidad_externa': f.recibe_de_entidad_externa,
-            'recibe_de_tipo_entidad': f.recibe_de_tipo_entidad,
-            # A dónde envía
-            'envia_a_participante_id': f.envia_a_participante_id,
-            'envia_a_subsistema_id': f.envia_a_subsistema_id,
-            'envia_a_sociedad_civil': f.envia_a_sociedad_civil,
-            'envia_a_organismo_id': f.envia_a_organismo_id,
-            'envia_a_organismo_nombre': f.envia_a_organismo.nombre if f.envia_a_organismo else None,
-            'envia_a_entidad_externa': f.envia_a_entidad_externa,
-            'envia_a_tipo_entidad': f.envia_a_tipo_entidad,
-            # Dato como nodo (Torres 2026)
-            'dato_id': f.dato_id,
-            'dato_nombre': f.dato.nombre if f.dato else None,
-            'dato_nivel': f.dato.nivel if f.dato else None,
-            # Tipo de interacción (Torres 2026)
-            'tipo_interaccion_recibe': f.tipo_interaccion_recibe,
-            'tipo_interaccion_envia': f.tipo_interaccion_envia,
-            # Caracterización
-            'descripcion_datos': f.descripcion_datos,
-            'frecuencia': f.frecuencia,
-            'formato': f.formato
-        })
-    
-    # DATOS como nodos del grafo (Torres 2026)
-    datos_qs = DatoEcosistema.objects.filter(
-        sesion=sesion, es_maestro=True
-    ).annotate(
-        num_flujos=Count('flujos'),
-    )
-    datos_nodos = [{
-        'id': d.id,
-        'nombre': d.nombre,
-        'nivel': d.nivel,
-        'sensibilidad': d.sensibilidad,
-        'origen': d.origen,
-        'periodicidad': d.periodicidad,
-        'num_flujos': d.num_flujos,
-        'es_huerfano': d.num_flujos == 0,
-        'es_critico': d.num_flujos >= 5,
-    } for d in datos_qs]
-    
-    # Clasificaciones de datos (legacy para compatibilidad)
-    clasificaciones = sesion.clasificaciones.values(
-        'nombre_dato', 'nivel', 'sensibilidad'
-    )
-    dict_clasificaciones = {c['nombre_dato']: {'nivel': c['nivel'], 'sensibilidad': c['sensibilidad']} for c in clasificaciones}
-    
-    # Clasificaciones por nivel para stats
-    clasificaciones_stats = sesion.clasificaciones.values('nivel').annotate(count=Count('id'))
-    
-    # Relaciones entre datos (linaje) - todas las relaciones de la sesión
-    relaciones_datos = []
-    for r in RelacionDato.objects.filter(sesion=sesion).select_related('dato_origen', 'dato_destino'):
-        relaciones_datos.append({
-            'id': r.id,
-            'tipo_relacion': r.tipo_relacion,
-            'tipo_relacion_display': r.get_tipo_relacion_display(),
-            'descripcion': r.descripcion,
-            'dato_origen_id': r.dato_origen_id,
-            'dato_origen_nombre': r.dato_origen.nombre,
-            'dato_origen_nivel': r.dato_origen.nivel,
-            'dato_destino_id': r.dato_destino_id,
-            'dato_destino_nombre': r.dato_destino.nombre,
-            'dato_destino_nivel': r.dato_destino.nivel,
-            'proceso_transformacion': r.proceso_transformacion,
-            'periodicidad': r.periodicidad_transformacion,
-            'es_validada': r.es_validada,
-        })
-    
-    return JsonResponse({
-        'sesion_id': sesion.id,
-        'organismo': sesion.organismo.nombre,
-        'participantes': list(participantes),
-        'subsistemas': list(subsistemas),
-        'datos_nodos': datos_nodos,
-        'flujos': flujos_data,
-        'clasificaciones_detalle': dict_clasificaciones,
-        'clasificaciones_stats': {s['nivel']: s['count'] for s in clasificaciones_stats},
-        'relaciones_datos': relaciones_datos,
-        'stats_relaciones': {
-            'total_relaciones': len(relaciones_datos),
-            'relaciones_validadas': sum(1 for r in relaciones_datos if r['es_validada'])
-        }
-    })
-
-
-# ============================================================================
-# API ENDPOINTS PARA JERARQUÍA ORGANIZACIONAL
-# ============================================================================
-
+from .decorators import delegado_required
+from django.db.models import Count
+from django.http import FileResponse, Http404, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+from django.views.decorators.http import require_GET
+
+from . import wizard_taller as wz
+from .models import Organismo, Suborganismo
+from .models_taller import FuenteRequerida, InscripcionTaller as Inscripcion, RetoAnalisis
+from .models_catalogo import EvaluacionSeguridad, FuenteDatos, VariableFuente
+
+SESSION_KEY = 'inscripcion_id'
+FUENTE_KEY = 'fuente_activa_id'
+
+# Pasos de F1 que editan una FuenteDatos individual
+PASOS_FUENTE = {'fuente-actualizacion', 'fuente-rol', 'fuente-proposito',
+                'fuente-variables', 'fuente-calidad', 'fuente-diccionario'}
+# Pasos de F3: editan la EvaluacionSeguridad de la fuente activa (F3 es por fuente)
+PASOS_SEGURIDAD = {'seguridad-datos', 'seguridad-uso',
+                   'seguridad-divulgacion', 'seguridad-valoracion'}
+# Pasos que muestran el selector de fuente
+PASOS_CON_FUENTE = PASOS_FUENTE | PASOS_SEGURIDAD
+
+# --- Visuales del grafo del ecosistema (compartidos por GEXF y SVG) ---
+COLOR_NODO = {
+    'gold': '#ffd700', 'catalogo': '#007bb5', 'organismo': '#f5a86b',
+    'suborganismo': '#a78bfa', 'equipo': '#4fc3f7', 'conjunto': '#6fce8f',
+    'reto': '#fc8181', 'fuente_informacion': '#ef92c4',
+}
+COLOR_ARISTA = {
+    'cruce_catalogo': '#ffd700', 'matching_variable': '#6fce8f',
+    'match_exacto': '#00ff88', 'match_aproximado': '#6fce8f',
+    'origen_declarado': '#f5a86b', 'origen_externo': '#ef92c4',
+    'requerida': '#ef92c4', 'requerida_externa': '#c4b5fd',
+    'pertenencia': '#a0aec0', 'jerarquia': '#a78bfa',
+    'variables_compartidas': '#38b2ac',
+}
+TIPO_LABEL = {
+    'gold': 'Capa Gold', 'catalogo': 'Catálogo', 'organismo': 'Organismo',
+    'suborganismo': 'Suborganismo', 'equipo': 'Equipo', 'conjunto': 'Conjunto',
+    'reto': 'Reto de análisis', 'fuente_informacion': 'Fuente de información',
+}
+
+
+def _tamano_nodo(n):
+    """Radio base del nodo según su tipo y métricas (misma escala que el 3D)."""
+    tipo = n.get('tipo')
+    if tipo == 'gold':
+        return 12
+    if tipo == 'catalogo':
+        return 5 + min(8, (n.get('num_campos') or 0) / 30)
+    if tipo == 'organismo':
+        return 5 + min(8, (n.get('num_fuentes') or 0) * 1.5)
+    if tipo == 'suborganismo':
+        return 3.5
+    if tipo == 'equipo':
+        return 2.5
+    if tipo == 'conjunto':
+        return 2 + min(1, (n.get('num_variables') or 0) / 6)
+    if tipo == 'reto':
+        return 3
+    return 4
+
+
+def landing_page(request):
+    return render(request, 'taller/landing_page.html')
+
+
+def cartel(request):
+    return render(request, 'taller/cartel.html')
+
+
+@delegado_required
 @require_GET
 def api_suborganismos(request, organismo_id):
-    """
-    Lista suborganismos activos de un organismo.
-    Usado en formularios de taller y satisfacción.
-    """
-    from .models import Suborganismo
-    
-    suborganismos = Suborganismo.objects.filter(
-        organismo_id=organismo_id,
-        activo=True
-    ).values('id', 'nombre', 'tipo', 'codigo').order_by('orden', 'nombre')
-    
-    return JsonResponse(list(suborganismos), safe=False)
+    subs = Suborganismo.objects.filter(organismo_id=organismo_id).values('id', 'nombre').order_by('nombre')
+    return JsonResponse(list(subs), safe=False)
 
 
-@require_GET
-def api_equipos_suborganismo(request, suborganismo_id):
-    """
-    Lista equipos activos de un suborganismo.
-    Usado en formularios de taller y satisfacción.
-    """
-    from .models import EquipoOrganismo
-    
-    equipos = EquipoOrganismo.objects.filter(
-        suborganismo_id=suborganismo_id,
-        activo=True
-    ).values('id', 'nombre', 'codigo').order_by('nombre')
-    
-    return JsonResponse(list(equipos), safe=False)
+def _construir_grafo_ecosistema(solo_relacionados=False):
+    """Construye nodos y aristas del grafo del ecosistema (compartido por la API y el export GEXF)."""
+    import unicodedata
+    from collections import Counter
+    from .catalogo_datalake import get_bases, get_campos_cruzables
+    from .models import (EvaluacionSeguridad, FuenteOrigen,
+                         FuenteRequerida, Organismo, VariableFuente)
 
+    def _norm(s):
+        """Normaliza: lowercase + quita acentos + strip."""
+        s = s.lower().strip()
+        return ''.join(c for c in unicodedata.normalize('NFD', s)
+                       if unicodedata.category(c) != 'Mn')
 
-@require_GET
-def api_equipos_organismo(request, organismo_id):
-    """
-    Lista todos los equipos de un organismo (con o sin suborganismo).
-    Usado como fallback si no se selecciona suborganismo.
-    """
-    from .models import EquipoOrganismo
-    
-    equipos = EquipoOrganismo.objects.filter(
-        organismo_id=organismo_id,
-        activo=True
-    ).select_related('suborganismo').values(
-        'id', 'nombre', 'codigo', 
-        'suborganismo__id', 'suborganismo__nombre'
-    ).order_by('suborganismo__nombre', 'nombre')
-    
-    return JsonResponse(list(equipos), safe=False)
+    def _norm_var(s):
+        """Normaliza nombre de variable para matching: sin acentos, sin _ ni espacios."""
+        s = _norm(s)
+        for prefix in ('var_', 'cod_', 'num_', 'id_', 'nom_', 'desc_', 'codigo_', 'nombre_'):
+            if s.startswith(prefix):
+                s = s[len(prefix):]
+        return s.replace('_', '').replace(' ', '').replace('-', '')
 
+    nodos = []
+    aristas = []
 
-# ============================================================================
-# VISTAS DE TEMPLATE (HTML)
-# ============================================================================
-
-def taller_pantalla_principal(request, sesion_id):
-    """Pantalla de proyección para el facilitador."""
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    return render(request, 'indicadores/taller/pantalla_principal.html', {
-        'sesion': sesion
-    })
-
-
-def taller_participante(request):
-    """Interfaz del participante (móvil)."""
-    # Primero intentar obtener token de las cookies (configuradas al registrarse)
-    token = request.COOKIES.get('taller_token')
-    
-    # Fallback: también aceptar token por GET para compatibilidad
-    if not token:
-        token = request.GET.get('token')
-    
-    if not token:
-        return redirect('indicadores:taller_unirse')
-    
-    try:
-        participante = ParticipanteTaller.objects.select_related('sesion').get(token_sesion=token)
-    except ParticipanteTaller.DoesNotExist:
-        return redirect('indicadores:taller_unirse')
-    
-    return render(request, 'indicadores/taller/participante.html', {
-        'participante': participante,
-        'sesion': participante.sesion
-    })
-
-
-@require_POST
-@requiere_participante_activo
-def clasificacion_registrar(request):
-    """Registra una clasificación de dato por parte de un participante.
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-        
-        participante = request.participante
-        
-        clasificacion = ClasificacionDato.objects.create(
-            sesion=participante.sesion,
-            participante=participante,  # Guardar quién clasificó
-            nombre_dato=data.get('nombre_dato'),
-            nivel=data.get('nivel'),  # Nivel estratégico/táctico/operativo
-            sensibilidad=data.get('sensibilidad'),  # Nivel de sensibilidad público/interno/confidencial/crítico
-            para_que_se_usa=data.get('justificacion', ''),
-            mecanismo_recoleccion=data.get('mecanismo_recoleccion', ''),
-            valor_publico=data.get('valor_publico', '')
-        )
-        
-        # Enriquecer DatoEcosistema con la clasificación (Torres 2026)
-        dato_id = data.get('dato_id')
-        if dato_id:
-            try:
-                dato = DatoEcosistema.objects.get(id=dato_id, sesion=participante.sesion)
-                dato.nivel = data.get('nivel', '') or dato.nivel
-                dato.sensibilidad = data.get('sensibilidad', '') or dato.sensibilidad
-                dato.mecanismo_recoleccion = data.get('mecanismo_recoleccion', '') or dato.mecanismo_recoleccion
-                dato.valor_publico = data.get('valor_publico', '') or dato.valor_publico
-                dato.principales_usuarios = data.get('principales_usuarios', '') or dato.principales_usuarios
-                dato.proposito_detallado = data.get('proposito_detallado', '') or dato.proposito_detallado
-                dato.save(update_fields=[
-                    'nivel', 'sensibilidad', 'mecanismo_recoleccion',
-                    'valor_publico', 'principales_usuarios', 'proposito_detallado'
-                ])
-                logger.info(f"DatoEcosistema {dato_id} enriquecido con clasificación por participante {participante.id}")
-            except DatoEcosistema.DoesNotExist:
-                logger.warning(f"DatoEcosistema {dato_id} no encontrado para enriquecer")
-        
-        return JsonResponse({
-            'success': True,
-            'clasificacion_id': clasificacion.id
-        })
-        
-    except Exception as e:
-        logger.error(f"Error en clasificacion_registrar: {e}", exc_info=True)
-        return JsonResponse({
-            'error': str(e)
-        }, status=400)
-
-
-def organismos_lista(request):
-    """Lista todos los organismos activos para autocompletado en flujos."""
-    from .models import Organismo
-    
-    organismos = Organismo.objects.filter(activo=True).values('id', 'nombre', 'codigo')
-    return JsonResponse({
-        'organismos': list(organismos)
-    })
-
-
-@xframe_options_sameorigin
-def taller_mapa_3d(request, sesion_id):
-    """Mapa 3D del ecosistema (para iframe en pantalla principal y participante)."""
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    return render(request, 'indicadores/taller/mapa_ecosistema_3d.html', {
-        'sesion': sesion
-    })
-
-
-# ============================================================================
-# MAPA DEL DATO — Vista centrada en un dato/conjunto de datos (Torres 2026)
-# ============================================================================
-
-@xframe_options_sameorigin
-def taller_mapa_dato(request, dato_id):
-    """Renderiza el Mapa 3D centrado en un dato específico del ecosistema."""
-    dato = get_object_or_404(DatoEcosistema, id=dato_id, es_maestro=True)
-    sesion = dato.sesion
-    return render(request, 'indicadores/taller/mapa_dato_3d.html', {
-        'dato': dato,
-        'sesion': sesion
-    })
-
-
-@require_GET
-def api_dato_grafo(request, dato_id):
-    """
-    API que retorna todos los actores y conexiones de un dato específico
-    para renderizar el Mapa del Dato centrado en órbitas.
-    
-    Órbitas:
-      Centro: El dato
-      Ó1: Subsistemas de información
-      Ó2: Roles/participantes
-      Ó3: Organismos de la Alcaldía
-      Ó4: Entidades externas
-      Ó5: Sociedad civil
-    """
-    dato = get_object_or_404(DatoEcosistema, id=dato_id, es_maestro=True)
-    sesion = dato.sesion
-    
-    # Todos los flujos que involucran este dato
-    flujos = FlujoDatos.objects.filter(dato=dato).select_related(
-        'participante', 'participante__rol_primario', 'participante__rol_primario__familia',
-        'participante__rol_secundario',
-        'recibe_de_participante', 'recibe_de_participante__rol_primario',
-        'recibe_de_participante__rol_primario__familia',
-        'envia_a_participante', 'envia_a_participante__rol_primario',
-        'envia_a_participante__rol_primario__familia',
-        'recibe_de_subsistema', 'envia_a_subsistema',
-        'recibe_de_organismo', 'envia_a_organismo',
-    )
-    
-    # Clasificaciones de este dato
-    clasificaciones = ClasificacionDato.objects.filter(dato=dato).select_related('participante')
-    
-    # Recopilar actores por tipo
-    participantes_map = {}
-    subsistemas_map = {}
-    organismos_map = {}
-    entidades_externas_map = {}
-    hay_sociedad_civil = False
-    flujos_data = []
-    
-    for f in flujos:
-        # Participante central
-        p = f.participante
-        if p.id not in participantes_map:
-            rol = p.rol_primario
-            participantes_map[p.id] = {
-                'id': p.id,
-                'nombre': p.nombre_completo,
-                'cargo': p.cargo or '',
-                'area': p.area_funcional or '',
-                'rol_nombre': rol.nombre if rol else 'Sin rol',
-                'familia_codigo': rol.familia.codigo if rol and rol.familia else '',
-                'familia_color': rol.familia.color_hex if rol and rol.familia else '#6B7280',
-            }
-        
-        # Recibe de
-        if f.recibe_de_participante and f.recibe_de_participante.id not in participantes_map:
-            rp = f.recibe_de_participante
-            rol_rp = rp.rol_primario
-            participantes_map[rp.id] = {
-                'id': rp.id, 'nombre': rp.nombre_completo,
-                'cargo': rp.cargo or '', 'area': rp.area_funcional or '',
-                'rol_nombre': rol_rp.nombre if rol_rp else 'Sin rol',
-                'familia_codigo': rol_rp.familia.codigo if rol_rp and rol_rp.familia else '',
-                'familia_color': rol_rp.familia.color_hex if rol_rp and rol_rp.familia else '#6B7280',
-            }
-        if f.recibe_de_subsistema and f.recibe_de_subsistema.id not in subsistemas_map:
-            sub = f.recibe_de_subsistema
-            subsistemas_map[sub.id] = {'id': sub.id, 'nombre': sub.nombre, 'tipo': sub.tipo}
-        if f.recibe_de_organismo and f.recibe_de_organismo.id not in organismos_map:
-            org = f.recibe_de_organismo
-            organismos_map[org.id] = {'id': org.id, 'nombre': org.nombre}
-        if f.recibe_de_sociedad_civil:
-            hay_sociedad_civil = True
-        if f.recibe_de_entidad_externa:
-            nombre = f.recibe_de_entidad_externa
-            if nombre not in entidades_externas_map:
-                entidades_externas_map[nombre] = {
-                    'nombre': nombre,
-                    'tipo': f.recibe_de_tipo_entidad or 'otro'
-                }
-        
-        # Envía a
-        if f.envia_a_participante and f.envia_a_participante.id not in participantes_map:
-            ep = f.envia_a_participante
-            rol_ep = ep.rol_primario
-            participantes_map[ep.id] = {
-                'id': ep.id, 'nombre': ep.nombre_completo,
-                'cargo': ep.cargo or '', 'area': ep.area_funcional or '',
-                'rol_nombre': rol_ep.nombre if rol_ep else 'Sin rol',
-                'familia_codigo': rol_ep.familia.codigo if rol_ep and rol_ep.familia else '',
-                'familia_color': rol_ep.familia.color_hex if rol_ep and rol_ep.familia else '#6B7280',
-            }
-        if f.envia_a_subsistema and f.envia_a_subsistema.id not in subsistemas_map:
-            sub = f.envia_a_subsistema
-            subsistemas_map[sub.id] = {'id': sub.id, 'nombre': sub.nombre, 'tipo': sub.tipo}
-        if f.envia_a_organismo and f.envia_a_organismo.id not in organismos_map:
-            org = f.envia_a_organismo
-            organismos_map[org.id] = {'id': org.id, 'nombre': org.nombre}
-        if f.envia_a_sociedad_civil:
-            hay_sociedad_civil = True
-        if f.envia_a_entidad_externa:
-            nombre = f.envia_a_entidad_externa
-            if nombre not in entidades_externas_map:
-                entidades_externas_map[nombre] = {
-                    'nombre': nombre,
-                    'tipo': f.envia_a_tipo_entidad or 'otro'
-                }
-        
-        # Serializar flujo
-        rol_f = p.rol_primario if f.rol_usado == 'primario' else p.rol_secundario
-        flujos_data.append({
-            'id': f.id,
-            'tipo': f.tipo,
-            'participante_id': f.participante_id,
-            'rol_usado': f.rol_usado,
-            'rol_nombre': rol_f.nombre if rol_f else 'Sin rol',
-            'recibe_de_participante_id': f.recibe_de_participante_id,
-            'recibe_de_subsistema_id': f.recibe_de_subsistema_id,
-            'recibe_de_organismo_id': f.recibe_de_organismo_id,
-            'recibe_de_sociedad_civil': f.recibe_de_sociedad_civil,
-            'recibe_de_entidad_externa': f.recibe_de_entidad_externa,
-            'envia_a_participante_id': f.envia_a_participante_id,
-            'envia_a_subsistema_id': f.envia_a_subsistema_id,
-            'envia_a_organismo_id': f.envia_a_organismo_id,
-            'envia_a_sociedad_civil': f.envia_a_sociedad_civil,
-            'envia_a_entidad_externa': f.envia_a_entidad_externa,
-            'descripcion_datos': f.descripcion_datos,
-            'frecuencia': f.frecuencia or '',
-            'formato': f.formato or '',
-            'tipo_interaccion_recibe': f.tipo_interaccion_recibe,
-            'tipo_interaccion_envia': f.tipo_interaccion_envia,
-        })
-    
-    # Clasificaciones serializadas
-    clasif_data = [{
-        'id': c.id,
-        'nivel': c.nivel,
-        'sensibilidad': c.sensibilidad,
-        'participante': c.participante.nombre_completo if c.participante else None,
-    } for c in clasificaciones]
-    
-    return JsonResponse({
-        'dato': {
-            'id': dato.id,
-            'nombre': dato.nombre,
-            'descripcion': dato.descripcion,
-            'nivel': dato.nivel,
-            'sensibilidad': dato.sensibilidad,
-            'origen': dato.origen,
-            'periodicidad': dato.periodicidad,
-            'proposito': dato.proposito,
-            'principales_usuarios': dato.principales_usuarios,
-            'valor_publico': dato.valor_publico,
-        },
-        'sesion': {
-            'id': sesion.id,
-            'organismo': sesion.organismo.nombre if sesion.organismo else '',
-        },
-        'participantes': list(participantes_map.values()),
-        'subsistemas': list(subsistemas_map.values()),
-        'organismos': list(organismos_map.values()),
-        'entidades_externas': list(entidades_externas_map.values()),
-        'hay_sociedad_civil': hay_sociedad_civil,
-        'flujos': flujos_data,
-        'clasificaciones': clasif_data,
-        'stats': {
-            'total_flujos': len(flujos_data),
-            'total_participantes': len(participantes_map),
-            'total_subsistemas': len(subsistemas_map),
-            'total_organismos': len(organismos_map),
-            'total_entidades_externas': len(entidades_externas_map),
-        },
-        # Relaciones entre datos (linaje)
-        'relaciones_salientes': [
-            {
-                'id': r.id,
-                'tipo_relacion': r.tipo_relacion,
-                'tipo_relacion_display': r.get_tipo_relacion_display(),
-                'descripcion': r.descripcion,
-                'dato_destino': {
-                    'id': r.dato_destino.id,
-                    'nombre': r.dato_destino.nombre,
-                    'nivel': r.dato_destino.nivel,
-                },
-                'proceso_transformacion': r.proceso_transformacion,
-                'periodicidad': r.periodicidad_transformacion,
-            }
-            for r in RelacionDato.objects.filter(dato_origen=dato).select_related('dato_destino')
-        ],
-        'relaciones_entrantes': [
-            {
-                'id': r.id,
-                'tipo_relacion': r.tipo_relacion,
-                'tipo_relacion_display': r.get_tipo_relacion_display(),
-                'descripcion': r.descripcion,
-                'dato_origen': {
-                    'id': r.dato_origen.id,
-                    'nombre': r.dato_origen.nombre,
-                    'nivel': r.dato_origen.nivel,
-                },
-                'proceso_transformacion': r.proceso_transformacion,
-                'periodicidad': r.periodicidad_transformacion,
-            }
-            for r in RelacionDato.objects.filter(dato_destino=dato).select_related('dato_origen')
-        ],
-    })
-
-
-# ============================================================================
-# DATOS DEL ECOSISTEMA (FICHA P1 Y CURADURÍA)
-# ============================================================================
-
-@requiere_facilitador
-def api_datos_ecosistema(request, sesion_id):
-    """API para gestionar datos del ecosistema.
-    GET: Retorna todos los datos maestros para usar en dropdowns de flujos
-    POST: Participante crea un nuevo dato (requiere token en body)
-    REQUIERE: Header X-Facilitador-Token para facilitador, o token de participante para POST.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    if request.method == 'GET':
-        # Retornar todos los datos maestros como nodos del ecosistema
-        datos = DatoEcosistema.objects.filter(
-            sesion=sesion, es_maestro=True
-        ).select_related('creado_por').annotate(
-            num_flujos=Count('flujos'),
-            num_clasificaciones=Count('clasificaciones'),
-        )
-        data = [{
-            'id': d.id,
-            'nombre': d.nombre,
-            'descripcion': d.descripcion,
-            'creado_por': d.creado_por.nombre_completo if d.creado_por else 'Anónimo',
-            # Sección A
-            'origen': d.origen,
-            'mecanismo_recoleccion': d.mecanismo_recoleccion,
-            'periodicidad': d.periodicidad,
-            'proposito': d.proposito,
-            # Sección B
-            'nivel': d.nivel,
-            'sensibilidad': d.sensibilidad,
-            'capas_involucradas': d.capas_involucradas,
-            # Sección C
-            'principales_usuarios': d.principales_usuarios,
-            'proposito_detallado': d.proposito_detallado,
-            'valor_publico': d.valor_publico,
-            # Métricas de conectividad
-            'num_flujos': d.num_flujos,
-            'num_clasificaciones': d.num_clasificaciones,
-            'es_huerfano': d.num_flujos == 0,
-            'es_critico': d.num_flujos >= 5,
-        } for d in datos]
-        return JsonResponse({'datos': data})
-        
-    elif request.method == 'POST':
-        # Participante crea un nuevo dato
-        try:
-            body = json.loads(request.body)
-            nombre = body.get('nombre')
-            token = body.get('token')
-            
-            if not nombre or not token:
-                return JsonResponse({'error': 'Faltan datos'}, status=400)
-                
-            participante = get_object_or_404(ParticipanteTaller, token_sesion=token)
-            
-            nuevo_dato = DatoEcosistema.objects.create(
-                sesion=sesion,
-                nombre=nombre,
-                creado_por=participante,
-                es_maestro=True  # Por defecto es maestro hasta que se fusione
-            )
-            
-            return JsonResponse({
-                'success': True, 
-                'dato': {
-                    'id': nuevo_dato.id,
-                    'nombre': nuevo_dato.nombre
-                }
-            })
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-
-@require_POST
-@requiere_facilitador
-def api_fusionar_datos(request, sesion_id):
-    """El facilitador fusiona un dato en otro (Dato 1 se fusiona en Dato Maestro)
-    REQUIERE: Header X-Facilitador-Token con el código de la sesión.
-    """
-    try:
-        body = json.loads(request.body)
-        dato_origen_id = body.get('dato_origen_id')
-        dato_maestro_id = body.get('dato_maestro_id')
-        
-        dato_origen = get_object_or_404(DatoEcosistema, id=dato_origen_id, sesion_id=sesion_id)
-        dato_maestro = get_object_or_404(DatoEcosistema, id=dato_maestro_id, sesion_id=sesion_id)
-        
-        # Marcar como no maestro y vincular
-        dato_origen.es_maestro = False
-        dato_origen.fusionado_con = dato_maestro
-        dato_origen.save()
-        
-        return JsonResponse({'success': True})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-
-@require_http_methods(['DELETE'])
-@requiere_facilitador
-def api_eliminar_dato(request, sesion_id, dato_id):
-    """Elimina un dato del ecosistema.
-    REQUIERE: Header X-Facilitador-Token con el código de la sesión.
-    """
-    dato = get_object_or_404(DatoEcosistema, id=dato_id, sesion_id=sesion_id)
-    dato.delete()
-    return JsonResponse({'success': True})
-
-# ============================================================================
-# MAPA DE CIUDAD (todos los organismos juntos)
-# ============================================================================
-
-@require_GET
-def ecosistema_grafo_ciudad(request):
-    """
-    Agrega los flujos de TODAS las sesiones en un grafo de ciudad.
-    Nodos: organismos (cada sesión activa/finalizada), sociedad civil, entidades externas.
-    Aristas: flujos inter-organismo (recibe_de_organismo / envia_a_organismo).
-    DATOS como nodos satélites: cada organismo tiene sus datos orbitando alrededor (Torres 2026).
-    """
-    from django.db.models import Count
-    
-    sesiones = SesionTaller.objects.filter(
-        estado__in=['activa', 'finalizada']
-    ).select_related('organismo').prefetch_related(
-        'flujos',
-        'flujos__participante',
-        'flujos__recibe_de_organismo',
-        'flujos__envia_a_organismo',
-    )
-
-    # Nodos: un nodo por organismo con sesión
-    organismos = {}
-    for sesion in sesiones:
-        if not sesion.organismo:
-            continue
-        oid = sesion.organismo.id
-        if oid not in organismos:
-            organismos[oid] = {
-                'id': oid,
-                'nombre': sesion.organismo.nombre,
-                'codigo': getattr(sesion.organismo, 'codigo', ''),
-                'sesiones': [],
-                'num_participantes': 0,
-                'num_flujos': 0,
-            }
-        organismos[oid]['sesiones'].append(sesion.id)
-        organismos[oid]['num_participantes'] += sesion.participantes.filter(presente=True).count()
-        organismos[oid]['num_flujos'] += sesion.flujos.count()
-
-    # Aristas: flujos que cruzan organismos
-    flujos_ciudad = []
-    entidades_externas_dict = {}  # Deduplicar por nombre exacto
-    hay_sociedad_civil = False
-
-    # Obtener clasificaciones para estilos de flujo
-    clasificaciones_map = {}
-    for sesion in sesiones:
-        for c in sesion.clasificaciones.all():
-            clasificaciones_map[c.nombre_dato] = {
-                'nivel': c.nivel,
-                'sensibilidad': c.sensibilidad
-            }
-    
-    for sesion in sesiones:
-        if not sesion.organismo:
-            continue
-        sesion_org_id = sesion.organismo.id
-        sesion_org_nombre = sesion.organismo.nombre
-
-        for f in sesion.flujos.all():
-            if f.recibe_de_sociedad_civil or f.envia_a_sociedad_civil:
-                hay_sociedad_civil = True
-            if f.recibe_de_entidad_externa:
-                # Deduplicar: usar nombre como clave
-                nombre = f.recibe_de_entidad_externa.strip()
-                if nombre and nombre not in entidades_externas_dict:
-                    entidades_externas_dict[nombre] = {
-                        'nombre': nombre,
-                        'tipo_entidad': f.recibe_de_tipo_entidad or 'otro',
-                    }
-            if f.envia_a_entidad_externa:
-                # También agregar entidades que reciben datos de este organismo
-                nombre = f.envia_a_entidad_externa.strip()
-                if nombre and nombre not in entidades_externas_dict:
-                    entidades_externas_dict[nombre] = {
-                        'nombre': nombre,
-                        'tipo_entidad': f.envia_a_tipo_entidad or 'otro',
-                    }
-            # Flujo: sociedad civil → este organismo
-            if f.recibe_de_sociedad_civil:
-                clasificacion = clasificaciones_map.get(f.descripcion_datos, {})
-                flujos_ciudad.append({
-                    'id': f'f{f.id}_sc_in',
-                    'origen_tipo': 'sociedad_civil',
-                    'origen_id': 'sociedad_civil',
-                    'origen_nombre': 'Sociedad Civil / Ciudadanía',
-                    'destino_tipo': 'organismo',
-                    'destino_id': sesion_org_id,
-                    'destino_nombre': sesion_org_nombre,
-                    'descripcion_datos': f.descripcion_datos,
-                    'tipo': f.tipo,
-                    'frecuencia': f.frecuencia,
-                    'formato': f.formato,
-                    'nivel': clasificacion.get('nivel', 'operativo'),
-                    'sensibilidad': clasificacion.get('sensibilidad', None),
-                    # Torres 2026: tipo de interacción
-                    'tipo_interaccion': f.tipo_interaccion_recibe or f.tipo_interaccion_envia or 'IF',
-                })
-            # Flujo: este organismo → sociedad civil
-            if f.envia_a_sociedad_civil:
-                clasificacion = clasificaciones_map.get(f.descripcion_datos, {})
-                flujos_ciudad.append({
-                    'id': f'f{f.id}_sc_out',
-                    'origen_tipo': 'organismo',
-                    'origen_id': sesion_org_id,
-                    'origen_nombre': sesion_org_nombre,
-                    'destino_tipo': 'sociedad_civil',
-                    'destino_id': 'sociedad_civil',
-                    'destino_nombre': 'Sociedad Civil / Ciudadanía',
-                    'descripcion_datos': f.descripcion_datos,
-                    'tipo': f.tipo,
-                    'frecuencia': f.frecuencia,
-                    'formato': f.formato,
-                    'nivel': clasificacion.get('nivel', 'operativo'),
-                    'sensibilidad': clasificacion.get('sensibilidad', None),
-                    # Torres 2026: tipo de interacción
-                    'tipo_interaccion': f.tipo_interaccion_recibe or f.tipo_interaccion_envia or 'IF',
-                })
-            # Flujo: entidad externa → este organismo
-            if f.recibe_de_entidad_externa:
-                clasificacion = clasificaciones_map.get(f.descripcion_datos, {})
-                flujos_ciudad.append({
-                    'id': f'f{f.id}_ext_in',
-                    'origen_tipo': 'entidad_externa',
-                    'origen_id': None,
-                    'origen_nombre': f.recibe_de_entidad_externa,
-                    'origen_tipo_entidad': f.recibe_de_tipo_entidad or 'otro',
-                    'destino_tipo': 'organismo',
-                    'destino_id': sesion_org_id,
-                    'destino_nombre': sesion_org_nombre,
-                    'descripcion_datos': f.descripcion_datos,
-                    'tipo': f.tipo,
-                    'frecuencia': f.frecuencia,
-                    'formato': f.formato,
-                    'nivel': clasificacion.get('nivel', 'operativo'),
-                    'sensibilidad': clasificacion.get('sensibilidad', None),
-                })
-            # Flujo: este organismo → entidad externa
-            if f.envia_a_entidad_externa:
-                clasificacion = clasificaciones_map.get(f.descripcion_datos, {})
-                flujos_ciudad.append({
-                    'id': f'f{f.id}_ext_out',
-                    'origen_tipo': 'organismo',
-                    'origen_id': sesion_org_id,
-                    'origen_nombre': sesion_org_nombre,
-                    'destino_tipo': 'entidad_externa',
-                    'destino_id': None,
-                    'destino_nombre': f.envia_a_entidad_externa,
-                    'destino_tipo_entidad': f.envia_a_tipo_entidad or 'otro',
-                    'descripcion_datos': f.descripcion_datos,
-                    'tipo': f.tipo,
-                    'frecuencia': f.frecuencia,
-                    'formato': f.formato,
-                    'nivel': clasificacion.get('nivel', 'operativo'),
-                    'sensibilidad': clasificacion.get('sensibilidad', None),
-                    # Torres 2026: tipo de interacción
-                    'tipo_interaccion': f.tipo_interaccion_recibe or f.tipo_interaccion_envia or 'IF',
-                })
-    
-    # DATOS como nodos satélites (Torres 2026)
-    # Agregar datos de cada sesión agrupados por organismo
-    from .models import DatoEcosistema
-    datos_por_organismo = {}
-    for sesion in sesiones:
-        if not sesion.organismo:
-            continue
-        oid = sesion.organismo.id
-        if oid not in datos_por_organismo:
-            datos_por_organismo[oid] = []
-        
-        # Obtener datos de esta sesión
-        datos_sesion = DatoEcosistema.objects.filter(
-            sesion=sesion, es_maestro=True
-        ).annotate(num_flujos=Count('flujos'))
-        
-        for dato in datos_sesion:
-            datos_por_organismo[oid].append({
-                'id': dato.id,
-                'nombre': dato.nombre,
-                'nivel': dato.nivel,
-                'sensibilidad': dato.sensibilidad,
-                'num_flujos': dato.num_flujos,
-                'es_huerfano': dato.num_flujos == 0,
-                'es_critico': dato.num_flujos >= 5,
-                'sesion_id': sesion.id,
-            })
-
-    return JsonResponse({
-        'organismos': list(organismos.values()),
-        'flujos': flujos_ciudad,
-        'hay_sociedad_civil': hay_sociedad_civil,
-        'entidades_externas': list(entidades_externas_dict.values()),
-        'datos_por_organismo': datos_por_organismo,  # Torres 2026: datos como nodos satélites
-    })
-
-
-@require_GET
-def ecosistema_ciudad_expandido(request):
-    """
-    API expandida: retorna datos completos de cada organismo para vista expandida.
-    Incluye participantes, subsistemas, y flujos internos de cada sesión.
-    """
-    sesiones = SesionTaller.objects.filter(
-        estado__in=['activa', 'finalizada']
-    ).select_related('organismo').prefetch_related(
-        'participantes', 'participantes__rol_primario', 'participantes__rol_secundario',
-        'subsistemas', 'flujos'
-    )
-
-    organismos_expandidos = []
-    
-    for sesion in sesiones:
-        if not sesion.organismo:
-            continue
-            
-        # Participantes
-        participantes = []
-        for p in sesion.participantes.filter(presente=True):
-            participantes.append({
-                'id': p.id,
-                'nombre': p.nombre_completo,
-                'rol_primario': p.rol_primario.nombre if p.rol_primario else '',
-                'rol_primario_id': p.rol_primario.id if p.rol_primario else None,
-                'rol_secundario': p.rol_secundario.nombre if p.rol_secundario else '',
-                'rol_secundario_id': p.rol_secundario.id if p.rol_secundario else None,
-            })
-        
-        # Subsistemas
-        subsistemas = []
-        for s in sesion.subsistemas.all():
-            subsistemas.append({
-                'id': s.id,
-                'nombre': s.nombre,
-                'descripcion': s.descripcion or '',
-            })
-        
-        # Flujos internos (dentro del organismo)
-        flujos_internos = []
-        
-        # Obtener clasificaciones para nivel y sensibilidad
-        clasificaciones_map = {}
-        for c in sesion.clasificaciones.all():
-            clasificaciones_map[c.nombre_dato] = {
-                'nivel': c.nivel,
-                'sensibilidad': c.sensibilidad
-            }
-        
-        for f in sesion.flujos.all():
-            clasificacion = clasificaciones_map.get(f.descripcion_datos, {})
-            flujos_internos.append({
-                'id': f.id,
-                'participante_id': f.participante.id if f.participante else None,
-                'recibe_de_participante_id': f.recibe_de_participante_id,
-                'recibe_de_subsistema_id': f.recibe_de_subsistema_id,
-                'recibe_de_sociedad_civil': f.recibe_de_sociedad_civil,
-                'recibe_de_organismo_id': f.recibe_de_organismo_id,
-                'recibe_de_entidad_externa': f.recibe_de_entidad_externa,
-                'recibe_de_tipo_entidad': f.recibe_de_tipo_entidad,
-                'envia_a_participante_id': f.envia_a_participante_id,
-                'envia_a_subsistema_id': f.envia_a_subsistema_id,
-                'envia_a_sociedad_civil': f.envia_a_sociedad_civil,
-                'envia_a_organismo_id': f.envia_a_organismo_id,
-                'envia_a_entidad_externa': f.envia_a_entidad_externa,
-                'envia_a_tipo_entidad': f.envia_a_tipo_entidad,
-                'descripcion_datos': f.descripcion_datos,
-                'tipo': f.tipo,
-                # Torres 2026: Categorización de flujos
-                'tipo_interaccion': f.tipo_interaccion_recibe or f.tipo_interaccion_envia or 'IF',
-                'nivel': clasificacion.get('nivel', 'operativo'),
-                'sensibilidad': clasificacion.get('sensibilidad', None),
-            })
-        
-        organismos_expandidos.append({
-            'sesion_id': sesion.id,
-            'organismo_id': sesion.organismo.id,
-            'organismo_nombre': sesion.organismo.nombre,
-            'participantes': participantes,
-            'subsistemas': subsistemas,
-            'flujos': flujos_internos,
-        })
-    
-    return JsonResponse({
-        'organismos': organismos_expandidos,
-    })
-
-
-def taller_mapa_ciudad(request):
-    """Pantalla 'Mapa de Ciudad': todos los organismos y sus flujos inter-organismo."""
-    return render(request, 'indicadores/taller/mapa_ciudad.html', {})
-
-
-# ============================================================================
-# VISTA INSTITUCIONAL — CONSULTA NIVEL ESTRATÉGICO
-# ============================================================================
-
-def ecosistema_institucional_ciudad(request):
-    """Vista institucional del Mapa de Ciudad: fondo blanco, estilo profesional."""
-    return render(request, 'indicadores/taller/institucional/mapa_ciudad_institucional.html', {})
-
-
-def ecosistema_institucional_organismo(request, sesion_id):
-    """Vista institucional del ecosistema de un organismo específico."""
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    return render(request, 'indicadores/taller/institucional/mapa_organismo_institucional.html', {
-        'sesion': sesion
-    })
-
-
-# ============================================================================
-# EXPORTACIÓN GEXF (Gephi)
-# ============================================================================
-
-@require_GET
-def ecosistema_export_gexf(request, sesion_id):
-    """
-    Exporta el grafo de una sesión en formato GEXF para importar en Gephi.
-    """
-    import xml.etree.ElementTree as ET
-    from django.utils.timezone import now
-
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-
-    # Reuse ecosistema_grafo logic
-    participantes = list(sesion.participantes.filter(presente=True).select_related(
-        'rol_primario__familia', 'rol_secundario__familia'
-    ).values('id', 'nombre_completo', 'area_funcional',
-             'rol_primario__nombre', 'rol_primario__familia__codigo'))
-
-    subsistemas = list(sesion.subsistemas.values('id', 'nombre', 'tipo'))
-
-    flujos = []
-    for f in sesion.flujos.select_related(
-        'participante', 'participante__rol_primario',
-        'recibe_de_participante', 'recibe_de_subsistema', 'recibe_de_organismo',
-        'envia_a_participante', 'envia_a_subsistema', 'envia_a_organismo'
-    ):
-        rol = f.participante.rol_primario if f.rol_usado == 'primario' else f.participante.rol_secundario
-        flujos.append({
-            'id': f.id,
-            'participante_id': f.participante.id,
-            'recibe_de_participante_id': f.recibe_de_participante_id,
-            'recibe_de_subsistema_id': f.recibe_de_subsistema_id,
-            'recibe_de_sociedad_civil': f.recibe_de_sociedad_civil,
-            'recibe_de_organismo_id': f.recibe_de_organismo_id,
-            'recibe_de_organismo_nombre': f.recibe_de_organismo.nombre if f.recibe_de_organismo else None,
-            'recibe_de_entidad_externa': f.recibe_de_entidad_externa,
-            'recibe_de_tipo_entidad': f.recibe_de_tipo_entidad,
-            'envia_a_participante_id': f.envia_a_participante_id,
-            'envia_a_subsistema_id': f.envia_a_subsistema_id,
-            'envia_a_sociedad_civil': f.envia_a_sociedad_civil,
-            'envia_a_organismo_id': f.envia_a_organismo_id,
-            'envia_a_organismo_nombre': f.envia_a_organismo.nombre if f.envia_a_organismo else None,
-            'envia_a_entidad_externa': f.envia_a_entidad_externa,
-            'envia_a_tipo_entidad': f.envia_a_tipo_entidad,
-            'descripcion_datos': f.descripcion_datos,
-            'tipo': f.tipo,
-            'frecuencia': f.frecuencia or '',
-            'formato': f.formato or '',
-            'rol_nombre': rol.nombre if rol else 'Sin rol',
+    # --- Nodos del catálogo (incluye Gold) ---
+    bases = get_bases()
+    campos_cruzables = get_campos_cruzables()
+    for b in bases:
+        es_gold = b['id'] == 'fact_personas'
+        nodos.append({
+            'id': 'cat-' + b['id'],
+            'tipo': 'gold' if es_gold else 'catalogo',
+            'nombre': b['nombre'],
+            'descripcion': b.get('descripcion', ''),
+            'organismo': b.get('organismo', ''),
+            'frecuencia': b.get('frecuencia', ''),
+            'cobertura': b.get('cobertura', ''),
+            'num_campos': len(b.get('campos', [])),
+            'campos_cruzables': sum(1 for c in b.get('campos', []) if c.get('cruzar')),
+            'campos': [c['nombre'] for c in b.get('campos', [])],
         })
 
-    # Build GEXF
-    gexf = ET.Element('gexf', {
-        'xmlns': 'http://gexf.net/1.3',
-        'xmlns:viz': 'http://gexf.net/1.3/viz',
-        'version': '1.3',
-    })
-    meta = ET.SubElement(gexf, 'meta', lastmodifieddate=now().strftime('%Y-%m-%d'))
-    ET.SubElement(meta, 'creator').text = 'Sistema de Talleres de Datos'
-    ET.SubElement(meta, 'description').text = f'Ecosistema de datos - {sesion.organismo.nombre if sesion.organismo else sesion.nombre_sesion}'
-
-    graph = ET.SubElement(gexf, 'graph', defaultedgetype='directed', mode='static')
-
-    # Attributes
-    attribs = ET.SubElement(graph, 'attributes', {'class': 'node', 'mode': 'static'})
-    ET.SubElement(attribs, 'attribute', id='tipo', title='Tipo de nodo', type='string')
-    ET.SubElement(attribs, 'attribute', id='rol', title='Rol', type='string')
-    ET.SubElement(attribs, 'attribute', id='area', title='Área funcional', type='string')
-
-    edge_attribs = ET.SubElement(graph, 'attributes', {'class': 'edge', 'mode': 'static'})
-    ET.SubElement(edge_attribs, 'attribute', id='tipo_flujo', title='Tipo de flujo', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='datos', title='Descripción de datos', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='frecuencia', title='Frecuencia', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='formato', title='Formato', type='string')
-
-    nodes_el = ET.SubElement(graph, 'nodes')
-    edges_el = ET.SubElement(graph, 'edges')
-
-    node_ids = set()
-
-    def add_node(node_id, label, tipo, rol='', area='', color=None):
-        if node_id in node_ids:
-            return
-        node_ids.add(node_id)
-        n = ET.SubElement(nodes_el, 'node', id=str(node_id), label=label)
-        av = ET.SubElement(n, 'attvalues')
-        ET.SubElement(av, 'attvalue', **{'for': 'tipo', 'value': tipo})
-        ET.SubElement(av, 'attvalue', **{'for': 'rol', 'value': rol})
-        ET.SubElement(av, 'attvalue', **{'for': 'area', 'value': area})
-        if color:
-            viz = ET.SubElement(n, '{http://gexf.net/1.3/viz}color')
-            viz.set('r', str(color[0]))
-            viz.set('g', str(color[1]))
-            viz.set('b', str(color[2]))
-
-    # Add participant nodes
-    for p in participantes:
-        add_node(f"p_{p['id']}", p['nombre_completo'], 'participante',
-                 rol=p['rol_primario__nombre'] or '', area=p['area_funcional'] or '')
-
-    # Add subsystem nodes
-    for s in subsistemas:
-        add_node(f"sub_{s['id']}", s['nombre'], 'subsistema')
-
-    # Add special nodes and edges from flujos
-    edge_counter = 0
-    for f in flujos:
-        # Determine origin node
-        if f['recibe_de_participante_id']:
-            origen_id = f"p_{f['recibe_de_participante_id']}"
-        elif f['recibe_de_subsistema_id']:
-            origen_id = f"sub_{f['recibe_de_subsistema_id']}"
-        elif f['recibe_de_sociedad_civil']:
-            add_node('sociedad_civil', 'Sociedad Civil / Ciudadanía', 'sociedad_civil', color=(59, 130, 246))
-            origen_id = 'sociedad_civil'
-        elif f['recibe_de_organismo_id']:
-            nid = f"org_{f['recibe_de_organismo_id']}"
-            add_node(nid, f['recibe_de_organismo_nombre'] or nid, 'organismo_alcaldia', color=(245, 158, 11))
-            origen_id = nid
-        elif f['recibe_de_entidad_externa']:
-            safe = f['recibe_de_entidad_externa'].replace(' ', '_')
-            add_node(f"ext_{safe}", f['recibe_de_entidad_externa'], 'entidad_externa')
-            origen_id = f"ext_{safe}"
-        else:
-            origen_id = None
-
-        # Determine destination node
-        if f['envia_a_participante_id']:
-            destino_id = f"p_{f['envia_a_participante_id']}"
-        elif f['envia_a_subsistema_id']:
-            destino_id = f"sub_{f['envia_a_subsistema_id']}"
-        elif f['envia_a_sociedad_civil']:
-            add_node('sociedad_civil', 'Sociedad Civil / Ciudadanía', 'sociedad_civil', color=(59, 130, 246))
-            destino_id = 'sociedad_civil'
-        elif f['envia_a_organismo_id']:
-            nid = f"org_{f['envia_a_organismo_id']}"
-            add_node(nid, f['envia_a_organismo_nombre'] or nid, 'organismo_alcaldia', color=(245, 158, 11))
-            destino_id = nid
-        elif f['envia_a_entidad_externa']:
-            safe = f['envia_a_entidad_externa'].replace(' ', '_')
-            add_node(f"ext_{safe}", f['envia_a_entidad_externa'], 'entidad_externa')
-            destino_id = f"ext_{safe}"
-        else:
-            destino_id = None
-
-        centro_id = f"p_{f['participante_id']}"
-
-        # Edge: origin → participant
-        if origen_id:
-            e = ET.SubElement(edges_el, 'edge', id=str(edge_counter),
-                              source=origen_id, target=centro_id,
-                              label=f['descripcion_datos'][:80])
-            av = ET.SubElement(e, 'attvalues')
-            ET.SubElement(av, 'attvalue', **{'for': 'tipo_flujo', 'value': f['tipo']})
-            ET.SubElement(av, 'attvalue', **{'for': 'datos', 'value': f['descripcion_datos']})
-            ET.SubElement(av, 'attvalue', **{'for': 'frecuencia', 'value': f['frecuencia'] or ''})
-            ET.SubElement(av, 'attvalue', **{'for': 'formato', 'value': f['formato'] or ''})
-            edge_counter += 1
-
-        # Edge: participant → destination
-        if destino_id:
-            e = ET.SubElement(edges_el, 'edge', id=str(edge_counter),
-                              source=centro_id, target=destino_id,
-                              label=f['descripcion_datos'][:80])
-            av = ET.SubElement(e, 'attvalues')
-            ET.SubElement(av, 'attvalue', **{'for': 'tipo_flujo', 'value': f['tipo']})
-            ET.SubElement(av, 'attvalue', **{'for': 'datos', 'value': f['descripcion_datos']})
-            ET.SubElement(av, 'attvalue', **{'for': 'frecuencia', 'value': f['frecuencia'] or ''})
-            ET.SubElement(av, 'attvalue', **{'for': 'formato', 'value': f['formato'] or ''})
-            edge_counter += 1
-
-    xml_str = '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(gexf, encoding='unicode')
-    nombre_archivo = f"ecosistema_{sesion.organismo.nombre if sesion.organismo else sesion.id}.gexf"
-    nombre_archivo = nombre_archivo.replace(' ', '_').replace('/', '-')
-
-    from django.http import HttpResponse
-    response = HttpResponse(xml_str, content_type='application/gexf+xml; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
-    return response
-
-
-@require_GET
-def ecosistema_ciudad_export_gexf(request):
-    """
-    Exporta el grafo de ciudad completo (todos los organismos) en formato GEXF.
-    """
-    import xml.etree.ElementTree as ET
-    from django.http import HttpResponse
-    from django.utils.timezone import now
-
-    sesiones = SesionTaller.objects.filter(
-        estado__in=['activa', 'finalizada']
-    ).select_related('organismo').prefetch_related(
-        'flujos', 'flujos__recibe_de_organismo', 'flujos__envia_a_organismo'
-    )
-
-    gexf = ET.Element('gexf', {
-        'xmlns': 'http://gexf.net/1.3',
-        'xmlns:viz': 'http://gexf.net/1.3/viz',
-        'version': '1.3',
-    })
-    meta = ET.SubElement(gexf, 'meta', lastmodifieddate=now().strftime('%Y-%m-%d'))
-    ET.SubElement(meta, 'creator').text = 'Sistema de Talleres de Datos'
-    ET.SubElement(meta, 'description').text = 'Mapa de Ciudad - Ecosistema Distrital de Datos'
-
-    graph = ET.SubElement(gexf, 'graph', defaultedgetype='directed', mode='static')
-
-    attribs = ET.SubElement(graph, 'attributes', {'class': 'node', 'mode': 'static'})
-    ET.SubElement(attribs, 'attribute', id='tipo', title='Tipo de nodo', type='string')
-    ET.SubElement(attribs, 'attribute', id='num_participantes', title='Participantes', type='integer')
-    ET.SubElement(attribs, 'attribute', id='num_flujos', title='Flujos', type='integer')
-
-    edge_attribs = ET.SubElement(graph, 'attributes', {'class': 'edge', 'mode': 'static'})
-    ET.SubElement(edge_attribs, 'attribute', id='datos', title='Descripción de datos', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='tipo_flujo', title='Tipo de flujo', type='string')
-
-    nodes_el = ET.SubElement(graph, 'nodes')
-    edges_el = ET.SubElement(graph, 'edges')
-
-    node_ids = set()
-    edge_counter = 0
-
-    def add_node_ciudad(node_id, label, tipo, num_p=0, num_f=0, color=None):
-        if node_id in node_ids:
-            return
-        node_ids.add(node_id)
-        n = ET.SubElement(nodes_el, 'node', id=str(node_id), label=label)
-        av = ET.SubElement(n, 'attvalues')
-        ET.SubElement(av, 'attvalue', **{'for': 'tipo', 'value': tipo})
-        ET.SubElement(av, 'attvalue', **{'for': 'num_participantes', 'value': str(num_p)})
-        ET.SubElement(av, 'attvalue', **{'for': 'num_flujos', 'value': str(num_f)})
-        if color:
-            viz = ET.SubElement(n, '{http://gexf.net/1.3/viz}color')
-            viz.set('r', str(color[0]))
-            viz.set('g', str(color[1]))
-            viz.set('b', str(color[2]))
-
-    for sesion in sesiones:
-        if not sesion.organismo:
-            continue
-        oid = f"org_{sesion.organismo.id}"
-        num_p = sesion.participantes.filter(presente=True).count()
-        num_f = sesion.flujos.count()
-        add_node_ciudad(oid, sesion.organismo.nombre, 'organismo', num_p, num_f, color=(74, 124, 44))
-
-        for f in sesion.flujos.all():
-            if f.recibe_de_sociedad_civil or f.envia_a_sociedad_civil:
-                add_node_ciudad('sociedad_civil', 'Sociedad Civil / Ciudadanía',
-                                'sociedad_civil', color=(59, 130, 246))
-            if f.recibe_de_entidad_externa:
-                safe = f.recibe_de_entidad_externa.replace(' ', '_')
-                add_node_ciudad(f'ext_{safe}', f.recibe_de_entidad_externa,
-                                'entidad_externa', color=(136, 136, 136))
-            if f.envia_a_entidad_externa:
-                safe = f.envia_a_entidad_externa.replace(' ', '_')
-                add_node_ciudad(f'ext_{safe}', f.envia_a_entidad_externa,
-                                'entidad_externa', color=(136, 136, 136))
-
-            def add_edge(src, tgt, desc, tipo):
-                nonlocal edge_counter
-                e = ET.SubElement(edges_el, 'edge', id=str(edge_counter),
-                                  source=src, target=tgt, label=desc[:80])
-                av = ET.SubElement(e, 'attvalues')
-                ET.SubElement(av, 'attvalue', **{'for': 'datos', 'value': desc})
-                ET.SubElement(av, 'attvalue', **{'for': 'tipo_flujo', 'value': tipo})
-                edge_counter += 1
-
-            if f.recibe_de_organismo_id and f.recibe_de_organismo:
-                add_edge(f'org_{f.recibe_de_organismo_id}', oid,
-                         f.descripcion_datos, f.tipo)
-            if f.envia_a_organismo_id and f.envia_a_organismo:
-                add_edge(oid, f'org_{f.envia_a_organismo_id}',
-                         f.descripcion_datos, f.tipo)
-            if f.recibe_de_sociedad_civil:
-                add_edge('sociedad_civil', oid, f.descripcion_datos, f.tipo)
-            if f.envia_a_sociedad_civil:
-                add_edge(oid, 'sociedad_civil', f.descripcion_datos, f.tipo)
-            if f.recibe_de_entidad_externa:
-                safe = f.recibe_de_entidad_externa.replace(' ', '_')
-                add_edge(f'ext_{safe}', oid, f.descripcion_datos, f.tipo)
-            if f.envia_a_entidad_externa:
-                safe = f.envia_a_entidad_externa.replace(' ', '_')
-                add_edge(oid, f'ext_{safe}', f.descripcion_datos, f.tipo)
-
-    xml_str = '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(gexf, encoding='unicode')
-    response = HttpResponse(xml_str, content_type='application/gexf+xml; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="mapa_ciudad_ecosistema.gexf"'
-    return response
-
-
-@require_GET
-def ecosistema_ciudad_expandido_export_gexf(request):
-    """
-    Exporta el grafo de ciudad expandido (todos los sub-ecosistemas) en formato GEXF.
-    SIN nodos de organismo - solo participantes, subsistemas, sociedad civil y entidades externas.
-    Hace matching de flujos inter-organismo por nombre de dato.
-    """
-    import xml.etree.ElementTree as ET
-    from django.http import HttpResponse
-    from django.utils.timezone import now
-
-    sesiones = SesionTaller.objects.filter(
-        estado__in=['activa', 'finalizada']
-    ).select_related('organismo').prefetch_related(
-        'participantes', 'participantes__rol_primario', 'participantes__rol_secundario',
-        'subsistemas', 'flujos'
-    )
-
-    gexf = ET.Element('gexf', {
-        'xmlns': 'http://gexf.net/1.3',
-        'xmlns:viz': 'http://gexf.net/1.3/viz',
-        'version': '1.3',
-    })
-    meta = ET.SubElement(gexf, 'meta', lastmodifieddate=now().strftime('%Y-%m-%d'))
-    ET.SubElement(meta, 'creator').text = 'Sistema de Talleres de Datos'
-    ET.SubElement(meta, 'description').text = 'Mapa de Ciudad Expandido - Ecosistema Distrital de Datos (sin nodos organismo)'
-
-    graph = ET.SubElement(gexf, 'graph', defaultedgetype='directed', mode='static')
-
-    attribs = ET.SubElement(graph, 'attributes', {'class': 'node', 'mode': 'static'})
-    ET.SubElement(attribs, 'attribute', id='tipo', title='Tipo de nodo', type='string')
-    ET.SubElement(attribs, 'attribute', id='organismo', title='Organismo', type='string')
-    ET.SubElement(attribs, 'attribute', id='rol', title='Rol', type='string')
-
-    edge_attribs = ET.SubElement(graph, 'attributes', {'class': 'edge', 'mode': 'static'})
-    ET.SubElement(edge_attribs, 'attribute', id='datos', title='Descripción de datos', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='tipo_flujo', title='Tipo de flujo', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='nivel', title='Nivel estratégico', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='sensibilidad', title='Sensibilidad', type='string')
-    ET.SubElement(edge_attribs, 'attribute', id='matched', title='Flujo matched entre organismos', type='boolean')
-
-    nodes_el = ET.SubElement(graph, 'nodes')
-    edges_el = ET.SubElement(graph, 'edges')
-
-    node_ids = set()
-    edge_counter = 0
-    
-    # Obtener clasificaciones
-    clasificaciones_map = {}
-    for sesion in sesiones:
-        for c in sesion.clasificaciones.all():
-            clasificaciones_map[c.nombre_dato] = {
-                'nivel': c.nivel,
-                'sensibilidad': c.sensibilidad
-            }
-
-    def add_node_exp(node_id, label, tipo, organismo='', rol='', color=None):
-        if node_id in node_ids:
-            return
-        node_ids.add(node_id)
-        n = ET.SubElement(nodes_el, 'node', id=str(node_id), label=label)
-        av = ET.SubElement(n, 'attvalues')
-        ET.SubElement(av, 'attvalue', **{'for': 'tipo', 'value': tipo})
-        ET.SubElement(av, 'attvalue', **{'for': 'organismo', 'value': organismo})
-        ET.SubElement(av, 'attvalue', **{'for': 'rol', 'value': rol})
-        if color:
-            viz = ET.SubElement(n, '{http://gexf.net/1.3/viz}color')
-            viz.set('r', str(color[0]))
-            viz.set('g', str(color[1]))
-            viz.set('b', str(color[2]))
-
-    # Nodo de sociedad civil
-    add_node_exp('sociedad_civil', 'Sociedad Civil / Ciudadanía', 'sociedad_civil', color=(59, 130, 246))
-
-    # Entidades externas deduplicadas
-    entidades_externas = set()
-    for sesion in sesiones:
-        for f in sesion.flujos.all():
-            if f.recibe_de_entidad_externa:
-                entidades_externas.add(f.recibe_de_entidad_externa.strip())
-            if f.envia_a_entidad_externa:
-                entidades_externas.add(f.envia_a_entidad_externa.strip())
-    
-    for ent in entidades_externas:
-        safe = ent.replace(' ', '_')
-        add_node_exp(f'ext_{safe}', ent, 'entidad_externa', color=(136, 136, 136))
-
-    # Crear índice de flujos salientes por nombre de dato y organismo destino
-    # Para hacer matching: {nombre_dato: {organismo_destino_id: [flujos_que_envian]}}
-    flujos_salientes_por_dato = {}
-    
-    # Crear índice de flujos entrantes por nombre de dato y organismo origen
-    # Para hacer matching: {nombre_dato: {organismo_origen_id: [flujos_que_reciben]}}
-    flujos_entrantes_por_dato = {}
-
-    # Nodos de cada organismo y sus sub-ecosistemas (SIN nodo organismo)
-    for sesion in sesiones:
-        if not sesion.organismo:
-            continue
-        
-        org_nombre = sesion.organismo.nombre
-        
-        # Participantes
-        for p in sesion.participantes.filter(presente=True):
-            rol = p.rol_primario.nombre if p.rol_primario else ''
-            add_node_exp(f'p_{sesion.id}_{p.id}', p.nombre_completo, 'participante', 
-                        organismo=org_nombre, rol=rol, color=(16, 185, 129))
-        
-        # Subsistemas
-        for s in sesion.subsistemas.all():
-            add_node_exp(f'sub_{sesion.id}_{s.id}', s.nombre, 'subsistema',
-                        organismo=org_nombre, color=(14, 165, 233))
-        
-        # Indexar flujos inter-organismo para matching
-        for f in sesion.flujos.all():
-            if f.envia_a_organismo_id:
-                # Este flujo envía a otro organismo
-                dato_key = f.descripcion_datos.strip().lower() if f.descripcion_datos else ''
-                if dato_key:
-                    if dato_key not in flujos_salientes_por_dato:
-                        flujos_salientes_por_dato[dato_key] = {}
-                    if f.envia_a_organismo_id not in flujos_salientes_por_dato[dato_key]:
-                        flujos_salientes_por_dato[dato_key][f.envia_a_organismo_id] = []
-                    flujos_salientes_por_dato[dato_key][f.envia_a_organismo_id].append({
-                        'flujo': f,
-                        'sesion_id': sesion.id,
-                        'participante_id': f.participante_id
-                    })
-            
-            if f.recibe_de_organismo_id:
-                # Este flujo recibe de otro organismo
-                dato_key = f.descripcion_datos.strip().lower() if f.descripcion_datos else ''
-                if dato_key:
-                    if dato_key not in flujos_entrantes_por_dato:
-                        flujos_entrantes_por_dato[dato_key] = {}
-                    if f.recibe_de_organismo_id not in flujos_entrantes_por_dato[dato_key]:
-                        flujos_entrantes_por_dato[dato_key][f.recibe_de_organismo_id] = []
-                    flujos_entrantes_por_dato[dato_key][f.recibe_de_organismo_id].append({
-                        'flujo': f,
-                        'sesion_id': sesion.id,
-                        'participante_id': f.participante_id
-                    })
-    
-    # Procesar flujos y crear edges
-    flujos_matched = set()  # Para evitar duplicados
-    
-    for sesion in sesiones:
-        if not sesion.organismo:
-            continue
-        
-        for f in sesion.flujos.all():
-            clasificacion = clasificaciones_map.get(f.descripcion_datos, {})
-            nivel = clasificacion.get('nivel', 'operativo')
-            sensibilidad = clasificacion.get('sensibilidad', '')
-            
-            # Determinar origen
-            origen_id = None
-            if f.recibe_de_participante_id:
-                origen_id = f'p_{sesion.id}_{f.recibe_de_participante_id}'
-            elif f.recibe_de_subsistema_id:
-                origen_id = f'sub_{sesion.id}_{f.recibe_de_subsistema_id}'
-            elif f.recibe_de_sociedad_civil:
-                origen_id = 'sociedad_civil'
-            elif f.recibe_de_entidad_externa:
-                safe = f.recibe_de_entidad_externa.strip().replace(' ', '_')
-                origen_id = f'ext_{safe}'
-            elif f.recibe_de_organismo_id:
-                # Flujo inter-organismo: buscar matching por nombre de dato
-                dato_key = f.descripcion_datos.strip().lower() if f.descripcion_datos else ''
-                if dato_key and dato_key in flujos_salientes_por_dato:
-                    # Buscar flujos del organismo origen que envíen este dato a este organismo
-                    if sesion.organismo.id in flujos_salientes_por_dato[dato_key]:
-                        # Hay match! Conectar con el participante que envía
-                        flujos_origen = flujos_salientes_por_dato[dato_key][sesion.organismo.id]
-                        if flujos_origen:
-                            # Tomar el primer match (podría haber múltiples)
-                            flujo_origen = flujos_origen[0]
-                            origen_id = f'p_{flujo_origen["sesion_id"]}_{flujo_origen["participante_id"]}'
-            
-            # Determinar destino
-            destino_id = None
-            if f.envia_a_participante_id:
-                destino_id = f'p_{sesion.id}_{f.envia_a_participante_id}'
-            elif f.envia_a_subsistema_id:
-                destino_id = f'sub_{sesion.id}_{f.envia_a_subsistema_id}'
-            elif f.envia_a_sociedad_civil:
-                destino_id = 'sociedad_civil'
-            elif f.envia_a_entidad_externa:
-                safe = f.envia_a_entidad_externa.strip().replace(' ', '_')
-                destino_id = f'ext_{safe}'
-            elif f.envia_a_organismo_id:
-                # Flujo inter-organismo: buscar matching por nombre de dato
-                dato_key = f.descripcion_datos.strip().lower() if f.descripcion_datos else ''
-                if dato_key and dato_key in flujos_entrantes_por_dato:
-                    # Buscar flujos del organismo destino que reciban este dato de este organismo
-                    if sesion.organismo.id in flujos_entrantes_por_dato[dato_key]:
-                        # Hay match! Conectar con el participante que recibe
-                        flujos_destino = flujos_entrantes_por_dato[dato_key][sesion.organismo.id]
-                        if flujos_destino:
-                            # Tomar el primer match
-                            flujo_destino = flujos_destino[0]
-                            destino_id = f'p_{flujo_destino["sesion_id"]}_{flujo_destino["participante_id"]}'
-            
-            centro_id = f'p_{sesion.id}_{f.participante_id}'
-            is_matched = bool(f.recibe_de_organismo_id or f.envia_a_organismo_id)
-            
-            # Crear aristas
-            if origen_id and centro_id:
-                edge_key = f'{origen_id}_{centro_id}_{f.descripcion_datos}'
-                if edge_key not in flujos_matched:
-                    flujos_matched.add(edge_key)
-                    e = ET.SubElement(edges_el, 'edge', id=str(edge_counter),
-                                    source=origen_id, target=centro_id, label=(f.descripcion_datos or '')[:80])
-                    av = ET.SubElement(e, 'attvalues')
-                    ET.SubElement(av, 'attvalue', **{'for': 'datos', 'value': f.descripcion_datos or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'tipo_flujo', 'value': f.tipo or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'nivel', 'value': nivel or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'sensibilidad', 'value': sensibilidad or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'matched', 'value': str(is_matched).lower()})
-                    edge_counter += 1
-            
-            if centro_id and destino_id:
-                edge_key = f'{centro_id}_{destino_id}_{f.descripcion_datos}'
-                if edge_key not in flujos_matched:
-                    flujos_matched.add(edge_key)
-                    e = ET.SubElement(edges_el, 'edge', id=str(edge_counter),
-                                    source=centro_id, target=destino_id, label=(f.descripcion_datos or '')[:80])
-                    av = ET.SubElement(e, 'attvalues')
-                    ET.SubElement(av, 'attvalue', **{'for': 'datos', 'value': f.descripcion_datos or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'tipo_flujo', 'value': f.tipo or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'nivel', 'value': nivel or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'sensibilidad', 'value': sensibilidad or ''})
-                    ET.SubElement(av, 'attvalue', **{'for': 'matched', 'value': str(is_matched).lower()})
-                    edge_counter += 1
-
-    xml_str = '<?xml version="1.0" encoding="UTF-8"?>\n' + ET.tostring(gexf, encoding='unicode')
-    response = HttpResponse(xml_str, content_type='application/gexf+xml; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="mapa_ciudad_expandido_ecosistema.gexf"'
-    return response
-
-
-@require_GET
-def api_datos_participante(request, sesion_id):
-    """Devuelve los datos creados por un participante específico para que los clasifique en la Ficha P2."""
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    token = request.GET.get('token')
-    if not token:
-        return JsonResponse({'error': 'Falta token'}, status=400)
-        
-    participante = get_object_or_404(ParticipanteTaller, token_sesion=token, sesion_id=sesion_id)
-    
-    # Obtener los datos maestros que este participante haya creado (o donde su dato original haya terminado)
-    # Por simplicidad, obtenemos los datos que él creó directamente. Si se fusionaron, traemos el maestro al que apuntan.
-    datos_creados = DatoEcosistema.objects.filter(creado_por=participante)
-    
-    logger.info(f"[FICHA P2] Participante {participante.nombre_completo} (token={token[:8]}...)")
-    logger.info(f"[FICHA P2] Datos creados en DatoEcosistema: {datos_creados.count()}")
-    
-    # Construir dict {id: dato_obj} de datos maestros a clasificar
-    datos_a_clasificar = {}
-    for d in datos_creados:
-        logger.info(f"[FICHA P2]   - Dato: '{d.nombre}' (es_maestro={d.es_maestro}, fusionado_con={d.fusionado_con})")
-        if d.es_maestro:
-            datos_a_clasificar[d.id] = d
-        elif d.fusionado_con:
-            datos_a_clasificar[d.fusionado_con.id] = d.fusionado_con
-    
-    logger.info(f"[FICHA P2] Total datos a clasificar: {len(datos_a_clasificar)}")
-            
-    # Filtrar los que ya clasificó (por dato FK o nombre legacy)
-    datos_ids = list(datos_a_clasificar.keys())
-    datos_nombres = [d.nombre for d in datos_a_clasificar.values()]
-    
-    clasificados_ids = set(
-        ClasificacionDato.objects.filter(
-            sesion_id=sesion_id, 
-            dato_id__in=datos_ids
-        ).values_list('dato_id', flat=True)
-    )
-    # También buscar por nombre (legacy sin FK)
-    clasificados_nombres = set(
-        ClasificacionDato.objects.filter(
-            sesion_id=sesion_id,
-            nombre_dato__in=datos_nombres,
-            dato__isnull=True
-        ).values_list('nombre_dato', flat=True)
-    )
-    
-    pendientes = []
-    clasificados = []
-    for dato_id, dato_obj in datos_a_clasificar.items():
-        item = {'id': dato_obj.id, 'nombre': dato_obj.nombre, 'nivel': dato_obj.nivel or ''}
-        if dato_id in clasificados_ids or dato_obj.nombre in clasificados_nombres:
-            clasificados.append(item)
-        else:
-            pendientes.append(item)
-    
-    logger.info(f"[FICHA P2] Pendientes: {len(pendientes)}, Clasificados: {len(clasificados)}")
-    
-    return JsonResponse({
-        'pendientes': pendientes,
-        'clasificados': clasificados
-    })
-
-
-# ============================================================================
-# CIERRE DEL TALLER - REPORTES Y EXPORTACIONES
-# ============================================================================
-
-@require_GET
-def api_clasificaciones_sesion(request, sesion_id):
-    """Obtiene todas las clasificaciones de una sesión para estadísticas de cierre."""
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    clasificaciones = ClasificacionDato.objects.filter(sesion=sesion).select_related(
-        'participante'
-    ).values(
-        'id',
-        'nombre_dato',
-        'nivel',
-        'sensibilidad',
-        'mecanismo_recoleccion',
-        'para_que_se_usa',
-        'participante__nombre_completo'
-    )
-    
-    return JsonResponse({
-        'clasificaciones': list(clasificaciones)
-    })
-
-
-# ============================================================================
-# HELPERS PARA GENERACIÓN DE REPORTES PDF
-# ============================================================================
-
-def _crear_estilos_pdf():
-    """Crea y retorna los estilos personalizados para los PDFs."""
-    styles = getSampleStyleSheet()
-    
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#2d5016'),
-        spaceAfter=30,
-        alignment=TA_CENTER,
-        fontName='Helvetica-Bold'
-    )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=16,
-        textColor=colors.HexColor('#2d5016'),
-        spaceAfter=12,
-        spaceBefore=12,
-        fontName='Helvetica-Bold'
-    )
-    
-    return {
-        'title': title_style,
-        'heading': heading_style,
-        'normal': styles['Normal']
-    }
-
-
-def _crear_encabezado_pdf(sesion, estilos):
-    """Crea el encabezado común para todos los reportes PDF."""
-    story = []
-    story.append(Paragraph(f"🌴 Taller del Ecosistema de Datos", estilos['title']))
-    story.append(Paragraph(f"{sesion.organismo.nombre}", estilos['heading']))
-    story.append(Paragraph(f"Sesión: {sesion.nombre_sesion}", estilos['normal']))
-    story.append(Paragraph(f"Fecha: {sesion.fecha.strftime('%d/%m/%Y')}", estilos['normal']))
-    story.append(Paragraph(f"Facilitador: {sesion.facilitador}", estilos['normal']))
-    story.append(Spacer(1, 0.3*inch))
-    return story
-
-
-def _crear_pie_pagina_pdf(estilos):
-    """Crea el pie de página común para todos los reportes PDF."""
-    story = []
-    story.append(Spacer(1, 0.5*inch))
-    story.append(Paragraph("_______________________________________________", estilos['normal']))
-    story.append(Paragraph(f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}", estilos['normal']))
-    story.append(Paragraph("Sistema SIIED - Subdirección de Desarrollo Integral", estilos['normal']))
-    story.append(Paragraph("Departamento Administrativo de Planeación Distrital", estilos['normal']))
-    story.append(Paragraph("Santiago de Cali, Colombia 🌴", estilos['normal']))
-    return story
-
-
-def _generar_reporte_ejecutivo(sesion, participantes, datos, flujos, clasificaciones, estilos):
-    """Genera el contenido del reporte ejecutivo."""
-    story = []
-    story.append(Paragraph("📈 Reporte Ejecutivo", estilos['heading']))
-    story.append(Spacer(1, 0.2*inch))
-    
-    # Métricas principales
-    story.append(Paragraph("<b>Resumen de Participación</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    metricas_data = [
-        ['Métrica', 'Valor'],
-        ['Participantes', str(participantes.count())],
-        ['Áreas representadas', str(participantes.values('area_funcional').distinct().count())],
-        ['Roles identificados', str(participantes.filter(rol_primario__isnull=False).count())],
-        ['Datos creados', str(datos.count())],
-        ['Flujos mapeados', str(flujos.count())],
-        ['Datos clasificados', str(clasificaciones.count())]
-    ]
-    
-    tabla_metricas = Table(metricas_data, colWidths=[3*inch, 2*inch])
-    tabla_metricas.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(tabla_metricas)
-    story.append(Spacer(1, 0.3*inch))
-    
-    # Top 10 roles
-    story.append(Paragraph("<b>Top 10 Roles Identificados</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    roles_count = {}
-    for p in participantes.filter(rol_primario__isnull=False):
-        rol_nombre = p.rol_primario.nombre
-        roles_count[rol_nombre] = roles_count.get(rol_nombre, 0) + 1
-    
-    top_roles = sorted(roles_count.items(), key=lambda x: x[1], reverse=True)[:10]
-    
-    if top_roles:
-        roles_data = [['Rol', 'Cantidad']]
-        for rol, count in top_roles:
-            roles_data.append([rol, str(count)])
-        
-        tabla_roles = Table(roles_data, colWidths=[4*inch, 1*inch])
-        tabla_roles.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        story.append(tabla_roles)
-    
-    return story
-
-
-def _generar_reporte_tecnico(sesion, participantes, flujos, clasificaciones, estilos):
-    """Genera el contenido del reporte técnico."""
-    story = []
-    story.append(Paragraph("🔧 Reporte Técnico", estilos['heading']))
-    story.append(Spacer(1, 0.2*inch))
-    
-    # Análisis por familia de roles
-    story.append(Paragraph("<b>Análisis por Familia de Roles</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    familias = FamiliaRol.objects.all().order_by('codigo')
-    familias_data = [['Familia', 'Roles Asignados']]
-    
-    for familia in familias:
-        count = participantes.filter(rol_primario__familia=familia).count()
-        familias_data.append([f"{familia.codigo}: {familia.nombre}", str(count)])
-    
-    tabla_familias = Table(familias_data, colWidths=[4*inch, 1.5*inch])
-    tabla_familias.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(tabla_familias)
-    story.append(Spacer(1, 0.3*inch))
-    
-    # Matriz de flujos
-    story.append(Paragraph("<b>Matriz de Flujos de Datos</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    flujos_internos = flujos.filter(tipo='interno').count()
-    flujos_inter = flujos.filter(tipo='inter_sub').count()
-    flujos_externos = flujos.filter(tipo='externo').count()
-    
-    flujos_data = [
-        ['Tipo de Flujo', 'Cantidad'],
-        ['Internos (mismo subsistema)', str(flujos_internos)],
-        ['Inter-subsistemas', str(flujos_inter)],
-        ['Externos (entidades, sociedad civil)', str(flujos_externos)],
-        ['TOTAL', str(flujos.count())]
-    ]
-    
-    tabla_flujos = Table(flujos_data, colWidths=[4*inch, 1.5*inch])
-    tabla_flujos.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FFD700')),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(tabla_flujos)
-    story.append(Spacer(1, 0.3*inch))
-    
-    # Clasificación de datos
-    story.append(Paragraph("<b>Clasificación de Datos</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    clasif_operativo = clasificaciones.filter(nivel='operativo').count()
-    clasif_tactico = clasificaciones.filter(nivel='tactico').count()
-    clasif_estrategico = clasificaciones.filter(nivel='estrategico').count()
-    
-    clasif_data = [
-        ['Nivel de Importancia', 'Cantidad'],
-        ['Operativo', str(clasif_operativo)],
-        ['Táctico', str(clasif_tactico)],
-        ['Estratégico', str(clasif_estrategico)]
-    ]
-    
-    tabla_clasif = Table(clasif_data, colWidths=[4*inch, 1.5*inch])
-    tabla_clasif.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2d5016')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    story.append(tabla_clasif)
-    
-    return story
-
-
-def _generar_reporte_organismo(sesion, participantes, datos, flujos, clasificaciones, estilos):
-    """Genera el contenido del reporte para el organismo."""
-    story = []
-    story.append(Paragraph("🏢 Reporte para el Organismo", estilos['heading']))
-    story.append(Spacer(1, 0.2*inch))
-    
-    story.append(Paragraph("<b>Ecosistema de Datos Identificado</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    resumen_text = f"""
-    Durante el taller se identificaron <b>{participantes.count()} participantes</b> de diferentes áreas funcionales,
-    quienes mapearon <b>{datos.count()} datos del ecosistema</b> y <b>{flujos.count()} flujos de información</b>.
-    Se clasificaron <b>{clasificaciones.count()} datos</b> según su nivel de importancia estratégica y sensibilidad.
-    """
-    story.append(Paragraph(resumen_text, estilos['normal']))
-    story.append(Spacer(1, 0.2*inch))
-    
-    story.append(Paragraph("<b>Fortalezas Identificadas</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    fortalezas = [
-        f"• Alta participación de áreas funcionales ({participantes.values('area_funcional').distinct().count()} áreas)",
-        f"• Identificación de {datos.count()} datos clave del ecosistema",
-        f"• Mapeo de {flujos.count()} flujos de información",
-        "• Compromiso del equipo en la gestión de datos"
-    ]
-    
-    for fortaleza in fortalezas:
-        story.append(Paragraph(fortaleza, estilos['normal']))
-    
-    story.append(Spacer(1, 0.2*inch))
-    story.append(Paragraph("<b>Próximos Pasos Sugeridos</b>", estilos['normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    pasos = [
-        "1. Revisar y validar los datos identificados con cada área",
-        "2. Implementar controles de calidad en los flujos críticos",
-        "3. Establecer políticas de acceso según clasificación de sensibilidad",
-        "4. Capacitar al equipo en gestión de datos según roles identificados",
-        "5. Monitorear y actualizar el ecosistema de datos periódicamente"
-    ]
-    
-    for paso in pasos:
-        story.append(Paragraph(paso, estilos['normal']))
-    
-    return story
-
-
-@require_GET
-def generar_reporte_pdf(request, sesion_id, tipo):
-    """
-    Genera un reporte PDF del taller según el tipo solicitado.
-    Tipos: 'ejecutivo', 'tecnico', 'organismo'
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    # Obtener datos del taller con optimización de queries
-    participantes = ParticipanteTaller.objects.filter(
-        sesion=sesion, presente=True
-    ).select_related('rol_primario', 'rol_primario__familia', 'rol_secundario')
-    
-    datos = DatoEcosistema.objects.filter(sesion=sesion, es_maestro=True)
-    flujos = FlujoDatos.objects.filter(sesion=sesion)
-    clasificaciones = ClasificacionDato.objects.filter(sesion=sesion)
-    
-    # Crear buffer para el PDF
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
-    
-    # Crear estilos
-    estilos = _crear_estilos_pdf()
-    
-    # Construir contenido del documento
-    story = _crear_encabezado_pdf(sesion, estilos)
-    
-    # Agregar contenido según tipo de reporte
-    if tipo == 'ejecutivo':
-        story.extend(_generar_reporte_ejecutivo(sesion, participantes, datos, flujos, clasificaciones, estilos))
-    elif tipo == 'tecnico':
-        story.extend(_generar_reporte_tecnico(sesion, participantes, flujos, clasificaciones, estilos))
-    elif tipo == 'organismo':
-        story.extend(_generar_reporte_organismo(sesion, participantes, datos, flujos, clasificaciones, estilos))
+    # --- Aristas entre bases del catálogo (cruzar) ---
+    for campo, lista_ids in campos_cruzables.items():
+        for i in range(len(lista_ids)):
+            for j in range(i + 1, len(lista_ids)):
+                a, b2 = lista_ids[i], lista_ids[j]
+                aristas.append({
+                    'origen': 'cat-' + a, 'destino': 'cat-' + b2,
+                    'tipo': 'cruce_catalogo', 'peso': 1, 'campo': campo,
+                })
+
+    # --- Nodos de organismos, suborganismos, equipos y conjuntos ---
+
+    organismo_model = Organismo
+    inscripciones = (Inscripcion.objects
+                     .select_related('organismo', 'suborganismo')
+                     .prefetch_related('fuentes__variables', 'fuentes__fuentes_origen')
+                     .all())
+    fuentes = (FuenteDatos.objects.select_related('inscripcion__organismo', 'inscripcion__suborganismo',
+                                                'seguridad')
+               .prefetch_related('variables', 'fuentes_origen').all())
+
+    # Conteo de fuentes por organismo en una pasada (evita N+1 en el loop)
+    fuentes_por_org = Counter(f.inscripcion.organismo_id for f in fuentes)
+
+    # Índice de campos del catálogo normalizados para matching de variables
+    campos_catalogo_norm = {}  # norm_var -> [cat_ids]
+    for b in bases:
+        for c in b.get('campos', []):
+            campos_catalogo_norm.setdefault(_norm_var(c['nombre']), []).append('cat-' + b['id'])
+
+    # Determinar organismos y suborganismos que tienen al menos una inscripción
+    org_ids_con_insc = set(inscripciones.values_list('organismo_id', flat=True))
+    sub_ids_con_insc = set(inscripciones.exclude(suborganismo__isnull=True)
+                           .values_list('suborganismo_id', flat=True))
+
+    if solo_relacionados:
+        organismos_qs = organismo_model.objects.filter(pk__in=org_ids_con_insc)
     else:
-        return JsonResponse({'error': 'Tipo de reporte inválido'}, status=400)
-    
-    # Agregar pie de página
-    story.extend(_crear_pie_pagina_pdf(estilos))
-    
-    # Construir PDF
-    doc.build(story)
-    
-    # Preparar respuesta
-    buffer.seek(0)
-    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="reporte_{tipo}_sesion_{sesion_id}.pdf"'
-    
-    return response
+        organismos_qs = organismo_model.objects.all()
+    organismos_qs = organismos_qs.prefetch_related('suborganismos')
+
+    for org in organismos_qs:
+        nodos.append({
+            'id': 'org-' + str(org.pk),
+            'tipo': 'organismo',
+            'nombre': org.nombre,
+            'num_fuentes': fuentes_por_org.get(org.pk, 0),
+        })
+        if solo_relacionados:
+            subs = org.suborganismos.filter(pk__in=sub_ids_con_insc)
+        else:
+            subs = org.suborganismos.all()
+        for sub in subs:
+            nodos.append({
+                'id': 'sub-' + str(sub.pk),
+                'tipo': 'suborganismo',
+                'nombre': sub.nombre,
+                'organismo_id': 'org-' + str(org.pk),
+            })
+            aristas.append({
+                'origen': 'org-' + str(org.pk), 'destino': 'sub-' + str(sub.pk),
+                'tipo': 'jerarquia', 'peso': 1,
+            })
+
+    # --- Equipos deduplicados por nombre normalizado + organismo ---
+    equipo_groups = {}  # (nombre_norm, organismo_id) -> [insc, ...]
+    for insc in inscripciones:
+        nombre_equipo = insc.equipo_responsable or insc.nombre_completo or 'Equipo sin nombre'
+        key = (_norm(nombre_equipo), insc.organismo_id)
+        equipo_groups.setdefault(key, []).append(insc)
+
+    insc_to_equipo = {}  # insc.pk -> equipo_id
+    for (nombre_norm, org_id), group in equipo_groups.items():
+        first = group[0]
+        equipo_id = 'eq-' + str(first.pk)
+        for insc in group:
+            insc_to_equipo[insc.pk] = equipo_id
+
+        # Suborganismo más frecuente del grupo (no siempre el del primer registro)
+        sub_comun = Counter(i.suborganismo_id for i in group if i.suborganismo_id).most_common(1)
+        sub_id = 'sub-' + str(sub_comun[0][0]) if sub_comun else None
+        org_node_id = 'org-' + str(org_id) if org_id else None
+        responsables = sorted(set(i.nombre_completo for i in group))
+        total_fuentes = sum(i.fuentes.count() for i in group)
+
+        nodos.append({
+            'id': equipo_id,
+            'tipo': 'equipo',
+            'nombre': first.equipo_responsable or first.nombre_completo,
+            'organismo': first.organismo.nombre if first.organismo else '',
+            'organismo_id': org_node_id or '',
+            'suborganismo_id': sub_id or '',
+            'responsable': ', '.join(responsables),
+            'num_fuentes': total_fuentes,
+            'num_inscripciones': len(group),
+        })
+        if sub_id:
+            aristas.append({
+                'origen': sub_id, 'destino': equipo_id,
+                'tipo': 'jerarquia', 'peso': 1,
+            })
+        elif org_node_id:
+            aristas.append({
+                'origen': org_node_id, 'destino': equipo_id,
+                'tipo': 'pertenencia', 'peso': 1,
+            })
+
+    # --- Conjuntos (fuentes registradas) ---
+    conjunto_vars_norm = {}  # fte_node_id -> set of normalized var names
+    for fte in fuentes:
+        org = fte.inscripcion.organismo
+        insc = fte.inscripcion
+        equipo_id = insc_to_equipo.get(insc.pk, 'eq-' + str(insc.pk))
+        nodo_id = 'fte-' + str(fte.pk)
+        vars_fte = list(fte.variables.all())
+        vars_orig = [v.nombre for v in vars_fte]
+        vars_norm = set(_norm_var(v) for v in vars_orig)
+        conjunto_vars_norm[nodo_id] = vars_norm
+
+        seguridad = getattr(fte, 'seguridad', None)
+        nodos.append({
+            'id': nodo_id,
+            'tipo': 'conjunto',
+            'nombre': fte.nombre,
+            'fuente_id': fte.pk,
+            'descripcion': fte.descripcion or '',
+            'decisiones_apoya': fte.decisiones_apoya or '',
+            'rol': fte.get_rol_display() if fte.rol else '',
+            'criticidad': seguridad.criticidad if seguridad else '',
+            'organismo': org.nombre if org else '',
+            'organismo_id': 'org-' + str(org.pk) if org else '',
+            'equipo_id': equipo_id,
+            'num_variables': len(vars_orig),
+            'num_identificadores': sum(1 for v in vars_fte if v.es_identificador),
+            'variables': vars_orig,
+        })
+        aristas.append({
+            'origen': equipo_id, 'destino': nodo_id,
+            'tipo': 'pertenencia', 'peso': 1,
+        })
+
+        # Matching: variables del conjunto vs campos del catálogo (normalizado + fuzzy)
+        bases_match = set()
+        for vnorm in vars_norm:
+            if not vnorm:
+                continue
+            # Exact match on normalized name
+            if vnorm in campos_catalogo_norm:
+                for bid in campos_catalogo_norm[vnorm]:
+                    bases_match.add(bid)
+            else:
+                # Substring match (either direction, min 4 chars to avoid noise)
+                for cnorm, bids in campos_catalogo_norm.items():
+                    if len(vnorm) >= 4 and len(cnorm) >= 4 and (vnorm in cnorm or cnorm in vnorm):
+                        for bid in bids:
+                            bases_match.add(bid)
+        for bid in bases_match:
+            aristas.append({
+                'origen': nodo_id, 'destino': bid,
+                'tipo': 'matching_variable', 'peso': 1,
+            })
+
+    # --- Conectar conjuntos que comparten variables (>= 2 en común) ---
+    fte_ids = list(conjunto_vars_norm.keys())
+    for i in range(len(fte_ids)):
+        for j in range(i + 1, len(fte_ids)):
+            shared = conjunto_vars_norm[fte_ids[i]] & conjunto_vars_norm[fte_ids[j]]
+            shared.discard('')
+            if len(shared) >= 2:
+                aristas.append({
+                    'origen': fte_ids[i], 'destino': fte_ids[j],
+                    'tipo': 'variables_compartidas', 'peso': len(shared),
+                    'variables': sorted(shared),
+                })
+
+    # --- Fuentes externas ---
+    fuentes_externas = {}  # nombre_norm -> {id, nombre, organismos: set}
+
+    def obtener_o_crear_externa(nombre):
+        key = _norm(nombre)
+        if key not in fuentes_externas:
+            fuentes_externas[key] = {
+                'id': 'ext-' + str(len(fuentes_externas)),
+                'nombre': nombre.strip(),
+                'organismos': set(),
+                'num_origenes': 0,
+            }
+        return fuentes_externas[key]
+
+    # --- Índices de matching exacto (normalizado) ---
+    catalogo_exacto = {}  # nombre_norm -> 'cat-<id>'
+    catalogo_organismos = {}  # 'cat-<id>' -> organismo_normalizado
+    for b in bases:
+        bnorm = _norm(b['nombre'])
+        if not bnorm:
+            continue
+        catalogo_exacto[bnorm] = 'cat-' + b['id']
+        catalogo_organismos['cat-' + b['id']] = _norm(b.get('organismo', ''))
+
+    # Índice de conjuntos pre-normalizado (una sola pasada, no por referencia)
+    conjunto_exacto = {}  # nombre_norm -> 'fte-<pk>'
+    fuentes_norm = []  # (pk, nombre_norm, organismo_norm)
+    for fte in fuentes:
+        fnorm = _norm(fte.nombre)
+        if not fnorm:
+            continue
+        conjunto_exacto.setdefault(fnorm, 'fte-' + str(fte.pk))
+        forg = _norm(fte.inscripcion.organismo.nombre) if fte.inscripcion.organismo else ''
+        fuentes_norm.append((fte.pk, fnorm, forg))
+
+    def _overlap(a, b):
+        """Proporción de solape entre dos cadenas normalizadas (0-1)."""
+        return min(len(a), len(b)) / max(len(a), len(b))
+
+    def match_catalogo(nombre_norm, organismo_norm=''):
+        if nombre_norm in catalogo_exacto:
+            return catalogo_exacto[nombre_norm], 'match_exacto'
+        if len(nombre_norm) < 4:
+            return None, None
+        candidatos = []
+        for bnorm, cat_id in catalogo_exacto.items():
+            if len(bnorm) >= 4 and (nombre_norm in bnorm or bnorm in nombre_norm):
+                candidatos.append((_overlap(nombre_norm, bnorm), cat_id))
+        if not candidatos:
+            return None, None
+        candidatos.sort(key=lambda c: c[0], reverse=True)
+        if organismo_norm:
+            for _, cat_id in candidatos:
+                cat_org = catalogo_organismos.get(cat_id, '')
+                if cat_org and (organismo_norm in cat_org or cat_org in organismo_norm):
+                    return cat_id, 'match_exacto'
+        return candidatos[0][1], 'match_aproximado'
+
+    def match_conjunto(nombre_norm, organismo_norm='', excluir_pk=None):
+        exacto = conjunto_exacto.get(nombre_norm)
+        if exacto and exacto != 'fte-' + str(excluir_pk):
+            return exacto, 'match_exacto'
+        if len(nombre_norm) < 4:
+            return None, None
+        candidatos = []
+        for pk, fnorm, forg in fuentes_norm:
+            if pk == excluir_pk:
+                continue
+            if len(fnorm) >= 4 and (nombre_norm in fnorm or fnorm in nombre_norm):
+                candidatos.append((_overlap(nombre_norm, fnorm), pk, forg))
+        if not candidatos:
+            return None, None
+        candidatos.sort(key=lambda c: c[0], reverse=True)
+        if organismo_norm:
+            for _, pk, forg in candidatos:
+                if forg and (organismo_norm in forg or forg in organismo_norm):
+                    return 'fte-' + str(pk), 'match_exacto'
+        return 'fte-' + str(candidatos[0][1]), 'match_aproximado'
+
+    # --- Aristas: FuenteOrigen ---
+    for fte in fuentes:
+        org = fte.inscripcion.organismo
+        for orig in fte.fuentes_origen.all():
+            nombre_norm = _norm(orig.nombre)
+            if not nombre_norm:
+                continue
+            org_norm = _norm(orig.organismo_productor) if orig.organismo_productor else ''
+            destino, tipo_match = match_catalogo(nombre_norm, org_norm)
+            if destino:
+                aristas.append({
+                    'origen': 'fte-' + str(fte.pk), 'destino': destino,
+                    'tipo': tipo_match, 'peso': 3 if tipo_match == 'match_exacto' else 1,
+                })
+            else:
+                destino, tipo_match = match_conjunto(nombre_norm, org_norm, excluir_pk=fte.pk)
+                if destino:
+                    aristas.append({
+                        'origen': 'fte-' + str(fte.pk), 'destino': destino,
+                        'tipo': tipo_match, 'peso': 3 if tipo_match == 'match_exacto' else 1,
+                    })
+                else:
+                    ext = obtener_o_crear_externa(orig.nombre)
+                    ext['organismos'].add(org.nombre if org else '')
+                    ext['num_origenes'] += 1
+                    aristas.append({
+                        'origen': 'fte-' + str(fte.pk), 'destino': ext['id'],
+                        'tipo': 'origen_externo', 'peso': 1,
+                    })
+
+    # --- Retos: nodos + aristas FuenteRequerida ---
+    retos = (RetoAnalisis.objects
+             .select_related('inscripcion__organismo')
+             .prefetch_related('fuentes_requeridas').all())
+    for reto in retos:
+        org = reto.inscripcion.organismo if reto.inscripcion else None
+        reto_id = 'reto-' + str(reto.pk)
+        equipo_id = insc_to_equipo.get(reto.inscripcion_id, '') if reto.inscripcion_id else ''
+
+        nodos.append({
+            'id': reto_id,
+            'tipo': 'reto',
+            'nombre': reto.nombre or 'Reto sin nombre',
+            'descripcion': (reto.analisis_propuesto or '')[:200],
+            'organismo': org.nombre if org else '',
+            'organismo_id': 'org-' + str(org.pk) if org else '',
+            'equipo_id': equipo_id,
+        })
+        if equipo_id:
+            aristas.append({
+                'origen': equipo_id, 'destino': reto_id,
+                'tipo': 'pertenencia', 'peso': 1,
+            })
+
+        for req in reto.fuentes_requeridas.all():
+            nombre_norm = _norm(req.nombre)
+            if not nombre_norm:
+                continue
+            org_norm = _norm(req.organismo) if req.organismo else ''
+            destino, tipo_match = match_catalogo(nombre_norm, org_norm)
+            if not destino:
+                destino, tipo_match = match_conjunto(nombre_norm, org_norm)
+            if destino:
+                aristas.append({
+                    'origen': reto_id, 'destino': destino,
+                    'tipo': tipo_match, 'peso': 3 if tipo_match == 'match_exacto' else 1,
+                })
+            else:
+                ext = obtener_o_crear_externa(req.nombre)
+                ext['organismos'].add(org.nombre if org else '')
+                ext['num_origenes'] += 1
+                aristas.append({
+                    'origen': reto_id, 'destino': ext['id'],
+                    'tipo': 'requerida_externa', 'peso': 1,
+                })
+
+    # --- Nodos de fuentes externas ---
+    for key, ext in fuentes_externas.items():
+        nodos.append({
+            'id': ext['id'],
+            'tipo': 'fuente_informacion',
+            'nombre': ext['nombre'],
+            'organismos': ', '.join(sorted(ext['organismos'])) or '—',
+            'num_origenes': ext['num_origenes'],
+        })
+
+    # Deduplicar aristas idénticas (mismo origen, destino y tipo)
+    vistas = set()
+    aristas_unicas = []
+    for a in aristas:
+        clave = (a['origen'], a['destino'], a['tipo'])
+        if clave in vistas:
+            continue
+        vistas.add(clave)
+        aristas_unicas.append(a)
+
+    if solo_relacionados:
+        # Conservar solo nodos con al menos una arista de RELACIÓN (no
+        # estructural), más sus ancestros para no romper la jerarquía.
+        TIPOS_RELACION = {'match_exacto', 'match_aproximado', 'origen_externo',
+                          'requerida_externa', 'matching_variable',
+                          'variables_compartidas'}
+        con_relacion = set()
+        for a in aristas_unicas:
+            if a['tipo'] in TIPOS_RELACION:
+                con_relacion.add(a['origen'])
+                con_relacion.add(a['destino'])
+        por_id = {n['id']: n for n in nodos}
+        conservar = set(con_relacion)
+        pila = list(con_relacion)
+        while pila:
+            nodo = por_id.get(pila.pop())
+            if not nodo:
+                continue
+            for clave_padre in ('equipo_id', 'suborganismo_id', 'organismo_id'):
+                pid = nodo.get(clave_padre)
+                if pid and pid not in conservar:
+                    conservar.add(pid)
+                    pila.append(pid)
+        # El catálogo (incluye Gold) siempre se conserva: es la capa de referencia
+        nodos = [n for n in nodos
+                 if n['id'] in conservar or n['tipo'] in ('gold', 'catalogo')]
+        ids_nodos = {n['id'] for n in nodos}
+        aristas_unicas = [a for a in aristas_unicas
+                          if a['origen'] in ids_nodos and a['destino'] in ids_nodos]
+
+    return nodos, aristas_unicas
 
 
+def _grafo_ecosistema(solo_relacionados=False):
+    """Versión cacheada del constructor del grafo (30 s): los polls del 3D y
+    los exports comparten el mismo build en lugar de recalcularlo por request."""
+    from django.core.cache import cache
+    clave = 'grafo_ecosistema_rel' if solo_relacionados else 'grafo_ecosistema'
+    grafo = cache.get(clave)
+    if grafo is None:
+        grafo = _construir_grafo_ecosistema(solo_relacionados)
+        cache.set(clave, grafo, 30)
+    return grafo
+
+
+@delegado_required
 @require_GET
-def exportar_datos_csv(request, sesion_id, tipo):
-    """
-    Exporta datos del taller en formato CSV.
-    Tipos: 'participantes', 'roles', 'datos', 'flujos', 'clasificaciones'
-    """
-    import csv
-    from django.http import HttpResponse
-    
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="{tipo}_sesion_{sesion_id}.csv"'
-    response.write('\ufeff')  # BOM para Excel
-    
-    writer = csv.writer(response)
-    
-    if tipo == 'participantes':
-        writer.writerow(['Nombre', 'Área Funcional', 'Cargo', 'Rol Primario', 'Rol Secundario', 'Presente'])
-        participantes = ParticipanteTaller.objects.filter(sesion=sesion).select_related('rol_primario', 'rol_secundario')
-        for p in participantes:
-            writer.writerow([
-                p.nombre_completo,
-                p.area_funcional,
-                p.cargo,
-                p.rol_primario.nombre if p.rol_primario else '',
-                p.rol_secundario.nombre if p.rol_secundario else '',
-                'Sí' if p.presente else 'No'
-            ])
-    
-    elif tipo == 'roles':
-        writer.writerow(['Participante', 'Rol Primario', 'Familia', 'Rol Secundario'])
-        participantes = ParticipanteTaller.objects.filter(sesion=sesion, rol_primario__isnull=False).select_related('rol_primario', 'rol_secundario')
-        for p in participantes:
-            writer.writerow([
-                p.nombre_completo,
-                p.rol_primario.nombre,
-                f"{p.rol_primario.familia.codigo}: {p.rol_primario.familia.nombre}",
-                p.rol_secundario.nombre if p.rol_secundario else ''
-            ])
-    
-    elif tipo == 'datos':
-        writer.writerow(['Nombre del Dato', 'Creado Por', 'Es Maestro', 'Fusionado Con', 'Fecha Creación'])
-        datos = DatoEcosistema.objects.filter(sesion=sesion).select_related('creado_por', 'fusionado_con')
-        for d in datos:
-            writer.writerow([
-                d.nombre,
-                d.creado_por.nombre_completo,
-                'Sí' if d.es_maestro else 'No',
-                d.fusionado_con.nombre if d.fusionado_con else '',
-                d.fecha_creacion.strftime('%d/%m/%Y %H:%M')
-            ])
-    
-    elif tipo == 'flujos':
-        writer.writerow(['Participante', 'Tipo', 'Datos', 'Origen', 'Destino', 'Frecuencia', 'Formato'])
-        flujos = FlujoDatos.objects.filter(sesion=sesion).select_related('participante')
-        for f in flujos:
-            origen = f.recibe_de_participante or f.recibe_de_subsistema or f.recibe_de_externo or 'N/A'
-            destino = f.envia_a_participante or f.envia_a_subsistema or f.envia_a_externo or 'N/A'
-            writer.writerow([
-                f.participante.nombre_completo,
-                f.tipo,
-                f.descripcion_datos,
-                str(origen),
-                str(destino),
-                f.frecuencia,
-                f.formato
-            ])
-    
-    elif tipo == 'clasificaciones':
-        writer.writerow(['Dato', 'Participante', 'Nivel Importancia', 'Sensibilidad', 'Mecanismo Recolección', 'Para qué se usa'])
-        clasificaciones = ClasificacionDato.objects.filter(sesion=sesion).select_related('participante')
-        for c in clasificaciones:
-            writer.writerow([
-                c.nombre_dato,
-                c.participante.nombre_completo,
-                c.nivel,
-                c.sensibilidad,
-                c.mecanismo_recoleccion,
-                c.para_que_se_usa
-            ])
-    
-    return response
+def api_ecosistema(request):
+    """Endpoint JSON con nodos y aristas para la visualización 3D del ecosistema."""
+    solo_relacionados = request.GET.get('solo_relacionados', 'false') == 'true'
+    nodos, aristas = _grafo_ecosistema(solo_relacionados)
+    return JsonResponse({'nodos': nodos, 'aristas': aristas})
 
 
+@delegado_required
 @require_GET
-def exportar_completo_zip(request, sesion_id):
-    """Exporta todos los datos del taller en un archivo ZIP con múltiples CSVs."""
-    import zipfile
-    from io import BytesIO, StringIO
-    import csv
+def ecosistema_gexf(request):
+    """Descarga el grafo del ecosistema en formato GEXF (Gephi / Gephi Lite)."""
+    from xml.sax.saxutils import escape
     from django.http import HttpResponse
-    
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    # Crear buffer para el ZIP
-    zip_buffer = BytesIO()
-    
-    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        # Función helper para crear CSV
-        def crear_csv(nombre_archivo, headers, datos):
-            csv_buffer = StringIO()
-            csv_buffer.write('\ufeff')  # BOM
-            writer = csv.writer(csv_buffer)
-            writer.writerow(headers)
-            for fila in datos:
-                writer.writerow(fila)
-            zip_file.writestr(nombre_archivo, csv_buffer.getvalue().encode('utf-8'))
-        
-        # 1. Participantes
-        participantes = ParticipanteTaller.objects.filter(sesion=sesion).select_related('rol_primario', 'rol_secundario')
-        datos_participantes = []
-        for p in participantes:
-            datos_participantes.append([
-                p.nombre_completo, p.area_funcional, p.cargo,
-                p.rol_primario.nombre if p.rol_primario else '',
-                p.rol_secundario.nombre if p.rol_secundario else '',
-                'Sí' if p.presente else 'No'
-            ])
-        crear_csv('participantes.csv', ['Nombre', 'Área', 'Cargo', 'Rol Primario', 'Rol Secundario', 'Presente'], datos_participantes)
-        
-        # 2. Datos del ecosistema
-        datos = DatoEcosistema.objects.filter(sesion=sesion).select_related('creado_por', 'fusionado_con')
-        datos_datos = []
-        for d in datos:
-            datos_datos.append([
-                d.nombre, d.creado_por.nombre_completo,
-                'Sí' if d.es_maestro else 'No',
-                d.fusionado_con.nombre if d.fusionado_con else '',
-                d.fecha_creacion.strftime('%d/%m/%Y %H:%M')
-            ])
-        crear_csv('datos_ecosistema.csv', ['Nombre', 'Creado Por', 'Es Maestro', 'Fusionado Con', 'Fecha'], datos_datos)
-        
-        # 3. Flujos
-        flujos = FlujoDatos.objects.filter(sesion=sesion).select_related('participante')
-        datos_flujos = []
-        for f in flujos:
-            origen = f.recibe_de_participante or f.recibe_de_subsistema or f.recibe_de_externo or 'N/A'
-            destino = f.envia_a_participante or f.envia_a_subsistema or f.envia_a_externo or 'N/A'
-            datos_flujos.append([
-                f.participante.nombre_completo, f.tipo, f.descripcion_datos,
-                str(origen), str(destino), f.frecuencia, f.formato
-            ])
-        crear_csv('flujos.csv', ['Participante', 'Tipo', 'Datos', 'Origen', 'Destino', 'Frecuencia', 'Formato'], datos_flujos)
-        
-        # 4. Clasificaciones
-        clasificaciones = ClasificacionDato.objects.filter(sesion=sesion).select_related('participante')
-        datos_clasif = []
-        for c in clasificaciones:
-            datos_clasif.append([
-                c.nombre_dato, c.participante.nombre_completo,
-                c.nivel, c.sensibilidad, c.mecanismo_recoleccion, c.para_que_se_usa
-            ])
-        crear_csv('clasificaciones.csv', ['Dato', 'Participante', 'Nivel', 'Sensibilidad', 'Mecanismo', 'Uso'], datos_clasif)
-        
-        # 5. Resumen del taller
-        resumen = [
-            ['Métrica', 'Valor'],
-            ['Organismo', sesion.organismo.nombre],
-            ['Sesión', sesion.nombre_sesion],
-            ['Fecha', sesion.fecha.strftime('%d/%m/%Y')],
-            ['Facilitador', sesion.facilitador],
-            ['Participantes', str(participantes.count())],
-            ['Datos creados', str(datos.count())],
-            ['Flujos mapeados', str(flujos.count())],
-            ['Datos clasificados', str(clasificaciones.count())]
-        ]
-        crear_csv('resumen.csv', ['Métrica', 'Valor'], resumen[1:])
-    
-    # Preparar respuesta
-    zip_buffer.seek(0)
-    response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
-    response['Content-Disposition'] = f'attachment; filename="taller_completo_sesion_{sesion_id}.zip"'
-    
+
+    solo_relacionados = request.GET.get('solo_relacionados', 'false') == 'true'
+    nodos, aristas = _grafo_ecosistema(solo_relacionados)
+    # Posiciones pre-calculadas: Gephi/Gephi Lite abren el grafo ya dispuesto
+    # con el mismo layout concéntrico que el SVG renderizado
+    pos = _layout_anillos(nodos)
+
+    def _esc(s):
+        return escape(str(s), {'"': '&quot;'})
+
+    def _rgb(hex_color):
+        h = hex_color.lstrip('#')
+        return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+    partes = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<gexf xmlns="http://www.gexf.net/1.3" xmlns:viz="http://www.gexf.net/1.3/viz" version="1.3">',
+        '<meta><creator>Ecosistema de Datos</creator>'
+        '<description>Mapa del ecosistema de datos institucionales</description></meta>',
+        '<graph mode="static" defaultedgetype="undirected">',
+        '<attributes class="node">',
+        '  <attribute id="tipo" title="Tipo" type="string"/>',
+        '  <attribute id="descripcion" title="Descripcion" type="string"/>',
+        '  <attribute id="num_campos" title="Num Campos" type="integer"/>',
+        '  <attribute id="organismo" title="Organismo" type="string"/>',
+        '  <attribute id="organismos" title="Organismos" type="string"/>',
+        '  <attribute id="num_origenes" title="Num Origenes" type="integer"/>',
+        '  <attribute id="criticidad" title="Criticidad" type="string"/>',
+        '  <attribute id="rol" title="Rol" type="string"/>',
+        '  <attribute id="num_variables" title="Num Variables" type="integer"/>',
+        '  <attribute id="responsable" title="Responsable" type="string"/>',
+        '  <attribute id="num_fuentes" title="Num Fuentes" type="integer"/>',
+        '  <attribute id="num_inscripciones" title="Num Inscripciones" type="integer"/>',
+        '</attributes>',
+        '<attributes class="edge">',
+        '  <attribute id="tipo" title="Tipo" type="string"/>',
+        '  <attribute id="peso" title="Peso" type="float"/>',
+        '  <attribute id="variables" title="Variables" type="string"/>',
+        '  <attribute id="campo" title="Campo" type="string"/>',
+        '</attributes>',
+        '<nodes>',
+    ]
+    for n in nodos:
+        r, g, b = _rgb(COLOR_NODO.get(n.get('tipo'), '#888888'))
+        size = max(5, _tamano_nodo(n) * 2)
+        partes.append(f'  <node id="{_esc(n["id"])}" label="{_esc(n.get("nombre", ""))}">')
+        partes.append('    <attvalues>')
+        partes.append(f'      <attvalue for="tipo" value="{_esc(TIPO_LABEL.get(n.get("tipo"), n.get("tipo", "")))}"/>')
+        if n.get('descripcion'):
+            partes.append(f'      <attvalue for="descripcion" value="{_esc(n["descripcion"])}"/>')
+        if n.get('num_campos') is not None:
+            partes.append(f'      <attvalue for="num_campos" value="{n["num_campos"]}"/>')
+        if n.get('organismo'):
+            partes.append(f'      <attvalue for="organismo" value="{_esc(n["organismo"])}"/>')
+        if n.get('organismos'):
+            partes.append(f'      <attvalue for="organismos" value="{_esc(n["organismos"])}"/>')
+        if n.get('num_origenes') is not None:
+            partes.append(f'      <attvalue for="num_origenes" value="{n["num_origenes"]}"/>')
+        if n.get('criticidad'):
+            partes.append(f'      <attvalue for="criticidad" value="{_esc(n["criticidad"])}"/>')
+        if n.get('rol'):
+            partes.append(f'      <attvalue for="rol" value="{_esc(n["rol"])}"/>')
+        if n.get('num_variables') is not None:
+            partes.append(f'      <attvalue for="num_variables" value="{n["num_variables"]}"/>')
+        if n.get('responsable'):
+            partes.append(f'      <attvalue for="responsable" value="{_esc(n["responsable"])}"/>')
+        if n.get('num_fuentes') is not None:
+            partes.append(f'      <attvalue for="num_fuentes" value="{n["num_fuentes"]}"/>')
+        if n.get('num_inscripciones') is not None:
+            partes.append(f'      <attvalue for="num_inscripciones" value="{n["num_inscripciones"]}"/>')
+        partes.append('    </attvalues>')
+        partes.append(f'    <viz:color r="{r}" g="{g}" b="{b}" a="0.9"/>')
+        partes.append(f'    <viz:size value="{size:.2f}"/>')
+        p = pos.get(n['id'])
+        if p:
+            partes.append(f'    <viz:position x="{p[0]:.2f}" y="{p[1]:.2f}" z="0"/>')
+        partes.append('  </node>')
+    partes.append('</nodes>')
+    partes.append('<edges>')
+    for i, a in enumerate(aristas):
+        r, g, b = _rgb(COLOR_ARISTA.get(a.get('tipo'), '#666666'))
+        peso = a.get('peso') or 1
+        partes.append(
+            f'  <edge id="e{i}" source="{_esc(a["origen"])}" '
+            f'target="{_esc(a["destino"])}" weight="{peso}">')
+        partes.append('    <attvalues>')
+        partes.append(f'      <attvalue for="tipo" value="{_esc(a.get("tipo", ""))}"/>')
+        partes.append(f'      <attvalue for="peso" value="{peso}"/>')
+        if a.get('variables'):
+            vars_str = ', '.join(a['variables'])
+            partes.append(f'      <attvalue for="variables" value="{_esc(vars_str)}"/>')
+        if a.get('campo'):
+            partes.append(f'      <attvalue for="campo" value="{_esc(a["campo"])}"/>')
+        partes.append('    </attvalues>')
+        partes.append(f'    <viz:color r="{r}" g="{g}" b="{b}" a="0.4"/>')
+        partes.append(f'    <viz:thickness value="{peso * 0.5 + 0.5:.2f}"/>')
+        partes.append('  </edge>')
+    partes.append('</edges>')
+    partes.append('</graph>\n</gexf>')
+
+    response = HttpResponse('\n'.join(partes), content_type='application/gexf+xml; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="ecosistema_datos.gexf"'
     return response
 
 
-# ============================================================================
-# RELACIONES ENTRE DATOS (Dato → Dato)
-# ============================================================================
+def _layout_anillos(nodos):
+    """Layout determinista de anillos concéntricos por tipo de nodo (misma
+    metáfora que la vista 3D): Gold al centro y cada capa semántica en su
+    anillo, con los hijos agrupados cerca del ángulo del padre.
+    Compartido por el SVG renderizado y las posiciones del GEXF."""
+    import math
 
-@require_POST
-@requiere_participante_activo
-def relacion_dato_crear(request):
-    """
-    Crea una relación directa entre dos datos del ecosistema.
-    
-    Modelo: [Dato Origen] → [Tipo Relación] → [Dato Destino]
-    
-    Body: {
-        token,
-        dato_origen_id: int,
-        dato_destino_id: int,
-        tipo_relacion: str,
-        descripcion?: str,
-        proceso_transformacion?: str,
-        periodicidad_transformacion?: str
+    por_tipo = {}
+    for n in nodos:
+        por_tipo.setdefault(n.get('tipo'), []).append(n)
+    pos = {}
+
+    def _angulo_padre(n, claves):
+        for k in claves:
+            pid = n.get(k)
+            if pid and pid in pos:
+                px, py = pos[pid]
+                return math.atan2(py, px)
+        return 0.0
+
+    def anillo(lista, radio, claves_padre=()):
+        if not lista:
+            return
+        if claves_padre:
+            lista = sorted(lista, key=lambda n: _angulo_padre(n, claves_padre))
+        # El radio crece si el anillo no cabe (arco mínimo ~26px por nodo)
+        radio = max(radio, len(lista) * 26 / (2 * math.pi))
+        for i, n in enumerate(lista):
+            ang = (i / len(lista)) * 2 * math.pi - math.pi / 2
+            pos[n['id']] = (math.cos(ang) * radio, math.sin(ang) * radio)
+
+    anillo(por_tipo.get('gold', []), 0)
+    anillo(por_tipo.get('catalogo', []), 300)
+    anillo(por_tipo.get('organismo', []), 640)
+    anillo(por_tipo.get('suborganismo', []), 980, ('organismo_id',))
+    anillo(por_tipo.get('equipo', []), 1320, ('suborganismo_id', 'organismo_id'))
+    anillo(por_tipo.get('conjunto', []) + por_tipo.get('reto', []), 1660, ('equipo_id',))
+    anillo(por_tipo.get('fuente_informacion', []), 2000)
+    return pos
+
+
+@delegado_required
+@require_GET
+def ecosistema_svg(request):
+    """Renderiza el grafo del ecosistema como imagen SVG con layout de anillos
+    concéntricos por tipo (misma metáfora que la vista 3D y las posiciones del
+    GEXF). Acepta ?solo_relacionados=true. Descarga el archivo (imprimible a PDF)."""
+    import math
+    from xml.sax.saxutils import escape
+    from django.http import HttpResponse
+
+    solo_relacionados = request.GET.get('solo_relacionados', 'false') == 'true'
+    nodos, aristas = _grafo_ecosistema(solo_relacionados)
+
+    def _esc(s):
+        return escape(str(s))
+
+    pos = _layout_anillos(nodos)
+
+    radio_max = max((math.hypot(x, y) for x, y in pos.values()), default=0)
+    margen = 300  # espacio para las etiquetas radiales del anillo externo
+    lado = int((radio_max + margen) * 2)
+    c = lado / 2  # centro del canvas
+
+    partes = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{lado}" height="{lado}" '
+        f'viewBox="0 0 {lado} {lado}" font-family="Montserrat, Arial, sans-serif">',
+        f'<rect width="{lado}" height="{lado}" fill="#0b1020"/>',
+    ]
+
+    # Guías de anillos: hace visible la estructura concéntrica
+    radios = sorted({round(math.hypot(x, y)) for x, y in pos.values()
+                     if math.hypot(x, y) > 1})
+    for rad in radios:
+        partes.append(
+            f'<circle cx="{c}" cy="{c}" r="{rad}" fill="none" stroke="#ffffff" '
+            f'stroke-opacity="0.07" stroke-dasharray="3 7"/>')
+
+    # Aristas (debajo de los nodos)
+    for a in aristas:
+        p1, p2 = pos.get(a['origen']), pos.get(a['destino'])
+        if not p1 or not p2:
+            continue
+        color = COLOR_ARISTA.get(a.get('tipo'), '#666666')
+        partes.append(
+            f'<line x1="{p1[0] + c:.1f}" y1="{p1[1] + c:.1f}" '
+            f'x2="{p2[0] + c:.1f}" y2="{p2[1] + c:.1f}" '
+            f'stroke="{color}" stroke-width="1" stroke-opacity="0.35">'
+            f'<title>{_esc(a.get("tipo", ""))}</title></line>')
+
+    # Nodos (tooltip nativo vía <title>) + etiqueta radial en TODOS los nodos:
+    # el texto sigue la dirección del anillo hacia afuera, como un dendrograma
+    for n in nodos:
+        p = pos.get(n['id'])
+        if not p:
+            continue
+        tipo = n.get('tipo')
+        color = COLOR_NODO.get(tipo, '#888888')
+        r = max(3, _tamano_nodo(n))
+        label = f'{TIPO_LABEL.get(tipo, tipo)}: {n.get("nombre", "")}'
+        partes.append(
+            f'<circle cx="{p[0] + c:.1f}" cy="{p[1] + c:.1f}" r="{r:.1f}" '
+            f'fill="{color}" fill-opacity="0.92" stroke="#ffffff" '
+            f'stroke-opacity="0.25" stroke-width="0.6">'
+            f'<title>{_esc(label)}</title></circle>')
+        nombre = _esc((n.get('nombre') or '')[:34])
+        if not nombre:
+            continue
+        if tipo == 'gold':
+            partes.append(
+                f'<text x="{p[0] + c:.1f}" y="{p[1] + c + r + 18:.1f}" '
+                f'font-size="15" font-weight="bold" fill="#ffd700" '
+                f'text-anchor="middle" '
+                f'style="paint-order:stroke;stroke:#0b1020;stroke-width:3">'
+                f'{nombre}</text>')
+            continue
+        ang = math.atan2(p[1], p[0])
+        deg = math.degrees(ang)
+        lx = p[0] + math.cos(ang) * (r + 5)
+        ly = p[1] + math.sin(ang) * (r + 5)
+        # Mitad izquierda: rotar 180° y anclar al final para leer hacia afuera
+        rot, anchor = (deg + 180, 'end') if (deg > 90 or deg < -90) else (deg, 'start')
+        fs = 10 if tipo in ('catalogo', 'organismo') else 8.5
+        partes.append(
+            f'<text x="{lx + c:.1f}" y="{ly + c:.1f}" font-size="{fs}" '
+            f'fill="#cbd5e0" text-anchor="{anchor}" dominant-baseline="middle" '
+            f'transform="rotate({rot:.1f} {lx + c:.1f} {ly + c:.1f})" '
+            f'style="paint-order:stroke;stroke:#0b1020;stroke-width:2.5">'
+            f'{nombre}</text>')
+
+    # Leyenda
+    lx, ly = 24, 30
+    partes.append(f'<g font-size="13" fill="#e2e8f0">')
+    partes.append(f'<text x="{lx}" y="{ly - 10}" font-size="15" font-weight="bold">Ecosistema de datos</text>')
+    for i, (tipo, label) in enumerate(TIPO_LABEL.items()):
+        y = ly + 14 + i * 20
+        partes.append(f'<circle cx="{lx + 6}" cy="{y - 4}" r="5" fill="{COLOR_NODO[tipo]}"/>')
+        partes.append(f'<text x="{lx + 18}" y="{y}">{_esc(label)}</text>')
+    partes.append('</g>')
+
+    partes.append('</svg>')
+    response = HttpResponse('\n'.join(partes), content_type='image/svg+xml; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="ecosistema_datos.svg"'
+    return response
+
+
+def _inscripcion_activa(request):
+    """Inscripción activa del usuario: la de la sesión si existe, si no la
+    primera registrada (un usuario puede tener varias vía admin)."""
+    if not request.user.is_authenticated:
+        return None
+    qs = Inscripcion.objects.filter(user=request.user)
+    insc_id = request.session.get(SESSION_KEY)
+    if insc_id:
+        insc = qs.filter(pk=insc_id).first()
+        if insc:
+            return insc
+    return qs.first()
+
+
+@delegado_required
+def wizard_inicio(request):
+    inscripcion = _inscripcion_activa(request)
+    if request.method == 'POST':
+        if inscripcion and request.POST.get('accion') == 'continuar':
+            # Si la inscripción está completada, ir al paso de fuentes
+            # para permitir agregar o editar registros de fuentes de datos
+            if inscripcion.estado == Inscripcion.Estado.COMPLETADA:
+                return redirect('indicadores:taller_wizard_paso', slug='fuente-general')
+            destino = inscripcion.paso_actual or wz.PASOS[0].slug
+            if destino == 'identificacion' and inscripcion.ficha_inicial == 'f2':
+                siguiente = wz.PASOS_POR_SLUG.get('reto-definicion')
+            elif destino == 'reto-tratamiento' and inscripcion.ficha_inicial == 'f2':
+                return redirect('indicadores:taller_wizard_confirmacion')
+            else:
+                siguiente = wz.paso_siguiente(destino)
+            return redirect('indicadores:taller_wizard_paso', slug=siguiente.slug if siguiente else destino)
+        return redirect('indicadores:taller_wizard_paso', slug=wz.PASOS[0].slug)
+    context = {
+        'inscripcion': inscripcion,
+        'pasos': wz.PASOS,
+        'fases': wz.FASES,
     }
-    REQUIERE: Token de participante válido en el body JSON.
-    """
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-    
-    participante = request.participante
-    sesion = participante.sesion
-    
-    # Validar datos requeridos
-    dato_origen_id = data.get('dato_origen_id')
-    dato_destino_id = data.get('dato_destino_id')
-    tipo_relacion = data.get('tipo_relacion')
-    
-    if not all([dato_origen_id, dato_destino_id, tipo_relacion]):
-        return JsonResponse({
-            'error': 'Faltan campos requeridos: dato_origen_id, dato_destino_id, tipo_relacion'
-        }, status=400)
-    
-    # Validar que los datos existan en la sesión
-    try:
-        dato_origen = DatoEcosistema.objects.get(id=dato_origen_id, sesion=sesion)
-        dato_destino = DatoEcosistema.objects.get(id=dato_destino_id, sesion=sesion)
-    except DatoEcosistema.DoesNotExist:
-        return JsonResponse({'error': 'Uno o ambos datos no existen en esta sesión'}, status=400)
-    
-    # Evitar auto-relación
-    if dato_origen_id == dato_destino_id:
-        return JsonResponse({'error': 'Un dato no puede relacionarse consigo mismo'}, status=400)
-    
-    # Crear la relación
-    from indicadores.models import RelacionDato
-    
-    try:
-        relacion = RelacionDato.objects.create(
-            sesion=sesion,
-            creado_por=participante,
-            dato_origen=dato_origen,
-            dato_destino=dato_destino,
-            tipo_relacion=tipo_relacion,
-            descripcion=data.get('descripcion', ''),
-            proceso_transformacion=data.get('proceso_transformacion', ''),
-            periodicidad_transformacion=data.get('periodicidad_transformacion', '')
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'relacion_id': relacion.id,
-            'mensaje': f'Relación creada: {dato_origen.nombre} → {relacion.get_tipo_relacion_display()} → {dato_destino.nombre}',
-            'es_circular': relacion.es_circular,
-            'cadena': relacion.cadena_relaciones
-        })
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+    return render(request, 'taller/wizard_inicio.html', context)
 
 
-@require_GET
-def relaciones_dato_sesion(request, sesion_id):
-    """
-    Obtiene todas las relaciones entre datos de una sesión.
-    
-    Usado por el mapa 3D para renderizar el grafo de linaje de datos.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    from indicadores.models import RelacionDato
-    
-    relaciones = RelacionDato.objects.filter(sesion=sesion).select_related(
-        'dato_origen', 'dato_destino', 'creado_por'
-    )
-    
-    data = []
-    for r in relaciones:
-        data.append({
-            'id': r.id,
-            'dato_origen': {
-                'id': r.dato_origen.id,
-                'nombre': r.dato_origen.nombre,
-                'nivel': r.dato_origen.nivel,
-                'sensibilidad': r.dato_origen.sensibilidad,
-            },
-            'tipo_relacion': r.tipo_relacion,
-            'tipo_relacion_display': r.get_tipo_relacion_display(),
-            'descripcion': r.descripcion,
-            'dato_destino': {
-                'id': r.dato_destino.id,
-                'nombre': r.dato_destino.nombre,
-                'nivel': r.dato_destino.nivel,
-                'sensibilidad': r.dato_destino.sensibilidad,
-            },
-            'creado_por': r.creado_por.nombre_completo,
-            'proceso_transformacion': r.proceso_transformacion,
-            'periodicidad': r.periodicidad_transformacion,
-            'es_validada': r.es_validada,
-            'es_circular': r.es_circular,
-            'cadena': r.cadena_relaciones,
-            'fecha_creacion': r.fecha_creacion.isoformat()
-        })
-    
-    return JsonResponse({'relaciones': data, 'total': len(data)})
+@delegado_required
+def wizard_paso(request, slug):
+    paso = wz.PASOS_POR_SLUG.get(slug)
+    if paso is None:
+        raise Http404
+
+    inscripcion = _inscripcion_activa(request)
+    es_primer_paso = paso.slug == wz.PASOS[0].slug
+    if inscripcion is None and not es_primer_paso:
+        return redirect('indicadores:taller_wizard')
+
+    # --- Determinar la instancia base ---
+    if paso.slug == 'fuente-general':
+        # El formset de múltiples fuentes usa la inscripción como instancia
+        instancia = inscripcion
+    elif paso.slug in PASOS_CON_FUENTE:
+        # Seleccionar la fuente activa de la sesión o la primera disponible
+        fuente_id = request.session.get(FUENTE_KEY)
+        fuentes_qs = FuenteDatos.objects.filter(inscripcion=inscripcion)
+        fuente_sel = fuentes_qs.filter(pk=fuente_id).first() if fuente_id else None
+        if fuente_sel is None:
+            fuente_sel = fuentes_qs.first()
+        if fuente_sel is None:
+            # Si no hay fuentes creadas, redirigir al paso 2
+            return redirect('indicadores:taller_wizard_paso', slug='fuente-general')
+        if paso.slug in PASOS_SEGURIDAD:
+            instancia, _ = EvaluacionSeguridad.objects.get_or_create(fuente=fuente_sel)
+        else:
+            instancia = fuente_sel
+    else:
+        fuente_sel = None
+        instancia = paso.get_instance(inscripcion) if inscripcion else None
+
+    # --- Lista de fuentes para el selector (pasos F1 individuales y F3) ---
+    fuentes_lista = None
+    if paso.slug in PASOS_CON_FUENTE and inscripcion:
+        fuentes_lista = FuenteDatos.objects.filter(inscripcion=inscripcion).order_by('pk')
+        if fuente_sel:
+            request.session[FUENTE_KEY] = fuente_sel.pk
+
+    form = None
+    formset = None
+    if request.method == 'POST':
+        # Cambio de fuente activa sin guardar
+        if paso.slug in PASOS_CON_FUENTE and request.POST.get('cambiar_fuente'):
+            try:
+                request.session[FUENTE_KEY] = int(request.POST.get('fuente_activa'))
+            except (TypeError, ValueError):
+                pass  # valor malformado: se ignora y se recarga el paso
+            return redirect('indicadores:taller_wizard_paso', slug=slug)
+
+        # En el paso de rol, las fuentes de origen solo aplican para Usuario/Ambos
+        omitir_formset = paso.slug == 'fuente-rol' and request.POST.get('rol') not in ('usuario', 'ambos')
+        if paso.form_class:
+            form = paso.form_class(request.POST, request.FILES, instance=instancia)
+        if paso.formset_class and not omitir_formset:
+            formset = paso.formset_class(request.POST, instance=instancia)
+        form_ok = form.is_valid() if form else True
+        formset_ok = formset.is_valid() if formset else True
+        if form_ok and formset_ok:
+            if form:
+                objeto = form.save(commit=False)
+                if es_primer_paso and inscripcion is None:
+                    objeto.user = request.user
+                objeto.save()
+                # save(commit=False) no persiste los M2M: hay que llamarlo
+                # explícitamente o los checkboxes (problemas_calidad,
+                # tratamientos, etc.) se pierden silenciosamente.
+                if hasattr(form, 'save_m2m'):
+                    form.save_m2m()
+                if es_primer_paso and inscripcion is None:
+                    inscripcion = objeto
+                    request.session[SESSION_KEY] = inscripcion.pk
+            if formset:
+                formset.save()
+                # Si se crearon fuentes nuevas, activar la última para que los
+                # pasos siguientes (actualización, rol, variables...) la editen
+                if paso.slug == 'fuente-general' and getattr(formset, 'new_objects', None):
+                    request.session[FUENTE_KEY] = formset.new_objects[-1].pk
+            if omitir_formset and instancia is not None:
+                instancia.fuentes_origen.all().delete()
+            if wz.indice(paso.slug) >= wz.indice(inscripcion.paso_actual):
+                inscripcion.paso_actual = paso.slug
+            inscripcion.save(update_fields=['paso_actual', 'actualizado'])
+            if paso.slug == 'identificacion' and inscripcion.ficha_inicial == 'f2':
+                siguiente = wz.PASOS_POR_SLUG.get('reto-definicion')
+            elif paso.slug == 'reto-tratamiento' and inscripcion.ficha_inicial == 'f2':
+                siguiente = None
+            else:
+                siguiente = wz.paso_siguiente(paso.slug)
+            if siguiente:
+                return redirect('indicadores:taller_wizard_paso', slug=siguiente.slug)
+            return redirect('indicadores:taller_wizard_confirmacion')
+    else:
+        if paso.form_class:
+            form = paso.form_class(instance=instancia)
+        if paso.formset_class:
+            formset = paso.formset_class(instance=instancia)
+
+    numero = wz.indice(paso.slug) + 1
+    context = {
+        'paso': paso,
+        'form': form,
+        'formset': formset,
+        'fase': wz.FASES[paso.fase],
+        'fases': wz.FASES,
+        'pasos': wz.PASOS,
+        'numero': numero,
+        'total': len(wz.PASOS),
+        'progreso': int(numero * 100 / (len(wz.PASOS) + 1)),
+        'anterior': wz.PASOS_POR_SLUG.get('identificacion') if inscripcion and paso.slug == 'reto-definicion' and inscripcion.ficha_inicial == 'f2' else wz.paso_anterior(paso.slug),
+        'inscripcion': inscripcion,
+        'fuentes_lista': fuentes_lista,
+        'fuente_activa': fuente_sel if paso.slug in PASOS_CON_FUENTE else None,
+    }
+    if paso.slug == 'seguridad-valoracion' and instancia and instancia.pk:
+        context['ocha'] = instancia.calcular_factores_riesgo_ocha()
+    return render(request, 'taller/wizard_paso.html', context)
 
 
-@require_POST
-@requiere_facilitador
-def relacion_dato_validar(request, sesion_id):
-    """
-    Facilitador valida una relación entre datos.
-    
-    Body: {relacion_id, es_validada: bool}
-    REQUIERE: Header X-Facilitador-Token con el código de la sesión.
-    """
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
-    
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    from indicadores.models import RelacionDato
-    
-    try:
-        relacion = RelacionDato.objects.get(id=data.get('relacion_id'), sesion=sesion)
-        relacion.es_validada = data.get('es_validada', True)
-        relacion.save()
-        
-        return JsonResponse({
-            'success': True,
-            'relacion_id': relacion.id,
-            'es_validada': relacion.es_validada
-        })
-    except RelacionDato.DoesNotExist:
-        return JsonResponse({'error': 'Relación no encontrada'}, status=404)
+@delegado_required
+def wizard_confirmacion(request):
+    inscripcion = _inscripcion_activa(request)
+    if inscripcion is None:
+        return redirect('indicadores:taller_wizard')
+    if request.method == 'POST':
+        inscripcion.estado = Inscripcion.Estado.COMPLETADA
+        inscripcion.save(update_fields=['estado', 'actualizado'])
+        request.session.pop(SESSION_KEY, None)
+        return render(request, 'taller/wizard_exito.html', {'inscripcion': inscripcion})
+    context = {
+        'inscripcion': inscripcion,
+        'pasos': wz.PASOS,
+        'fases': wz.FASES,
+    }
+    # OCHA de la fuente activa (o la primera) — F3 es por fuente
+    fuente_id = request.session.get(FUENTE_KEY)
+    fuente_conf = FuenteDatos.objects.filter(inscripcion=inscripcion)
+    fuente_conf = (fuente_conf.filter(pk=fuente_id).first() if fuente_id else None) or fuente_conf.first()
+    seguridad = getattr(fuente_conf, 'seguridad', None) if fuente_conf else None
+    if seguridad and seguridad.pk:
+        context['ocha'] = seguridad.calcular_factores_riesgo_ocha()
+    return render(request, 'taller/wizard_confirmacion.html', context)
 
 
-@require_GET
-def api_datos_linaje(request, sesion_id):
-    """
-    Retorna datos con su linaje completo (relaciones entrantes y salientes).
-    
-    Útil para visualizar el árbol de derivación de datos.
-    """
-    sesion = get_object_or_404(SesionTaller, id=sesion_id)
-    
-    from indicadores.models import RelacionDato
-    
-    datos = sesion.datos_ecosistema.all()
-    
-    data = []
+SEMAFORO_COLORES = {'verde': '#2f9e57', 'amarillo': '#f0b429', 'rojo': '#e53e3e', '': '#a0aec0'}
+
+
+def _filas(pares):
+    """Convierte pares (etiqueta, total) en filas con % relativo al máximo para las barras."""
+    pares = [p for p in pares if p[1] > 0]
+    maximo = max((total for _, total in pares), default=0)
+    return [{
+        'label': etiqueta,
+        'total': total,
+        'pct': int(total * 100 / maximo) if maximo else 0,
+        'color': None,
+    } for etiqueta, total in pares]
+
+
+def _panel_m2m(titulo, m2m, ids):
+    campo_padre = [f.name for f in m2m.through._meta.fields
+                   if f.is_relation and f.related_model is not Inscripcion and f.name != 'opciontaller'][0]
+    modelo_padre = m2m.through._meta.get_field(campo_padre).related_model
+    tiene_insc = any(f.name == 'inscripcion' for f in modelo_padre._meta.fields)
+    ruta = (f'{campo_padre}__inscripcion_id__in' if tiene_insc
+            else f'{campo_padre}__fuente__inscripcion_id__in')
+    datos = (m2m.through.objects
+             .filter(**{ruta: ids})
+             .values('opciontaller__etiqueta')
+             .annotate(total=Count('id'))
+             .order_by('-total'))
+    return {'titulo': titulo,
+            'filas': _filas([(d['opciontaller__etiqueta'], d['total']) for d in datos])}
+
+
+def _panel_choice(titulo, qs, campo, semaforo=False, incluir_vacios=True):
+    modelo = qs.model
+    etiquetas = dict(modelo._meta.get_field(campo).choices)
+    datos = qs.values(campo).annotate(total=Count('id')).order_by('-total')
+    pares = []
     for d in datos:
-        relaciones_salientes = RelacionDato.objects.filter(dato_origen=d).values(
-            'id', 'tipo_relacion', 'dato_destino__id', 'dato_destino__nombre', 'descripcion'
-        )
-        relaciones_entrantes = RelacionDato.objects.filter(dato_destino=d).values(
-            'id', 'tipo_relacion', 'dato_origen__id', 'dato_origen__nombre', 'descripcion'
-        )
-        
-        data.append({
-            'id': d.id,
-            'nombre': d.nombre,
-            'nivel': d.nivel,
-            'sensibilidad': d.sensibilidad,
-            'es_maestro': d.es_maestro,
-            'relaciones_salientes': list(relaciones_salientes),
-            'relaciones_entrantes': list(relaciones_entrantes),
-            'total_relaciones': len(relaciones_salientes) + len(relaciones_entrantes)
+        clave = d[campo]
+        if clave == '' and not incluir_vacios:
+            continue
+        etiqueta = etiquetas.get(clave, 'Sin responder') if clave else 'Sin responder'
+        pares.append((etiqueta, d['total'], clave))
+    filas = []
+    maximo = max((t for _, t, _ in pares), default=0)
+    for etiqueta, total, clave in pares:
+        filas.append({
+            'label': etiqueta,
+            'total': total,
+            'pct': int(total * 100 / maximo) if maximo else 0,
+            'color': SEMAFORO_COLORES.get(clave) if semaforo else None,
         })
-    
-    return JsonResponse({
-        'datos': data,
-        'total': len(data),
-        'con_relaciones': len([d for d in data if d['total_relaciones'] > 0])
+    return {'titulo': titulo, 'filas': filas}
+
+
+def _panel_texto(titulo, qs, campo):
+    """Agrega un TextField con valores separados por comas en un panel de barras."""
+    from collections import Counter
+    contador = Counter()
+    for obj in qs:
+        valor = getattr(obj, campo, '')
+        if valor:
+            for v in valor.split(','):
+                v = v.strip()
+                if v:
+                    contador[v] += 1
+    pares = contador.most_common()
+    return {'titulo': titulo, 'filas': _filas(pares)}
+
+
+def _fuentes_detalle(qs, ids):
+    """Construye resumen F1 de cada fuente para las tarjetas interactivas del dashboard."""
+    fuentes = (qs.exclude(nombre='')
+               .select_related('inscripcion__organismo')
+               .prefetch_related('relaciones', 'instrumentos', 'mecanismos',
+                                 'periodicidades', 'desagregaciones', 'unidades_analisis',
+                                 'problemas_calidad', 'fuentes_origen', 'variables')
+               .order_by('inscripcion__organismo__nombre', 'nombre'))
+    resultado = []
+    for f in fuentes:
+        vars_qs = f.variables.all()
+        resultado.append({
+            'id': f.pk,
+            'nombre': f.nombre,
+            'organismo': f.inscripcion.organismo.nombre if f.inscripcion.organismo else '—',
+            'descripcion': f.descripcion or 'Sin descripción',
+            'decisiones_apoya': f.decisiones_apoya or '—',
+            'rol': f.get_rol_display() if f.rol else '—',
+            'relaciones': ', '.join(r.etiqueta for r in f.relaciones.all()) or '—',
+            'instrumentos': ', '.join(i.etiqueta for i in f.instrumentos.all()) or '—',
+            'mecanismos': ', '.join(m.etiqueta for m in f.mecanismos.all()) or '—',
+            'periodicidades': ', '.join(p.etiqueta for p in f.periodicidades.all()) or '—',
+            'desagregaciones': ', '.join(d.etiqueta for d in f.desagregaciones.all()) or '—',
+            'fecha_actualizacion': f.fecha_actualizacion.strftime('%Y-%m-%d') if f.fecha_actualizacion else '—',
+            'num_registros': f.num_registros if f.num_registros else ('Desconocido' if f.num_registros_desconocido else '—'),
+            'georref': f.get_georreferenciacion_display() if f.georreferenciacion else '—',
+            'tiene_diccionario': f.get_tiene_diccionario_display() if f.tiene_diccionario else '—',
+            'tiene_validacion': f.get_tiene_validacion_display() if f.tiene_validacion else '—',
+            'num_variables': vars_qs.count(),
+            'num_identificadores': vars_qs.filter(es_identificador=True).count(),
+            'num_origenes': f.fuentes_origen.count(),
+            'unidades': ', '.join(u.etiqueta for u in f.unidades_analisis.all()) or '—',
+            'problemas': ', '.join(p.etiqueta for p in f.problemas_calidad.all()) or '—',
+        })
+    return resultado
+
+
+@delegado_required
+def dashboard(request):
+    from .models_taller import FuenteRequerida
+    from .models_catalogo import EvaluacionSeguridad, VariableFuente
+    from . import wizard_taller as wz
+
+    alcance = request.GET.get('alcance', 'todas')
+    inscripciones = Inscripcion.objects.select_related(
+        'organismo', 'suborganismo', 'reto').all()
+    if alcance == 'completadas':
+        inscripciones = inscripciones.filter(estado=Inscripcion.Estado.COMPLETADA)
+    ids = list(inscripciones.values_list('pk', flat=True))
+
+    fuentes = FuenteDatos.objects.filter(inscripcion_id__in=ids)
+    retos = RetoAnalisis.objects.filter(inscripcion_id__in=ids)
+    seguridades = EvaluacionSeguridad.objects.filter(fuente__inscripcion_id__in=ids)
+    variables = VariableFuente.objects.filter(fuente__inscripcion_id__in=ids)
+    fuentes_requeridas = FuenteRequerida.objects.filter(reto__inscripcion_id__in=ids)
+
+    todas = Inscripcion.objects.all()
+    completadas = todas.filter(estado=Inscripcion.Estado.COMPLETADA)
+
+    # Embudo: fichas que completaron cada paso
+    pasos_alcanzados = list(inscripciones.values_list('paso_actual', 'estado'))
+    embudo = []
+    for i, p in enumerate(wz.PASOS):
+        n = sum(1 for slug, _ in pasos_alcanzados if wz.indice(slug) >= i)
+        embudo.append({'titulo': f'{i + 1}. {p.titulo}', 'fase': p.fase, 'total': n,
+                       'pct': int(n * 100 / len(pasos_alcanzados)) if pasos_alcanzados else 0})
+
+    # Organismos y fuentes más citadas
+    organismos = _filas(list(inscripciones.values_list('organismo__nombre')
+                             .annotate(total=Count('id')).order_by('-total')))
+    fuentes_top = _filas(list(fuentes.exclude(nombre='').values_list('nombre')
+                              .annotate(total=Count('id')).order_by('-total')))
+    requeridas_top = _filas(list(fuentes_requeridas.exclude(nombre='').values_list('nombre')
+                                 .annotate(total=Count('id')).order_by('-total')))
+
+    paneles_f1 = [
+        _panel_m2m('Relación con el conjunto de datos', FuenteDatos.relaciones, ids),
+        _panel_m2m('Instrumento de recolección', FuenteDatos.instrumentos, ids),
+        _panel_m2m('Mecanismo de consolidación', FuenteDatos.mecanismos, ids),
+        _panel_m2m('Periodicidad de actualización', FuenteDatos.periodicidades, ids),
+        _panel_m2m('Desagregación geográfica', FuenteDatos.desagregaciones, ids),
+        _panel_m2m('Unidad de análisis principal', FuenteDatos.unidades_analisis, ids),
+        _panel_choice('Rol del organismo frente a la fuente', fuentes, 'rol'),
+        _panel_choice('¿Existe georreferenciación?', fuentes, 'georreferenciacion'),
+        _panel_m2m('Nivel de georreferenciación', FuenteDatos.niveles_georref, ids),
+        _panel_m2m('Problemas de calidad identificados', FuenteDatos.problemas_calidad, ids),
+        _panel_choice('¿Procesos de validación o limpieza?', fuentes, 'tiene_validacion'),
+        _panel_choice('¿Existe diccionario de variables?', fuentes, 'tiene_diccionario'),
+    ]
+
+    paneles_f2 = [
+        _panel_m2m('Unidades que se desean relacionar', RetoAnalisis.unidades_relacionar, ids),
+        _panel_m2m('Desagregación del análisis (1.6)', RetoAnalisis.desagregaciones, ids),
+        _panel_m2m('Tratamiento analítico (1.10)', RetoAnalisis.tratamientos, ids),
+        _panel_m2m('Resultado mínimo viable (1.11)', RetoAnalisis.resultados_mvp, ids),
+        _panel_m2m('Capacidades del SIPDI (1.12)', RetoAnalisis.capacidades_sipdi, ids),
+        _panel_texto('Variables a enriquecer (1.13)', retos, 'variables_enriquecer'),
+        _panel_m2m('Enfoques diferenciales (1.15)', RetoAnalisis.enfoques_diferenciales, ids),
+    ]
+    unidad_principal = _filas(list(
+        retos.exclude(unidad_principal__isnull=True)
+        .values_list('unidad_principal__etiqueta')
+        .annotate(total=Count('id')).order_by('-total')))
+    paneles_f2.insert(0, {'titulo': 'Unidad principal de análisis (1.5)', 'filas': unidad_principal})
+
+    paneles_f3_acceso = [
+        _panel_choice('¿Contiene datos personales?', seguridades, 'contiene_datos_personales'),
+        _panel_m2m('Variables que identifican personas', EvaluacionSeguridad.variables_identificadoras, ids),
+        _panel_m2m('Información de especial cuidado', EvaluacionSeguridad.datos_sensibles, ids),
+        _panel_choice('¿Base legítima para acceder y utilizar?', seguridades, 'base_legitima'),
+    ]
+    paneles_f3_uso = [
+        _panel_choice('Debida diligencia del proveedor', seguridades, 'proveedor_base_legitima'),
+        _panel_choice('Finalidad específica y restringida', seguridades, 'finalidad_especifica'),
+        _panel_choice('Datos necesarios y no excesivos', seguridades, 'datos_necesarios'),
+        _panel_choice('Conservación limitada en el tiempo', seguridades, 'conservacion_limitada'),
+        _panel_choice('Salvaguardas técnicas/administrativas/físicas', seguridades, 'salvaguardas'),
+        _panel_choice('Transparencia con titulares y público', seguridades, 'transparencia'),
+        _panel_choice('Riesgos de publicación desproporcionados', seguridades, 'riesgos_publicacion'),
+        _panel_choice('Terceros con estándares equivalentes', seguridades, 'terceros_estandares'),
+        _panel_choice('Riesgo de daño a personas o grupos', seguridades, 'riesgo_dano'),
+    ]
+    paneles_f3_medidas = [
+        _panel_m2m('Medidas de protección aplicadas', EvaluacionSeguridad.medidas_proteccion, ids),
+        _panel_choice('¿Susceptible a fraude o corrupción?', seguridades, 'susceptible_fraude'),
+    ]
+    paneles_semaforo = [
+        _panel_choice('Confidencialidad', seguridades, 'confidencialidad', semaforo=True),
+        _panel_choice('Integridad', seguridades, 'integridad', semaforo=True),
+        _panel_choice('Disponibilidad', seguridades, 'disponibilidad', semaforo=True),
+        _panel_choice('Criticidad (calculada)', seguridades, 'criticidad', semaforo=True),
+    ]
+    paneles_clasificacion = [
+        _panel_choice('Aplica: Pública', seguridades, 'aplica_publica'),
+        _panel_choice('Aplica: Semiprivada', seguridades, 'aplica_semiprivada'),
+        _panel_choice('Aplica: Privada / restringida', seguridades, 'aplica_privada'),
+        _panel_choice('Aplica: Sensible', seguridades, 'aplica_sensible'),
+        _panel_choice('Aplica: Reservada', seguridades, 'aplica_reservada'),
+    ]
+
+    context = {
+        'alcance': alcance,
+        'total_inscritos': todas.count(),
+        'total_completadas': completadas.count(),
+        'total_en_progreso': todas.count() - completadas.count(),
+        'total_organismos': todas.values('organismo').distinct().count(),
+        'total_fuentes': fuentes.exclude(nombre='').count(),
+        'total_retos': retos.exclude(nombre='').count(),
+        'total_variables': variables.count(),
+        'total_identificadores': variables.filter(es_identificador=True).count(),
+        'criticos': seguridades.filter(criticidad='rojo').count(),
+        'con_datos_personales': seguridades.filter(contiene_datos_personales='si').count(),
+        'embudo': embudo,
+        'fases': wz.FASES,
+        'organismos': organismos,
+        'fuentes_top': fuentes_top,
+        'requeridas_top': requeridas_top,
+        'paneles_f1': [p for p in paneles_f1 if p['filas']],
+        'paneles_f2': [p for p in paneles_f2 if p['filas']],
+        'paneles_f3_acceso': [p for p in paneles_f3_acceso if p['filas']],
+        'paneles_f3_uso': [p for p in paneles_f3_uso if p['filas']],
+        'paneles_f3_medidas': [p for p in paneles_f3_medidas if p['filas']],
+        'paneles_semaforo': [p for p in paneles_semaforo if p['filas']],
+        'paneles_clasificacion': [p for p in paneles_clasificacion if p['filas']],
+        'ultimas': _con_criticidad(inscripciones),
+        'fuentes_detalle': _fuentes_detalle(fuentes, ids),
+    }
+    return render(request, 'taller/dashboard.html', context)
+
+
+@delegado_required
+def presentacion(request):
+    """Presentación en diapositivas del análisis integral F1-F2-F3 — cifras en vivo desde la BD."""
+    from collections import Counter
+
+    inscripciones = Inscripcion.objects.count()
+    fuentes = FuenteDatos.objects.all()
+    n_fuentes = fuentes.count()
+    retos = RetoAnalisis.objects.count()
+    evals = EvaluacionSeguridad.objects.all()
+    n_evals = evals.count()
+    organismos = Inscripcion.objects.values('organismo').distinct().count()
+    org_con_fuentes = Inscripcion.objects.filter(fuentes__isnull=False).values('organismo').distinct().count()
+    fuentes_sin_f3 = fuentes.filter(seguridad__isnull=True).count()
+
+    # F1 · top fuentes por volumen
+    top_vol_qs = (fuentes.exclude(num_registros__isnull=True)
+                  .order_by('-num_registros').values_list('nombre', 'num_registros')[:9])
+    max_vol = top_vol_qs[0][1] if top_vol_qs else 1
+    top_vol = [{'nombre': n, 'valor': v, 'pct': max(round(v / max_vol * 100, 1), 0.4)}
+               for n, v in top_vol_qs]
+
+    # F1 · escalera de madurez
+    n_dicc = fuentes.filter(tiene_diccionario='si').count()
+    n_val = fuentes.filter(tiene_validacion='si').count()
+
+    def dist(field):
+        d = {'si': 0, 'no': 0, 'no_se': 0, 'no_aplica': 0, '': 0}
+        for v, c in evals.values_list(field).annotate(c=Count('id')):
+            d[v] = c
+        return d
+
+    def habeas_row(label, field, invertir_no=False):
+        """Fila de la matriz habeas data. invertir_no: cuando 'No' es la respuesta favorable (riesgos_publicacion)."""
+        d = dist(field)
+        total = d['si'] + d['no'] + d['no_se'] + d['no_aplica'] or 1
+        if invertir_no:
+            fav, desf = d['no'], d['si']
+        else:
+            fav, desf = d['si'], d['no']
+        return {'label': label, 'fav': fav, 'ns': d['no_se'], 'desf': desf, 'na': d['no_aplica'],
+                'p_fav': round(fav / total * 100), 'p_ns': round(d['no_se'] / total * 100),
+                'p_desf': round(desf / total * 100), 'p_na': round(d['no_aplica'] / total * 100)}
+
+    habeas = [
+        habeas_row('Base legítima', 'base_legitima'),
+        habeas_row('Finalidad específica', 'finalidad_especifica'),
+        habeas_row('Datos necesarios (minimización)', 'datos_necesarios'),
+        habeas_row('Conservación limitada', 'conservacion_limitada'),
+        habeas_row('Salvaguardas', 'salvaguardas'),
+        habeas_row('Transparencia', 'transparencia'),
+        habeas_row('Riesgos de publicación', 'riesgos_publicacion', invertir_no=True),
+        habeas_row('Terceros con estándares', 'terceros_estandares'),
+    ]
+
+    # F3 · CIA
+    def semaforo_row(label, field):
+        d = dist(field)
+        total = d['verde'] + d['amarillo'] + d['rojo'] or 1
+        return {'label': label, 'v': d['verde'], 'a': d['amarillo'], 'r': d['rojo'],
+                'p_v': round(d['verde'] / total * 100), 'p_a': round(d['amarillo'] / total * 100),
+                'p_r': round(d['rojo'] / total * 100)}
+
+    cia = [semaforo_row('Confidencialidad', 'confidencialidad'),
+           semaforo_row('Integridad', 'integridad'),
+           semaforo_row('Disponibilidad', 'disponibilidad'),
+           semaforo_row('Criticidad', 'criticidad')]
+
+    fuentes_rojas = (evals.filter(criticidad='rojo').select_related('fuente')
+                     .values('fuente__nombre', 'confidencialidad', 'integridad', 'disponibilidad'))
+
+    # F3 · exposición
+    n_dp = evals.filter(contiene_datos_personales='si').count()
+    n_sens = evals.filter(datos_sensibles__isnull=False).distinct().count()
+    n_fraude = evals.filter(susceptible_fraude='si').count()
+
+    def m2m_bars(rel, top=8):
+        c = Counter()
+        for e in evals.prefetch_related(rel):
+            for o in getattr(e, rel).all():
+                c[o.etiqueta] += 1
+        items = c.most_common(top)
+        mx = items[0][1] if items else 1
+        return [{'label': k, 'valor': v, 'pct': max(round(v / mx * 100), 4)} for k, v in items]
+
+    identificadoras = m2m_bars('variables_identificadoras')
+    medidas = m2m_bars('medidas_proteccion', top=10)
+    sensibles = Counter()
+    for e in evals.prefetch_related('datos_sensibles'):
+        for o in e.datos_sensibles.all():
+            sensibles[o.etiqueta] += 1
+
+    # F3 · clasificación
+    clasif = {
+        'publica': evals.filter(aplica_publica='si').count(),
+        'semiprivada': evals.filter(aplica_semiprivada='si').count(),
+        'privada': evals.filter(aplica_privada='si').count(),
+        'sensible': evals.filter(aplica_sensible='si').count(),
+        'reservada': evals.filter(aplica_reservada='si').count(),
+    }
+
+    context = {
+        'inscripciones': inscripciones,
+        'n_fuentes': n_fuentes,
+        'retos': retos,
+        'n_evals': n_evals,
+        'organismos': organismos,
+        'org_con_fuentes': org_con_fuentes,
+        'fuentes_sin_f3': fuentes_sin_f3,
+        'top_vol': top_vol,
+        'n_dicc': n_dicc,
+        'n_val': n_val,
+        'habeas': habeas,
+        'cia': cia,
+        'fuentes_rojas': fuentes_rojas,
+        'n_dp': n_dp,
+        'n_sens': n_sens,
+        'n_fraude': n_fraude,
+        'identificadoras': identificadoras,
+        'medidas': medidas,
+        'sensibles': sensibles.most_common(),
+        'clasif': clasif,
+    }
+
+    # ---- Datos F2 vivos: taxonomía por línea, franjas, brechas ----
+    casos = _clasificar_retos()
+    clasificables = [c for c in casos if c['primaria']]
+    context['n_casos_f2'] = len(clasificables)
+    context['n_multilinea'] = sum(1 for c in clasificables if c['n_lineas'] > 1)
+    context['n_cuatro'] = sum(1 for c in clasificables if c['n_lineas'] == 4)
+
+    # taxonomía: conteo + 3 ejemplos por línea
+    taxonomia = []
+    for code in ['CPS', 'ADA', 'FM', 'RR']:
+        grupo = [c for c in clasificables if c['primaria'] == code]
+        taxonomia.append({
+            'code': code, 'label': LINEAS_F2[code], 'count': len(grupo),
+            'ejemplos': [{'id': c['id'], 'nombre': c['nombre']} for c in grupo[:3]],
+        })
+    context['taxonomia'] = taxonomia
+
+    # franjas de secuenciación
+    franjas = {}
+    for f in [1, 2, 3]:
+        grupo = [c for c in clasificables if c['franja'] == f]
+        franjas[f] = {'n': len(grupo),
+                      'ids': ' · '.join(f"R{c['id']}" for c in grupo)}
+    context['franjas'] = franjas
+
+    # brechas F1: EDE y RUD desde la BD
+    ede = fuentes.filter(nombre__icontains='Especializadas').first() or \
+        fuentes.filter(nombre__icontains='EDE').first()
+    rud = fuentes.filter(nombre__icontains='Damnificados').first() or \
+        fuentes.filter(nombre__icontains='RUD').first()
+    context['ede_reg'] = ede.num_registros if ede else None
+    context['rud_reg'] = rud.num_registros if rud else None
+    context['ede_bloquea'] = ' · '.join(
+        f"R{c['id']}" for c in casos
+        if any('especializ' in fr['nombre'].lower() or 'ede' in fr['nombre'].lower()
+               for fr in c['reqs']))
+    context['rud_casos'] = sum(
+        1 for c in casos
+        if any('rud' in fr['nombre'].lower() or 'damnific' in fr['nombre'].lower()
+               for fr in c['reqs']))
+
+    # capa Gold (constantes de arquitectura SIPDI)
+    context['n_gold'] = 9
+    context['n_gold_cat'] = 2
+    context['n_gold_int'] = 0
+
+    # CIA y protección: conteos vivos
+    context['n_rojas'] = len(fuentes_rojas)
+    context['cia_int_rojos'] = next((c['r'] for c in cia if c['label'] == 'Integridad'), 0)
+    medidas_map = {m['label']: m['valor'] for m in medidas}
+    context['n_cifrado'] = medidas_map.get('Cifrado de datos', 0)
+    context['n_anonim'] = (medidas_map.get('Eliminación de identificadores', 0) +
+                           medidas_map.get('Sustitución de identificadores por códigos', 0))
+    context['n_logs'] = medidas_map.get('Registros de auditoría (logs)', 0)
+
+    return render(request, 'taller/presentacion.html', context)
+
+
+@delegado_required
+def nube_svg(request, nombre):
+    """Sirve las nubes de palabras SVG desde el paquete (sin depender de collectstatic)."""
+    from pathlib import Path
+    if nombre not in {'global', 'cps', 'ada', 'fm', 'rr'}:
+        raise Http404
+    ruta = Path(__file__).resolve().parent / 'nubes' / f'nube_{nombre}.svg'
+    if not ruta.exists():
+        raise Http404
+    return FileResponse(open(ruta, 'rb'), content_type='image/svg+xml')
+
+
+LINEAS_F2 = {'CPS': 'Caracterización poblacional y socioeconómica',
+             'ADA': 'Afectaciones, daños y activos',
+             'FM': 'Focalización microterritorial',
+             'RR': 'Respuesta y recuperación'}
+
+_CODEBOOK_F2 = {
+    'CPS': ['persona', 'hogar', 'poblacion', 'sisben', 'grupo poblacional',
+            'caracterizacion socioeconomica', 'damnificado', 'afectado',
+            'deportista', 'colaborador', 'quienes', 'cuantos', 'edad', 'sexo',
+            'etnia', 'discapacidad', 'victima', 'familia', 'comunidad',
+            'estudiante', 'menor', 'adulto mayor', 'demograf', 'socioeconom'],
+    'ADA': ['daño', 'afectacion', 'edificacion', 'predio', 'infraestructura',
+            'inmueble', 'equipamiento', 'avaluo', 'valor de la afectacion',
+            'rcd', 'residuo', 'terminal', 'estacion', 'nivel de daño', 'colapso',
+            'estructura', 'vivienda', 'alojamiento', 'dano', 'escombro',
+            'demolicion', 'sismo', 'terremoto'],
+    'FM': ['donde', 'localiz', 'prioriz', 'territorio', 'albergue', 'cobertura',
+           'brecha', 'georreferenc', 'tramo', 'microterritorio', 'comuna',
+           'barrio', 'mapa', 'ubicacion', 'zona', 'sector', 'espacio publico',
+           'corredor', 'focaliz', 'concentracion', 'densidad'],
+    'RR': ['ayuda', 'apoyo', 'donacion', 'recuperacion', 'reencuentro',
+           'respuesta', 'asistencia', 'seguimiento', 'oferta', 'albergue',
+           'alojamiento temporal', 'brote', 'salud', 'atencion', 'subsidio',
+           'compensac', 'rehabilitac', 'reconstruc', 'animal', 'empleo',
+           'empresa', 'negocio'],
+}
+
+
+def _clasificar_retos():
+    """Clasificación viva de los retos F2: línea primaria/secundarias por codebook,
+    fuentes F1 propias, fuentes requeridas con llave y limitación de integración."""
+    retos = (RetoAnalisis.objects
+             .select_related('inscripcion__organismo', 'unidad_principal')
+             .prefetch_related('fuentes_requeridas', 'inscripcion__fuentes',
+                               'unidades_relacionar'))
+    casos = []
+    for r in retos:
+        ins = r.inscripcion
+        texto = ' '.join(filter(None, [
+            r.nombre, r.analisis_propuesto, r.resultado_esperado,
+            r.decision_apoya,
+            r.unidad_principal.etiqueta if r.unidad_principal else '',
+            ' '.join(o.etiqueta for o in r.unidades_relacionar.all()),
+            r.variables_enriquecer])).lower()
+        scores = {l: sum(texto.count(k) for k in kws)
+                  for l, kws in _CODEBOOK_F2.items()}
+        orden = sorted(scores.items(), key=lambda x: -x[1])
+        primaria = orden[0][0] if orden[0][1] > 0 else ''
+        secundarias = [l for l, s in orden[1:] if s > 0]
+
+        reqs = list(r.fuentes_requeridas.all())
+        sin_llave = [fr.nombre for fr in reqs if not fr.llave_relacion.strip()]
+        if primaria == '':
+            limitacion = 'Reto sin contenido: no evaluable.'
+        elif not reqs:
+            limitacion = 'No declaró fuentes requeridas: el insumo no está especificado.'
+        elif sin_llave:
+            limitacion = ('Sin llave de cruce en: ' + '; '.join(sin_llave) +
+                          '. Requiere geocodificación, relación espacial o conciliación.')
+        else:
+            limitacion = 'Con llave declarada en todas las fuentes requeridas.'
+
+        # Franja de secuenciación por disponibilidad del dato
+        def _tipo_llave(l):
+            l = (l or '').lower()
+            if any(k in l for k in ['documento', 'cedula', 'cédula', 'nit', 'num_doc', 'id']):
+                return 'identidad'
+            if any(k in l for k in ['predio', 'direccion', 'dirección', 'coordenada',
+                                    'latitud', 'longitud', 'barrio', 'comuna',
+                                    'matricula', 'matrícula', 'npn', 'ficha']):
+                return 'espacial'
+            return 'declarativa'
+        if primaria == '':
+            franja = 0
+        elif not reqs and not ins.fuentes.exists():
+            franja = 3
+        elif not reqs:
+            franja = 2
+        else:
+            tipos = [_tipo_llave(fr.llave_relacion) for fr in reqs]
+            if all(t == 'identidad' for t in tipos) and r.variables_enriquecer.strip():
+                franja = 1
+            elif any(t == 'declarativa' for t in tipos):
+                franja = 3
+            else:
+                franja = 2
+
+        casos.append({
+            'id': r.id,
+            'organismo': ins.organismo.nombre if ins.organismo else '',
+            'nombre': r.nombre,
+            'analisis': r.analisis_propuesto,
+            'decision': r.decision_apoya,
+            'primaria': primaria,
+            'primaria_label': LINEAS_F2.get(primaria, 'Sin clasificar'),
+            'secundarias': secundarias,
+            'n_lineas': 1 + len(secundarias) if primaria else 0,
+            'fuentes_f1': [f.nombre for f in ins.fuentes.all()],
+            'reqs': [{'nombre': fr.nombre, 'org': fr.organismo,
+                      'vars': fr.variables, 'llave': fr.llave_relacion}
+                     for fr in reqs],
+            'enriquecer': r.variables_enriquecer,
+            'limitacion': limitacion,
+            'franja': franja,
+        })
+    return casos
+
+
+@delegado_required
+def casos_f2(request):
+    """Tabla viva de los casos F2 clasificados por línea — consultable desde el dashboard."""
+    from collections import Counter
+    casos = _clasificar_retos()
+    por_linea = Counter(c['primaria'] or 'SIN' for c in casos)
+    context = {
+        'casos': sorted(casos, key=lambda c: (c['primaria'] or 'Z', c['organismo'])),
+        'n_casos': len(casos),
+        'por_linea': por_linea,
+        'lineas': LINEAS_F2,
+    }
+    return render(request, 'taller/casos_f2.html', context)
+
+
+@delegado_required
+def casos_f2_excel(request):
+    """Exporta la tabla de casos F2 clasificados a Excel."""
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    casos = _clasificar_retos()
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Casos F2'
+    header = ['ID', 'Organismo', 'Reto de análisis', 'Línea primaria',
+              'Líneas secundarias', 'Nº líneas', 'Fuentes F1 propias',
+              'Fuentes requeridas', 'Llave de cruce', 'Variables a enriquecer',
+              'Limitación para el análisis']
+    ws.append(header)
+    for celda in ws[1]:
+        celda.font = Font(bold=True, color='FFFFFF', size=10)
+        celda.fill = PatternFill('solid', fgColor='004B87')
+    for c in sorted(casos, key=lambda x: (x['primaria'] or 'Z', x['organismo'])):
+        ws.append([
+            f"R{c['id']}", c['organismo'], c['nombre'],
+            c['primaria_label'], '+'.join(c['secundarias']) or '—',
+            c['n_lineas'] or '—',
+            '\n'.join('• ' + f for f in c['fuentes_f1']) or '—',
+            '\n'.join(f"• {fr['nombre']} ({fr['org']})" for fr in c['reqs']) or '—',
+            '\n'.join(f"• {fr['nombre']}: {fr['llave'] or 'SIN LLAVE'}"
+                      for fr in c['reqs']) or '—',
+            c['enriquecer'] or '—', c['limitacion']])
+    for idx, col in enumerate(ws.columns, 1):
+        ancho = max((len(str(c.value)) for c in col if c.value is not None), default=8)
+        ws.column_dimensions[get_column_letter(idx)].width = min(ancho + 2, 50)
+    ws.freeze_panes = 'A2'
+
+    respuesta = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    respuesta['Content-Disposition'] = 'attachment; filename="casos_f2_clasificados.xlsx"'
+    wb.save(respuesta)
+    return respuesta
+
+
+@delegado_required
+def reporte_excel(request):
+    """Informe claro multi-hoja: separa ficha/inscripción, fuentes F1, retos F2 y
+    evaluaciones F3 para que no se confundan las unidades de conteo."""
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+
+    def estilo_header(ws):
+        for celda in ws[1]:
+            celda.font = Font(bold=True, color='FFFFFF', size=10)
+            celda.fill = PatternFill('solid', fgColor='004B87')
+            celda.alignment = Alignment(vertical='center', wrap_text=True)
+        ws.freeze_panes = 'A2'
+
+    def anchos(ws, tope=48):
+        for idx, col in enumerate(ws.columns, 1):
+            ancho = max((len(str(c.value)) for c in col if c.value is not None), default=8)
+            ws.column_dimensions[get_column_letter(idx)].width = min(ancho + 2, tope)
+
+    def m2m(obj, campo):
+        return '; '.join(o.etiqueta for o in getattr(obj, campo).all()) if obj else ''
+
+    def disp(obj, campo):
+        return getattr(obj, f'get_{campo}_display')() if obj and getattr(obj, campo) else ''
+
+    inscripciones = (Inscripcion.objects
+                     .select_related('organismo', 'suborganismo', 'user',
+                                     'reto', 'reto__unidad_principal')
+                     .prefetch_related(
+                         'fuentes', 'fuentes__seguridad',
+                         'fuentes__relaciones', 'fuentes__instrumentos',
+                         'fuentes__mecanismos', 'fuentes__periodicidades',
+                         'fuentes__desagregaciones', 'fuentes__unidades_analisis',
+                         'fuentes__niveles_georref', 'fuentes__problemas_calidad',
+                         'fuentes__fuentes_origen', 'fuentes__variables',
+                         'fuentes__seguridad__variables_identificadoras',
+                         'fuentes__seguridad__datos_sensibles',
+                         'fuentes__seguridad__medidas_proteccion',
+                         'reto__unidades_relacionar', 'reto__desagregaciones',
+                         'reto__tratamientos', 'reto__resultados_mvp',
+                         'reto__capacidades_sipdi', 'reto__enfoques_diferenciales',
+                         'reto__fuentes_requeridas')
+                     .order_by('organismo__nombre', 'id'))
+    casos = {c['id']: c for c in _clasificar_retos()}
+
+    wb = Workbook()
+
+    # ---- Hoja 1 · Resumen / glosario ----
+    ws = wb.active
+    ws.title = 'Resumen'
+    n_fuentes = FuenteDatos.objects.count()
+    n_retos = RetoAnalisis.objects.count()
+    n_evals = EvaluacionSeguridad.objects.count()
+    fichas_con_f1 = inscripciones.filter(fuentes__isnull=False).distinct().count()
+    ws.append(['Concepto', 'Qué es', 'Cantidad'])
+    for fila in [
+        ['Ficha / Inscripción', 'El formulario diligenciado por un organismo (una sola cosa: la inscripción ES la ficha). Contiene identificación + F1 + F2 + F3.', inscripciones.count()],
+        ['Fuente F1', 'Cada conjunto de datos caracterizado. Una ficha puede tener 0, 1 o varias fuentes.', n_fuentes],
+        ['Reto F2', 'El reto de análisis propuesto. Máximo uno por ficha.', n_retos],
+        ['Evaluación F3', 'La evaluación de seguridad de una fuente. Máximo una por fuente F1.', n_evals],
+        ['', '', ''],
+        ['Fichas CON al menos una fuente F1', f'Por eso {n_fuentes} fuentes no son {n_fuentes} fichas.', fichas_con_f1],
+        ['Fichas SIN fuente F1', 'Diligenciaron solo F2 u otra sección.', inscripciones.count() - fichas_con_f1],
+        ['Fuentes SIN evaluación F3', 'Fuentes caracterizadas sin evaluar seguridad.', n_fuentes - n_evals],
+    ]:
+        ws.append(fila)
+    estilo_header(ws)
+    for row in ws.iter_rows(min_row=2):
+        row[0].font = Font(bold=True)
+        row[1].alignment = Alignment(wrap_text=True, vertical='top')
+    anchos(ws, 70)
+
+    # ---- Hoja 2 · Fichas (una fila por inscripción — TODOS los campos) ----
+    ws = wb.create_sheet('Fichas')
+    ws.append(['ID ficha', 'UUID', 'Usuario', 'Estado', 'Inició por',
+               'Último paso', 'Creado', 'Actualizado',
+               'Organismo', 'Suborganismo', 'Equipo responsable',
+               'Nombre completo', 'Correo', 'Teléfono',
+               'Nº fuentes F1', 'Tiene reto F2', 'Nº fuentes con F3'])
+    for i in inscripciones:
+        fuentes_i = list(i.fuentes.all())
+        ws.append([
+            i.id, str(i.uuid), i.user.username if i.user else '',
+            i.get_estado_display(), i.get_ficha_inicial_display(),
+            i.paso_actual,
+            i.creado.strftime('%Y-%m-%d %H:%M') if i.creado else '',
+            i.actualizado.strftime('%Y-%m-%d %H:%M') if i.actualizado else '',
+            i.organismo.nombre if i.organismo else '',
+            i.suborganismo.nombre if i.suborganismo else '',
+            i.equipo_responsable, i.nombre_completo, i.correo, i.telefono,
+            len(fuentes_i),
+            'Sí' if getattr(i, 'reto', None) else 'No',
+            sum(1 for f in fuentes_i if getattr(f, 'seguridad', None)),
+        ])
+    estilo_header(ws); anchos(ws)
+
+    # ---- Hoja 3 · Fuentes F1 (una fila por fuente — TODOS los campos) ----
+    ws = wb.create_sheet('Fuentes F1')
+    ws.append(['ID fuente', 'ID ficha', 'Organismo',
+               '1.1 Nombre', '1.2 Descripción',
+               '1.3 Relaciones', '1.3 Relación (otra)',
+               '1.4 Instrumentos', '1.4 Instrumento (otro)',
+               '1.4 Mecanismos', '1.4 Mecanismo (otro)',
+               '1.5 Fecha inicio', '1.6 Última actualización',
+               '1.7 Periodicidades', '1.7 Periodicidad (otra)',
+               '1.8 Desagregaciones', '1.8 Desagregación (otra)',
+               '1.9 Nº registros', '1.9 Registros (fecha)', '1.9 Registros desconocido',
+               '1.10 Tiene diccionario', '1.10 Diccionario (ubicación)', '1.10 Diccionario (archivo)',
+               '1.11 Rol', '1.11 Fuentes de origen',
+               '1.12 Decisiones que apoya',
+               '1.13 Unidades de análisis', '1.13 Unidad (otra)',
+               '1.14 Georreferenciación', '1.15 Niveles georref', '1.15 Nivel georref (otro)',
+               '1.16 Problemas de calidad', '1.16 Problema (otro)',
+               '1.17 Tiene validación', '1.17 Validación (descripción)',
+               'Variables (nombre:tipo:desc:identificador)'])
+    for i in inscripciones:
+        for f in i.fuentes.all():
+            f_orig = '; '.join(f'{o.nombre} ({o.organismo_productor})'
+                               for o in f.fuentes_origen.all())
+            f_vars = '; '.join(
+                f'{v.nombre}:{v.get_tipo_display()}:{v.descripcion or ""}'
+                f'{" [ID]" if v.es_identificador else ""}'
+                for v in f.variables.all())
+            ws.append([
+                f.id, i.id, i.organismo.nombre if i.organismo else '',
+                f.nombre, f.descripcion,
+                m2m(f, 'relaciones'), f.relacion_otra,
+                m2m(f, 'instrumentos'), f.instrumento_otro,
+                m2m(f, 'mecanismos'), f.mecanismo_otro,
+                f.fecha_inicio, f.fecha_actualizacion,
+                m2m(f, 'periodicidades'), f.periodicidad_otra,
+                m2m(f, 'desagregaciones'), f.desagregacion_otra,
+                f.num_registros, f.num_registros_fecha,
+                'Sí' if f.num_registros_desconocido else '',
+                disp(f, 'tiene_diccionario'), f.diccionario_ubicacion,
+                f.archivo_diccionario.name if f.archivo_diccionario else '',
+                disp(f, 'rol'), f_orig,
+                f.decisiones_apoya,
+                m2m(f, 'unidades_analisis'), f.unidad_analisis_otra,
+                disp(f, 'georreferenciacion'), m2m(f, 'niveles_georref'), f.nivel_georref_otro,
+                m2m(f, 'problemas_calidad'), f.problema_calidad_otro,
+                disp(f, 'tiene_validacion'), f.validacion_descripcion,
+                f_vars,
+            ])
+    estilo_header(ws); anchos(ws)
+
+    # ---- Hoja 4 · Retos F2 (una fila por reto — TODOS los campos) ----
+    ws = wb.create_sheet('Retos F2')
+    ws.append(['ID reto', 'ID ficha', 'Organismo',
+               '1.1 Nombre del reto', '1.2 Análisis propuesto',
+               '1.3 Resultado esperado', '1.4 Decisión que apoya',
+               '1.5 Unidad principal', '1.5 Unidad (otra)',
+               '1.6 Unidades a relacionar', '1.6 Unidad (otra)', '1.6 Vínculo entre unidades',
+               '1.6 Desagregaciones', '1.6 Desagregación (otra)',
+               '1.10 Tratamientos', '1.10 Tratamiento (otro)',
+               '1.11 Resultados MVP', '1.11 Resultado (otro)',
+               '1.12 Capacidades SIPDI', '1.12 Capacidad (otra)',
+               '1.13 Variables a enriquecer', '1.13 Variables (otro)',
+               '1.14 Quién usará el resultado',
+               '1.15 Enfoques diferenciales', '1.15 Enfoque (otro)',
+               'Req1 fuente', 'Req1 custodio', 'Req1 variables (1.8)', 'Req1 llave (1.9)',
+               'Req2 fuente', 'Req2 custodio', 'Req2 variables (1.8)', 'Req2 llave (1.9)',
+               'Req3 fuente', 'Req3 custodio', 'Req3 variables (1.8)', 'Req3 llave (1.9)',
+               'Línea primaria', 'Líneas secundarias', 'Franja', 'Limitación'])
+    for i in inscripciones:
+        r = getattr(i, 'reto', None)
+        if not r:
+            continue
+        c = casos.get(r.id, {})
+        reqs = list(r.fuentes_requeridas.all())[:3]
+        req_cols = [campo for q in reqs
+                    for campo in (q.nombre, q.organismo, q.variables, q.llave_relacion)]
+        req_cols += [''] * (12 - len(req_cols))
+        ws.append([
+            r.id, i.id, i.organismo.nombre if i.organismo else '',
+            r.nombre, r.analisis_propuesto, r.resultado_esperado, r.decision_apoya,
+            r.unidad_principal.etiqueta if r.unidad_principal else '', r.unidad_principal_otra,
+            m2m(r, 'unidades_relacionar'), r.unidades_relacionar_otra, r.vinculo_unidades,
+            m2m(r, 'desagregaciones'), r.desagregacion_otra,
+            m2m(r, 'tratamientos'), r.tratamiento_otro,
+            m2m(r, 'resultados_mvp'), r.resultado_mvp_otro,
+            m2m(r, 'capacidades_sipdi'), r.capacidad_sipdi_otra,
+            r.variables_enriquecer, r.variables_enriquecer_otro,
+            r.usuario_resultado,
+            m2m(r, 'enfoques_diferenciales'), r.enfoque_diferencial_otro,
+            *req_cols,
+            c.get('primaria_label', ''), '+'.join(c.get('secundarias', [])) or '—',
+            {0: 'Sin evaluar', 1: 'Franja 1', 2: 'Franja 2', 3: 'Franja 3'}.get(c.get('franja'), '—'),
+            c.get('limitacion', ''),
+        ])
+    estilo_header(ws); anchos(ws)
+
+    # ---- Hoja 5 · Evaluaciones F3 (una fila por evaluación — TODOS los campos) ----
+    ws = wb.create_sheet('Evaluaciones F3')
+    ws.append(['ID fuente', 'ID ficha', 'Organismo', 'Fuente',
+               'Datos personales',
+               'Variables identificadoras', 'Variable identificadora (otra)',
+               'Datos sensibles', 'Dato sensible (otro)',
+               'Base legítima', 'Base legítima (por qué)',
+               'Proveedor base legítima', 'Proveedor base legítima (por qué)',
+               'Finalidad específica', 'Finalidad específica (por qué)',
+               'Datos necesarios', 'Datos necesarios (por qué)',
+               'Conservación limitada', 'Conservación limitada (por qué)',
+               'Salvaguardas', 'Salvaguardas (por qué)',
+               'Transparencia', 'Transparencia (por qué)',
+               'Riesgos publicación', 'Riesgos publicación (por qué)',
+               'Terceros estándares', 'Terceros estándares (por qué)',
+               'Riesgo de daño', 'Riesgo de daño (por qué)',
+               'Medidas de protección', 'Medida protección (otra)',
+               'Susceptible a fraude', 'Organismo custodio',
+               'Confidencialidad', 'Integridad', 'Disponibilidad', 'Criticidad',
+               'Aplica pública', 'Aplica semiprivada', 'Aplica privada',
+               'Aplica sensible', 'Aplica reservada'])
+    for i in inscripciones:
+        for f in i.fuentes.all():
+            s = getattr(f, 'seguridad', None)
+            if not s:
+                continue
+            ws.append([
+                f.id, i.id, i.organismo.nombre if i.organismo else '', f.nombre,
+                disp(s, 'contiene_datos_personales'),
+                m2m(s, 'variables_identificadoras'), s.variable_identificadora_otra,
+                m2m(s, 'datos_sensibles'), s.dato_sensible_otro,
+                disp(s, 'base_legitima'), s.base_legitima_porque,
+                disp(s, 'proveedor_base_legitima'), s.proveedor_base_legitima_porque,
+                disp(s, 'finalidad_especifica'), s.finalidad_especifica_porque,
+                disp(s, 'datos_necesarios'), s.datos_necesarios_porque,
+                disp(s, 'conservacion_limitada'), s.conservacion_limitada_porque,
+                disp(s, 'salvaguardas'), s.salvaguardas_porque,
+                disp(s, 'transparencia'), s.transparencia_porque,
+                disp(s, 'riesgos_publicacion'), s.riesgos_publicacion_porque,
+                disp(s, 'terceros_estandares'), s.terceros_estandares_porque,
+                disp(s, 'riesgo_dano'), s.riesgo_dano_porque,
+                m2m(s, 'medidas_proteccion'), s.medida_proteccion_otra,
+                disp(s, 'susceptible_fraude'), s.organismo_custodio,
+                disp(s, 'confidencialidad'), disp(s, 'integridad'),
+                disp(s, 'disponibilidad'), disp(s, 'criticidad'),
+                disp(s, 'aplica_publica'), disp(s, 'aplica_semiprivada'),
+                disp(s, 'aplica_privada'), disp(s, 'aplica_sensible'),
+                disp(s, 'aplica_reservada'),
+            ])
+    estilo_header(ws); anchos(ws)
+
+    # ---- Hoja 6 · Variables llave candidatas al SIPDI ----
+    ws = wb.create_sheet('Variables llave SIPDI')
+    ws.append(['Variable', 'Rol', 'Nº retos', 'Retos que la piden',
+               'Nº fuentes donde es llave', 'Fuentes que la usan como llave'])
+    for v in _variables_llave():
+        ws.append([v['variable'], v['rol'], v['n_retos'],
+                   ' · '.join(f'R{r}' for r in v['retos']),
+                   v['n_llaves'], ' · '.join(v['fuentes_llave'])])
+    estilo_header(ws); anchos(ws, 60)
+
+    respuesta = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    respuesta['Content-Disposition'] = 'attachment; filename="informe_taller.xlsx"'
+    wb.save(respuesta)
+    return respuesta
+
+
+def _variables_llave():
+    """Consolida las variables llave candidatas al SIPDI.
+
+    Cruza dos fuentes del instrumento:
+    - F2 1.13 `variables_enriquecer`: variables que cada reto quiere enriquecer/
+      validar mediante el SIPDI (demanda).
+    - F2 1.9 `llave_relacion` de cada fuente requerida: la llave de cruce
+      declarada (oferta de interoperabilidad).
+    Retorna filas ordenadas por demanda con el rol de cada variable.
+    """
+    import re
+    from collections import defaultdict
+
+    def split_vars(txt):
+        partes = re.split(r'[,;]|\s+y\s+', (txt or '').lower())
+        return [p.strip().strip('.') for p in partes if p.strip()]
+
+    def canon_llave(t):
+        t = (t or '').lower()
+        if re.search(r'documento|c[eé]dula|num_doc|nit', t):
+            return 'documento/NIT'
+        if re.search(r'predio|predial|npn|matr[ií]cula', t):
+            return 'predio'
+        if re.search(r'vivienda|hogar|ficha', t):
+            return 'vivienda/hogar'
+        if re.search(r'coordenada|latitud|longitud|geo|placeid', t):
+            return 'coordenadas/geo'
+        if re.search(r'direcci[oó]n', t):
+            return 'dirección'
+        if re.search(r'comuna|barrio', t):
+            return 'comuna/barrio'
+        return t.strip()[:30]
+
+    # Demanda: variable → retos que la piden (1.13)
+    retos_por_var = defaultdict(set)
+    for r in RetoAnalisis.objects.exclude(variables_enriquecer=''):
+        for v in split_vars(r.variables_enriquecer):
+            retos_por_var[v].add(r.id)
+
+    # Oferta: llave canónica → fuentes que la usan (1.9)
+    fuentes_por_llave = defaultdict(set)
+    retos_por_llave = defaultdict(set)
+    for q in FuenteRequerida.objects.exclude(llave_relacion=''):
+        c = canon_llave(q.llave_relacion)
+        fuentes_por_llave[c].add(q.nombre)
+        retos_por_llave[c].add(q.reto_id)
+
+    # Mapear variables de enriquecimiento a su llave canónica equivalente
+    def llave_de(var):
+        return canon_llave(var) if canon_llave(var) in fuentes_por_llave else None
+
+    filas = []
+    for var, retos in retos_por_var.items():
+        lk = llave_de(var)
+        filas.append({
+            'variable': var,
+            'rol': 'Llave de cruce + enriquecimiento' if lk else 'Enriquecimiento',
+            'n_retos': len(retos),
+            'retos': sorted(retos),
+            'n_llaves': len(fuentes_por_llave.get(lk, ())) if lk else 0,
+            'fuentes_llave': sorted(fuentes_por_llave.get(lk, ())) if lk else [],
+        })
+    # Llaves de cruce que nadie pidió como enriquecimiento (solo oferta)
+    for lk, fuentes in fuentes_por_llave.items():
+        if not any(llave_de(v) == lk for v in retos_por_var):
+            filas.append({
+                'variable': lk,
+                'rol': 'Solo llave de cruce',
+                'n_retos': len(retos_por_llave[lk]),
+                'retos': sorted(retos_por_llave[lk]),
+                'n_llaves': len(fuentes),
+                'fuentes_llave': sorted(fuentes),
+            })
+    filas.sort(key=lambda x: (-x['n_retos'], -x['n_llaves'], x['variable']))
+    return filas
+
+
+def _con_criticidad(inscripciones):
+    """Adjunta a cada inscripción la peor criticidad entre sus fuentes (F3 por fuente)."""
+    orden = {'rojo': 3, 'amarillo': 2, 'verde': 1, '': 0}
+    for i in inscripciones:
+        peor = ''
+        for f in i.fuentes.all():
+            seg = getattr(f, 'seguridad', None)
+            if seg and orden.get(seg.criticidad, 0) > orden.get(peor, 0):
+                peor = seg.criticidad
+        i.crit_peor = peor
+    return inscripciones
+
+
+def _export_filas(request):
+    """Encabezado y filas del export de fichas (compartido por CSV y Excel).
+
+    Cubre TODAS las preguntas y subpreguntas del instrumento: identificación,
+    F1 (incluidos los 'otro, ¿cuál?' y el diccionario), F2 (incluidos vínculo
+    entre unidades y variables/llaves de cada fuente requerida) y F3 (bloque
+    OCHA completo con sus '¿por qué?' y niveles de clasificación aplica_*).
+    """
+    header = [
+        'UUID', 'Estado', 'Ficha inicial', 'Último paso', 'Creado', 'Actualizado',
+        'Organismo', 'Suborganismo', 'Equipo', 'Responsable', 'Correo', 'Teléfono',
+        # F1 · información general
+        'F1 ID', 'F1 Fuente', 'F1 Descripción',
+        'F1 Relaciones', 'F1 Relación (otra)',
+        'F1 Instrumentos', 'F1 Instrumento (otro)',
+        'F1 Mecanismos', 'F1 Mecanismo (otro)',
+        'F1 Fecha inicio', 'F1 Última actualización',
+        'F1 Periodicidades', 'F1 Periodicidad (otra)',
+        'F1 Desagregaciones', 'F1 Desagregación (otra)',
+        'F1 Registros', 'F1 Registros (fecha)',
+        'F1 Tiene diccionario', 'F1 Diccionario (ubicación)', 'F1 Diccionario (URL descarga)',
+        'F1 Rol', 'F1 Fuentes de origen',
+        # F1 · propósito y estructura
+        'F1 Decisiones que apoya',
+        'F1 Unidades de análisis', 'F1 Unidad análisis (otra)',
+        'F1 Variables (nombre:tipo:descripción:identificador)',
+        # F1 · calidad y cobertura
+        'F1 Georreferenciación', 'F1 Niveles georreferenciación', 'F1 Nivel georref (otro)',
+        'F1 Problemas de calidad', 'F1 Problema calidad (otro)',
+        'F1 Validación', 'F1 Validación (descripción)',
+        # F2 · reto de análisis
+        'F2 Reto', 'F2 Análisis propuesto', 'F2 Resultado esperado', 'F2 Decisión que apoya',
+        'F2 Unidad principal', 'F2 Unidad principal (otra)',
+        'F2 Unidades a relacionar', 'F2 Unidad relacionar (otra)', 'F2 Vínculo entre unidades',
+        'F2 Desagregaciones', 'F2 Desagregación (otra)',
+        'F2 Fuente requerida 1', 'F2 Req1 organismo custodio',
+        'F2 Req1 variables necesarias (1.8)', 'F2 Req1 llave o relación (1.9)',
+        'F2 Fuente requerida 2', 'F2 Req2 organismo custodio',
+        'F2 Req2 variables necesarias (1.8)', 'F2 Req2 llave o relación (1.9)',
+        'F2 Fuente requerida 3', 'F2 Req3 organismo custodio',
+        'F2 Req3 variables necesarias (1.8)', 'F2 Req3 llave o relación (1.9)',
+        'F2 Tratamientos', 'F2 Tratamiento (otro)',
+        'F2 Resultado MVP', 'F2 Resultado MVP (otro)',
+        'F2 Capacidades SIPDI', 'F2 Capacidad SIPDI (otra)',
+        'F2 Variables a enriquecer', 'F2 Variables a enriquecer (otros)',
+        'F2 Quién usará el resultado',
+        'F2 Enfoques diferenciales', 'F2 Enfoque diferencial (otro)',
+        # F3 · datos personales y acceso
+        'F3 Datos personales',
+        'F3 Variables identificadoras', 'F3 Variable identificadora (otra)',
+        'F3 Datos sensibles', 'F3 Dato sensible (otro)',
+        'F3 Base legítima', 'F3 Base legítima (por qué)',
+        # F3 · uso y protección (OCHA)
+        'F3 Proveedor base legítima', 'F3 Proveedor base legítima (por qué)',
+        'F3 Finalidad específica', 'F3 Finalidad específica (por qué)',
+        'F3 Datos necesarios', 'F3 Datos necesarios (por qué)',
+        'F3 Conservación limitada', 'F3 Conservación limitada (por qué)',
+        'F3 Salvaguardas', 'F3 Salvaguardas (por qué)',
+        'F3 Transparencia', 'F3 Transparencia (por qué)',
+        # F3 · divulgación y protección
+        'F3 Riesgos publicación', 'F3 Riesgos publicación (por qué)',
+        'F3 Terceros estándares', 'F3 Terceros estándares (por qué)',
+        'F3 Riesgo de daño', 'F3 Riesgo de daño (por qué)',
+        'F3 Medidas de protección', 'F3 Medida protección (otra)',
+        # F3 · valoración del activo
+        'F3 Susceptible a fraude', 'F3 Custodio',
+        'F3 Confidencialidad', 'F3 Integridad', 'F3 Disponibilidad', 'F3 Criticidad',
+        'F3 Aplica pública', 'F3 Aplica semiprivada', 'F3 Aplica privada',
+        'F3 Aplica sensible', 'F3 Aplica reservada',
+    ]
+
+    def m2m(obj, campo):
+        return '; '.join(o.etiqueta for o in getattr(obj, campo).all()) if obj else ''
+
+    def disp(obj, campo):
+        return getattr(obj, f'get_{campo}_display')() if obj and getattr(obj, campo) else ''
+
+    def txt(obj, campo):
+        return getattr(obj, campo) if obj else ''
+
+    filas = []
+    inscripciones = (Inscripcion.objects
+                     .select_related('organismo', 'suborganismo', 'reto',
+                                     'reto__unidad_principal')
+                     .prefetch_related(
+                         'fuentes', 'fuentes__variables', 'fuentes__fuentes_origen',
+                         'fuentes__relaciones', 'fuentes__instrumentos',
+                         'fuentes__mecanismos', 'fuentes__periodicidades',
+                         'fuentes__desagregaciones', 'fuentes__unidades_analisis',
+                         'fuentes__niveles_georref', 'fuentes__problemas_calidad',
+                         'fuentes__seguridad',
+                         'fuentes__seguridad__variables_identificadoras',
+                         'fuentes__seguridad__datos_sensibles',
+                         'fuentes__seguridad__medidas_proteccion',
+                         'reto__fuentes_requeridas', 'reto__unidades_relacionar',
+                         'reto__desagregaciones', 'reto__tratamientos',
+                         'reto__resultados_mvp', 'reto__capacidades_sipdi',
+                         'reto__enfoques_diferenciales'))
+    for i in inscripciones:
+        fuentes_i = list(i.fuentes.all())
+        r = getattr(i, 'reto', None)
+        # Una fila por fuente para conservar la asociación fuente↔atributos;
+        # inscripciones sin fuentes (ficha F2) exportan una fila con F1 vacío
+        for f in fuentes_i or [None]:
+            s = getattr(f, 'seguridad', None) if f else None
+            f_orig = '; '.join(
+                f'{o.nombre} ({o.organismo_productor})' for o in f.fuentes_origen.all()) if f else ''
+            f_vars = '; '.join(
+                f'{v.nombre}:{v.get_tipo_display()}:{v.descripcion or ""}'
+                f'{" [ID]" if v.es_identificador else ""}'
+                for v in f.variables.all()) if f else ''
+            f_regs = ''
+            if f:
+                f_regs = (str(f.num_registros) if f.num_registros is not None
+                          else ('No se conoce' if f.num_registros_desconocido else ''))
+            # Fuentes requeridas (1.7-1.9): hasta 3, en columnas fijas
+            reqs = list(r.fuentes_requeridas.all())[:3] if r else []
+            f_req = [campo for q in reqs
+                     for campo in (q.nombre, q.organismo, q.variables, q.llave_relacion)]
+            f_req += [''] * (12 - len(f_req))
+            filas.append([
+                str(i.uuid), i.get_estado_display(), i.get_ficha_inicial_display(),
+                i.paso_actual,
+                i.creado.strftime('%Y-%m-%d %H:%M'), i.actualizado.strftime('%Y-%m-%d %H:%M'),
+                i.organismo.nombre if i.organismo else '',
+                i.suborganismo.nombre if i.suborganismo else '', i.equipo_responsable,
+                i.nombre_completo, i.correo, i.telefono,
+                # F1 · información general
+                f.pk if f else '',
+                txt(f, 'nombre'), txt(f, 'descripcion'),
+                m2m(f, 'relaciones'), txt(f, 'relacion_otra'),
+                m2m(f, 'instrumentos'), txt(f, 'instrumento_otro'),
+                m2m(f, 'mecanismos'), txt(f, 'mecanismo_otro'),
+                str(f.fecha_inicio) if f and f.fecha_inicio else '',
+                str(f.fecha_actualizacion) if f and f.fecha_actualizacion else '',
+                m2m(f, 'periodicidades'), txt(f, 'periodicidad_otra'),
+                m2m(f, 'desagregaciones'), txt(f, 'desagregacion_otra'),
+                f_regs,
+                str(f.num_registros_fecha) if f and f.num_registros_fecha else '',
+                disp(f, 'tiene_diccionario'), txt(f, 'diccionario_ubicacion'),
+                (request.build_absolute_uri(f.archivo_diccionario.url)
+                 if f and f.archivo_diccionario else ''),
+                disp(f, 'rol'), f_orig,
+                # F1 · propósito y estructura
+                txt(f, 'decisiones_apoya'),
+                m2m(f, 'unidades_analisis'), txt(f, 'unidad_analisis_otra'),
+                f_vars,
+                # F1 · calidad y cobertura
+                disp(f, 'georreferenciacion'),
+                m2m(f, 'niveles_georref'), txt(f, 'nivel_georref_otro'),
+                m2m(f, 'problemas_calidad'), txt(f, 'problema_calidad_otro'),
+                disp(f, 'tiene_validacion'), txt(f, 'validacion_descripcion'),
+                # F2 · reto de análisis
+                txt(r, 'nombre'), txt(r, 'analisis_propuesto'),
+                txt(r, 'resultado_esperado'), txt(r, 'decision_apoya'),
+                r.unidad_principal.etiqueta if r and r.unidad_principal else '',
+                txt(r, 'unidad_principal_otra'),
+                m2m(r, 'unidades_relacionar'), txt(r, 'unidades_relacionar_otra'),
+                txt(r, 'vinculo_unidades'),
+                m2m(r, 'desagregaciones'), txt(r, 'desagregacion_otra'),
+                *f_req,
+                m2m(r, 'tratamientos'), txt(r, 'tratamiento_otro'),
+                m2m(r, 'resultados_mvp'), txt(r, 'resultado_mvp_otro'),
+                m2m(r, 'capacidades_sipdi'), txt(r, 'capacidad_sipdi_otra'),
+                txt(r, 'variables_enriquecer'), txt(r, 'variables_enriquecer_otro'),
+                txt(r, 'usuario_resultado'),
+                m2m(r, 'enfoques_diferenciales'), txt(r, 'enfoque_diferencial_otro'),
+                # F3 · datos personales y acceso
+                disp(s, 'contiene_datos_personales'),
+                m2m(s, 'variables_identificadoras'), txt(s, 'variable_identificadora_otra'),
+                m2m(s, 'datos_sensibles'), txt(s, 'dato_sensible_otro'),
+                disp(s, 'base_legitima'), txt(s, 'base_legitima_porque'),
+                # F3 · uso y protección (OCHA)
+                disp(s, 'proveedor_base_legitima'), txt(s, 'proveedor_base_legitima_porque'),
+                disp(s, 'finalidad_especifica'), txt(s, 'finalidad_especifica_porque'),
+                disp(s, 'datos_necesarios'), txt(s, 'datos_necesarios_porque'),
+                disp(s, 'conservacion_limitada'), txt(s, 'conservacion_limitada_porque'),
+                disp(s, 'salvaguardas'), txt(s, 'salvaguardas_porque'),
+                disp(s, 'transparencia'), txt(s, 'transparencia_porque'),
+                # F3 · divulgación y protección
+                disp(s, 'riesgos_publicacion'), txt(s, 'riesgos_publicacion_porque'),
+                disp(s, 'terceros_estandares'), txt(s, 'terceros_estandares_porque'),
+                disp(s, 'riesgo_dano'), txt(s, 'riesgo_dano_porque'),
+                m2m(s, 'medidas_proteccion'), txt(s, 'medida_proteccion_otra'),
+                # F3 · valoración del activo
+                disp(s, 'susceptible_fraude'), txt(s, 'organismo_custodio'),
+                disp(s, 'confidencialidad'), disp(s, 'integridad'),
+                disp(s, 'disponibilidad'), disp(s, 'criticidad'),
+                disp(s, 'aplica_publica'), disp(s, 'aplica_semiprivada'),
+                disp(s, 'aplica_privada'), disp(s, 'aplica_sensible'),
+                disp(s, 'aplica_reservada'),
+            ])
+    return header, filas
+
+
+def _export_variables_filas():
+    """Tabla normalizada de variables F1: una fila por variable
+    de cada fuente, con el contexto de inscripción y fuente.
+    Compartida por el CSV dedicado y la hoja 'Variables F1' del
+    Excel."""
+    header = [
+        'UUID inscripción', 'Organismo', 'Suborganismo', 'Responsable',
+        'F1 ID', 'F1 Fuente',
+        'Variable', 'Tipo de dato', 'Descripción', 'Es identificador único',
+    ]
+    variables = (VariableFuente.objects
+                 .select_related('fuente__inscripcion__organismo',
+                                 'fuente__inscripcion__suborganismo')
+                 .order_by('fuente__inscripcion__organismo__nombre',
+                           'fuente__nombre', 'pk'))
+    filas = [[
+        str(v.fuente.inscripcion.uuid),
+        v.fuente.inscripcion.organismo.nombre if v.fuente.inscripcion.organismo else '',
+        v.fuente.inscripcion.suborganismo.nombre if v.fuente.inscripcion.suborganismo else '',
+        v.fuente.inscripcion.nombre_completo,
+        v.fuente_id,
+        v.fuente.nombre,
+        v.nombre,
+        v.get_tipo_display(),
+        v.descripcion,
+        'Sí' if v.es_identificador else 'No',
+    ] for v in variables]
+    return header, filas
+
+
+@delegado_required
+def dashboard_export(request):
+    import csv
+    from django.http import HttpResponse
+
+    header, filas = _export_filas(request)
+    respuesta = HttpResponse(content_type='text/csv; charset=utf-8')
+    respuesta['Content-Disposition'] = 'attachment; filename="fichas_taller.csv"'
+    respuesta.write('\ufeff')  # BOM para Excel
+    writer = csv.writer(respuesta)
+    writer.writerow(header)
+    writer.writerows(filas)
+    return respuesta
+
+
+@delegado_required
+def dashboard_export_excel(request):
+    """Mismo export de fichas en formato Excel (.xlsx)."""
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    header, filas = _export_filas(request)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Fichas'
+    ws.append(header)
+    for celda in ws[1]:
+        celda.font = Font(bold=True, color='FFFFFF', size=10)
+        celda.fill = PatternFill('solid', fgColor='004B87')
+    for fila in filas:
+        ws.append(fila)
+    # Ancho de columnas según contenido (tope 50)
+    for idx, col in enumerate(ws.columns, 1):
+        ancho = max((len(str(c.value)) for c in col if c.value is not None), default=8)
+        ws.column_dimensions[get_column_letter(idx)].width = min(ancho + 2, 50)
+    ws.freeze_panes = 'A2'
+
+    # Hoja 2: variables F1 normalizadas (una fila por variable)
+    header_v, filas_v = _export_variables_filas()
+    ws_v = wb.create_sheet('Variables F1')
+    ws_v.append(header_v)
+    for celda in ws_v[1]:
+        celda.font = Font(bold=True, color='FFFFFF', size=10)
+        celda.fill = PatternFill('solid', fgColor='004B87')
+    for fila in filas_v:
+        ws_v.append(fila)
+    for idx, col in enumerate(ws_v.columns, 1):
+        ancho = max((len(str(c.value)) for c in col if c.value is not None), default=8)
+        ws_v.column_dimensions[get_column_letter(idx)].width = min(ancho + 2, 50)
+    ws_v.freeze_panes = 'A2'
+
+    respuesta = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    respuesta['Content-Disposition'] = 'attachment; filename="fichas_taller.xlsx"'
+    wb.save(respuesta)
+    return respuesta
+
+
+@delegado_required
+def dashboard_export_variables(request):
+    """CSV dedicado de variables F1: una fila por variable."""
+    import csv
+    from django.http import HttpResponse
+
+    header, filas = _export_variables_filas()
+    respuesta = HttpResponse(content_type='text/csv; charset=utf-8')
+    respuesta['Content-Disposition'] = 'attachment; filename="variables_fuentes_f1.csv"'
+    respuesta.write('\ufeff')  # BOM para Excel
+    writer = csv.writer(respuesta)
+    writer.writerow(header)
+    writer.writerows(filas)
+    return respuesta
+
+
+@delegado_required
+def dashboard_informe(request):
+    """Genera el informe de usuarios como archivo Excel descargable."""
+    from django.http import HttpResponse
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+    from . import wizard_taller as wz
+
+    inscripciones = (Inscripcion.objects
+                     .select_related('organismo', 'suborganismo', 'user')
+                     .order_by('pk'))
+
+    def ultimo_paso(i):
+        paso = i.paso_actual
+        if not paso:
+            return '—'
+        p = wz.PASOS_POR_SLUG.get(paso)
+        return p.titulo if p else paso
+
+    def falta(i):
+        if i.estado == Inscripcion.Estado.COMPLETADA:
+            return 'Completo'
+        paso = i.paso_actual
+        if not paso or paso == 'identificacion':
+            return 'F1, F2, F3' if i.ficha_inicial == 'f1' else 'F2, F3'
+        p = wz.PASOS_POR_SLUG.get(paso)
+        if not p:
+            return '—'
+        if p.fase == 'f1':
+            return 'F2, F3'
+        if p.fase == 'f2':
+            return 'F3'
+        if p.fase == 'f3':
+            return 'Confirmar'
+        return '—'
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'Usuarios'
+
+    # Estilos
+    titulo_font = Font(bold=True, size=14, color='004b87')
+    header_font = Font(bold=True, size=10, color='ffffff')
+    header_fill = PatternFill(start_color='004b87', end_color='004b87', fill_type='solid')
+    header_align = Alignment(horizontal='center', vertical='center')
+    thin_border = Border(
+        left=Side(style='thin', color='cccccc'),
+        right=Side(style='thin', color='cccccc'),
+        top=Side(style='thin', color='cccccc'),
+        bottom=Side(style='thin', color='cccccc'),
+    )
+    completo_fill = PatternFill(start_color='c6efce', end_color='c6efce', fill_type='solid')
+    pendiente_fill = PatternFill(start_color='ffeb9c', end_color='ffeb9c', fill_type='solid')
+    resumen_font = Font(bold=True, size=11)
+
+    # Título
+    ws.merge_cells('A1:K1')
+    ws['A1'] = 'INFORME DE USUARIOS — Taller Gestión de Datos Institucionales'
+    ws['A1'].font = titulo_font
+    ws['A2'] = 'Contraseña genérica para todos: TallerCali2026*'
+    ws['A2'].font = Font(italic=True, color='666666')
+
+    # Encabezados
+    headers = ['pk', 'Nombre', 'Correo', 'Organismo', 'Suborganismo',
+               'Equipo', 'Usuario', 'Contraseña', 'Ficha', 'Último paso', 'Falta']
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_align
+        cell.border = thin_border
+
+    # Datos
+    for row, i in enumerate(inscripciones, 5):
+        falta_val = falta(i)
+        valores = [
+            i.pk,
+            i.nombre_completo,
+            i.correo,
+            i.organismo.nombre if i.organismo else '',
+            i.suborganismo.nombre if i.suborganismo else '',
+            i.equipo_responsable,
+            i.user.username if i.user else '',
+            'TallerCali2026*',
+            i.ficha_inicial.upper(),
+            ultimo_paso(i),
+            falta_val,
+        ]
+        for col, v in enumerate(valores, 1):
+            cell = ws.cell(row=row, column=col, value=v)
+            cell.border = thin_border
+            if col == 11:  # Columna Falta
+                if falta_val == 'Completo':
+                    cell.fill = completo_fill
+                elif falta_val != '—':
+                    cell.fill = pendiente_fill
+
+    # Resumen
+    total = inscripciones.count()
+    completadas = inscripciones.filter(estado=Inscripcion.Estado.COMPLETADA).count()
+    resumen_row = len(list(inscripciones)) + 6
+    ws.cell(row=resumen_row, column=1, value='RESUMEN').font = resumen_font
+    resumen = [
+        ('Total inscripciones', total),
+        ('Completadas', completadas),
+        ('En progreso', total - completadas),
+        ('Iniciaron en F1', inscripciones.filter(ficha_inicial='f1').count()),
+        ('Iniciaron en F2', inscripciones.filter(ficha_inicial='f2').count()),
+        ('Con F1', inscripciones.filter(fuentes__isnull=False).distinct().count()),
+        ('Con F2', inscripciones.filter(reto__isnull=False).distinct().count()),
+        ('Con F3', inscripciones.filter(fuentes__seguridad__isnull=False).distinct().count()),
+    ]
+    for idx, (label, val) in enumerate(resumen, 1):
+        ws.cell(row=resumen_row + idx, column=1, value=label)
+        ws.cell(row=resumen_row + idx, column=2, value=val).font = Font(bold=True)
+
+    # Ajustar anchos de columna
+    anchos = [6, 32, 38, 42, 28, 22, 38, 16, 8, 28, 15]
+    for col, ancho in enumerate(anchos, 1):
+        ws.column_dimensions[get_column_letter(col)].width = ancho
+
+    # Freeze panes
+    ws.freeze_panes = 'A5'
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="informe_usuarios.xlsx"'
+    wb.save(response)
+    return response
+
+
+@delegado_required
+@xframe_options_sameorigin
+def ecosistema(request):
+    return render(request, 'taller/ecosistema.html')
+
+
+def ecosistema_metodologia(request):
+    return render(request, 'taller/ecosistema_metodologia.html')
+
+
+@delegado_required
+@xframe_options_sameorigin
+def modelo_datos(request):
+    """Diagrama ER interactivo: serializa el esquema de taller (+ auth.User) a JSON."""
+    import json
+    from django.apps import apps
+    from django.contrib.auth import get_user_model
+    from django.db import models as dm
+
+    from .models_taller import OpcionTaller, FuenteRequerida
+    from .models_catalogo import BaseCatalogo, CampoCatalogo, FuenteOrigen
+    modelos = [
+        Organismo, Suborganismo,
+        OpcionTaller, Inscripcion, FuenteDatos, FuenteOrigen,
+        VariableFuente, RetoAnalisis, FuenteRequerida,
+        EvaluacionSeguridad, BaseCatalogo, CampoCatalogo,
+        get_user_model(),
+    ]
+    nodos, aristas = [], []
+    for m in modelos:
+        meta = m._meta
+        campos = []
+        for f in meta.get_fields():
+            if f.auto_created and not f.concrete:
+                continue  # reversos
+            if isinstance(f, dm.ManyToManyField):
+                campos.append({'n': f.name, 't': 'M2M', 'rel': f.related_model._meta.label})
+                aristas.append({'de': meta.label, 'a': f.related_model._meta.label,
+                                'tipo': 'm2m', 'campo': f.name,
+                                'inv': getattr(f.remote_field, 'related_name', '') or ''})
+            elif f.is_relation and f.concrete:
+                tipo = 'o2o' if isinstance(f, dm.OneToOneField) else 'fk'
+                marca = '1:1' if tipo == 'o2o' else 'N:1'
+                campos.append({'n': f.name, 't': marca, 'rel': f.related_model._meta.label})
+                aristas.append({'de': meta.label, 'a': f.related_model._meta.label,
+                                'tipo': tipo, 'campo': f.name,
+                                'inv': getattr(f.remote_field, 'related_name', '') or ''})
+            else:
+                marca = 'PK' if f.primary_key else f.get_internal_type()
+                campos.append({'n': f.name, 't': marca, 'rel': ''})
+        nodos.append({'id': meta.label, 'nombre': meta.object_name,
+                      'tabla': meta.db_table, 'doc': (m.__doc__ or '').strip(),
+                      'campos': campos})
+    return render(request, 'taller/modelo_datos.html', {
+        'modelo_json': json.dumps({'nodos': nodos, 'aristas': aristas}),
     })

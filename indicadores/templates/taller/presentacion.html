@@ -1,0 +1,744 @@
+{% extends 'taller/base.html' %}
+{% load static %}
+
+{% block title %}Presentación · Análisis F1-F2-F3{% endblock %}
+
+{% block extra_css %}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===== Deck overlay ===== */
+.deck {
+    position: fixed; inset: 0; z-index: 200;
+    background: linear-gradient(135deg, #00243f 0%, #004b87 55%, #007bb5 100%);
+    font-family: 'Montserrat', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+}
+.slide {
+    display: none; width: 100%; height: 100%;
+    padding: 56px 64px 70px; overflow: hidden;
+    animation: fadeIn .35s ease;
+}
+.slide.activa { display: flex; flex-direction: column; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ===== Tipografía de slide ===== */
+.kicker {
+    font-size: 12px; font-weight: 800; letter-spacing: 2.5px;
+    text-transform: uppercase; color: #7cc4f0; margin-bottom: 10px;
+}
+.kicker.f1 { color: #f5a86b; } .kicker.f2 { color: #6fce8f; } .kicker.f3 { color: #ef92c4; }
+.slide h2 {
+    color: #fff; font-size: 34px; font-weight: 900; line-height: 1.15;
+    margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px;
+}
+.slide .sub { color: #b8d9f0; font-size: 15px; font-weight: 600; margin-bottom: 22px; max-width: 1100px; }
+.slide-body { flex: 1; min-height: 0; display: flex; gap: 22px; }
+
+/* ===== Tarjetas y KPIs ===== */
+.card {
+    background: rgba(255,255,255,.97); border-radius: 14px;
+    padding: 20px 22px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+.card h4 {
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1px; color: #004b87; margin-bottom: 12px;
+}
+.kpis { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.kpi {
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
+    border-radius: 12px; padding: 14px 20px; min-width: 130px; backdrop-filter: blur(4px);
+}
+.kpi .n { font-size: 34px; font-weight: 900; color: #fff; line-height: 1; }
+.kpi .l { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #b8d9f0; margin-top: 6px; letter-spacing: .5px; }
+.kpi.warn .n { color: #ffd166; } .kpi.bad .n { color: #ff8fa3; } .kpi.ok .n { color: #6fce8f; }
+
+/* ===== Barras ===== */
+.bars { display: flex; flex-direction: column; gap: 9px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-row .nm { width: 210px; font-size: 11.5px; font-weight: 700; color: #2d3748; text-align: right; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-row .tr { flex: 1; height: 16px; background: #e8eef4; border-radius: 8px; overflow: hidden; }
+.bar-row .fl { height: 100%; border-radius: 8px; background: linear-gradient(90deg,#007bb5,#004b87); }
+.bar-row .vl { width: 74px; font-size: 11.5px; font-weight: 900; color: #004b87; }
+
+/* ===== Matriz habeas (barras apiladas) ===== */
+.hb-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.hb-row .nm { width: 230px; font-size: 11px; font-weight: 700; color: #2d3748; text-align: right; flex-shrink: 0; }
+.hb-row .tr { flex: 1; height: 20px; display: flex; border-radius: 6px; overflow: hidden; background: #e8eef4; }
+.hb-seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 800; color: #fff; min-width: 0; }
+.hb-si { background: #38a169; } .hb-ns { background: #d69e2e; } .hb-no { background: #e53e3e; } .hb-na { background: #a0aec0; }
+.hb-leyenda { display: flex; gap: 16px; font-size: 10.5px; font-weight: 700; color: #4a5568; margin-top: 10px; }
+.hb-leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; }
+
+/* ===== Heatmap CIA ===== */
+.cia { border-collapse: collapse; width: 100%; font-size: 12px; }
+.cia th { background: #004b87; color: #fff; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; text-align: left; }
+.cia td { padding: 7px 10px; border-bottom: 1px solid #e8eef4; font-weight: 700; color: #2d3748; }
+.cia .fuente { font-weight: 800; color: #004b87; }
+.dot { display: inline-block; padding: 3px 12px; border-radius: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.dot.r { background: #fff5f5; color: #e53e3e; border: 1px solid #feb2b2; }
+.dot.a { background: #fffbea; color: #b7791f; border: 1px solid #f6e05e; }
+.dot.v { background: #ebfaeb; color: #1a7a3d; border: 1px solid #c2f0c2; }
+
+/* ===== Escalera de madurez ===== */
+.ladder { display: flex; align-items: flex-end; gap: 10px; height: 100%; }
+.step {
+    flex: 1; border-radius: 12px 12px 0 0; padding: 14px 12px;
+    display: flex; flex-direction: column; justify-content: flex-start; gap: 6px;
+    color: #fff; position: relative;
+}
+.step .sn { font-size: 26px; font-weight: 900; }
+.step .sl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; line-height: 1.3; }
+.step .sp { font-size: 10px; font-weight: 600; opacity: .85; }
+
+/* ===== Franjas ===== */
+.franjas { display: flex; gap: 16px; flex: 1; }
+.franja {
+    flex: 1; border-radius: 14px; padding: 20px; color: #fff;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.franja.f1 { background: linear-gradient(160deg,#1a7a3d,#2f9e57); }
+.franja.f2 { background: linear-gradient(160deg,#b7791f,#d69e2e); }
+.franja.f3 { background: linear-gradient(160deg,#c05621,#dd6b20); }
+.franja .ft { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px; }
+.franja .fn { font-size: 40px; font-weight: 900; line-height: 1; }
+.franja .fd { font-size: 11.5px; font-weight: 600; line-height: 1.5; opacity: .95; }
+.franja .fc { font-size: 10.5px; font-weight: 700; background: rgba(255,255,255,.18); border-radius: 8px; padding: 8px 10px; }
+
+/* ===== Nubes ===== */
+.nube-wrap { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.nube-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 10px 24px rgba(0,0,0,.3)); border-radius: 12px; background: #fff; }
+.nubes-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; min-height: 0; }
+.nubes-grid .ng { background: #fff; border-radius: 12px; padding: 6px; display: flex; align-items: center; justify-content: center; min-height: 0; box-shadow: 0 8px 20px rgba(0,0,0,.25); }
+.nubes-grid img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* ===== iframe slides ===== */
+.frame-wrap { flex: 1; border-radius: 14px; overflow: hidden; box-shadow: 0 12px 34px rgba(0,0,0,.35); background: #fff; position: relative; min-height: 0; }
+.frame-wrap iframe { width: 100%; height: 100%; border: 0; }
+.frame-tag {
+    position: absolute; bottom: 12px; right: 12px; z-index: 5;
+    background: rgba(0,75,135,.92); color: #fff; font-size: 10.5px; font-weight: 700;
+    padding: 6px 14px; border-radius: 14px; text-decoration: none;
+}
+
+/* ===== Listas de hallazgos ===== */
+.findings { display: flex; flex-direction: column; gap: 12px; }
+.finding {
+    background: rgba(255,255,255,.97); border-radius: 12px; padding: 14px 18px;
+    border-left: 6px solid #007bb5; font-size: 13px; font-weight: 600; color: #2d3748; line-height: 1.5;
+}
+.finding b { color: #004b87; }
+.finding.bad { border-left-color: #e53e3e; } .finding.warn { border-left-color: #d69e2e; } .finding.ok { border-left-color: #38a169; }
+
+/* ===== Regla SIPDI ===== */
+.regla { display: flex; gap: 12px; flex: 1; align-items: stretch; }
+.regla .paso {
+    flex: 1; background: rgba(255,255,255,.97); border-radius: 14px; padding: 18px 14px;
+    display: flex; flex-direction: column; gap: 8px; text-align: center; justify-content: center;
+}
+.regla .paso .pn {
+    width: 44px; height: 44px; border-radius: 50%; margin: 0 auto;
+    background: #004b87; color: #fff; font-size: 20px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+}
+.regla .paso .pt { font-size: 11.5px; font-weight: 800; color: #004b87; text-transform: uppercase; line-height: 1.35; }
+.regla .paso .pd { font-size: 10.5px; font-weight: 600; color: #4a5568; line-height: 1.45; }
+
+/* ===== Navegación ===== */
+.nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 22px; background: rgba(0,20,40,.55); backdrop-filter: blur(8px);
+}
+.nav .prog { flex: 1; height: 5px; background: rgba(255,255,255,.2); border-radius: 3px; margin: 0 20px; overflow: hidden; }
+.nav .prog .pfl { height: 100%; background: #6fce8f; border-radius: 3px; transition: width .3s; }
+.nav button, .nav a.salir {
+    background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3);
+    font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 800;
+    padding: 9px 20px; border-radius: 18px; cursor: pointer; text-decoration: none;
+    text-transform: uppercase; letter-spacing: .5px; transition: background .2s;
+}
+.nav button:hover, .nav a.salir:hover { background: rgba(255,255,255,.28); }
+.nav .contador { color: #b8d9f0; font-size: 12px; font-weight: 800; min-width: 70px; text-align: center; }
+.nav .dots { display: flex; gap: 5px; margin-left: 14px; }
+.nav .dot-nav { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; border: 0; padding: 0; }
+.nav .dot-nav.on { background: #6fce8f; transform: scale(1.3); }
+.hint { position: fixed; top: 14px; right: 20px; z-index: 300; color: rgba(255,255,255,.55); font-size: 11px; font-weight: 600; }
+
+/* ===== Portada ===== */
+.portada { align-items: center; justify-content: center; text-align: center; }
+.portada h1 { color: #fff; font-size: 52px; font-weight: 900; line-height: 1.1; text-transform: uppercase; max-width: 1000px; }
+.portada .p-sub { color: #b8d9f0; font-size: 17px; font-weight: 600; margin: 18px 0 30px; max-width: 800px; }
+.portada .p-chips { display: flex; gap: 12px; justify-content: center; }
+.p-chip { padding: 10px 26px; border-radius: 20px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+.p-chip.f1 { background: #f5a86b; color: #5a2d00; } .p-chip.f2 { background: #6fce8f; color: #0d4d24; } .p-chip.f3 { background: #ef92c4; color: #6d1d49; }
+.portada .p-meta { color: rgba(255,255,255,.6); font-size: 12px; font-weight: 600; margin-top: 34px; }
+
+/* ===== Donut taxonomía ===== */
+.donut-wrap { display: flex; gap: 30px; align-items: center; flex: 1; }
+.donut {
+    width: 300px; height: 300px; border-radius: 50%; flex-shrink: 0;
+    background: conic-gradient(#9f7aea 0deg 20deg, #f687b3 20deg 150deg, #f6e05e 150deg 250deg, #68d391 250deg 360deg);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 12px 30px rgba(0,0,0,.3);
+}
+.donut .hole {
+    width: 170px; height: 170px; border-radius: 50%; background: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.donut .hole .n { font-size: 44px; font-weight: 900; color: #004b87; }
+.donut .hole .t { font-size: 11px; font-weight: 700; color: #4a5568; text-transform: uppercase; }
+.lineas { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.linea {
+    background: rgba(255,255,255,.97); border-radius: 12px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 16px;
+}
+.linea .sw { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+.linea .ln { flex: 1; }
+.linea .ln .lt { font-size: 13px; font-weight: 800; color: #004b87; }
+.linea .ln .ld { font-size: 11px; font-weight: 600; color: #4a5568; margin-top: 2px; }
+.linea .lc { font-size: 30px; font-weight: 900; color: #004b87; }
+
+/* ===== Recursos ===== */
+.recursos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex: 1; align-content: start; }
+.recurso {
+    background: rgba(255,255,255,.97); border-radius: 12px; padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px; text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+}
+.recurso:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,.3); }
+.recurso .ri { font-size: 26px; }
+.recurso .rt { font-size: 13px; font-weight: 800; color: #004b87; }
+.recurso .rd { font-size: 11px; font-weight: 600; color: #4a5568; margin-top: 2px; }
+
+.two-col { display: flex; gap: 22px; flex: 1; min-height: 0; }
+.two-col > * { flex: 1; min-width: 0; }
+.scrollable { overflow-y: auto; }
+.scrollable::-webkit-scrollbar { width: 6px; } .scrollable::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+
+/* ===== Visor PlantUML (pan + zoom) ===== */
+.puml-stage {
+    flex: 1; position: relative; min-height: 0;
+    background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 12px 34px rgba(0,0,0,.35);
+}
+.puml-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; cursor: grab; }
+.puml-canvas:active { cursor: grabbing; }
+.puml-canvas svg { display: block; }
+.puml-ctrl {
+    position: absolute; top: 12px; right: 12px; z-index: 6;
+    display: flex; flex-direction: column; gap: 6px;
+}
+.puml-ctrl button {
+    width: 38px; height: 38px; border: 0; border-radius: 9px;
+    background: #004b87; color: #fff; font-size: 19px; font-weight: 900;
+    cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.3); line-height: 1;
+}
+.puml-ctrl button:hover { background: #007bb5; }
+.puml-hint {
+    position: absolute; bottom: 10px; left: 14px; z-index: 6;
+    font-size: 10.5px; font-weight: 700; color: #64748b;
+    background: rgba(255,255,255,.85); padding: 4px 12px; border-radius: 12px;
+}
+{% endblock %}
+
+{% block content %}
+<div class="deck" id="deck">
+    <div class="hint">← → navegar · Esc salir</div>
+
+    <!-- 1 · PORTADA -->
+    <section class="slide portada">
+        <div>
+            <div class="kicker" style="color:#7cc4f0;">Mesa técnica · Gobierno de datos · Arquitectura de la emergencia</div>
+            <h1>Anatomía de los datos del sismo</h1>
+            <p class="p-sub">Análisis integral del Taller de Gestión de Datos Institucionales — Sismo del 10 de agosto de 2026, Santiago de Cali</p>
+            <div class="p-chips">
+                <span class="p-chip f1">F1 · Caracterización</span>
+                <span class="p-chip f2">F2 · Integración y uso</span>
+                <span class="p-chip f3">F3 · Seguridad y privacidad</span>
+            </div>
+            <p class="p-meta">Alcaldía de Santiago de Cali · DAP · CTGIE · DATIC · MSPI · Septiembre 2026</p>
+        </div>
+    </section>
+
+    <!-- 2 · EL INSTRUMENTO -->
+    <section class="slide">
+        <div class="kicker">El instrumento</div>
+        <h2>{{ inscripciones }} fichas · una secuencia F1 → F2 → F3</h2>
+        <p class="sub">Cada ficha caracteriza una fuente (F1), formula un reto analítico (F2) y evalúa sus riesgos de tratamiento (F3). Cifras en vivo desde la base de datos.</p>
+        <div class="kpis">
+            <div class="kpi"><div class="n">{{ inscripciones }}</div><div class="l">Fichas diligenciadas</div></div>
+            <div class="kpi"><div class="n">{{ n_fuentes }}</div><div class="l">Fuentes F1</div></div>
+            <div class="kpi"><div class="n">{{ retos }}</div><div class="l">Retos de análisis F2</div></div>
+            <div class="kpi warn"><div class="n">{{ n_evals }}</div><div class="l">Evaluaciones F3</div></div>
+            <div class="kpi"><div class="n">{{ organismos }}</div><div class="l">Organismos</div></div>
+            <div class="kpi bad"><div class="n">{{ fuentes_sin_f3 }}</div><div class="l">Fuentes sin F3</div></div>
+        </div>
+        <div class="slide-body">
+            <div class="card" style="flex:1;">
+                <h4>Qué responde cada bloque</h4>
+                <div class="findings">
+                    <div class="finding"><b>F1 — ¿Qué datos existen?</b> Relación con la emergencia, recolección, volumen, rol, propósito, calidad, cobertura geográfica y temporal de cada fuente.</div>
+                    <div class="finding ok"><b>F2 — ¿Qué análisis se quieren hacer?</b> Unidad de análisis, desagregación, tratamientos, resultados esperados, fuentes requeridas y capacidades del SIPDI.</div>
+                    <div class="finding bad"><b>F3 — ¿Bajo qué condiciones puede circular el dato?</b> Datos personales y sensibles, principios habeas data, clasificación, criticidad CIA y medidas de protección.</div>
+                </div>
+            </div>
+            <div class="card" style="flex:1;">
+                <h4>La advertencia metodológica</h4>
+                <div class="findings">
+                    <div class="finding warn"><b>El F3 es autoevaluación del custodio</b>, no auditoría. Los "No sé" se tratan como riesgo no verificable: el custodio desconoce el estado de su propia fuente.</div>
+                    <div class="finding warn"><b>12 fichas llegaron solo por F2</b> — plantearon retos sobre fuentes que nunca fueron caracterizadas ni evaluadas.</div>
+                    <div class="finding"><b>El cruce F1↔F2↔F3 por ficha</b> permite ponderar el riesgo por el uso previsto del dato: no es lo mismo un dato sensible archivado que uno que alimenta 10 análisis.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3 · F1 PANORAMA -->
+    <section class="slide">
+        <div class="kicker f1">F1 · Caracterización</div>
+        <h2>{{ n_fuentes }} fuentes caracterizadas — el ecosistema en cifras</h2>
+        <p class="sub">Las fuentes de mayor volumen concentran la captura operativa de la emergencia; la mayoría vive en Excel y correo.</p>
+        <div class="kpis">
+            <div class="kpi"><div class="n">{{ n_fuentes }}</div><div class="l">Fuentes F1</div></div>
+            <div class="kpi"><div class="n">{{ org_con_fuentes }}</div><div class="l">Organismos productores</div></div>
+            <div class="kpi"><div class="n">{{ n_gold }}</div><div class="l">Tablas en capa Gold</div></div>
+            <div class="kpi warn"><div class="n">{{ n_gold_cat }}</div><div class="l">Catalogadas, no integradas</div></div>
+            <div class="kpi bad"><div class="n">{{ n_gold_int }}</div><div class="l">Integradas al cruce Gold</div></div>
+        </div>
+        <div class="slide-body">
+            <div class="card" style="flex:1.3;">
+                <h4>Fuentes por volumen declarado (registros)</h4>
+                <div class="bars">
+                    {% for f in top_vol %}
+                    <div class="bar-row"><span class="nm">{{ f.nombre|truncatechars:32 }}</span><div class="tr"><div class="fl" style="width:{{ f.pct }}%{% if 'EDE' in f.nombre %};background:#e53e3e{% endif %}"></div></div><span class="vl">{{ f.valor }}</span></div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card" style="flex:1;">
+                <h4>Lectura</h4>
+                <div class="findings">
+                    <div class="finding"><b>RUD es el hub:</b> {{ rud_reg }} registros de damnificados y {{ rud_casos }} retos F2 dependen de su cruce.</div>
+                    <div class="finding bad"><b>EDE es la fuente ausente:</b> la más solicitada por F2 (nivel de daño, {{ ede_reg }} reg) y no está en el catálogo Gold.</div>
+                    <div class="finding warn"><b>Captura manual dominante:</b> la mayoría de fuentes nació en Excel sobre la marcha de la emergencia — sin pipeline, sin llaves formales.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4 · ECOSISTEMA 3D -->
+    <section class="slide">
+        <div class="kicker f1">F1 · Ecosistema</div>
+        <h2>El ecosistema de fuentes en 3D — interactivo</h2>
+        <p class="sub">Organismos, fuentes caracterizadas y su relación con la capa Gold. Arrastre para rotar, rueda para zoom, clic en nodos para detalle.</p>
+        <div class="frame-wrap">
+            <iframe data-src="{% url 'indicadores:taller_ecosistema' %}" title="Ecosistema 3D"></iframe>
+            <a class="frame-tag" href="{% url 'indicadores:taller_ecosistema' %}" target="_blank">Abrir en pestaña completa ↗</a>
+        </div>
+    </section>
+
+    <!-- 5 · MODELO DE DATOS -->
+    <section class="slide">
+        <div class="kicker f1">F1 · Modelo de datos</div>
+        <h2>Modelo conceptual — unidades de observación y fuentes</h2>
+        <p class="sub">Persona, hogar, vivienda, predio, establecimiento y sede: qué fuente registra cada unidad y cómo se relacionan con las tablas Gold.</p>
+        <div class="frame-wrap">
+            <iframe data-src="{% url 'indicadores:taller_modelo_datos' %}" title="Modelo de datos"></iframe>
+            <a class="frame-tag" href="{% url 'indicadores:taller_modelo_datos' %}" target="_blank">Abrir en pestaña completa ↗</a>
+        </div>
+    </section>
+
+    <!-- 6 · MADUREZ -->
+    <section class="slide">
+        <div class="kicker f1">F1 · Madurez</div>
+        <h2>La escalera de madurez: del Excel al SIPDI</h2>
+        <p class="sub">Seis peldaños separan una fuente caracterizada de un dato consumible. El ecosistema se cae en el cuarto.</p>
+        <div class="slide-body">
+            <div class="ladder">
+                <div class="step" style="height:100%;background:#b7791f;"><span class="sn">{{ n_fuentes }}</span><span class="sl">Caracterizada en F1</span><span class="sp">Toda fuente empieza aquí</span></div>
+                <div class="step" style="height:82%;background:#c98a2e;"><span class="sn">{{ n_dicc }}</span><span class="sl">Con diccionario de datos</span><span class="sp">{% widthratio n_dicc n_fuentes 100 %}% documenta sus campos</span></div>
+                <div class="step" style="height:66%;background:#d69e2e;"><span class="sn">{{ n_val }}</span><span class="sl">Con validación declarada</span><span class="sp">{% widthratio n_val n_fuentes 100 %}% afirma controles de calidad</span></div>
+                <div class="step" style="height:46%;background:#b7791f;"><span class="sn">{{ n_gold_cat }}</span><span class="sl">Catalogada en Gold</span><span class="sp">{% widthratio n_gold_cat n_fuentes 100 %}% · dim_rud y dim_predios_afectados</span></div>
+                <div class="step" style="height:30%;background:#c05621;"><span class="sn">{{ n_gold_int }}</span><span class="sl">Integrada al cruce Gold</span><span class="sp">Ninguna conciliación automática</span></div>
+                <div class="step" style="height:18%;background:#9b2c2c;"><span class="sn">0</span><span class="sl">Consumible vía SIPDI</span><span class="sp">Nada expuesto por API aún</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7 · GAPS F1 -->
+    <section class="slide">
+        <div class="kicker f1">F1 · Brechas</div>
+        <h2>Las tres brechas estructurales del ecosistema</h2>
+        <p class="sub">Lo que falta pesa más que lo que sobra: la arquitectura depende de piezas que no existen todavía.</p>
+        <div class="slide-body">
+            <div class="findings" style="flex:1;">
+                <div class="finding bad"><b>Brecha 1 · La fuente más demandada no está catalogada.</b> EDE (Evaluaciones de Daños Especializadas, {{ ede_reg }} reg) es la fuente que más casos F2 requieren — el nivel de daño que activa ayudas económicas — y está ausente de la capa Gold. Bloquea {{ ede_bloquea }}.</div>
+                <div class="finding bad"><b>Brecha 2 · Las llaves de cruce no están formalizadas.</b> Solo dim_rud→fact_personas (numero_documento) y dim_predios_afectados→dim_predio (numero_predial) tienen llave documentada. El resto de cruces se haría por dirección o matrícula — frágil y manual.</div>
+                <div class="finding warn"><b>Brecha 3 · Fuentes que consumen otras fuentes.</b> La red de dependencias muestra fuentes que ya hacen cruces artesanales (atención sismo usa cedulaRufe del RUD): la integración existe, pero es invisible e informal.</div>
+                <div class="finding"><b>La consecuencia:</b> sin catalogación de EDE ni pipelines de conciliación, la mayoría de la cartera F2 no puede ejecutarse — de ahí las franjas de secuenciación (slide 11).</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8 · TAXONOMÍA F2 -->
+    <section class="slide">
+        <div class="kicker f2">F2 · Integración y uso</div>
+        <h2>{{ n_casos_f2 }} retos de análisis en 4 líneas</h2>
+        <p class="sub">Taxonomía de la cartera F2 en vivo desde la BD. Un caso puede tocar varias líneas: {{ n_multilinea }} son multilínea y {{ n_cuatro }} alcanzan las cuatro.</p>
+        <div class="donut-wrap">
+            <div class="donut"><div class="hole"><span class="n">{{ n_casos_f2 }}</span><span class="t">casos F2</span></div></div>
+            <div class="lineas">
+                {% for l in taxonomia %}
+                <div class="linea"><span class="sw" style="background:{% if l.code == 'CPS' %}#9f7aea{% elif l.code == 'ADA' %}#f687b3{% elif l.code == 'FM' %}#f6e05e{% else %}#68d391{% endif %};"></span><div class="ln"><div class="lt">{{ l.code }} — {{ l.label }}</div><div class="ld">{% for e in l.ejemplos %}R{{ e.id }} {{ e.nombre|truncatechars:32 }}{% if not forloop.last %} · {% endif %}{% endfor %}</div></div><span class="lc">{{ l.count }}</span></div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- 9 · NUBE GLOBAL -->
+    <section class="slide">
+        <div class="kicker f2">F2 · Voz de los organismos</div>
+        <h2>Qué piden los retos — nube de términos global</h2>
+        <p class="sub">Frecuencia de términos en los {{ n_casos_f2 }} retos F2 (identificadores técnicos preservados: dim_rud, numero_documento, fact_personas).</p>
+        <div class="nube-wrap"><img src="{% url 'indicadores:taller_nube_svg' 'global' %}" alt="Nube de palabras global F2"></div>
+    </section>
+
+    <!-- 10 · NUBES POR LÍNEA -->
+    <section class="slide">
+        <div class="kicker f2">F2 · Voz de los organismos</div>
+        <h2>Cada línea habla distinto — nubes por línea de análisis</h2>
+        <p class="sub">CPS habla de personas y SISBÉN · ADA de daños y avalúos · FM de focalización y cobertura · RR de ayudas y recuperación.</p>
+        <div class="nubes-grid">
+            <div class="ng"><img src="{% url 'indicadores:taller_nube_svg' 'cps' %}" alt="Nube CPS"></div>
+            <div class="ng"><img src="{% url 'indicadores:taller_nube_svg' 'ada' %}" alt="Nube ADA"></div>
+            <div class="ng"><img src="{% url 'indicadores:taller_nube_svg' 'fm' %}" alt="Nube FM"></div>
+            <div class="ng"><img src="{% url 'indicadores:taller_nube_svg' 'rr' %}" alt="Nube RR"></div>
+        </div>
+    </section>
+
+    <!-- 11 · FRANJAS -->
+    <section class="slide">
+        <div class="kicker f2">F2 · Secuenciación</div>
+        <h2>Tres franjas para ordenar la cartera</h2>
+        <p class="sub">Criterio objetivo de priorización: qué tan listo está el dato, no el orden de llegada ni el tamaño del organismo.</p>
+        <div class="franjas">
+            <div class="franja f1">
+                <div class="ft">Franja 1 · Listos para automatizar</div>
+                <div class="fn">{{ franjas.1.n }} casos</div>
+                <div class="fd">Todas las fuentes requeridas con llave de identidad (documento) y piden enriquecimiento de la capa Gold.</div>
+                <div class="fc">{{ franjas.1.ids }}</div>
+                <div class="fc">0–4 semanas → producto SIPDI</div>
+            </div>
+            <div class="franja f2">
+                <div class="ft">Franja 2 · Cruce documentado</div>
+                <div class="fn">{{ franjas.2.n }} casos</div>
+                <div class="fd">Llave declarada pero espacial/catastral o fuentes F1 propias sin detallar: requiere pipeline o normalización.</div>
+                <div class="fc">dim_rud → fact_personas (cruce por documento)</div>
+                <div class="fc">dim_predios_afectados → dim_predio (cruce por predio)</div>
+                <div class="fc">1–3 meses</div>
+            </div>
+            <div class="franja f3">
+                <div class="ft">Franja 3 · Cerrar brecha de fuente</div>
+                <div class="fn">{{ franjas.3.n }} casos</div>
+                <div class="fd">Sin fuentes requeridas declaradas ni F1 propias, o llave solo declarativa: el insumo no está especificado.</div>
+                <div class="fc">{{ franjas.3.ids }}</div>
+                <div class="fc">2–4 meses · EDE bloquea {{ ede_bloquea }}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 12 · F3 EXPOSICIÓN -->
+    <section class="slide">
+        <div class="kicker f3">F3 · Seguridad y privacidad</div>
+        <h2>Más de la mitad del ecosistema toca datos personales</h2>
+        <p class="sub">{{ n_evals }} fuentes evaluadas. El dato más valioso para focalizar es también el más expuesto.</p>
+        <div class="kpis">
+            <div class="kpi bad"><div class="n">{{ n_dp }}</div><div class="l">Con datos personales</div></div>
+            <div class="kpi bad"><div class="n">{{ n_sens }}</div><div class="l">Con datos sensibles</div></div>
+            <div class="kpi warn"><div class="n">{{ n_fraude }}</div><div class="l">Susceptibles a fraude</div></div>
+            <div class="kpi bad"><div class="n">{{ fuentes_rojas|length }}</div><div class="l">Criticidad roja</div></div>
+        </div>
+        <div class="slide-body">
+            <div class="card" style="flex:1;">
+                <h4>Identificadores directos declarados</h4>
+                <div class="bars">
+                    {% for i in identificadoras %}
+                    <div class="bar-row"><span class="nm">{{ i.label|truncatechars:30 }}</span><div class="tr"><div class="fl" style="width:{{ i.pct }}%;background:{% if forloop.counter <= 3 %}#e53e3e{% else %}#dd6b20{% endif %}"></div></div><span class="vl">{{ i.valor }}</span></div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card" style="flex:1;">
+                <h4>Categorías sensibles reportadas</h4>
+                <div class="findings">
+                    <div class="finding bad"><b>{% for k, v in sensibles %}{{ k }} ({{ v }}){% if not forloop.last %} · {% endif %}{% endfor %}</b> — régimen especial Ley 1581.</div>
+                    <div class="finding warn"><b>{{ n_fraude }} fuentes susceptibles a fraude:</b> en un ecosistema que asigna ayudas y albergues, el riesgo es de integridad de la focalización — damnificados fantasma, duplicación de beneficios.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 13 · HABEAS DATA -->
+    <section class="slide">
+        <div class="kicker f3">F3 · Habeas data</div>
+        <h2>Cumplimiento de los principios — Ley 1581 de 2012</h2>
+        <p class="sub">El "No sé" es tan grave como el "No": el custodio desconoce el estado de cumplimiento de su propia fuente.</p>
+        <div class="slide-body">
+            <div class="card" style="flex:1.4;">
+                <h4>Respuestas por principio ({{ n_evals }} fuentes)</h4>
+                {% for h in habeas %}
+                <div class="hb-row"><span class="nm">{{ h.label }}</span><div class="tr">{% if h.fav %}<div class="hb-seg hb-si" style="width:{{ h.p_fav }}%">{{ h.fav }}</div>{% endif %}{% if h.ns %}<div class="hb-seg hb-ns" style="width:{{ h.p_ns }}%">{{ h.ns }}</div>{% endif %}{% if h.desf %}<div class="hb-seg hb-no" style="width:{{ h.p_desf }}%">{{ h.desf }}</div>{% endif %}{% if h.na %}<div class="hb-seg hb-na" style="width:{{ h.p_na }}%">{{ h.na }}</div>{% endif %}</div></div>
+                {% endfor %}
+                <div class="hb-leyenda"><span><i style="background:#38a169"></i>Sí / sin riesgo</span><span><i style="background:#d69e2e"></i>No sé</span><span><i style="background:#e53e3e"></i>No / con riesgo</span><span><i style="background:#a0aec0"></i>No aplica</span></div>
+            </div>
+            <div class="card" style="flex:1;">
+                <h4>Tres lecturas</h4>
+                <div class="findings">
+                    <div class="finding bad"><b>La conservación es el talón de Aquiles:</b> Waze retiene "para consultas futuras", animales "hasta el reencuentro" sin fecha de corte, colaboradores sin TRD. El ecosistema acumula pasivo de datos sin expiración.</div>
+                    <div class="finding warn"><b>Transparencia, la deuda invisible:</b> solo {{ habeas.5.fav }} fuentes informaron al titular. Los damnificados no saben quién tiene sus datos ni para qué.</div>
+                    <div class="finding"><b>Ewars dijo "No" a base legítima:</b> "no se autorizó compartirla" — bloqueo jurídico, no técnico.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 14 · SEMÁFORO CIA -->
+    <section class="slide">
+        <div class="kicker f3">F3 · Criticidad</div>
+        <h2>Semáforo CIA — las {{ n_rojas }} fuentes rojas</h2>
+        <p class="sub">Confidencialidad · Integridad · Disponibilidad. Ninguna fuente roja está libre de datos personales o sensibles.</p>
+        <div class="slide-body">
+            <div class="card" style="flex:1.5;">
+                <h4>Fuentes de criticidad roja</h4>
+                <table class="cia">
+                    <tr><th>Fuente</th><th>C</th><th>I</th><th>D</th><th>Criticidad</th></tr>
+                    {% for r in fuentes_rojas %}
+                    <tr><td class="fuente">{{ r.fuente__nombre|truncatechars:38 }}</td>
+                        <td><span class="dot {% if r.confidencialidad == 'rojo' %}r{% elif r.confidencialidad == 'amarillo' %}a{% else %}v{% endif %}">{{ r.confidencialidad|capfirst }}</span></td>
+                        <td><span class="dot {% if r.integridad == 'rojo' %}r{% elif r.integridad == 'amarillo' %}a{% else %}v{% endif %}">{{ r.integridad|capfirst }}</span></td>
+                        <td><span class="dot {% if r.disponibilidad == 'rojo' %}r{% elif r.disponibilidad == 'amarillo' %}a{% else %}v{% endif %}">{{ r.disponibilidad|capfirst }}</span></td>
+                        <td><span class="dot r">Rojo</span></td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+            <div class="card" style="flex:1;">
+                <h4>Distribución por dimensión</h4>
+                <div class="bars">
+                    {% for c in cia %}
+                    <div class="bar-row"><span class="nm">{{ c.label }}</span><div class="tr"><div class="fl" style="width:{{ c.p_v }}%;background:#38a169"></div><div class="fl" style="width:{{ c.p_a }}%;background:#d69e2e"></div><div class="fl" style="width:{{ c.p_r }}%;background:#e53e3e"></div></div><span class="vl">{{ c.v }}·{{ c.a }}·{{ c.r }}</span></div>
+                    {% endfor %}
+                </div>
+                <div class="findings" style="margin-top:14px;">
+                    <div class="finding warn"><b>La integridad es la dimensión más deteriorada</b> ({{ cia_int_rojos }} rojos): alterar un registro cambia quién recibe una ayuda.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 15 · CADENA DE PROTECCIÓN -->
+    <section class="slide">
+        <div class="kicker f3">F3 · Protección</div>
+        <h2>La protección es administrativa, no técnica</h2>
+        <p class="sub">El modelo actual protege quién entra al archivo — no el dato en sí. No escala a interoperabilidad.</p>
+        <div class="slide-body">
+            <div class="card" style="flex:1;">
+                <h4>Medidas declaradas hoy</h4>
+                <div class="bars">
+                    {% for m in medidas %}
+                    <div class="bar-row"><span class="nm">{{ m.label|truncatechars:30 }}</span><div class="tr"><div class="fl" style="width:{{ m.pct }}%{% if m.valor <= 2 %};background:#e53e3e{% endif %}"></div></div><span class="vl">{{ m.valor }}</span></div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card" style="flex:1;">
+                <h4>Lo que exige exponer vía SIPDI</h4>
+                <div class="findings">
+                    <div class="finding"><b>API Key + roles + trazabilidad</b> — el acceso restringido de hoy no se traduce sin API Gateway.</div>
+                    <div class="finding bad"><b>Cifrado en tránsito y reposo</b> — solo {{ n_cifrado }} fuentes cifran; al exponer por API el control de acceso del archivo deja de ser la barrera.</div>
+                    <div class="finding bad"><b>Seudonimización de identificadores</b> — solo {{ n_anonim }} fuentes anonimizan; el cruce RUD debe hacerse sobre hash, no sobre la cédula en claro.</div>
+                    <div class="finding warn"><b>Auditoría de accesos</b> — {{ n_logs }} fuentes llevan logs; la clasificación sensible/reservada exige registro obligatorio.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 16 · ARQUITECTURA DATALAKE -->
+    <section class="slide">
+        <div class="kicker f1">F1 → Arquitectura objetivo</div>
+        <h2>El datalake de recuperación alimentado por el inventario F1</h2>
+        <p class="sub">Las {{ n_fuentes }} fuentes caracterizadas ya diligencian la caja "fuentes por identificar" del CDO. La capa de calidad muestra la evidencia F1 que alimenta cada paso.</p>
+        <div class="puml-stage" id="pumlStage">
+            <div class="puml-canvas" id="pumlCanvas">
+                {% include 'taller/svg/f1_datalake.svg' %}
+            </div>
+            <div class="puml-ctrl">
+                <button onclick="pumlZoom(1.3)" title="Acercar">+</button>
+                <button onclick="pumlZoom(0.77)" title="Alejar">−</button>
+                <button onclick="pumlFit()" title="Ajustar a pantalla">⤢</button>
+            </div>
+            <div class="puml-hint">Arrastre para mover · rueda para zoom · ⤢ reajustar</div>
+        </div>
+    </section>
+
+    <!-- 17 · SÍNTESIS / REGLA SIPDI -->
+    <section class="slide">
+        <div class="kicker">Síntesis</div>
+        <h2>La regla de las 5 condiciones para exponer datos</h2>
+        <p class="sub">Propuesta para la mesa: ninguna fuente entra a Gold ni se expone por la API sin cumplir las cinco.</p>
+        <div class="regla">
+            <div class="paso"><div class="pn">1</div><div class="pt">F3 completo</div><div class="pd">Evaluación de seguridad diligenciada — hoy {{ fuentes_sin_f3 }} fuentes no la tienen</div></div>
+            <div class="paso"><div class="pn">2</div><div class="pt">Base legítima documentada</div><div class="pd">Ewars está bloqueada hasta resolverla con Gestión Jurídica</div></div>
+            <div class="paso"><div class="pn">3</div><div class="pt">Clasificación → rol de acceso</div><div class="pd">Pública → abierta agregada · Semiprivada → API Key · Privada → rol + finalidad · Sensible → aprobación + auditoría</div></div>
+            <div class="paso"><div class="pn">4</div><div class="pt">Seudonimización en pipeline</div><div class="pd">Identificadores directos se sustituyen al ingresar — el cruce RUD corre sobre hash</div></div>
+            <div class="paso"><div class="pn">5</div><div class="pt">Fin de conservación declarado</div><div class="pd">Fecha o evento de corte + destino: destrucción o anonimización</div></div>
+        </div>
+        <div class="findings" style="margin-top:16px;">
+            <div class="finding ok"><b>La clasificación ya está declarada en F3</b> (pública {{ clasif.publica }} · semiprivada {{ clasif.semiprivada }} · privada {{ clasif.privada }} · sensible {{ clasif.sensible }} · reservada {{ clasif.reservada }}) — falta convertirla en el esquema de autorización enforceable de la API Gateway.</div>
+        </div>
+    </section>
+
+    <!-- 17 · RECURSOS -->
+    <section class="slide">
+        <div class="kicker">Cierre</div>
+        <h2>Recursos del análisis — todo navegable</h2>
+        <p class="sub">Los productos generados a partir del instrumento, disponibles desde el dashboard.</p>
+        <div class="recursos">
+            <a class="recurso" href="{% url 'indicadores:taller_ecosistema' %}" target="_blank"><span class="ri">🌐</span><div><div class="rt">Ecosistema 3D</div><div class="rd">Grafo interactivo de organismos, fuentes y capa Gold</div></div></a>
+            <a class="recurso" href="{% url 'indicadores:taller_modelo_datos' %}" target="_blank"><span class="ri">🗂</span><div><div class="rt">Modelo de datos</div><div class="rd">Entidades, unidades de observación y relaciones</div></div></a>
+            <a class="recurso" href="{% url 'indicadores:taller_ecosistema_gexf' %}" target="_blank"><span class="ri">⬇</span><div><div class="rt">Mapa de grafos (GEXF)</div><div class="rd">Export para análisis en Gephi</div></div></a>
+            <a class="recurso" href="{% url 'indicadores:taller_ecosistema_svg' %}" target="_blank"><span class="ri">⬇</span><div><div class="rt">Mapa renderizado (SVG)</div><div class="rd">Versión estática del ecosistema</div></div></a>
+            <a class="recurso" href="{% url 'indicadores:taller_dashboard_export_excel' %}" target="_blank"><span class="ri">📊</span><div><div class="rt">Export Excel completo</div><div class="rd">Las {{ inscripciones }} fichas del taller con todos sus campos</div></div></a>
+            <a class="recurso" href="{% url 'indicadores:taller_dashboard_informe' %}" target="_blank"><span class="ri">📄</span><div><div class="rt">Informe de usuarios</div><div class="rd">Resumen de participación por organismo</div></div></a>
+            <a class="recurso" href="{% url 'indicadores:catalogo_datos' %}" target="_blank"><span class="ri">📚</span><div><div class="rt">Catálogo de datos</div><div class="rd">Fuentes caracterizadas navegables</div></div></a>
+            <a class="recurso" href="{% url 'indicadores:taller_dashboard' %}" target="_blank"><span class="ri">📈</span><div><div class="rt">Dashboard de analítica</div><div class="rd">Paneles F1 · F2 · F3 con datos en vivo</div></div></a>
+        </div>
+        <div class="findings" style="margin-top:16px;">
+            <div class="finding"><b>Próximos pasos:</b> seudonimizar numero_documento en el pipeline RUD→fact_personas · resolver base legítima de Ewars · completar F3 de las {{ fuentes_sin_f3 }} fuentes pendientes · política de retención de emergencia · piloto Franja 1 ({{ franjas.1.n }} casos) en 0-4 semanas.</div>
+        </div>
+    </section>
+
+    <!-- Navegación -->
+    <div class="nav">
+        <a class="salir" href="{% url 'indicadores:taller_dashboard' %}">✕ Salir</a>
+        <button onclick="prev()">‹ Anterior</button>
+        <div class="prog"><div class="pfl" id="pfl"></div></div>
+        <span class="contador" id="contador">1 / 17</span>
+        <div class="dots" id="dots"></div>
+        <button onclick="next()">Siguiente ›</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    var slides = document.querySelectorAll('.slide');
+    var total = slides.length;
+    var idx = 0;
+    var loaded = {};
+
+    var dots = document.getElementById('dots');
+    for (var i = 0; i < total; i++) {
+        var d = document.createElement('button');
+        d.className = 'dot-nav';
+        d.setAttribute('data-i', i);
+        d.onclick = function() { go(parseInt(this.getAttribute('data-i'))); };
+        dots.appendChild(d);
+    }
+    var dotEls = dots.querySelectorAll('.dot-nav');
+
+    function render() {
+        slides.forEach(function(s, i) { s.classList.toggle('activa', i === idx); });
+        dotEls.forEach(function(d, i) { d.classList.toggle('on', i === idx); });
+        document.getElementById('contador').textContent = (idx + 1) + ' / ' + total;
+        document.getElementById('pfl').style.width = ((idx + 1) / total * 100) + '%';
+        // lazy-load iframes solo cuando el slide se activa
+        var frame = slides[idx].querySelector('iframe[data-src]');
+        if (frame && !loaded[idx]) {
+            frame.src = frame.getAttribute('data-src');
+            loaded[idx] = true;
+        }
+        // reajustar el visor PlantUML cuando su slide está activo
+        if (slides[idx].querySelector('#pumlStage') && window.pumlFit) { window.pumlFit(); }
+    }
+    window.next = function() { if (idx < total - 1) { idx++; render(); } };
+    window.prev = function() { if (idx > 0) { idx--; render(); } };
+    window.go = function(i) { idx = Math.max(0, Math.min(total - 1, i)); render(); };
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+        else if (e.key === 'Home') { go(0); }
+        else if (e.key === 'End') { go(total - 1); }
+        else if (e.key === 'Escape') { window.location.href = "{% url 'indicadores:taller_dashboard' %}"; }
+    });
+
+    // clic en mitades de pantalla (excepto sobre iframes/links/botones)
+    document.getElementById('deck').addEventListener('click', function(e) {
+        if (e.target.closest('iframe, a, button, .nav')) return;
+        var x = e.clientX / window.innerWidth;
+        if (x > 0.65) next(); else if (x < 0.35) prev();
+    });
+
+    render();
+})();
+</script>
+
+<script>
+/* ===== Visor PlantUML: pan + zoom ===== */
+(function() {
+    var stage = document.getElementById('pumlStage');
+    var canvas = document.getElementById('pumlCanvas');
+    if (!stage || !canvas) return;
+    var svg = canvas.querySelector('svg');
+    if (!svg) return;
+    // tamaño natural del diagrama (px) para calcular el fit
+    var natW = parseFloat(svg.getAttribute('width')) || svg.viewBox.baseVal.width || 2902;
+    var natH = parseFloat(svg.getAttribute('height')) || svg.viewBox.baseVal.height || 1010;
+    var scale = 1, tx = 0, ty = 0;
+
+    function apply() { canvas.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; }
+
+    window.pumlFit = function() {
+        var r = stage.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return;
+        scale = Math.min(r.width / natW, r.height / natH) * 0.97;
+        tx = (r.width - natW * scale) / 2;
+        ty = (r.height - natH * scale) / 2;
+        apply();
+    };
+
+    window.pumlZoom = function(f) {
+        var r = stage.getBoundingClientRect();
+        var cx = r.width / 2, cy = r.height / 2;
+        scale = Math.max(0.05, Math.min(8, scale * f));
+        tx = cx - (cx - tx) * f;
+        ty = cy - (cy - ty) * f;
+        apply();
+    };
+
+    // arrastre para mover
+    var drag = false, sx = 0, sy = 0, stx = 0, sty = 0;
+    canvas.addEventListener('mousedown', function(e) {
+        drag = true; sx = e.clientX; sy = e.clientY; stx = tx; sty = ty;
+        e.preventDefault(); e.stopPropagation();
+    });
+    window.addEventListener('mousemove', function(e) {
+        if (!drag) return;
+        tx = stx + (e.clientX - sx); ty = sty + (e.clientY - sy); apply();
+    });
+    window.addEventListener('mouseup', function() { drag = false; });
+
+    // rueda para zoom (centrado en el cursor)
+    stage.addEventListener('wheel', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        var f = e.deltaY < 0 ? 1.12 : 0.89;
+        var r = stage.getBoundingClientRect();
+        var mx = e.clientX - r.left, my = e.clientY - r.top;
+        scale = Math.max(0.05, Math.min(8, scale * f));
+        tx = mx - (mx - tx) * f; ty = my - (my - ty) * f; apply();
+    }, { passive: false });
+
+    // que el arrastre no dispare la navegación por clic del deck
+    canvas.addEventListener('click', function(e) { e.stopPropagation(); });
+    window.addEventListener('resize', function() {
+        if (stage.getBoundingClientRect().width > 0) window.pumlFit();
+    });
+})();
+</script>
+{% endblock %}

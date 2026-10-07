@@ -1,0 +1,133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Taller Técnico - Alcaldía de Cali{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --azul-principal: #004b87;
+            --azul-secundario: #007bb5;
+            --celeste-pastel: #e6f7ff;
+            --celeste-borde: #b3e0ff;
+            --arena-pastel: #fff3e6;
+            --arena-borde: #ffccb3;
+            --menta-pastel: #ebfaeb;
+            --menta-borde: #c2f0c2;
+            --rosa-pastel: #fce8f3;
+            --rosa-borde: #f9b8d9;
+            --gris-fondo: #e0e5ec;
+            --texto: #333333;
+            --texto-suave: #4a5568;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--gris-fondo);
+            color: var(--texto);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .site-header {
+            background: #ffffff;
+            border-bottom: 3px solid var(--azul-principal);
+            padding: 10px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .site-header .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .site-header .brand img { height: 42px; width: auto; object-fit: contain; }
+        .site-header .brand span {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--azul-principal);
+            text-transform: uppercase;
+            line-height: 1.2;
+            border-left: 2px solid #cbd5e0;
+            padding-left: 10px;
+        }
+        .site-nav { display: flex; align-items: center; gap: 8px; }
+        .site-nav a {
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--azul-principal);
+            padding: 7px 14px;
+            border-radius: 15px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .site-nav a:hover { background: var(--celeste-pastel); }
+        .site-nav a.nav-cta {
+            background: var(--azul-principal);
+            color: #ffffff;
+        }
+        .site-nav a.nav-cta:hover { background: #003366; }
+        .site-main { flex: 1; width: 100%; }
+        .site-footer {
+            background: var(--azul-principal);
+            color: #ffffff;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 26px;
+            background-color: var(--azul-principal);
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.3s;
+        }
+        .btn:hover { background-color: #003366; }
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="{% url 'indicadores:taller_landing' %}">
+            <img src="{% static 'img/alcaldia.png' %}" alt="Alcaldía de Santiago de Cali">
+            <span>Alcaldía de Santiago de Cali<br>Depto. Admvo. de Planeación</span>
+        </a>
+        <nav class="site-nav">
+            <a href="{% url 'indicadores:taller_cartel' %}">Cartel</a>
+            <a href="{% url 'indicadores:catalogo_datos' %}">Catálogo</a>
+            <a href="{% url 'indicadores:taller_dashboard' %}">Dashboard</a>
+            {% if user.is_authenticated %}
+                <form method="post" action="{% url 'indicadores:delegado_logout' %}" style="display:inline;">{% csrf_token %}
+                    <button type="submit" class="btn" style="padding:7px 14px; font-size:12px; border-radius:15px;">Salir</button>
+                </form>
+            {% endif %}
+            <a class="nav-cta" href="{% url 'indicadores:taller_wizard' %}">Ficha Técnica</a>
+        </nav>
+    </header>
+    <main class="site-main">
+        {% block content %}{% endblock %}
+    </main>
+    <footer class="site-footer">
+        Alcaldía de Santiago de Cali · DAP · Subdirección de Desarrollo Integral / CTGIE · planestadistico@cali.gov.co
+    </footer>
+</body>
+</html>

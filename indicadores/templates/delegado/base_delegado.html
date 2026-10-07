@@ -93,6 +93,24 @@
                       {% endif %}">
                 Cargar Conjuntos de datos
             </a>
+            <a href="{% url 'indicadores:taller_wizard' %}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                      {% if request.resolver_match.url_name == 'taller_wizard' %}
+                          bg-emerald-500 text-white shadow-sm
+                      {% else %}
+                          text-slate-600 hover:bg-slate-200
+                      {% endif %}">
+                Taller de Ecosistemas
+            </a>
+            <a href="{% url 'indicadores:catalogo_datos' %}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                      {% if request.resolver_match.url_name == 'catalogo_datos' %}
+                          bg-emerald-500 text-white shadow-sm
+                      {% else %}
+                          text-slate-600 hover:bg-slate-200
+                      {% endif %}">
+                Catálogo de Datos
+            </a>
             <a href="{% url 'indicadores:delegado_historial' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'delegado_historial' %}

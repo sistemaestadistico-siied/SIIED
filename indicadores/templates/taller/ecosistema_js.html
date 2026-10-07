@@ -1,0 +1,1326 @@
+// ============================================================
+// Ecosistema de Datos 3D — Three.js
+// ============================================================
+
+var COLORES = {
+    gold: 0xffd700,
+    catalogo: 0x007bb5,
+    organismo: 0xf5a86b,
+    suborganismo: 0xa78bfa,
+    equipo: 0x4fc3f7,
+    conjunto: 0x6fce8f,
+    fuente_informacion: 0xef92c4,
+    reto: 0xfc8181,
+};
+
+var COLORES_ARISTA = {
+    cruce_catalogo: 0xffd700,
+    matching_variable: 0x6fce8f,
+    match_exacto: 0x00ff88,
+    match_aproximado: 0x6fce8f,
+    origen_externo: 0xef92c4,
+    requerida_externa: 0xc4b5fd,
+    pertenencia: 0xa0aec0,
+    jerarquia: 0xa78bfa,
+    variables_compartidas: 0x38b2ac,
+};
+
+var scene, camera, camera3D, camera2D, renderer, controls;
+var nodoMeshes = [], aristaLines = [], labelSprites = [], orbitasSubMeshes = [];
+var nodoData = {}, aristaData = [];
+var raycaster, mouse;
+var mostrarLabels = false, autoRotar = false, modo2D = false, camaraAjustada = false;
+var gridHelper = null, starPoints = null, radioExtActual = 320;
+var hoveredNodo = null;
+var soloRelacionados = false;
+var pollErrores = 0;
+
+// Libera geometrías, materiales y texturas de un objeto y sus hijos.
+// Sin esto, cada reconstrucción de la escena acumula memoria de GPU.
+function disposeObj(obj) {
+    obj.traverse(function(child) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+            var mats = Array.isArray(child.material) ? child.material : [child.material];
+            mats.forEach(function(m) {
+                if (m.map) m.map.dispose();
+                m.dispose();
+            });
+        }
+    });
+}
+
+function limpiarEscena() {
+    nodoMeshes.forEach(function(m) { scene.remove(m); disposeObj(m); });
+    aristaLines.forEach(function(l) { scene.remove(l); disposeObj(l); });
+    labelSprites.forEach(function(s) { scene.remove(s); disposeObj(s); });
+    orbitasSubMeshes.forEach(function(o) { scene.remove(o); disposeObj(o); });
+    nodoMeshes = []; aristaLines = []; labelSprites = []; orbitasSubMeshes = [];
+    nodoData = {}; aristaData = [];
+}
+
+// --- Inicialización ---
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a1628);
+    scene.fog = new THREE.Fog(0x0a1628, 400, 1000);
+
+    var w = window.innerWidth, h = window.innerHeight;
+    camera3D = new THREE.PerspectiveCamera(60, w / h, 0.1, 1000);
+    camera3D.position.set(0, 140, 420);
+
+    var d = 360;
+    camera2D = new THREE.OrthographicCamera(-d * w/h, d * w/h, d, -d, 0.1, 1000);
+    camera2D.position.set(0, 300, 0);
+    camera2D.lookAt(0, 0, 0);
+
+    camera = camera3D;
+
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('eco-canvas'), antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.minDistance = 30;
+    controls.maxDistance = 900;
+
+    // Luces
+    scene.add(new THREE.AmbientLight(0x4a6fa5, 0.6));
+    var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(50, 100, 50);
+    scene.add(dirLight);
+    var pointLight = new THREE.PointLight(0xffd700, 1.5, 300);
+    pointLight.position.set(0, 0, 0);
+    scene.add(pointLight);
+
+    // Grid sutil (tamaño provisional; se re-escala con la extensión real de la escena)
+    gridHelper = new THREE.GridHelper(800, 40, 0x1a3050, 0x1a3050);
+    gridHelper.position.y = -50;
+    gridHelper.userData.size = 800;
+    scene.add(gridHelper);
+
+    // Estrellas de fondo (también se re-escalan con la escena)
+    var starGeo = new THREE.BufferGeometry();
+    var starCount = 800;
+    var starPos = new Float32Array(starCount * 3);
+    for (var i = 0; i < starCount * 3; i++) {
+        starPos[i] = (Math.random() - 0.5) * 1000;
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    var starMat = new THREE.PointsMaterial({ color: 0x4a6fa5, size: 0.8, transparent: true, opacity: 0.4 });
+    starPoints = new THREE.Points(starGeo, starMat);
+    scene.add(starPoints);
+
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+
+    window.addEventListener('resize', onResize);
+    renderer.domElement.addEventListener('mousemove', onMouseMove);
+    renderer.domElement.addEventListener('click', onClick);
+    renderer.domElement.addEventListener('dblclick', onDblClick);
+
+    cargarDatos();
+}
+
+function onResize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+}
+
+// --- Carga de datos ---
+var POLL_INTERVAL = 30000; // 30 segundos
+var pollTimer = null;
+
+function cargarDatos() {
+    var url = '{% url "indicadores:taller_api_ecosistema" %}';
+    if (soloRelacionados) url += '?solo_relacionados=true';
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            construirEscena(data.nodos, data.aristas);
+            document.getElementById('ecoLoading').style.display = 'none';
+            iniciarPolling();
+        })
+        .catch(function(err) {
+            document.getElementById('ecoLoading').innerHTML = '<p style="color:#e53e3e;">Error al cargar: ' + err.message + '</p>';
+        });
+}
+
+function iniciarPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollDatos, POLL_INTERVAL);
+}
+
+function pollDatos() {
+    // No gastar red ni CPU del servidor si la pestaña está en segundo plano
+    if (document.hidden) return;
+    var url = '{% url "indicadores:taller_api_ecosistema" %}';
+    if (soloRelacionados) url += '?solo_relacionados=true';
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            pollErrores = 0;
+            actualizarEscenaIncremental(data.nodos, data.aristas);
+        })
+        .catch(function(err) {
+            // Backoff: tras 5 fallos seguidos se detiene el polling
+            pollErrores++;
+            console.warn('Poll error:', err.message);
+            if (pollErrores >= 5 && pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+                console.warn('Polling detenido tras errores repetidos. Recargue para reanudar.');
+            }
+        });
+}
+
+// --- Actualización incremental: añade lo nuevo y retira lo eliminado ---
+function claveArista(a) { return a.origen + '|' + a.destino + '|' + a.tipo; }
+
+function actualizarEscenaIncremental(nodos, aristas) {
+    var posiciones = {};
+    // Recoger posiciones actuales de los meshes existentes
+    nodoMeshes.forEach(function(m) {
+        posiciones[m.userData.id] = m.position.clone();
+    });
+
+    // --- Retirar nodos que ya no existen en la BD ---
+    var idsVivos = {};
+    nodos.forEach(function(n) { idsVivos[n.id] = true; });
+    var eliminados = nodoMeshes.filter(function(m) { return !idsVivos[m.userData.id]; });
+    if (eliminados.length) {
+        var idsEliminados = {};
+        eliminados.forEach(function(m) {
+            idsEliminados[m.userData.id] = true;
+            scene.remove(m); disposeObj(m);
+            delete nodoData[m.userData.id];
+        });
+        nodoMeshes = nodoMeshes.filter(function(m) { return !idsEliminados[m.userData.id]; });
+        labelSprites = labelSprites.filter(function(s) {
+            if (s.userData.nodoId && idsEliminados[s.userData.nodoId]) {
+                scene.remove(s); disposeObj(s);
+                return false;
+            }
+            return true;
+        });
+        // Las aristas que tocan un nodo eliminado también salen
+        aristaLines = aristaLines.filter(function(l) {
+            var a = l.userData;
+            if (idsEliminados[a.origen] || idsEliminados[a.destino]) {
+                scene.remove(l); disposeObj(l);
+                return false;
+            }
+            return true;
+        });
+        aristaData = aristaLines.map(function(l) { return l.userData; });
+    }
+
+    // --- Retirar aristas que ya no existen en la BD ---
+    var clavesVivas = {};
+    aristas.forEach(function(a) { clavesVivas[claveArista(a)] = true; });
+    aristaLines = aristaLines.filter(function(l) {
+        if (!clavesVivas[claveArista(l.userData)]) {
+            scene.remove(l); disposeObj(l);
+            return false;
+        }
+        return true;
+    });
+    aristaData = aristaLines.map(function(l) { return l.userData; });
+
+    // Identificar nodos nuevos
+    var nodosNuevos = nodos.filter(function(n) { return !nodoData[n.id]; });
+    if (nodosNuevos.length === 0) {
+        // Solo verificar si hay aristas nuevas
+        var aristasNuevas = aristas.filter(function(a) {
+            return !aristaData.some(function(existing) {
+                return claveArista(existing) === claveArista(a);
+            });
+        });
+        if (aristasNuevas.length === 0) {
+            if (eliminados.length) actualizarConteo();
+            return;
+        }
+        // Hay aristas nuevas pero quizás referencian nodos existentes
+        aristasNuevas.forEach(function(a) {
+            crearArista(a, posiciones);
+        });
+        actualizarConteo();
+        return;
+    }
+
+    // Recalcular posiciones para todos los nodos (para que los nuevos se posicionen bien)
+    // pero SIN mover los existentes de su posición actual
+    var todasPosiciones = {};
+    nodoMeshes.forEach(function(m) {
+        todasPosiciones[m.userData.id] = m.position.clone();
+    });
+
+    // Posicionar nodos nuevos usando la misma lógica de construirEscena
+    posicionarNodosNuevos(nodosNuevos, nodos, todasPosiciones);
+
+    // Crear meshes para nodos nuevos
+    nodosNuevos.forEach(function(n) {
+        crearNodo(n, todasPosiciones[n.id]);
+    });
+
+    // Crear aristas nuevas
+    var aristasNuevas = aristas.filter(function(a) {
+        return !aristaData.some(function(existing) {
+            return claveArista(existing) === claveArista(a);
+        });
+    });
+    aristasNuevas.forEach(function(a) {
+        crearArista(a, todasPosiciones);
+    });
+
+    actualizarConteo();
+}
+
+// --- Posicionar nodos nuevos basándose en la jerarquía ---
+function posicionarNodosNuevos(nuevos, todosNodos, posiciones) {
+    // Por cada nodo nuevo, asignar posición según su tipo y padre
+    nuevos.forEach(function(n) {
+        if (n.tipo === 'gold') {
+            posiciones[n.id] = new THREE.Vector3(0, 0, 0);
+        } else if (n.tipo === 'catalogo') {
+            var catExistentes = todosNodos.filter(function(x) { return x.tipo === 'catalogo'; });
+            var idx = catExistentes.indexOf(n);
+            if (idx < 0) idx = catExistentes.length;
+            var angle = (idx / Math.max(1, catExistentes.length)) * Math.PI * 2;
+            // Radio real del anillo: distancia al centro de un catálogo existente
+            var radioCat = 60;
+            for (var ci = 0; ci < catExistentes.length; ci++) {
+                var cp = posiciones[catExistentes[ci].id];
+                if (cp && cp.length() > 1) { radioCat = cp.length(); break; }
+            }
+            posiciones[n.id] = new THREE.Vector3(Math.cos(angle) * radioCat, 0, Math.sin(angle) * radioCat);
+        } else if (n.tipo === 'organismo') {
+            // Colocar en el anillo exterior si no existe posición
+            var orgExistentes = todosNodos.filter(function(x) { return x.tipo === 'organismo'; });
+            var idx = orgExistentes.indexOf(n);
+            var total = orgExistentes.length;
+            var angle = (idx / Math.max(1, total)) * Math.PI * 2;
+            // Radio real: distancia al centro de un organismo existente
+            var radioOrg = 250;
+            for (var oi = 0; oi < orgExistentes.length; oi++) {
+                var op2 = posiciones[orgExistentes[oi].id];
+                if (op2 && op2.length() > 1) { radioOrg = op2.length(); break; }
+            }
+            posiciones[n.id] = new THREE.Vector3(Math.cos(angle) * radioOrg, 0, Math.sin(angle) * radioOrg);
+        } else if (n.tipo === 'suborganismo') {
+            var orgPos = posiciones[n.organismo_id];
+            if (orgPos) {
+                var subsDeOrg = todosNodos.filter(function(x) {
+                    return x.tipo === 'suborganismo' && x.organismo_id === n.organismo_id;
+                });
+                var idx = subsDeOrg.indexOf(n);
+                var numSubs = subsDeOrg.length;
+                var orgN = nodoData[n.organismo_id];
+                var orgR = orgN ? getTamanoNodo(orgN) : 8;
+                var radioLunas = radioOrbita(orgR, 60, numSubs, 10);
+                var angle = (idx / Math.max(1, numSubs)) * Math.PI * 2;
+                var yWobble = Math.sin(angle * 3) * 2;
+                posiciones[n.id] = new THREE.Vector3(
+                    orgPos.x + Math.cos(angle) * radioLunas,
+                    orgPos.y + yWobble,
+                    orgPos.z + Math.sin(angle) * radioLunas
+                );
+            } else {
+                posiciones[n.id] = new THREE.Vector3(0, 0, 0);
+            }
+        } else if (n.tipo === 'equipo') {
+            var padreId = n.suborganismo_id || n.organismo_id;
+            var padrePos = posiciones[padreId];
+            if (padrePos) {
+                var eqsDePadre = todosNodos.filter(function(x) {
+                    return x.tipo === 'equipo' && (x.suborganismo_id || x.organismo_id) === padreId;
+                });
+                var idx = eqsDePadre.indexOf(n);
+                var numEq = eqsDePadre.length;
+                var radioEq = radioOrbita(3.5, 26, numEq, 8);
+                var angle = (idx / Math.max(1, numEq)) * Math.PI * 2;
+                var yWobble = Math.sin(angle * 2) * 1.5;
+                posiciones[n.id] = new THREE.Vector3(
+                    padrePos.x + Math.cos(angle) * radioEq,
+                    padrePos.y + yWobble,
+                    padrePos.z + Math.sin(angle) * radioEq
+                );
+            } else {
+                posiciones[n.id] = new THREE.Vector3(0, 0, 0);
+            }
+        } else if (n.tipo === 'conjunto') {
+            var eqPos = posiciones[n.equipo_id];
+            if (eqPos) {
+                var conjDeEq = todosNodos.filter(function(x) {
+                    return x.tipo === 'conjunto' && x.equipo_id === n.equipo_id;
+                });
+                var idx = conjDeEq.indexOf(n);
+                var numConj = conjDeEq.length;
+                var r = radioOrbita(2.5, 3, numConj, 4);
+                var angle = (idx / Math.max(1, numConj)) * Math.PI * 2;
+                var yWobble = Math.cos(angle * 2) * 1;
+                posiciones[n.id] = new THREE.Vector3(
+                    eqPos.x + Math.cos(angle) * r,
+                    eqPos.y - 3 + yWobble,
+                    eqPos.z + Math.sin(angle) * r
+                );
+            } else {
+                posiciones[n.id] = new THREE.Vector3(0, 0, 0);
+            }
+        } else if (n.tipo === 'reto') {
+            var eqPos = posiciones[n.equipo_id];
+            if (eqPos) {
+                var retosDeEq = todosNodos.filter(function(x) {
+                    return x.tipo === 'reto' && x.equipo_id === n.equipo_id;
+                });
+                var idx = retosDeEq.indexOf(n);
+                var numRetos = retosDeEq.length;
+                var r = Math.max(17, radioOrbita(2.5, 3, numRetos, 4));
+                var angle = (idx / Math.max(1, numRetos)) * Math.PI * 2;
+                posiciones[n.id] = new THREE.Vector3(
+                    eqPos.x + Math.cos(angle) * r,
+                    eqPos.y + 8 + Math.sin(angle * 3) * 2,
+                    eqPos.z + Math.sin(angle) * r
+                );
+            } else {
+                posiciones[n.id] = new THREE.Vector3(0, 0, 0);
+            }
+        } else if (n.tipo === 'fuente_informacion') {
+            posiciones[n.id] = new THREE.Vector3(
+                Math.cos(Math.random() * Math.PI * 2) * radioExtActual, -15,
+                Math.sin(Math.random() * Math.PI * 2) * radioExtActual
+            );
+        } else {
+            posiciones[n.id] = new THREE.Vector3(0, 0, 0);
+        }
+    });
+}
+
+// --- Crear un solo nodo (mesh + label) ---
+function crearNodo(n, pos) {
+    var radio = getTamanoNodo(n);
+    var color = COLORES[n.tipo] || 0x888888;
+
+    var geo = new THREE.SphereGeometry(radio, 24, 24);
+    var mat = new THREE.MeshPhongMaterial({
+        color: color,
+        shininess: n.tipo === 'gold' ? 100 : 40,
+        emissive: n.tipo === 'gold' ? 0xffaa00 : (n.tipo === 'equipo' ? 0x226688 : 0x000000),
+        emissiveIntensity: n.tipo === 'gold' ? 0.5 : (n.tipo === 'equipo' ? 0.3 : 0),
+        transparent: true,
+        opacity: 0.92,
+    });
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(pos);
+    mesh.userData = n;
+
+    // Animación de aparición: escalar desde 0
+    mesh.scale.set(0.01, 0.01, 0.01);
+    mesh.userData._targetScale = 1;
+    mesh.userData._scaleAnim = true;
+
+    scene.add(mesh);
+    nodoMeshes.push(mesh);
+    nodoData[n.id] = n;
+
+    if (n.tipo === 'gold') {
+        var haloGeo = new THREE.SphereGeometry(radio * 1.8, 24, 24);
+        var haloMat = new THREE.MeshBasicMaterial({
+            color: 0xffd700, transparent: true, opacity: 0.12, side: THREE.BackSide,
+        });
+        mesh.add(new THREE.Mesh(haloGeo, haloMat));
+    }
+
+    if (n.tipo === 'equipo') {
+        var eqHaloGeo = new THREE.SphereGeometry(radio * 1.6, 16, 16);
+        var eqHaloMat = new THREE.MeshBasicMaterial({
+            color: 0x4fc3f7, transparent: true, opacity: 0.15, side: THREE.BackSide,
+        });
+        mesh.add(new THREE.Mesh(eqHaloGeo, eqHaloMat));
+    }
+
+    // Anillo de criticidad (F3 · semáforo) alrededor de los conjuntos
+    if (n.tipo === 'conjunto' && n.criticidad) {
+        var critColores = { rojo: 0xe53e3e, amarillo: 0xf6ad55, verde: 0x38a169 };
+        var critColor = critColores[n.criticidad];
+        if (critColor) {
+            var ringGeo = new THREE.RingGeometry(radio * 1.5, radio * 1.9, 32);
+            var ringMat = new THREE.MeshBasicMaterial({
+                color: critColor, transparent: true, opacity: 0.75,
+                side: THREE.DoubleSide, depthWrite: false,
+            });
+            var ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2; // plano orbital
+            mesh.add(ring);
+        }
+    }
+
+    var label = crearLabel(n.nombre, color);
+    label.position.copy(pos);
+    label.position.y += radio + 8;
+    label.visible = false;
+    label.userData.nodoId = n.id;
+    scene.add(label);
+    labelSprites.push(label);
+}
+
+// --- Crear una sola arista ---
+function crearArista(a, posiciones) {
+    var posO = posiciones[a.origen];
+    var posD = posiciones[a.destino];
+    if (!posO || !posD) return;
+
+    var color = COLORES_ARISTA[a.tipo] || 0x666666;
+    var opacity;
+    if (a.tipo === 'match_exacto') {
+        opacity = 0.65;
+    } else if (a.tipo === 'match_aproximado') {
+        opacity = 0.25;
+    } else if (a.tipo === 'pertenencia' || a.tipo === 'jerarquia') {
+        opacity = 0.2;
+    } else {
+        opacity = 0.45;
+    }
+
+    var points = [posO, posD];
+    var geo = new THREE.BufferGeometry().setFromPoints(points);
+    var mat = new THREE.LineBasicMaterial({
+        color: color, transparent: true, opacity: opacity,
+    });
+    var line = new THREE.Line(geo, mat);
+    line.userData = a;
+    scene.add(line);
+    aristaLines.push(line);
+    aristaData.push(a);
+}
+
+function toggleSoloRelacionados() {
+    soloRelacionados = !soloRelacionados;
+    var btn = document.getElementById('btnSoloRel');
+    btn.classList.toggle('activo', soloRelacionados);
+    // Detener polling mientras se reconstruye
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    // Limpiar escena y recargar
+    limpiarEscena();
+    document.getElementById('ecoLoading').style.display = 'flex';
+    cargarDatos();
+}
+
+// --- Helper: radio de órbita que libra la esfera del padre y separa hermanos ---
+// parentRadio: radio del nodo padre; childSpace: radio que ocupa cada hijo
+// (su esfera o todo su sub-sistema); n: número de hijos en el anillo.
+function radioOrbita(parentRadio, childSpace, n, gap) {
+    gap = gap || 6;
+    var r = parentRadio + childSpace + gap;
+    if (n >= 2) {
+        // Cuerda entre hermanos adyacentes >= 2*childSpace + gap
+        var need = (childSpace + gap * 0.5) / Math.sin(Math.PI / n);
+        if (need > r) r = need;
+    }
+    return r;
+}
+
+// --- Helper: crear anillo de órbita visible ---
+function crearAnilloOrbita(centro, radio, color, opacidad) {
+    var segments = 64;
+    var geometry = new THREE.BufferGeometry();
+    var positions = new Float32Array(segments * 3);
+    for (var i = 0; i < segments; i++) {
+        var angle = (i / segments) * Math.PI * 2;
+        positions[i * 3] = centro.x + Math.cos(angle) * radio;
+        positions[i * 3 + 1] = centro.y;
+        positions[i * 3 + 2] = centro.z + Math.sin(angle) * radio;
+    }
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    var material = new THREE.LineBasicMaterial({
+        color: color, transparent: true, opacity: opacidad || 0.15
+    });
+    var ring = new THREE.LineLoop(geometry, material);
+    scene.add(ring);
+    orbitasSubMeshes.push(ring);
+    return ring;
+}
+
+// --- Construcción de la escena ---
+function construirEscena(nodos, aristas) {
+    // Idempotente: limpiar cualquier escena previa (p.ej. doble fetch en carrera)
+    limpiarEscena();
+
+    var posiciones = {};
+
+    // Posicionar Gold en el centro
+    var goldNodos = nodos.filter(function(n) { return n.tipo === 'gold'; });
+    var catalogoNodos = nodos.filter(function(n) { return n.tipo === 'catalogo'; });
+    var orgNodos = nodos.filter(function(n) { return n.tipo === 'organismo'; });
+    var subNodos = nodos.filter(function(n) { return n.tipo === 'suborganismo'; });
+    var conjNodos = nodos.filter(function(n) { return n.tipo === 'conjunto'; });
+    var eqNodos = nodos.filter(function(n) { return n.tipo === 'equipo'; });
+    var retoNodos = nodos.filter(function(n) { return n.tipo === 'reto'; });
+    var extNodos = nodos.filter(function(n) { return n.tipo === 'fuente_informacion'; });
+
+    // Gold en el centro
+    goldNodos.forEach(function(n, i) {
+        var angle = (i / goldNodos.length) * Math.PI * 2;
+        posiciones[n.id] = new THREE.Vector3(0, 0, 0);
+    });
+
+    // Bases del catálogo en anillo 1 (radio dinámico según tamaño y cantidad)
+    var radioCat = Math.max(60, radioOrbita(12, 13, catalogoNodos.length, 8));
+    catalogoNodos.forEach(function(n, i) {
+        var angle = (i / catalogoNodos.length) * Math.PI * 2;
+        posiciones[n.id] = new THREE.Vector3(
+            Math.cos(angle) * radioCat, 0, Math.sin(angle) * radioCat
+        );
+    });
+
+    // --- Mapas de hijos por padre ---
+    var subsPorOrg = {};
+    subNodos.forEach(function(n) {
+        if (!subsPorOrg[n.organismo_id]) subsPorOrg[n.organismo_id] = [];
+        subsPorOrg[n.organismo_id].push(n);
+    });
+    var eqPorSub = {}, eqSinSub = [];
+    eqNodos.forEach(function(n) {
+        if (n.suborganismo_id) {
+            if (!eqPorSub[n.suborganismo_id]) eqPorSub[n.suborganismo_id] = [];
+            eqPorSub[n.suborganismo_id].push(n);
+        } else {
+            eqSinSub.push(n);
+        }
+    });
+    var conjPorEq = {}, retoPorEq = {};
+    conjNodos.forEach(function(n) {
+        if (n.equipo_id) {
+            if (!conjPorEq[n.equipo_id]) conjPorEq[n.equipo_id] = [];
+            conjPorEq[n.equipo_id].push(n);
+        }
+    });
+    retoNodos.forEach(function(n) {
+        if (n.equipo_id) {
+            if (!retoPorEq[n.equipo_id]) retoPorEq[n.equipo_id] = [];
+            retoPorEq[n.equipo_id].push(n);
+        }
+    });
+
+    // --- Footprints: espacio que ocupa cada nodo con todo su sub-sistema ---
+    // Se calculan de abajo hacia arriba para que cada órbita libre a sus hijos.
+    var RADIO_EQ = 2.5, RADIO_SUB = 3.5, RADIO_CONJ = 3, RADIO_RETO = 3;
+    var eqSys = {}, eqConjRing = {}, eqRetoRing = {};
+    eqNodos.forEach(function(eq) {
+        var nC = (conjPorEq[eq.id] || []).length;
+        var nR = (retoPorEq[eq.id] || []).length;
+        var rC = nC ? radioOrbita(RADIO_EQ, RADIO_CONJ, nC, 4) : 0;
+        var rR = nR ? Math.max(rC + 7, radioOrbita(RADIO_EQ, RADIO_RETO, nR, 4)) : 0;
+        eqConjRing[eq.id] = rC;
+        eqRetoRing[eq.id] = rR;
+        eqSys[eq.id] = Math.max(rC, rR, RADIO_EQ) + 4;
+    });
+    var subSys = {}, subEqRing = {};
+    subNodos.forEach(function(sub) {
+        var eqs = eqPorSub[sub.id] || [];
+        var maxEq = RADIO_EQ + 1.5;
+        eqs.forEach(function(e) { if (eqSys[e.id] > maxEq) maxEq = eqSys[e.id]; });
+        var rEq = eqs.length ? radioOrbita(RADIO_SUB, maxEq, eqs.length, 8) : 0;
+        subEqRing[sub.id] = rEq;
+        subSys[sub.id] = Math.max(rEq + maxEq, RADIO_SUB);
+    });
+    var orgSys = {}, orgLunaRing = {}, orgEqRing = {};
+    orgNodos.forEach(function(org) {
+        var orgR = getTamanoNodo(org);
+        var subs = subsPorOrg[org.id] || [];
+        var maxSub = RADIO_SUB;
+        subs.forEach(function(s) { if (subSys[s.id] > maxSub) maxSub = subSys[s.id]; });
+        var rL = subs.length ? radioOrbita(orgR, maxSub, subs.length, 10) : 0;
+        orgLunaRing[org.id] = rL;
+        var eqsD = eqSinSub.filter(function(e) { return e.organismo_id === org.id; });
+        var maxEqD = RADIO_EQ + 1.5;
+        eqsD.forEach(function(e) { if (eqSys[e.id] > maxEqD) maxEqD = eqSys[e.id]; });
+        var rD = eqsD.length ? radioOrbita(orgR, maxEqD, eqsD.length, 8) : 0;
+        orgEqRing[org.id] = rD;
+        orgSys[org.id] = Math.max(rL + maxSub, rD + maxEqD, orgR);
+    });
+
+    // --- Clasificar organismos en 3 categorías por número de lunas (suborganismos) ---
+    var orgConSubs = orgNodos.map(function(n) {
+        return { nodo: n, numSubs: (subsPorOrg[n.id] || []).length };
+    });
+    orgConSubs.sort(function(a, b) { return a.numSubs - b.numSubs; });
+
+    var pocos = orgConSubs.filter(function(o) { return o.numSubs <= 2; });
+    var intermedios = orgConSubs.filter(function(o) { return o.numSubs >= 3 && o.numSubs <= 5; });
+    var muchos = orgConSubs.filter(function(o) { return o.numSubs >= 6; });
+
+    // 3 anillos concéntricos con radio dinámico: cada anillo queda fuera del
+    // sistema completo del anillo anterior y separa a sus propios planetas.
+    // Terrazas de altura: cada anillo de organismos queda en un nivel
+    // distinto para separar visualmente los grupos de sistemas
+    var anillos = [
+        { orgs: pocos, yOff: 0 },
+        { orgs: intermedios, yOff: 22 },
+        { orgs: muchos, yOff: 44 },
+    ];
+    var cursor = radioCat + 60;
+    anillos.forEach(function(anillo) {
+        var lista = anillo.orgs;
+        if (!lista.length) { anillo.radio = cursor; anillo.maxSys = 0; return; }
+        var maxSys = 0;
+        lista.forEach(function(o) { if (orgSys[o.nodo.id] > maxSys) maxSys = orgSys[o.nodo.id]; });
+        anillo.maxSys = maxSys;
+        var r = cursor + maxSys;
+        if (lista.length >= 2) {
+            var need = (maxSys + 15) / Math.sin(Math.PI / lista.length);
+            if (need > r) r = need;
+        }
+        anillo.radio = r;
+        cursor = r + maxSys + 40;
+        lista.forEach(function(o, i) {
+            var n = o.nodo;
+            var angle = (i / lista.length) * Math.PI * 2;
+            posiciones[n.id] = new THREE.Vector3(
+                Math.cos(angle) * anillo.radio,
+                anillo.yOff,
+                Math.sin(angle) * anillo.radio
+            );
+        });
+    });
+    var radioExt = cursor + 20;
+    radioExtActual = radioExt;
+
+    // --- Suborganismos: lunas orbitando su planeta en disco plano ---
+    Object.keys(subsPorOrg).forEach(function(orgId) {
+        var subs = subsPorOrg[orgId];
+        var orgPos = posiciones[orgId] || new THREE.Vector3(0, 0, 0);
+        var numSubs = subs.length;
+        var radioLunas = orgLunaRing[orgId];
+
+        crearAnilloOrbita(orgPos, radioLunas, 0xa78bfa, 0.12);
+
+        subs.forEach(function(sub, idx) {
+            var angle = (idx / numSubs) * Math.PI * 2;
+            var yWobble = Math.sin(angle * 3) * 2;
+            posiciones[sub.id] = new THREE.Vector3(
+                orgPos.x + Math.cos(angle) * radioLunas,
+                orgPos.y + yWobble,
+                orgPos.z + Math.sin(angle) * radioLunas
+            );
+        });
+    });
+
+    // --- Equipos: orbitan las LUNAS (suborganismos) ---
+    Object.keys(eqPorSub).forEach(function(subId) {
+        var equipos = eqPorSub[subId];
+        var subPos = posiciones[subId];
+        if (!subPos) return;
+        var numEq = equipos.length;
+        var radioEq = subEqRing[subId];
+
+        crearAnilloOrbita(subPos, radioEq, 0x4fc3f7, 0.10);
+
+        equipos.forEach(function(eq, idx) {
+            var angle = (idx / numEq) * Math.PI * 2;
+            var yWobble = Math.sin(angle * 2) * 1.5;
+            posiciones[eq.id] = new THREE.Vector3(
+                subPos.x + Math.cos(angle) * radioEq,
+                subPos.y + yWobble,
+                subPos.z + Math.sin(angle) * radioEq
+            );
+        });
+    });
+
+    // Equipos sin suborganismo: orbitan el planeta directamente
+    var eqSinSubPorOrg = {};
+    eqSinSub.forEach(function(eq) {
+        if (!eqSinSubPorOrg[eq.organismo_id]) eqSinSubPorOrg[eq.organismo_id] = [];
+        eqSinSubPorOrg[eq.organismo_id].push(eq);
+    });
+    Object.keys(eqSinSubPorOrg).forEach(function(orgId) {
+        var eqs = eqSinSubPorOrg[orgId];
+        var orgPos = posiciones[orgId] || new THREE.Vector3(0, 0, 0);
+        var r = orgEqRing[orgId];
+        crearAnilloOrbita(orgPos, r, 0x4fc3f7, 0.08);
+        eqs.forEach(function(eq, idx) {
+            var angle = (idx / eqs.length) * Math.PI * 2;
+            posiciones[eq.id] = new THREE.Vector3(
+                orgPos.x + Math.cos(angle) * r,
+                orgPos.y + Math.sin(angle * 2) * 1.5,
+                orgPos.z + Math.sin(angle) * r
+            );
+        });
+    });
+
+    // --- Conjuntos de datos: satélites de los EQUIPOS ---
+    Object.keys(conjPorEq).forEach(function(eqId) {
+        var conjuntos = conjPorEq[eqId];
+        var eqPos = posiciones[eqId];
+        if (!eqPos) return;
+        var numConj = conjuntos.length;
+        var r = eqConjRing[eqId];
+
+        crearAnilloOrbita(eqPos, r, 0x6fce8f, 0.08);
+
+        conjuntos.forEach(function(conj, idx) {
+            var angle = (idx / Math.max(1, numConj)) * Math.PI * 2;
+            var yWobble = Math.cos(angle * 2) * 1;
+            posiciones[conj.id] = new THREE.Vector3(
+                eqPos.x + Math.cos(angle) * r,
+                eqPos.y - 3 + yWobble, // nivel inferior: datos
+                eqPos.z + Math.sin(angle) * r
+            );
+        });
+    });
+
+    // --- Retos: orbitan su equipo, anillo exterior a los conjuntos ---
+    Object.keys(retoPorEq).forEach(function(eqId) {
+        var retos = retoPorEq[eqId];
+        var eqPos = posiciones[eqId];
+        if (!eqPos) return;
+        var numRetos = retos.length;
+        var r = eqRetoRing[eqId];
+
+        crearAnilloOrbita(eqPos, r, 0xfc8181, 0.10);
+
+        retos.forEach(function(reto, idx) {
+            var angle = (idx / Math.max(1, numRetos)) * Math.PI * 2;
+            posiciones[reto.id] = new THREE.Vector3(
+                eqPos.x + Math.cos(angle) * r,
+                eqPos.y + 8 + Math.sin(angle * 3) * 2, // nivel superior: retos
+                eqPos.z + Math.sin(angle) * r
+            );
+        });
+    });
+    // Construir mapa de conexiones fuente_informacion -> [conjunto_ids]
+    var extAConjuntos = {};
+    aristas.forEach(function(a) {
+        if (a.tipo === 'origen_externo' || a.tipo === 'requerida_externa') {
+            // a.origen es el conjunto/reto, a.destino es la fuente de información
+            var extId = a.destino;
+            var conjId = a.origen;
+            if (!extAConjuntos[extId]) extAConjuntos[extId] = [];
+            extAConjuntos[extId].push(conjId);
+        }
+    });
+
+    extNodos.forEach(function(n, i) {
+        var relacionados = extAConjuntos[n.id] || [];
+        // Calcular ángulo promedio de los conjuntos relacionados
+        var sumaX = 0, sumaZ = 0, count = 0;
+        relacionados.forEach(function(cid) {
+            var p = posiciones[cid];
+            if (p) { sumaX += p.x; sumaZ += p.z; count++; }
+        });
+        var angle;
+        if (count > 0) {
+            angle = Math.atan2(sumaZ / count, sumaX / count);
+        } else {
+            // Sin relaciones: distribuir uniformemente
+            angle = (i / Math.max(1, extNodos.length)) * Math.PI * 2;
+        }
+        // Separar fuentes que caen en el mismo ángulo
+        var sameAngleIdx = 0;
+        extNodos.slice(0, i).forEach(function(other) {
+            var op = posiciones[other.id];
+            if (op) {
+                var otherAngle = Math.atan2(op.z, op.x);
+                if (Math.abs(otherAngle - angle) < 0.15) sameAngleIdx++;
+            }
+        });
+        var offsetAngle = sameAngleIdx * 0.12;
+        angle += offsetAngle;
+
+        posiciones[n.id] = new THREE.Vector3(
+            Math.cos(angle) * radioExt, -15, Math.sin(angle) * radioExt
+        );
+    });
+
+    // --- Órbitas como nubes de plasma (solo partículas, sin líneas) ---
+    var radiosOrbitas = [
+        { r: radioCat, color: 0x007bb5, y: 0 },
+    ];
+    anillos.forEach(function(anillo) {
+        if (anillo.maxSys > 0) radiosOrbitas.push({ r: anillo.radio, color: 0xf5a86b, y: anillo.yOff });
+    });
+    radiosOrbitas.push({ r: radioExt, color: 0xef92c4, y: -15 });
+    var orbitasMeshes = [];
+    radiosOrbitas.forEach(function(orb) {
+        var pCount = 500;
+        var pGeo = new THREE.BufferGeometry();
+        var pPos = new Float32Array(pCount * 3);
+        var pCol = new Float32Array(pCount * 3);
+        var baseColor = new THREE.Color(orb.color);
+        for (var pi = 0; pi < pCount; pi++) {
+            var a = (pi / pCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.15;
+            var rJitter = orb.r + (Math.random() - 0.5) * 12;
+            var yJitter = (orb.y || 0) + (Math.random() - 0.5) * 4;
+            pPos[pi * 3] = Math.cos(a) * rJitter;
+            pPos[pi * 3 + 1] = yJitter;
+            pPos[pi * 3 + 2] = Math.sin(a) * rJitter;
+            var brightness = 0.3 + Math.random() * 0.7;
+            pCol[pi * 3] = baseColor.r * brightness;
+            pCol[pi * 3 + 1] = baseColor.g * brightness;
+            pCol[pi * 3 + 2] = baseColor.b * brightness;
+        }
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+        var pMat = new THREE.PointsMaterial({
+            size: 1.2, transparent: true, opacity: 0.5,
+            vertexColors: true, blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+        var plasmaCloud = new THREE.Points(pGeo, pMat);
+        plasmaCloud.userData = { radio: orb.r, velocidad: 0.0003 + Math.random() * 0.0002 };
+        scene.add(plasmaCloud);
+        orbitasMeshes.push(plasmaCloud);
+    });
+
+    // Crear meshes de nodos
+    nodos.forEach(function(n) {
+        crearNodo(n, posiciones[n.id]);
+    });
+
+    // Crear aristas
+    aristas.forEach(function(a) {
+        crearArista(a, posiciones);
+    });
+
+    // Ajustar cámara, niebla, malla y estrellas al tamaño real de la escena
+    var ext = radioExt + 80;
+    if (!camaraAjustada) {
+        camaraAjustada = true;
+        var asp = window.innerWidth / window.innerHeight;
+        camera3D.position.set(0, ext * 0.5, ext * 1.4);
+        camera3D.far = ext * 8;
+        camera3D.updateProjectionMatrix();
+        camera2D.left = -ext * asp;
+        camera2D.right = ext * asp;
+        camera2D.top = ext;
+        camera2D.bottom = -ext;
+        camera2D.far = ext * 8;
+        camera2D.position.y = ext * 1.2;
+        camera2D.updateProjectionMatrix();
+        scene.fog.near = ext * 1.5;
+        scene.fog.far = ext * 4;
+        controls.maxDistance = ext * 4;
+    }
+    // La malla cubre toda la extensión del ecosistema (celdas ~25 unidades)
+    var gridSize = Math.ceil(ext * 2 / 25) * 25;
+    var gridDivs = Math.max(20, Math.round(gridSize / 25));
+    if (!gridHelper || !gridHelper.userData.size || Math.abs(gridHelper.userData.size - gridSize) > 50) {
+        if (gridHelper) { scene.remove(gridHelper); gridHelper.geometry.dispose(); gridHelper.material.dispose(); }
+        gridHelper = new THREE.GridHelper(gridSize, gridDivs, 0x1a3050, 0x1a3050);
+        gridHelper.position.y = -50;
+        gridHelper.userData.size = gridSize;
+        scene.add(gridHelper);
+    }
+    // Las estrellas envuelven la escena completa
+    if (starPoints) {
+        var starScale = Math.max(1, (ext * 2.5) / 1000);
+        starPoints.scale.set(starScale, starScale, starScale);
+    }
+
+    actualizarConteo();
+    animate();
+}
+
+function getTamanoNodo(n) {
+    if (n.tipo === 'gold') return 12;
+    if (n.tipo === 'catalogo') return 5 + Math.min(8, (n.num_campos || 0) / 30);
+    if (n.tipo === 'organismo') return 5 + Math.min(8, (n.num_fuentes || 0) * 1.5);
+    if (n.tipo === 'suborganismo') return 3.5;
+    if (n.tipo === 'equipo') return 2.5;
+    if (n.tipo === 'conjunto') return 2 + Math.min(1, (n.num_variables || 0) / 6);
+    if (n.tipo === 'reto') return 3;
+    if (n.tipo === 'fuente_informacion') return 4;
+    return 4;
+}
+
+function crearLabel(texto, color) {
+    var canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 64;
+    var ctx = canvas.getContext('2d');
+    var txt = texto;
+    // Reducir la fuente hasta que el texto quepa; truncar solo como último recurso
+    var fontSize = 22;
+    ctx.font = 'bold ' + fontSize + 'px Montserrat, sans-serif';
+    while (fontSize > 13 && ctx.measureText(txt).width > 490) {
+        fontSize -= 2;
+        ctx.font = 'bold ' + fontSize + 'px Montserrat, sans-serif';
+    }
+    if (ctx.measureText(txt).width > 490) {
+        while (txt.length > 10 && ctx.measureText(txt + '…').width > 490) {
+            txt = txt.substring(0, txt.length - 2);
+        }
+        txt += '…';
+    }
+    ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(txt, 256, 32);
+
+    var texture = new THREE.CanvasTexture(canvas);
+    var mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    var sprite = new THREE.Sprite(mat);
+    sprite.scale.set(64, 8, 1);
+    return sprite;
+}
+
+// --- Interacción ---
+function onMouseMove(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(nodoMeshes);
+
+    var tooltip = document.getElementById('ecoTooltip');
+    if (intersects.length > 0) {
+        var n = intersects[0].object.userData;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (event.clientX + 12) + 'px';
+        tooltip.style.top = (event.clientY + 12) + 'px';
+        var html = '<strong>' + n.nombre + '</strong>';
+        if (n.tipo === 'gold' || n.tipo === 'catalogo') {
+            html += '<br>' + (n.num_campos || 0) + ' campos · ' + (n.campos_cruzables || 0) + ' cruzables';
+        } else if (n.tipo === 'conjunto') {
+            html += '<br>' + (n.num_variables || 0) + ' variables · ' + (n.organismo || '');
+        } else if (n.tipo === 'organismo') {
+            html += '<br>' + (n.num_fuentes || 0) + ' fuentes reportadas';
+        } else if (n.tipo === 'equipo') {
+            html += '<br>Responsable: ' + (n.responsable || '—') + ' · ' + (n.num_fuentes || 0) + ' fuentes';
+        } else if (n.tipo === 'reto') {
+            html += '<br>' + (n.organismo || '');
+        } else if (n.tipo === 'fuente_informacion') {
+            html += '<br>Reportada por: ' + (n.organismos || '—') + ' · ' + (n.num_origenes || 0) + ' referencias';
+        }
+        tooltip.innerHTML = html;
+
+        // Hover effect
+        if (hoveredNodo !== intersects[0].object) {
+            if (hoveredNodo) hoveredNodo.material.emissiveIntensity = hoveredNodo.userData.tipo === 'gold' ? 0.5 : 0;
+            hoveredNodo = intersects[0].object;
+            hoveredNodo.material.emissiveIntensity = 0.6;
+        }
+        document.body.style.cursor = 'pointer';
+    } else {
+        tooltip.style.display = 'none';
+        if (hoveredNodo) {
+            hoveredNodo.material.emissiveIntensity = hoveredNodo.userData.tipo === 'gold' ? 0.5 : 0;
+            hoveredNodo = null;
+        }
+        document.body.style.cursor = 'default';
+    }
+}
+
+function onClick(event) {
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(nodoMeshes);
+    if (intersects.length > 0) {
+        mostrarInfo(intersects[0].object.userData);
+    }
+}
+
+function onDblClick(event) {
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(nodoMeshes);
+    if (intersects.length > 0) {
+        var target = intersects[0].object.position;
+        var offset = target.clone().sub(camera.position).normalize().multiplyScalar(60);
+        var newPos = target.clone().add(offset);
+        newPos.y += 20;
+        animarCamara(newPos, target);
+    }
+}
+
+function animarCamara(targetPos, lookAt) {
+    var startPos = camera.position.clone();
+    var startTarget = controls.target.clone();
+    var duration = 800;
+    var startTime = Date.now();
+
+    function step() {
+        var t = Math.min((Date.now() - startTime) / duration, 1);
+        var ease = 1 - Math.pow(1 - t, 3);
+        camera.position.lerpVectors(startPos, targetPos, ease);
+        controls.target.lerpVectors(startTarget, lookAt, ease);
+        controls.update();
+        if (t < 1) requestAnimationFrame(step);
+    }
+    step();
+}
+
+// --- Panel de info ---
+function mostrarInfo(n) {
+    var panel = document.getElementById('ecoInfo');
+    var content = document.getElementById('ecoInfoContent');
+    var tipoLabels = {
+        gold: { label: 'Capa Gold', color: '#ffd700', bg: 'rgba(255,215,0,0.1)' },
+        catalogo: { label: 'Base catálogo', color: '#007bb5', bg: 'rgba(0,123,181,0.1)' },
+        organismo: { label: 'Organismo', color: '#f5a86b', bg: 'rgba(245,168,107,0.1)' },
+        suborganismo: { label: 'Suborganismo', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
+        equipo: { label: 'Equipo', color: '#5b9bd5', bg: 'rgba(91,155,213,0.1)' },
+        conjunto: { label: 'Conjunto reportado', color: '#6fce8f', bg: 'rgba(111,206,143,0.1)' },
+        reto: { label: 'Reto de análisis', color: '#fc8181', bg: 'rgba(252,129,129,0.1)' },
+        fuente_informacion: { label: 'Fuente de información', color: '#ef92c4', bg: 'rgba(239,146,196,0.1)' },
+    };
+    var tl = tipoLabels[n.tipo] || { label: n.tipo, color: '#888', bg: '#eee' };
+
+    var html = '<div class="eco-info-tipo" style="color:' + tl.color + ';border-color:' + tl.color + ';background:' + tl.bg + ';">' + tl.label + '</div>';
+    html += '<h2>' + n.nombre + '</h2>';
+
+    if (n.organismo && n.tipo !== 'organismo') html += '<p class="eco-info-org">' + n.organismo + '</p>';
+
+    if (n.descripcion) html += infoRow('Descripción', n.descripcion);
+    if (n.decisiones_apoya) html += infoRow('Decisiones que apoya', n.decisiones_apoya);
+    if (n.rol) html += infoRow('Rol', n.rol);
+    if (n.frecuencia) html += infoRow('Frecuencia', n.frecuencia);
+    if (n.cobertura) html += infoRow('Cobertura', n.cobertura);
+    if (n.num_campos !== undefined) html += infoRow('Campos', n.num_campos + ' (' + (n.campos_cruzables || 0) + ' cruzables)');
+    if (n.num_variables !== undefined) html += infoRow('Variables', n.num_variables + ' (' + (n.num_identificadores || 0) + ' identificadores)');
+    if (n.num_fuentes !== undefined) html += infoRow('Fuentes reportadas', n.num_fuentes);
+    if (n.responsable) html += infoRow('Responsable', n.responsable);
+    if (n.organismos) html += infoRow('Reportada por', n.organismos);
+    if (n.num_origenes !== undefined) html += infoRow('Referencias', n.num_origenes);
+    if (n.variables && n.variables.length) html += infoRow('Variables', n.variables.join(', '));
+
+    // Link a ficha completa para conjuntos
+    if (n.tipo === 'conjunto' && n.fuente_id) {
+        html += '<div style="margin-top:12px;padding-top:8px;border-top:2px solid #e2e8f0;">';
+        html += '<a href="/ficha-conjunto/' + n.fuente_id + '/" target="_blank" style="display:inline-block;background:#6fce8f;color:#fff;padding:8px 16px;border-radius:6px;font-size:0.85rem;font-weight:600;text-decoration:none;">📋 Ver ficha completa</a>';
+        html += '</div>';
+    }
+
+    // Conexiones
+    var conexiones = aristaData.filter(function(a) { return a.origen === n.id || a.destino === n.id; });
+    if (conexiones.length) {
+        html += '<div style="margin-top:10px;padding-top:8px;border-top:2px solid #e2e8f0;">';
+        html += '<div class="eco-info-label" style="margin-bottom:6px;">Conexiones (' + conexiones.length + ')</div>';
+        conexiones.forEach(function(c) {
+            var otroId = c.origen === n.id ? c.destino : c.origen;
+            var otro = nodoData[otroId];
+            if (otro) {
+                var confianza = '';
+                if (c.tipo === 'match_exacto') {
+                    confianza = ' <span style="color:#00ff88;font-weight:600;">●</span>';
+                } else if (c.tipo === 'match_aproximado') {
+                    confianza = ' <span style="color:#f6ad55;">○</span>';
+                }
+                html += '<div style="font-size:10px;color:#4a5568;margin-bottom:3px;">→ ' + otro.nombre + ' <span style="color:#a0aec0;">(' + c.tipo.replace(/_/g, ' ') + ')</span>' + confianza + '</div>';
+            }
+        });
+        html += '</div>';
+    }
+
+    content.innerHTML = html;
+    panel.classList.add('visible');
+}
+
+function infoRow(label, val) {
+    return '<div class="eco-info-row"><span class="eco-info-label">' + label + '</span><span class="eco-info-val">' + val + '</span></div>';
+}
+
+function cerrarInfo() {
+    document.getElementById('ecoInfo').classList.remove('visible');
+}
+
+// --- Filtros ---
+function aplicarFiltros() {
+    var query = document.getElementById('ecoSearch').value.toLowerCase().trim();
+    var tiposVisibles = {};
+    document.querySelectorAll('.filtro-tipo').forEach(function(cb) {
+        tiposVisibles[cb.value] = cb.checked;
+    });
+    var aristasVisibles = {};
+    document.querySelectorAll('.filtro-arista').forEach(function(cb) {
+        aristasVisibles[cb.value] = cb.checked;
+    });
+
+    var nodosVisibles = {};
+    nodoMeshes.forEach(function(mesh, i) {
+        var n = mesh.userData;
+        var visible = tiposVisibles[n.tipo] !== false;
+        if (visible && query) {
+            visible = n.nombre.toLowerCase().indexOf(query) !== -1;
+        }
+        mesh.visible = visible;
+        if (labelSprites[i]) labelSprites[i].visible = visible && mostrarLabels;
+        nodosVisibles[n.id] = visible;
+    });
+
+    aristaLines.forEach(function(line, i) {
+        var a = line.userData;
+        var visible = aristasVisibles[a.tipo] !== false;
+        if (visible) {
+            visible = nodosVisibles[a.origen] && nodosVisibles[a.destino];
+        }
+        line.visible = visible;
+    });
+
+    actualizarConteo();
+}
+
+function actualizarConteo() {
+    var visibles = nodoMeshes.filter(function(m) { return m.visible; }).length;
+    var total = nodoMeshes.length;
+    var exactas = aristaData.filter(function(a) { return a.tipo === 'match_exacto'; }).length;
+    var aprox = aristaData.filter(function(a) { return a.tipo === 'match_aproximado'; }).length;
+    var txt = visibles + ' de ' + total + ' nodos visibles';
+    if (exactas || aprox) {
+        txt += ' · <span style="color:#00ff88;">' + exactas + ' exactas</span> / <span style="color:#f6ad55;">' + aprox + ' aprox.</span>';
+    }
+    document.getElementById('ecoCount').innerHTML = txt;
+
+    // Resumen textual accesible (alternativa al canvas para lectores de pantalla)
+    var lista = document.getElementById('ecoResumenLista');
+    if (lista) {
+        var etiquetas = {
+            gold: 'Capa Gold', catalogo: 'Bases catálogo', organismo: 'Organismos',
+            suborganismo: 'Suborganismos', equipo: 'Equipos', conjunto: 'Conjuntos reportados',
+            reto: 'Retos de análisis', fuente_informacion: 'Fuentes de información',
+        };
+        var porTipo = {};
+        nodoMeshes.forEach(function(m) {
+            var t = m.userData.tipo;
+            porTipo[t] = (porTipo[t] || 0) + 1;
+        });
+        var html = '';
+        Object.keys(etiquetas).forEach(function(t) {
+            if (porTipo[t]) html += '<li>' + etiquetas[t] + ': ' + porTipo[t] + '</li>';
+        });
+        html += '<li>Conexiones: ' + aristaData.length + '</li>';
+        lista.innerHTML = html || '<li>Sin datos</li>';
+    }
+}
+
+// --- Controles de cámara ---
+function resetVista() {
+    if (modo2D) toggle2D3D();
+    animarCamara(new THREE.Vector3(0, 140, 420), new THREE.Vector3(0, 0, 0));
+}
+
+function toggle2D3D() {
+    modo2D = !modo2D;
+    var btn = document.getElementById('btn2D3D');
+    if (modo2D) {
+        btn.textContent = 'Vista 2D';
+        btn.classList.remove('activo');
+        camera = camera2D;
+        var w = window.innerWidth, h = window.innerHeight;
+        camera2D.aspect = w / h;
+        camera2D.updateProjectionMatrix();
+    } else {
+        btn.textContent = 'Vista 3D';
+        btn.classList.add('activo');
+        camera = camera3D;
+        var w2 = window.innerWidth, h2 = window.innerHeight;
+        camera3D.aspect = w2 / h2;
+        camera3D.updateProjectionMatrix();
+    }
+    controls.object = camera;
+    controls.update();
+}
+
+function zoomIn() {
+    var dir = new THREE.Vector3().subVectors(controls.target, camera.position).normalize();
+    camera.position.add(dir.multiplyScalar(20));
+    controls.update();
+}
+
+function zoomOut() {
+    var dir = new THREE.Vector3().subVectors(controls.target, camera.position).normalize();
+    camera.position.sub(dir.multiplyScalar(20));
+    controls.update();
+}
+
+function toggleLabels() {
+    mostrarLabels = !mostrarLabels;
+    labelSprites.forEach(function(s, i) {
+        s.visible = mostrarLabels && nodoMeshes[i].visible;
+    });
+    var btn = document.getElementById('btnLabels');
+    btn.classList.toggle('activo', mostrarLabels);
+}
+
+function toggleAutoRotar() {
+    autoRotar = !autoRotar;
+    controls.autoRotate = autoRotar;
+    controls.autoRotateSpeed = 0.5;
+    var btn = document.getElementById('btnRotate');
+    btn.classList.toggle('activo', autoRotar);
+}
+
+// --- Animación ---
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+
+    // Labels siempre miran a la cámara (sprites lo hacen automáticamente)
+    // Pulsación del Gold + animación de aparición de nodos nuevos
+    var t = Date.now() * 0.001;
+    nodoMeshes.forEach(function(mesh) {
+        if (mesh.userData._scaleAnim) {
+            var s = mesh.scale.x;
+            s += (1 - s) * 0.08;
+            if (s > 0.99) {
+                s = 1;
+                mesh.userData._scaleAnim = false;
+            }
+            mesh.scale.setScalar(s);
+        } else if (mesh.userData.tipo === 'gold') {
+            var pulse = 1 + Math.sin(t * 2) * 0.05;
+            mesh.scale.setScalar(pulse);
+        }
+    });
+
+    // Rotación de nubes de plasma (órbitas)
+    scene.children.forEach(function(child) {
+        if (child.userData && child.userData.velocidad && child.isPoints) {
+            child.rotation.y += child.userData.velocidad;
+        }
+    });
+
+    renderer.render(scene, camera);
+}
+
+// --- Exportación ---
+
+function downloadGEXF() {
+    // Descarga el GEXF generado en el servidor (mismo archivo que el botón
+    // del dashboard: atributos completos y viz:position con el layout
+    // concéntrico), respetando el filtro activo
+    var url = '/ecosistema/gexf/';
+    if (soloRelacionados) url += '?solo_relacionados=true';
+    window.location.href = url;
+}
+
+function downloadSVG() {
+    // Descarga el SVG renderizado en el servidor (layout concéntrico, mismo
+    // archivo que el botón del dashboard), respetando el filtro activo
+    var url = '/ecosistema/svg/';
+    if (soloRelacionados) url += '?solo_relacionados=true';
+    window.location.href = url;
+}
+
+// --- Event listeners ---
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btnReset').addEventListener('click', resetVista);
+    document.getElementById('btn2D3D').addEventListener('click', toggle2D3D);
+    document.getElementById('btnZoomIn').addEventListener('click', zoomIn);
+    document.getElementById('btnZoomOut').addEventListener('click', zoomOut);
+    document.getElementById('btnLabels').addEventListener('click', toggleLabels);
+    document.getElementById('btnRotate').addEventListener('click', toggleAutoRotar);
+    document.getElementById('btnGEXF').addEventListener('click', downloadGEXF);
+    document.getElementById('btnSVG').addEventListener('click', downloadSVG);
+    document.getElementById('btnSoloRel').addEventListener('click', toggleSoloRelacionados);
+
+    document.getElementById('ecoSearch').addEventListener('input', aplicarFiltros);
+    document.querySelectorAll('.filtro-tipo, .filtro-arista').forEach(function(cb) {
+        cb.addEventListener('change', aplicarFiltros);
+    });
+
+    init();
+});

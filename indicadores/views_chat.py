@@ -50,7 +50,7 @@ from .models import (
     DocumentoVector, ConjuntoDatos, OperacionEstadistica, ProcesoExtraccion, ProcesoLog,
     ProductoAcademico, SeccionPaper, Organismo, Suborganismo, EquipoOrganismo,
     RespuestaSatisfaccionRapida, RespuestaSatisfaccionCompleta,
-    SesionTaller, ParticipanteTaller, DatoEcosistema, FlujoDatos, ClasificacionDato,
+    InscripcionTaller, FuenteDatos, RetoAnalisis, EvaluacionSeguridad,
     VariableConjuntoDatos, CatalogoConsulta,
 )
 from .models_iced import ICEDFormulario
@@ -407,7 +407,7 @@ class CerebrasToolsService:
                 "type": "function",
                 "function": {
                     "name": "consultar_ecosistema_datos",
-                    "description": "Consulta información anonimizada del ecosistema de datos de un organismo obtenida en talleres participativos. Incluye: datos identificados (con nivel operativo/táctico/estratégico), flujos de datos entre áreas, clasificación y sensibilidad, datos críticos (muchas conexiones) y huérfanos (sin conexiones). NO revela nombres ni datos personales de participantes. Usar cuando pregunten por ecosistema de datos, flujos de información, datos estratégicos, o la estructura de producción de datos de un organismo.",
+                    "description": "Consulta información del ecosistema de datos de un organismo levantada en el taller de ecosistemas (fichas F1/F2/F3). Incluye: fuentes de datos caracterizadas, rol del organismo frente a cada fuente, retos de análisis propuestos y valoración de seguridad/privacidad por criticidad. NO revela nombres ni datos personales de los diligenciantes. Usar cuando pregunten por ecosistema de datos, catálogo de datos, fuentes de información, retos de análisis o la estructura de producción de datos de un organismo.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -417,9 +417,9 @@ class CerebrasToolsService:
                             },
                             "aspecto": {
                                 "type": "string",
-                                "enum": ["resumen", "datos", "flujos", "clasificacion"],
+                                "enum": ["resumen", "fuentes", "retos", "seguridad"],
                                 "default": "resumen",
-                                "description": "Qué aspecto del ecosistema consultar: resumen general, datos identificados, flujos entre áreas, o clasificación por nivel/sensibilidad"
+                                "description": "Qué aspecto del ecosistema consultar: resumen general, fuentes de datos caracterizadas, retos de análisis, o valoración de seguridad"
                             }
                         },
                         "required": ["organismo"]
@@ -1958,7 +1958,7 @@ class CerebrasToolsService:
             return {'error': f'Error consultando ICED: {str(e)}'}
 
     def _handle_consultar_ecosistema_datos(self, arguments: dict) -> Dict[str, Any]:
-        """Consulta ecosistema de datos de un organismo (anonimizado)"""
+        """Consulta ecosistema de datos de un organismo (datos del taller F1/F2/F3, anonimizado)"""
         try:
             org_query = (arguments.get('organismo') or '').strip()
             aspecto = arguments.get('aspecto', 'resumen')
@@ -1966,7 +1966,6 @@ class CerebrasToolsService:
             if not org_query:
                 return {'error': 'Se requiere el nombre del organismo'}
 
-            # Buscar organismo
             organismo = Organismo.objects.filter(
                 Q(nombre__icontains=org_query) | Q(codigo__icontains=org_query),
                 activo=True
@@ -1975,87 +1974,79 @@ class CerebrasToolsService:
             if not organismo:
                 return {'error': f'Organismo "{org_query}" no encontrado'}
 
-            # Buscar sesiones de taller de ese organismo
-            sesiones = SesionTaller.objects.filter(organismo=organismo)
-            if not sesiones.exists():
-                return {'mensaje': f'No hay sesiones de taller registradas para {organismo.nombre}.'}
+            inscripciones = InscripcionTaller.objects.filter(organismo=organismo)
+            if not inscripciones.exists():
+                return {'mensaje': f'No hay inscripciones al taller de ecosistemas para {organismo.nombre}.'}
 
-            sesion_ids = sesiones.values_list('id', flat=True)
-            participantes_count = ParticipanteTaller.objects.filter(sesion_id__in=sesion_ids).count()
-
-            # Datos del ecosistema vinculados a sesiones del organismo
-            datos = DatoEcosistema.objects.filter(sesion_id__in=sesion_ids)
-            flujos = FlujoDatos.objects.filter(sesion_id__in=sesion_ids)
-            clasificaciones = ClasificacionDato.objects.filter(sesion_id__in=sesion_ids)
+            fuentes = FuenteDatos.objects.filter(inscripcion__organismo=organismo)
+            retos = RetoAnalisis.objects.filter(inscripcion__organismo=organismo)
+            evaluaciones = EvaluacionSeguridad.objects.filter(
+                fuente__inscripcion__organismo=organismo)
 
             if aspecto == 'resumen':
-                datos_criticos = [d.nombre for d in datos if getattr(d, 'es_critico', False)]
-                datos_huerfanos = [d.nombre for d in datos if getattr(d, 'es_huerfano', False)]
                 return {
                     'organismo': organismo.nombre,
-                    'total_sesiones': sesiones.count(),
-                    'total_participantes': participantes_count,
-                    'total_datos_identificados': datos.count(),
-                    'total_flujos': flujos.count(),
-                    'total_clasificaciones': clasificaciones.count(),
-                    'datos_criticos': datos_criticos[:20],
-                    'datos_huerfanos': datos_huerfanos[:20],
-                    'nota': 'Los datos personales de participantes han sido anonimizados.'
+                    'total_inscripciones': inscripciones.count(),
+                    'inscripciones_completadas': inscripciones.filter(estado='completada').count(),
+                    'total_fuentes_caracterizadas': fuentes.count(),
+                    'total_retos_analisis': retos.count(),
+                    'total_evaluaciones_seguridad': evaluaciones.count(),
+                    'fuentes_criticas': evaluaciones.filter(criticidad='rojo').count(),
+                    'nota': 'Los datos personales de los diligenciantes han sido anonimizados.'
                 }
 
-            elif aspecto == 'datos':
-                lista_datos = []
-                for d in datos[:50]:
-                    lista_datos.append({
-                        'nombre': d.nombre,
-                        'nivel': getattr(d, 'nivel', None),
-                        'origen': getattr(d, 'origen', None),
-                        'mecanismo': getattr(d, 'mecanismo', None),
-                        'periodicidad': getattr(d, 'periodicidad', None),
-                        'proposito': getattr(d, 'proposito', None),
-                        'sensibilidad': getattr(d, 'sensibilidad', None),
-                        'total_conexiones': getattr(d, 'total_conexiones', 0),
-                        'es_critico': getattr(d, 'es_critico', False),
-                        'es_huerfano': getattr(d, 'es_huerfano', False),
+            elif aspecto == 'fuentes':
+                lista = []
+                for f in fuentes[:50]:
+                    seguridad = getattr(f, 'seguridad', None)
+                    lista.append({
+                        'nombre': f.nombre,
+                        'rol': f.get_rol_display() if f.rol else None,
+                        'descripcion': (f.descripcion or '')[:300],
+                        'num_registros': f.num_registros,
+                        'georreferenciacion': f.get_georreferenciacion_display() if f.georreferenciacion else None,
+                        'criticidad_seguridad': seguridad.criticidad if seguridad else None,
                     })
                 return {
                     'organismo': organismo.nombre,
-                    'total': datos.count(),
-                    'datos': lista_datos,
+                    'total': fuentes.count(),
+                    'fuentes': lista,
                     'nota': 'Datos personales anonimizados.'
                 }
 
-            elif aspecto == 'flujos':
-                lista_flujos = []
-                for fl in flujos.select_related('dato')[:50]:
-                    lista_flujos.append({
-                        'dato': fl.dato.nombre if fl.dato else getattr(fl, 'descripcion_datos', 'N/A'),
-                        'area_origen': getattr(fl, 'area_origen', None),
-                        'area_destino': getattr(fl, 'area_destino', None),
-                        'mecanismo': getattr(fl, 'mecanismo_envio', None),
-                        'periodicidad': getattr(fl, 'periodicidad', None),
+            elif aspecto == 'retos':
+                lista = []
+                for r in retos[:50]:
+                    lista.append({
+                        'nombre': r.nombre,
+                        'analisis_propuesto': (r.analisis_propuesto or '')[:300],
+                        'decision_apoya': (r.decision_apoya or '')[:300],
+                        'variables_enriquecer': (r.variables_enriquecer or '')[:200],
                     })
                 return {
                     'organismo': organismo.nombre,
-                    'total': flujos.count(),
-                    'flujos': lista_flujos,
+                    'total': retos.count(),
+                    'retos': lista,
                     'nota': 'Datos personales anonimizados.'
                 }
 
-            elif aspecto == 'clasificacion':
-                lista_clas = []
-                for cl in clasificaciones.select_related('dato')[:50]:
-                    lista_clas.append({
-                        'dato': cl.dato.nombre if cl.dato else getattr(cl, 'nombre_dato', 'N/A'),
-                        'nivel': getattr(cl, 'nivel', None),
-                        'sensibilidad': getattr(cl, 'sensibilidad', None),
-                        'capas_involucradas': getattr(cl, 'capas_involucradas', None),
-                        'valor_publico': getattr(cl, 'valor_publico', None),
+            elif aspecto == 'seguridad':
+                lista = []
+                for e in evaluaciones.select_related('fuente')[:50]:
+                    riesgos = e.calcular_factores_riesgo_ocha()
+                    lista.append({
+                        'fuente': e.fuente.nombre,
+                        'contiene_datos_personales': e.contiene_datos_personales or None,
+                        'confidencialidad': e.confidencialidad or None,
+                        'integridad': e.integridad or None,
+                        'disponibilidad': e.disponibilidad or None,
+                        'criticidad': e.criticidad or None,
+                        'factores_riesgo_ocha': f"{riesgos['total_riesgos']}/{riesgos['total_criterios']}",
                     })
                 return {
                     'organismo': organismo.nombre,
-                    'total': clasificaciones.count(),
-                    'clasificaciones': lista_clas,
+                    'total': evaluaciones.count(),
+                    'evaluaciones': lista,
                     'nota': 'Datos personales anonimizados.'
                 }
 

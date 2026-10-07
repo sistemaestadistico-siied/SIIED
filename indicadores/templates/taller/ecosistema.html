@@ -1,0 +1,252 @@
+{% extends 'taller/base.html' %}
+{% load static %}
+
+{% block title %}Ecosistema de Datos 3D · Taller Técnico{% endblock %}
+
+{% block extra_css %}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
+#eco-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+
+/* --- Panel superior --- */
+.eco-top {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(135deg, rgba(0,75,135,0.95), rgba(0,123,181,0.95));
+    padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+    backdrop-filter: blur(10px);
+}
+.eco-top h1 { color: #fff; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+.eco-top .eco-links { display: flex; gap: 8px; }
+.eco-top .eco-links a {
+    color: #fff; font-size: 11px; font-weight: 700; text-decoration: none;
+    padding: 6px 14px; border: 1px solid rgba(255,255,255,0.4); border-radius: 15px;
+    transition: background 0.2s;
+}
+.eco-top .eco-links a:hover { background: rgba(255,255,255,0.15); }
+
+/* --- Panel de controles (sup. derecho) --- */
+.eco-controls {
+    position: fixed; top: 60px; right: 16px; z-index: 100;
+    background: rgba(255,255,255,0.95); border-radius: 10px; padding: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); width: 180px;
+}
+.eco-controls h3 { font-size: 10px; font-weight: 800; color: #004b87; text-transform: uppercase; margin-bottom: 8px; }
+.eco-controls button, .eco-controls a {
+    display: block; width: 100%; padding: 7px; margin-bottom: 5px; border: 1px solid #e2e8f0;
+    border-radius: 6px; background: #f8fafc; color: #2d3748; font-size: 11px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+    font-family: 'Montserrat', sans-serif; text-decoration: none; text-align: center;
+    box-sizing: border-box;
+}
+.eco-controls button:hover, .eco-controls a:hover { background: #e6f7ff; border-color: #007bb5; color: #004b87; }
+.eco-controls button.activo { background: #004b87; color: #fff; border-color: #004b87; }
+
+/* --- Panel de filtros (sup. izquierdo) --- */
+.eco-filtros {
+    position: fixed; top: 60px; left: 16px; z-index: 100;
+    background: rgba(255,255,255,0.95); border-radius: 10px; padding: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); width: 240px;
+    max-height: calc(100vh - 140px); overflow-y: auto;
+}
+.eco-filtros h3 { font-size: 10px; font-weight: 800; color: #004b87; text-transform: uppercase; margin-bottom: 8px; }
+.eco-filtros .eco-search {
+    width: 100%; padding: 8px 10px; border: 2px solid #e2e8f0; border-radius: 6px;
+    font-size: 12px; margin-bottom: 10px; font-family: 'Montserrat', sans-serif;
+}
+.eco-filtros .eco-search:focus { outline: none; border-color: #007bb5; }
+.eco-filtros .eco-filtro-grupo { margin-bottom: 10px; }
+.eco-filtros .eco-filtro-grupo h4 {
+    font-size: 10px; font-weight: 700; color: #4a5568; text-transform: uppercase;
+    margin-bottom: 5px; cursor: pointer;
+}
+.eco-filtros label {
+    display: flex; align-items: center; gap: 6px; font-size: 11px;
+    color: #2d3748; padding: 3px 0; cursor: pointer; font-weight: 600;
+}
+.eco-filtros input[type="checkbox"] { accent-color: #004b87; width: 14px; height: 14px; }
+.eco-filtros .eco-count {
+    font-size: 10px; color: #718096; font-weight: 600; margin-top: 6px;
+    padding-top: 6px; border-top: 1px solid #e2e8f0;
+}
+
+/* --- Panel de info (derecho) --- */
+.eco-info {
+    position: fixed; top: 60px; right: 210px; z-index: 100;
+    background: rgba(255,255,255,0.98); border-radius: 10px; padding: 16px 18px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.15); width: 320px;
+    max-height: calc(100vh - 140px); overflow-y: auto;
+    display: none;
+}
+.eco-info.visible { display: block; }
+.eco-info .eco-info-close {
+    position: absolute; top: 10px; right: 12px; cursor: pointer;
+    font-size: 18px; color: #a0aec0; font-weight: 700;
+}
+.eco-info .eco-info-close:hover { color: #e53e3e; }
+.eco-info .eco-info-tipo {
+    font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+    padding: 2px 10px; border-radius: 10px; border: 1px solid; display: inline-block; margin-bottom: 8px;
+}
+.eco-info h2 { font-size: 15px; font-weight: 800; color: #004b87; margin-bottom: 6px; line-height: 1.3; }
+.eco-info .eco-info-org { font-size: 11px; color: #718096; font-weight: 600; margin-bottom: 10px; }
+.eco-info .eco-info-row {
+    display: flex; gap: 8px; margin-bottom: 6px; padding-bottom: 5px;
+    border-bottom: 1px solid #f0f4f8; font-size: 11px; line-height: 1.4;
+}
+.eco-info .eco-info-row:last-child { border-bottom: none; }
+.eco-info .eco-info-label { font-weight: 700; color: #004b87; min-width: 90px; flex-shrink: 0; }
+.eco-info .eco-info-val { color: #2d3748; flex: 1; }
+
+/* --- Leyenda (inf. izquierdo) --- */
+.eco-leyenda {
+    position: fixed; bottom: 16px; left: 16px; z-index: 100;
+    background: rgba(255,255,255,0.95); border-radius: 10px; padding: 10px 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); font-size: 10px;
+}
+.eco-leyenda h3 { font-size: 9px; font-weight: 800; color: #004b87; text-transform: uppercase; margin-bottom: 6px; }
+.eco-leyenda .eco-leyenda-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.eco-leyenda .eco-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.eco-leyenda .eco-line { width: 20px; height: 2px; flex-shrink: 0; }
+
+/* --- Tooltip --- */
+.eco-tooltip {
+    position: fixed; z-index: 200; background: rgba(0,75,135,0.95); color: #fff;
+    padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    pointer-events: none; display: none; max-width: 280px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* --- Loading --- */
+.eco-loading {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 300;
+    background: rgba(255,255,255,0.98); border-radius: 12px; padding: 30px 40px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2); text-align: center;
+}
+.eco-loading .spinner {
+    width: 40px; height: 40px; border: 4px solid #e2e8f0;
+    border-top-color: #004b87; border-radius: 50%;
+    margin: 0 auto 12px; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.eco-loading p { font-size: 13px; color: #004b87; font-weight: 700; }
+
+/* --- Resumen accesible (alternativa textual al canvas 3D) --- */
+.eco-resumen {
+    position: fixed; bottom: 16px; right: 16px; z-index: 100;
+    background: rgba(255,255,255,0.95); border-radius: 10px; padding: 10px 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12); font-size: 11px; max-width: 300px;
+    max-height: 40vh; overflow-y: auto;
+}
+.eco-resumen summary { font-size: 10px; font-weight: 800; color: #004b87; text-transform: uppercase; cursor: pointer; }
+.eco-resumen ul { margin: 8px 0 0 16px; color: #2d3748; }
+.eco-resumen li { margin-bottom: 2px; }
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .eco-filtros { width: 200px; font-size: 10px; }
+    .eco-info { width: 260px; right: 16px; }
+    .eco-controls { width: 150px; }
+}
+{% endblock %}
+
+{% block content %}
+<canvas id="eco-canvas"></canvas>
+
+<div class="eco-top">
+    <h1>Ecosistema de Datos</h1>
+    <div class="eco-links">
+        <a href="{% url 'indicadores:taller_dashboard' %}">← Dashboard</a>
+        <a href="{% url 'indicadores:catalogo_datos' %}">Catálogo</a>
+        <a href="{% url 'indicadores:taller_ecosistema_metodologia' %}">Metodología</a>
+        <a href="{% url 'indicadores:taller_modelo_datos' %}">Modelo de datos</a>
+    </div>
+</div>
+
+<div class="eco-controls">
+    <h3>Cámara</h3>
+    <button id="btnReset">⟲ Reset vista</button>
+    <button id="btn2D3D" class="activo">Vista 3D</button>
+    <button id="btnZoomIn">+ Zoom</button>
+    <button id="btnZoomOut">− Zoom</button>
+    <button id="btnLabels">Etiquetas</button>
+    <button id="btnRotate">⟳ Auto-rotar</button>
+    <button id="btnGEXF" style="background:#2d8659;">⬇ GEXF (Gephi)</button>
+    <button id="btnSVG" style="background:#2d8659;">⬇ SVG</button>
+    <a href="https://lite.gephi.org/v1.0.2/" target="_blank" rel="noopener" style="background:#2d8659;">↗ Gephi Lite</a>
+    <button id="btnSoloRel" style="background:#5b4a8a;">Solo relacionados</button>
+</div>
+
+<div class="eco-filtros">
+    <h3>Filtros</h3>
+    <input type="text" class="eco-search" id="ecoSearch" placeholder="Buscar nodo...">
+    <div class="eco-filtro-grupo">
+        <h4>Tipos de nodo</h4>
+        <label><input type="checkbox" class="filtro-tipo" value="gold" checked> ⭐ Capa Gold</label>
+        <label><input type="checkbox" class="filtro-tipo" value="catalogo" checked> 🟦 Bases catálogo</label>
+        <label><input type="checkbox" class="filtro-tipo" value="fuente_informacion" checked> 🩷 Fuentes de información</label>
+        <label><input type="checkbox" class="filtro-tipo" value="organismo" checked> 🟧 Organismos</label>
+        <label><input type="checkbox" class="filtro-tipo" value="suborganismo" checked> 🟪 Suborganismos</label>
+        <label><input type="checkbox" class="filtro-tipo" value="equipo" checked> 🔵 Equipos</label>
+        <label><input type="checkbox" class="filtro-tipo" value="conjunto" checked> 🟩 Conjuntos reportados</label>
+        <label><input type="checkbox" class="filtro-tipo" value="reto" checked> 🟠 Retos de análisis</label>
+    </div>
+    <div class="eco-filtro-grupo">
+        <h4>Conexiones</h4>
+        <label><input type="checkbox" class="filtro-arista" value="cruce_catalogo" checked> Cruce entre bases</label>
+        <label><input type="checkbox" class="filtro-arista" value="matching_variable" checked> Matching por variables</label>
+        <label><input type="checkbox" class="filtro-arista" value="match_exacto" checked> <span style="color:#00ff88;font-weight:600;">●</span> Match exacto (nombre)</label>
+        <label><input type="checkbox" class="filtro-arista" value="match_aproximado" checked> <span style="color:#f6ad55;">○</span> Match aproximado</label>
+        <label><input type="checkbox" class="filtro-arista" value="origen_externo" checked> Origen externo</label>
+        <label><input type="checkbox" class="filtro-arista" value="requerida_externa" checked> Requerida externa</label>
+        <label><input type="checkbox" class="filtro-arista" value="pertenencia" checked> Pertenencia (org→conj)</label>
+        <label><input type="checkbox" class="filtro-arista" value="jerarquia" checked> Jerarquía (org→sub)</label>
+        <label><input type="checkbox" class="filtro-arista" value="variables_compartidas" checked> Variables compartidas</label>
+    </div>
+    <div class="eco-count" id="ecoCount"></div>
+</div>
+
+<div class="eco-info" id="ecoInfo">
+    <span class="eco-info-close" onclick="cerrarInfo()">×</span>
+    <div id="ecoInfoContent"></div>
+</div>
+
+<div class="eco-leyenda">
+    <h3>Leyenda</h3>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#ffd700;box-shadow:0 0 8px #ffd700;"></div> Capa Gold (Sol)</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#007bb5;"></div> Base catálogo</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#f5a86b;"></div> Organismo (planeta)</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#a78bfa;"></div> Suborganismo (luna)</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#4fc3f7;box-shadow:0 0 6px #4fc3f7;"></div> Equipo (estación)</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#6fce8f;"></div> Conjunto (satélite)</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#fc8181;"></div> Reto de análisis</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#ef92c4;"></div> Fuente de información</div>
+    <div class="eco-leyenda-item" style="margin-top:6px;font-size:9px;color:#718096;">Jerarquía: Organismo → Suborganismo → Equipo → Conjunto</div>
+    <div class="eco-leyenda-item" style="font-size:9px;color:#718096;">Altura: retos arriba · conjuntos abajo · externas bajo el plano</div>
+    <div class="eco-leyenda-item" style="margin-top:4px;font-size:9px;font-weight:800;color:#004b87;">Criticidad F3 (anillo):</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:transparent;border:3px solid #e53e3e;width:8px;height:8px;"></div> Rojo — crítico</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:transparent;border:3px solid #f6ad55;width:8px;height:8px;"></div> Amarillo — moderado</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:transparent;border:3px solid #38a169;width:8px;height:8px;"></div> Verde — público</div>
+    <div class="eco-leyenda-item"><div class="eco-line" style="background:rgba(255,215,0,0.6);"></div> Cruce con Gold</div>
+    <div class="eco-leyenda-item"><div class="eco-line" style="background:rgba(0,123,181,0.5);"></div> Cruce entre bases</div>
+    <div class="eco-leyenda-item"><div class="eco-line" style="background:rgba(111,206,143,0.5);"></div> Matching variables</div>
+    <div class="eco-leyenda-item"><div class="eco-line" style="background:rgba(56,178,172,0.5);"></div> Variables compartidas</div>
+</div>
+
+<details class="eco-resumen" id="ecoResumen">
+    <summary>Resumen del grafo (texto)</summary>
+    <ul id="ecoResumenLista"><li>Cargando…</li></ul>
+</details>
+
+<div class="eco-tooltip" id="ecoTooltip"></div>
+
+<div class="eco-loading" id="ecoLoading">
+    <div class="spinner"></div>
+    <p>Cargando ecosistema...</p>
+</div>
+
+<script src="{% static 'vendor/three.min.js' %}"></script>
+<script src="{% static 'vendor/OrbitControls.js' %}"></script>
+<script>
+{% include "taller/ecosistema_js.html" %}
+</script>
+{% endblock %}

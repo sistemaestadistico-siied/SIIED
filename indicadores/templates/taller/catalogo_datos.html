@@ -1,0 +1,417 @@
+{% extends 'taller/wizard_base.html' %}
+
+{% block title %}Catálogo de Datos · Taller{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+  :root {
+    --cat-bg: #ffffff;
+    --cat-panel: #f7fafc;
+    --cat-panel-2: #edf2f7;
+    --cat-text: #1a202c;
+    --cat-muted: #718096;
+    --cat-accent: #004b87;
+    --cat-accent-2: #007bb5;
+    --cat-green: #2f855a;
+    --cat-amber: #b7791f;
+    --cat-red: #c53030;
+    --cat-border: #e2e8f0;
+  }
+  body { background: var(--cat-bg); color: var(--cat-text); }
+
+  .cat-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr 320px;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* --- Panel izquierdo: lista de bases --- */
+  .cat-sidebar {
+    background: var(--cat-panel);
+    border-right: 1px solid var(--cat-border);
+    overflow-y: auto;
+    padding: 0;
+  }
+  .cat-sidebar-header {
+    padding: 20px 20px 12px;
+    border-bottom: 1px solid var(--cat-border);
+    position: sticky; top: 0; background: var(--cat-panel); z-index: 10;
+  }
+  .cat-sidebar-header h2 { font-size: 16px; font-weight: 700; margin: 0 0 4px; color: var(--cat-text); }
+  .cat-sidebar-header p { font-size: 11px; color: var(--cat-muted); margin: 0; }
+  .cat-search-wrap { padding: 12px 16px 8px; position: sticky; top: 56px; background: var(--cat-panel); z-index: 9; }
+  .cat-search {
+    width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--cat-border);
+    background: var(--cat-bg); color: var(--cat-text); font-size: 12px; font-family: inherit;
+  }
+  .cat-search:focus { outline: none; border-color: var(--cat-accent); }
+  .cat-base-item {
+    padding: 14px 20px; cursor: pointer; border-bottom: 1px solid var(--cat-border);
+    transition: background 0.15s;
+  }
+  .cat-base-item:hover { background: var(--cat-panel-2); }
+  .cat-base-item.active { background: var(--cat-panel-2); border-left: 3px solid var(--cat-accent); }
+  .cat-base-item .bn { font-size: 13px; font-weight: 700; color: var(--cat-text); }
+  .cat-base-item .bd { font-size: 10.5px; color: var(--cat-muted); margin-top: 2px; }
+  .cat-base-item .bm { display: flex; gap: 6px; margin-top: 6px; }
+  .cat-base-item .bm span {
+    font-size: 9px; padding: 2px 6px; border-radius: 4px; background: var(--cat-bg);
+    color: var(--cat-muted);
+  }
+
+  /* --- Panel central: detalle de base --- */
+  .cat-main {
+    overflow-y: auto; padding: 0;
+  }
+  .cat-sticky-wrap {
+    position: sticky; top: 0; z-index: 10; background: var(--cat-bg);
+  }
+  .cat-main-header {
+    padding: 24px 32px 16px; border-bottom: 1px solid var(--cat-border);
+  }
+  .cat-main-header h1 { font-size: 24px; font-weight: 800; margin: 0; color: var(--cat-text); }
+  .cat-main-header .desc { font-size: 13px; color: var(--cat-muted); margin-top: 6px; max-width: 700px; line-height: 1.5; }
+  .cat-meta { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .cat-meta-item { font-size: 11px; color: var(--cat-muted); }
+  .cat-meta-item strong { color: var(--cat-text); }
+  .cat-fields-toolbar {
+    padding: 12px 32px; border-bottom: 1px solid var(--cat-border);
+    background: var(--cat-bg);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .cat-fields-toolbar .count { font-size: 12px; color: var(--cat-muted); }
+  .cat-fields-toolbar .count strong { color: var(--cat-text); }
+  .cat-filter-btns { display: flex; gap: 8px; }
+  .cat-filter-btn {
+    font-size: 10.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--cat-border);
+    background: transparent; color: var(--cat-muted); cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .cat-filter-btn:hover { border-color: var(--cat-accent); color: var(--cat-text); }
+  .cat-filter-btn.active { background: var(--cat-accent); color: #fff; border-color: var(--cat-accent); font-weight: 700; }
+
+  .cat-fields { padding: 8px 32px 40px; }
+  .cat-field {
+    display: grid; grid-template-columns: 200px 70px 1fr auto auto; gap: 12px;
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 4px;
+    transition: background 0.15s; align-items: center; cursor: default;
+  }
+  .cat-field:hover { background: var(--cat-panel); }
+  .cat-field.highlight { background: rgba(0,75,135,0.08); border: 1px solid var(--cat-accent); }
+  .cat-field.dim { opacity: 0.3; }
+  .cat-field .fn { font-size: 13px; font-weight: 600; color: var(--cat-text); font-family: 'Fira Code', monospace; }
+  .cat-field .ft {
+    font-size: 10px; padding: 2px 8px; border-radius: 4px; text-align: center; font-weight: 600;
+    text-transform: uppercase;
+  }
+  .ft-texto { background: rgba(0,123,181,0.12); color: #005a8c; }
+  .ft-numero { background: rgba(47,133,90,0.12); color: #276749; }
+  .ft-fecha { background: rgba(183,121,31,0.12); color: #975a16; }
+  .cat-field .fd { font-size: 12px; color: var(--cat-muted); line-height: 1.4; }
+  .cat-field .fc {
+    font-size: 10px; padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .fc-yes { background: rgba(47,133,90,0.1); color: var(--cat-green); border: 1px solid rgba(47,133,90,0.25); }
+  .fc-no { color: var(--cat-muted); }
+
+  /* Sensibilidad */
+  .fs { font-size: 10px; padding: 3px 8px; border-radius: 4px; white-space: nowrap; font-weight: 600; }
+  .fs-publico { color: var(--cat-muted); }
+  .fs-sensible { background: rgba(197,48,48,0.08); color: var(--cat-red); border: 1px solid rgba(197,48,48,0.25); }
+  .fs-admin { background: rgba(183,121,31,0.08); color: var(--cat-amber); border: 1px solid rgba(183,121,31,0.25); }
+
+  /* Categoría group header */
+  .cat-cat-header {
+    font-size: 11px; font-weight: 700; color: var(--cat-accent-2); text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 14px 14px 6px; margin-top: 8px;
+    border-bottom: 1px solid rgba(0,123,181,0.2);
+  }
+  .cat-cat-header .cat-count { font-size: 10px; color: var(--cat-muted); font-weight: 400; margin-left: 8px; }
+
+  /* --- Panel derecho: cruzables --- */
+  .cat-aside {
+    background: var(--cat-panel); border-left: 1px solid var(--cat-border);
+    overflow-y: auto;
+  }
+  .cat-aside-header {
+    padding: 20px 20px 12px; border-bottom: 1px solid var(--cat-border);
+    position: sticky; top: 0; background: var(--cat-panel); z-index: 10;
+  }
+  .cat-aside-header h3 { font-size: 14px; font-weight: 700; margin: 0 0 4px; color: var(--cat-text); }
+  .cat-aside-header p { font-size: 11px; color: var(--cat-muted); margin: 0; line-height: 1.4; }
+  .cat-cruz-item {
+    padding: 12px 20px; border-bottom: 1px solid var(--cat-border); cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cat-cruz-item:hover { background: var(--cat-panel-2); }
+  .cat-cruz-item .cn { font-size: 12px; font-weight: 600; color: var(--cat-accent); font-family: 'Fira Code', monospace; }
+  .cat-cruz-item .cb { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+  .cat-cruz-item .cb span {
+    font-size: 9.5px; padding: 2px 7px; border-radius: 4px;
+    background: rgba(0,75,135,0.08); color: var(--cat-accent); border: 1px solid rgba(0,75,135,0.2);
+  }
+  .cat-cruz-item .ci { font-size: 10.5px; color: var(--cat-muted); margin-top: 4px; }
+
+  /* --- Modo cruzar --- */
+  .cat-layout.cruzar-mode .cat-field { opacity: 0.25; }
+  .cat-layout.cruzar-mode .cat-field.cruzable { opacity: 1; }
+  .cat-layout.cruzar-mode .cat-field.cruzable.highlight { opacity: 1; }
+
+  /* --- Responsive --- */
+  @media (max-width: 1024px) {
+    .cat-layout { grid-template-columns: 220px 1fr 260px; }
+  }
+  @media (max-width: 768px) {
+    .cat-layout { grid-template-columns: 1fr; height: auto; }
+    .cat-sidebar, .cat-aside { max-height: 250px; }
+    .cat-main { height: auto; }
+    .cat-field { grid-template-columns: 1fr; gap: 4px; }
+    .cat-field .fs { display: inline-block; }
+    .cat-fields-toolbar { position: static; }
+    .cat-main-header { position: static; }
+  }
+{% endblock %}
+
+{% block content %}
+<div class="cat-layout" id="catLayout">
+
+  <!-- Panel izquierdo: lista de bases -->
+  <aside class="cat-sidebar">
+    <div class="cat-sidebar-header">
+      <h2>Catálogo de Datos</h2>
+      <p>Bases disponibles para consulta y cruce</p>
+    </div>
+    <div class="cat-search-wrap">
+      <input type="text" class="cat-search" id="globalSearch" placeholder="Buscar campo o base..." oninput="filtrarGlobal()">
+    </div>
+    <div id="listaBases"></div>
+  </aside>
+
+  <!-- Panel central: detalle -->
+  <main class="cat-main" id="catMain">
+    <div class="cat-sticky-wrap">
+      <div class="cat-main-header" id="mainHeader"></div>
+      <div class="cat-fields-toolbar">
+        <div class="count" id="fieldsCount"></div>
+        <div class="cat-filter-btns">
+          <button class="cat-filter-btn active" data-filter="all" onclick="setFilter('all')">Todos</button>
+          <button class="cat-filter-btn" data-filter="cruz" onclick="setFilter('cruz')">🔗 Cruzables</button>
+          <button class="cat-filter-btn" data-filter="sensible" onclick="setFilter('sensible')">🔒 Sensibles</button>
+          <button class="cat-filter-btn" data-filter="texto" onclick="setFilter('texto')">Texto</button>
+          <button class="cat-filter-btn" data-filter="numero" onclick="setFilter('numero')">Número</button>
+          <button class="cat-filter-btn" data-filter="fecha" onclick="setFilter('fecha')">Fecha</button>
+        </div>
+      </div>
+    </div>
+    <div class="cat-fields" id="fieldsContainer"></div>
+  </main>
+
+  <!-- Panel derecho: campos cruzables -->
+  <aside class="cat-aside">
+    <div class="cat-aside-header">
+      <h3>Puntos de cruce</h3>
+      <p>Campos comunes entre bases que permiten cruzar información para generar valor agregado</p>
+    </div>
+    <div id="cruzContainer"></div>
+  </aside>
+
+</div>
+
+<script>
+const BASES = {{ bases_json|safe }};
+const CRUZABLES = {{ cruzables_json|safe }};
+
+let baseActiva = null;
+let filtroActivo = 'all';
+let campoResaltado = null;
+
+// --- Render lista de bases ---
+function renderListaBases() {
+  const container = document.getElementById('listaBases');
+  container.innerHTML = '';
+  BASES.forEach(b => {
+    const div = document.createElement('div');
+    div.className = 'cat-base-item' + (baseActiva && baseActiva.id === b.id ? ' active' : '');
+    div.onclick = () => seleccionarBase(b.id);
+    const nSens = b.campos.filter(c => c.sensible === 'sensible').length;
+    div.innerHTML = `
+      <div class="bn">${b.nombre}</div>
+      <div class="bd">${b.descripcion.substring(0, 80)}...</div>
+      <div class="bm">
+        <span>${b.campos.length} campos</span>
+        <span>${b.campos.filter(c => c.cruzar).length} cruzables</span>
+        ${nSens > 0 ? `<span style="color:var(--cat-red)">${nSens} sensibles</span>` : ''}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- Seleccionar base ---
+function seleccionarBase(id) {
+  baseActiva = BASES.find(b => b.id === id);
+  campoResaltado = null;
+  renderListaBases();
+  renderMain();
+  renderCruz();
+}
+
+// --- Render panel central ---
+function renderMain() {
+  if (!baseActiva) return;
+  const header = document.getElementById('mainHeader');
+  header.innerHTML = `
+    <h1>${baseActiva.nombre}</h1>
+    <div class="desc">${baseActiva.descripcion}</div>
+    <div class="cat-meta">
+      <div class="cat-meta-item"><strong>Organismo:</strong> ${baseActiva.organismo}</div>
+      <div class="cat-meta-item"><strong>Frecuencia:</strong> ${baseActiva.frecuencia}</div>
+      <div class="cat-meta-item"><strong>Cobertura:</strong> ${baseActiva.cobertura}</div>
+    </div>
+  `;
+  renderFields();
+}
+
+// --- Render campos ---
+function renderFields() {
+  if (!baseActiva) return;
+  const container = document.getElementById('fieldsContainer');
+  const search = document.getElementById('globalSearch').value.toLowerCase();
+  let campos = baseActiva.campos;
+
+  if (filtroActivo === 'cruz') campos = campos.filter(c => c.cruzar);
+  else if (filtroActivo === 'sensible') campos = campos.filter(c => c.sensible === 'sensible' || c.sensible === 'admin');
+  else if (filtroActivo !== 'all') campos = campos.filter(c => c.tipo === filtroActivo);
+
+  if (search) {
+    campos = campos.filter(c =>
+      c.nombre.toLowerCase().includes(search) || c.descripcion.toLowerCase().includes(search)
+    );
+  }
+
+  document.getElementById('fieldsCount').innerHTML =
+    `<strong>${campos.length}</strong> de ${baseActiva.campos.length} campos`;
+
+  container.innerHTML = '';
+  let lastCat = null;
+  campos.forEach(c => {
+    if (c.categoria !== lastCat) {
+      lastCat = c.categoria;
+      const catHeader = document.createElement('div');
+      catHeader.className = 'cat-cat-header';
+      const catCount = campos.filter(x => x.categoria === lastCat).length;
+      catHeader.innerHTML = `${lastCat} <span class="cat-count">${catCount} campo(s)</span>`;
+      container.appendChild(catHeader);
+    }
+    const div = document.createElement('div');
+    let classes = 'cat-field';
+    if (c.cruzar) classes += ' cruzable';
+    if (campoResaltado === c.nombre) classes += ' highlight';
+    if (campoResaltado && campoResaltado !== c.nombre) classes += ' dim';
+    div.className = classes;
+    div.onclick = () => resaltarCampo(c.nombre);
+    const sensBadge = c.sensible === 'sensible'
+      ? '<div class="fs fs-sensible">🔒 Sensible</div>'
+      : c.sensible === 'admin'
+        ? '<div class="fs fs-admin">⚙ Admin</div>'
+        : '<div class="fs fs-publico"></div>';
+    div.innerHTML = `
+      <div class="fn">${c.nombre}</div>
+      <div class="ft ft-${c.tipo}">${c.tipo}</div>
+      <div class="fd">${c.descripcion}</div>
+      <div class="fc ${c.cruzar ? 'fc-yes' : 'fc-no'}">
+        ${c.cruzar ? '🔗' : ''}
+      </div>
+      ${sensBadge}
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- Render panel de cruzables ---
+function renderCruz() {
+  const container = document.getElementById('cruzContainer');
+  container.innerHTML = '';
+  Object.entries(CRUZABLES).forEach(([campo, bases]) => {
+    const basesInfo = bases.map(id => {
+      const b = BASES.find(x => x.id === id);
+      return b ? b.nombre : id;
+    });
+    const div = document.createElement('div');
+    div.className = 'cat-cruz-item';
+    div.onclick = () => {
+      resaltarCampo(campo);
+    };
+    div.innerHTML = `
+      <div class="cn">${campo}</div>
+      <div class="cb">${basesInfo.map(n => `<span>${n}</span>`).join('')}</div>
+      <div class="ci">Presente en ${bases.length} bases — click para resaltar</div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// --- Resaltar campo cruzable ---
+function resaltarCampo(nombre) {
+  if (campoResaltado === nombre) {
+    campoResaltado = null;
+  } else {
+    campoResaltado = nombre;
+  }
+  renderFields();
+  // Actualizar panel cruzables
+  document.querySelectorAll('.cat-cruz-item').forEach(item => {
+    item.style.opacity = campoResaltado && item.querySelector('.cn').textContent !== campoResaltado ? '0.4' : '1';
+  });
+}
+
+// --- Filtro ---
+function setFilter(f) {
+  filtroActivo = f;
+  document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === f);
+  });
+  renderFields();
+}
+
+// --- Búsqueda global ---
+function filtrarGlobal() {
+  const search = document.getElementById('globalSearch').value.toLowerCase();
+  if (!search) {
+    renderListaBases();
+    renderFields();
+    return;
+  }
+  // Filtrar lista de bases
+  const container = document.getElementById('listaBases');
+  container.innerHTML = '';
+  BASES.forEach(b => {
+    const matchBase = b.nombre.toLowerCase().includes(search) || b.descripcion.toLowerCase().includes(search);
+    const matchCampos = b.campos.some(c =>
+      c.nombre.toLowerCase().includes(search) || c.descripcion.toLowerCase().includes(search)
+    );
+    if (matchBase || matchCampos) {
+      const div = document.createElement('div');
+      div.className = 'cat-base-item' + (baseActiva && baseActiva.id === b.id ? ' active' : '');
+      div.onclick = () => seleccionarBase(b.id);
+      const nSens = b.campos.filter(c => c.sensible === 'sensible').length;
+      div.innerHTML = `
+        <div class="bn">${b.nombre}</div>
+        <div class="bd">${b.descripcion.substring(0, 80)}...</div>
+        <div class="bm">
+          <span>${b.campos.length} campos</span>
+          <span>${b.campos.filter(c => c.cruzar).length} cruzables</span>
+          ${nSens > 0 ? `<span style="color:var(--cat-red)">${nSens} sensibles</span>` : ''}
+        </div>
+      `;
+      container.appendChild(div);
+    }
+  });
+  renderFields();
+}
+
+// --- Init ---
+seleccionarBase(BASES[0].id);
+</script>
+{% endblock %}

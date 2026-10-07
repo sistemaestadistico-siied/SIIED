@@ -18,8 +18,9 @@ from .models import (
     AreaInfraestructura, CategoriaInfraestructura, SubcategoriaInfraestructura, GrupoDocumento, DocumentoInfraestructura,
     ReglaExtraccion, ProcesoExtraccion, ProcesoLog, Grafico, GraficoSerie, ConjuntoDatos, VariableConjuntoDatos, Aliado, Evento,
     Organismo, Suborganismo, EquipoOrganismo, RespuestaSatisfaccionRapida, RespuestaSatisfaccionCompleta,
-    FamiliaRol, RolEcosistema, SesionTaller, ParticipanteTaller, PreguntaQuiz, OpcionQuiz, RespuestaQuiz,
-    FichaDatosPersonal, SubsistemaOrganismo, FlujoDatos, ClasificacionDato, DatoEcosistema, PropositoDato,
+    OpcionTaller, InscripcionTaller, RetoAnalisis, FuenteRequerida,
+    FuenteDatos, FuenteOrigen, VariableFuente, EvaluacionSeguridad,
+    BaseCatalogo, CampoCatalogo,
     ProductoAcademico, SeccionPaper, ImagenSeccion, ArchivoSeccion, CalendarioDifusion,
     ProductoEducativo, SeccionEducativa, LogroEducativo, ProgresoUsuarioEducativo,
     CatalogoDominio, CatalogoConsulta,
@@ -2877,412 +2878,106 @@ class RespuestaSatisfaccionCompletaAdmin(admin.ModelAdmin):
         return False
 
 
-# ============================================================================
-# ADMIN PARA TALLERES DE IDENTIFICACIÓN DEL ECOSISTEMA DE DATOS
-# ============================================================================
+# =============================================================================
+# TALLER DE ECOSISTEMAS + CATÁLOGO DE DATOS (módulos nuevos)
+# =============================================================================
 
-@admin.register(FamiliaRol)
-class FamiliaRolAdmin(admin.ModelAdmin):
-    list_display = ['codigo', 'nombre', 'color_hex', 'orden']
-    list_editable = ['orden']
-    ordering = ['codigo']
-    search_fields = ['nombre', 'descripcion']
+@admin.register(OpcionTaller)
+class OpcionTallerAdmin(admin.ModelAdmin):
+    list_display = ['etiqueta', 'categoria', 'orden', 'activa']
+    list_filter = ['categoria', 'activa']
+    list_editable = ['orden', 'activa']
+    search_fields = ['etiqueta']
 
 
-class RolEcosistemaInline(admin.TabularInline):
-    model = RolEcosistema
+class FuenteDatosInline(admin.TabularInline):
+    model = FuenteDatos
     extra = 0
-    fields = ['numero', 'nombre', 'icono']
-
-
-@admin.register(RolEcosistema)
-class RolEcosistemaAdmin(admin.ModelAdmin):
-    list_display = ['numero', 'nombre', 'familia', 'nivel_alcance', 'icono']
-    list_filter = ['familia', 'nivel_alcance']
-    search_fields = ['nombre', 'descripcion_narrativa']
-    ordering = ['numero']
-    
-    fieldsets = (
-        ('Información Básica', {
-            'fields': ('familia', 'numero', 'nombre')
-        }),
-        ('Descripción', {
-            'fields': ('descripcion_narrativa', 'descripcion_completa')
-        }),
-        ('Jerarquía y Visualización', {
-            'fields': ('nivel_alcance', 'icono', 'imagen_url'),
-            'description': 'El nivel de alcance define la jerarquía inherente a este rol en el ecosistema de datos'
-        }),
-    )
-
-
-class ParticipanteTallerInline(admin.TabularInline):
-    model = ParticipanteTaller
-    extra = 0
-    fields = ['nombre_completo', 'area_funcional', 'rol_primario', 'presente']
-    readonly_fields = ['token_sesion']
+    max_num = 10
     show_change_link = True
+    fields = ['nombre', 'rol', 'fecha_inicio']
 
 
-@admin.register(SesionTaller)
-class SesionTallerAdmin(admin.ModelAdmin):
-    list_display = ['nombre_sesion', 'organismo', 'fecha', 'estado', 'actividad_actual', 'num_participantes']
-    list_filter = ['estado', 'actividad_actual', 'fecha']
-    search_fields = ['nombre_sesion', 'organismo__nombre', 'facilitador']
-    readonly_fields = ['codigo_acceso', 'fecha_creacion', 'fecha_actualizacion']
-    inlines = [ParticipanteTallerInline]
-    
-    fieldsets = (
-        ('Información básica', {
-            'fields': ('organismo', 'nombre_sesion', 'codigo_acceso', 'fecha', 'hora_inicio', 'hora_fin')
-        }),
-        ('Estado del taller', {
-            'fields': ('estado', 'actividad_actual', 'facilitador', 'notas_facilitador')
-        }),
-        ('Metadatos', {
-            'fields': ('fecha_creacion', 'fecha_actualizacion'),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def num_participantes(self, obj):
-        return obj.participantes.count()
-    num_participantes.short_description = 'Participantes'
-    
-    def save_model(self, request, obj, form, change):
-        if not obj.codigo_acceso:
-            import secrets
-            obj.codigo_acceso = secrets.token_urlsafe(6)[:8].upper()
-        super().save_model(request, obj, form, change)
+@admin.register(InscripcionTaller)
+class InscripcionTallerAdmin(admin.ModelAdmin):
+    list_display = ['nombre_completo', 'organismo', 'equipo', 'correo', 'estado', 'paso_actual', 'actualizado']
+    list_filter = ['estado', 'organismo']
+    search_fields = ['nombre_completo', 'organismo__nombre', 'equipo__nombre', 'correo']
+    readonly_fields = ['uuid', 'creado', 'actualizado']
+    date_hierarchy = 'creado'
+    inlines = [FuenteDatosInline]
 
 
-@admin.register(ParticipanteTaller)
-class ParticipanteTallerAdmin(admin.ModelAdmin):
-    list_display = ['nombre_completo', 'sesion', 'area_funcional', 'rol_primario', 'presente']
-    list_filter = ['presente', 'sesion__organismo', 'rol_primario__familia']
-    search_fields = ['nombre_completo', 'cargo', 'area_funcional', 'email']
-    readonly_fields = ['token_sesion', 'fecha_registro']
-    
-    fieldsets = (
-        ('Información personal', {
-            'fields': ('sesion', 'nombre_completo', 'cargo', 'email', 'presente')
-        }),
-        ('Ubicación organizacional', {
-            'fields': ('area_funcional', 'suborganismo')
-        }),
-        ('Roles identificados', {
-            'fields': ('rol_primario', 'rol_secundario', 'identificado_por')
-        }),
-        ('Metadatos', {
-            'fields': ('token_sesion', 'fecha_registro'),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def save_model(self, request, obj, form, change):
-        if not obj.token_sesion:
-            import secrets
-            obj.token_sesion = secrets.token_urlsafe(48)
-        super().save_model(request, obj, form, change)
+class FuenteOrigenInline(admin.TabularInline):
+    model = FuenteOrigen
+    extra = 0
 
 
-class OpcionQuizInline(admin.TabularInline):
-    model = OpcionQuiz
-    extra = 2
-    fields = ['letra', 'texto', 'orden']
+class VariableFuenteInline(admin.TabularInline):
+    model = VariableFuente
+    extra = 0
+    max_num = 10
 
 
-@admin.register(PreguntaQuiz)
-class PreguntaQuizAdmin(admin.ModelAdmin):
-    list_display = ['numero', 'texto_corto', 'tipo', 'activa', 'num_opciones']
-    list_filter = ['tipo', 'activa']
-    list_editable = ['activa']
-    ordering = ['orden', 'numero']
-    inlines = [OpcionQuizInline]
-    
-    def texto_corto(self, obj):
-        return obj.texto[:80] + '...' if len(obj.texto) > 80 else obj.texto
-    texto_corto.short_description = 'Texto'
-    
-    def num_opciones(self, obj):
-        return obj.opciones.count()
-    num_opciones.short_description = 'Opciones'
+@admin.register(FuenteDatos)
+class FuenteDatosAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'inscripcion', 'rol', 'georreferenciacion', 'tiene_validacion']
+    list_filter = ['rol', 'georreferenciacion', 'tiene_validacion', 'inscripcion__organismo']
+    search_fields = ['nombre', 'descripcion', 'inscripcion__organismo__nombre']
+    filter_horizontal = ['relaciones', 'instrumentos', 'mecanismos', 'periodicidades',
+                         'desagregaciones', 'unidades_analisis', 'niveles_georref',
+                         'problemas_calidad']
+    inlines = [FuenteOrigenInline, VariableFuenteInline]
 
 
-@admin.register(RespuestaQuiz)
-class RespuestaQuizAdmin(admin.ModelAdmin):
-    list_display = ['participante', 'pregunta', 'opcion_seleccionada', 'fecha_respuesta']
-    list_filter = ['pregunta', 'participante__sesion']
-    search_fields = ['participante__nombre_completo']
-    readonly_fields = ['fecha_respuesta']
-    
-    def has_add_permission(self, request):
-        return False
+class FuenteRequeridaInline(admin.TabularInline):
+    model = FuenteRequerida
+    extra = 0
+    max_num = 3
 
 
-@admin.register(FichaDatosPersonal)
-class FichaDatosPersonalAdmin(admin.ModelAdmin):
-    list_display = ['participante', 'sesion_organismo', 'fecha_registro']
-    list_filter = ['participante__sesion__organismo']
-    search_fields = ['participante__nombre_completo', 'datos_que_manejo', 'sistemas_mencionados']
-    readonly_fields = ['fecha_registro']
-    
-    fieldsets = (
-        ('Participante', {
-            'fields': ('participante',)
-        }),
-        ('Ficha de caracterización', {
-            'fields': ('datos_que_manejo', 'que_hago_con_ellos', 'a_quien_entrego', 'de_quien_recibo')
-        }),
-        ('Sistemas identificados', {
-            'fields': ('sistemas_mencionados',)
-        }),
-        ('Metadatos', {
-            'fields': ('fecha_registro',),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def sesion_organismo(self, obj):
-        return f"{obj.participante.sesion.organismo.nombre}"
-    sesion_organismo.short_description = 'Organismo'
+@admin.register(RetoAnalisis)
+class RetoAnalisisAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'inscripcion', 'unidad_principal']
+    list_filter = ['inscripcion__organismo']
+    search_fields = ['nombre', 'analisis_propuesto', 'inscripcion__organismo__nombre']
+    filter_horizontal = ['unidades_relacionar', 'desagregaciones', 'tratamientos',
+                         'resultados_mvp', 'capacidades_sipdi', 'enfoques_diferenciales']
+    inlines = [FuenteRequeridaInline]
 
 
-@admin.register(SubsistemaOrganismo)
-class SubsistemaOrganismoAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'tipo', 'sesion', 'identificado_en_taller']
-    list_filter = ['tipo', 'identificado_en_taller', 'sesion__organismo']
-    search_fields = ['nombre', 'descripcion']
+@admin.register(EvaluacionSeguridad)
+class EvaluacionSeguridadAdmin(admin.ModelAdmin):
+    list_display = ['fuente', 'contiene_datos_personales', 'confidencialidad',
+                    'integridad', 'disponibilidad', 'criticidad']
+    list_filter = ['contiene_datos_personales', 'confidencialidad', 'integridad',
+                   'disponibilidad', 'criticidad']
+    search_fields = ['fuente__nombre', 'fuente__inscripcion__organismo__nombre',
+                     'fuente__inscripcion__nombre_completo']
+    filter_horizontal = ['variables_identificadoras', 'datos_sensibles', 'medidas_proteccion']
 
 
-@admin.register(DatoEcosistema)
-class DatoEcosistemaAdmin(admin.ModelAdmin):
-    list_display = ['nombre', 'nivel', 'sensibilidad', 'origen', 'creado_por', 'es_maestro', 'sesion_organismo', 'total_conexiones_display']
-    list_filter = ['es_maestro', 'nivel', 'sensibilidad', 'origen', 'periodicidad', 'sesion__organismo']
-    search_fields = ['nombre', 'descripcion', 'creado_por__nombre_completo', 'principales_usuarios']
-    autocomplete_fields = ['creado_por', 'fusionado_con']
-    readonly_fields = ['fecha_creacion', 'total_conexiones_display', 'es_huerfano_display', 'es_critico_display']
-    
-    fieldsets = (
-        ('Identidad del Dato', {
-            'fields': ('sesion', 'nombre', 'descripcion', 'creado_por', 'fecha_creacion')
-        }),
-        ('Sección A: Caracterización', {
-            'fields': ('origen', 'mecanismo_recoleccion', 'periodicidad', 'proposito'),
-            'description': '¿De dónde proviene, cómo se recolecta, con qué frecuencia y para qué?'
-        }),
-        ('Sección B: Clasificación', {
-            'fields': ('nivel', 'sensibilidad', 'capas_involucradas'),
-            'description': 'Clasificación funcional y de sensibilidad del dato'
-        }),
-        ('Sección C: Conexiones y Valor', {
-            'fields': ('principales_usuarios', 'proposito_detallado', 'valor_publico'),
-            'description': 'Usuarios, propósito de red y valor público generado'
-        }),
-        ('Métricas de Red', {
-            'fields': ('total_conexiones_display', 'es_huerfano_display', 'es_critico_display'),
-            'classes': ('collapse',)
-        }),
-        ('Gestión de Duplicados', {
-            'fields': ('es_maestro', 'fusionado_con'),
-            'description': 'Si este dato es duplicado, marcarlo como NO maestro y seleccionar el dato maestro en "fusionado_con"'
-        }),
-    )
-    
-    @admin.display(description='Conexiones')
-    def total_conexiones_display(self, obj):
-        count = obj.total_conexiones
-        if count == 0:
-            return format_html('<span style="color: #94a3b8;">0 (huérfano)</span>')
-        elif count >= 5:
-            return format_html('<span style="color: #dc2626; font-weight: 600;">{} (crítico)</span>', count)
-        return count
-    
-    @admin.display(description='¿Huérfano?', boolean=True)
-    def es_huerfano_display(self, obj):
-        return obj.es_huerfano
-    
-    @admin.display(description='¿Crítico?', boolean=True)
-    def es_critico_display(self, obj):
-        return obj.es_critico
-    
-    def sesion_organismo(self, obj):
-        return obj.sesion.organismo.nombre
-    sesion_organismo.short_description = 'Organismo'
-    
-    actions = ['marcar_como_maestro', 'fusionar_datos']
-    
-    def marcar_como_maestro(self, request, queryset):
-        updated = queryset.update(es_maestro=True, fusionado_con=None)
-        self.message_user(request, f'{updated} dato(s) marcado(s) como maestro.')
-    marcar_como_maestro.short_description = 'Marcar como dato maestro'
-    
-    def fusionar_datos(self, request, queryset):
-        if queryset.count() < 2:
-            self.message_user(request, 'Selecciona al menos 2 datos para fusionar.', level='warning')
-            return
-        
-        # El primer dato seleccionado será el maestro
-        maestro = queryset.first()
-        duplicados = queryset.exclude(id=maestro.id)
-        
-        for duplicado in duplicados:
-            duplicado.es_maestro = False
-            duplicado.fusionado_con = maestro
-            duplicado.save()
-        
-        self.message_user(request, f'{duplicados.count()} dato(s) fusionado(s) con "{maestro.nombre}".')
-    fusionar_datos.short_description = 'Fusionar datos seleccionados (el primero será el maestro)'
+class CampoCatalogoInline(admin.TabularInline):
+    model = CampoCatalogo
+    extra = 0
 
 
-@admin.register(FlujoDatos)
-class FlujoDatosAdmin(admin.ModelAdmin):
-    list_display = ['flujo_resumen', 'participante', 'rol_usado', 'tipo', 'frecuencia', 'sesion_organismo', 'mostrar_datos_especificos', 'mostrar_tipos_entidad']
-    list_filter = ['tipo', 'rol_usado', 'frecuencia', 'formato', 'sesion__organismo', 'recibe_de_organismo', 'envia_a_organismo',
-                   'recibe_de_tipo_entidad', 'envia_a_tipo_entidad']
-    search_fields = ['descripcion_datos', 'recibe_de_externo', 'envia_a_externo', 'participante__nombre_completo',
-                     'recibe_de_organismo__nombre', 'envia_a_organismo__nombre', 'recibe_de_entidad_externa', 'envia_a_entidad_externa']
-    readonly_fields = ['fecha_registro', 'datos_especificos']
-    autocomplete_fields = ['participante', 'dato', 'recibe_de_participante', 'recibe_de_subsistema',
-                           'envia_a_participante', 'envia_a_subsistema', 'recibe_de_organismo', 'envia_a_organismo']
-
-    fieldsets = (
-        ('Sesión y Tipo', {
-            'fields': ('sesion', 'tipo')
-        }),
-        ('Participante que maneja el flujo (Centro)', {
-            'fields': ('participante', 'rol_usado'),
-            'description': 'El participante que recibe, procesa y envía los datos'
-        }),
-        ('Dato del Ecosistema (Nodo Central)', {
-            'fields': ('dato',),
-            'description': 'Dato que fluye en esta conexión (metodología Torres 2026: Actor ↔ Dato ↔ Actor)'
-        }),
-        ('De dónde recibe los datos', {
-            'fields': ('recibe_de_participante', 'recibe_de_subsistema', 'recibe_de_organismo', 'recibe_de_entidad_externa', 'recibe_de_tipo_entidad', 'recibe_de_sociedad_civil'),
-            'description': 'Seleccionar UNA opción. Para entidades externas, seleccione primero el tipo y luego escriba el nombre.'
-        }),
-        ('Tipo de Interacción — Recepción', {
-            'fields': ('tipo_interaccion_recibe',),
-            'classes': ('collapse',)
-        }),
-        ('A dónde envía los datos', {
-            'fields': ('envia_a_participante', 'envia_a_subsistema', 'envia_a_organismo', 'envia_a_entidad_externa', 'envia_a_tipo_entidad', 'envia_a_sociedad_civil'),
-            'description': 'Seleccionar UNA opción. Para entidades externas, seleccione primero el tipo y luego escriba el nombre.'
-        }),
-        ('Tipo de Interacción — Envío', {
-            'fields': ('tipo_interaccion_envia',),
-            'classes': ('collapse',)
-        }),
-        ('Caracterización del flujo', {
-            'fields': ('descripcion_datos', 'datos_especificos', 'frecuencia', 'formato')
-        }),
-        ('Metadatos', {
-            'fields': ('fecha_registro',),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def mostrar_tipos_entidad(self, obj):
-        tipos = []
-        if obj.recibe_de_entidad_externa:
-            tipos.append(f"Recibe: {obj.get_recibe_de_tipo_entidad_display() or 'Otro'}")
-        if obj.envia_a_entidad_externa:
-            tipos.append(f"Envía: {obj.get_envia_a_tipo_entidad_display() or 'Otro'}")
-        if tipos:
-            return format_html('<span style="font-size: 0.85em;">{}</span>', ' | '.join(tipos))
-        return '-'
-    mostrar_tipos_entidad.short_description = 'Entidades Externas'
-
-    def flujo_resumen(self, obj):
-        recibe_de = (obj.recibe_de_participante or obj.recibe_de_subsistema or 
-                     obj.recibe_de_organismo or obj.recibe_de_entidad_externa or '?')
-        envia_a = (obj.envia_a_participante or obj.envia_a_subsistema or 
-                   obj.envia_a_organismo or obj.envia_a_entidad_externa or '?')
-        rol = obj.participante.rol_primario if obj.rol_usado == 'primario' else obj.participante.rol_secundario
-        rol_nombre = rol.nombre if rol else 'Sin rol'
-        return f"{recibe_de} → {obj.participante.nombre_completo} ({rol_nombre}) → {envia_a}"
-    flujo_resumen.short_description = 'Flujo'
-    
-    def sesion_organismo(self, obj):
-        return obj.sesion.organismo.nombre
-    sesion_organismo.short_description = 'Organismo'
-    
-    def mostrar_datos_especificos(self, obj):
-        if obj.datos_especificos:
-            datos = obj.datos_especificos[:3]  # Mostrar solo los primeros 3
-            texto = ', '.join(datos)
-            if len(obj.datos_especificos) > 3:
-                texto += f' (+{len(obj.datos_especificos) - 3} más)'
-            return texto
-        return '-'
-    mostrar_datos_especificos.short_description = 'Datos Extraídos'
+@admin.register(BaseCatalogo)
+class BaseCatalogoAdmin(admin.ModelAdmin):
+    list_display = ['slug', 'nombre', 'organismo', 'frecuencia', 'cobertura', 'activa', 'orden']
+    list_filter = ['activa', 'organismo']
+    list_editable = ['orden', 'activa']
+    search_fields = ['nombre', 'slug', 'descripcion']
+    prepopulated_fields = {'slug': ('nombre',)}
+    inlines = [CampoCatalogoInline]
 
 
-@admin.register(ClasificacionDato)
-class ClasificacionDatoAdmin(admin.ModelAdmin):
-    list_display = ['nombre_dato', 'sensibilidad', 'nivel', 'participante', 'sesion_organismo', 'mostrar_propositos']
-    list_filter = ['sensibilidad', 'nivel', 'sesion__organismo', 'participante']
-    search_fields = ['nombre_dato', 'para_que_se_usa', 'participante__nombre_completo']
-    autocomplete_fields = ['participante']
-    filter_horizontal = ['propositos']
-    
-    fieldsets = (
-        ('Sesión y Origen', {
-            'fields': ('sesion', 'participante'),
-            'description': 'Participante que clasificó este dato'
-        }),
-        ('Identificación del dato', {
-            'fields': ('nombre_dato',)
-        }),
-        ('Clasificación', {
-            'fields': ('sensibilidad', 'nivel'),
-            'description': 'Sensibilidad: Público/Interno/Confidencial/Crítico. Nivel: Operativo/Táctico/Estratégico'
-        }),
-        ('Propósito y Valor (Dimensión D)', {
-            'fields': ('propositos', 'para_que_se_usa', 'valor_publico'),
-            'description': 'Seleccione uno o más propósitos predefinidos. El campo "para qué se usa" es complementario para detalles adicionales.'
-        }),
-    )
-    
-    def sesion_organismo(self, obj):
-        return obj.sesion.organismo.nombre
-    sesion_organismo.short_description = 'Organismo'
-    
-    def mostrar_propositos(self, obj):
-        propositos = obj.propositos.all()
-        if propositos:
-            return ', '.join([p.codigo for p in propositos[:3]]) + (f' (+{propositos.count()-3})' if propositos.count() > 3 else '')
-        return '-'
-    mostrar_propositos.short_description = 'Propósitos'
-
-
-@admin.register(PropositoDato)
-class PropositoDatoAdmin(admin.ModelAdmin):
-    list_display = ['codigo', 'nombre', 'orden', 'activo', 'num_usos']
-    list_filter = ['activo']
-    search_fields = ['codigo', 'nombre', 'descripcion']
-    list_editable = ['orden', 'activo']
-    ordering = ['orden', 'codigo']
-    
-    fieldsets = (
-        ('Información Básica', {
-            'fields': ('codigo', 'nombre', 'descripcion')
-        }),
-        ('Configuración', {
-            'fields': ('orden', 'activo'),
-            'description': 'El orden determina cómo se muestran las opciones en los formularios'
-        }),
-    )
-    
-    def num_usos(self, obj):
-        """Muestra cuántas veces se ha usado este propósito"""
-        count = obj.clasificaciones.count()
-        if count == 0:
-            return format_html('<span style="color: #94a3b8;">0</span>')
-        return format_html('<span style="color: #10b981; font-weight: 600;">{}</span>', count)
-    num_usos.short_description = 'Usos'
-    num_usos.admin_order_field = 'clasificaciones__count'
+@admin.register(CampoCatalogo)
+class CampoCatalogoAdmin(admin.ModelAdmin):
+    list_display = ['nombre', 'base', 'tipo', 'es_llave_cruce', 'sensibilidad', 'categoria']
+    list_filter = ['base', 'tipo', 'es_llave_cruce', 'sensibilidad']
+    list_editable = ['tipo', 'es_llave_cruce', 'sensibilidad']
+    search_fields = ['nombre', 'descripcion', 'base__nombre']
 
 
 # =============================================================================

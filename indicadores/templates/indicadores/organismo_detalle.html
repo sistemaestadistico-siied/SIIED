@@ -263,7 +263,7 @@
                 <div class="summary-value">{{ metricas.total_indicadores }}</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Talleres</div>
+                <div class="summary-label">Inscripciones taller</div>
                 <div class="summary-value">{{ metricas.total_sesiones }}</div>
             </div>
             <div class="summary-card">
@@ -304,7 +304,7 @@
             <h2 class="section-title">Índice de Madurez del Ecosistema</h2>
             <div class="grid lg:grid-cols-2 gap-6">
                 <div>
-                    <p class="text-sm text-slate-500 mb-2">Resultado compuesto de roles, flujos, diversidad de datos y conexión externa.</p>
+                    <p class="text-sm text-slate-500 mb-2">Resultado compuesto de inscripciones completadas, fuentes caracterizadas, retos de análisis y evaluaciones de seguridad.</p>
                     <div class="flex items-center gap-4">
                         <div class="relative w-32 h-32">
                             <svg viewBox="0 0 36 36" class="w-32 h-32">
@@ -332,30 +332,30 @@
                                     <div class="progress-fill" style="width: {{ porcentaje_madurez }}%; background: linear-gradient(90deg, #0ea5e9, #2563eb);"></div>
                                 </div>
                             </div>
-                            <p class="text-sm text-slate-600">Última actualización derivada del taller digital del ecosistema de datos.</p>
+                            <p class="text-sm text-slate-600">Última actualización derivada del taller de ecosistemas de datos.</p>
                         </div>
                     </div>
                 </div>
                 <div class="metric-grid">
                     <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Cobertura de roles</div>
-                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.roles_identificados|length }}/6</div>
-                        <p class="text-xs text-slate-500 mt-1">Familias metodológicas con representación</p>
+                        <div class="text-sm text-slate-500">Fuentes caracterizadas</div>
+                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.fuentes_caracterizadas }}</div>
+                        <p class="text-xs text-slate-500 mt-1">F1 · caracterización del taller</p>
                     </div>
                     <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Densidad de red</div>
+                        <div class="text-sm text-slate-500">Fuentes con origen declarado</div>
                         <div class="text-2xl font-semibold text-slate-800">{{ metricas.densidad_red|floatformat:1 }}%</div>
-                        <p class="text-xs text-slate-500 mt-1">Conectividad entre participantes</p>
+                        <p class="text-xs text-slate-500 mt-1">Trazabilidad del origen de los datos</p>
                     </div>
                     <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Diversidad de datos</div>
-                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.diversidad_datos.operativo|add:metricas.diversidad_datos.tactico|add:metricas.diversidad_datos.estrategico }}</div>
-                        <p class="text-xs text-slate-500 mt-1">Registros clasificados O/T/E</p>
+                        <div class="text-sm text-slate-500">Evaluaciones de seguridad</div>
+                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.diversidad_datos.verde|add:metricas.diversidad_datos.amarillo|add:metricas.diversidad_datos.rojo }}</div>
+                        <p class="text-xs text-slate-500 mt-1">F3 · criticidad verde/amarillo/rojo</p>
                     </div>
                     <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Conexiones externas</div>
+                        <div class="text-sm text-slate-500">Orígenes externos</div>
                         <div class="text-2xl font-semibold text-slate-800">{{ metricas.flujos_externos }}</div>
-                        <p class="text-xs text-slate-500 mt-1">Flujos hacia otros organismos</p>
+                        <p class="text-xs text-slate-500 mt-1">Fuentes producidas por otros organismos</p>
                     </div>
                 </div>
             </div>
@@ -366,39 +366,39 @@
                 <h2 class="section-title">Flujos y Participación</h2>
                 <div class="metric-grid">
                     <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Flujos de entrada</div>
+                        <div class="text-sm text-slate-500">Fuentes que consume</div>
                         <div class="text-xl font-semibold text-slate-800">{{ metricas.total_flujos_entrada }}</div>
                     </div>
                     <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Flujos de salida</div>
+                        <div class="text-sm text-slate-500">Fuentes que produce</div>
                         <div class="text-xl font-semibold text-slate-800">{{ metricas.total_flujos_salida }}</div>
                     </div>
                     <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Participantes en talleres</div>
+                        <div class="text-sm text-slate-500">Diligenciamientos del taller</div>
                         <div class="text-xl font-semibold text-slate-800">{{ metricas.total_participantes }}</div>
                     </div>
                 </div>
             </div>
 
             <div class="section-card">
-                <h2 class="section-title">Talleres del Ecosistema</h2>
+                <h2 class="section-title">Inscripciones al Taller de Ecosistemas</h2>
                 {% if sesiones %}
                     <div class="timeline">
                         {% for sesion in sesiones %}
                             <div class="timeline-entry">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="font-medium text-slate-800">{{ sesion.nombre_sesion }}</p>
-                                        <p class="text-sm text-slate-500">{{ sesion.fecha|date:"d \d\e F \d\e Y" }}</p>
+                                        <p class="font-medium text-slate-800">{{ sesion.nombre_completo }}</p>
+                                        <p class="text-sm text-slate-500">{{ sesion.equipo.nombre|default:sesion.equipo_responsable|default:"Sin equipo" }} · {{ sesion.creado|date:"d \d\e F \d\e Y" }}</p>
                                     </div>
-                                    <span class="pill">{{ sesion.get_fase_display }}</span>
+                                    <span class="pill">{{ sesion.get_estado_display }}</span>
                                 </div>
-                                <p class="text-sm text-slate-500 mt-1">{{ sesion.participantes.count }} participante{{ sesion.participantes.count|pluralize }}</p>
+                                <p class="text-sm text-slate-500 mt-1">{{ sesion.num_fuentes }} fuente{{ sesion.num_fuentes|pluralize }} caracterizada{{ sesion.num_fuentes|pluralize:"s" }}</p>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="empty-state">Sin talleres registrados.</div>
+                    <div class="empty-state">Sin inscripciones al taller registradas.</div>
                 {% endif %}
             </div>
         </div>

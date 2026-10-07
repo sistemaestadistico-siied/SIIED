@@ -1,0 +1,513 @@
+{% extends 'taller/base.html' %}
+
+{% block title %}Metodología del Ecosistema de Datos · Taller Técnico{% endblock %}
+
+{% block extra_css %}
+.met-wrap { max-width: 980px; margin: 0 auto; padding: 30px 20px 60px; }
+.met-header { margin-bottom: 24px; }
+.met-header h1 { font-size: 26px; font-weight: 900; color: var(--azul-principal); margin-bottom: 6px; }
+.met-header p { font-size: 14px; color: var(--texto-suave); line-height: 1.5; }
+.met-nav { margin-bottom: 20px; }
+.met-nav a {
+    display: inline-block; font-size: 12px; font-weight: 700; color: var(--azul-principal);
+    text-decoration: none; padding: 8px 16px; border: 1px solid var(--celeste-borde);
+    border-radius: 15px; background: var(--celeste-pastel); margin-right: 6px;
+}
+.met-nav a:hover { background: #d0efff; }
+.met-card {
+    background: #fff; border-radius: 10px; padding: 24px 28px; margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+.met-card h2 {
+    font-size: 16px; font-weight: 800; color: var(--azul-principal);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+    border-bottom: 2px solid var(--celeste-pastel); padding-bottom: 8px;
+}
+.met-card h3 { font-size: 13px; font-weight: 800; color: var(--azul-secundario); margin: 16px 0 6px; }
+.met-card p, .met-card li { font-size: 13px; color: var(--texto); line-height: 1.65; }
+.met-card ul, .met-card ol { padding-left: 22px; margin: 8px 0; }
+.met-card li { margin-bottom: 5px; }
+.met-card code {
+    background: #f0f4f8; padding: 1px 6px; border-radius: 4px;
+    font-size: 12px; color: #004b87; font-family: monospace;
+}
+.met-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+.met-table th {
+    background: var(--azul-principal); color: #fff; text-align: left;
+    padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.met-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; line-height: 1.5; }
+.met-table tr:nth-child(even) td { background: #f8fafc; }
+.met-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.met-line { display: inline-block; width: 22px; height: 3px; margin-right: 6px; vertical-align: 3px; border-radius: 2px; }
+.met-fase {
+    display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 10px;
+    border-radius: 10px; border: 1px solid; text-transform: uppercase;
+}
+.met-note {
+    background: var(--arena-pastel); border-left: 4px solid var(--arena-borde);
+    padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 12px;
+}
+.met-formula {
+    background: #f0f4f8; border-radius: 8px; padding: 12px 18px; margin: 10px 0;
+    font-family: monospace; font-size: 12px; color: #004b87; line-height: 1.7;
+}
+{% endblock %}
+
+{% block content %}
+<div class="met-wrap">
+    <div class="met-header">
+        <h1>Metodología de construcción del Ecosistema de Datos</h1>
+        <p>Documento técnico que describe cómo se transforman las respuestas del instrumento
+        del taller en el mapa 3D del ecosistema de datos institucionales.</p>
+        <p style="margin-top:8px;font-size:12px;"><strong>Nota:</strong> el ecosistema 3D es una
+        herramienta de visualización adaptada al taller «Gestión de datos institucionales»,
+        diseñado por el contratista profesional <strong>Francisco Millan</strong> del
+        Departamento Administrativo de Desarrollo e Innovación.</p>
+    </div>
+
+    <div class="met-nav">
+        <a href="{% url 'indicadores:taller_ecosistema' %}">← Volver al ecosistema 3D</a>
+        <a href="{% url 'indicadores:taller_dashboard' %}">Dashboard</a>
+        <a href="{% url 'indicadores:catalogo_datos' %}">Catálogo</a>
+    </div>
+
+    <div class="met-card">
+        <h2>1. Propósito y enfoque</h2>
+        <p>El ecosistema 3D es una <strong>visualización viva del inventario de datos</strong> que los
+        participantes del taller construyen al diligenciar el instrumento. Su objetivo es hacer
+        tangible, en una sola vista, qué datos existen, quién los produce, quién los necesita y
+        dónde están las oportunidades de cruce e integración.</p>
+        <p>Se adopta la metáfora de un <strong>sistema solar</strong>: la Capa Gold (el dato
+        integrado y gobernado al que se aspira) ocupa el centro; los organismos orbitan como
+        planetas con sus suborganismos (lunas), equipos (estaciones) y conjuntos de datos
+        (satélites); las fuentes externas requeridas orbitan en el anillo más alejado. La
+        metáfora no es decorativa: la distancia orbital codifica la jerarquía institucional y
+        la cercanía al objetivo de integración.</p>
+        <div class="met-note">
+            <strong>Principio rector:</strong> el instrumento del taller es la única fuente de
+            verdad. Cada nodo y cada arista del mapa se deriva de un campo concreto del
+            formulario — nada se inventa en la visualización. Si un dato no aparece en el
+            ecosistema, es porque no fue reportado en el instrumento.
+        </div>
+        <p>La herramienta fue desarrollada como complemento analítico del taller diseñado por
+        el contratista profesional <strong>Francisco Millan</strong> (Departamento Administrativo
+        de Desarrollo e Innovación): la estructura del instrumento —sus tres fichas y sus
+        campos— define por completo el modelo del grafo.</p>
+        <p>Dos decisiones de diseño garantizan la <strong>reproducibilidad</strong> del producto:
+        (i) la construcción del grafo es una función pura del estado de la base de datos —los
+        mismos registros producen siempre el mismo grafo— y (ii) todos los layouts son
+        deterministas, sin inicializaciones aleatorias ni física de fuerzas, de modo que dos
+        cargas del mismo estado producen mapas idénticos y comparables entre sesiones y entre
+        productos (3D, SVG, GEXF).</p>
+    </div>
+
+    <div class="met-card">
+        <h2>2. Fuente de verdad: modelo relacional del instrumento</h2>
+        <p>El grafo se construye por consulta directa al modelo relacional donde el wizard
+        persiste cada respuesta. Las entidades que alimentan el grafo son:</p>
+        <table class="met-table">
+            <tr><th style="width:180px;">Tabla</th><th style="width:90px;">Ficha</th><th>Campos que usa el grafo</th></tr>
+            <tr><td><code>Inscripcion</code></td><td>Identificación</td>
+                <td><code>organismo</code> (FK), <code>suborganismo</code> (FK),
+                <code>equipo_responsable</code>, <code>nombre_completo</code>, <code>correo</code>.
+                Una inscripción = un diligenciamiento del instrumento.</td></tr>
+            <tr><td><code>FuenteDatos</code></td><td>F1</td>
+                <td><code>nombre</code>, <code>descripcion</code>, <code>decisiones_apoya</code>,
+                <code>rol</code> (Productor / Usuario / Ambos). N por inscripción.</td></tr>
+            <tr><td><code>VariableFuente</code></td><td>F1</td>
+                <td><code>nombre</code>, <code>es_identificador</code>. Hasta 10 por fuente;
+                constituyen el diccionario de variables que habilita el matching.</td></tr>
+            <tr><td><code>FuenteOrigen</code></td><td>F1</td>
+                <td><code>nombre</code>, <code>organismo_productor</code>. Orígenes externos
+                declarados cuando el rol es Usuario o Ambos.</td></tr>
+            <tr><td><code>RetoAnalisis</code></td><td>F2</td>
+                <td><code>nombre</code>, <code>analisis_propuesto</code>. Uno por inscripción.</td></tr>
+            <tr><td><code>FuenteRequerida</code></td><td>F2</td>
+                <td><code>nombre</code>, <code>organismo</code>. Hasta 3 por reto: fuentes que el
+                equipo necesita y no tiene.</td></tr>
+            <tr><td><code>EvaluacionSeguridad</code></td><td>F3</td>
+                <td><code>confidencialidad</code>, <code>integridad</code>, <code>disponibilidad</code>
+                (semáforo por dimensión) → <code>criticidad</code> calculada. Una por fuente.</td></tr>
+            <tr><td>Catálogo de referencia</td><td>—</td>
+                <td>Bases institucionales precargadas (<code>catalogo_data</code>): nombre,
+                organismo, frecuencia, cobertura y lista de campos con marca
+                <code>cruzar</code> que indica interoperabilidad conocida.</td></tr>
+        </table>
+        <div class="met-note">
+            <strong>Trazabilidad:</strong> cada nodo del grafo referencia la llave primaria del
+            registro que lo originó (<code>org-&lt;pk&gt;</code>, <code>fte-&lt;pk&gt;</code>,
+            <code>reto-&lt;pk&gt;</code>…), lo que permite auditar cualquier elemento visual
+            contra el instrumento.
+        </div>
+    </div>
+
+    <div class="met-card">
+        <h2>3. Construcción del grafo: nodos</h2>
+        <p>La función <code>_construir_grafo_ecosistema()</code> recorre el modelo relacional y
+        emite ocho tipos de nodo. Cada tipo codifica atributos del instrumento que luego se
+        exportan al GEXF y alimentan tooltips y panel de detalle:</p>
+        <table class="met-table">
+            <tr><th style="width:170px;">Nodo</th><th style="width:110px;">Ficha / paso</th><th>Campo del instrumento que lo genera</th></tr>
+            <tr>
+                <td><span class="met-dot" style="background:#ffd700;"></span><strong>Capa Gold</strong></td>
+                <td>—</td>
+                <td>Nodo conceptual único: representa el objetivo del ejercicio (datos integrados,
+                depurados y gobernados). No proviene de un campo; es el centro de referencia del mapa.</td>
+            </tr>
+            <tr>
+                <td><span class="met-dot" style="background:#007bb5;"></span><strong>Base catálogo</strong></td>
+                <td>—</td>
+                <td>Bases de datos institucionales del catálogo de referencia (capa de datos
+                administrativos ya gobernados que sirven de insumo para los cruces).</td>
+            </tr>
+            <tr>
+                <td><span class="met-dot" style="background:#f5a86b;"></span><strong>Organismo</strong></td>
+                <td><span class="met-fase" style="background:#e6f7ff;border-color:#b3e0ff;">Identificación</span></td>
+                <td>Campo «Organismo» del paso de identificación. Su tamaño crece con el número de
+                fuentes que reporta (<code>num_fuentes</code>).</td>
+            </tr>
+            <tr>
+                <td><span class="met-dot" style="background:#a78bfa;"></span><strong>Suborganismo</strong></td>
+                <td><span class="met-fase" style="background:#e6f7ff;border-color:#b3e0ff;">Identificación</span></td>
+                <td>Campo «Suborganismo / dependencia». Orbita su organismo como luna.</td>
+            </tr>
+            <tr>
+                <td><span class="met-dot" style="background:#4fc3f7;"></span><strong>Equipo</strong></td>
+                <td><span class="met-fase" style="background:#e6f7ff;border-color:#b3e0ff;">Identificación</span></td>
+                <td>Campo «Equipo responsable». Cada inscripción genera un equipo; orbita su
+                suborganismo o, si no hay, directamente el organismo.</td>
+            </tr>
+            <tr>
+                <td><span class="met-dot" style="background:#6fce8f;"></span><strong>Conjunto reportado</strong></td>
+                <td><span class="met-fase" style="background:#fff3e6;border-color:#ffccb3;">F1 · fuente-general</span></td>
+                <td>Cada registro del paso «F1 · La fuente de datos» (nombre + descripción).
+                Su tamaño crece levemente con el número de variables caracterizadas.
+                Lleva un <strong>anillo de criticidad</strong> con el semáforo calculado en
+                «F3 · Valoración de los activos»: <span style="color:#e53e3e;font-weight:700;">rojo</span> = crítico,
+                <span style="color:#d69e2e;font-weight:700;">amarillo</span> = decidir según escenarios,
+                <span style="color:#38a169;font-weight:700;">verde</span> = información pública.</td>
+            </tr>
+            <tr>
+                <td><span class="met-dot" style="background:#fc8181;"></span><strong>Reto de análisis</strong></td>
+                <td><span class="met-fase" style="background:#ebfaeb;border-color:#c2f0c2;">F2 · reto-definición</span></td>
+                <td>El reto de análisis formulado en la ficha F2. Orbita el equipo que lo propuso,
+                en un anillo exterior al de sus conjuntos.</td>
+            </tr>
+            <tr>
+                <td><span class="met-dot" style="background:#ef92c4;"></span><strong>Fuente de información</strong></td>
+                <td><span class="met-fase" style="background:#fff3e6;border-color:#ffccb3;">F1 · fuente-rol</span>
+                <span class="met-fase" style="background:#ebfaeb;border-color:#c2f0c2;">F2 · reto-fuentes</span></td>
+                <td>Fuentes externas citadas pero no caracterizadas: los «orígenes» declarados en
+                F1 (rol Usuario/Ambos) y las «fuentes requeridas» de F2. Orbitan el anillo exterior.</td>
+            </tr>
+        </table>
+        <h3>Deduplicación de equipos</h3>
+        <p>Varias inscripciones pueden declarar el mismo equipo. Los nodos <em>equipo</em> se
+        deduplican por la clave <code>(nombre_normalizado, organismo)</code>: si dos
+        inscripciones del mismo organismo escriben el mismo nombre de equipo (tras
+        normalización), se fusionan en un solo nodo que acumula responsables, correos y
+        fuentes de todas ellas. Esto evita duplicar actores institucionales por diferencias
+        de digitación.</p>
+        <h3>Tamaño de los nodos</h3>
+        <p>El radio de cada nodo codifica magnitud según su tipo (función
+        <code>_tamano_nodo()</code>, idéntica en el render 3D, el SVG y el GEXF):</p>
+        <table class="met-table">
+            <tr><th style="width:170px;">Tipo</th><th>Fórmula del radio</th></tr>
+            <tr><td>Capa Gold</td><td><code>12</code> (fijo, el objeto mayor)</td></tr>
+            <tr><td>Base catálogo</td><td><code>5 + min(8, num_campos / 30)</code></td></tr>
+            <tr><td>Organismo</td><td><code>5 + min(8, num_fuentes × 1.5)</code></td></tr>
+            <tr><td>Suborganismo</td><td><code>3.5</code> (fijo)</td></tr>
+            <tr><td>Equipo</td><td><code>2.5</code> (fijo)</td></tr>
+            <tr><td>Conjunto</td><td><code>2 + min(1, num_variables / 6)</code></td></tr>
+            <tr><td>Reto de análisis</td><td><code>3</code> (fijo)</td></tr>
+            <tr><td>Fuente de información</td><td><code>4</code> (fijo)</td></tr>
+        </table>
+        <p>La saturación (<code>min</code>) evita que un organismo con muchas fuentes eclipse
+        la escala: el tamaño es ordinal, no proporcional.</p>
+    </div>
+
+    <div class="met-card">
+        <h2>4. Construcción del grafo: aristas</h2>
+        <p>Las conexiones se derivan de reglas explícitas sobre campos del instrumento. El grafo
+        se exporta como <strong>no dirigido</strong> (<code>defaultedgetype="undirected"</code>),
+        pero cada arista conserva su dirección semántica origen→destino y un peso
+        (<code>peso</code>) que modula su grosor en Gephi:</p>
+        <table class="met-table">
+            <tr><th style="width:190px;">Arista</th><th style="width:60px;">Peso</th><th>Regla de construcción</th></tr>
+            <tr>
+                <td><span class="met-line" style="background:#a0aec0;"></span><strong>Pertenencia</strong></td>
+                <td>1</td>
+                <td>Equipo → cada conjunto que reportó, y organismo → equipo cuando el equipo no
+                declaró suborganismo. Refleja la custodia operativa declarada en la
+                identificación + F1.</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#a78bfa;"></span><strong>Jerarquía</strong></td>
+                <td>1</td>
+                <td>Organismo → suborganismo y suborganismo → equipo. La cadena institucional del
+                paso de identificación.</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#f5a86b;"></span><strong>Origen declarado</strong></td>
+                <td>1</td>
+                <td>Conjunto → fuente externa, cuando en «F1 · Rol» el equipo declara que su
+                fuente proviene de ese origen (rol Usuario o Ambos) y el nombre no resuelve a
+                catálogo ni a otro conjunto.</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#ef92c4;"></span><strong>Requerida externa</strong></td>
+                <td>1</td>
+                <td>Reto → fuente externa, cuando en «F2 · Fuentes requeridas» se cita una fuente
+                necesaria que no resuelve a catálogo ni a conjunto existente.</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#00ff88;"></span><strong>Match exacto</strong></td>
+                <td>3</td>
+                <td>FuenteOrigen/FuenteRequerida → base de catálogo o conjunto, cuando el nombre
+                normalizado coincide exactamente, o el match por subcadena se confirma con el
+                organismo productor (ver §5).</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#6fce8f;"></span><strong>Match aproximado</strong></td>
+                <td>1</td>
+                <td>Igual que el anterior pero solo por subcadena de nombre, sin confirmación de
+                organismo — evidencia más débil.</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#38b2ac;"></span><strong>Variables compartidas</strong></td>
+                <td>n</td>
+                <td>Conjunto ↔ conjunto cuando sus diccionarios de variables normalizados
+                comparten <strong>≥ 2 nombres</strong>. El peso es el número de variables
+                comunes y la lista viaja como atributo de la arista.</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#6fce8f;"></span><strong>Matching por variables</strong></td>
+                <td>1</td>
+                <td>Conjunto → base de catálogo cuando al menos una variable normalizada del
+                conjunto coincide (exacta o por subcadena ≥ 4 caracteres) con un campo del
+                catálogo.</td>
+            </tr>
+            <tr>
+                <td><span class="met-line" style="background:#ffd700;"></span><strong>Cruce entre bases</strong></td>
+                <td>1</td>
+                <td>Base ↔ base del catálogo para cada par que comparte un campo marcado
+                <code>cruzar</code> en el catálogo de referencia — incluye los cruces con la
+                capa Gold.</td>
+            </tr>
+        </table>
+        <div class="met-note">
+            <strong>Lectura práctica:</strong> un conjunto «huérfano» (sin aristas de matching ni
+            variables compartidas) indica una fuente caracterizada sin diccionario de variables
+            o sin campos interoperables — una brecha concreta de gobierno del dato.
+        </div>
+    </div>
+
+    <div class="met-card">
+        <h2>5. Normalización y algoritmos de matching</h2>
+        <p>Todo el matching textual usa dos normalizaciones deterministas:</p>
+        <div class="met-formula">
+            norm(s) = minúsculas · sin tildes (NFD, sin marcas Mn) · strip<br>
+            norm_var(s) = norm(s) − prefijos {var_, cod_, num_, id_, nom_, desc_, codigo_, nombre_}
+            − {_ , espacio, -}
+        </div>
+        <p><code>norm</code> se aplica a nombres de fuentes, organismos y equipos;
+        <code>norm_var</code> a nombres de variable, eliminando además los prefijos
+        convencionales de diccionario para que <code>cod_dane</code> y <code>dane</code> sean
+        equivalentes.</p>
+        <h3>Resolución de referencias (FuenteOrigen / FuenteRequerida)</h3>
+        <p>Cada fuente citada se resuelve en cascada, en este orden:</p>
+        <ol>
+            <li><strong>Match exacto con catálogo:</strong> el nombre normalizado es clave del
+            índice de bases → arista <code>match_exacto</code> (peso 3).</li>
+            <li><strong>Subcadena con catálogo:</strong> un nombre contiene al otro, con mínimo
+            4 caracteres normalizados en ambos lados (descarta siglas y vacíos). Si hay varios
+            candidatos se elige el de <strong>mayor proporción de solape</strong>
+            (<code>min/max</code> de longitudes). Si además el organismo declarado coincide por
+            subcadena con el organismo de la base, se promueve a <code>match_exacto</code>;
+            si no, queda <code>match_aproximado</code> (peso 1).</li>
+            <li><strong>Mismo procedimiento contra los conjuntos</strong> ya caracterizados por
+            otros equipos — detecta cuando un equipo «requiere» un dato que otro equipo ya tiene.</li>
+            <li><strong>Sin resolución:</strong> se crea (o reutiliza, por nombre normalizado) un
+            nodo <em>fuente de información</em> externa y se emite
+            <code>origen_externo</code> / <code>requerida_externa</code>.</li>
+        </ol>
+        <h3>Matching de variables</h3>
+        <p>Para cada conjunto se construye el conjunto de variables normalizadas y se compara
+        contra el índice de campos del catálogo: coincidencia exacta, o subcadena en cualquier
+        dirección con mínimo 4 caracteres (umbral que descarta siglas ruidosas). Cada base
+        alcanzada genera una arista <code>matching_variable</code>. Entre conjuntos, la arista
+        <code>variables_compartidas</code> exige intersección ≥ 2 para no reportar
+        coincidencias anecdóticas.</p>
+    </div>
+
+    <div class="met-card">
+        <h2>6. Semáforo de criticidad (F3)</h2>
+        <p>La ficha F3 clasifica cada fuente en tres dimensiones —confidencialidad, integridad y
+        disponibilidad— con el semáforo del instrumento (verde / amarillo / rojo). La
+        criticidad del conjunto es el <strong>peor valor de las tres dimensiones</strong>:</p>
+        <div class="met-formula">
+            criticidad = rojo &nbsp;si alguna dimensión es roja<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            amarillo si alguna es amarilla<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            verde &nbsp;si las tres son verdes
+        </div>
+        <p>Se calcula en <code>EvaluacionSeguridad.save()</code> al guardar la ficha y se
+        visualiza como un <strong>anillo alrededor del nodo conjunto</strong> en el 3D
+        (rojo #e53e3e / amarillo #f6ad55 / verde #38a169), independiente del color de relleno
+        del nodo. Una fuente sin F3 diligenciada no lleva anillo.</p>
+    </div>
+
+    <div class="met-card">
+        <h2>7. Layout 3D: sistema solar jerárquico</h2>
+        <p>El layout es <strong>determinista y jerárquico</strong> (no usa física ni force-directed),
+        para que el mapa sea estable entre recargas y comparable entre equipos. Se calcula de
+        adentro hacia afuera, propagando la <em>huella</em> de cada sub-sistema:</p>
+        <ol>
+            <li><strong>Centro:</strong> Capa Gold en el origen (0,0,0), con una luz puntual
+            dorada que la convierte en el «Sol» de la escena.</li>
+            <li><strong>Anillo 1 — Catálogo:</strong> bases de referencia en el plano y=0, con
+            radio <code>max(60, radioOrbita(12, 13, n, 8))</code> que libra el Sol y separa las
+            bases entre sí.</li>
+            <li><strong>Anillos 2-4 — Organismos:</strong> los organismos se clasifican en tres
+            anillos concéntricos según el tamaño de su sub-sistema completo (pocos / intermedios /
+            muchos suborganismos). Los sistemas más grandes orbitan más lejos para no
+            traslaparse. Cada anillo ocupa una <strong>terraza de altura</strong> distinta
+            (y = 0, +22, +44), lo que separa visualmente los tres grupos.</li>
+            <li><strong>Sub-órbitas:</strong> suborganismos orbitan su organismo
+            (<code>radioOrbita(radio_org, huella_sub, n, 10)</code>); equipos orbitan su
+            suborganismo —o el organismo si no hay— (<code>radioOrbita(3.5, huella_eq, n, 8)</code>);
+            conjuntos orbitan su equipo (<code>radioOrbita(2.5, 3, n, 4)</code>); retos orbitan
+            en un anillo exterior al de los conjuntos del mismo equipo
+            (<code>max(anillo_conjuntos + 7, radioOrbita(2.5, 3, n, 4))</code>).</li>
+            <li><strong>Niveles de altura por componente:</strong> dentro de cada sistema, los
+            conjuntos orbitan ligeramente por debajo del plano de su equipo (−3) y los retos por
+            encima (+8), de modo que datos y preguntas analíticas se distinguen por elevación.</li>
+            <li><strong>Anillo exterior:</strong> fuentes de información externas a y = −15,
+            bajo el plano institucional. Su ángulo no es uniforme: cada fuente se ubica en el
+            <strong>ángulo promedio de los conjuntos/retos que la referencian</strong>
+            (atan2 de la media de posiciones), con un desplazamiento de 0.12 rad por cada fuente
+            previa en el mismo ángulo (±0.15 rad) para evitar solapes. Lo «externo» queda
+            literalmente fuera del disco institucional y angularmente cerca de quien lo necesita.</li>
+        </ol>
+        <h3>Radio de cada órbita</h3>
+        <p>Cada radio se calcula de abajo hacia arriba con la huella (<em>footprint</em>) completa
+        de cada hijo — su esfera más todo su sub-sistema — para garantizar que nada se traslape:</p>
+        <div class="met-formula">
+            radio_orbita = radio_padre + huella_hijo + separación<br>
+            si n ≥ 2 hermanos: radio ≥ (huella_hijo + separación) / sin(π / n)
+        </div>
+        <p>La segunda condición asegura que la circunferencia quepa para todos los hermanos sin
+        que sus huellas se toquen. Las órbitas se dibujan como <strong>nubes de partículas</strong>
+        (500 puntos por anillo, coloreadas por nivel) en lugar de líneas, y la cámara, la niebla,
+        la malla de referencia y el fondo estelar se reescalan automáticamente a la extensión
+        real resultante (<code>radioExt + 80</code>).</p>
+    </div>
+
+    <div class="met-card">
+        <h2>8. Layout 2D: anillos concéntricos (SVG y GEXF)</h2>
+        <p>Para los productos estáticos se usa <code>_layout_anillos()</code>, una proyección 2D
+        de la misma metáfora: cada tipo de nodo ocupa un anillo concéntrico y los hijos se
+        ordenan angularmente cerca del ángulo de su padre:</p>
+        <table class="met-table">
+            <tr><th style="width:200px;">Anillo (radio base)</th><th>Contenido</th></tr>
+            <tr><td>0</td><td>Capa Gold</td></tr>
+            <tr><td>300</td><td>Bases de catálogo</td></tr>
+            <tr><td>640</td><td>Organismos</td></tr>
+            <tr><td>980</td><td>Suborganismos (ordenados por ángulo del organismo)</td></tr>
+            <tr><td>1320</td><td>Equipos (ordenados por ángulo del suborganismo u organismo)</td></tr>
+            <tr><td>1660</td><td>Conjuntos y retos (ordenados por ángulo del equipo)</td></tr>
+            <tr><td>2000</td><td>Fuentes de información externas</td></tr>
+        </table>
+        <p>Si un anillo no cabe, su radio crece automáticamente para garantizar un arco mínimo
+        de ~26 px por nodo: <code>radio_efectivo = max(radio_base, n × 26 / 2π)</code>. El
+        resultado es un dendrograma radial: la distancia al centro codifica la capa semántica
+        y el ángulo agrupa las familias institucionales.</p>
+        <p>En el SVG cada nodo lleva una <strong>etiqueta radial</strong> rotada siguiendo el
+        anillo (invertida 180° en la mitad izquierda para leerse hacia afuera), guías
+        punteadas que hacen visible la estructura de anillos, tooltips nativos
+        (<code>&lt;title&gt;</code>) y leyenda. Las mismas coordenadas se embeben en el GEXF
+        como <code>viz:position</code>, de modo que <strong>Gephi abre el grafo con exactamente
+        este layout</strong>.</p>
+    </div>
+
+    <div class="met-card">
+        <h2>9. Productos del grafo: cómo se componen</h2>
+        <p>Todos los productos se derivan de <strong>una única construcción del grafo</strong>
+        (<code>_construir_grafo_ecosistema()</code>): mismos nodos, mismas aristas, mismos
+        colores y tamaños por tipo, y el mismo filtro <code>solo_relacionados</code>. Lo que
+        cambia entre productos es el <strong>formato de salida y el layout</strong>:</p>
+        <table class="met-table">
+            <tr><th style="width:150px;">Producto</th><th style="width:120px;">Formato</th><th>Composición</th></tr>
+            <tr>
+                <td><strong>Ecosistema 3D</strong><br><code>/ecosistema/</code></td>
+                <td>Interactivo (Three.js)</td>
+                <td>Consume <code>/api/ecosistema/</code> cada 30 segundos (los registros nuevos
+                aparecen sin recargar). Layout <strong>orbital jerárquico determinista</strong>
+                descrito en la sección 7: cada nodo es una esfera 3D que orbita su padre, con
+                anillos de criticidad en los conjuntos, etiquetas flotantes, filtros por tipo
+                de nodo/arista, búsqueda y modo 2D.</td>
+            </tr>
+            <tr>
+                <td><strong>Mapa de grafos</strong><br><code>/ecosistema/gexf/</code></td>
+                <td>GEXF 1.3 (Gephi / Gephi Lite)</td>
+                <td>El grafo serializado con atributos por nodo (tipo, descripción, métricas) y
+                por arista (tipo, peso), colores y tamaños en el namespace <code>viz:</code>.
+                Cada nodo lleva <code>viz:position</code> con el <strong>layout concéntrico
+                calculado en el servidor</strong>: Gephi abre el grafo ya dispuesto, idéntico
+                al SVG.</td>
+            </tr>
+            <tr>
+                <td><strong>Mapa renderizado</strong><br><code>/ecosistema/svg/</code></td>
+                <td>Imagen SVG (imprimible a PDF)</td>
+                <td>Render server-side con <strong>anillos concéntricos por tipo de nodo</strong>
+                (Gold al centro → catálogo → organismos → suborganismos → equipos →
+                conjuntos/retos → fuentes externas), hijos agrupados cerca del ángulo del
+                padre, guías de anillos, etiquetas radiales en todos los nodos, tooltips
+                (<code>&lt;title&gt;</code>) y leyenda. Usa exactamente las mismas posiciones
+                que el GEXF.</td>
+            </tr>
+            <tr>
+                <td><strong>Exports tabulares</strong><br><code>/dashboard/exportar*/</code></td>
+                <td>CSV y Excel (.xlsx)</td>
+                <td>No son grafos: una fila por fuente caracterizada con todas las respuestas
+                del instrumento (F1 + F2 + F3), para análisis tabular complementario.</td>
+            </tr>
+        </table>
+        <div class="met-note">
+            <strong>Filtro «solo relacionados»:</strong> disponible en los tres productos del
+            grafo (toggle en el 3D, parámetro <code>?solo_relacionados=true</code> en GEXF y
+            SVG). Elimina organismos, suborganismos, equipos y conjuntos sin ninguna arista de
+            relación, para concentrar la lectura en la parte del ecosistema que ya interactúa.
+        </div>
+    </div>
+
+    <div class="met-card">
+        <h2>10. Limitaciones y calidad del dato</h2>
+        <ul>
+            <li><strong>Dependencia del diccionario de variables:</strong> las aristas de
+            <em>matching</em> y <em>variables compartidas</em> solo existen si los equipos
+            diligencian variables en F1. Una fuente sin variables es invisible para el análisis
+            de interoperabilidad — el grafo la muestra, pero aislada.</li>
+            <li><strong>Matching textual, no semántico:</strong> la resolución de referencias es
+            por normalización y subcadena; no hay desambiguación semántica ni distancia de
+            edición. «Registro civil» y «Registraduría» no se relacionan aunque se refieran a lo
+            mismo, y una subcadena afortunada puede generar un match aproximado espurio
+            (mitigado por el umbral de 4 caracteres y la confirmación por organismo).</li>
+            <li><strong>Estados parciales legítimos:</strong> una inscripción con F2 pero sin F1
+            aparece como equipo con reto y sin conjuntos; una fuente sin F3 no lleva anillo de
+            criticidad. Son estados del instrumento, no errores del grafo.</li>
+            <li><strong>Geometría ≠ afinidad:</strong> la posición angular dentro de cada órbita
+            es uniforme (o por ángulo del padre); no codifica afinidad semántica. La lectura de
+            cercanía la aportan las aristas, no la distancia euclidiana entre nodos.</li>
+            <li><strong>Ecosistema declarado:</strong> el mapa muestra lo que los equipos
+            reportaron. La veracidad, completitud y actualidad dependen del diligenciamiento del
+            instrumento; la herramienta no verifica las fuentes contra sistemas reales.</li>
+            <li><strong>Escala:</strong> con muchas fuentes por equipo el anillo de conjuntos
+            crece (la fórmula de órbita lo garantiza sin solapes), pero la lectura fina requiere
+            zoom — el SVG y Gephi son los productos recomendados para inspección detallada.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

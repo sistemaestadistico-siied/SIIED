@@ -1,0 +1,300 @@
+{% extends 'taller/base.html' %}
+{% load static %}
+
+{% block title %}Cartel Taller Técnico - Alcaldía de Cali{% endblock %}
+
+{% block extra_css %}
+        .cartel-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .poster {
+            width: 210mm;
+            height: 297mm;
+            background-color: #ffffff;
+            color: #333333;
+            box-sizing: border-box;
+            padding: 35px 45px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #004b87;
+            padding-bottom: 12px;
+        }
+        .logo-container { display: flex; align-items: center; gap: 12px; }
+        .logo-alcaldia { height: 50px; width: auto; object-fit: contain; }
+        .alcaldia-text {
+            font-size: 11px;
+            font-weight: 700;
+            color: #004b87;
+            line-height: 1.2;
+            text-transform: uppercase;
+            border-left: 2px solid #cbd5e0;
+            padding-left: 10px;
+        }
+        .organismo-box { text-align: right; }
+        .tag {
+            background-color: #004b87;
+            color: #ffffff;
+            padding: 5px 14px;
+            border-radius: 15px;
+            font-weight: 700;
+            font-size: 11.5px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 3px;
+        }
+        .sub-organismo {
+            font-size: 10.5px;
+            color: #4a5568;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .title-section { text-align: center; margin-top: 5px; }
+        .title-section h1 {
+            font-size: 34px;
+            font-weight: 900;
+            margin: 0;
+            line-height: 1.1;
+            text-transform: uppercase;
+            color: #004b87;
+        }
+        .title-section h2 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #007bb5;
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .objective {
+            background-color: #f0f7fb;
+            border-left: 5px solid #007bb5;
+            padding: 10px 16px;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #1a365d;
+            border-radius: 0 6px 6px 0;
+        }
+        .lines-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .line-item {
+            padding: 14px 16px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .line-item h3 {
+            font-size: 13.5px;
+            margin: 0 0 5px 0;
+            color: #004b87;
+            font-weight: 700;
+            line-height: 1.25;
+        }
+        .line-item p {
+            font-size: 11.2px;
+            margin: 0 0 5px 0;
+            color: #2d3748;
+            line-height: 1.35;
+        }
+        .line-item .sources {
+            font-size: 10px;
+            font-weight: 700;
+            color: #004b87;
+            margin: 0 0 6px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .line-item .focus {
+            font-size: 10.5px;
+            color: #4a5568;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 5px 8px;
+            border-radius: 5px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        .line-item .focus strong { color: #004b87; }
+        .prep-note {
+            background-color: #f0f7fb;
+            border: 1px solid #b3e0ff;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #1a365d;
+            line-height: 1.4;
+        }
+        .card-1 { background-color: #e6f7ff; border: 1px solid #b3e0ff; }
+        .card-2 { background-color: #fff3e6; border: 1px solid #ffccb3; }
+        .card-3 { background-color: #ebfaeb; border: 1px solid #c2f0c2; }
+        .card-4 { background-color: #fce8f3; border: 1px solid #f9b8d9; }
+        .footer {
+            background: #ffffff;
+            color: #333333;
+            padding-top: 12px;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        .info-list li { margin-bottom: 5px; display: flex; align-items: center; }
+        .info-list li span { color: #007bb5; margin-right: 8px; font-size: 15px; }
+        .warning {
+            color: #e53e3e;
+            font-size: 12.5px;
+            margin-top: 8px;
+            font-weight: 700;
+            background-color: #fff5f5;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+            border-left: 4px solid #e53e3e;
+        }
+        .qr-section {
+            text-align: center;
+            background-color: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e0;
+        }
+        .qr-image {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            background: #ffffff;
+            border: 2px solid #004b87;
+            padding: 2px;
+            margin: 0 auto 4px;
+            display: block;
+            border-radius: 4px;
+        }
+        .qr-text { font-size: 10px; font-weight: 700; color: #4a5568; }
+        .qr-email { color: #004b87; font-size: 11px; display: block; margin-top: 2px; }
+        .print-btn { margin-top: 20px; }
+        @media print {
+            @page { size: A4; margin: 0; }
+            body { background: none; padding: 0; margin: 0; }
+            .site-header, .site-footer, .print-btn { display: none !important; }
+            .cartel-wrap { padding: 0; }
+            .poster { box-shadow: none; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+{% endblock %}
+
+{% block content %}
+<div class="cartel-wrap">
+    <div class="poster">
+        <div class="header">
+            <div class="logo-container">
+                <img src="{% static 'img/alcaldia.png' %}" alt="Alcaldía de Santiago de Cali" class="logo-alcaldia">
+                <div class="alcaldia-text">
+                    Alcaldía de Santiago de Cali
+                </div>
+            </div>
+            <div class="organismo-box">
+                <div class="tag">Taller Técnico</div>
+                <div class="sub-organismo">Depto. Admvo. de Planeación<br>Subdirección de Desarrollo Integral</div>
+            </div>
+        </div>
+
+        <div class="title-section">
+            <h1>Análisis de Datos<br>y Focalización</h1>
+            <h2>Atención y recuperación - Sismo del 10 de agosto de 2026</h2>
+        </div>
+
+        <div class="objective">
+            <strong>OBJETIVO:</strong> Caracterizar las fuentes de datos bajo custodia de cada organismo, formular retos de integración y análisis espacial, y evaluar la seguridad y privacidad de la información conforme a la Ley 1581 de 2012. Cada organismo diligenciará una ficha técnica por fuente de datos y por reto de análisis.
+        </div>
+
+        <div class="lines-grid">
+            <div class="line-item card-1">
+                <div>
+                    <h3>👥 Línea 1. Caracterización Poblacional y Socioeconómica</h3>
+                    <p>Integración de registros de personas y hogares afectados con variables demográficas, condiciones de salud y discapacidad, composición familiar y clasificación socioeconómica del Sisbén.</p>
+                    <p class="sources">Fuentes: RUFE · RUD · Sisbén</p>
+                </div>
+                <div class="focus">
+                    Se caracterizará cada fuente (instrumento de recolección, periodicidad, diccionario de variables, problemas de calidad) y se formularán retos de cruce con el Sisbén. Conviene que el participante administre o procese estos registros y conozca su estructura de campos.
+                </div>
+            </div>
+
+            <div class="line-item card-2">
+                <div>
+                    <h3>🏚️ Línea 2. Afectaciones, Daños y Activos</h3>
+                    <p>Articulación de datos sobre viviendas afectadas, edificaciones con restricciones de uso, información predial catastral, cobertura de pólizas y niveles de riesgo estructural.</p>
+                    <p class="sources">Fuentes: Catastro · RUFE · Evaluaciones técnicas</p>
+                </div>
+                <div class="focus">
+                    Se definirá el nivel de georreferenciación de los registros y se plantearán retos de cruce con capas catastrales. Se requiere experiencia en gestión de registros de daño, conocimiento de la estructura predial y manejo de evaluaciones técnicas de habitabilidad.
+                </div>
+            </div>
+
+            <div class="line-item card-3">
+                <div>
+                    <h3>📍 Línea 3. Focalización Microterritorial</h3>
+                    <p>Georreferenciación de registros y análisis espacial de capas cruzadas para determinar dónde se concentran las afectaciones a escala de comuna, barrio y manzana.</p>
+                    <p class="sources">Fuentes: RUFE · RUD · Catastro (capas geográficas)</p>
+                </div>
+                <div class="focus">
+                    Se formularán retos de análisis espacial con desagregación a nivel de manzana y se evaluarán fuentes adicionales requeridas. Se requiere experiencia en sistemas de información geográfica y conocimiento de la división territorial de Cali.
+                </div>
+            </div>
+
+            <div class="line-item card-4">
+                <div>
+                    <h3>👷 Línea 4. Respuesta y Recuperación</h3>
+                    <p>Consolidación de información sobre ayudas humanitarias entregadas, subsidios de arrendamiento, alojamientos, visitas técnicas realizadas e intervenciones pendientes.</p>
+                    <p class="sources">Fuentes: Registros de atención de organismos distritales</p>
+                </div>
+                <div class="focus">
+                    Se caracterizarán los registros de intervención y se evaluará la protección de datos personales de beneficiarios (datos sensibles, base legítima, salvaguardas). Se requiere conocimiento de los registros de ayudas y su marco normativo de protección de datos.
+                </div>
+            </div>
+        </div>
+
+        <div class="prep-note">
+            <strong>📋 Preparación:</strong> Cada organismo diligenciará una ficha técnica por fuente de datos (estructura de variables, periodicidad, georreferenciación, calidad) y por reto de análisis (unidades a relacionar, tratamiento, resultado esperado). Venir con conocimiento detallado de los registros a caracterizar.
+        </div>
+
+        <div class="footer">
+            <ul class="info-list">
+                <li><span>📅</span> Martes, 15 de septiembre de 2026</li>
+                <li><span>⏰</span> 2:00 p.m. a 5:00 p.m.</li>
+                <li><span>📍</span> Hotel Aristi, Cra. 9 #10-04, Sala San Francisco</li>
+                <div class="warning">💻 ¡INDISPENSABLE LLEVAR COMPUTADOR!</div>
+            </ul>
+            <div class="qr-section">
+                <img src="{% static 'img/qr.png' %}" alt="Código QR del formulario" class="qr-image">
+                <div class="qr-text">DILIGENCIA LA FICHA TÉCNICA<br>
+                <span class="qr-email">planestadistico@cali.gov.co</span></div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn print-btn" onclick="window.print()">Imprimir / Guardar como PDF</button>
+</div>
+{% endblock %}

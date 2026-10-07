@@ -5799,14 +5799,14 @@ def hall_capacidad_estadistica(request):
     Muestra todos los organismos con sus métricas de capacidad estadística
     """
     from django.db.models import Count, Avg, Q
-    from .models import Organismo, Indicador, SesionTaller
+    from .models import Organismo, Indicador
     
     # Obtener todos los organismos activos con sus métricas
     organismos = Organismo.objects.filter(activo=True).annotate(
         # Indicadores bajo responsabilidad
         total_indicadores=Count('indicadores_responsables', distinct=True),
-        # Sesiones de taller realizadas
-        total_sesiones_taller=Count('sesiones_taller', distinct=True),
+        # Inscripciones al taller de ecosistemas realizadas
+        total_sesiones_taller=Count('inscripciones_taller', distinct=True),
         # Equipos del organismo (a través de suborganismos)
         total_equipos=Count('suborganismos__equipos', distinct=True),
         # Respuestas de satisfacción
@@ -5862,10 +5862,11 @@ def organismo_detalle(request, codigo):
     """
     from django.db.models import Count, Avg, Q, Prefetch
     from .models import (
-        Organismo, Indicador, SesionTaller, 
+        Organismo, Indicador,
         RespuestaSatisfaccionRapida, RespuestaSatisfaccionCompleta,
-        FlujoDatos, ClasificacionDato
     )
+    from .models_taller import InscripcionTaller
+    from .models_catalogo import FuenteDatos, FuenteOrigen
     
     organismo = get_object_or_404(Organismo, codigo=codigo, activo=True)
     
@@ -5874,10 +5875,12 @@ def organismo_detalle(request, codigo):
         organismo_responsable=organismo
     ).select_related('operacion').order_by('-fecha_actualizacion')[:10]
     
-    # Sesiones de taller
-    sesiones = SesionTaller.objects.filter(
+    # Inscripciones al taller de ecosistemas (instrumento F1/F2/F3)
+    sesiones = InscripcionTaller.objects.filter(
         organismo=organismo
-    ).prefetch_related('participantes').order_by('-fecha')
+    ).select_related('suborganismo', 'equipo').annotate(
+        num_fuentes=Count('fuentes', distinct=True)
+    ).order_by('-creado')
     
     # Respuestas de satisfacción
     respuestas_rapidas = RespuestaSatisfaccionRapida.objects.filter(
@@ -5893,14 +5896,10 @@ def organismo_detalle(request, codigo):
         organismo=organismo
     )
     
-    # Flujos de datos donde participa
-    flujos_recibe = FlujoDatos.objects.filter(
-        recibe_de_organismo=organismo
-    ).select_related('participante', 'sesion')[:10]
-    
-    flujos_envia = FlujoDatos.objects.filter(
-        envia_a_organismo=organismo
-    ).select_related('participante', 'sesion')[:10]
+    # Fuentes de datos del organismo por rol (catálogo F1)
+    fuentes_org = FuenteDatos.objects.filter(inscripcion__organismo=organismo)
+    flujos_recibe = fuentes_org.filter(rol__in=['usuario', 'ambos'])[:10]
+    flujos_envia = fuentes_org.filter(rol__in=['productor', 'ambos'])[:10]
     
     # Calcular índice de madurez del ecosistema
     indice_madurez = calcular_indice_madurez_ecosistema(organismo)
@@ -5924,7 +5923,7 @@ def organismo_detalle(request, codigo):
     metricas = {
         'total_indicadores': indicadores.count(),
         'total_sesiones': sesiones.count(),
-        'total_participantes': sum(s.participantes.count() for s in sesiones),
+        'total_participantes': sesiones.count(),
         'total_respuestas_rapidas': respuestas_rapidas.count(),
         'total_respuestas_completas': respuestas_completas.count(),
         'promedio_satisfaccion_rapida': respuestas_rapidas.aggregate(Avg('calificacion'))['calificacion__avg'] or 0,
@@ -5937,6 +5936,9 @@ def organismo_detalle(request, codigo):
         'flujos_externos': obtener_flujos_externos(organismo),
         'densidad_red': calcular_densidad_red(organismo),
         'diversidad_datos': obtener_diversidad_datos(organismo),
+        'fuentes_caracterizadas': fuentes_org.count(),
+        'fuentes_origen_declaradas': FuenteOrigen.objects.filter(
+            fuente__inscripcion__organismo=organismo).count(),
         # FICED
         'ficed': ficed,
         'ficed_historico': ficed_historico,
@@ -6074,118 +6076,92 @@ def organismo_detalle(request, codigo):
 
 def calcular_indice_madurez_ecosistema(organismo):
     """
-    Índice 0-100 basado en dimensiones del ecosistema de datos.
-    Basado en la metodología del documento PROPUESTA_HERRAMIENTAS_DIGITALES_ECOSISTEMA_DATOS.md
+    Índice 0-100 de madurez del ecosistema de datos del organismo,
+    calculado sobre los datos del taller de ecosistemas (F1/F2/F3):
+      D1: inscripciones completadas (25 pts)
+      D2: fuentes de datos caracterizadas (25 pts)
+      D3: retos de análisis formulados (25 pts)
+      D4: fuentes con evaluación de seguridad (25 pts)
     """
-    from .models import SesionTaller, ParticipanteTaller, FlujoDatos, ClasificacionDato
-    
-    sesion = SesionTaller.objects.filter(organismo=organismo, estado='cerrada').first()
-    if not sesion:
+    from .models_taller import InscripcionTaller
+    from .models_catalogo import FuenteDatos, EvaluacionSeguridad
+
+    inscripciones = InscripcionTaller.objects.filter(organismo=organismo)
+    if not inscripciones.exists():
         return 0
-    
-    # Dimensión 1: Cobertura de roles (0-25)
-    roles_cubiertos = ParticipanteTaller.objects.filter(
-        sesion=sesion
-    ).exclude(rol_primario=None).values(
-        'rol_primario__familia__codigo'
-    ).distinct().count()
-    d1 = (roles_cubiertos / 6) * 25  # 6 familias
-    
-    # Dimensión 2: Densidad de flujos (0-25)
-    n_actores = ParticipanteTaller.objects.filter(sesion=sesion).count()
-    n_flujos = FlujoDatos.objects.filter(sesion=sesion).count()
-    max_flujos = n_actores * (n_actores - 1) / 2 if n_actores > 1 else 1
-    d2 = min((n_flujos / max_flujos) * 25, 25)
-    
-    # Dimensión 3: Diversidad de datos (0-25)
-    niveles = ClasificacionDato.objects.filter(sesion=sesion).values('nivel').distinct().count()
-    d3 = (niveles / 3) * 25
-    
-    # Dimensión 4: Conexión externa (0-25)
-    flujos_ext = FlujoDatos.objects.filter(sesion=sesion, tipo='externo').count()
-    d4 = min(flujos_ext * 2.5, 25)  # Hasta 10 conexiones externas = 25
-    
+
+    total_insc = inscripciones.count()
+    completadas = inscripciones.filter(estado='completada').count()
+    fuentes = FuenteDatos.objects.filter(inscripcion__organismo=organismo)
+    retos = inscripciones.filter(reto__isnull=False).count()
+    evaluadas = fuentes.filter(seguridad__isnull=False).count()
+
+    d1 = (completadas / total_insc) * 25
+    d2 = min(fuentes.count() / 5, 1) * 25      # meta: 5 fuentes caracterizadas
+    d3 = min(retos / 3, 1) * 25                # meta: 3 retos formulados
+    d4 = (evaluadas / fuentes.count()) * 25 if fuentes.count() else 0
+
     return round(d1 + d2 + d3 + d4, 1)
 
 
 def obtener_roles_identificados(organismo):
-    """Obtener distribución de roles por familia"""
-    from .models import SesionTaller, ParticipanteTaller
-    
-    sesion = SesionTaller.objects.filter(organismo=organismo, estado='cerrada').first()
-    if not sesion:
-        return {}
-    
-    roles = ParticipanteTaller.objects.filter(
-        sesion=sesion
-    ).exclude(rol_primario=None).values(
-        'rol_primario__familia__nombre',
-        'rol_primario__familia__codigo'
-    ).annotate(
-        count=Count('id')
-    ).order_by('-count')
-    
-    return {rol['rol_primario__familia__codigo']: rol['count'] for rol in roles}
+    """Distribución de fuentes del organismo por rol (productor/usuario/ambos)."""
+    from .models_catalogo import FuenteDatos
+
+    roles = FuenteDatos.objects.filter(
+        inscripcion__organismo=organismo
+    ).exclude(rol='').values('rol').annotate(count=Count('id'))
+
+    return {r['rol']: r['count'] for r in roles}
 
 
 def obtener_flujos_internos(organismo):
-    """Contar flujos internos del organismo"""
-    from .models import SesionTaller, FlujoDatos
-    
-    sesion = SesionTaller.objects.filter(organismo=organismo, estado='cerrada').first()
-    if not sesion:
-        return 0
-    
-    return FlujoDatos.objects.filter(sesion=sesion, tipo='interno').count()
+    """Fuentes con origen declarado dentro del mismo organismo."""
+    from .models_catalogo import FuenteOrigen
+
+    return FuenteOrigen.objects.filter(
+        fuente__inscripcion__organismo=organismo,
+        organismo_productor__icontains=organismo.nombre.split()[0],
+    ).count()
 
 
 def obtener_flujos_externos(organismo):
-    """Contar flujos externos del organismo"""
-    from .models import SesionTaller, FlujoDatos
-    
-    sesion = SesionTaller.objects.filter(organismo=organismo, estado='cerrada').first()
-    if not sesion:
-        return 0
-    
-    return FlujoDatos.objects.filter(sesion=sesion, tipo='externo').count()
+    """Fuentes de origen externas declaradas por el organismo."""
+    from .models_catalogo import FuenteOrigen
+
+    return FuenteOrigen.objects.filter(
+        fuente__inscripcion__organismo=organismo
+    ).exclude(
+        organismo_productor__icontains=organismo.nombre.split()[0]
+    ).count()
 
 
 def calcular_densidad_red(organismo):
-    """Calcular densidad de la red de flujos"""
-    from .models import SesionTaller, ParticipanteTaller, FlujoDatos
-    
-    sesion = SesionTaller.objects.filter(organismo=organismo, estado='cerrada').first()
-    if not sesion:
+    """Porcentaje de fuentes caracterizadas que declaran fuentes de origen."""
+    from .models_catalogo import FuenteDatos
+
+    fuentes = FuenteDatos.objects.filter(inscripcion__organismo=organismo)
+    total = fuentes.count()
+    if not total:
         return 0
-    
-    n_actores = ParticipanteTaller.objects.filter(sesion=sesion).count()
-    n_flujos = FlujoDatos.objects.filter(sesion=sesion).count()
-    
-    if n_actores <= 1:
-        return 0
-    
-    max_flujos = n_actores * (n_actores - 1) / 2
-    return round((n_flujos / max_flujos) * 100, 1) if max_flujos > 0 else 0
+    con_origen = fuentes.filter(fuentes_origen__isnull=False).distinct().count()
+    return round((con_origen / total) * 100, 1)
 
 
 def obtener_diversidad_datos(organismo):
-    """Obtener distribución de datos por nivel (Operativo, Táctico, Estratégico)"""
-    from .models import SesionTaller, ClasificacionDato
-    
-    sesion = SesionTaller.objects.filter(organismo=organismo, estado='cerrada').first()
-    if not sesion:
-        return {'operativo': 0, 'tactico': 0, 'estrategico': 0}
-    
-    distribucion = ClasificacionDato.objects.filter(sesion=sesion).values('nivel').annotate(
-        count=Count('id')
-    )
-    
-    resultado = {'operativo': 0, 'tactico': 0, 'estrategico': 0}
+    """Distribución de fuentes evaluadas por criticidad de seguridad (verde/amarillo/rojo)."""
+    from .models_catalogo import EvaluacionSeguridad
+
+    distribucion = EvaluacionSeguridad.objects.filter(
+        fuente__inscripcion__organismo=organismo
+    ).values('criticidad').annotate(count=Count('id'))
+
+    resultado = {'verde': 0, 'amarillo': 0, 'rojo': 0}
     for item in distribucion:
-        nivel = item['nivel'].lower()
+        nivel = (item['criticidad'] or '').lower()
         if nivel in resultado:
             resultado[nivel] = item['count']
-    
+
     return resultado
 
 

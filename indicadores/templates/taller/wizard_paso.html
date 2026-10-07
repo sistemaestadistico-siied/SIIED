@@ -1,0 +1,639 @@
+{% extends 'taller/wizard_base.html' %}
+
+{% block title %}Paso {{ numero }} de {{ total }} · {{ paso.titulo }}{% endblock %}
+
+{% block content %}
+<div class="wizard-wrap">
+    <div class="wizard-card">
+        <div class="wizard-header">
+            <span class="fase-tag">{{ fase.nombre }} · Paso {{ numero }} de {{ total }}</span>
+            <h1>{{ paso.titulo }}</h1>
+            {% if paso.descripcion %}<p>{{ paso.descripcion }}</p>{% endif %}
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width: {{ progreso }}%;"></div></div>
+        <div class="fase-pills">
+            {% for clave, f in fases.items %}
+                <div class="fase-pill {% if clave == paso.fase %}activa{% endif %}"
+                     style="{% if clave == paso.fase %}background: {{ f.color }}; border-color: {{ f.borde }};{% endif %}">
+                    {{ f.nombre }}
+                </div>
+            {% endfor %}
+        </div>
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {% if fuentes_lista %}
+            <div class="fuente-selector">
+                <label for="fuente_activa">Fuente de datos:</label>
+                <select name="fuente_activa" onchange="this.form.cambiar_fuente.value='1'; this.form.submit();">
+                    {% for f in fuentes_lista %}
+                        <option value="{{ f.pk }}" {% if fuente_activa and f.pk == fuente_activa.pk %}selected{% endif %}>
+                            {{ f.nombre|default:"(sin nombre)" }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" name="cambiar_fuente" value="">
+                {% if paso.slug != 'fuente-general' %}
+                <a href="{% url 'indicadores:taller_wizard_paso' 'fuente-general' %}" class="btn btn-secundario" style="margin-left:10px;padding:4px 10px;font-size:11px;text-decoration:none;">+ Nueva fuente</a>
+                {% endif %}
+            </div>
+            {% endif %}
+            <div class="wizard-body">
+                {% if form %}
+                    {% if form.non_field_errors %}<ul class="errorlist">{{ form.non_field_errors }}</ul>{% endif %}
+                    {% for field in form %}
+                        {% if field.name == 'aplica_publica' %}
+                        <div class="campo-seccion">
+                            <h3>Nivel de clasificación según variable de Confidencialidad</h3>
+                            <p>Marque Sí o No en cada nivel según aplique al conjunto de datos.</p>
+                        </div>
+                        {% endif %}
+                        <div class="campo">
+                            <label class="titulo" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {% if field.help_text %}<div class="ayuda">{{ field.help_text }}</div>{% endif %}
+                            {{ field.errors }}
+                            {{ field }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if formset %}
+                    {{ formset.management_form }}
+                    {% if formset.non_form_errors %}<ul class="errorlist">{{ formset.non_form_errors }}</ul>{% endif %}
+                    <div id="formset-container">
+                    {% for f in formset %}
+                        <div class="formset-item">
+                            <div class="formset-titulo">Registro {{ forloop.counter }}</div>
+                            {% for hidden in f.hidden_fields %}{{ hidden }}{% endfor %}
+                            {% for field in f.visible_fields %}
+                                <div class="campo">
+                                    <label class="titulo" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {% if field.help_text %}<div class="ayuda">{{ field.help_text }}</div>{% endif %}
+                                    {{ field.errors }}
+                                    {{ field }}
+                                </div>
+                            {% endfor %}
+                            {% if paso.slug == 'fuente-general' or paso.slug == 'fuente-rol' or paso.slug == 'reto-fuentes' or paso.slug == 'fuente-diccionario' %}
+                            <button type="button" class="btn btn-secundario btn-eliminar-fila" style="margin-top:8px;">Eliminar registro</button>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    </div>
+                    {% if paso.slug == 'fuente-general' or paso.slug == 'fuente-rol' or paso.slug == 'reto-fuentes' or paso.slug == 'fuente-diccionario' %}
+                    <button type="button" class="btn btn-secundario" id="btn-agregar-dinamico">+ Agregar registro</button>
+                    <template id="formset-empty">
+                        <div class="formset-item">
+                            <div class="formset-titulo">Registro __num__</div>
+                            {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                            {% for field in formset.empty_form.visible_fields %}
+                                <div class="campo">
+                                    <label class="titulo" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                    {% if field.help_text %}<div class="ayuda">{{ field.help_text }}</div>{% endif %}
+                                    {{ field }}
+                                </div>
+                            {% endfor %}
+                            <button type="button" class="btn btn-secundario btn-eliminar-fila" style="margin-top:8px;">Eliminar registro</button>
+                        </div>
+                    </template>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% if ocha %}
+            <div class="ocha-result">
+                <h3>Resultado metodología OCHA – Naciones Unidas</h3>
+                <table class="ocha-table">
+                    <thead>
+                        <tr>
+                            <th>Pregunta / criterio</th>
+                            <th>Orientación resumida</th>
+                            <th>Respuesta</th>
+                            <th>Regla</th>
+                            <th>Factor de riesgo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in ocha.factores %}
+                        <tr class="{% if f.es_riesgo %}riesgo{% endif %}">
+                            <td>{{ f.pregunta }}</td>
+                            <td>{{ f.orientacion }}</td>
+                            <td>{{ f.respuesta|default:'—' }}</td>
+                            <td>{{ f.regla }}</td>
+                            <td>{% if f.es_riesgo %}SÍ{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="ocha-summary">
+                    <strong>Factores de riesgo identificados: {{ ocha.total_riesgos }} de {{ ocha.total_criterios }}</strong>
+                </div>
+            </div>
+            {% endif %}
+            <div class="wizard-nav">
+                {% if anterior %}
+                    <a class="btn btn-secundario" href="{% url 'indicadores:taller_wizard_paso' anterior.slug %}">← Anterior</a>
+                {% else %}
+                    <a class="btn btn-secundario" href="{% url 'indicadores:taller_wizard' %}">← Inicio</a>
+                {% endif %}
+                <button type="submit" class="btn">Guardar y continuar →</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if paso.slug == 'identificacion' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var orgSelect = document.getElementById('id_organismo');
+    var subSelect = document.getElementById('id_suborganismo');
+    var selectedSub = subSelect.value;
+
+    function cargarSuborganismos(organismoId, preselectId) {
+        if (!organismoId) {
+            subSelect.innerHTML = '<option value="">— Seleccione un suborganismo —</option>';
+            return;
+        }
+        fetch('{% url "indicadores:taller_api_suborganismos" organismo_id=0 %}'.replace('/0/', '/' + organismoId + '/'))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                subSelect.innerHTML = '<option value="">— Seleccione un suborganismo —</option>';
+                data.forEach(function(item) {
+                    var opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.nombre;
+                    if (preselectId && String(item.id) === String(preselectId)) {
+                        opt.selected = true;
+                    }
+                    subSelect.appendChild(opt);
+                });
+            });
+    }
+
+    orgSelect.addEventListener('change', function() {
+        cargarSuborganismos(this.value, null);
+    });
+
+    if (orgSelect.value) {
+        cargarSuborganismos(orgSelect.value, selectedSub);
+    }
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'fuente-general' or paso.slug == 'fuente-diccionario' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var container = document.getElementById('formset-container');
+    var btnAgregar = document.getElementById('btn-agregar-dinamico');
+    var plantilla = document.getElementById('formset-empty');
+    var prefix = '{{ formset.prefix }}';
+    var totalForms = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+    var maxForms = parseInt(document.getElementById('id_' + prefix + '-MAX_NUM_FORMS').value, 10);
+
+    function renumerar() {
+        container.querySelectorAll('.formset-item:not([style*="display: none"])').forEach(function(item, i) {
+            var titulo = item.querySelector('.formset-titulo');
+            if (titulo) titulo.textContent = 'Registro ' + (i + 1);
+        });
+    }
+
+    container.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('btn-eliminar-fila')) return;
+        var item = e.target.closest('.formset-item');
+        if (!item) return;
+        var deleteInput = item.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.value = 'on';
+            item.style.display = 'none';
+        } else {
+            item.remove();
+            var total = parseInt(totalForms.value, 10);
+            totalForms.value = Math.max(1, total - 1);
+        }
+        renumerar();
+        btnAgregar.disabled = false;
+    });
+
+    btnAgregar.addEventListener('click', function() {
+        var total = parseInt(totalForms.value, 10);
+        if (total >= maxForms) {
+            btnAgregar.disabled = true;
+            return;
+        }
+        var html = plantilla.innerHTML
+            .replace(/__prefix__/g, total)
+            .replace(/__num__/g, total + 1);
+        var div = document.createElement('div');
+        div.innerHTML = html;
+        while (div.firstChild) container.appendChild(div.firstChild);
+        totalForms.value = total + 1;
+        if (total + 1 >= maxForms) btnAgregar.disabled = true;
+        renumerar();
+    });
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'fuente-rol' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var radios = document.querySelectorAll('input[name="rol"]');
+    var container = document.getElementById('formset-container');
+    var btnAgregar = document.getElementById('btn-agregar-dinamico');
+    var plantilla = document.getElementById('formset-empty');
+    var totalForms = document.getElementById('id_fuentes_origen-TOTAL_FORMS');
+    var maxForms = parseInt(document.getElementById('id_fuentes_origen-MAX_NUM_FORMS').value, 10);
+
+    function rolSeleccionado() {
+        var marcado = document.querySelector('input[name="rol"]:checked');
+        return marcado ? marcado.value : '';
+    }
+
+    function toggleFormset() {
+        var activo = ['usuario', 'ambos'].indexOf(rolSeleccionado()) !== -1;
+        container.style.display = activo ? '' : 'none';
+        btnAgregar.style.display = activo ? '' : 'none';
+        container.querySelectorAll('input, select, textarea').forEach(function(el) {
+            if (el.type === 'hidden') return;
+            el.disabled = !activo;
+            if (!activo) el.value = '';
+        });
+        if (activo) {
+            container.querySelectorAll('.formset-item').forEach(initTipoOrigen);
+        }
+    }
+
+    // Eliminar registro (dinámico o existente)
+    container.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('btn-eliminar-fila')) return;
+        var item = e.target.closest('.formset-item');
+        if (!item) return;
+        var deleteInput = item.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+            // Registro guardado: marcar DELETE y ocultar
+            deleteInput.value = 'on';
+            item.style.display = 'none';
+        } else {
+            // Registro nuevo: remover del DOM
+            item.remove();
+            totalForms.value = parseInt(totalForms.value, 10) - 1;
+            if (parseInt(totalForms.value, 10) < maxForms) btnAgregar.disabled = false;
+        }
+        renumerar();
+    });
+
+    function renumerar() {
+        var visibles = container.querySelectorAll('.formset-item:not([style*="display: none"])');
+        visibles.forEach(function(item, i) {
+            var titulo = item.querySelector('.formset-titulo');
+            if (titulo) titulo.textContent = 'Registro ' + (i + 1);
+        });
+    }
+
+    btnAgregar.addEventListener('click', function() {
+        var total = parseInt(totalForms.value, 10);
+        if (total >= maxForms) {
+            btnAgregar.disabled = true;
+            return;
+        }
+        var html = plantilla.innerHTML
+            .replace(/__prefix__/g, total)
+            .replace(/__num__/g, total + 1);
+        var div = document.createElement('div');
+        div.innerHTML = html;
+        while (div.firstChild) container.appendChild(div.firstChild);
+        totalForms.value = total + 1;
+        if (total + 1 >= maxForms) btnAgregar.disabled = true;
+        initTipoOrigen(container.lastElementChild);
+    });
+
+    // Toggle tipo_origen: alcaldia → show select, externa → show text
+    function initTipoOrigen(item) {
+        var tipoRadios = item.querySelectorAll('input[name$="-tipo_origen"]');
+        var alcaldiaSelect = item.querySelector('select[name$="-organismo_alcaldia"]');
+        var alcaldiaCampo = alcaldiaSelect ? alcaldiaSelect.closest('.campo') : null;
+        var productorInput = null;
+        var productorCampo = null;
+        item.querySelectorAll('input, textarea').forEach(function(el) {
+            if (el.name && el.name.endsWith('-organismo_productor')) {
+                productorInput = el;
+                productorCampo = el.closest('.campo');
+            }
+        });
+
+        function toggleTipo() {
+            var marcado = item.querySelector('input[name$="-tipo_origen"]:checked');
+            var esAlcaldia = marcado && marcado.value === 'alcaldia';
+            if (alcaldiaCampo) {
+                alcaldiaCampo.style.display = esAlcaldia ? '' : 'none';
+            }
+            if (alcaldiaSelect) {
+                alcaldiaSelect.disabled = !esAlcaldia;
+                if (!esAlcaldia) alcaldiaSelect.value = '';
+            }
+            if (productorCampo) {
+                productorCampo.style.display = esAlcaldia ? 'none' : '';
+            }
+            if (productorInput) {
+                productorInput.disabled = esAlcaldia;
+                if (esAlcaldia) productorInput.value = '';
+            }
+        }
+
+        tipoRadios.forEach(function(r) { r.addEventListener('change', toggleTipo); });
+        toggleTipo();
+    }
+
+    container.querySelectorAll('.formset-item').forEach(initTipoOrigen);
+
+    radios.forEach(function(r) { r.addEventListener('change', toggleFormset); });
+    toggleFormset();
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'fuente-calidad' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var radiosGeo = document.querySelectorAll('input[name="georreferenciacion"]');
+    var camposResto = [
+        'niveles_georref',
+        'nivel_georref_otro',
+    ];
+
+    function toggleGeorref() {
+        var marcado = document.querySelector('input[name="georreferenciacion"]:checked');
+        var deshabilitar = marcado && marcado.value === 'no';
+        camposResto.forEach(function(nombre) {
+            // Radios
+            var radios = document.querySelectorAll('input[name="' + nombre + '"]');
+            radios.forEach(function(r) {
+                r.disabled = deshabilitar;
+                if (deshabilitar) r.checked = false;
+            });
+            // Checkboxes (M2M)
+            var checks = document.querySelectorAll('input[name="' + nombre + '"]');
+            checks.forEach(function(c) {
+                c.disabled = deshabilitar;
+                if (deshabilitar) c.checked = false;
+            });
+            // Text/textarea/select
+            var el = document.getElementById('id_' + nombre);
+            if (el) {
+                el.disabled = deshabilitar;
+                if (deshabilitar) el.value = '';
+            }
+        });
+    }
+
+    radiosGeo.forEach(function(r) { r.addEventListener('change', toggleGeorref); });
+    toggleGeorref();
+
+    // Validacion: si/no toggle
+    var radiosVal = document.querySelectorAll('input[name="tiene_validacion"]');
+    var descripcion = document.getElementById('id_validacion_descripcion');
+    function toggleDescripcion() {
+        var marcado = document.querySelector('input[name="tiene_validacion"]:checked');
+        var deshabilitar = marcado && marcado.value === 'no';
+        descripcion.disabled = deshabilitar;
+        if (deshabilitar) descripcion.value = '';
+    }
+    radiosVal.forEach(function(r) { r.addEventListener('change', toggleDescripcion); });
+    toggleDescripcion();
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'fuente-actualizacion' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var chk = document.getElementById('id_num_registros_desconocido');
+    var numRegistros = document.getElementById('id_num_registros');
+    var numFecha = document.getElementById('id_num_registros_fecha');
+
+    function toggleRegistros() {
+        var deshabilitar = chk.checked;
+        numRegistros.disabled = deshabilitar;
+        numFecha.disabled = deshabilitar;
+        if (deshabilitar) {
+            numRegistros.value = '';
+            numFecha.value = '';
+        }
+    }
+
+    chk.addEventListener('change', toggleRegistros);
+    toggleRegistros();
+
+    // Diccionario: si=obligatorio, no=desactivado
+    var radiosDict = document.querySelectorAll('input[name="tiene_diccionario"]');
+    var ubicacion = document.getElementById('id_diccionario_ubicacion');
+    function toggleDiccionario() {
+        var marcado = document.querySelector('input[name="tiene_diccionario"]:checked');
+        var deshabilitar = marcado && marcado.value === 'no';
+        ubicacion.disabled = deshabilitar;
+        if (deshabilitar) ubicacion.value = '';
+    }
+    radiosDict.forEach(function(r) { r.addEventListener('change', toggleDiccionario); });
+    toggleDiccionario();
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'seguridad-datos' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var radios = document.querySelectorAll('input[name="contiene_datos_personales"]');
+    var camposResto = [
+        'variables_identificadoras',
+        'variable_identificadora_otra',
+        'datos_sensibles',
+        'dato_sensible_otra',
+        'base_legitima',
+        'base_legitima_porque'
+    ];
+
+    function toggleDatosPersonales() {
+        var marcado = document.querySelector('input[name="contiene_datos_personales"]:checked');
+        var deshabilitar = marcado && marcado.value === 'no';
+        camposResto.forEach(function(nombre) {
+            // Radios y checkboxes
+            var inputs = document.querySelectorAll('input[name="' + nombre + '"]');
+            inputs.forEach(function(el) {
+                el.disabled = deshabilitar;
+                if (deshabilitar) el.checked = false;
+            });
+            // Text/textarea/select
+            var el = document.getElementById('id_' + nombre);
+            if (el) {
+                el.disabled = deshabilitar;
+                if (deshabilitar) el.value = '';
+            }
+        });
+    }
+
+    radios.forEach(function(r) { r.addEventListener('change', toggleDatosPersonales); });
+    toggleDatosPersonales();
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'seguridad-valoracion' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var radiosFraude = document.querySelectorAll('input[name="susceptible_fraude"]');
+    var radiosIntegridad = document.querySelectorAll('input[name="integridad"]');
+
+    function toggleIntegridad() {
+        var marcado = document.querySelector('input[name="susceptible_fraude"]:checked');
+        var esSi = marcado && marcado.value === 'si';
+        radiosIntegridad.forEach(function(r) {
+            if (r.value === 'verde') {
+                r.disabled = esSi;
+                if (esSi) r.checked = false;
+                var label = document.querySelector('label[for="' + r.id + '"]');
+                if (label) label.style.opacity = esSi ? '0.4' : '1';
+            }
+        });
+    }
+
+    radiosFraude.forEach(function(r) { r.addEventListener('change', toggleIntegridad); });
+    toggleIntegridad();
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'fuente-rol' or paso.slug == 'reto-fuentes' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var sugerencias = [];
+    fetch('{% url "indicadores:catalogo_api_fuentes" %}?_t=' + Date.now())
+        .then(function(r) { return r.json(); })
+        .then(function(data) { sugerencias = data; })
+        .catch(function() {});
+
+    window.crearAutocomplete = function(input) {
+        var wrap = document.createElement('div');
+        wrap.style.position = 'relative';
+        input.parentNode.insertBefore(wrap, input);
+        wrap.appendChild(input);
+
+        var lista = document.createElement('div');
+        lista.style.cssText = 'display:none;position:absolute;top:100%;left:0;right:0;'
+            + 'background:#fff;border:1px solid #007bb5;border-radius:0 0 8px 8px;'
+            + 'box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:100;max-height:180px;'
+            + 'overflow-y:auto;font-size:12px;';
+        wrap.appendChild(lista);
+
+        input.setAttribute('autocomplete', 'off');
+
+        input.addEventListener('input', function() {
+            var q = this.value.toLowerCase().trim();
+            if (!q || sugerencias.length === 0) { lista.style.display = 'none'; return; }
+            var matches = sugerencias.filter(function(s) {
+                return s.nombre.toLowerCase().indexOf(q) !== -1;
+            }).slice(0, 20);
+            if (matches.length === 0) { lista.style.display = 'none'; return; }
+            lista.innerHTML = '';
+            matches.forEach(function(m) {
+                var item = document.createElement('div');
+                item.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f4f8;';
+                item.innerHTML = '<strong style="color:#004b87;">' + m.nombre + '</strong>'
+                    + (m.organismo ? '<br><span style="color:#718096;font-size:10px;">' + m.organismo + '</span>' : '');
+                item.addEventListener('mouseenter', function() { this.style.background = '#f0f7fb'; });
+                item.addEventListener('mouseleave', function() { this.style.background = ''; });
+                item.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    input.value = m.nombre;
+                    lista.style.display = 'none';
+                });
+                lista.appendChild(item);
+            });
+            lista.style.display = 'block';
+        });
+
+        input.addEventListener('blur', function() {
+            setTimeout(function() { lista.style.display = 'none'; }, 200);
+        });
+    }
+
+    var camposNombre = document.querySelectorAll('input[name$="-nombre"]');
+    camposNombre.forEach(window.crearAutocomplete);
+});
+</script>
+{% endif %}
+
+{% if paso.slug == 'reto-fuentes' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var container = document.getElementById('formset-container');
+    var btnAgregar = document.getElementById('btn-agregar-dinamico');
+    var plantilla = document.getElementById('formset-empty');
+    var totalForms = document.getElementById('id_fuentes_requeridas-TOTAL_FORMS');
+    var maxForms = parseInt(document.getElementById('id_fuentes_requeridas-MAX_NUM_FORMS').value, 10);
+
+    // Renumerar títulos
+    function renumerar() {
+        container.querySelectorAll('.formset-item').forEach(function(item, i) {
+            var titulo = item.querySelector('.formset-titulo');
+            if (titulo) titulo.textContent = 'Registro ' + (i + 1);
+        });
+    }
+
+    // Eliminar registro
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-eliminar-fila')) {
+            var item = e.target.closest('.formset-item');
+            if (!item) return;
+            var deleteInput = item.querySelector('input[name$="-DELETE"]');
+            if (deleteInput) {
+                // Marcar para eliminación en backend
+                deleteInput.value = 'on';
+                item.style.display = 'none';
+            } else {
+                // Form nuevo (no guardado): remover del DOM
+                item.remove();
+                var total = parseInt(totalForms.value, 10);
+                totalForms.value = Math.max(1, total - 1);
+            }
+            renumerar();
+            btnAgregar.disabled = false;
+        }
+    });
+
+    // Agregar registro
+    btnAgregar.addEventListener('click', function() {
+        var total = parseInt(totalForms.value, 10);
+        if (total >= maxForms) {
+            btnAgregar.disabled = true;
+            return;
+        }
+        var html = plantilla.innerHTML
+            .replace(/__prefix__/g, total)
+            .replace(/__num__/g, total + 1);
+        var div = document.createElement('div');
+        div.innerHTML = html;
+        while (div.firstChild) container.appendChild(div.firstChild);
+        totalForms.value = total + 1;
+        if (total + 1 >= maxForms) btnAgregar.disabled = true;
+
+        // Init autocomplete on new nombre field
+        var newNombre = container.lastElementChild.querySelector('input[name$="-nombre"]');
+        if (newNombre && typeof window.crearAutocomplete === 'function') {
+            window.crearAutocomplete(newNombre);
+        }
+    });
+
+    // Agregar botón eliminar a registros existentes
+    container.querySelectorAll('.formset-item').forEach(function(item) {
+        if (!item.querySelector('.btn-eliminar-fila')) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-secundario btn-eliminar-fila';
+            btn.style.marginTop = '8px';
+            btn.textContent = 'Eliminar registro';
+            item.appendChild(btn);
+        }
+    });
+});
+</script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,359 @@
+{% extends 'taller/base.html' %}
+
+{% block title %}Modelo de Datos · Ecosistema{% endblock %}
+
+{% block extra_css %}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
+#md-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; cursor: grab;
+    background: radial-gradient(ellipse at 50% 30%, #0d2140 0%, #060f22 60%, #040a18 100%); }
+#md-canvas.arrastrando { cursor: grabbing; }
+
+.md-top {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: linear-gradient(135deg, rgba(0,75,135,0.95), rgba(0,123,181,0.95));
+    padding: 10px 20px; display: flex; justify-content: space-between; align-items: center;
+    backdrop-filter: blur(10px);
+}
+.md-top h1 { color: #fff; font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+.md-top .md-links { display: flex; gap: 8px; }
+.md-top .md-links a {
+    color: #fff; font-size: 11px; font-weight: 700; text-decoration: none;
+    padding: 6px 14px; border: 1px solid rgba(255,255,255,0.4); border-radius: 15px;
+    transition: background 0.2s;
+}
+.md-top .md-links a:hover { background: rgba(255,255,255,0.15); }
+
+.md-panel {
+    position: fixed; top: 60px; left: 16px; z-index: 100;
+    background: rgba(10,25,47,0.92); border: 1px solid rgba(79,195,247,0.25);
+    border-radius: 10px; padding: 14px; width: 230px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+}
+.md-panel h3 { font-size: 10px; font-weight: 800; color: #4fc3f7; text-transform: uppercase; margin-bottom: 8px; }
+.md-panel .md-search {
+    width: 100%; padding: 8px 10px; border: 1px solid rgba(79,195,247,0.3); border-radius: 6px;
+    font-size: 12px; margin-bottom: 10px; font-family: 'Montserrat', sans-serif;
+    background: rgba(255,255,255,0.06); color: #e2e8f0;
+}
+.md-panel .md-search:focus { outline: none; border-color: #4fc3f7; }
+.md-panel .md-search::placeholder { color: #64748b; }
+.md-panel button {
+    width: 100%; padding: 7px; margin-bottom: 5px; border: 1px solid rgba(79,195,247,0.25);
+    border-radius: 6px; background: rgba(255,255,255,0.05); color: #cbd5e0; font-size: 11px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: 'Montserrat', sans-serif;
+}
+.md-panel button:hover { background: rgba(79,195,247,0.15); border-color: #4fc3f7; color: #fff; }
+.md-hint { font-size: 9px; color: #64748b; line-height: 1.5; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; }
+.md-credito { font-size: 8.5px; color: #7d8fa8; line-height: 1.5; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; font-style: italic; }
+
+.md-leyenda {
+    position: fixed; bottom: 16px; left: 16px; z-index: 100;
+    background: rgba(10,25,47,0.92); border: 1px solid rgba(79,195,247,0.25);
+    border-radius: 10px; padding: 10px 14px; font-size: 10px; color: #cbd5e0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.md-leyenda h3 { font-size: 9px; font-weight: 800; color: #4fc3f7; text-transform: uppercase; margin-bottom: 6px; }
+.md-leyenda .item { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.md-leyenda .linea { width: 26px; height: 0; flex-shrink: 0; }
+.md-leyenda .badge { font-size: 8px; font-weight: 800; padding: 1px 6px; border-radius: 8px; }
+
+.md-tooltip {
+    position: fixed; z-index: 200; background: rgba(4,15,32,0.97); color: #e2e8f0;
+    border: 1px solid rgba(79,195,247,0.4); padding: 10px 14px; border-radius: 8px;
+    font-size: 11px; pointer-events: none; display: none; max-width: 320px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+}
+.md-tooltip .tt-nombre { font-weight: 800; color: #4fc3f7; font-size: 13px; margin-bottom: 2px; }
+.md-tooltip .tt-tabla { font-family: monospace; color: #94a3b8; font-size: 10px; margin-bottom: 6px; }
+.md-tooltip .tt-doc { color: #cbd5e0; line-height: 1.5; }
+
+/* --- SVG --- */
+.md-nodo { cursor: pointer; transition: opacity 0.25s; }
+.md-nodo .caja { fill: rgba(13,30,55,0.96); stroke: #2d5a8a; stroke-width: 1.5; rx: 8; }
+.md-nodo .cabecera { fill: url(#gradCab); }
+.md-nodo .nombre { fill: #fff; font-size: 13px; font-weight: 800; }
+.md-nodo .tabla { fill: rgba(255,255,255,0.55); font-size: 8.5px; font-family: monospace; }
+.md-nodo .campo-n { fill: #cbd5e0; font-size: 10px; }
+.md-nodo .campo-t { font-size: 8px; font-weight: 800; }
+.md-nodo:hover .caja { stroke: #4fc3f7; stroke-width: 2; filter: drop-shadow(0 0 8px rgba(79,195,247,0.5)); }
+.md-nodo.seleccionado .caja { stroke: #ffd700; stroke-width: 2.5; filter: drop-shadow(0 0 12px rgba(255,215,0,0.5)); }
+.md-nodo.atenuado { opacity: 0.15; }
+.md-nodo.busqueda .caja { stroke: #f6ad55; stroke-width: 2.5; filter: drop-shadow(0 0 12px rgba(246,173,85,0.6)); }
+
+.md-arista { fill: none; transition: opacity 0.25s; }
+.md-arista.fk { stroke: #4fc3f7; stroke-width: 1.5; opacity: 0.55; }
+.md-arista.o2o { stroke: #ffd700; stroke-width: 2.5; opacity: 0.7; }
+.md-arista.m2m { stroke: #b794f6; stroke-width: 1.5; stroke-dasharray: 6 4; opacity: 0.55; }
+.md-arista.resaltada { opacity: 1; stroke-width: 3; filter: drop-shadow(0 0 6px currentColor); }
+.md-arista.atenuada { opacity: 0.05; }
+.md-etiqueta { fill: #94a3b8; font-size: 9px; font-family: monospace; transition: opacity 0.25s; }
+.md-etiqueta.resaltada { fill: #fff; font-weight: 700; }
+.md-etiqueta.atenuada { opacity: 0.05; }
+{% endblock %}
+
+{% block content %}
+<svg id="md-canvas">
+    <defs>
+        <linearGradient id="gradCab" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#004b87"/>
+            <stop offset="100%" stop-color="#007bb5"/>
+        </linearGradient>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r="0.8" fill="rgba(79,195,247,0.15)"/>
+        </pattern>
+    </defs>
+    <g id="viewport">
+        <rect id="fondo" x="-4000" y="-4000" width="8000" height="8000" fill="url(#grid)"/>
+        <g id="aristas"></g>
+        <g id="etiquetas"></g>
+        <g id="nodos"></g>
+    </g>
+</svg>
+
+<div class="md-top">
+    <h1>Modelo de Datos</h1>
+    <div class="md-links">
+        <a href="{% url 'indicadores:taller_ecosistema' %}">← Ecosistema 3D</a>
+        <a href="{% url 'indicadores:taller_dashboard' %}">Dashboard</a>
+    </div>
+</div>
+
+<div class="md-panel">
+    <h3>Explorar</h3>
+    <input type="text" class="md-search" id="mdSearch" placeholder="Buscar modelo o campo...">
+    <button id="btnReset">⟲ Reset vista</button>
+    <button id="btnZoomIn">+ Zoom</button>
+    <button id="btnZoomOut">− Zoom</button>
+    <button id="btnLabels">Ocultar etiquetas</button>
+    <div class="md-hint">
+        Arrastra para mover · rueda para zoom ·<br>
+        clic en un modelo para resaltar sus relaciones ·<br>
+        pasa el cursor para ver la descripción
+    </div>
+    <div class="md-credito">
+        Adaptación a los requerimientos del taller «Gestión de datos
+        institucionales», desarrollado por el contratista profesional
+        Francisco Millan (Departamento Administrativo de Desarrollo e
+        Innovación).
+    </div>
+</div>
+
+<div class="md-leyenda">
+    <h3>Relaciones</h3>
+    <div class="item"><div class="linea" style="border-top:2px solid #4fc3f7;"></div> FK — muchos a uno (N:1)</div>
+    <div class="item"><div class="linea" style="border-top:3px solid #ffd700;"></div> OneToOne (1:1)</div>
+    <div class="item"><div class="linea" style="border-top:2px dashed #b794f6;"></div> ManyToMany (M:N)</div>
+    <h3 style="margin-top:8px;">Campos</h3>
+    <div class="item"><span class="badge" style="background:#ffd700;color:#1a202c;">PK</span> Llave primaria</div>
+    <div class="item"><span class="badge" style="background:#4fc3f7;color:#1a202c;">N:1</span> ForeignKey</div>
+    <div class="item"><span class="badge" style="background:#6fce8f;color:#1a202c;">1:1</span> OneToOne</div>
+    <div class="item"><span class="badge" style="background:#b794f6;color:#1a202c;">M2M</span> ManyToMany</div>
+</div>
+
+<div class="md-tooltip" id="mdTooltip"></div>
+
+<script>
+const DATA = {{ modelo_json|safe }};
+
+// --- Layout: columnas fijas; las filas se apilan según la altura real de
+// cada caja (campos variables) para que nunca se superpongan ---
+const COLUMNAS = [80, 430, 790];
+const FILAS = [
+    ['auth.User', 'taller.Organismo', 'taller.Suborganismo'],
+    [null, 'taller.Inscripcion', null],
+    ['taller.RetoAnalisis', 'taller.FuenteDatos', 'taller.EvaluacionSeguridad'],
+    ['taller.FuenteRequerida', 'taller.VariableFuente', 'taller.FuenteOrigen'],
+    [null, 'taller.Opcion', null],
+];
+const W = 250, CAB_H = 34, FILA_H = 16, PAD = 8, GAP_Y = 70;
+
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('md-canvas');
+const viewport = document.getElementById('viewport');
+const gNodos = document.getElementById('nodos');
+const gAristas = document.getElementById('aristas');
+const gEtiquetas = document.getElementById('etiquetas');
+const tooltip = document.getElementById('mdTooltip');
+
+const nodosPorId = {};
+DATA.nodos.forEach(n => {
+    n.h = CAB_H + n.campos.length * FILA_H + PAD;
+    nodosPorId[n.id] = n;
+});
+
+let yFila = 60;
+FILAS.forEach(fila => {
+    let maxH = 0;
+    fila.forEach((id, col) => {
+        const n = id && nodosPorId[id];
+        if (!n) return;
+        n.x = COLUMNAS[col];
+        n.y = yFila;
+        maxH = Math.max(maxH, n.h);
+    });
+    yFila += maxH + GAP_Y;
+});
+// Modelos no listados en FILAS caen en una columna extra a la derecha
+DATA.nodos.forEach(n => {
+    if (n.x === undefined) { n.x = 1100; n.y = 60; }
+});
+
+// Índice de aristas por par para abanicar las paralelas
+const grupos = {};
+DATA.aristas.forEach(a => {
+    const k = a.de + '>' + a.a;
+    grupos[k] = grupos[k] || [];
+    grupos[k].push(a);
+});
+Object.values(grupos).forEach(g => g.forEach((a, i) => {
+    a.offset = (i - (g.length - 1) / 2) * 16;
+}));
+
+const BADGE_COLOR = { 'PK': '#ffd700', 'N:1': '#4fc3f7', '1:1': '#6fce8f', 'M2M': '#b794f6' };
+
+function el(tag, attrs) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+}
+
+// --- Render nodos ---
+DATA.nodos.forEach(n => {
+    const g = el('g', { class: 'md-nodo', 'data-id': n.id,
+                        transform: `translate(${n.x},${n.y})` });
+    g.appendChild(el('rect', { class: 'caja', width: W, height: n.h, rx: 8 }));
+    g.appendChild(el('rect', { class: 'cabecera', width: W, height: CAB_H, rx: 8 }));
+    // tapar redondeo inferior de la cabecera
+    g.appendChild(el('rect', { fill: 'url(#gradCab)', x: 0, y: CAB_H - 8, width: W, height: 8 }));
+    const nom = el('text', { class: 'nombre', x: 10, y: 15 });
+    nom.textContent = n.nombre;
+    g.appendChild(nom);
+    const tab = el('text', { class: 'tabla', x: 10, y: 27 });
+    tab.textContent = n.tabla;
+    g.appendChild(tab);
+
+    n.campos.forEach((c, i) => {
+        const y = CAB_H + PAD + i * FILA_H + 6;
+        const tn = el('text', { class: 'campo-n', x: 10, y });
+        tn.textContent = c.n.length > 30 ? c.n.slice(0, 29) + '…' : c.n;
+        g.appendChild(tn);
+        const tt = el('text', { class: 'campo-t', x: W - 10, y, 'text-anchor': 'end',
+                                fill: BADGE_COLOR[c.t] || '#64748b' });
+        tt.textContent = c.t;
+        g.appendChild(tt);
+    });
+
+    g.addEventListener('click', ev => { ev.stopPropagation(); seleccionar(n.id); });
+    g.addEventListener('mousemove', ev => {
+        tooltip.style.display = 'block';
+        tooltip.style.left = (ev.clientX + 14) + 'px';
+        tooltip.style.top = (ev.clientY + 14) + 'px';
+        tooltip.innerHTML = `<div class="tt-nombre">${n.nombre}</div>
+            <div class="tt-tabla">${n.tabla} · ${n.campos.length} campos</div>
+            <div class="tt-doc">${n.doc || 'Sin descripción'}</div>`;
+    });
+    g.addEventListener('mouseleave', () => tooltip.style.display = 'none');
+    gNodos.appendChild(g);
+    n.el = g;
+});
+
+// --- Render aristas (bezier vertical, abanico para paralelas) ---
+function puntos(a) {
+    const s = nodosPorId[a.de], t = nodosPorId[a.a];
+    if (!s || !t) return null;
+    const sx = s.x + W / 2 + a.offset, tx = t.x + W / 2 + a.offset;
+    const abajo = (t.y + t.h / 2) > (s.y + s.h / 2);
+    return abajo
+        ? { x1: sx, y1: s.y + s.h, x2: tx, y2: t.y }
+        : { x1: sx, y1: s.y, x2: tx, y2: t.y + t.h };
+}
+
+DATA.aristas.forEach(a => {
+    const p = puntos(a);
+    if (!p) return;
+    const dy = Math.abs(p.y2 - p.y1);
+    const path = el('path', { class: `md-arista ${a.tipo}`,
+        d: `M ${p.x1} ${p.y1} C ${p.x1} ${p.y1 + dy * 0.45}, ${p.x2} ${p.y2 - dy * 0.45}, ${p.x2} ${p.y2}` });
+    gAristas.appendChild(path);
+    a.el = path;
+
+    const mx = (p.x1 + p.x2) / 2, my = (p.y1 + p.y2) / 2;
+    const et = el('text', { class: 'md-etiqueta', x: mx + 5, y: my - 3 });
+    et.textContent = a.campo + (a.inv && a.inv !== '+' ? ` → ${a.inv}` : '');
+    gEtiquetas.appendChild(et);
+    a.etiqueta = et;
+});
+
+// --- Selección: resaltar vecindario ---
+let seleccionado = null;
+function seleccionar(id) {
+    seleccionado = (seleccionado === id) ? null : id;
+    const vecinos = new Set();
+    if (seleccionado) {
+        DATA.aristas.forEach(a => {
+            if (a.de === seleccionado) vecinos.add(a.a);
+            if (a.a === seleccionado) vecinos.add(a.de);
+        });
+    }
+    DATA.nodos.forEach(n => {
+        n.el.classList.toggle('seleccionado', n.id === seleccionado);
+        n.el.classList.toggle('atenuado', !!seleccionado && n.id !== seleccionado && !vecinos.has(n.id));
+    });
+    DATA.aristas.forEach(a => {
+        const toca = seleccionado && (a.de === seleccionado || a.a === seleccionado);
+        a.el.classList.toggle('resaltada', !!toca);
+        a.el.classList.toggle('atenuada', !!seleccionado && !toca);
+        a.etiqueta.classList.toggle('resaltada', !!toca);
+        a.etiqueta.classList.toggle('atenuada', !!seleccionado && !toca);
+    });
+}
+svg.addEventListener('click', () => { if (seleccionado) seleccionar(seleccionado); });
+
+// --- Pan & zoom ---
+let tx = 0, ty = 0, escala = 1;
+function aplicar() { viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${escala})`); }
+function centrar() {
+    escala = Math.min(innerWidth / 1250, innerHeight / 1750, 1);
+    tx = (innerWidth - 1250 * escala) / 2;
+    ty = 60 - 0 * escala;
+    aplicar();
+}
+centrar();
+
+let arrastrando = false, px = 0, py = 0;
+svg.addEventListener('mousedown', e => { arrastrando = true; px = e.clientX; py = e.clientY; svg.classList.add('arrastrando'); });
+addEventListener('mousemove', e => {
+    if (!arrastrando) return;
+    tx += e.clientX - px; ty += e.clientY - py; px = e.clientX; py = e.clientY; aplicar();
+});
+addEventListener('mouseup', () => { arrastrando = false; svg.classList.remove('arrastrando'); });
+svg.addEventListener('wheel', e => {
+    e.preventDefault();
+    const f = e.deltaY < 0 ? 1.12 : 0.89;
+    const mx = e.clientX, my = e.clientY;
+    tx = mx - (mx - tx) * f; ty = my - (my - ty) * f;
+    escala *= f; aplicar();
+}, { passive: false });
+
+document.getElementById('btnReset').onclick = centrar;
+document.getElementById('btnZoomIn').onclick = () => { escala *= 1.25; aplicar(); };
+document.getElementById('btnZoomOut').onclick = () => { escala *= 0.8; aplicar(); };
+let labelsOn = true;
+document.getElementById('btnLabels').onclick = function() {
+    labelsOn = !labelsOn;
+    gEtiquetas.style.display = labelsOn ? '' : 'none';
+    this.textContent = labelsOn ? 'Ocultar etiquetas' : 'Mostrar etiquetas';
+};
+
+// --- Búsqueda ---
+document.getElementById('mdSearch').addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    DATA.nodos.forEach(n => {
+        const match = q && (n.nombre.toLowerCase().includes(q) ||
+            n.campos.some(c => c.n.toLowerCase().includes(q)));
+        n.el.classList.toggle('busqueda', !!match);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,293 @@
+{% extends 'taller/base.html' %}
+{% load static %}
+
+{% block title %}Taller Técnico: Análisis de Datos y Focalización · Alcaldía de Cali{% endblock %}
+
+{% block extra_css %}
+<style>
+  .lp-hero {
+    background: linear-gradient(135deg, #004b87 0%, #007bb5 100%);
+    color: #fff;
+    padding: 56px 20px 48px;
+    text-align: center;
+  }
+  .lp-hero-inner { max-width: 680px; margin: 0 auto; }
+  .lp-hero .lp-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+  .lp-hero h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 12px;
+    line-height: 1.25;
+  }
+  .lp-hero .lp-subtitle {
+    font-size: 15px;
+    font-weight: 400;
+    opacity: 0.88;
+    margin: 0 0 32px;
+    line-height: 1.6;
+  }
+  .lp-hero .lp-cta-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .lp-btn-light {
+    background: #fff;
+    color: #004b87;
+    padding: 13px 32px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    text-decoration: none;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .lp-btn-light:hover { background: #f0f7ff; transform: translateY(-1px); }
+  .lp-btn-ghost {
+    background: transparent;
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.5);
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .lp-btn-ghost:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
+
+  .lp-info-bar {
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 18px 20px;
+  }
+  .lp-info-bar-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .lp-info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a5568;
+  }
+  .lp-info-item .lp-icon { font-size: 16px; }
+
+  .lp-section { padding: 44px 20px; }
+  .lp-section-head { text-align: center; margin-bottom: 28px; }
+  .lp-section h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #004b87;
+    margin: 0 0 6px;
+  }
+  .lp-section .lp-section-sub {
+    font-size: 14px;
+    color: #718096;
+    margin: 0;
+  }
+
+  .lp-objective {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #004b87;
+    border-radius: 8px;
+    padding: 22px 28px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #2d3748;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .lp-objective strong { color: #004b87; }
+
+  .lp-lines {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  .lp-line {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: box-shadow 0.2s, transform 0.15s;
+  }
+  .lp-line:hover { box-shadow: 0 6px 20px rgba(0,75,135,0.08); transform: translateY(-2px); }
+  .lp-line h3 { font-size: 15px; margin: 0; color: #004b87; font-weight: 700; }
+  .lp-line p { font-size: 13px; margin: 0; color: #4a5568; line-height: 1.5; }
+  .lp-line .lp-sources {
+    font-size: 11px; font-weight: 700; color: #007bb5; letter-spacing: 0.3px;
+    padding-top: 6px;
+    border-top: 1px solid #f0f4f8;
+    margin-top: auto;
+  }
+
+  .lp-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  .lp-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 28px 22px;
+    text-align: center;
+    transition: box-shadow 0.2s, transform 0.15s;
+  }
+  .lp-card:hover { box-shadow: 0 6px 20px rgba(0,75,135,0.08); transform: translateY(-2px); }
+  .lp-card .lp-card-icon { font-size: 30px; margin-bottom: 12px; }
+  .lp-card h3 { font-size: 15px; font-weight: 700; color: #004b87; margin: 0 0 8px; }
+  .lp-card p { font-size: 13px; color: #4a5568; margin: 0; line-height: 1.5; }
+
+  .lp-cta-section {
+    background: linear-gradient(135deg, #004b87 0%, #007bb5 100%);
+    color: #fff;
+    text-align: center;
+    padding: 44px 20px;
+  }
+  .lp-cta-section h2 { color: #fff; font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+  .lp-cta-section p { font-size: 14px; opacity: 0.85; margin: 0 0 24px; }
+  .lp-cta-section .lp-cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  @media (max-width: 768px) {
+    .lp-hero { padding: 40px 16px 36px; }
+    .lp-hero h1 { font-size: 24px; }
+    .lp-hero .lp-subtitle { font-size: 13px; margin-bottom: 24px; }
+    .lp-info-bar-inner { gap: 14px; }
+    .lp-info-item { font-size: 12px; }
+    .lp-section { padding: 32px 16px; }
+    .lp-section h2 { font-size: 19px; }
+    .lp-lines { grid-template-columns: 1fr; }
+    .lp-cards { grid-template-columns: 1fr; }
+    .lp-objective { padding: 18px 20px; font-size: 13px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- HERO -->
+<section class="lp-hero">
+  <div class="lp-hero-inner">
+    <span class="lp-tag">Taller Técnico · 15 sep 2026</span>
+    <h1>Análisis de Datos y Focalización</h1>
+    <p class="lp-subtitle">Atención y recuperación — Sismo del 10 de agosto de 2026<br>Alcaldía de Santiago de Cali · Depto. Admvo. de Planeación</p>
+    <div class="lp-cta-row">
+      <a href="{% url 'indicadores:taller_wizard' %}" class="lp-btn-light">Diligenciar Ficha Técnica</a>
+      <a href="{% url 'indicadores:catalogo_datos' %}" class="lp-btn-ghost">Catálogo de Datos</a>
+    </div>
+  </div>
+</section>
+
+<!-- INFO BAR -->
+<div class="lp-info-bar">
+  <div class="lp-info-bar-inner">
+    <div class="lp-info-item"><span class="lp-icon">📅</span> 15 de septiembre de 2026</div>
+    <div class="lp-info-item"><span class="lp-icon">⏰</span> 2:00 p.m. a 5:00 p.m.</div>
+    <div class="lp-info-item"><span class="lp-icon">📍</span> Hotel Aristi · Sala San Francisco</div>
+    <div class="lp-info-item"><span class="lp-icon">💻</span> Llevar computador</div>
+  </div>
+</div>
+
+<!-- OBJECTIVE -->
+<section class="lp-section">
+  <div class="lp-section-head">
+    <h2>Objetivo del Taller</h2>
+    <p class="lp-section-sub">Caracterización, integración y análisis de datos para la recuperación post-sismo</p>
+  </div>
+  <div class="lp-objective">
+    <strong>Caracterizar</strong> las fuentes de datos bajo custodia de cada organismo, <strong>formular retos</strong> de integración y análisis espacial, y <strong>evaluar la seguridad y privacidad</strong> de la información conforme a la Ley 1581 de 2012. Cada organismo diligenciará una ficha técnica por fuente de datos y por reto de análisis.
+  </div>
+</section>
+
+<!-- LINES -->
+<section class="lp-section" style="padding-top: 0;">
+  <div class="lp-section-head">
+    <h2>Líneas de Trabajo</h2>
+    <p class="lp-section-sub">Cuatro líneas temáticas para articular la respuesta institucional</p>
+  </div>
+  <div class="lp-lines">
+    <div class="lp-line">
+      <h3>Caracterización Poblacional y Socioeconómica</h3>
+      <p>Integración de registros de personas y hogares afectados con variables demográficas, condiciones de salud y discapacidad, composición familiar y clasificación socioeconómica del Sisbén.</p>
+      <p class="lp-sources">Fuentes: RUFE · RUD · Sisbén</p>
+    </div>
+    <div class="lp-line">
+      <h3>Afectaciones, Daños y Activos</h3>
+      <p>Articulación de datos sobre viviendas afectadas, edificaciones con restricciones de uso, información predial catastral, cobertura de pólizas y niveles de riesgo estructural.</p>
+      <p class="lp-sources">Fuentes: Catastro · RUFE · Evaluaciones técnicas</p>
+    </div>
+    <div class="lp-line">
+      <h3>Focalización Microterritorial</h3>
+      <p>Georreferenciación de registros y análisis espacial de capas cruzadas para determinar dónde se concentran las afectaciones a escala de comuna, barrio y manzana.</p>
+      <p class="lp-sources">Fuentes: RUFE · RUD · Catastro (capas geográficas)</p>
+    </div>
+    <div class="lp-line">
+      <h3>Respuesta y Recuperación</h3>
+      <p>Consolidación de información sobre ayudas humanitarias entregadas, subsidios de arrendamiento, alojamientos, visitas técnicas realizadas e intervenciones pendientes.</p>
+      <p class="lp-sources">Fuentes: Registros de atención de organismos distritales</p>
+    </div>
+  </div>
+</section>
+
+<!-- CARDS -->
+<section class="lp-section" style="padding-top: 0;">
+  <div class="lp-section-head">
+    <h2>¿Qué encontrarás?</h2>
+    <p class="lp-section-sub">Recursos del taller para participantes</p>
+  </div>
+  <div class="lp-cards">
+    <div class="lp-card">
+      <div class="lp-card-icon">📋</div>
+      <h3>Ficha Técnica</h3>
+      <p>Caracteriza cada fuente de datos: instrumento de recolección, periodicidad, diccionario de variables, calidad y georreferenciación.</p>
+    </div>
+    <div class="lp-card">
+      <div class="lp-card-icon">📊</div>
+      <h3>Catálogo Interactivo</h3>
+      <p>Explora las bases de datos disponibles, sus campos, puntos de cruce y nivel de sensibilidad para identificar oportunidades de integración.</p>
+    </div>
+    <div class="lp-card">
+      <div class="lp-card-icon">🔒</div>
+      <h3>Seguridad y Privacidad</h3>
+      <p>Evalúa la criticidad de los datos conforme a la Ley 1581 de 2012 y la metodología OCHA de riesgos de privacidad.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="lp-cta-section">
+  <h2>Diligencia la Ficha Técnica</h2>
+  <p>Caracteriza las fuentes de datos de tu organismo durante el taller</p>
+  <div class="lp-cta-row">
+    <a href="{% url 'indicadores:taller_wizard' %}" class="lp-btn-light">Comenzar Ficha Técnica</a>
+    <a href="{% url 'indicadores:taller_cartel' %}" class="lp-btn-ghost">Ver Cartel</a>
+    <a href="{% url 'indicadores:catalogo_datos' %}" class="lp-btn-ghost">Catálogo de Datos</a>
+  </div>
+</section>
+{% endblock %}
