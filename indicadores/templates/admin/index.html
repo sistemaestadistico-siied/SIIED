@@ -1497,167 +1497,129 @@
     </div>
   </div>
 
-  <!-- Talleres del Ecosistema de Datos Section -->
+  <!-- Taller de Ecosistemas de Datos 2026 + Catálogo Section -->
   <div class="config-section section-talleres" style="margin-top: 2rem;">
     <h2 class="section-title-unified">
       <i class="fas fa-users"></i>
-      🌴 Talleres del Ecosistema de Datos
+      � Taller de Ecosistemas de Datos 2026
     </h2>
     <div class="config-grid">
       <div class="config-group-unified config-group-success">
         <h3 class="group-title" style="color: var(--success);">
-          <i class="fas fa-calendar-check"></i>
-          Sesiones y Participantes
+          <i class="fas fa-clipboard-list"></i>
+          Inscripción y Opciones
         </h3>
         <div class="config-cards">
-          <a href="{% url 'admin:indicadores_sesiontaller_changelist' %}" class="config-card" style="border-left: 4px solid var(--success);">
-            <i class="fas fa-chalkboard-teacher" style="color: var(--success);"></i>
-            <span><strong>Sesiones de Taller</strong></span>
+          <a href="{% url 'admin:indicadores_inscripciontaller_changelist' %}" class="config-card" style="border-left: 4px solid var(--success);">
+            <i class="fas fa-clipboard-check" style="color: var(--success);"></i>
+            <span><strong>Inscripciones al Taller</strong></span>
           </a>
-          <a href="{% url 'admin:indicadores_participantetaller_changelist' %}" class="config-card" style="border-left: 4px solid var(--success-light);">
-            <i class="fas fa-users" style="color: var(--success-light);"></i>
-            <span>Participantes</span>
+          <a href="{% url 'admin:indicadores_opciontaller_changelist' %}" class="config-card" style="border-left: 4px solid var(--success-light);">
+            <i class="fas fa-list-ul" style="color: var(--success-light);"></i>
+            <span>Opciones del Instrumento</span>
           </a>
         </div>
         <div style="margin-top: 1rem; padding: 1rem; background: rgba(34, 197, 94, 0.15); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(34, 197, 94, 0.3);">
           <div style="font-weight: 600; margin-bottom: 0.5rem;">
-            <i class="fas fa-lightbulb"></i> Acceso Directo:
+            <i class="fas fa-lightbulb"></i> Acceso:
           </div>
           <p style="margin: 0;">
-            Crear sesión → Compartir código → Participantes se unen sin login
+            Cada delegado de organismo diligencia su ficha desde el portal con sus credenciales.
           </p>
         </div>
       </div>
-      
-      <div class="config-group-unified config-group-warning">
-        <h3 class="group-title" style="color: var(--warning);">
-          <i class="fas fa-user-tag"></i>
-          Roles del Ecosistema
-        </h3>
-        <div class="config-cards">
-          <a href="{% url 'admin:indicadores_familiarol_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning);">
-            <i class="fas fa-layer-group" style="color: var(--warning);"></i>
-            <span><strong>Familias de Roles (A-F)</strong></span>
-          </a>
-          <a href="{% url 'admin:indicadores_rolecosistema_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning-light);">
-            <i class="fas fa-id-badge" style="color: var(--warning-light);"></i>
-            <span>28 Roles del Ecosistema</span>
-          </a>
-        </div>
-        <div style="margin-top: 1rem; padding: 1rem; background: rgba(251, 191, 36, 0.15); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(251, 191, 36, 0.3);">
-          <div style="font-weight: 600; margin-bottom: 0.5rem;">
-            <i class="fas fa-info-circle"></i> 6 Familias:
-          </div>
-          <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.6;">
-            <li>A: Producción y calidad</li>
-            <li>B: Gestión y gobierno</li>
-            <li>C: Infraestructura</li>
-            <li>D: Análisis y narrativa</li>
-            <li>E: Intermediación</li>
-            <li>F: Estrategia</li>
-          </ul>
-        </div>
-      </div>
-      
-      <div class="config-group-unified config-group-primary">
-        <h3 class="group-title">
-          <i class="fas fa-question-circle"></i>
-          Quiz y Actividades
-        </h3>
-        <div class="config-cards">
-          <a href="{% url 'admin:indicadores_preguntaquiz_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
-            <i class="fas fa-clipboard-question" style="color: var(--primary);"></i>
-            <span><strong>Preguntas del Quiz</strong></span>
-          </a>
-          <a href="{% url 'admin:indicadores_respuestaquiz_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
-            <i class="fas fa-check-square" style="color: var(--primary-light);"></i>
-            <span>Respuestas (solo lectura)</span>
-          </a>
-        </div>
-        <div style="margin-top: 1rem; padding: 1rem; background: rgba(79, 70, 229, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(79, 70, 229, 0.2);">
-          <div style="font-weight: 600; margin-bottom: 0.5rem;">
-            <i class="fas fa-info-circle"></i> Nota:
-          </div>
-          <p style="margin: 0;">
-            Las opciones de respuesta se editan directamente desde cada pregunta del quiz.
-          </p>
-        </div>
-      </div>
-      
+
       <div class="config-group-unified config-group-primary">
         <h3 class="group-title" style="color: var(--primary);">
-          <i class="fas fa-project-diagram"></i>
-          Mapeo del Ecosistema
+          <i class="fas fa-database"></i>
+          Instrumentos F1 · F2 · F3
         </h3>
         <div class="config-cards">
-          <a href="{% url 'admin:indicadores_fichadatospersonal_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
-            <i class="fas fa-id-card" style="color: var(--primary);"></i>
-            <span>Fichas de Datos (P1)</span>
+          <a href="{% url 'admin:indicadores_fuentedatos_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary);">
+            <i class="fas fa-table" style="color: var(--primary);"></i>
+            <span><strong>F1 · Fuentes de Datos</strong></span>
           </a>
-          <a href="{% url 'admin:indicadores_datoecosistema_changelist' %}" class="config-card" style="border-left: 4px solid var(--info);">
-            <i class="fas fa-database" style="color: var(--info);"></i>
-            <span><strong>Datos del Ecosistema</strong></span>
+          <a href="{% url 'admin:indicadores_retoanalisis_changelist' %}" class="config-card" style="border-left: 4px solid var(--info);">
+            <i class="fas fa-bullseye" style="color: var(--info);"></i>
+            <span><strong>F2 · Retos de Análisis</strong></span>
           </a>
-          <a href="{% url 'admin:indicadores_subsistemaorganismo_changelist' %}" class="config-card" style="border-left: 4px solid var(--primary-light);">
-            <i class="fas fa-cubes" style="color: var(--primary-light);"></i>
-            <span>Subsistemas</span>
-          </a>
-          <a href="{% url 'admin:indicadores_flujodatos_changelist' %}" class="config-card" style="border-left: 4px solid var(--info-light);">
-            <i class="fas fa-exchange-alt" style="color: var(--info-light);"></i>
-            <span>Flujos de Datos</span>
-          </a>
-          <a href="{% url 'admin:indicadores_clasificaciondato_changelist' %}" class="config-card" style="border-left: 4px solid var(--slate-400);">
-            <i class="fas fa-tags" style="color: var(--slate-400);"></i>
-            <span>Clasificación Dual (P2)</span>
-          </a>
-          <a href="{% url 'admin:indicadores_propositodato_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning);">
-            <i class="fas fa-bullseye" style="color: var(--warning);"></i>
-            <span><strong>Propósitos del Dato</strong></span>
+          <a href="{% url 'admin:indicadores_evaluacionseguridad_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning);">
+            <i class="fas fa-shield-alt" style="color: var(--warning);"></i>
+            <span><strong>F3 · Evaluación de Seguridad</strong></span>
           </a>
         </div>
         <div style="margin-top: 1rem; padding: 1rem; background: rgba(99, 102, 241, 0.1); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(99, 102, 241, 0.2);">
           <div style="font-weight: 600; margin-bottom: 0.5rem;">
-            <i class="fas fa-info-circle"></i> Flujo del Taller:
+            <i class="fas fa-info-circle"></i> Instrumento:
           </div>
           <ul style="margin: 0; padding-left: 1.5rem; line-height: 1.6;">
-            <li><strong>Ficha P1:</strong> Crear datos colaborativamente</li>
-            <li><strong>Datos del Ecosistema:</strong> Fusionar duplicados</li>
-            <li><strong>Flujos:</strong> Mapear origen y destino</li>
-            <li><strong>Ficha P2:</strong> Clasificar importancia + sensibilidad + propósito</li>
-            <li><strong>Propósitos:</strong> 10 opciones predefinidas (Dimensión D)</li>
-            <li><strong>Mapa 3D:</strong> Visualización con Three.js</li>
+            <li><strong>F1:</strong> caracterización de fuentes (orígenes y variables como inlines)</li>
+            <li><strong>F2:</strong> retos de análisis y fuentes requeridas</li>
+            <li><strong>F3:</strong> nivel de sensibilidad y valoración de seguridad</li>
           </ul>
         </div>
       </div>
-      
+
+      <div class="config-group-unified config-group-warning">
+        <h3 class="group-title" style="color: var(--warning);">
+          <i class="fas fa-layer-group"></i>
+          Catálogo de Datos
+        </h3>
+        <div class="config-cards">
+          <a href="{% url 'admin:indicadores_basecatalogo_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning);">
+            <i class="fas fa-server" style="color: var(--warning);"></i>
+            <span><strong>Bases del Data Lake</strong></span>
+          </a>
+          <a href="{% url 'admin:indicadores_campocatalogo_changelist' %}" class="config-card" style="border-left: 4px solid var(--warning-light);">
+            <i class="fas fa-columns" style="color: var(--warning-light);"></i>
+            <span>Campos de las Bases</span>
+          </a>
+        </div>
+        <div style="margin-top: 1rem; padding: 1rem; background: rgba(251, 191, 36, 0.15); border-radius: 8px; font-size: 0.85rem; color: var(--admin-text); border: 1px solid rgba(251, 191, 36, 0.3);">
+          <div style="font-weight: 600; margin-bottom: 0.5rem;">
+            <i class="fas fa-info-circle"></i> Data Lake:
+          </div>
+          <p style="margin: 0;">
+            Las bases alimentan el catálogo público y el autocompletado de fuentes del wizard (F1/F2).
+          </p>
+        </div>
+      </div>
+
       <div class="config-group-unified config-group-info">
         <h3 class="group-title" style="color: var(--info);">
           <i class="fas fa-desktop"></i>
-          Pantallas del Taller
+          Accesos del Módulo
         </h3>
         <div style="padding: 1rem;">
           <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info);">
-              <i class="fas fa-mobile-alt" style="color: var(--info); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+            <a href="{% url 'indicadores:taller_landing' %}" style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info); text-decoration: none;">
+              <i class="fas fa-home" style="color: var(--info); font-size: 1.25rem; margin-top: 0.25rem;"></i>
               <div>
-                <div style="font-weight: 600; color: var(--admin-text);">Interfaz Participante</div>
-                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/unirse/ (móvil)</div>
+                <div style="font-weight: 600; color: var(--admin-text);">Landing del Taller</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/ (público)</div>
               </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info-light);">
-              <i class="fas fa-tv" style="color: var(--info-light); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+            </a>
+            <a href="{% url 'indicadores:taller_dashboard' %}" style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--info-light); text-decoration: none;">
+              <i class="fas fa-chart-line" style="color: var(--info-light); font-size: 1.25rem; margin-top: 0.25rem;"></i>
               <div>
-                <div style="font-weight: 600; color: var(--admin-text);">Pantalla Facilitador</div>
-                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/pantalla/&lt;id&gt;/ (proyección)</div>
+                <div style="font-weight: 600; color: var(--admin-text);">Dashboard + Exports</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/dashboard/ (delegados)</div>
               </div>
-            </div>
-            <div style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--primary);">
-              <i class="fas fa-cube" style="color: var(--primary); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+            </a>
+            <a href="{% url 'indicadores:taller_ecosistema' %}" style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--primary); text-decoration: none;">
+              <i class="fas fa-project-diagram" style="color: var(--primary); font-size: 1.25rem; margin-top: 0.25rem;"></i>
               <div>
-                <div style="font-weight: 600; color: var(--admin-text);">Mapa 3D Ecosistema</div>
-                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/mapa3d/&lt;id&gt;/ (Three.js)</div>
+                <div style="font-weight: 600; color: var(--admin-text);">Grafo del Ecosistema</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">/taller/ecosistema/ + GEXF/SVG</div>
               </div>
-            </div>
+            </a>
+            <a href="{% url 'indicadores:catalogo_datos' %}" style="display: flex; align-items: start; gap: 0.75rem; padding: 0.75rem; background: var(--admin-panel-2); border-radius: 8px; border-left: 3px solid var(--warning); text-decoration: none;">
+              <i class="fas fa-book-open" style="color: var(--warning); font-size: 1.25rem; margin-top: 0.25rem;"></i>
+              <div>
+                <div style="font-weight: 600; color: var(--admin-text);">Catálogo de Datos</div>
+                <div style="font-size: 0.85rem; color: var(--admin-muted);">/catalogo/ (público)</div>
+              </div>
+            </a>
           </div>
         </div>
       </div>
