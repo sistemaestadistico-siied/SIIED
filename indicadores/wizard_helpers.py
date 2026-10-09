@@ -10,7 +10,7 @@ from django.db import transaction
 from .models import (
     ConjuntoDatos, Indicador, VariableConjuntoDatos, DominioDesagregacion,
     Desagregacion, ReglaExtraccion, CargaConjuntoDatos, CargaSerieIndicador,
-    ProcesoExtraccion, Grafico, GraficoSerie
+    ProcesoExtraccion, Grafico, GraficoSerie, resolver_organismo_por_nombre
 )
 
 logger = logging.getLogger(__name__)
@@ -248,6 +248,10 @@ class VariablesCreator:
             try:
                 codigo = var_data.get('codigo_variable')
                 
+                # Resolver organismo productor (texto -> FK)
+                prod_txt = var_data.get('organismo_productor') or ''
+                org_prod = resolver_organismo_por_nombre(prod_txt)
+                
                 # Buscar si ya existe
                 variable, created = VariableConjuntoDatos.objects.update_or_create(
                     conjunto_datos=conjunto_datos,
@@ -263,7 +267,8 @@ class VariablesCreator:
                         'cobertura_geografica': var_data.get('cobertura_geografica'),
                         'fuente_datos': var_data.get('fuente_datos'),
                         'periodicidad': var_data.get('periodicidad'),
-                        'organismo_productor': var_data.get('organismo_productor'),
+                        'organismo_productor': org_prod,
+                        'organismo_productor_legado': '' if org_prod else prod_txt,
                         'observaciones': var_data.get('observaciones'),
                     }
                 )

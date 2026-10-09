@@ -579,7 +579,7 @@ def descargar_metadata_variables(request, conjunto_datos_id):
                 'Fuente_Datos': var.fuente_datos or '',
                 'Periodicidad': var.periodicidad or '',
                 'Observaciones': var.observaciones or '',
-                'Organismo_Productor': var.organismo_productor or '',
+                'Organismo_Productor': (var.organismo_productor.nombre if var.organismo_productor else (var.organismo_productor_legado or '')),
             })
         
         df = pd.DataFrame(data)

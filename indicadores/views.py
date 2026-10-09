@@ -2647,7 +2647,7 @@ def get_ficha_tecnica_conjunto_datos(request, indicador_id):
                 'fuente_datos': variable.fuente_datos,
                 'periodicidad': variable.periodicidad,
                 'observaciones': variable.observaciones,
-                'organismo_productor': variable.organismo_productor,
+                'organismo_productor': (variable.organismo_productor.nombre if variable.organismo_productor else (variable.organismo_productor_legado or '')),
                 'orden': variable.orden
             })
         

@@ -820,7 +820,7 @@ def descargar_metadata_variables(request, conjunto_datos_id):
                 'Fuente_Datos': var.fuente_datos or '',
                 'Periodicidad': var.periodicidad or '',
                 'Observaciones': var.observaciones or '',
-                'Organismo_Productor': var.organismo_productor or '',
+                'Organismo_Productor': (var.organismo_productor.nombre if var.organismo_productor else (var.organismo_productor_legado or '')),
             })
         
         df = pd.DataFrame(data)
@@ -2288,9 +2288,11 @@ def cargar_variables_form(request):
             variables_pre = list(conjunto_datos_pre.variables.values(
                 'codigo_variable', 'nombre_variable', 'definicion_conceptual',
                 'tipo_dato', 'unidad_medida', 'periodicidad',
-                'fuente_datos', 'organismo_productor', 'observaciones',
-                'referencias'
+                'fuente_datos', 'organismo_productor__nombre', 'organismo_productor_legado',
+                'observaciones', 'referencias'
             ))
+            for v in variables_pre:
+                v['organismo_productor'] = v.pop('organismo_productor__nombre') or v.pop('organismo_productor_legado') or ''
         except ConjuntoDatos.DoesNotExist:
             pass
 
@@ -2879,12 +2881,20 @@ def _actualizar_metadata_indicador_masiva(indicador, fila):
         'periodicidad': 'frecuencia_difusion',   # alias legacy → MSD 3.2
         'fuente_datos': 'fuente_datos',
         'responsable': 'entidad_responsable',    # alias legacy → MSD 1.1
+        'entidad_responsable': 'entidad_responsable',  # texto → property resuelve Organismo
         # Sección 3
         'serie_historica_disponible': 'serie_historica_disponible',
         'frecuencia_difusion': 'frecuencia_difusion',
         'medios_difusion': 'medios_difusion',
         # Sección 4
         'comentarios_adicionales': 'comentarios_adicionales',
+        # Sección 5 — Referencias
+        'referencias': 'referencias',
+        # Sección 6 — Responsables de validación
+        'nombre_responsable_validacion': 'nombre_responsable_validacion',
+        'cargo_responsable_validacion': 'cargo_responsable_validacion',
+        'correo_responsable_validacion': 'correo_responsable_validacion',
+        'celular_responsable_validacion': 'celular_responsable_validacion',
         # Contacto
         'correo_contacto': 'correo_contacto',
         'telefono_contacto': 'telefono_contacto',
@@ -3584,11 +3594,24 @@ def descargar_plantilla_masiva_metadata(request):
             'serie_historica_disponible': ['2010-2024', '2015-2024'],
             'frecuencia_difusion': ['Anual', 'Anual'],
             'medios_difusion': ['Página web, boletín', 'Página web, informe anual'],
+            # Operación y conjunto_datos
+            'operacion_estadistica': ['Encuesta Nacional de Calidad de Vida', 'Censo Escolar'],
+            'nombre_conjunto_datos': ['Registros de mortalidad infantil', 'Matrícula escolar'],
+            # 5. Referencias (MSD)
+            'referencias': ['DANE (2024). Metodología TMM5', 'MEN (2024). Boletín educativo'],
+            # 6. Responsabilidad institucional (MSD)
+            'equipo_responsable': ['Equipo de Estadísticas de Salud', 'Equipo de Estadísticas Educativas'],
+            'nombre_responsable_validacion': ['Juan Pérez', 'María Gómez'],
+            'cargo_responsable_validacion': ['Profesional especializado', 'Profesional especializado'],
+            'correo_responsable_validacion': ['jperez@ejemplo.gov.co', 'mgomez@ejemplo.gov.co'],
+            'celular_responsable_validacion': ['3101234567', '3117654321'],
             # Administrativos
             'fuente_datos': ['DANE', 'Secretaría de Educación'],
             'entidad_responsable': ['Departamento Administrativo de Planeación', 'Secretaría de Educación'],
             'comentarios_adicionales': ['Considerar subregistro...', 'Incluir educación formal...'],
             'notas': ['Actualización anual', 'Corte a 31 de diciembre'],
+            'fecha_elaboracion': ['2025-01-15', '2025-01-15'],
+            'fecha_actualizacion': ['2025-09-16', '2025-09-16'],
         }
         df = pd.DataFrame(data)
 
@@ -3620,9 +3643,21 @@ def descargar_plantilla_masiva_metadata(request):
                     'CAMPOS MSD — SECCION 4: COMENTARIOS',
                     'comentarios_adicionales',
                     '',
+                    'CAMPOS MSD — SECCION 5: REFERENCIAS',
+                    'referencias',
+                    '',
+                    'CAMPOS MSD — SECCION 6: RESPONSABILIDAD',
+                    'equipo_responsable, nombre_responsable_validacion,',
+                    'cargo_responsable_validacion, correo_responsable_validacion,',
+                    'celular_responsable_validacion',
+                    '',
+                    'OPERACION Y CONJUNTO DE DATOS',
+                    'operacion_estadistica  → nombre exacto de la Operación Estadística',
+                    'nombre_conjunto_datos  → nombre del conjunto de datos del indicador',
+                    '',
                     'CAMPOS ADMINISTRATIVOS (compatibilidad)',
-                    'fuente_datos, entidad_responsable, notas,',
-                    'fecha_publicacion_metadatos',
+                    'fuente_datos, notas, fecha_elaboracion, fecha_actualizacion',
+                    'entidad_responsable → texto legado; prefiera entidad_institucion',
                     '',
                     'IMPORTANTE: El indicador y el Organismo/Suborganismo deben existir previamente.'
                 ]

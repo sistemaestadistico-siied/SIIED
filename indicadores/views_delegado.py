@@ -1348,8 +1348,11 @@ def delegado_cargar_variables_form(request):
             variables_pre = list(conjunto_datos_pre.variables.values(
                 'codigo_variable', 'nombre_variable', 'definicion_conceptual',
                 'tipo_dato', 'unidad_medida', 'periodicidad',
-                'fuente_datos', 'organismo_productor', 'observaciones'
+                'fuente_datos', 'organismo_productor__nombre', 'organismo_productor_legado',
+                'observaciones'
             ))
+            for v in variables_pre:
+                v['organismo_productor'] = v.pop('organismo_productor__nombre') or v.pop('organismo_productor_legado') or ''
         except ConjuntoDatos.DoesNotExist:
             pass
 

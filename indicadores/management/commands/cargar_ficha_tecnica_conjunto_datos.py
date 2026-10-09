@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from indicadores.models import Indicador, MenuSubtema, VariableConjuntoDatos
+from indicadores.models import Indicador, MenuSubtema, VariableConjuntoDatos, resolver_organismo_por_nombre
 import csv
 import os
 
@@ -145,7 +145,11 @@ class Command(BaseCommand):
                             periodicidad=variable_info.get('Periodicidad', '').strip() or None,
                             observaciones=variable_info.get('Observaciones', '').strip() or None,
                             referencias=variable_info.get('Referencias', '').strip() or None,
-                            organismo_productor=variable_info.get('Organismo_Productor', '').strip() or None,
+                            organismo_productor=resolver_organismo_por_nombre(variable_info.get('Organismo_Productor', '').strip()),
+                            organismo_productor_legado=(
+                                '' if resolver_organismo_por_nombre(variable_info.get('Organismo_Productor', '').strip())
+                                else variable_info.get('Organismo_Productor', '').strip()
+                            ),
                             orden=idx
                         )
                     

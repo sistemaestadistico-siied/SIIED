@@ -204,7 +204,41 @@ class OperacionEstadisticaAdmin(admin.ModelAdmin):
 # admin.site.register(Grafico)  # Reemplazado por GraficoAdmin
 # admin.site.register(GraficoSerie)  # Reemplazado por GraficoSerieInline
 # admin.site.register(Dato) - Removido para evitar duplicados
-admin.site.register(ConjuntoDatos)
+class ConjuntoDatosAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'operacion', 'organismo_productor', 'tipo_estudio', 'fecha_carga')
+    list_filter = ('operacion', 'tipo_estudio', 'organismo_productor')
+    search_fields = ('nombre', 'descripcion', 'identificador', 'palabras_clave')
+    ordering = ('nombre',)
+    readonly_fields = ('fecha_carga',)
+    
+    fieldsets = (
+        ('Identificación (DDI)', {
+            'fields': ('nombre', 'descripcion', 'operacion', 'identificador',
+                      'version', 'doi_citacion', 'idioma', 'palabras_clave')
+        }),
+        ('Productor y Distribución', {
+            'fields': ('organismo_productor', 'productor_legado', 'financiamiento',
+                      'distribuidor', 'contacto_nombre', 'contacto_email')
+        }),
+        ('Universo y Cobertura', {
+            'fields': ('universo', 'unidad_analisis', 'cobertura_geografica',
+                      'cobertura_temporal')
+        }),
+        ('Metodología', {
+            'fields': ('tipo_estudio', 'metodo_muestreo', 'modo_coleccion',
+                      'instrumento', 'periodo_campo_inicio', 'periodo_campo_fin',
+                      'ponderacion', 'notas_procesamiento')
+        }),
+        ('Acceso y Uso', {
+            'fields': ('condiciones_acceso', 'derechos_uso', 'confidencialidad')
+        }),
+        ('Archivo', {
+            'fields': ('archivo_csv', 'fecha_carga'),
+            'classes': ('collapse',)
+        }),
+    )
+
+admin.site.register(ConjuntoDatos, ConjuntoDatosAdmin)
 # admin.site.register(NivelGeografico)  # Reemplazado por NivelGeograficoAdmin
 admin.site.register(CapaGeo)
 admin.site.register(ElementoGeo)
@@ -233,10 +267,16 @@ class VariableConjuntoDatosAdmin(admin.ModelAdmin):
             'fields': ('tipo_dato', 'dominio_dato', 'unidad_medida', 'tipo_variable_estadistica')
         }),
         ('Fuente y Periodicidad', {
-            'fields': ('fuente_datos', 'periodicidad', 'organismo_productor')
+            'fields': ('fuente_datos', 'periodicidad', 'organismo_productor',
+                      'organismo_productor_legado')
+        }),
+        ('Detalle Estadístico', {
+            'fields': ('pregunta', 'universo', 'concepto',
+                      'tipo_representacion', 'categoria_estadistica'),
+            'classes': ('collapse',)
         }),
         ('Observaciones', {
-            'fields': ('observaciones',),
+            'fields': ('observaciones', 'referencias'),
             'classes': ('collapse',)
         }),
     )
@@ -814,8 +854,8 @@ class IndicadorAdmin(admin.ModelAdmin):
             'description': 'Campos 0.1–0.4 del estándar MSD + configuración interna de clasificación.'
         }),
         ('1. Contacto Institucional (MSD)', {
-            'fields': ('entidad_responsable', 'organismo_responsable', 'suborganismo',
-                      'correo_contacto', 'telefono_contacto', 'fecha_publicacion_metadatos'),
+            'fields': ('organismo_responsable', 'entidad_responsable_legado', 'suborganismo',
+                       'correo_contacto', 'telefono_contacto', 'fecha_publicacion_metadatos'),
             'description': 'Campos 1.1–1.6 del estándar MSD.'
         }),
         ('2. Características del Indicador (MSD)', {

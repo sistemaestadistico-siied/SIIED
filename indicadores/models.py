@@ -279,6 +279,43 @@ class Desagregacion(models.Model):
         verbose_name_plural = "Desagregaciones"
 
 
+def resolver_organismo_por_nombre(nombre):
+    """Resuelve un Organismo activo a partir de un nombre de texto libre.
+
+    Estrategia: coincidencia exacta (iexact) → normalizada (sin tildes,
+    minúsculas) → contenido parcial. Devuelve None si no hay match.
+    """
+    from unidecode import unidecode
+    texto = (nombre or '').strip()
+    if not texto:
+        return None
+    qs = Organismo.objects.filter(activo=True)
+    organismo = qs.filter(nombre__iexact=texto).first()
+    norm = lambda s: unidecode(str(s).lower().strip())
+    if not organismo:
+        objetivo = norm(texto)
+        for org in qs:
+            if norm(org.nombre) == objetivo:
+                organismo = org
+                break
+    if not organismo:
+        organismo = qs.filter(nombre__icontains=texto[:60]).first()
+    if not organismo:
+        # Coincidencia inversa: el nombre del organismo aparece dentro
+        # del texto (p. ej. "Secretaría de Educación Municipal de
+        # Santiago de Cali" → "Secretaría de Educación Municipal").
+        # Solo nombres de al menos 10 caracteres para evitar falsos
+        # positivos (siglas cortas, "DANE", etc.).
+        objetivo = norm(texto)
+        mejor = None
+        for org in qs:
+            n = norm(org.nombre)
+            if len(n) >= 10 and n in objetivo and (mejor is None or len(n) > len(norm(mejor.nombre))):
+                mejor = org
+        organismo = mejor
+    return organismo
+
+
 class Indicador(models.Model):
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=255,
@@ -326,11 +363,12 @@ class Indicador(models.Model):
     # ============================================================================
 
     # Sección 1: Contacto Institucional
-    entidad_responsable = models.CharField(
+    entidad_responsable_legado = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name="1.1 Entidad o Institución Responsable",
-        help_text="Nombre de la entidad productora/responsable del indicador (1.1 MSD). "
-                  "Migrado desde el campo 'responsable'."
+        verbose_name="1.1 Entidad Responsable (texto legado)",
+        help_text="Texto libre heredado. El campo oficial es la llave "
+                  "'organismo_responsable'. Este texto se conserva solo "
+                  "como referencia cuando no pudo resolverse a un Organismo."
     )
     suborganismo = models.ForeignKey(
         'Suborganismo',
@@ -493,16 +531,40 @@ class Indicador(models.Model):
     operacion = models.ForeignKey(OperacionEstadistica, on_delete=models.CASCADE,
                                 related_name='indicadores', blank=True, null=True,
                                 verbose_name="2.9 Nombre de la Operación Estadística")
-    # Organismo responsable (para portal de delegados)
+    # Organismo responsable — llave oficial a la tabla Organismo
+    # (metadato MSD 1.1 "Entidad o Institución Responsable" / 6.1)
     organismo_responsable = models.ForeignKey(
         'Organismo',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='indicadores_responsables',
-        verbose_name="1.2 / 6.1 Organismo Responsable (registrado)",
-        help_text="Organismo productor del indicador (usado para filtrar en portal de delegados)"
+        verbose_name="1.1 Entidad u Organismo Responsable",
+        help_text="Organismo productor del indicador. Llave a la tabla "
+                  "Organismo (usado también para el portal de delegados). "
+                  "Los textos antiguos quedaron en 'entidad_responsable_legado'."
     )
+
+    @property
+    def entidad_responsable(self):
+        """MSD 1.1: nombre de la entidad responsable. Lee del FK
+        organismo_responsable; cae al texto legado si no hay llave."""
+        if self.organismo_responsable_id:
+            return self.organismo_responsable.nombre
+        return self.entidad_responsable_legado or ''
+
+    @entidad_responsable.setter
+    def entidad_responsable(self, value):
+        """Asignar texto resuelve el Organismo por nombre (exacto /
+        normalizado / contenido). Si no se resuelve, queda como texto legado."""
+        nombre = (value or '').strip()
+        if not nombre:
+            return
+        organismo = resolver_organismo_por_nombre(nombre)
+        if organismo:
+            self.organismo_responsable = organismo
+        else:
+            self.entidad_responsable_legado = nombre
     activo = models.BooleanField(default=True)
     # Dominios de desagregación temática asociados al indicador (muchos a muchos)
     dominios_desagregacion_tematica = models.ManyToManyField(
@@ -647,8 +709,14 @@ class ConjuntoDatos(models.Model):
         help_text="DDI keyword — Palabras clave separadas por comas")
 
     # ── ESTÁNDAR DDI — Producción y difusión ──
-    productor = models.CharField(max_length=255, blank=True, null=True,
-        help_text="DDI producer — Entidad que produjo los datos")
+    organismo_productor = models.ForeignKey(
+        'Organismo', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='conjuntos_producidos',
+        verbose_name="Organismo productor",
+        help_text="DDI producer — Llave a la tabla Organismo")
+    productor_legado = models.CharField(max_length=255, blank=True, null=True,
+                                        help_text="DDI producer — texto libre heredado "
+                                                  "(entidad externa no registrada como Organismo)")
     financiamiento = models.CharField(max_length=255, blank=True, null=True,
         help_text="DDI fundAg — Agencia o fuente de financiamiento")
     distribuidor = models.CharField(max_length=255, blank=True, null=True,
@@ -726,7 +794,14 @@ class VariableConjuntoDatos(models.Model):
     observaciones = models.TextField(blank=True, null=True)
     referencias = models.TextField(blank=True, null=True,
         help_text="Referencias bibliográficas, normativas y metodológicas de la variable (APA 7 — SDMX)")
-    organismo_productor = models.CharField(max_length=255, blank=True, null=True)
+    organismo_productor = models.ForeignKey(
+        'Organismo', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='variables_producidas',
+        verbose_name="Organismo productor",
+        help_text="Llave a la tabla Organismo")
+    organismo_productor_legado = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="Texto libre heredado cuando no se resolvió a un Organismo")
     orden = models.IntegerField(default=0, help_text="Orden de presentación de la variable")
 
     # ── ESTÁNDAR DDI — Campos a nivel variable ──
