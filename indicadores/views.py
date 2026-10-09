@@ -5873,7 +5873,7 @@ def organismo_detalle(request, codigo):
     # Indicadores bajo responsabilidad
     indicadores = Indicador.objects.filter(
         organismo_responsable=organismo
-    ).select_related('operacion').order_by('-fecha_actualizacion')[:10]
+    ).select_related('operacion').order_by('-fecha_actualizacion_ficha')[:10]
     
     # Inscripciones al taller de ecosistemas (instrumento F1/F2/F3)
     sesiones = InscripcionTaller.objects.filter(
