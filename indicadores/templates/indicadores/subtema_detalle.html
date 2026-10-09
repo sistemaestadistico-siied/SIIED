@@ -2268,6 +2268,11 @@ document.addEventListener('DOMContentLoaded', function() {
         tablaHTML += row('6.2 Suborganismo Responsable', indicador.suborganismo);
         tablaHTML += row('6.3 Equipo Responsable', indicador.equipo_responsable);
 
+        // Trazabilidad de la ficha
+        tablaHTML += sectionHeader('7. Trazabilidad de la Ficha');
+        tablaHTML += row('7.1 Fecha de Elaboración', indicador.fecha_elaboracion);
+        tablaHTML += row('7.2 Fecha de Actualización', indicador.fecha_actualizacion);
+
         tablaHTML += '</tbody></table></div>';
 
         const downloadMetadatosContainer = document.createElement('div');
@@ -2335,7 +2340,9 @@ document.addEventListener('DOMContentLoaded', function() {
             { key: 'comentarios_adicionales', label: '4.1 Comentarios Adicionales' },
             { key: 'referencias', label: '5.1 Referencias (APA 7)' },
             { key: 'equipo_responsable', label: '6.3 Equipo Responsable' },
-            ];
+            { key: 'fecha_elaboracion', label: '7.1 Fecha de Elaboración' },
+            { key: 'fecha_actualizacion', label: '7.2 Fecha de Actualización' },
+        ];
         
         const delimiter = ';';
         let csvContent = '';
@@ -2402,7 +2409,9 @@ document.addEventListener('DOMContentLoaded', function() {
             { key: 'comentarios_adicionales', label: '4.1 Comentarios Adicionales' },
             { key: 'referencias', label: '5.1 Referencias (APA 7)' },
             { key: 'equipo_responsable', label: '6.3 Equipo Responsable' },
-            ];
+            { key: 'fecha_elaboracion', label: '7.1 Fecha de Elaboración' },
+            { key: 'fecha_actualizacion', label: '7.2 Fecha de Actualización' },
+        ];
         
         // Crear datos para Excel
         const datosExcel = [];

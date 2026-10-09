@@ -2152,6 +2152,11 @@ def cargar_metadata_form(request):
         # Actualizar indicador con campos MSD
         indicador.variables = data.get('Variables', '')
         indicador.descripcion_indicador = data.get('Descripcion_Indicador', '')
+        indicador.objetivo = data.get('Objetivo', '')
+        indicador.metodo_medicion = data.get('Metodo_Medicion', '')
+        indicador.formula_ficha = data.get('Formula', '')
+        indicador.unidad_medida = data.get('Unidad_Medida', '')
+        indicador.fuente_datos = data.get('Fuente_Datos', '')
         indicador.nomenclaturas_clasificaciones = data.get('Nomenclaturas_Clasificaciones', '')
         indicador.poblacion_objetivo = data.get('Poblacion_Objetivo', '')
         indicador.alcance_tematico = data.get('Alcance_Tematico', '')
@@ -2162,6 +2167,16 @@ def cargar_metadata_form(request):
         indicador.frecuencia_difusion = data.get('Frecuencia_Difusion', '')
         indicador.medios_difusion = data.get('Medios_Difusion', '')
         indicador.comentarios_adicionales = data.get('Comentarios_Adicionales', '')
+        # Identificación: solo si vienen con valor (evita borrado accidental)
+        for clave, campo in (
+            ('Codigo_Indicador', 'codigo_indicador'),
+            ('Nombre_Indicador', 'nombre'),
+            ('Sigla', 'sigla'),
+            ('Grupo_Indicador', 'grupo_indicador'),
+        ):
+            valor = (data.get(clave) or '').strip()
+            if valor:
+                setattr(indicador, campo, valor)
         # Campos SDMX adicionales
         indicador.referencias = data.get('Referencias', '')
         indicador.nombre_responsable_validacion = data.get('Nombre_Responsable_Validacion', '')

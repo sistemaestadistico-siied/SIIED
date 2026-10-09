@@ -3774,8 +3774,8 @@ def get_indicadores_simple(request):
                     # Comentarios (MSD)
                     'comentarios_adicionales': indicador.comentarios_adicionales,
                     'notas': indicador.notas,
-                    'fecha_elaboracion': None,  # Campo legacy eliminado
-                    'fecha_actualizacion': indicador.fecha_publicacion_metadatos.strftime('%Y-%m-%d') if indicador.fecha_publicacion_metadatos else None,
+                    'fecha_elaboracion': indicador.fecha_elaboracion.strftime('%Y-%m-%d') if indicador.fecha_elaboracion else None,
+                    'fecha_actualizacion': indicador.fecha_actualizacion_ficha.strftime('%Y-%m-%d') if indicador.fecha_actualizacion_ficha else None,
                     'nombre_conjunto_datos': indicador.nombre_conjunto_datos,
                     # SDMX: referencias y responsabilidad institucional
                     # NOTA: datos personales del responsable técnico (nombre/cargo/correo/celular)
