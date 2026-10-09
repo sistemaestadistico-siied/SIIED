@@ -1,4 +1,4 @@
-from .decorators import delegado_required
+from .decorators import delegado_required, taller_staff_required
 from django.db.models import Count
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -516,7 +516,6 @@ def _grafo_ecosistema(solo_relacionados=False):
     return grafo
 
 
-@delegado_required
 @require_GET
 def api_ecosistema(request):
     """Endpoint JSON con nodos y aristas para la visualización 3D del ecosistema."""
@@ -525,7 +524,6 @@ def api_ecosistema(request):
     return JsonResponse({'nodos': nodos, 'aristas': aristas})
 
 
-@delegado_required
 @require_GET
 def ecosistema_gexf(request):
     """Descarga el grafo del ecosistema en formato GEXF (Gephi / Gephi Lite)."""
@@ -677,7 +675,6 @@ def _layout_anillos(nodos):
     return pos
 
 
-@delegado_required
 @require_GET
 def ecosistema_svg(request):
     """Renderiza el grafo del ecosistema como imagen SVG con layout de anillos
@@ -1073,7 +1070,7 @@ def _fuentes_detalle(qs, ids):
     return resultado
 
 
-@delegado_required
+@taller_staff_required
 def dashboard(request):
     from .models_taller import FuenteRequerida
     from .models_catalogo import EvaluacionSeguridad, VariableFuente
@@ -1206,7 +1203,7 @@ def dashboard(request):
     return render(request, 'taller/dashboard.html', context)
 
 
-@delegado_required
+@taller_staff_required
 def presentacion(request):
     """Presentación en diapositivas del análisis integral F1-F2-F3 — cifras en vivo desde la BD."""
     from collections import Counter
@@ -1388,7 +1385,7 @@ def presentacion(request):
     return render(request, 'taller/presentacion.html', context)
 
 
-@delegado_required
+@taller_staff_required
 def nube_svg(request, nombre):
     """Sirve las nubes de palabras SVG desde el paquete (sin depender de collectstatic)."""
     from pathlib import Path
@@ -1508,7 +1505,7 @@ def _clasificar_retos():
     return casos
 
 
-@delegado_required
+@taller_staff_required
 def casos_f2(request):
     """Tabla viva de los casos F2 clasificados por línea — consultable desde el dashboard."""
     from collections import Counter
@@ -1523,7 +1520,7 @@ def casos_f2(request):
     return render(request, 'taller/casos_f2.html', context)
 
 
-@delegado_required
+@taller_staff_required
 def casos_f2_excel(request):
     """Exporta la tabla de casos F2 clasificados a Excel."""
     from django.http import HttpResponse
@@ -1565,7 +1562,7 @@ def casos_f2_excel(request):
     return respuesta
 
 
-@delegado_required
+@taller_staff_required
 def reporte_excel(request):
     """Informe claro multi-hoja: separa ficha/inscripción, fuentes F1, retos F2 y
     evaluaciones F3 para que no se confundan las unidades de conteo."""
@@ -2142,7 +2139,7 @@ def _export_variables_filas():
     return header, filas
 
 
-@delegado_required
+@taller_staff_required
 def dashboard_export(request):
     import csv
     from django.http import HttpResponse
@@ -2157,7 +2154,7 @@ def dashboard_export(request):
     return respuesta
 
 
-@delegado_required
+@taller_staff_required
 def dashboard_export_excel(request):
     """Mismo export de fichas en formato Excel (.xlsx)."""
     from django.http import HttpResponse
@@ -2202,7 +2199,7 @@ def dashboard_export_excel(request):
     return respuesta
 
 
-@delegado_required
+@taller_staff_required
 def dashboard_export_variables(request):
     """CSV dedicado de variables F1: una fila por variable."""
     import csv
@@ -2218,7 +2215,7 @@ def dashboard_export_variables(request):
     return respuesta
 
 
-@delegado_required
+@taller_staff_required
 def dashboard_informe(request):
     """Genera el informe de usuarios como archivo Excel descargable."""
     from django.http import HttpResponse
@@ -2350,7 +2347,6 @@ def dashboard_informe(request):
     return response
 
 
-@delegado_required
 @xframe_options_sameorigin
 def ecosistema(request):
     return render(request, 'taller/ecosistema.html')
@@ -2360,7 +2356,7 @@ def ecosistema_metodologia(request):
     return render(request, 'taller/ecosistema_metodologia.html')
 
 
-@delegado_required
+@taller_staff_required
 @xframe_options_sameorigin
 def modelo_datos(request):
     """Diagrama ER interactivo: serializa el esquema de taller (+ auth.User) a JSON."""

@@ -166,3 +166,32 @@ def editor_required(view_func):
         return redirect('indicadores:index')
     
     return wrapper
+
+
+def taller_login_required(view_func):
+    """
+    Módulo taller/catálogo: requiere usuario autenticado de cualquier rol
+    (delegado, recolector, validador, staff...). Redirige al login del
+    portal delegado (la entrada pública de autenticación).
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('indicadores:delegado_login')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def taller_staff_required(view_func):
+    """
+    Dashboard/reportes del taller: solo usuarios staff o superusuarios.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('indicadores:delegado_login')
+        if not request.user.is_staff:
+            messages.error(request, 'Esta sección es solo para el equipo del SIIED.')
+            return redirect('indicadores:taller_landing')
+        return view_func(request, *args, **kwargs)
+    return wrapper

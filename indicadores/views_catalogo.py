@@ -11,7 +11,7 @@ import json
 from django.db.models import Count
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
-from .decorators import delegado_required
+from .decorators import taller_login_required
 from django.views.decorators.http import require_GET
 
 from .catalogo_datalake import get_bases, get_campos_cruzables
@@ -22,7 +22,7 @@ from .models_catalogo import (
 )
 
 
-@delegado_required
+@taller_login_required
 @require_GET
 def api_fuentes_catalogo(request):
     """Retorna nombres de bases del catálogo y fuentes ya registradas para autocomplete."""
@@ -54,7 +54,7 @@ def catalogo_datos(request):
     return render(request, 'taller/catalogo_datos.html', context)
 
 
-@delegado_required
+@taller_login_required
 def ficha_conjunto(request, fuente_id):
     """Muestra la ficha completa de un conjunto de datos (FuenteDatos)."""
     from .models import (EvaluacionSeguridad, FuenteOrigen, RetoAnalisis,
