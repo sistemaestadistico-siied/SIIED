@@ -34,6 +34,7 @@ urlpatterns = [
     path('acceso-modulos/', views.acceso_modulos, name='acceso_modulos'),
     path('dominio/', views.dominios, name='dominios'),
     path('modelo/', views.modelo_datos, name='modelo_datos'),
+    path('presentacion/', views.presentacion, name='presentacion'),
     path('dominio/<slug:slug>/', views.dominio_detalle, name='dominio_detalle'),
     path('dominio/<slug:dominio_slug>/<slug:tema_slug>/', views.tema_detalle, name='tema_detalle'),
     path('dominio/<slug:dominio_slug>/<slug:tema_slug>/<slug:subtema_slug>/', views.subtema_detalle, name='subtema_detalle'),

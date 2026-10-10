@@ -1,0 +1,1058 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Maquila de Datos — SIIED</title>
+
+{{ stats|json_script:"stats-data" }}
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IM+Fell+English:ital@0;1&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0c0a09; }
+
+    #escena { position: fixed; inset: 0; }
+    #escena.sepia canvas { filter: sepia(0.35) contrast(1.06) brightness(0.97); }
+
+    /* ---------- Grano de película + viñeta ---------- */
+    #grano {
+        position: fixed; inset: -50%; pointer-events: none; z-index: 30;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+        opacity: 0.07;
+        animation: granoShift 0.9s steps(4) infinite;
+    }
+    @keyframes granoShift {
+        0% { transform: translate(0,0); } 25% { transform: translate(-2%,1%); }
+        50% { transform: translate(1%,-2%); } 75% { transform: translate(-1%,2%); }
+        100% { transform: translate(2%,-1%); }
+    }
+    #vigneta {
+        position: fixed; inset: 0; pointer-events: none; z-index: 31;
+        background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+    }
+    #parpadeo-pelicula {
+        position: fixed; inset: 0; pointer-events: none; z-index: 32;
+        background: #000; opacity: 0;
+        animation: flicker 7s infinite;
+    }
+    @keyframes flicker {
+        0%, 91%, 94%, 100% { opacity: 0; }
+        92% { opacity: 0.06; } 93% { opacity: 0.02; }
+    }
+
+    /* ---------- Intertítulos estilo Chaplin ---------- */
+    #intertitulo {
+        position: fixed; inset: 0; z-index: 40; pointer-events: none;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.8s ease;
+    }
+    #intertitulo.visible { opacity: 1; }
+    .tarjeta {
+        background: #f5ecd7;
+        color: #1c1917;
+        padding: 40px 60px;
+        max-width: 640px;
+        text-align: center;
+        border: 3px double #1c1917;
+        outline: 10px solid #f5ecd7;
+        box-shadow: 0 0 0 13px #1c1917, 0 20px 60px rgba(0,0,0,0.6);
+        font-family: 'Playfair Display', Georgia, serif;
+    }
+    .tarjeta .acto {
+        font-family: 'IM Fell English', Georgia, serif;
+        font-style: italic;
+        font-size: 14px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+        color: #57534e;
+    }
+    .tarjeta .texto {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.35;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .tarjeta .sub {
+        margin-top: 12px;
+        font-family: 'IM Fell English', Georgia, serif;
+        font-style: italic;
+        font-size: 15px;
+        color: #44403c;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    /* ---------- Intro ---------- */
+    #intro {
+        position: fixed; inset: 0; z-index: 50;
+        background: radial-gradient(ellipse at center, #1c1917 0%, #0c0a09 80%);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 24px; transition: opacity 1s ease;
+    }
+    #intro.oculto { opacity: 0; pointer-events: none; }
+    #intro .marco {
+        border: 3px double #d6c9a8; padding: 48px 64px; text-align: center;
+        outline: 8px solid transparent; color: #e7ddc4;
+        font-family: 'Playfair Display', Georgia, serif;
+        max-width: 720px;
+    }
+    #intro h1 { font-size: 42px; font-weight: 900; letter-spacing: 2px; margin-bottom: 6px; }
+    #intro h1 .cali { color: #7dd3fc; }
+    #intro .subtitulo {
+        font-family: 'IM Fell English', Georgia, serif; font-style: italic;
+        font-size: 17px; color: #a8a29e; margin-bottom: 4px;
+    }
+    #intro .stats-line { font-size: 13px; color: #78716c; letter-spacing: 2px; text-transform: uppercase; }
+    #btn-play {
+        margin-top: 8px;
+        background: #f5ecd7; color: #1c1917;
+        border: none; padding: 16px 52px;
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 20px; font-weight: 700; letter-spacing: 3px;
+        cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #btn-play:hover { transform: scale(1.05); box-shadow: 0 0 40px rgba(245,236,215,0.25); }
+    #intro .nota-audio { font-size: 12px; color: #57534e; font-family: Georgia, serif; font-style: italic; }
+
+    /* ---------- HUD ---------- */
+    #hud {
+        position: fixed; bottom: 18px; right: 18px; z-index: 45;
+        display: flex; gap: 8px;
+    }
+    .hud-btn {
+        background: rgba(245,236,215,0.92); color: #1c1917;
+        border: none; padding: 8px 14px; font-size: 12px;
+        font-family: Georgia, serif; letter-spacing: 1px;
+        cursor: pointer; border-radius: 2px;
+        transition: background 0.2s;
+    }
+    .hud-btn:hover { background: #f5ecd7; }
+    #progreso {
+        position: fixed; bottom: 0; left: 0; height: 3px; z-index: 45;
+        background: #7dd3fc; width: 0%; transition: width 0.3s linear;
+    }
+
+    /* ---------- Créditos finales ---------- */
+    #creditos {
+        position: fixed; inset: 0; z-index: 48; pointer-events: none;
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 1.5s ease;
+    }
+    #creditos.visible { opacity: 1; pointer-events: auto; }
+    #creditos .tarjeta { max-width: 560px; }
+    #creditos .texto { font-size: 30px; }
+    #btn-replay {
+        margin-top: 20px; background: #1c1917; color: #f5ecd7;
+        border: 2px solid #1c1917; padding: 10px 28px;
+        font-family: 'Playfair Display', Georgia, serif; font-size: 14px;
+        letter-spacing: 2px; cursor: pointer;
+    }
+    #btn-replay:hover { background: #44403c; }
+</style>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.164.1/examples/jsm/"
+    }
+}
+</script>
+</head>
+<body>
+
+<audio id="musica" src="{% static 'indicadores/audio/maquila.mp3' %}" preload="auto"></audio>
+
+<div id="escena" class="sepia"></div>
+<div id="grano"></div>
+<div id="vigneta"></div>
+<div id="parpadeo-pelicula"></div>
+
+<div id="intertitulo">
+    <div class="tarjeta">
+        <div class="acto" id="inter-acto"></div>
+        <div class="texto" id="inter-texto"></div>
+        <div class="sub" id="inter-sub"></div>
+    </div>
+</div>
+
+<div id="intro">
+    <div class="marco">
+        <div class="subtitulo">El Sistema Integrado de Información Estadística Distrital presenta</div>
+        <h1>LA MAQUILA<br>DE DATOS<span class="cali">*</span></h1>
+        <div class="subtitulo">* en Santiago de Cali, como debe ser</div>
+        <div class="stats-line" id="intro-stats"></div>
+        <div style="margin-top:28px">
+            <button id="btn-play">▶ PROYECTAR</button>
+        </div>
+    </div>
+    <div class="nota-audio" id="nota-audio">Una producción del DAP · música: pendiente de estreno</div>
+</div>
+
+<div id="creditos">
+    <div class="tarjeta">
+        <div class="acto">Fin del primer rollo</div>
+        <div class="texto">SIIED<br>La fábrica de datos<br>de Santiago de Cali</div>
+        <div class="sub" id="creditos-stats"></div>
+        <button id="btn-replay">↺ PROYECTAR DE NUEVO</button>
+    </div>
+</div>
+
+<div id="hud">
+    <button class="hud-btn" id="btn-sepia">SEPIA: ON</button>
+    <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
+    <button class="hud-btn" id="btn-saltar">SALTAR ⏭</button>
+</div>
+<div id="progreso"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const STATS = JSON.parse(document.getElementById('stats-data').textContent);
+document.getElementById('intro-stats').textContent =
+    `${STATS.modelos} modelos · ${STATS.indicadores} indicadores · ${STATS.conjuntos} conjuntos de datos`;
+document.getElementById('creditos-stats').textContent =
+    `${STATS.indicadores} indicadores · ${STATS.conjuntos} conjuntos · ${STATS.dominios} dominios · ${STATS.organismos} organismos productores`;
+
+// ============ ESCENA BASE ============
+const contenedor = document.getElementById('escena');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+contenedor.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1714);
+scene.fog = new THREE.Fog(0x1a1714, 40, 110);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 300);
+camera.position.set(0, 22, 42);
+
+const ambient = new THREE.AmbientLight(0xffe8c4, 0.45);
+scene.add(ambient);
+const sol = new THREE.DirectionalLight(0xffd9a0, 1.1);
+sol.position.set(-18, 30, 20);
+sol.castShadow = true;
+sol.shadow.mapSize.set(2048, 2048);
+sol.shadow.camera.left = -45; sol.shadow.camera.right = 45;
+sol.shadow.camera.top = 45; sol.shadow.camera.bottom = -45;
+scene.add(sol);
+const relleno = new THREE.DirectionalLight(0x7dd3fc, 0.25);
+relleno.position.set(15, 12, -20);
+scene.add(relleno);
+
+// Lámparas colgantes
+for (let x = -20; x <= 20; x += 10) {
+    const lampara = new THREE.Group();
+    const cable = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.03, 0.03, 4, 4),
+        new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    cable.position.y = 2;
+    lampara.add(cable);
+    const campana = new THREE.Mesh(
+        new THREE.ConeGeometry(0.8, 0.7, 12, 1, true),
+        new THREE.MeshLambertMaterial({ color: 0x2d4a2d, side: THREE.DoubleSide }));
+    lampara.add(campana);
+    const bombilla = new THREE.Mesh(
+        new THREE.SphereGeometry(0.15, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffe0a0 }));
+    bombilla.position.y = -0.35;
+    lampara.add(bombilla);
+    const luzPunto = new THREE.PointLight(0xffca7a, 0.7, 18);
+    luzPunto.position.y = -0.5;
+    lampara.add(luzPunto);
+    lampara.position.set(x, 11, 0);
+    scene.add(lampara);
+}
+
+// Piso industrial
+const piso = new THREE.Mesh(
+    new THREE.PlaneGeometry(140, 90),
+    new THREE.MeshLambertMaterial({ color: 0x3a342e }));
+piso.rotation.x = -Math.PI / 2;
+piso.receiveShadow = true;
+scene.add(piso);
+
+// Líneas amarillas del piso (demarcación industrial)
+const lineaMat = new THREE.MeshBasicMaterial({ color: 0xc9a227 });
+for (const z of [-4.2, 4.2]) {
+    const linea = new THREE.Mesh(new THREE.PlaneGeometry(60, 0.18), lineaMat);
+    linea.rotation.x = -Math.PI / 2;
+    linea.position.set(0, 0.01, z);
+    scene.add(linea);
+}
+
+// Columnas de la nave industrial
+const colMat = new THREE.MeshLambertMaterial({ color: 0x4a423a });
+for (let x = -25; x <= 25; x += 10) {
+    for (const z of [-14, 14]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.9, 14, 0.9), colMat);
+        col.position.set(x, 7, z);
+        col.castShadow = true;
+        scene.add(col);
+    }
+}
+
+// ============ CINTA TRANSPORTADORA ============
+const cinta = new THREE.Group();
+// Estructura
+const estructura = new THREE.Mesh(
+    new THREE.BoxGeometry(52, 0.5, 2.4),
+    new THREE.MeshLambertMaterial({ color: 0x5a5148 }));
+estructura.position.y = 1.0;
+estructura.castShadow = true;
+cinta.add(estructura);
+
+// Banda con textura animada (segmentos que fluyen)
+const bandaCanvas = document.createElement('canvas');
+bandaCanvas.width = 512; bandaCanvas.height = 64;
+const bctx = bandaCanvas.getContext('2d');
+bctx.fillStyle = '#2b2620'; bctx.fillRect(0, 0, 512, 64);
+bctx.fillStyle = '#3a342e';
+for (let i = 0; i < 512; i += 32) bctx.fillRect(i, 0, 3, 64);
+const bandaTex = new THREE.CanvasTexture(bandaCanvas);
+bandaTex.wrapS = THREE.RepeatWrapping;
+bandaTex.repeat.set(13, 1);
+const banda = new THREE.Mesh(
+    new THREE.PlaneGeometry(52, 2.0),
+    new THREE.MeshLambertMaterial({ map: bandaTex }));
+banda.rotation.x = -Math.PI / 2;
+banda.position.y = 1.27;
+cinta.add(banda);
+
+// Rodillos
+const rodillos = [];
+const rodGeom = new THREE.CylinderGeometry(0.35, 0.35, 2.3, 10);
+const rodMat = new THREE.MeshLambertMaterial({ color: 0x777777 });
+for (let x = -25; x <= 25; x += 2.5) {
+    const rod = new THREE.Mesh(rodGeom, rodMat);
+    rod.rotation.x = Math.PI / 2;
+    rod.position.set(x, 1.1, 0);
+    cinta.add(rod);
+    rodillos.push(rod);
+}
+// Patas de la cinta
+for (let x = -24; x <= 24; x += 8) {
+    for (const z of [-0.9, 0.9]) {
+        const pata = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0, 0.2), colMat);
+        pata.position.set(x, 0.5, z);
+        cinta.add(pata);
+    }
+}
+scene.add(cinta);
+
+// ============ PAQUETES DE DATOS ============
+function texturaPaquete(etiqueta, color) {
+    const cv = document.createElement('canvas');
+    cv.width = 128; cv.height = 128;
+    const cx = cv.getContext('2d');
+    cx.fillStyle = color; cx.fillRect(0, 0, 128, 128);
+    cx.strokeStyle = 'rgba(255,255,255,0.6)'; cx.lineWidth = 6;
+    cx.strokeRect(8, 8, 112, 112);
+    cx.fillStyle = '#fff'; cx.font = 'bold 20px monospace';
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(etiqueta, 64, 64);
+    return new THREE.CanvasTexture(cv);
+}
+const texCrudo = texturaPaquete('CRUDO', '#8a6d3b');
+const texDato = texturaPaquete('DATO', '#0284c7');
+
+const paquetes = [];
+for (let i = 0; i < 14; i++) {
+    const pq = new THREE.Mesh(
+        new THREE.BoxGeometry(0.9, 0.7, 0.9),
+        new THREE.MeshLambertMaterial({ map: texCrudo }));
+    pq.position.set(-26 + i * 4, 1.75, 0);
+    pq.castShadow = true;
+    pq.userData.procesado = false;
+    scene.add(pq);
+    paquetes.push(pq);
+}
+
+// Pila de productos terminados (pallet de difusión)
+const pallet = new THREE.Group();
+const basePallet = new THREE.Mesh(
+    new THREE.BoxGeometry(3, 0.25, 2.4),
+    new THREE.MeshLambertMaterial({ color: 0x8a6d3b }));
+basePallet.position.y = 0.12;
+pallet.add(basePallet);
+pallet.position.set(30, 0, 2.5);
+scene.add(pallet);
+let cajaApilada = 0;
+
+// ============ MÁQUINAS ============
+function textoCanvas(texto, sub, color = '#f5ecd7', fondo = '#1c1917') {
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = 160;
+    const cx = cv.getContext('2d');
+    cx.fillStyle = fondo; cx.fillRect(0, 0, 512, 160);
+    cx.strokeStyle = color; cx.lineWidth = 4;
+    cx.strokeRect(10, 10, 492, 140);
+    cx.fillStyle = color;
+    cx.font = 'bold 44px Georgia'; cx.textAlign = 'center';
+    cx.fillText(texto, 256, 70);
+    cx.font = 'italic 26px Georgia';
+    cx.fillStyle = '#a8a29e';
+    cx.fillText(sub, 256, 120);
+    return new THREE.CanvasTexture(cv);
+}
+
+function crearCartel(texto, sub, ancho = 4) {
+    const tex = textoCanvas(texto, sub);
+    const plano = new THREE.Mesh(
+        new THREE.PlaneGeometry(ancho, ancho * 160 / 512),
+        new THREE.MeshBasicMaterial({ map: tex }));
+    return plano;
+}
+
+function crearEngranaje(radio, color) {
+    const g = new THREE.Group();
+    const cuerpo = new THREE.Mesh(
+        new THREE.CylinderGeometry(radio, radio, 0.3, 16),
+        new THREE.MeshLambertMaterial({ color }));
+    cuerpo.rotation.x = Math.PI / 2;
+    g.add(cuerpo);
+    for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        const diente = new THREE.Mesh(
+            new THREE.BoxGeometry(0.28, 0.28, 0.3),
+            new THREE.MeshLambertMaterial({ color }));
+        diente.position.set(Math.cos(ang) * (radio + 0.12), Math.sin(ang) * (radio + 0.12), 0);
+        diente.rotation.z = ang;
+        g.add(diente);
+    }
+    const eje = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 0.34, 8),
+        new THREE.MeshLambertMaterial({ color: 0x333333 }));
+    eje.rotation.x = Math.PI / 2;
+    g.add(eje);
+    return g;
+}
+
+const maquinas = [];
+
+/**
+ * Crea una estación de máquina industrial.
+ * cfg: {x, nombre, modelo, color, tipo: 'tolva'|'prensa'|'escaner'|'turbina'|'lanzador'}
+ */
+function crearMaquina(cfg) {
+    const m = new THREE.Group();
+    m.position.set(cfg.x, 0, -3.2);
+
+    // Cuerpo principal
+    const cuerpo = new THREE.Mesh(
+        new THREE.BoxGeometry(4.4, 3.6, 3),
+        new THREE.MeshLambertMaterial({ color: cfg.color }));
+    cuerpo.position.y = 1.8;
+    cuerpo.castShadow = true;
+    m.add(cuerpo);
+
+    // Zócalo
+    const zocalo = new THREE.Mesh(
+        new THREE.BoxGeometry(4.8, 0.5, 3.4),
+        new THREE.MeshLambertMaterial({ color: 0x33302a }));
+    zocalo.position.y = 0.25;
+    m.add(zocalo);
+
+    // Chimenea/tubo
+    const tubo = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.45, 1.6, 10),
+        new THREE.MeshLambertMaterial({ color: 0x555049 }));
+    tubo.position.set(1.4, 4.3, 0);
+    m.add(tubo);
+
+    // Luz de estado (parpadea)
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0x22cc44 });
+    const lampara = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), lampMat);
+    lampara.position.set(-1.8, 3.9, 1.6);
+    m.add(lampara);
+
+    // Engranaje lateral
+    const engranaje = crearEngranaje(0.9, 0x8a7a5a);
+    engranaje.position.set(2.4, 2.2, 0.8);
+    m.add(engranaje);
+    const engranaje2 = crearEngranaje(0.55, 0x6a5a4a);
+    engranaje2.position.set(2.4, 0.9, 0.8);
+    m.add(engranaje2);
+
+    // Brazo/puente sobre la cinta hacia el frente
+    const brazo = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.5, 4.2),
+        new THREE.MeshLambertMaterial({ color: cfg.color }));
+    brazo.position.set(0, 3.2, 2.4);
+    brazo.castShadow = true;
+    m.add(brazo);
+    const pilar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 3.2, 0.5),
+        new THREE.MeshLambertMaterial({ color: cfg.color }));
+    pilar.position.set(0, 1.6, 4.2);
+    pilar.castShadow = true;
+    m.add(pilar);
+
+    // Elemento móvil según el tipo de estación
+    let actuador = null;
+    if (cfg.tipo === 'prensa') {
+        actuador = new THREE.Mesh(
+            new THREE.BoxGeometry(1.2, 0.6, 1.2),
+            new THREE.MeshLambertMaterial({ color: 0x9a8a6a }));
+        actuador.position.set(0, 2.6, 3.8); // sobre la cinta, bajo el brazo
+        const guia = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.12, 1.4, 8),
+            new THREE.MeshLambertMaterial({ color: 0x666666 }));
+        guia.position.set(0, 0.8, 0);
+        actuador.add(guia);
+        m.add(actuador);
+    } else if (cfg.tipo === 'escaner') {
+        actuador = new THREE.Mesh(
+            new THREE.PlaneGeometry(2.0, 0.12),
+            new THREE.MeshBasicMaterial({
+                color: 0x44ddff, transparent: true, opacity: 0.8,
+                side: THREE.DoubleSide }));
+        actuador.rotation.x = -Math.PI / 2;
+        actuador.position.set(0, 2.4, 4.2);
+        m.add(actuador);
+    } else if (cfg.tipo === 'tolva') {
+        // Embudo que deja caer materia prima
+        const embudo = new THREE.Mesh(
+            new THREE.ConeGeometry(1.1, 1.4, 10, 1, true),
+            new THREE.MeshLambertMaterial({ color: 0x8a7a5a, side: THREE.DoubleSide }));
+        embudo.rotation.x = Math.PI;
+        embudo.position.set(0, 3.0, 4.2);
+        m.add(embudo);
+    } else if (cfg.tipo === 'lanzador') {
+        const rampa = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 1.8, 0.4),
+            new THREE.MeshLambertMaterial({ color: 0x9a8a6a }));
+        rampa.position.set(0, 2.2, 4.2);
+        m.add(rampa);
+        actuador = rampa;
+    } else if (cfg.tipo === 'turbina') {
+        const fan = new THREE.Group();
+        for (let i = 0; i < 4; i++) {
+            const aspa = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 1.0, 0.08),
+                new THREE.MeshLambertMaterial({ color: 0xc0b090 }));
+            aspa.position.y = 0.5;
+            const piv = new THREE.Group();
+            piv.rotation.z = (i / 4) * Math.PI * 2;
+            piv.add(aspa);
+            fan.add(piv);
+        }
+        fan.position.set(-1.2, 2.0, 1.55);
+        m.add(fan);
+        actuador = fan;
+    }
+
+    // Cartel con nombre real del modelo
+    const cartel = crearCartel(cfg.nombre, cfg.modelo);
+    cartel.position.set(0, 2.6, 1.56);
+    m.add(cartel);
+
+    // Plataforma del operario
+    const plataforma = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.15, 1.4),
+        new THREE.MeshLambertMaterial({ color: 0x44403c }));
+    plataforma.position.set(-2.8, 1.5, 0.8);
+    m.add(plataforma);
+
+    scene.add(m);
+    m.userData = { ...cfg, engranaje, engranaje2, lampara, lampMat, actuador, fase: Math.random() * 7 };
+    maquinas.push(m);
+    return m;
+}
+
+const ESTACIONES = [
+    { x: -20, nombre: 'RECEPCIÓN',   modelo: 'FuenteDatos · Organismo',   color: 0x6b5b45, tipo: 'tolva' },
+    { x: -10, nombre: 'INGESTA',     modelo: 'ConjuntoDatos',             color: 0x3f6212, tipo: 'turbina' },
+    { x: 0,   nombre: 'ESTÁNDAR',    modelo: 'Indicador · ficha SDMX',    color: 0x0369a1, tipo: 'prensa' },
+    { x: 10,  nombre: 'CALIDAD',     modelo: 'Dato · ReglaExtraccion',    color: 0x9a3412, tipo: 'escaner' },
+    { x: 20,  nombre: 'DIFUSIÓN',    modelo: 'Grafico · CalendarioDifusion', color: 0x7e22ce, tipo: 'lanzador' },
+];
+ESTACIONES.forEach(crearMaquina);
+
+// ============ DON DATICO (rig reutilizado, patas separadas) ============
+function crearDonDatico() {
+    const loro = new THREE.Group();
+    const rig = {};
+    const visual = new THREE.Group();
+    loro.add(visual);
+    rig.visual = visual;
+
+    const cuerpo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.6, 16, 16),
+        new THREE.MeshLambertMaterial({ color: 0x00AA00 }));
+    cuerpo.scale.set(1, 1.3, 0.9);
+    cuerpo.position.y = 0.5;
+    cuerpo.castShadow = true;
+    visual.add(cuerpo);
+    rig.cuerpo = cuerpo;
+
+    const cabeza = new THREE.Group();
+    cabeza.position.set(0, 0.95, 0.15);
+    visual.add(cabeza);
+    rig.cabeza = cabeza;
+
+    const craneo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.4, 16, 16),
+        new THREE.MeshLambertMaterial({ color: 0x22DD22 }));
+    craneo.position.set(0, 0.15, 0.05);
+    craneo.castShadow = true;
+    cabeza.add(craneo);
+
+    const pico = new THREE.Mesh(
+        new THREE.ConeGeometry(0.15, 0.4, 8),
+        new THREE.MeshLambertMaterial({ color: 0xFFAA00 }));
+    pico.rotation.x = Math.PI / 2;
+    pico.position.set(0, 0.15, 0.45);
+    cabeza.add(pico);
+
+    const ojoGeom = new THREE.SphereGeometry(0.1, 8, 8);
+    const ojoMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const ojoIzq = new THREE.Mesh(ojoGeom, ojoMat);
+    ojoIzq.position.set(-0.2, 0.25, 0.25);
+    cabeza.add(ojoIzq);
+    const ojoDer = new THREE.Mesh(ojoGeom, ojoMat);
+    ojoDer.position.set(0.2, 0.25, 0.25);
+    cabeza.add(ojoDer);
+    rig.ojos = [ojoIzq, ojoDer];
+
+    const cresta = new THREE.Mesh(
+        new THREE.ConeGeometry(0.15, 0.3, 6),
+        new THREE.MeshLambertMaterial({ color: 0xFFFF00 }));
+    cresta.position.set(0, 0.55, 0);
+    cabeza.add(cresta);
+    rig.cresta = cresta;
+
+    // Alas laterales con pivote en hombro
+    const alaShape = new THREE.Shape();
+    alaShape.moveTo(0, 0.1);
+    alaShape.lineTo(0.6, 0.15);
+    alaShape.lineTo(1.25, 0.05);
+    alaShape.lineTo(1.3, -0.15);
+    alaShape.lineTo(1.0, -0.4);
+    alaShape.lineTo(0.5, -0.45);
+    alaShape.lineTo(0.15, -0.3);
+    alaShape.lineTo(0, 0.1);
+    const alaGeom = new THREE.ExtrudeGeometry(alaShape, {
+        depth: 0.08, bevelEnabled: true,
+        bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 2 });
+    alaGeom.translate(0, 0, -0.04);
+    const alaMat = new THREE.MeshLambertMaterial({ color: 0x00AAFF, side: THREE.DoubleSide });
+
+    const alaDerPivot = new THREE.Group();
+    alaDerPivot.position.set(0.45, 0.75, -0.05);
+    visual.add(alaDerPivot);
+    const alaDer = new THREE.Mesh(alaGeom, alaMat);
+    alaDer.castShadow = true;
+    alaDerPivot.add(alaDer);
+    rig.alaDer = alaDerPivot;
+
+    const alaIzqPivot = new THREE.Group();
+    alaIzqPivot.position.set(-0.45, 0.75, -0.05);
+    visual.add(alaIzqPivot);
+    const alaIzq = new THREE.Mesh(alaGeom, alaMat);
+    alaIzq.rotation.y = Math.PI;
+    alaIzq.castShadow = true;
+    alaIzqPivot.add(alaIzq);
+    rig.alaIzq = alaIzqPivot;
+
+    // Cola
+    const colaShape = new THREE.Shape();
+    colaShape.moveTo(0, 0);
+    colaShape.lineTo(-0.4, 1);
+    colaShape.lineTo(-0.2, 1.3);
+    colaShape.lineTo(0, 1.4);
+    colaShape.lineTo(0.2, 1.3);
+    colaShape.lineTo(0.4, 1);
+    colaShape.lineTo(0, 0);
+    const colaGeom = new THREE.ExtrudeGeometry(colaShape, {
+        depth: 0.08, bevelEnabled: true,
+        bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2 });
+    colaGeom.translate(0, 0, -0.04);
+    const colaPivot = new THREE.Group();
+    colaPivot.position.set(0, 0.6, -0.5);
+    visual.add(colaPivot);
+    const cola = new THREE.Mesh(colaGeom,
+        new THREE.MeshLambertMaterial({ color: 0xFF4444, side: THREE.DoubleSide }));
+    cola.rotation.x = -Math.PI / 2;
+    cola.position.set(0, -0.2, -0.3);
+    cola.castShadow = true;
+    colaPivot.add(cola);
+    rig.cola = colaPivot;
+
+    // Patas SEPARADAS (ciclo de pasos)
+    const pataGeom = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6);
+    const pataMat = new THREE.MeshLambertMaterial({ color: 0xFF6600 });
+    const pataIzqPivot = new THREE.Group();
+    pataIzqPivot.position.set(-0.2, 0.15, 0);
+    visual.add(pataIzqPivot);
+    const pataIzq = new THREE.Mesh(pataGeom, pataMat);
+    pataIzq.position.y = -0.15;
+    pataIzqPivot.add(pataIzq);
+    rig.pataIzq = pataIzqPivot;
+    const pataDerPivot = new THREE.Group();
+    pataDerPivot.position.set(0.2, 0.15, 0);
+    visual.add(pataDerPivot);
+    const pataDer = new THREE.Mesh(pataGeom, pataMat);
+    pataDer.position.y = -0.15;
+    pataDerPivot.add(pataDer);
+    rig.pataDer = pataDerPivot;
+
+    // Casco de operario (Tiempos Modernos)
+    const casco = new THREE.Mesh(
+        new THREE.SphereGeometry(0.28, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
+    casco.position.set(0, 0.42, 0);
+    casco.scale.z = 1.15;
+    cabeza.add(casco);
+
+    loro.userData.rig = rig;
+    return loro;
+}
+
+// ============ ANIMADOR DE OPERARIOS ============
+/**
+ * estados: 'trabajar' | 'caminar' | 'bailar' | 'supervisar'
+ */
+function animarOperario(loro, dt, tGlobal, estado, desfase = 0) {
+    const rig = loro.userData.rig;
+    const t = tGlobal + desfase;
+
+    if (estado === 'trabajar') {
+        // Bombeo de alas como operando una palanca + bop de cabeza
+        const bombeo = Math.abs(Math.sin(t * 3.2));
+        rig.alaDer.rotation.z = 0.25 + bombeo * 0.7;
+        rig.alaIzq.rotation.z = -0.25 - bombeo * 0.7;
+        rig.cabeza.rotation.x = Math.sin(t * 3.2) * 0.12;
+        rig.cabeza.rotation.y = Math.sin(t * 0.7) * 0.3;
+        rig.visual.position.y = Math.sin(t * 3.2) * 0.04;
+        rig.visual.rotation.z = Math.sin(t * 1.6) * 0.03;
+        rig.cola.rotation.x = Math.sin(t * 3.2 + 0.5) * 0.1;
+        rig.pataIzq.rotation.x = 0;
+        rig.pataDer.rotation.x = 0;
+    } else if (estado === 'caminar') {
+        // Ciclo de pasos: patas alternadas, bob de cuerpo, alas pegadas
+        const paso = Math.sin(t * 7);
+        rig.pataIzq.rotation.x = paso * 0.6;
+        rig.pataDer.rotation.x = -paso * 0.6;
+        rig.visual.position.y = Math.abs(Math.cos(t * 7)) * 0.06;
+        rig.visual.rotation.z = paso * 0.04;
+        rig.alaDer.rotation.z = 0.15;
+        rig.alaIzq.rotation.z = -0.15;
+        rig.cabeza.rotation.y = Math.sin(t * 0.9) * 0.5; // inspecciona
+        rig.cabeza.rotation.x = Math.sin(t * 7) * 0.05;
+        rig.cola.rotation.x = 0.15 + Math.sin(t * 7) * 0.08;
+    } else if (estado === 'bailar') {
+        // Salsa caleña (del animador de subtema_detalle_3d)
+        const beat = t * 4.2;
+        rig.visual.position.x = Math.sin(beat) * 0.18;
+        rig.visual.position.y = Math.abs(Math.sin(beat * 0.5)) * 0.1;
+        rig.visual.rotation.z = Math.sin(beat) * 0.14;
+        rig.visual.rotation.x = Math.sin(beat * 0.5) * 0.06;
+        const pump = Math.abs(Math.sin(beat)) * 0.9 + 0.3;
+        rig.alaDer.rotation.z = pump;
+        rig.alaIzq.rotation.z = -pump;
+        rig.cabeza.rotation.y = Math.sin(beat * 0.5) * 0.45;
+        rig.cabeza.rotation.x = Math.sin(beat) * 0.12 - 0.05;
+        rig.cabeza.rotation.z = Math.sin(beat) * 0.1;
+        rig.cola.rotation.y = Math.sin(beat) * 0.35;
+        rig.cresta.scale.setScalar(1 + Math.abs(Math.sin(beat)) * 0.25);
+        rig.pataIzq.rotation.x = Math.sin(beat) * 0.3;
+        rig.pataDer.rotation.x = -Math.sin(beat) * 0.3;
+    } else { // 'supervisar' — quieto, autoritario
+        rig.alaDer.rotation.z = 0.12;
+        rig.alaIzq.rotation.z = -0.12;
+        rig.cabeza.rotation.y = Math.sin(t * 0.5) * 0.8;
+        rig.cabeza.rotation.x = -0.08;
+        rig.visual.position.y = Math.sin(t * 1.8) * 0.02;
+        rig.cola.rotation.y = Math.sin(t * 1.2) * 0.1;
+    }
+}
+
+// ============ PLANTA DE OPERARIOS ============
+// Un operario por estación, sobre la plataforma de cada máquina
+const operarios = [];
+maquinas.forEach((m, i) => {
+    const o = crearDonDatico();
+    const p = m.userData;
+    o.position.set(m.position.x - 2.8, 1.62, m.position.z + 0.8);
+    o.rotation.y = 0.9; // de frente hacia la cinta/cámara
+    o.scale.setScalar(0.85);
+    scene.add(o);
+    operarios.push({ loro: o, estado: 'trabajar', desfase: i * 1.3 });
+});
+
+// Supervisor que patrulla junto a la cinta
+const supervisor = crearDonDatico();
+supervisor.position.set(0, 0.3, 3.4);
+supervisor.scale.setScalar(0.9);
+// el supervisor va sin casco: se lo quitamos… no, mejor le damos casco más grande
+supervisor.userData.rig.cresta.scale.setScalar(1.3);
+scene.add(supervisor);
+const estadoSupervisor = { dir: 1, estado: 'caminar' };
+
+// ============ TIMELINE / ACTOS ============
+const ACTOS = [
+    { t0: 0,   t1: 5,   acto: '', texto: '', sub: '',
+      cam: [[0, 22, 42], [0, 6, 0]] },
+    { t0: 5,   t1: 14,  acto: 'Acto I', texto: 'La materia prima', sub: `Los organismos del Distrito entregan sus datos — ${STATS.organismos} fuentes activas`,
+      cam: [[-24, 4, 14], [-20, 3, -1]] },
+    { t0: 14,  t1: 23,  acto: 'Acto II', texto: 'La ingesta', sub: 'Los conjuntos de datos se reciben, ordenan y estructuran',
+      cam: [[-14, 3.5, 12], [-10, 2.5, -1]] },
+    { t0: 23,  t1: 32,  acto: 'Acto III', texto: 'El estándar', sub: 'Cada indicador lleva su ficha técnica — metadatos SDMX completos',
+      cam: [[-4, 3.5, 12], [0, 2.5, -1]] },
+    { t0: 32,  t1: 41,  acto: 'Acto IV', texto: 'El control de calidad', sub: 'Nada sale de la planta sin validación',
+      cam: [[6, 3.5, 12], [10, 2.5, -1]] },
+    { t0: 41,  t1: 50,  acto: 'Acto V', texto: 'La difusión', sub: `${STATS.indicadores} indicadores empaquetados para la ciudad`,
+      cam: [[16, 3.5, 12], [20, 2.5, 0]] },
+    { t0: 50,  t1: 62,  acto: 'Final', texto: 'Y al caer el turno…', sub: 'la planta entera baila — esto es Cali',
+      cam: [[0, 10, 26], [0, 3, -2]], finale: true },
+];
+const DURACION = ACTOS[ACTOS.length - 1].t1;
+
+const elIntertitulo = document.getElementById('intertitulo');
+const elActo = document.getElementById('inter-acto');
+const elTexto = document.getElementById('inter-texto');
+const elSub = document.getElementById('inter-sub');
+const elProgreso = document.getElementById('progreso');
+const elCreditos = document.getElementById('creditos');
+
+let reloj = null;          // arranca con PLAY
+let offsetShow = 0;        // segundos adelantados por "SALTAR"
+let iniciado = false;
+let enFinal = false;
+let camaraLibre = false;
+let actoActual = -1;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enabled = false;
+controls.target.set(0, 3, 0);
+
+const easeInOut = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+
+const _vFrom = new THREE.Vector3(), _vTo = new THREE.Vector3(), _vMira = new THREE.Vector3();
+function tickCamara(t) {
+    const idx = ACTOS.findIndex(a => t >= a.t0 && t < a.t1);
+    const i = idx === -1 ? ACTOS.length - 1 : idx;
+    const acto = ACTOS[i];
+    const p = easeInOut(Math.min(1, Math.max(0, (t - acto.t0) / (acto.t1 - acto.t0))));
+    // Dolly continuo: viaja del encuadre anterior al actual durante el acto
+    const prev = i > 0 ? ACTOS[i - 1].cam : acto.cam;
+    _vFrom.fromArray(prev[0]);
+    _vTo.fromArray(acto.cam[0]);
+    camera.position.lerpVectors(_vFrom, _vTo, p);
+    // leve deriva orgánica (cámara en mano)
+    camera.position.x += Math.sin(t * 0.4) * 0.4;
+    camera.position.y += Math.sin(t * 0.53) * 0.15;
+    _vMira.fromArray(prev[1]).lerp(_vTo.fromArray(acto.cam[1]), p);
+    camera.lookAt(_vMira);
+}
+
+function tickIntertitulos(t) {
+    const idx = ACTOS.findIndex(a => t >= a.t0 && t < a.t1);
+    if (idx !== actoActual) {
+        actoActual = idx;
+        const a = ACTOS[Math.max(0, idx)];
+        if (a && a.texto) {
+            elActo.textContent = a.acto;
+            elTexto.textContent = a.texto;
+            elSub.textContent = a.sub;
+            elIntertitulo.classList.add('visible');
+            setTimeout(() => elIntertitulo.classList.remove('visible'), 3200);
+        }
+        if (a && a.finale && !enFinal) {
+            enFinal = true;
+            operarios.forEach(o => o.estado = 'bailar');
+            estadoSupervisor.estado = 'bailar';
+        }
+    }
+}
+
+function iniciarShow() {
+    if (iniciado) return;
+    iniciado = true;
+    document.getElementById('intro').classList.add('oculto');
+    reloj = new THREE.Clock();
+    // audio opcional — si falta el mp3, el show corre en silencio
+    const musica = document.getElementById('musica');
+    musica.play().catch(() => {
+        document.getElementById('nota-audio').textContent = '(sin pista de audio — el show sigue)';
+    });
+}
+
+document.getElementById('btn-play').addEventListener('click', iniciarShow);
+document.getElementById('btn-replay').addEventListener('click', () => {
+    elCreditos.classList.remove('visible');
+    enFinal = false;
+    offsetShow = 0;
+    actoActual = -1;
+    operarios.forEach(o => o.estado = 'trabajar');
+    estadoSupervisor.estado = 'caminar';
+    cajaApilada = 0;
+    paquetes.forEach((p, i) => {
+        p.position.set(-26 + i * 4, 1.75, 0);
+        p.rotation.set(0, 0, 0);
+        p.userData.procesado = false;
+        p.userData.vuelo = false;
+        p.userData.apilado = null;
+        p.material.map = texCrudo;
+        p.material.needsUpdate = true;
+    });
+    reloj = new THREE.Clock();
+    const musica = document.getElementById('musica');
+    musica.currentTime = 0;
+    musica.play().catch(() => {});
+});
+document.getElementById('btn-saltar').addEventListener('click', () => {
+    if (!iniciado) iniciarShow();
+    // adelantar hasta el acto final
+    const saltarA = ACTOS[ACTOS.length - 1].t0;
+    const transcurrido = reloj ? reloj.getElapsedTime() + offsetShow : 0;
+    if (transcurrido < saltarA) offsetShow = saltarA - reloj.getElapsedTime();
+});
+document.getElementById('btn-sepia').addEventListener('click', (e) => {
+    contenedor.classList.toggle('sepia');
+    e.target.textContent = contenedor.classList.contains('sepia') ? 'SEPIA: ON' : 'SEPIA: OFF';
+});
+function toggleLibre() {
+    camaraLibre = !camaraLibre;
+    controls.enabled = camaraLibre;
+    document.getElementById('btn-libre').textContent =
+        camaraLibre ? 'CÁMARA LIBRE: ON' : 'CÁMARA LIBRE [L]';
+}
+document.getElementById('btn-libre').addEventListener('click', toggleLibre);
+document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'l') toggleLibre();
+    if (e.key === ' ') { e.preventDefault(); iniciarShow(); }
+});
+
+// ============ LOOP ============
+let tGlobal = 0;
+let ultimoFrame = performance.now();
+const velBanda = 3.2; // unidades/s de la cinta
+
+function animate() {
+    requestAnimationFrame(animate);
+    const ahora = performance.now();
+    const dt = Math.min((ahora - ultimoFrame) / 1000, 0.05);
+    ultimoFrame = ahora;
+    tGlobal += dt;
+
+    const t = reloj ? reloj.getElapsedTime() + offsetShow : tGlobal;
+
+    if (iniciado && !camaraLibre) {
+        tickCamara(t);
+        tickIntertitulos(t);
+        elProgreso.style.width = `${Math.min(100, (t / DURACION) * 100)}%`;
+        if (t >= DURACION && !elCreditos.classList.contains('visible')) {
+            elCreditos.classList.add('visible');
+        }
+    }
+    if (camaraLibre) controls.update();
+
+    // --- Mundo vivo (corre siempre, incluso en el intro) ---
+    bandaTex.offset.x = -tGlobal * 0.55;
+    rodillos.forEach(r => { r.rotation.z -= dt * 4; });
+
+    // Paquetes fluyendo por la cinta
+    paquetes.forEach(p => {
+        if (p.userData.vuelo) {
+            // Arco hacia el pallet de difusión
+            p.userData.vy -= 9.8 * dt;
+            p.position.x += 3.5 * dt;
+            p.position.y += p.userData.vy * dt;
+            p.rotation.z += dt * 2;
+            const slot = p.userData.slot;
+            const piso = 0.55 + Math.floor(slot / 4) * 0.75;
+            if (p.position.y <= piso) {
+                p.position.set(
+                    29 + (slot % 2) * 1.2,
+                    piso + 0.35,
+                    2.0 + (Math.floor(slot / 2) % 2) * 1.0);
+                p.rotation.set(0, 0, 0);
+                p.userData.vuelo = false;
+                p.userData.apilado = tGlobal; // tiempo de descanso en el pallet
+            }
+            return;
+        }
+        if (p.userData.apilado) {
+            // descansa en el pallet un rato y vuelve al inicio de la línea
+            if (tGlobal - p.userData.apilado > 2.5) {
+                p.userData.apilado = null;
+                p.userData.procesado = false;
+                p.material.map = texCrudo;
+                p.material.needsUpdate = true;
+                p.position.set(-26, 1.75, 0);
+            }
+            return;
+        }
+        p.position.x += velBanda * dt;
+        // procesado al pasar el Estándar (x=0): cambia a empaque azul
+        if (!p.userData.procesado && p.position.x > 0) {
+            p.userData.procesado = true;
+            p.material.map = texDato;
+            p.material.needsUpdate = true;
+        }
+        if (p.position.x > 26) {
+            // despega hacia el pallet
+            p.userData.vuelo = true;
+            p.userData.vy = 2.6;
+            p.userData.slot = cajaApilada++;
+        }
+    });
+
+    // Máquinas trabajando
+    maquinas.forEach(m => {
+        const u = m.userData;
+        const tt = tGlobal + u.fase;
+        u.engranaje.rotation.z += dt * 1.8;
+        u.engranaje2.rotation.z -= dt * 2.6;
+        u.lampMat.color.setHex(Math.sin(tt * 4) > -0.2 ? 0x22cc44 : 0xcc3322);
+        if (u.actuador) {
+            if (u.tipo === 'prensa') {
+                u.actuador.position.y = 2.6 - Math.abs(Math.sin(tt * 3.2)) * 0.7;
+            } else if (u.tipo === 'escaner') {
+                u.actuador.position.x = Math.sin(tt * 2.4) * 0.8;
+            } else if (u.tipo === 'lanzador') {
+                u.actuador.rotation.x = Math.max(0, Math.sin(tt * 1.8)) * -0.5;
+            } else if (u.tipo === 'turbina') {
+                u.actuador.rotation.z += dt * 6;
+            }
+        }
+    });
+
+    // Operarios
+    operarios.forEach(o => animarOperario(o.loro, dt, tGlobal, o.estado, o.desfase));
+
+    // Supervisor patrulla la línea
+    if (estadoSupervisor.estado === 'caminar') {
+        supervisor.position.x += estadoSupervisor.dir * 2.2 * dt;
+        if (supervisor.position.x > 23) estadoSupervisor.dir = -1;
+        if (supervisor.position.x < -23) estadoSupervisor.dir = 1;
+        supervisor.rotation.y = estadoSupervisor.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+        animarOperario(supervisor, dt, tGlobal, 'caminar', 0);
+    } else {
+        supervisor.rotation.y += (0.4 - supervisor.rotation.y) * 0.05;
+        animarOperario(supervisor, dt, tGlobal, estadoSupervisor.estado, 0);
+    }
+
+    renderer.render(scene, camera);
+}
+animate();
+
+addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

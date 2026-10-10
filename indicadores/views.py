@@ -52,7 +52,7 @@ from .models import (
     NoticiaBanner, AreaInfraestructura, CategoriaInfraestructura, SubcategoriaInfraestructura,
     GrupoDocumento, DocumentoInfraestructura, Grafico, GraficoSerie, Aliado, Evento,
     DocumentoVector, ConjuntoDatos, OperacionEstadistica, ProcesoExtraccion, ProcesoLog,
-    ProductoAcademico, SeccionPaper, CatalogoDominio, CatalogoConsulta
+    ProductoAcademico, SeccionPaper, CatalogoDominio, CatalogoConsulta, Organismo
 )
 from .search import SemanticSearch
 from collections import defaultdict as _dd
@@ -6622,3 +6622,20 @@ def modelo_datos(request):
             'campos': total_campos,
         },
     })
+
+
+def presentacion(request):
+    """
+    Cinemática 3D "La Maquila de Datos" — página standalone de presentación.
+
+    Escena estilo Tiempos Modernos: cinta transportadora, estaciones de
+    máquina con nombres del modelo de datos real y Don Daticos operarios.
+    """
+    stats = {
+        'modelos': len(list(apps.get_app_config('indicadores').get_models())),
+        'indicadores': Indicador.objects.filter(activo=True).count(),
+        'conjuntos': ConjuntoDatos.objects.filter(activo=True).count() if hasattr(ConjuntoDatos, 'activo') else ConjuntoDatos.objects.count(),
+        'dominios': MenuDominio.objects.filter(activo=True).count(),
+        'organismos': Organismo.objects.filter(activo=True).count() if hasattr(Organismo, 'activo') else Organismo.objects.count(),
+    }
+    return render(request, 'indicadores/presentacion.html', {'stats': stats})
