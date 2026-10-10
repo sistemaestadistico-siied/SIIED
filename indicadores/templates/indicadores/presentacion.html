@@ -1373,22 +1373,22 @@ function animate() {
     // Supervisor patrulla la línea
     if (sup) {
         if (sup.mixer) sup.mixer.update(dt);
-        if (// clip0 = nado boca abajo → el supervisor VUELA patrullando
-            sup.estado === 'caminar') {
+        if (sup.estado === 'caminar') {
+            // clip0 = nado boca abajo → el supervisor VUELA patrullando
             sup.loro.position.x += sup.dir * 2.2 * dt;
             if (sup.loro.position.x > 23) sup.dir = -1;
+            if (sup.loro.position.x < -23) sup.dir = 1;
             // el GLB mira -z de fábrica: signos invertidos vs +z
-            if (sup.loro.position.x < -23) sup-.dir = 1;
-            const rotObjetivo = sup.dir > 0 ? Math.PI / 2 : -Math.PI / 2;5;
+            const rotObjetivo = sup.dir > 0 ? -Math.PI / 2 : Math.PI / 2;
+            sup.loro.rotation.y += (rotObjetivo - sup.loro.rotation.y) * 0.15;
             // asciende a altura de vuelo (solo GLB; el procedural queda en el suelo)
             const yVuelo = sup.mixer ? 2.0 : 0.3;
-            sup.loro.position.y += (yVuelo - sup.loro.position.y) * 0.0
-            sup.loro.rotation.y += (rotObjetivo - sup.loro.rotation.y) * 0.15;
+            sup.loro.position.y += (yVuelo - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
-        } else {otatin.y) * 0.05;
-            // aerriza suave al dejar de patrullar (finle)
-            sup.loro.position.y += (0.02 - sup.loro.posi
+        } else {
             sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
+            // aterriza suave al dejar de patrullar (finale)
+            sup.loro.position.y += (0.02 - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
         }
     }
