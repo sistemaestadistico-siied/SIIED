@@ -566,7 +566,7 @@
                                     {% if indicador.frecuencia_difusion %}
                                         <span class="pill">{{ indicador.frecuencia_difusion }}</span>
                                     {% endif %}
-                                    <span class="pill">Actualizado {{ indicador.fecha_publicacion_metadatos|naturaltime }}</span>
+                                    <span class="pill">Actualizado hace {{ indicador.fecha_publicacion_metadatos|timesince }}</span>
                                 </div>
                             </div>
                         </div>
