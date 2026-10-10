@@ -25,6 +25,7 @@ import requests
 from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 
 # Django core imports
+from django.apps import apps
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
@@ -6503,4 +6504,121 @@ def catalogo_consulta_detalle(request, pk):
         'total_filas': len(filas),
         'busqueda': busqueda,
         'indicadores_enlazados': indicadores_enlazados,
+    })
+
+
+def modelo_datos(request):
+    """
+    Diagrama interactivo del modelo de datos.
+
+    Introspecta el ORM en tiempo de ejecución (sin codegen): cada modelo es un
+    nodo con sus campos, y cada FK/O2O/M2M una arista. Sirve como mapa guía de
+    la arquitectura de datos de la plataforma.
+    """
+    FAMILIAS = {
+        'indicadores.models': ('Núcleo SIIED', '#0284c7'),
+        'indicadores.models_iced': ('ICED', '#d97706'),
+        'indicadores.models_catalogo': ('Catálogo de datos', '#059669'),
+        'indicadores.models_taller': ('Taller Ecosistema', '#9333ea'),
+    }
+
+    nodos = {}
+    aristas = []
+
+    modelos = list(apps.get_app_config('indicadores').get_models())
+    for modelo in modelos:
+        meta = modelo._meta
+        familia, color = FAMILIAS.get(modelo.__module__, ('Otros', '#64748b'))
+
+        campos = []
+        for f in meta.get_fields():
+            # Omitir accessors inversos (auto_created y no concretos)
+            if getattr(f, 'auto_created', False) and not getattr(f, 'concrete', False):
+                continue
+            try:
+                tipo = f.get_internal_type()
+            except Exception:
+                tipo = type(f).__name__
+            campo = {
+                'nombre': f.name,
+                'tipo': tipo,
+                'pk': bool(getattr(f, 'primary_key', False)),
+                'nulo': bool(getattr(f, 'null', False)),
+            }
+            if getattr(f, 'is_relation', False) and f.related_model is not None:
+                campo['destino'] = f.related_model._meta.label
+            campos.append(campo)
+
+        nodos[meta.label] = {
+            'id': meta.label,
+            'nombre': meta.object_name,
+            'tabla': meta.db_table,
+            'familia': familia,
+            'color': color,
+            'verbose': str(meta.verbose_name),
+            'campos': campos,
+        }
+
+        for f in meta.get_fields():
+            if getattr(f, 'auto_created', False) and not getattr(f, 'concrete', False):
+                continue
+            if not (f.many_to_one or f.one_to_one or f.many_to_many):
+                continue
+            destino = getattr(f, 'related_model', None)
+            if destino is None:
+                continue
+            # Solo aristas hacia indicadores o auth.User (referencia externa)
+            if destino._meta.app_label == 'indicadores':
+                pass
+            elif destino._meta.label == 'auth.User':
+                pass
+            else:
+                continue
+            aristas.append({
+                'origen': meta.label,
+                'destino': destino._meta.label,
+                'campo': f.name,
+                'tipo': 'M2M' if f.many_to_many else ('O2O' if f.one_to_one else 'FK'),
+            })
+
+    # auth.User como nodo externo si es referenciado
+    if any(a['destino'] == 'auth.User' for a in aristas):
+        from django.contrib.auth.models import User
+        nodos['auth.User'] = {
+            'id': 'auth.User',
+            'nombre': 'User',
+            'tabla': User._meta.db_table,
+            'familia': 'Usuarios',
+            'color': '#475569',
+            'verbose': 'usuario',
+            'campos': [
+                {'nombre': 'id', 'tipo': 'AutoField', 'pk': True, 'nulo': False},
+                {'nombre': 'username', 'tipo': 'CharField', 'pk': False, 'nulo': False},
+                {'nombre': 'email', 'tipo': 'EmailField', 'pk': False, 'nulo': False},
+                {'nombre': 'is_staff', 'tipo': 'BooleanField', 'pk': False, 'nulo': False},
+                {'nombre': 'is_active', 'tipo': 'BooleanField', 'pk': False, 'nulo': False},
+                {'nombre': 'date_joined', 'tipo': 'DateTimeField', 'pk': False, 'nulo': False},
+            ],
+        }
+
+    familias = []
+    vistos = set()
+    for n in nodos.values():
+        clave = (n['familia'], n['color'])
+        if clave not in vistos:
+            vistos.add(clave)
+            familias.append({'nombre': n['familia'], 'color': n['color']})
+
+    total_campos = sum(len(n['campos']) for n in nodos.values())
+
+    return render(request, 'indicadores/modelo_datos.html', {
+        'page': 'modelo_datos',
+        'modelo_nodos': list(nodos.values()),
+        'modelo_aristas': aristas,
+        'modelo_familias': familias,
+        'stats': {
+            'modelos': len(nodos),
+            'relaciones': len(aristas),
+            'campos': total_campos,
+        },
     })

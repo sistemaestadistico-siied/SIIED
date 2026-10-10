@@ -1,0 +1,292 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block content %}
+
+{{ modelo_nodos|json_script:"nodos-data" }}
+{{ modelo_aristas|json_script:"aristas-data" }}
+
+<style>
+    #lienzo-modelo { cursor: grab; }
+    #lienzo-modelo:active { cursor: grabbing; }
+    .nodo { cursor: pointer; }
+    .nodo rect { transition: filter 0.2s; }
+    .nodo:hover rect { filter: brightness(1.12); }
+    .nodo text {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        fill: #ffffff;
+        pointer-events: none;
+        text-anchor: middle;
+        dominant-baseline: central;
+    }
+    .arista { stroke: #94a3b8; stroke-width: 1.2; stroke-opacity: 0.55; fill: none; }
+    .arista.m2m { stroke-dasharray: 5 4; }
+    .arista-resaltada { stroke: #0369a1; stroke-width: 2.2; stroke-opacity: 1; }
+    .arista-tenue { stroke-opacity: 0.08; }
+    .nodo-tenue { opacity: 0.15; }
+    .nodo-resaltado rect { stroke: #0c4a6e; stroke-width: 2.5; }
+</style>
+
+<div class="min-h-screen bg-slate-100 flex flex-col">
+    <!-- Encabezado -->
+    <div class="bg-white border-b border-slate-200 px-6 py-4">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800">Modelo de Datos del SIIED</h1>
+                <p class="text-sm text-slate-500">
+                    {{ stats.modelos }} modelos · {{ stats.relaciones }} relaciones · {{ stats.campos }} campos
+                    — mapa vivo del ORM
+                </p>
+            </div>
+            <div class="flex-1"></div>
+            <!-- Búsqueda -->
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input id="buscar-modelo" type="text" placeholder="Buscar modelo…"
+                       class="pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg w-56
+                              focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+            </div>
+            <!-- Filtros por familia -->
+            <div id="filtros-familia" class="flex flex-wrap items-center gap-3">
+                {% for fam in modelo_familias %}
+                <label class="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer select-none">
+                    <input type="checkbox" class="filtro-fam accent-sky-600" data-familia="{{ fam.nombre }}" checked>
+                    <span class="w-3 h-3 rounded-sm inline-block" style="background:{{ fam.color }}"></span>
+                    {{ fam.nombre }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Lienzo + panel -->
+    <div class="flex-1 flex min-h-0" style="height: calc(100vh - 160px);">
+        <div class="flex-1 relative min-w-0">
+            <svg id="lienzo-modelo" class="w-full h-full"></svg>
+            <div class="absolute bottom-3 left-3 text-xs text-slate-400 bg-white/80 rounded px-2 py-1 pointer-events-none">
+                Arrastra para mover · rueda para zoom · click en un modelo para ver sus campos
+            </div>
+            <button id="btn-recentrar" class="absolute top-3 right-3 bg-white border border-slate-300 rounded-lg
+                        px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 shadow-sm">
+                <i class="fas fa-expand mr-1"></i>Recentrar
+            </button>
+        </div>
+        <!-- Panel lateral de detalle -->
+        <aside id="panel-detalle" class="w-80 shrink-0 bg-white border-l border-slate-200 overflow-y-auto">
+            <div id="panel-vacio" class="p-6 text-slate-400 text-sm">
+                <i class="fas fa-database text-3xl mb-3 block text-slate-300"></i>
+                Selecciona un modelo del grafo para inspeccionar sus campos y relaciones.
+            </div>
+            <div id="panel-contenido" class="hidden p-5"></div>
+        </aside>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+(function () {
+    const NODOS = JSON.parse(document.getElementById('nodos-data').textContent);
+    const ARISTAS = JSON.parse(document.getElementById('aristas-data').textContent);
+
+    const svg = d3.select('#lienzo-modelo');
+    const contenedor = svg.append('g');
+    const capaAristas = contenedor.append('g');
+    const capaNodos = contenedor.append('g');
+
+    // Flecha para aristas
+    svg.append('defs').html(`
+        <marker id="flecha" viewBox="0 -5 10 10" refX="10" refY="0"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,-4L9,0L0,4" fill="#94a3b8"></path>
+        </marker>`);
+
+    // Zoom / pan
+    const zoom = d3.zoom()
+        .scaleExtent([0.15, 3])
+        .on('zoom', (e) => contenedor.attr('transform', e.transform));
+    svg.call(zoom);
+
+    function centrar() {
+        const w = svg.node().clientWidth, h = svg.node().clientHeight;
+        svg.call(zoom.transform, d3.zoomIdentity.translate(w * 0.08, h * 0.05).scale(0.85));
+    }
+    centrar();
+    document.getElementById('btn-recentrar').addEventListener('click', centrar);
+
+    // Dimensiones de nodo según el nombre
+    NODOS.forEach(n => {
+        n.w = Math.max(74, n.nombre.length * 7.2 + 26);
+        n.h = 30;
+    });
+
+    // Grado de conexión para dimensionar el "hub"
+    const grado = {};
+    ARISTAS.forEach(a => {
+        grado[a.origen] = (grado[a.origen] || 0) + 1;
+        grado[a.destino] = (grado[a.destino] || 0) + 1;
+    });
+    NODOS.forEach(n => n.grado = grado[n.id] || 0);
+    const maxGrado = Math.max(1, ...NODOS.map(n => n.grado));
+
+    // ---------- Simulación ----------
+    const sim = d3.forceSimulation(NODOS)
+        .force('link', d3.forceLink(ARISTAS)
+            .id(d => d.id).distance(d => 90 + Math.min(60, (d.source.grado + d.target.grado) * 2)))
+        .force('charge', d3.forceManyBody().strength(-520))
+        .force('collide', d3.forceCollide(d => Math.max(d.w, d.h) * 0.62 + 14))
+        .force('x', d3.forceX(svg.node().clientWidth / 2).strength(0.06))
+        .force('y', d3.forceY(svg.node().clientHeight / 2).strength(0.06));
+
+    // ---------- Aristas ----------
+    const selAristas = capaAristas.selectAll('path')
+        .data(ARISTAS).join('path')
+        .attr('class', d => 'arista' + (d.tipo === 'M2M' ? ' m2m' : ''))
+        .attr('marker-end', 'url(#flecha)');
+    selAristas.append('title')
+        .text(d => `${d.source.nombre || d.source}.${d.campo} → ${d.destino.nombre || d.destino} (${d.tipo})`);
+
+    // ---------- Nodos ----------
+    const selNodos = capaNodos.selectAll('g')
+        .data(NODOS).join('g')
+        .attr('class', 'nodo')
+        .call(d3.drag()
+            .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.25).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+    selNodos.append('rect')
+        .attr('width', d => d.w)
+        .attr('height', d => d.h)
+        .attr('x', d => -d.w / 2)
+        .attr('y', d => -d.h / 2)
+        .attr('rx', 8)
+        .attr('fill', d => d.color)
+        .attr('stroke', '#ffffff')
+        .attr('stroke-width', d => 1.2 + (d.grado / maxGrado) * 2.4)
+        .style('filter', d => d.grado >= maxGrado * 0.6 ? 'drop-shadow(0 0 6px rgba(2,132,199,0.55))' : 'none');
+
+    selNodos.append('text').text(d => d.nombre);
+
+    selNodos.append('title').text(d => `${d.nombre} — ${d.familia} (${d.campos.length} campos)`);
+
+    // ---------- Tick ----------
+    sim.on('tick', () => {
+        selAristas.attr('d', d => {
+            if (d.source === d.target) {
+                // Auto-bucle: arco pequeño sobre el nodo
+                const r = d.source.h + 8;
+                return `M ${d.source.x},${d.source.y - d.source.h / 2}
+                        C ${d.source.x - r},${d.source.y - r * 1.6}
+                          ${d.source.x + r},${d.source.y - r * 1.6}
+                          ${d.source.x + 6},${d.source.y - d.source.h / 2}`;
+            }
+            // Línea recta con compensación en el borde del nodo destino
+            const dx = d.target.x - d.source.x;
+            const dy = d.target.y - d.source.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const pad = (Math.max(d.target.w, d.target.h) / 2) + 6;
+            const tx = d.target.x - (dx / dist) * pad;
+            const ty = d.target.y - (dy / dist) * pad;
+            return `M ${d.source.x},${d.source.y} L ${tx},${ty}`;
+        });
+        selNodos.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+
+    // ---------- Selección / panel ----------
+    const panelVacio = document.getElementById('panel-vacio');
+    const panelContenido = document.getElementById('panel-contenido');
+    let seleccionado = null;
+
+    const escapeHtml = s => String(s).replace(/[&<>"']/g,
+        c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function pintarPanel(d) {
+        const camposHtml = d.campos.map(c => {
+            const badges = [];
+            if (c.pk) badges.push('<span class="text-[10px] bg-amber-100 text-amber-700 rounded px-1 font-semibold">PK</span>');
+            if (c.destino) badges.push(`<span class="text-[10px] bg-sky-100 text-sky-700 rounded px-1 font-semibold">→ ${escapeHtml(c.destino.split('.')[1] || c.destino)}</span>`);
+            else if (c.nulo) badges.push('<span class="text-[10px] bg-slate-100 text-slate-500 rounded px-1">null</span>');
+            return `<div class="flex items-center justify-between gap-2 py-1 border-b border-slate-100">
+                        <span class="text-[13px] font-mono text-slate-700">${escapeHtml(c.nombre)}</span>
+                        <span class="flex items-center gap-1 shrink-0">
+                            <span class="text-[10px] text-slate-400">${escapeHtml(c.tipo)}</span>${badges.join('')}
+                        </span>
+                    </div>`;
+        }).join('');
+
+        panelContenido.innerHTML = `
+            <div class="flex items-center gap-2 mb-1">
+                <span class="w-3.5 h-3.5 rounded" style="background:${d.color}"></span>
+                <h2 class="text-lg font-bold text-slate-800">${escapeHtml(d.nombre)}</h2>
+            </div>
+            <p class="text-xs text-slate-500 mb-3">
+                <i class="fas fa-table mr-1"></i><code>${escapeHtml(d.tabla)}</code>
+                · ${escapeHtml(d.familia)} · ${d.grado} relaciones
+            </p>
+            <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                Campos (${d.campos.length})
+            </h3>
+            <div>${camposHtml}</div>`;
+        panelVacio.classList.add('hidden');
+        panelContenido.classList.remove('hidden');
+    }
+
+    function aplicarResalte() {
+        if (!seleccionado) {
+            selNodos.classed('nodo-tenue', false).classed('nodo-resaltado', false);
+            selAristas.classed('arista-tenue', false).classed('arista-resaltada', false);
+            return;
+        }
+        const vecinos = new Set([seleccionado.id]);
+        ARISTAS.forEach(a => {
+            const so = a.source.id || a.source, sd = a.target.id || a.target;
+            if (so === seleccionado.id) vecinos.add(sd);
+            if (sd === seleccionado.id) vecinos.add(so);
+        });
+        selNodos.classed('nodo-tenue', d => !vecinos.has(d.id))
+                 .classed('nodo-resaltado', d => d.id === seleccionado.id);
+        selAristas.classed('arista-resaltada', d =>
+                (d.source.id || d.source) === seleccionado.id || (d.target.id || d.target) === seleccionado.id)
+            .classed('arista-tenue', d =>
+                (d.source.id || d.source) !== seleccionado.id && (d.target.id || d.target) !== seleccionado.id);
+    }
+
+    selNodos.on('click', (e, d) => {
+        e.stopPropagation();
+        seleccionado = (seleccionado === d) ? null : d;
+        if (seleccionado) pintarPanel(d);
+        else {
+            panelVacio.classList.remove('hidden');
+            panelContenido.classList.add('hidden');
+        }
+        aplicarResalte();
+    });
+    svg.on('click', () => {
+        seleccionado = null;
+        panelVacio.classList.remove('hidden');
+        panelContenido.classList.add('hidden');
+        aplicarResalte();
+    });
+
+    // ---------- Búsqueda ----------
+    document.getElementById('buscar-modelo').addEventListener('input', (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) { aplicarResalte(); return; }
+        selNodos.classed('nodo-tenue', d => !d.nombre.toLowerCase().includes(q))
+                 .classed('nodo-resaltado', d => d.nombre.toLowerCase().includes(q));
+    });
+
+    // ---------- Filtros por familia ----------
+    function aplicarFiltros() {
+        const activas = new Set(
+            [...document.querySelectorAll('.filtro-fam:checked')].map(c => c.dataset.familia));
+        selNodos.style('display', d => activas.has(d.familia) ? null : 'none');
+        selAristas.style('display', d =>
+            activas.has(d.source.familia) && activas.has(d.target.familia) ? null : 'none');
+    }
+    document.querySelectorAll('.filtro-fam').forEach(c =>
+        c.addEventListener('change', aplicarFiltros));
+})();
+</script>
+{% endblock %}
