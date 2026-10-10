@@ -5639,19 +5639,32 @@ def text_to_speech(request):
     if len(text) > 2000:  # Limitar longitud
         text = text[:2000] + "..."
 
+    # Cache de audio: la síntesis TTS en CPU es costosa y los textos se repiten
+    cache_key = f"tts_audio:{hashlib.md5(f'{text}|{lang}|{accent}'.encode()).hexdigest()}"
+    cached_audio = cache.get(cache_key)
+    if cached_audio:
+        response = HttpResponse(cached_audio, content_type='audio/wav')
+        response['Content-Disposition'] = 'inline; filename="tts_cached.wav"'
+        return response
+
     # Intentar con Coqui TTS usando lazy loading
     tts_instance = get_tts_instance()
-    
+
     if tts_instance:
         try:
-            return _generate_audio_coqui_tts(tts_instance, text, lang, accent)
+            response = _generate_audio_coqui_tts(tts_instance, text, lang, accent)
         except Exception as e:
             print(f"Error con Coqui TTS: {e}")
             print("Intentando con pico2wave...")
-            return _generate_audio_pico2wave(text, lang)
+            response = _generate_audio_pico2wave(text, lang)
     else:
         # Si no hay TTS disponible, usar pico2wave
-        return _generate_audio_pico2wave(text, lang)
+        response = _generate_audio_pico2wave(text, lang)
+
+    # Guardar en cache solo respuestas de audio válidas (7 días)
+    if getattr(response, 'status_code', 0) == 200 and getattr(response, 'content', None):
+        cache.set(cache_key, response.content, timeout=7 * 24 * 3600)
+    return response
 
 def _generate_audio_coqui_tts(tts, text, lang, accent="latino"):
     """

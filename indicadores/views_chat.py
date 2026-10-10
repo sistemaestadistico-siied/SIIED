@@ -2969,7 +2969,8 @@ class ChatService:
         # Cliente principal: Cerebras con OpenAI SDK
         self.client = OpenAI(
             api_key=self.api_key,
-            base_url=get_config('CEREBRAS_BASE_URL', 'https://api.cerebras.ai/v1')
+            base_url=get_config('CEREBRAS_BASE_URL', 'https://api.cerebras.ai/v1'),
+            timeout=get_config('CEREBRAS_TIMEOUT_SECONDS', 45.0)
         )
         
         # Cliente fallback (proveedor alternativo configurado en admin)
@@ -3127,11 +3128,9 @@ class ChatService:
                 raise
 
     def _should_use_tools(self, user_message: str) -> bool:
-        
-        from .views import classify_text
 
         texto = user_message
-        
+
         if not texto:
             return JsonResponse({"error": "Falta el parámetro 'texto'"}, status=400)
 
@@ -3142,16 +3141,14 @@ class ChatService:
             logger.warning("LLM principal caído: se omite el camino con tools")
             return False
 
-        results = classify_text(texto)
-
-        if results == 'consulta':
-
-            logger.warning(f"Una consulta se procede a llamar herramientas del cliente MCP")
-
+        # Clasificador zero-shot (mDeBERTa en CPU, ~segundos por mensaje)
+        # reemplazado por heurística de keywords — misma decisión sin latencia.
+        intent = self._analyze_query_intent(texto)
+        if intent.get('is_search'):
+            logger.warning("Consulta detectada (heurística): se llaman herramientas MCP")
             return True
 
-        logger.warning(f"No es una consulta, el modelo responde con su contexto inicial")
-        
+        logger.warning("Mensaje conversacional: el modelo responde con su contexto inicial")
         return False
             
                 
@@ -3723,31 +3720,30 @@ class ChatService:
                 logger.info(f"[MCP_FIX] Tamaño total de mensajes: {total_msg_size} caracteres (~{total_msg_size//4} tokens)")
                 
                 try:
-                    # CRÍTICO: stream=False para manejar tool calls correctamente
-                    # Usar método con fallback automático al proveedor alternativo
+                    # stream=True: deltas progresivos al usuario; tool_calls se
+                    # acumulan en _consume_llm_stream
                     response = self._call_llm_with_fallback(
                         messages=messages,
                         model=get_config('CEREBRAS_MODEL', 'gpt-oss-120b'),
                         tools=tools,
                         tool_choice="auto",
                         parallel_tool_calls=True,
-                        max_tokens=get_config('CEREBRAS_MAX_TOKENS', 8000),
+                        max_tokens=get_config('CEREBRAS_TOOL_ROUND_MAX_TOKENS', 2500),
                         temperature=0.2,
                         top_p=0.9,
-                        stream=False  # IMPORTANTE: No streaming aquí
+                        stream=True
                     )
                 except Exception as e:
                     logger.error(f"[MCP_FIX] Error Cerebras API (sin fallback disponible): {e}")
                     yield {'content': 'Error de conexión. No hay servicio de respaldo disponible.', 'is_complete': False}
                     break
                 
-                if not response.choices:
-                    logger.warning("[MCP_FIX] Respuesta vacía de la API")
-                    yield {'content': 'Respuesta vacía del modelo.', 'is_complete': False}
-                    break
-                
-                message = response.choices[0].message
-                final_content = message.content or ""
+                # Consumir el stream: emite deltas de contenido progresivamente
+                # y retorna (content, tool_calls, emitted_content)
+                final_content, stream_tool_calls, emitted_content = yield from \
+                    self._consume_llm_stream(response)
+                message = SimpleNamespace(
+                    content=final_content, tool_calls=stream_tool_calls)
                 
                 # Log para debugging: verificar si hay tool_calls
                 provider = self.fallback_config.get('base_url', 'fallback').replace('https://', '').replace('http://', '').split('/')[0] if self.using_fallback else "Cerebras"
@@ -3859,22 +3855,22 @@ class ChatService:
                         max_tokens=self.model_config["max_tokens"],
                         temperature=self.model_config["temperature"],
                         top_p=self.model_config["top_p"],
-                        stream=False
+                        stream=True
                     )
-                    if response and getattr(response, 'choices', None):
-                        final_message = response.choices[0].message
-                        final_content = getattr(final_message, 'content', '') or ""
-                        if final_content:
-                            logger.info("[MCP_FIX] Respuesta final obtenida sin herramientas")
+                    final_content, _tc, emitted_final = yield from \
+                        self._consume_llm_stream(response)
+                    if final_content:
+                        logger.info("[MCP_FIX] Respuesta final obtenida sin herramientas")
+                        if not emitted_final:
                             yield from self._stream_final_response(final_content)
-                            current_history.append({"role": "assistant", "content": final_content})
-                            yield {
-                                'content': '',
-                                'is_complete': True,
-                                'updated_history': current_history
-                            }
-                            return
-                        logger.warning("[MCP_FIX] Respuesta final sin herramientas vacía")
+                        current_history.append({"role": "assistant", "content": final_content})
+                        yield {
+                            'content': '',
+                            'is_complete': True,
+                            'updated_history': current_history
+                        }
+                        return
+                    logger.warning("[MCP_FIX] Respuesta final sin herramientas vacía")
                 except Exception as e:
                     logger.error(f"[MCP_FIX] Error solicitando respuesta final sin herramientas: {e}", exc_info=True)
 
@@ -4287,6 +4283,97 @@ class ChatService:
             'source': 'assistant',
             'format': 'markdown'
         }
+
+    def _consume_llm_stream(self, stream):
+        """Consume un stream de chat.completions acumulando tool_calls y
+        emitiendo deltas de contenido progresivamente.
+
+        Retorna (content, tool_calls, emitted_content) vía `return`
+        (usar con `yield from`). Los deltas de contenido se retienen solo
+        mientras el texto pueda ser un payload JSON inline de herramienta
+        (artefacto del fallback); en cuanto es claramente texto plano se
+        emiten en tiempo real para reducir la latencia percibida.
+        """
+        content_parts = []
+        tool_calls_acc = {}   # index -> {id, name, arguments}
+        emitted = ''
+        hold_buffer = ''    # contenido retenido por si es JSON inline
+        HOLD_LIMIT = 300    # chars antes de asumir que no es payload
+
+        for chunk in stream:
+            try:
+                choices = getattr(chunk, 'choices', None) or []
+                choice = choices[0] if choices else None
+            except Exception:
+                continue
+            if not choice:
+                continue
+            delta = getattr(choice, 'delta', None)
+            if not delta:
+                continue
+
+            # Deltas de tool calls
+            for tc in getattr(delta, 'tool_calls', None) or []:
+                idx = getattr(tc, 'index', 0) or 0
+                acc = tool_calls_acc.setdefault(
+                    idx, {'id': None, 'name': None, 'arguments': ''})
+                if getattr(tc, 'id', None):
+                    acc['id'] = tc.id
+                fn = getattr(tc, 'function', None)
+                if fn:
+                    if getattr(fn, 'name', None):
+                        acc['name'] = fn.name
+                    if getattr(fn, 'arguments', None):
+                        acc['arguments'] += fn.arguments
+
+            # Deltas de contenido
+            piece = getattr(delta, 'content', None)
+            if not piece:
+                continue
+            content_parts.append(piece)
+
+            if tool_calls_acc:
+                # El modelo está emitiendo tool calls: no emitir contenido
+                continue
+
+            if not emitted:
+                hold_buffer += piece
+                stripped = hold_buffer.lstrip()
+                if not stripped:
+                    continue
+                if stripped[0] in '{[' and len(hold_buffer) < HOLD_LIMIT:
+                    # Posible payload JSON inline: retener
+                    continue
+                yield {
+                    'content': hold_buffer,
+                    'is_complete': False,
+                    'source': 'assistant',
+                    'format': 'markdown'
+                }
+                emitted += hold_buffer
+                hold_buffer = ''
+            else:
+                yield {
+                    'content': piece,
+                    'is_complete': False,
+                    'source': 'assistant',
+                    'format': 'markdown'
+                }
+                emitted += piece
+
+        content = ''.join(content_parts)
+        tool_calls = None
+        if tool_calls_acc:
+            tool_calls = [
+                SimpleNamespace(
+                    id=acc['id'] or str(uuid.uuid4()),
+                    type='function',
+                    function=SimpleNamespace(
+                        name=acc['name'], arguments=acc['arguments'])
+                )
+                for _idx, acc in sorted(tool_calls_acc.items())
+            ]
+        return content, tool_calls, emitted
 
 
     def _generate_fallback_response_with_data(
@@ -4785,7 +4872,7 @@ class ChatService:
             logger.info(f"Iniciando búsqueda semántica para: {query}")
             # Singleton: reutiliza el modelo ya cargado en el proceso
             embedding_service = get_embedding_service()
-            
+
             # Obtener el embedding de la consulta
             query_embedding = embedding_service.get_embedding(query)
             if not query_embedding:
@@ -4801,64 +4888,56 @@ class ChatService:
                 'indicador': [],
                 'documento': []
             }
-            
-            # Obtener todos los documentos vectoriales
-            documentos = DocumentoVector.objects.exclude(Q(embedding__isnull=True) | Q(contenido__isnull=True) | Q(contenido=''))
-            total_documentos = documentos.count()
-            logger.info(f"Procesando {total_documentos} documentos vectoriales")
-            
-            # Procesar cada documento
-            for doc in documentos.select_related():
-                try:
-                    # Obtener el embedding del documento
-                    doc_embedding = doc.embedding
-                    
-                    # Convertir a lista si es necesario
-                    if hasattr(doc_embedding, 'tolist'):
-                        doc_embedding = doc_embedding.tolist()
-                    
-                    # Validar el embedding
-                    if not isinstance(doc_embedding, list) or len(doc_embedding) != len(query_embedding):
-                        logger.warning(f"Embedding inválido para documento {doc.id}")
-                        continue
 
-                    # Calcular similitud
-                    similarity = self._calcular_similitud(query_embedding, doc_embedding)
-                    if similarity is None or similarity < 0.1:  # Umbral mínimo de similitud
-                        continue
-                        
-                    # Crear resultado con metadatos adicionales
-                    max_data_length = get_config('MAX_RELEVANT_DATA_LENGTH', 500)
+            # Búsqueda con pgvector (CosineDistance en BD con índice) en lugar
+            # de iterar todos los vectores y calcular coseno en Python.
+            from pgvector.django import CosineDistance
+
+            limite_total = (top_k or 10) * 10  # candidatos suficientes por tipo
+            max_data_length = get_config('MAX_RELEVANT_DATA_LENGTH', 500)
+
+            documentos = (
+                DocumentoVector.objects
+                .exclude(Q(embedding__isnull=True) | Q(contenido__isnull=True) | Q(contenido=''))
+                .annotate(distancia=CosineDistance('embedding', query_embedding))
+                .filter(distancia__lt=0.9)  # equivalente a similitud > 0.1
+                .order_by('distancia')[:limite_total]
+            )
+            logger.info(f"Recuperados {len(documentos)} candidatos vía pgvector")
+
+            # Metadatos de indicadores en una sola consulta (evita N+1)
+            ref_ids = [d.referencia_id for d in documentos if d.tipo == 'indicador']
+            indicadores_map = {
+                ind.id: ind for ind in Indicador.objects.filter(id__in=ref_ids)
+            } if ref_ids else {}
+
+            for doc in documentos:
+                try:
+                    similarity = 1 - float(doc.distancia)
                     resultado = {
                         'id': doc.id,
                         'tipo': doc.tipo,
                         'referencia_id': doc.referencia_id,
-                        'similitud': float(similarity),
+                        'similitud': similarity,
                         'contenido': doc.contenido[:max_data_length] + '...' if len(doc.contenido) > max_data_length else doc.contenido,
                         'metadata': doc.metadata or {}
                     }
-                    
-                    # Agregar metadatos específicos según el tipo
-                    try:
-                        if doc.tipo == 'indicador':
-                            indicador = Indicador.objects.filter(id=doc.referencia_id).first()
-                            if indicador:
-                                resultado.update({
-                                    'nombre': getattr(indicador, 'nombre', ''),
-                                    'descripcion': getattr(indicador, 'descripcion', ''),
-                                    'unidad_medida': getattr(indicador, 'unidad_medida', ''),
-                                    'fuente': getattr(indicador, 'fuente', ''),
-                                  
-                                })
-                    except Exception as e:
-                        logger.warning(f"Error obteniendo metadatos de indicador {doc.referencia_id}: {str(e)}")
-                    
-                    # Agregar a la lista correspondiente
+
+                    if doc.tipo == 'indicador':
+                        indicador = indicadores_map.get(doc.referencia_id)
+                        if indicador:
+                            resultado.update({
+                                'nombre': getattr(indicador, 'nombre', ''),
+                                'descripcion': getattr(indicador, 'descripcion', ''),
+                                'unidad_medida': getattr(indicador, 'unidad_medida', ''),
+                                'fuente': getattr(indicador, 'fuente', ''),
+                            })
+
                     if doc.tipo in resultados_por_tipo:
                         resultados_por_tipo[doc.tipo].append(resultado)
                     else:
                         resultados_por_tipo['documento'].append(resultado)
-                        
+
                 except Exception as e:
                     logger.error(f"Error procesando documento {getattr(doc, 'id', 'unknown')}: {str(e)}", exc_info=True)
                     continue
@@ -5921,4 +6000,5 @@ class ChatService:
             removed = other_msgs.pop(0)
             total_tokens -= self.count_message_tokens(removed)
         
+        return system_msgs + other_msgs
         return system_msgs + other_msgs
