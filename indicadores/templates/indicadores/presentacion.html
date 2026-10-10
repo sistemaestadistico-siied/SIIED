@@ -972,10 +972,11 @@ let clipsGLB = [];
 
 // Clips identificados (preview C0-C3 / teclas 0-3):
 //   0 = nadar boca abajo      → "vuela": supervisor patrulla la línea
-//   1 = idle alas abajo (17.6s, buen loop) → supervisar
-//   2 = idle expectante mirando abajo → trabajar (vigila la cinta)
+//   1 = idle alas abajo (17.6s, buen loop) → trabajar / supervisar
+//   2 = idle mirándose los pies, mal corte de loop → sin uso
 //   3 = flexiones de pecho    → bailar (gag sincronizado del finale)
-const MAPA_CLIPS = { trabajar: 2, caminar: 0, bailar: 3, supervisar: 1 };
+//   OJO: C3 trae yaw 180° horneado en la raíz → compensar con -PI al bailar
+const MAPA_CLIPS = { trabajar: 1, caminar: 0, bailar: 3, supervisar: 1 };
 
 function clonarOperario() {
     const c = SkeletonUtils.clone(modeloGLB);
@@ -1136,7 +1137,11 @@ function tickIntertitulos(t) {
         }
         if (a && a.finale && !enFinal) {
             enFinal = true;
-            operarios.forEach(o => ponerEstado(o, 'bailar'));
+            operarios.forEach(o => {
+                ponerEstado(o, 'bailar');
+                // C3 hornea yaw=+PI en la raíz: compensar para que miren al frente
+                if (o.mixer) o.loro.rotation.y -= Math.PI;
+            });
             if (sup) ponerEstado(sup, 'bailar');
         }
     }
@@ -1160,7 +1165,10 @@ document.getElementById('btn-replay').addEventListener('click', () => {
     enFinal = false;
     offsetShow = 0;
     actoActual = -1;
-    operarios.forEach(o => ponerEstado(o, 'trabajar'));
+    operarios.forEach(o => {
+        ponerEstado(o, 'trabajar');
+        if (o.mixer) o.loro.rotation.y += Math.PI; // revertir comp. de C3
+    });
     if (sup) ponerEstado(sup, 'caminar');
     cajaApilada = 0;
     paquetes.forEach((p, i) => {
@@ -1378,15 +1386,17 @@ function animate() {
             sup.loro.position.x += sup.dir * 2.2 * dt;
             if (sup.loro.position.x > 23) sup.dir = -1;
             if (sup.loro.position.x < -23) sup.dir = 1;
-            // el GLB mira -z de fábrica: signos invertidos vs +z
-            const rotObjetivo = sup.dir > 0 ? -Math.PI / 2 : Math.PI / 2;
+            // el GLB mira +z (glTF): +PI/2 → cara a la derecha (+x)
+            const rotObjetivo = sup.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
             sup.loro.rotation.y += (rotObjetivo - sup.loro.rotation.y) * 0.15;
             // asciende a altura de vuelo (solo GLB; el procedural queda en el suelo)
             const yVuelo = sup.mixer ? 2.0 : 0.3;
             sup.loro.position.y += (yVuelo - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
         } else {
-            sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
+            // C3 hornea yaw=+PI: el objetivo del root se compensa al bailar
+            const yawObj = 0.4 - (sup.mixer && sup.estado === 'bailar' ? Math.PI : 0);
+            sup.loro.rotation.y += (yawObj - sup.loro.rotation.y) * 0.05;
             // aterriza suave al dejar de patrullar (finale)
             sup.loro.position.y += (0.02 - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
