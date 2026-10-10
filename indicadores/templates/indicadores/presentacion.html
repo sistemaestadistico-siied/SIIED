@@ -1001,6 +1001,8 @@ function ponerEstado(w, estado) {
     if (!w.acciones || !w.acciones.length) return;
     const prox = w.acciones[MAPA_CLIPS[estado] ?? 0];
     if (w.accion === prox) return;
+    // aleteo más vivo al volar; los demás clips a velocidad natural
+    prox.timeScale = estado === 'caminar' ? 1.6 : 1;
     prox.reset().fadeIn(0.35).play();
     if (w.accion) w.accion.fadeOut(0.35);
     w.accion = prox;
@@ -1384,15 +1386,19 @@ function animate() {
             sup.loro.position.x += sup.dir * 2.2 * dt;
             if (sup.loro.position.x > 23) sup.dir = -1;
             if (sup.loro.position.x < -23) sup.dir = 1;
-            // el GLB mira +z (glTF): +PI/2 → cara a la derecha (+x)
-            const rotObjetivo = sup.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+            // C0 (nado) hornea yaw extra: signos compensados para
+            // que vuele cabeza hacia adelante en ambos sentidos
+            const rotObjetivo = sup.dir > 0 ? -Math.PI / 2 : Math.PI / 2;
             sup.loro.rotation.y += (rotObjetivo - sup.loro.rotation.y) * 0.15;
+            // nariz arriba → patas colgando; se endereza al aterrizar
+            sup.loro.rotation.z += (0.3 * sup.dir - sup.loro.rotation.z) * 0.08;
             // asciende a altura de vuelo (solo GLB; el procedural queda en el suelo)
             const yVuelo = sup.mixer ? 2.0 : 0.3;
             sup.loro.position.y += (yVuelo - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
         } else {
             sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
+            sup.loro.rotation.z += (0 - sup.loro.rotation.z) * 0.08;
             // aterriza suave al dejar de patrullar (finale)
             sup.loro.position.y += (0.02 - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
