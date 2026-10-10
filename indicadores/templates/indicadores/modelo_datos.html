@@ -123,8 +123,8 @@
     // Grado de conexión para dimensionar el "hub"
     const grado = {};
     ARISTAS.forEach(a => {
-        grado[a.origen] = (grado[a.origen] || 0) + 1;
-        grado[a.destino] = (grado[a.destino] || 0) + 1;
+        grado[a.source] = (grado[a.source] || 0) + 1;
+        grado[a.target] = (grado[a.target] || 0) + 1;
     });
     NODOS.forEach(n => n.grado = grado[n.id] || 0);
     const maxGrado = Math.max(1, ...NODOS.map(n => n.grado));
@@ -133,8 +133,6 @@
     const sim = d3.forceSimulation(NODOS)
         .force('link', d3.forceLink(ARISTAS)
             .id(d => d.id)
-            .source(d => d.origen)
-            .target(d => d.destino)
             .distance(d => 90 + Math.min(60, (d.source.grado + d.target.grado) * 2)))
         .force('charge', d3.forceManyBody().strength(-520))
         .force('collide', d3.forceCollide(d => Math.max(d.w, d.h) * 0.62 + 14))
@@ -147,7 +145,7 @@
         .attr('class', d => 'arista' + (d.tipo === 'M2M' ? ' m2m' : ''))
         .attr('marker-end', 'url(#flecha)');
     selAristas.append('title')
-        .text(d => `${d.source.nombre || d.source}.${d.campo} → ${d.destino.nombre || d.destino} (${d.tipo})`);
+        .text(d => `${d.source.nombre || d.source}.${d.campo} → ${d.target.nombre || d.target} (${d.tipo})`);
 
     // ---------- Nodos ----------
     const selNodos = capaNodos.selectAll('g')

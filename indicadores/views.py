@@ -6575,14 +6575,14 @@ def modelo_datos(request):
             else:
                 continue
             aristas.append({
-                'origen': meta.label,
-                'destino': destino._meta.label,
+                'source': meta.label,
+                'target': destino._meta.label,
                 'campo': f.name,
                 'tipo': 'M2M' if f.many_to_many else ('O2O' if f.one_to_one else 'FK'),
             })
 
     # auth.User como nodo externo si es referenciado
-    if any(a['destino'] == 'auth.User' for a in aristas):
+    if any(a['target'] == 'auth.User' for a in aristas):
         from django.contrib.auth.models import User
         nodos['auth.User'] = {
             'id': 'auth.User',
