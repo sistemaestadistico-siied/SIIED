@@ -970,6 +970,7 @@ let sup = null;               // supervisor patrullero
 let modeloGLB = null;
 let clipsGLB = [];
 let yawVuelo = 0;             // compensación de frente en vuelo (tecla F)
+let idxYaw = 0, idxRoll = 0;  // índices de los ciclos F/R
 
 // Clips identificados (preview C0-C3 / teclas 0-3):
 //   0 = nadar boca abajo      → "vuela": supervisor patrulla la línea
@@ -994,7 +995,7 @@ function clonarOperario() {
     vehiculo.add(c);
     const mixer = new THREE.AnimationMixer(vehiculo);
     const acciones = clipsGLB.map(cl => mixer.clipAction(cl));
-    return { loro: vehiculo, mixer, acciones, accion: null, estado: null };
+    return { loro: vehiculo, cuerpo: c, mixer, acciones, accion: null, estado: null };
 }
 
 function ponerEstado(w, estado) {
@@ -1212,10 +1213,19 @@ document.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'l') toggleLibre();
     if (e.key === ' ') { e.preventDefault(); iniciarShow(); }
     if (['0', '1', '2', '3'].includes(e.key)) previsualizarClip(+e.key);
-    // F: voltea el frente del volador si mira al revés
+    // F: cicla el frente del volador en 4 pasos (0/90/180/270°)
     if (e.key.toLowerCase() === 'f') {
-        yawVuelo = yawVuelo === 0 ? Math.PI : 0;
-        console.log('[maquila] yawVuelo =', yawVuelo);
+        const pasos = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
+        idxYaw = (idxYaw + 1) % 4;
+        yawVuelo = pasos[idxYaw];
+        console.log('[maquila] yawVuelo idx', idxYaw, '=', yawVuelo.toFixed(2));
+    }
+    // R: cicla el roll del volador en 4 pasos (si nada de costado)
+    if (e.key.toLowerCase() === 'r' && sup && sup.cuerpo) {
+        const pasos = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
+        idxRoll = (idxRoll + 1) % 4;
+        sup.cuerpo.rotation.x = pasos[idxRoll];
+        console.log('[maquila] rollVuelo idx', idxRoll, '=', pasos[idxRoll].toFixed(2));
     }
 });
 
