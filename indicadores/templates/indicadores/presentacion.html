@@ -969,6 +969,7 @@ const operarios = [];
 let sup = null;               // supervisor patrullero
 let modeloGLB = null;
 let clipsGLB = [];
+let yawVuelo = 0;             // compensación de frente en vuelo (tecla F)
 
 // Clips identificados (preview C0-C3 / teclas 0-3):
 //   0 = nadar boca abajo      → "vuela": supervisor patrulla la línea
@@ -1211,6 +1212,11 @@ document.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'l') toggleLibre();
     if (e.key === ' ') { e.preventDefault(); iniciarShow(); }
     if (['0', '1', '2', '3'].includes(e.key)) previsualizarClip(+e.key);
+    // F: voltea el frente del volador si mira al revés
+    if (e.key.toLowerCase() === 'f') {
+        yawVuelo = yawVuelo === 0 ? Math.PI : 0;
+        console.log('[maquila] yawVuelo =', yawVuelo);
+    }
 });
 
 // ============ LOOP ============
@@ -1386,10 +1392,13 @@ function animate() {
             sup.loro.position.x += sup.dir * 2.2 * dt;
             if (sup.loro.position.x > 23) sup.dir = -1;
             if (sup.loro.position.x < -23) sup.dir = 1;
-            // C0 (nado) hornea yaw extra: signos compensados para
-            // que vuele cabeza hacia adelante en ambos sentidos
-            const rotObjetivo = sup.dir > 0 ? -Math.PI / 2 : Math.PI / 2;
-            sup.loro.rotation.y += (rotObjetivo - sup.loro.rotation.y) * 0.15;
+            // mirar en la dirección real del movimiento; YAW_VUELO
+            // compensa el frente del clip (tecla F lo voltea en vivo)
+            const rotObjetivo = Math.atan2(sup.dir * 2.2, 0) + yawVuelo;
+            // lerp por el camino más corto (wrap ±PI)
+            const dYaw = Math.atan2(Math.sin(rotObjetivo - sup.loro.rotation.y),
+                                    Math.cos(rotObjetivo - sup.loro.rotation.y));
+            sup.loro.rotation.y += dYaw * 0.15;
             // nariz arriba → patas colgando; se endereza al aterrizar
             sup.loro.rotation.z += (0.3 * sup.dir - sup.loro.rotation.z) * 0.08;
             // asciende a altura de vuelo (solo GLB; el procedural queda en el suelo)
