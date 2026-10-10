@@ -207,6 +207,11 @@
     <button class="hud-btn" id="btn-sepia">SEPIA: ON</button>
     <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
     <button class="hud-btn" id="btn-saltar">SALTAR ⏭</button>
+    <span style="width:1px;background:#d6c9a8;margin:0 2px;"></span>
+    <button class="hud-btn btn-clip" data-clip="0">C0</button>
+    <button class="hud-btn btn-clip" data-clip="1">C1</button>
+    <button class="hud-btn btn-clip" data-clip="2">C2</button>
+    <button class="hud-btn btn-clip" data-clip="3">C3</button>
 </div>
 <div id="progreso"></div>
 
@@ -966,8 +971,10 @@ let modeloGLB = null;
 let clipsGLB = [];
 
 // Mapeo índice de clip → rol (clips: 0:NlaTrack 5.7s, 1:NlaTrack.001 17.6s,
-// 2:NlaTrack.002 3.7s, 3:NlaTrack.003 2.0s — ajustar tras verlos)
-const MAPA_CLIPS = { trabajar: 2, caminar: 3, bailar: 1, supervisar: 0 };
+// 2:NlaTrack.002 3.7s, 3:NlaTrack.003 2.0s)
+// Reporte: clip2 = idle que no loopea (queda encorvado), clip3 = vuelo
+// lateral. Preview: botones C0-C3 / teclas 0-3 del HUD.
+const MAPA_CLIPS = { trabajar: 0, caminar: 3, bailar: 1, supervisar: 0 };
 
 function clonarOperario() {
     const c = SkeletonUtils.clone(modeloGLB);
@@ -991,6 +998,21 @@ function ponerEstado(w, estado) {
     if (w.accion) w.accion.fadeOut(0.35);
     w.accion = prox;
 }
+
+// Preview de clips: ver qué hace cada NlaTrack en todos los workers
+function previsualizarClip(idx) {
+    if (!clipsGLB.length) return;
+    [...operarios, sup].filter(Boolean).forEach(w => {
+        if (!w.acciones || idx >= w.acciones.length) return;
+        const prox = w.acciones[idx];
+        prox.reset().fadeIn(0.2).play();
+        if (w.accion) w.accion.fadeOut(0.2);
+        w.accion = prox;
+        w.estado = 'preview';
+    });
+}
+document.querySelectorAll('.btn-clip').forEach(b =>
+    b.addEventListener('click', () => previsualizarClip(+b.dataset.clip)));
 
 function crearPlanta() {
     maquinas.forEach((m, i) => {
@@ -1179,6 +1201,7 @@ document.getElementById('btn-libre').addEventListener('click', toggleLibre);
 document.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'l') toggleLibre();
     if (e.key === ' ') { e.preventDefault(); iniciarShow(); }
+    if (['0', '1', '2', '3'].includes(e.key)) previsualizarClip(+e.key);
 });
 
 // ============ LOOP ============
