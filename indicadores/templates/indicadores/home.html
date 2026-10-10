@@ -5,6 +5,14 @@
 
 <!-- Estilos personalizados para sliders -->
 <style>
+    /* Ocultar marker nativo de <summary> en la sección desplegable */
+    details > summary::-webkit-details-marker {
+        display: none;
+    }
+    details > summary::marker {
+        content: none;
+    }
+
     /* Estilos para bullets de paginación - Estandarización */
     .swiper-pagination-bullet {
         background: rgba(255, 255, 255, 0.5);
@@ -166,8 +174,65 @@
             </h1>
             <div class="w-32 h-1 bg-sky-700 mx-auto mb-8 rounded-full"></div>
         </div>
-        
-        <div class="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12">
+
+        <!-- Sección desplegable: Quiénes somos / Qué es el SIIED -->
+        <div class="max-w-4xl mx-auto mb-10">
+            <details class="group bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden open:shadow-md transition-shadow duration-300">
+                <summary class="flex items-center justify-between cursor-pointer list-none px-6 py-4 hover:bg-gray-50 transition-colors duration-200">
+                    <span class="flex items-center space-x-3">
+                        <span class="w-10 h-10 bg-sky-50 rounded-full flex items-center justify-center group-open:bg-sky-100 transition-colors duration-300">
+                            <i class="fas fa-info-circle text-sky-700"></i>
+                        </span>
+                        <span class="text-left">
+                            <span class="block text-lg font-semibold text-gray-800">¿Quiénes somos?</span>
+                            <span class="block text-sm text-gray-500">Qué es el SIIED y qué ofrece la plataforma</span>
+                        </span>
+                    </span>
+                    <i class="fas fa-chevron-down text-gray-400 group-open:rotate-180 transition-transform duration-300"></i>
+                </summary>
+                <div class="px-6 pb-6 pt-2 text-gray-700 text-sm leading-relaxed space-y-4 border-t border-gray-100">
+                    <p>
+                        El <strong>SIIED</strong> es el Sistema Integrado de Información Estadística Distrital de la
+                        Alcaldía de Santiago de Cali. Integra personas, procesos y tecnología para facilitar el acceso,
+                        la gestión y el análisis de información estadística confiable, oficial y actualizada del Distrito.
+                        Es operado por la <strong>Subdirección de Desarrollo Integral del Departamento Administrativo de
+                        Planeación (DAP)</strong>, que lidera técnica y estratégicamente la gobernanza estadística distrital.
+                    </p>
+                    <p>
+                        Su objetivo es optimizar la gestión, integración, administración y difusión de los datos e
+                        información estadística oficial del Distrito, garantizando su calidad, oportunidad y
+                        accesibilidad, para aportar insumos a la planeación, la toma de decisiones y el seguimiento de
+                        las políticas públicas.
+                    </p>
+                    <div>
+                        <p class="font-semibold text-gray-800 mb-2">¿Qué ofrece la plataforma?</p>
+                        <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-2 list-none">
+                            <li class="flex items-start space-x-2"><i class="fas fa-chart-line text-sky-600 mt-1"></i><span>Catálogo de indicadores con fichas técnicas y metadatos estándar SDMX</span></li>
+                            <li class="flex items-start space-x-2"><i class="fas fa-database text-sky-600 mt-1"></i><span>Explorador de conjuntos de datos y microdatos descargables</span></li>
+                            <li class="flex items-start space-x-2"><i class="fas fa-chart-bar text-sky-600 mt-1"></i><span>Visores comparativos, mapas y productos de difusión</span></li>
+                            <li class="flex items-start space-x-2"><i class="fas fa-robot text-sky-600 mt-1"></i><span>Don Datico: asistente virtual de IA para consultas en lenguaje natural</span></li>
+                            <li class="flex items-start space-x-2"><i class="fas fa-plug text-sky-600 mt-1"></i><span>API abierta de acceso programático, sin registro ni autenticación</span></li>
+                            <li class="flex items-start space-x-2"><i class="fas fa-graduation-cap text-sky-600 mt-1"></i><span>Contenidos educativos interactivos para niños, niñas y adolescentes</span></li>
+                        </ul>
+                    </div>
+                    <p>
+                        Desde 1986 el DAP impulsó la cultura estadística local con la publicación de
+                        <em>“Cali en Cifras 1985”</em>; a partir de 2012 automatizó e integró los datos mediante el
+                        Sistema de Indicadores Sociales (SIS), y desde 2025 el SIIED consolidó esos avances en una
+                        plataforma oficial, unificada y confiable — parte del Sistema Estadístico Nacional conforme a la
+                        <strong>Ley 2335 de 2023</strong> y al <strong>Decreto 411.0.20.0516 de 2016</strong>.
+                    </p>
+                    <p class="text-gray-600">
+                        <i class="fas fa-envelope mr-1"></i>
+                        Contacto:
+                        <a href="mailto:sistemaestadistico@cali.gov.co" class="text-sky-700 hover:underline font-medium">sistemaestadistico@cali.gov.co</a>
+                        &nbsp;·&nbsp; Subdirección de Desarrollo Integral — Sistema Estadístico Distrital
+                    </p>
+                </div>
+            </details>
+        </div>
+
+        <div class="grid lg:grid-cols-4 gap-6 max-w-6xl mx-auto mt-12">
             <!-- Visor Comparativo -->
             <a href="{% url 'indicadores:visor_comparativo' %}" class="group bg-white hover:bg-gray-50 rounded-xl p-6 border border-gray-200 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-sky-100">
                 <div class="text-center">
@@ -198,6 +263,17 @@
                     </div>
                     <h3 class="text-xl font-semibold mb-2 text-gray-800">Indicadores ODS</h3>
                     <p class="text-sm text-gray-600">Consulta los indicadores de los Objetivos de Desarrollo Sostenible</p>
+                </div>
+            </a>
+
+            <!-- Cali en Cifras (histórico) -->
+            <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}" class="group bg-white hover:bg-gray-50 rounded-xl p-6 border border-gray-200 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg hover:shadow-sky-100">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-sky-50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-100 transition-colors duration-300">
+                        <i class="fas fa-book-open text-2xl text-sky-700"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">Cali en Cifras</h3>
+                    <p class="text-sm text-gray-600">Anuario estadístico histórico del Distrito — series hasta 2023</p>
                 </div>
             </a>
         </div>
