@@ -6332,7 +6332,12 @@ def modulo_iced(request):
         if ficed:
             puntajes = calcular_iced(ficed)
             organismo.ficed = ficed
-            organismo.puntaje_global_pct = int(ficed.puntaje_global * 100)
+            # puntaje_global puede ser None si el formulario fue enviado sin
+            # recalcular; usar el valor calculado en vivo (escala 0-100)
+            if ficed.puntaje_global is not None:
+                organismo.puntaje_global_pct = int(ficed.puntaje_global * 100)
+            else:
+                organismo.puntaje_global_pct = int(puntajes['puntaje_global'])
             organismo.nivel_global_display = ficed.nivel_global_display
             organismo.periodo = ficed.periodo
             organismo.puntajes_detalle = puntajes
