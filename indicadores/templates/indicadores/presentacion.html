@@ -207,11 +207,6 @@
     <button class="hud-btn" id="btn-sepia">SEPIA: ON</button>
     <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
     <button class="hud-btn" id="btn-saltar">SALTAR ⏭</button>
-    <span style="width:1px;background:#d6c9a8;margin:0 2px;"></span>
-    <button class="hud-btn btn-clip" data-clip="0">C0</button>
-    <button class="hud-btn btn-clip" data-clip="1">C1</button>
-    <button class="hud-btn btn-clip" data-clip="2">C2</button>
-    <button class="hud-btn btn-clip" data-clip="3">C3</button>
 </div>
 <div id="progreso"></div>
 
@@ -969,10 +964,9 @@ const operarios = [];
 let sup = null;               // supervisor patrullero
 let modeloGLB = null;
 let clipsGLB = [];
-let yawVuelo = 0;             // compensación de frente en vuelo (tecla F)
-let idxYaw = 0, idxRoll = 0;  // índices de los ciclos F/R
+const yawVuelo = Math.PI / 2; // frente del vuelo (calibrado en vivo)
 
-// Clips identificados (preview C0-C3 / teclas 0-3):
+// Clips del GLB:
 //   0 = nadar boca abajo      → "vuela": supervisor patrulla la línea
 //   1 = idle alas abajo (17.6s, buen loop) → trabajar / supervisar
 //   2 = idle mirándose los pies, mal corte de loop → sin uso
@@ -995,7 +989,7 @@ function clonarOperario() {
     vehiculo.add(c);
     const mixer = new THREE.AnimationMixer(vehiculo);
     const acciones = clipsGLB.map(cl => mixer.clipAction(cl));
-    return { loro: vehiculo, cuerpo: c, mixer, acciones, accion: null, estado: null };
+    return { loro: vehiculo, mixer, acciones, accion: null, estado: null };
 }
 
 function ponerEstado(w, estado) {
@@ -1009,21 +1003,6 @@ function ponerEstado(w, estado) {
     if (w.accion) w.accion.fadeOut(0.35);
     w.accion = prox;
 }
-
-// Preview de clips: ver qué hace cada NlaTrack en todos los workers
-function previsualizarClip(idx) {
-    if (!clipsGLB.length) return;
-    [...operarios, sup].filter(Boolean).forEach(w => {
-        if (!w.acciones || idx >= w.acciones.length) return;
-        const prox = w.acciones[idx];
-        prox.reset().fadeIn(0.2).play();
-        if (w.accion) w.accion.fadeOut(0.2);
-        w.accion = prox;
-        w.estado = 'preview';
-    });
-}
-document.querySelectorAll('.btn-clip').forEach(b =>
-    b.addEventListener('click', () => previsualizarClip(+b.dataset.clip)));
 
 function crearPlanta() {
     maquinas.forEach((m, i) => {
@@ -1067,8 +1046,6 @@ new GLTFLoader().load(
         modeloGLB = gltf.scene;
         clipsGLB = gltf.animations;
         console.log('[maquila] clips:', clipsGLB.map((c, i) => `${i}:${c.name}(${c.duration.toFixed(1)}s)`).join(' '));
-        const el = document.getElementById('clips-info');
-        if (el) el.textContent = 'clips: ' + clipsGLB.map((c, i) => `${i}=${c.name}(${c.duration.toFixed(1)}s)`).join(' ');
         crearPlanta();
     },
     undefined,
@@ -1212,21 +1189,6 @@ document.getElementById('btn-libre').addEventListener('click', toggleLibre);
 document.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'l') toggleLibre();
     if (e.key === ' ') { e.preventDefault(); iniciarShow(); }
-    if (['0', '1', '2', '3'].includes(e.key)) previsualizarClip(+e.key);
-    // F: cicla el frente del volador en 4 pasos (0/90/180/270°)
-    if (e.key.toLowerCase() === 'f') {
-        const pasos = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
-        idxYaw = (idxYaw + 1) % 4;
-        yawVuelo = pasos[idxYaw];
-        console.log('[maquila] yawVuelo idx', idxYaw, '=', yawVuelo.toFixed(2));
-    }
-    // R: cicla el roll del volador en 4 pasos (si nada de costado)
-    if (e.key.toLowerCase() === 'r' && sup && sup.cuerpo) {
-        const pasos = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2];
-        idxRoll = (idxRoll + 1) % 4;
-        sup.cuerpo.rotation.x = pasos[idxRoll];
-        console.log('[maquila] rollVuelo idx', idxRoll, '=', pasos[idxRoll].toFixed(2));
-    }
 });
 
 // ============ LOOP ============
