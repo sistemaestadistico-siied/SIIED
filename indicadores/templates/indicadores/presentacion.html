@@ -213,6 +213,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const STATS = JSON.parse(document.getElementById('stats-data').textContent);
 document.getElementById('intro-stats').textContent =
@@ -563,8 +565,110 @@ function crearMaquina(cfg) {
     plataforma.position.set(-2.8, 1.5, 0.8);
     m.add(plataforma);
 
+    // ---- Detalles únicos por estación ----
+    const extras = {};
+    if (cfg.tipo === 'tolva') {
+        // Sacos de reportes amontonados junto a la tolva
+        const sacoGeom = new THREE.SphereGeometry(0.42, 8, 8);
+        const sacoMat = new THREE.MeshLambertMaterial({ color: 0x9a7b4f });
+        for (let i = 0; i < 3; i++) {
+            const saco = new THREE.Mesh(sacoGeom, sacoMat);
+            saco.scale.set(1, 1.25, 0.9);
+            saco.position.set(-1.6 + (i % 2) * 0.8, 0.42 + Math.floor(i / 2) * 0.7, 2.0);
+            saco.castShadow = true;
+            m.add(saco);
+        }
+        const cartelSaco = crearCartel('REPORTES', 'materia prima', 1.6);
+        cartelSaco.position.set(-1.4, 1.15, 2.35);
+        m.add(cartelSaco);
+        // Pedacito de reporte que cae de la tolva en bucle
+        const chunk = new THREE.Mesh(
+            new THREE.BoxGeometry(0.28, 0.22, 0.28),
+            new THREE.MeshLambertMaterial({ color: 0xc9a25b, transparent: true }));
+        chunk.position.set(0, 3.3, 4.2);
+        m.add(chunk);
+        extras.chunk = chunk;
+    } else if (cfg.tipo === 'turbina') {
+        // Par de engranajes grandes que engranan en la cara frontal
+        const g1 = crearEngranaje(0.85, 0x7a6a4a);
+        g1.position.set(-0.6, 2.0, 1.56);
+        m.add(g1);
+        const g2 = crearEngranaje(0.6, 0x8a7a5a);
+        g2.position.set(0.85, 1.25, 1.56);
+        m.add(g2);
+        extras.g1 = g1; extras.g2 = g2;
+    } else if (cfg.tipo === 'prensa') {
+        // Destello cuando el sello estampa sobre el paquete
+        const flash = new THREE.Mesh(
+            new THREE.PlaneGeometry(2.4, 0.5),
+            new THREE.MeshBasicMaterial({
+                color: 0xfff2c0, transparent: true, opacity: 0,
+                side: THREE.DoubleSide }));
+        flash.rotation.x = -Math.PI / 2;
+        flash.position.set(0, 1.32, 3.8);
+        m.add(flash);
+        extras.flash = flash;
+        // Placa "SDMX" en el émbolo
+        const placa = crearCartel('SDMX', 'estándar', 1.0);
+        placa.position.set(0, 2.62, 4.42);
+        m.add(placa);
+    } else if (cfg.tipo === 'escaner') {
+        // Semáforo de control: verde pasa, rojo rechaza
+        const poste = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.05, 1.5, 6),
+            new THREE.MeshLambertMaterial({ color: 0x333333 }));
+        poste.position.set(1.7, 2.2, 4.2);
+        m.add(poste);
+        const cabSem = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 0.6, 0.2),
+            new THREE.MeshLambertMaterial({ color: 0x222222 }));
+        cabSem.position.set(1.7, 3.0, 4.2);
+        m.add(cabSem);
+        const semRojo = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0x551111 }));
+        semRojo.position.set(1.7, 3.15, 4.31);
+        m.add(semRojo);
+        const semVerde = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0x22ff55 }));
+        semVerde.position.set(1.7, 2.9, 4.31);
+        m.add(semVerde);
+        extras.semRojo = semRojo;
+        extras.semVerde = semVerde;
+        extras.semHasta = 0; // timestamp hasta el que el rojo queda encendido
+    } else if (cfg.tipo === 'lanzador') {
+        // Banderines de feria sobre la estación
+        const cuerda = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.015, 0.015, 4.4, 4),
+            new THREE.MeshLambertMaterial({ color: 0x555555 }));
+        cuerda.rotation.z = Math.PI / 2;
+        cuerda.position.set(0, 4.6, 1.8);
+        m.add(cuerda);
+        const coloresFeria = [0xef4444, 0xfacc15, 0x38bdf8, 0xa855f7];
+        for (let i = 0; i < 8; i++) {
+            const band = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.22, 0.3),
+                new THREE.MeshLambertMaterial({
+                    color: coloresFeria[i % 4], side: THREE.DoubleSide }));
+            band.position.set(-1.9 + i * 0.55, 4.42, 1.8);
+            band.rotation.z = Math.PI; // punta abajo
+            m.add(band);
+        }
+        // Mini gráfico de barras que sube y baja sobre la máquina
+        extras.barras = [];
+        const coloresBarra = [0x38bdf8, 0xa855f7, 0x22cc66];
+        for (let i = 0; i < 3; i++) {
+            const barra = new THREE.Mesh(
+                new THREE.BoxGeometry(0.35, 1, 0.35),
+                new THREE.MeshLambertMaterial({ color: coloresBarra[i] }));
+            barra.position.set(-0.8 + i * 0.55, 4.0, -0.5);
+            barra.geometry.translate(0, 0.5, 0); // crece desde la base
+            m.add(barra);
+            extras.barras.push(barra);
+        }
+    }
+
     scene.add(m);
-    m.userData = { ...cfg, engranaje, engranaje2, lampara, lampMat, actuador, fase: Math.random() * 7 };
+    m.userData = { ...cfg, engranaje, engranaje2, lampara, lampMat, actuador, extras, fase: Math.random() * 7 };
     maquinas.push(m);
     return m;
 }
@@ -577,6 +681,82 @@ const ESTACIONES = [
     { x: 20,  nombre: 'DIFUSIÓN',    modelo: 'Grafico · CalendarioDifusion', color: 0x7e22ce, tipo: 'lanzador' },
 ];
 ESTACIONES.forEach(crearMaquina);
+
+// ============ VAPOR DE CHIMENEAS ============
+const vapores = [];
+{
+    const vaporGeom = new THREE.SphereGeometry(0.22, 6, 6);
+    for (let i = 0; i < 36; i++) {
+        const v = new THREE.Mesh(vaporGeom,
+            new THREE.MeshBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0 }));
+        v.visible = false;
+        scene.add(v);
+        vapores.push({ mesh: v, t: -1 });
+    }
+}
+let idxVapor = 0;
+function soltarVapor(x, y, z) {
+    const v = vapores[idxVapor++ % vapores.length];
+    v.t = 0;
+    v.mesh.visible = true;
+    v.mesh.position.set(x, y, z);
+    v.mesh.scale.setScalar(0.7);
+}
+function tickVapor(dt) {
+    vapores.forEach(v => {
+        if (v.t < 0) return;
+        v.t += dt;
+        const f = v.t / 1.8;
+        if (f >= 1) { v.t = -1; v.mesh.visible = false; return; }
+        v.mesh.position.y += dt * 1.6;
+        v.mesh.position.x += Math.sin(v.t * 5) * dt * 0.3;
+        v.mesh.scale.setScalar(0.7 + f * 1.4);
+        v.mesh.material.opacity = 0.4 * (1 - f);
+    });
+}
+
+// ============ CONFETI DE DIFUSIÓN ============
+const confetis = [];
+{
+    const confGeom = new THREE.PlaneGeometry(0.12, 0.08);
+    const colores = [0xef4444, 0xfacc15, 0x38bdf8, 0xa855f7, 0x22cc66];
+    for (let i = 0; i < 40; i++) {
+        const c = new THREE.Mesh(confGeom,
+            new THREE.MeshBasicMaterial({
+                color: colores[i % 5], transparent: true, side: THREE.DoubleSide }));
+        c.visible = false;
+        scene.add(c);
+        confetis.push({ mesh: c, t: -1, vx: 0, vy: 0, vz: 0 });
+    }
+}
+let idxConfeti = 0;
+function soltarConfeti(x, y, z) {
+    for (let i = 0; i < 7; i++) {
+        const c = confetis[idxConfeti++ % confetis.length];
+        c.t = 0;
+        c.mesh.visible = true;
+        c.mesh.material.opacity = 1;
+        c.mesh.position.set(x, y, z);
+        c.vx = (Math.random() - 0.5) * 3;
+        c.vy = 2 + Math.random() * 2.5;
+        c.vz = (Math.random() - 0.5) * 3;
+        c.mesh.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+    }
+}
+function tickConfeti(dt) {
+    confetis.forEach(c => {
+        if (c.t < 0) return;
+        c.t += dt;
+        if (c.t > 1.6) { c.t = -1; c.mesh.visible = false; return; }
+        c.vy -= 7 * dt;
+        c.mesh.position.x += c.vx * dt;
+        c.mesh.position.y += c.vy * dt;
+        c.mesh.position.z += c.vz * dt;
+        c.mesh.rotation.x += dt * 8;
+        c.mesh.rotation.z += dt * 6;
+        c.mesh.material.opacity = Math.min(1, 2 - c.t * 1.2);
+    });
+}
 
 // ============ DON DATICO (rig reutilizado, patas separadas) ============
 function crearDonDatico() {
@@ -778,26 +958,89 @@ function animarOperario(loro, dt, tGlobal, estado, desfase = 0) {
 }
 
 // ============ PLANTA DE OPERARIOS ============
-// Un operario por estación, sobre la plataforma de cada máquina
+// Don Datico real: GLB con rig humanoide y clips embebidos.
+// Si el GLB no carga, cae al loro procedural (crearDonDatico).
 const operarios = [];
-maquinas.forEach((m, i) => {
-    const o = crearDonDatico();
-    const p = m.userData;
-    o.position.set(m.position.x - 2.8, 1.62, m.position.z + 0.8);
-    o.rotation.y = 0.9; // de frente hacia la cinta/cámara
-    o.scale.setScalar(0.85);
-    scene.add(o);
-    operarios.push({ loro: o, estado: 'trabajar', desfase: i * 1.3 });
-});
+let sup = null;               // supervisor patrullero
+let modeloGLB = null;
+let clipsGLB = [];
 
-// Supervisor que patrulla junto a la cinta
-const supervisor = crearDonDatico();
-supervisor.position.set(0, 0.3, 3.4);
-supervisor.scale.setScalar(0.9);
-// el supervisor va sin casco: se lo quitamos… no, mejor le damos casco más grande
-supervisor.userData.rig.cresta.scale.setScalar(1.3);
-scene.add(supervisor);
-const estadoSupervisor = { dir: 1, estado: 'caminar' };
+// Mapeo índice de clip → rol (clips: 0:NlaTrack 5.7s, 1:NlaTrack.001 17.6s,
+// 2:NlaTrack.002 3.7s, 3:NlaTrack.003 2.0s — ajustar tras verlos)
+const MAPA_CLIPS = { trabajar: 2, caminar: 3, bailar: 1, supervisar: 0 };
+
+function clonarOperario() {
+    const c = SkeletonUtils.clone(modeloGLB);
+    c.traverse(o => {
+        if (o.isMesh || o.isSkinnedMesh) {
+            o.castShadow = true;
+            o.frustumCulled = false; // bounds skinned no se actualizan
+        }
+    });
+    const mixer = new THREE.AnimationMixer(c);
+    const acciones = clipsGLB.map(cl => mixer.clipAction(cl));
+    return { loro: c, mixer, acciones, accion: null, estado: null };
+}
+
+function ponerEstado(w, estado) {
+    w.estado = estado;
+    if (!w.acciones || !w.acciones.length) return;
+    const prox = w.acciones[MAPA_CLIPS[estado] ?? 0];
+    if (w.accion === prox) return;
+    prox.reset().fadeIn(0.35).play();
+    if (w.accion) w.accion.fadeOut(0.35);
+    w.accion = prox;
+}
+
+function crearPlanta() {
+    maquinas.forEach((m, i) => {
+        let w;
+        if (modeloGLB) {
+            w = clonarOperario();
+            w.loro.position.set(m.position.x - 2.8, 1.58, m.position.z + 0.8);
+            w.loro.rotation.y = 0.6;
+            w.loro.scale.setScalar(0.75);
+        } else {
+            const o = crearDonDatico();
+            o.position.set(m.position.x - 2.8, 1.62, m.position.z + 0.8);
+            o.rotation.y = 0.9;
+            o.scale.setScalar(0.85);
+            w = { loro: o, mixer: null };
+        }
+        w.desfase = i * 1.3;
+        scene.add(w.loro);
+        operarios.push(w);
+        ponerEstado(w, 'trabajar');
+    });
+    if (modeloGLB) {
+        sup = clonarOperario();
+        sup.loro.position.set(0, 0.02, 3.4);
+        sup.loro.scale.setScalar(0.95);
+    } else {
+        const s = crearDonDatico();
+        s.position.set(0, 0.3, 3.4);
+        s.scale.setScalar(0.9);
+        s.userData.rig.cresta.scale.setScalar(1.3);
+        sup = { loro: s, mixer: null };
+    }
+    sup.dir = 1;
+    scene.add(sup.loro);
+    ponerEstado(sup, 'caminar');
+}
+
+new GLTFLoader().load(
+    "{% static 'indicadores/models/dondaticolite.glb' %}",
+    (gltf) => {
+        modeloGLB = gltf.scene;
+        clipsGLB = gltf.animations;
+        console.log('[maquila] clips:', clipsGLB.map((c, i) => `${i}:${c.name}(${c.duration.toFixed(1)}s)`).join(' '));
+        const el = document.getElementById('clips-info');
+        if (el) el.textContent = 'clips: ' + clipsGLB.map((c, i) => `${i}=${c.name}(${c.duration.toFixed(1)}s)`).join(' ');
+        crearPlanta();
+    },
+    undefined,
+    () => { console.warn('[maquila] GLB no cargó — operarios procedurales'); crearPlanta(); }
+);
 
 // ============ TIMELINE / ACTOS ============
 const ACTOS = [
@@ -870,8 +1113,8 @@ function tickIntertitulos(t) {
         }
         if (a && a.finale && !enFinal) {
             enFinal = true;
-            operarios.forEach(o => o.estado = 'bailar');
-            estadoSupervisor.estado = 'bailar';
+            operarios.forEach(o => ponerEstado(o, 'bailar'));
+            if (sup) ponerEstado(sup, 'bailar');
         }
     }
 }
@@ -894,13 +1137,17 @@ document.getElementById('btn-replay').addEventListener('click', () => {
     enFinal = false;
     offsetShow = 0;
     actoActual = -1;
-    operarios.forEach(o => o.estado = 'trabajar');
-    estadoSupervisor.estado = 'caminar';
+    operarios.forEach(o => ponerEstado(o, 'trabajar'));
+    if (sup) ponerEstado(sup, 'caminar');
     cajaApilada = 0;
     paquetes.forEach((p, i) => {
         p.position.set(-26 + i * 4, 1.75, 0);
         p.rotation.set(0, 0, 0);
+        p.scale.setScalar(1);
         p.userData.procesado = false;
+        p.userData.revisado = false;
+        p.userData.rechazado = false;
+        p.userData.sello = 0;
         p.userData.vuelo = false;
         p.userData.apilado = null;
         p.material.map = texCrudo;
@@ -964,6 +1211,27 @@ function animate() {
 
     // Paquetes fluyendo por la cinta
     paquetes.forEach(p => {
+        if (p.userData.rechazado) {
+            // Rechazado por Calidad: sale despedido hacia el frente
+            p.userData.vy -= 9.8 * dt;
+            p.position.x += 1.5 * dt;
+            p.position.z += p.userData.vz * dt;
+            p.position.y += p.userData.vy * dt;
+            p.rotation.x += dt * 5;
+            if (p.position.y < -0.5) {
+                p.userData.rechazado = false;
+                p.userData.revisado = false;
+                p.userData.procesado = false;
+                p.userData.vuelo = false;
+                p.userData.sello = 0;
+                p.material.map = texCrudo;
+                p.material.needsUpdate = true;
+                p.rotation.set(0, 0, 0);
+                p.scale.setScalar(1);
+                p.position.set(-26, 1.75, 0);
+            }
+            return;
+        }
         if (p.userData.vuelo) {
             // Arco hacia el pallet de difusión
             p.userData.vy -= 9.8 * dt;
@@ -980,6 +1248,7 @@ function animate() {
                 p.rotation.set(0, 0, 0);
                 p.userData.vuelo = false;
                 p.userData.apilado = tGlobal; // tiempo de descanso en el pallet
+                soltarConfeti(p.position.x, p.position.y + 0.5, p.position.z);
             }
             return;
         }
@@ -988,18 +1257,39 @@ function animate() {
             if (tGlobal - p.userData.apilado > 2.5) {
                 p.userData.apilado = null;
                 p.userData.procesado = false;
+                p.userData.revisado = false;
+                p.userData.sello = 0;
                 p.material.map = texCrudo;
                 p.material.needsUpdate = true;
+                p.scale.setScalar(1);
                 p.position.set(-26, 1.75, 0);
             }
             return;
         }
         p.position.x += velBanda * dt;
+        // sello recién estampado: pulso de escala breve
+        if (p.userData.sello) {
+            const f = Math.min(1, (tGlobal - p.userData.sello) / 0.45);
+            p.scale.setScalar(1 + (1 - f) * 0.4);
+            if (f >= 1) p.userData.sello = 0;
+        }
         // procesado al pasar el Estándar (x=0): cambia a empaque azul
         if (!p.userData.procesado && p.position.x > 0) {
             p.userData.procesado = true;
+            p.userData.sello = tGlobal;
             p.material.map = texDato;
             p.material.needsUpdate = true;
+        }
+        // Calidad (x=10): ~1 de cada 7 paquetes sale rechazado
+        if (!p.userData.revisado && p.position.x > 10) {
+            p.userData.revisado = true;
+            if (Math.random() < 0.14) {
+                p.userData.rechazado = true;
+                p.userData.vy = 2.8;
+                p.userData.vz = 4;
+                const sem = maquinas[3] && maquinas[3].userData.extras;
+                if (sem && sem.semRojo) sem.semHasta = tGlobal + 1.4;
+            }
         }
         if (p.position.x > 26) {
             // despega hacia el pallet
@@ -1016,6 +1306,25 @@ function animate() {
         u.engranaje.rotation.z += dt * 1.8;
         u.engranaje2.rotation.z -= dt * 2.6;
         u.lampMat.color.setHex(Math.sin(tt * 4) > -0.2 ? 0x22cc44 : 0xcc3322);
+        // Extras únicos por estación
+        const ex = u.extras || {};
+        if (ex.flash) ex.flash.material.opacity = Math.pow(Math.abs(Math.sin(tt * 3.2)), 6) * 0.85;
+        if (ex.g1) { ex.g1.rotation.z += dt * 2.4; ex.g2.rotation.z -= dt * 3.4; }
+        if (ex.barras) ex.barras.forEach((b, bi) => {
+            b.scale.y = 0.35 + Math.abs(Math.sin(tt * 0.8 + bi * 1.1)) * 1.5;
+        });
+        if (ex.chunk) {
+            const fc = (tt * 0.4) % 1;
+            ex.chunk.position.y = 3.3 - fc * 1.6;
+            ex.chunk.material.opacity = fc > 0.9 ? 0 : 0.95;
+        }
+        if (ex.semRojo) {
+            const rojo = tGlobal < ex.semHasta;
+            ex.semRojo.material.color.setHex(rojo ? 0xff2222 : 0x551111);
+            ex.semVerde.material.color.setHex(rojo ? 0x115511 : 0x22ff55);
+        }
+        // vapor periódico de la chimenea
+        if (((tGlobal + u.fase) % 1.4) < dt) soltarVapor(m.position.x + 1.4, 5.1, m.position.z);
         if (u.actuador) {
             if (u.tipo === 'prensa') {
                 u.actuador.position.y = 2.6 - Math.abs(Math.sin(tt * 3.2)) * 0.7;
@@ -1028,20 +1337,29 @@ function animate() {
             }
         }
     });
+    tickVapor(dt);
+    tickConfeti(dt);
 
     // Operarios
-    operarios.forEach(o => animarOperario(o.loro, dt, tGlobal, o.estado, o.desfase));
+    operarios.forEach(o => {
+        if (o.mixer) o.mixer.update(dt);
+        else animarOperario(o.loro, dt, tGlobal, o.estado, o.desfase);
+    });
 
     // Supervisor patrulla la línea
-    if (estadoSupervisor.estado === 'caminar') {
-        supervisor.position.x += estadoSupervisor.dir * 2.2 * dt;
-        if (supervisor.position.x > 23) estadoSupervisor.dir = -1;
-        if (supervisor.position.x < -23) estadoSupervisor.dir = 1;
-        supervisor.rotation.y = estadoSupervisor.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
-        animarOperario(supervisor, dt, tGlobal, 'caminar', 0);
-    } else {
-        supervisor.rotation.y += (0.4 - supervisor.rotation.y) * 0.05;
-        animarOperario(supervisor, dt, tGlobal, estadoSupervisor.estado, 0);
+    if (sup) {
+        if (sup.mixer) sup.mixer.update(dt);
+        if (sup.estado === 'caminar') {
+            sup.loro.position.x += sup.dir * 2.2 * dt;
+            if (sup.loro.position.x > 23) sup.dir = -1;
+            if (sup.loro.position.x < -23) sup.dir = 1;
+            const rotObjetivo = sup.dir > 0 ? Math.PI / 2 : -Math.PI / 2;
+            sup.loro.rotation.y += (rotObjetivo - sup.loro.rotation.y) * 0.15;
+            if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
+        } else {
+            sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
+            if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
+        }
     }
 
     renderer.render(scene, camera);
@@ -1055,4 +1373,5 @@ addEventListener('resize', () => {
 });
 </script>
 </body>
+</html>
 </html>
