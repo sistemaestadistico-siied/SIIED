@@ -975,20 +975,25 @@ let clipsGLB = [];
 //   1 = idle alas abajo (17.6s, buen loop) → trabajar / supervisar
 //   2 = idle mirándose los pies, mal corte de loop → sin uso
 //   3 = flexiones de pecho    → bailar (gag sincronizado del finale)
-//   OJO: C3 trae yaw 180° horneado en la raíz → compensar con -PI al bailar
+//   OJO: el GLB mira -z en todos los clips → wrapper gira +PI una vez
 const MAPA_CLIPS = { trabajar: 1, caminar: 0, bailar: 3, supervisar: 1 };
 
 function clonarOperario() {
     const c = SkeletonUtils.clone(modeloGLB);
+    // El GLB (y todos sus clips) mira efectivamente -z: se gira +PI una
+    // sola vez dentro de un wrapper → afuera todo funciona como +z.
+    c.rotation.y = Math.PI;
     c.traverse(o => {
         if (o.isMesh || o.isSkinnedMesh) {
             o.castShadow = true;
             o.frustumCulled = false; // bounds skinned no se actualizan
         }
     });
-    const mixer = new THREE.AnimationMixer(c);
+    const vehiculo = new THREE.Group();
+    vehiculo.add(c);
+    const mixer = new THREE.AnimationMixer(vehiculo);
     const acciones = clipsGLB.map(cl => mixer.clipAction(cl));
-    return { loro: c, mixer, acciones, accion: null, estado: null };
+    return { loro: vehiculo, mixer, acciones, accion: null, estado: null };
 }
 
 function ponerEstado(w, estado) {
@@ -1137,11 +1142,7 @@ function tickIntertitulos(t) {
         }
         if (a && a.finale && !enFinal) {
             enFinal = true;
-            operarios.forEach(o => {
-                ponerEstado(o, 'bailar');
-                // C3 hornea yaw=+PI en la raíz: compensar para que miren al frente
-                if (o.mixer) o.loro.rotation.y -= Math.PI;
-            });
+            operarios.forEach(o => ponerEstado(o, 'bailar'));
             if (sup) ponerEstado(sup, 'bailar');
         }
     }
@@ -1165,10 +1166,7 @@ document.getElementById('btn-replay').addEventListener('click', () => {
     enFinal = false;
     offsetShow = 0;
     actoActual = -1;
-    operarios.forEach(o => {
-        ponerEstado(o, 'trabajar');
-        if (o.mixer) o.loro.rotation.y += Math.PI; // revertir comp. de C3
-    });
+    operarios.forEach(o => ponerEstado(o, 'trabajar'));
     if (sup) ponerEstado(sup, 'caminar');
     cajaApilada = 0;
     paquetes.forEach((p, i) => {
@@ -1394,9 +1392,7 @@ function animate() {
             sup.loro.position.y += (yVuelo - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
         } else {
-            // C3 hornea yaw=+PI: el objetivo del root se compensa al bailar
-            const yawObj = 0.4 - (sup.mixer && sup.estado === 'bailar' ? Math.PI : 0);
-            sup.loro.rotation.y += (yawObj - sup.loro.rotation.y) * 0.05;
+            sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
             // aterriza suave al dejar de patrullar (finale)
             sup.loro.position.y += (0.02 - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
