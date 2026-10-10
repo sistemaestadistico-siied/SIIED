@@ -132,7 +132,10 @@
     // ---------- Simulación ----------
     const sim = d3.forceSimulation(NODOS)
         .force('link', d3.forceLink(ARISTAS)
-            .id(d => d.id).distance(d => 90 + Math.min(60, (d.source.grado + d.target.grado) * 2)))
+            .id(d => d.id)
+            .source(d => d.origen)
+            .target(d => d.destino)
+            .distance(d => 90 + Math.min(60, (d.source.grado + d.target.grado) * 2)))
         .force('charge', d3.forceManyBody().strength(-520))
         .force('collide', d3.forceCollide(d => Math.max(d.w, d.h) * 0.62 + 14))
         .force('x', d3.forceX(svg.node().clientWidth / 2).strength(0.06))
