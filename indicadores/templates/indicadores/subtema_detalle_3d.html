@@ -2174,75 +2174,111 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     // Función para crear a Don Datico (loro)
     function crearDonDatico() {
         const loro = new THREE.Group();
-        
+        const rig = {};
+
+        // Grupo 'visual': recibe roll (banking), pitch y bob.
+        // 'loro' solo maneja posición y yaw (rumbo de vuelo).
+        const visual = new THREE.Group();
+        loro.add(visual);
+        rig.visual = visual;
+
         // Cuerpo (verde loro)
-        const cuerpoGeom = new THREE.SphereGeometry(0.6, 12, 12);
+        const cuerpoGeom = new THREE.SphereGeometry(0.6, 16, 16);
         const cuerpoMat = new THREE.MeshLambertMaterial({ color: 0x00AA00 }); // Verde loro
         const cuerpo = new THREE.Mesh(cuerpoGeom, cuerpoMat);
         cuerpo.scale.set(1, 1.3, 0.9);
         cuerpo.position.y = 0.5;
         cuerpo.castShadow = true;
-        loro.add(cuerpo);
-        
-        // Cabeza (verde más claro)
-        const cabezaGeom = new THREE.SphereGeometry(0.4, 12, 12);
-        const cabezaMat = new THREE.MeshLambertMaterial({ color: 0x22DD22 });
-        const cabeza = new THREE.Mesh(cabezaGeom, cabezaMat);
-        cabeza.position.set(0, 1.1, 0.2);
-        cabeza.castShadow = true;
-        loro.add(cabeza);
-        
+        visual.add(cuerpo);
+        rig.cuerpo = cuerpo;
+
+        // ===== Cabeza: pivote en la base del cuello =====
+        const cabeza = new THREE.Group();
+        cabeza.position.set(0, 0.95, 0.15);
+        visual.add(cabeza);
+        rig.cabeza = cabeza;
+
+        // Cráneo (verde más claro)
+        const craneoGeom = new THREE.SphereGeometry(0.4, 16, 16);
+        const craneoMat = new THREE.MeshLambertMaterial({ color: 0x22DD22 });
+        const craneo = new THREE.Mesh(craneoGeom, craneoMat);
+        craneo.position.set(0, 0.15, 0.05);
+        craneo.castShadow = true;
+        cabeza.add(craneo);
+
         // Pico (amarillo/naranja)
         const picoGeom = new THREE.ConeGeometry(0.15, 0.4, 8);
         const picoMat = new THREE.MeshLambertMaterial({ color: 0xFFAA00 });
         const pico = new THREE.Mesh(picoGeom, picoMat);
         pico.rotation.x = Math.PI / 2;
-        pico.position.set(0, 1.1, 0.6);
-        loro.add(pico);
-        
-        // Ojos
+        pico.position.set(0, 0.15, 0.45);
+        cabeza.add(pico);
+
+        // Ojos (referenciados para parpadeo)
         const ojoGeom = new THREE.SphereGeometry(0.1, 8, 8);
         const ojoMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
         const ojoIzq = new THREE.Mesh(ojoGeom, ojoMat);
-        ojoIzq.position.set(-0.2, 1.2, 0.4);
-        loro.add(ojoIzq);
+        ojoIzq.position.set(-0.2, 0.25, 0.25);
+        cabeza.add(ojoIzq);
         const ojoDer = new THREE.Mesh(ojoGeom, ojoMat);
-        ojoDer.position.set(0.2, 1.2, 0.4);
-        loro.add(ojoDer);
-        
-        // Alas (azul/turquesa) - Forma más natural con gradiente
-        // Ala izquierda - forma de ala real (más ancha arriba, estrecha abajo)
+        ojoDer.position.set(0.2, 0.25, 0.25);
+        cabeza.add(ojoDer);
+        rig.ojoIzq = ojoIzq;
+        rig.ojoDer = ojoDer;
+
+        // Cresta (amarilla) — hija de la cabeza para que siga sus giros
+        const crestaGeom = new THREE.ConeGeometry(0.15, 0.3, 6);
+        const crestaMat = new THREE.MeshLambertMaterial({ color: 0xFFFF00 });
+        const cresta = new THREE.Mesh(crestaGeom, crestaMat);
+        cresta.position.set(0, 0.55, 0);
+        cabeza.add(cresta);
+        rig.cresta = cresta;
+
+        // ===== Alas con pivote en el hombro =====
+        // Silueta dibujada extendiéndose hacia +X (hacia afuera del cuerpo):
+        // así el aleteo es una rotación Z del pivote (punta sube/baja).
         const alaShape = new THREE.Shape();
-        alaShape.moveTo(0, 0);
-        alaShape.lineTo(0.3, 0.2);
-        alaShape.lineTo(0.4, 0.5);
-        alaShape.lineTo(0.3, 1);
-        alaShape.lineTo(0, 0.9);
-        alaShape.lineTo(0, 0);
-        
+        alaShape.moveTo(0, 0.1);
+        alaShape.lineTo(0.6, 0.15);   // borde superior
+        alaShape.lineTo(1.25, 0.05);
+        alaShape.lineTo(1.3, -0.15);  // punta de plumas
+        alaShape.lineTo(1.0, -0.4);   // borde inferior hacia adentro
+        alaShape.lineTo(0.5, -0.45);
+        alaShape.lineTo(0.15, -0.3);
+        alaShape.lineTo(0, 0.1);
+
         const alaGeom = new THREE.ExtrudeGeometry(alaShape, {
-            depth: 0.1,
+            depth: 0.08,
             bevelEnabled: true,
-            bevelThickness: 0.05,
-            bevelSize: 0.05,
+            bevelThickness: 0.04,
+            bevelSize: 0.04,
             bevelSegments: 2
         });
-        
-        const alaMat = new THREE.MeshLambertMaterial({ color: 0x00AAFF });
-        const alaIzq = new THREE.Mesh(alaGeom, alaMat);
-        alaIzq.position.set(-0.6, 0.2, -0.05);
-        alaIzq.rotation.z = -0.3;
-        alaIzq.scale.x = -1; // Efecto espejo para ala izquierda
-        alaIzq.castShadow = true;
-        loro.add(alaIzq);
-        
+        alaGeom.translate(0, 0, -0.04); // centrar la extrusión en Z
+
+        const alaMat = new THREE.MeshLambertMaterial({ color: 0x00AAFF, side: THREE.DoubleSide });
+
+        // Ala derecha: pivote en el hombro, malla extendiéndose +X
+        const alaDerPivot = new THREE.Group();
+        alaDerPivot.position.set(0.45, 0.75, -0.05);
+        visual.add(alaDerPivot);
         const alaDer = new THREE.Mesh(alaGeom, alaMat);
-        alaDer.position.set(0.6, 0.2, -0.05);
-        alaDer.rotation.z = 0.3;
         alaDer.castShadow = true;
-        loro.add(alaDer);
-        
-        // Cola - forma de abanico simple y elegante
+        alaDerPivot.add(alaDer);
+        rig.alaDer = alaDerPivot;
+
+        // Ala izquierda: malla espejada con rotation.y=π (sin scale.x=-1,
+        // que invertía las normales y oscurecía el ala)
+        const alaIzqPivot = new THREE.Group();
+        alaIzqPivot.position.set(-0.45, 0.75, -0.05);
+        visual.add(alaIzqPivot);
+        const alaIzq = new THREE.Mesh(alaGeom, alaMat);
+        alaIzq.rotation.y = Math.PI;
+        alaIzq.castShadow = true;
+        alaIzqPivot.add(alaIzq);
+        rig.alaIzq = alaIzqPivot;
+
+        // ===== Cola con pivote en la base =====
         const colaShape = new THREE.Shape();
         colaShape.moveTo(0, 0);
         colaShape.lineTo(-0.4, 1);
@@ -2251,7 +2287,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         colaShape.lineTo(0.2, 1.3);
         colaShape.lineTo(0.4, 1);
         colaShape.lineTo(0, 0);
-        
+
         const colaGeom = new THREE.ExtrudeGeometry(colaShape, {
             depth: 0.08,
             bevelEnabled: true,
@@ -2259,43 +2295,41 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             bevelSize: 0.03,
             bevelSegments: 2
         });
-        
-        // Gradiente de colores: rojo en la base, amarillo en las puntas
-        const colaMat = new THREE.MeshLambertMaterial({ 
+        colaGeom.translate(0, 0, -0.04);
+
+        const colaMat = new THREE.MeshLambertMaterial({
             color: 0xFF4444,
             emissive: 0x331100,
-            emissiveIntensity: 0.2
+            emissiveIntensity: 0.2,
+            side: THREE.DoubleSide
         });
+        const colaPivot = new THREE.Group();
+        colaPivot.position.set(0, 0.6, -0.5);
+        visual.add(colaPivot);
         const cola = new THREE.Mesh(colaGeom, colaMat);
-        cola.rotation.x = -Math.PI / 2; // Invertir para que apunte hacia atrás
-        cola.position.set(0, 0.4, -0.8);
+        cola.rotation.x = -Math.PI / 2; // el abanico apunta hacia atrás (-Z)
+        cola.position.set(0, -0.2, -0.3);
         cola.castShadow = true;
-        loro.add(cola);
-        
-        // Guardar referencia para animación de viento
-        loro.userData.cola = cola;
-        
-        // Patas (naranja)
+        colaPivot.add(cola);
+        rig.cola = colaPivot;
+
+        // ===== Patas en un solo pivote (se recogen al volar) =====
+        const patasPivot = new THREE.Group();
+        patasPivot.position.set(0, 0.15, -0.1);
+        visual.add(patasPivot);
         const pataGeom = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 6);
         const pataMat = new THREE.MeshLambertMaterial({ color: 0xFF6600 });
         const pataIzq = new THREE.Mesh(pataGeom, pataMat);
-        pataIzq.position.set(-0.2, 0, 0);
-        loro.add(pataIzq);
+        pataIzq.position.set(-0.2, -0.15, 0.1);
+        patasPivot.add(pataIzq);
         const pataDer = new THREE.Mesh(pataGeom, pataMat);
-        pataDer.position.set(0.2, 0, 0);
-        loro.add(pataDer);
-        
-        // Cresta (amarilla)
-        const crestaGeom = new THREE.ConeGeometry(0.15, 0.3, 6);
-        const crestaMat = new THREE.MeshLambertMaterial({ color: 0xFFFF00 });
-        const cresta = new THREE.Mesh(crestaGeom, crestaMat);
-        cresta.position.set(0, 1.5, 0);
-        loro.add(cresta);
-        
-        // Guardar referencias para animación
-        loro.userData.alaIzq = alaIzq;
-        loro.userData.alaDer = alaDer;
-        
+        pataDer.position.set(0.2, -0.15, 0.1);
+        patasPivot.add(pataDer);
+        rig.patas = patasPivot;
+
+        // Guardar rig para el sistema de animación
+        loro.userData.rig = rig;
+
         return loro;
     }
     
@@ -2344,6 +2378,153 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         teclas: {},
         modoJuego: false // Se activa con tecla 'G'
     };
+
+    // ========== SISTEMA DE ANIMACIÓN DE DON DATICO ==========
+    // Estado interno del animador (fases, objetivos suavizados)
+    const daticoAnim = {
+        faseAleteo: Math.random() * Math.PI * 2,
+        lookYaw: 0, lookPitch: 0,          // objetivo de mirada actual
+        lookYawCur: 0, lookPitchCur: 0,    // mirada interpolada
+        lookTimer: 1.5,
+        blinkTimer: 2 + Math.random() * 3,
+        blink: 0,                          // 0 = ojos abiertos, 1 = cerrados
+        roll: 0, pitch: 0,                 // banking/pitch suavizados
+        patasTuck: 0,                      // 0 = extendidas, 1 = recogidas
+        tiempoQuieto: 0,                   // tiempo sin input → baile automático
+        bailando: false,
+        tBaile: 0
+    };
+
+    /**
+     * Anima a Don Datico cada frame.
+     * @param {number} dt  Delta de tiempo en segundos
+     * @param {object} o   {moviendose, velGiro, velVertical, enJuego}
+     */
+    function animarDonDatico(dt, o) {
+        const rig = donDatico.userData.rig;
+        const a = daticoAnim;
+        const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
+
+        // ---------- Detección de baile (salsa caleña) ----------
+        // Si está en modo juego quieto >6s, o se presionó 'b', baila.
+        if (o.moviendose || Math.abs(o.velGiro) > 0.001 || Math.abs(o.velVertical) > 0.001) {
+            a.tiempoQuieto = 0;
+            if (!a.baileManual) a.bailando = false;
+        } else if (o.enJuego) {
+            a.tiempoQuieto += dt;
+            if (a.tiempoQuieto > 6) a.bailando = true;
+        }
+        if (a.bailando) a.tBaile += dt; else a.tBaile = 0;
+
+        // ---------- Aleteo ----------
+        // En vuelo activo: rápido y amplio. Planeando/quieto: lento y sutil.
+        const velocidadFlap = o.moviendose ? 9 : 3.4;
+        const amplitudFlap  = o.moviendose ? 0.85 : 0.28;
+        a.faseAleteo += dt * velocidadFlap;
+        const f = a.faseAleteo;
+
+        // Aleteo asimétrico: subida rápida, bajada con "poder" (seno + armónico)
+        const flap = Math.sin(f) * 0.75 + Math.sin(f * 2) * 0.25;
+
+        if (a.bailando) {
+            // Bombear alas al ritmo (doble tiempo)
+            const beat = a.tBaile * 4.2; // ~2 beats por segundo
+            const pump = Math.abs(Math.sin(beat)) * 0.9 + 0.3;
+            rig.alaDer.rotation.z =  pump;
+            rig.alaIzq.rotation.z = -pump;
+            rig.alaDer.rotation.x = Math.sin(beat) * 0.2;
+            rig.alaIzq.rotation.x = Math.sin(beat) * 0.2;
+        } else {
+            rig.alaDer.rotation.z =  flap * amplitudFlap;
+            rig.alaIzq.rotation.z = -flap * amplitudFlap;
+            // Barrido del ala (humerus twist): la punta va ligeramente atrás
+            rig.alaDer.rotation.x = Math.sin(f - 0.4) * 0.18 * amplitudFlap;
+            rig.alaIzq.rotation.x = Math.sin(f - 0.4) * 0.18 * amplitudFlap;
+        }
+
+        // ---------- Banking (roll) y pitch ----------
+        // Inclina el cuerpo hacia el giro; cabecea al subir/bajar.
+        const rollObjetivo  = THREE.MathUtils.clamp(-o.velGiro * 8, -0.55, 0.55);
+        const pitchObjetivo = THREE.MathUtils.clamp(-o.velVertical * 3.5, -0.4, 0.4);
+        a.roll  = lerp(a.roll, rollObjetivo, 4);
+        a.pitch = lerp(a.pitch, pitchObjetivo, 4);
+
+        if (a.bailando) {
+            const beat = a.tBaile * 4.2;
+            // Cadera: vaivén lateral + balanceo, estilo salsa
+            rig.visual.position.x = Math.sin(beat) * 0.18;
+            rig.visual.position.y = Math.abs(Math.sin(beat * 0.5)) * 0.08;
+            rig.visual.rotation.z = Math.sin(beat) * 0.14;
+            rig.visual.rotation.x = Math.sin(beat * 0.5) * 0.06;
+        } else {
+            rig.visual.position.x = 0;
+            // Bob sutil de vuelo (sube en la subida del aleteo)
+            rig.visual.position.y = Math.sin(f) * 0.06 * (o.moviendose ? 1 : 0.5);
+            rig.visual.rotation.z = a.roll;
+            rig.visual.rotation.x = a.pitch;
+        }
+
+        // ---------- Cabeza: mirada errática + bop de baile ----------
+        a.lookTimer -= dt;
+        if (a.lookTimer <= 0) {
+            a.lookTimer = 1.8 + Math.random() * 2.5;
+            a.lookYaw   = (Math.random() - 0.5) * 1.2;   // -0.6 a 0.6
+            a.lookPitch = (Math.random() - 0.35) * 0.5;  // algo hacia arriba
+        }
+        a.lookYawCur   = lerp(a.lookYawCur, a.lookYaw, 2.5);
+        a.lookPitchCur = lerp(a.lookPitchCur, a.lookPitch, 2.5);
+
+        if (a.bailando) {
+            const beat = a.tBaile * 4.2;
+            rig.cabeza.rotation.y = Math.sin(beat * 0.5) * 0.45;
+            rig.cabeza.rotation.x = Math.sin(beat) * 0.12 - 0.05;
+            rig.cabeza.rotation.z = Math.sin(beat) * 0.1;
+        } else {
+            // La cabeza compensa el banking: mantiene el horizonte
+            rig.cabeza.rotation.y = a.lookYawCur;
+            rig.cabeza.rotation.x = a.lookPitchCur - a.pitch * 0.4;
+            rig.cabeza.rotation.z = -a.roll * 0.45;
+        }
+
+        // ---------- Parpadeo ----------
+        a.blinkTimer -= dt;
+        if (a.blinkTimer <= 0) {
+            a.blinkTimer = 2.2 + Math.random() * 3.5;
+            a.blink = 1; // inicia parpadeo
+        }
+        if (a.blink > 0) {
+            a.blink = Math.max(0, a.blink - dt * 9); // ~110ms de parpadeo
+            const escalaOjo = 0.15 + 0.85 * Math.abs(Math.cos(a.blink * Math.PI));
+            rig.ojoIzq.scale.y = escalaOjo;
+            rig.ojoDer.scale.y = escalaOjo;
+        }
+
+        // ---------- Respiración ----------
+        const resp = Math.sin(t * 1.7) * 0.02;
+        rig.cuerpo.scale.y = 1.3 * (1 + resp);
+        rig.cuerpo.scale.x = 1.0 * (1 - resp * 0.4);
+
+        // ---------- Cola: timón + vaivén ----------
+        if (a.bailando) {
+            const beat = a.tBaile * 4.2;
+            rig.cola.rotation.y = Math.sin(beat) * 0.35;
+            rig.cola.rotation.x = Math.abs(Math.sin(beat * 0.5)) * 0.25;
+        } else {
+            rig.cola.rotation.y = Math.sin(t * 2.2) * 0.12 + a.roll * 0.35; // timón
+            rig.cola.rotation.x = Math.sin(t * 1.6) * 0.08 + a.pitch * 0.3;
+        }
+
+        // ---------- Patas: se recogen en vuelo ----------
+        const tuckObjetivo = (o.moviendose && !a.bailando) ? 1 : 0;
+        a.patasTuck = lerp(a.patasTuck, tuckObjetivo, 3);
+        rig.patas.rotation.x = -a.patasTuck * 0.55;
+
+        // ---------- Cresta: pulso al bailar ----------
+        const escCresta = a.bailando
+            ? 1 + Math.abs(Math.sin(a.tBaile * 4.2)) * 0.25
+            : 1;
+        rig.cresta.scale.setScalar(escCresta);
+    }
     
     // Crear chontaduros en la cima de cada edificio
     const chontaduros = [];
@@ -2434,6 +2615,13 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             e.preventDefault();
         }
         
+        // Baile de salsa caleña con 'B' 💃
+        if (e.key.toLowerCase() === 'b') {
+            daticoAnim.baileManual = !daticoAnim.baileManual;
+            daticoAnim.bailando = daticoAnim.baileManual;
+            console.log(daticoAnim.bailando ? '💃 Don Datico baila salsa!' : '🦜 Fin del baile');
+        }
+
         // Activar/desactivar modo juego con 'G'
         if (e.key.toLowerCase() === 'g') {
             gameState.modoJuego = !gameState.modoJuego;
@@ -2758,10 +2946,15 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     let t = 0;
     let dayNightCycle = 0;
     let animationId = null;
-    
+    let ultimoTiempoFrame = performance.now();
+
     function animate() {
         animationId = requestAnimationFrame(animate);
         controls.update();
+        // Delta de tiempo real para el sistema de animación (limitado para evitar saltos)
+        const ahoraFrame = performance.now();
+        const dt = Math.min((ahoraFrame - ultimoTiempoFrame) / 1000, 0.05);
+        ultimoTiempoFrame = ahoraFrame;
         t += 0.01;
         dayNightCycle += 0.0005;
 
@@ -2831,28 +3024,23 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             // Espacio/Shift: Subir/Bajar
             if (gameState.teclas[' ']) { // Espacio para subir
                 donDatico.position.y += gameState.velocidad * 0.5;
+                velVertical = gameState.velocidad * 0.5;
                 moviendose = true;
             }
             if (gameState.teclas['shift']) { // Shift para bajar
                 donDatico.position.y -= gameState.velocidad * 0.5;
+                velVertical = -gameState.velocidad * 0.5;
                 moviendose = true;
             }
-            
-            // Animación de aleteo CONSTANTE (siempre vuela)
-            const alaIzq = donDatico.userData.alaIzq;
-            const alaDer = donDatico.userData.alaDer;
-            const cola = donDatico.userData.cola;
-            
-            // Aleteo más rápido cuando se mueve, más lento cuando está quieto
-            const velocidadAleteo = moviendose ? 10 : 5;
-            const amplitudAleteo = moviendose ? 0.4 : 0.2;
-            alaIzq.rotation.z = -0.3 + Math.sin(t * velocidadAleteo) * amplitudAleteo;
-            alaDer.rotation.z = 0.3 - Math.sin(t * velocidadAleteo) * amplitudAleteo;
-            
-            // Movimiento de cola simulando viento (sutil y constante)
-            cola.rotation.y = Math.sin(t * 3) * 0.15; // Balanceo lateral suave
-            cola.rotation.z = Math.sin(t * 2.5 + 1) * 0.1; // Movimiento adicional
-            
+
+            // Sistema de animación procedural (vuelo, banking, mirada, baile)
+            animarDonDatico(dt, {
+                moviendose,
+                velGiro,
+                velVertical,
+                enJuego: true
+            });
+
             // Limitar altura mínima y máxima
             donDatico.position.y = Math.max(1, Math.min(30, donDatico.position.y));
             
@@ -2874,8 +3062,17 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             if (contadorChontaduros) {
                 contadorChontaduros.textContent = `🍑 ${gameState.chontadurosRecolectados}/${chontaduros.length}`;
             }
+        } else {
+            // Fuera del modo juego: planeo con vida (aleteo suave,
+            // mirada errática, respiración, parpadeo)
+            animarDonDatico(dt, {
+                moviendose: false,
+                velGiro: 0,
+                velVertical: 0,
+                enJuego: false
+            });
         }
-        
+
         // Animación de chontaduros (rotación y flotación)
         chontaduros.forEach((chontaduro, i) => {
             if (!chontaduro.userData.recolectado) {
@@ -3289,4 +3486,9 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
 
 <!-- Nota: se omitió export CSV / tabla por petición del usuario -->
 
+{% endblock %}
+{% endblock %}
+<!-- Nota: se omitió export CSV / tabla por petición del usuario -->
+
+{% endblock %}
 {% endblock %}
