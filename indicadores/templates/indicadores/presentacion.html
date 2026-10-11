@@ -1068,34 +1068,63 @@ function crearCamion(cfg) {
     g.position.set(cfg.x, 0, cfg.z);
     const colCab = new THREE.MeshLambertMaterial({ color: cfg.color });
     const colCaja = new THREE.MeshLambertMaterial({ color: 0xf1f5f9 });
-    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.9, 2.0), colCab);
-    cab.position.set(-3.3, 1.1, 0); cab.castShadow = true; g.add(cab);
-    const parabrisas = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.7),
+    const colOsc = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    // Chasis: larguero bajo que une cabina y remolque
+    const chasis = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.28, 1.7), colOsc);
+    chasis.position.set(-0.7, 0.55, 0);
+    g.add(chasis);
+    // Cabina: nariz + cabina + parabrisas inclinado + faros + escape
+    const nariz = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.85, 1.8), colCab);
+    nariz.position.set(-4.05, 1.0, 0); nariz.castShadow = true; g.add(nariz);
+    const cabina = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.85, 1.95), colCab);
+    cabina.position.set(-3.1, 1.5, 0); cabina.castShadow = true; g.add(cabina);
+    const parabrisas = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.75),
         new THREE.MeshBasicMaterial({ color: 0x7dd3fc }));
-    parabrisas.position.set(-4.26, 1.45, 0);
+    parabrisas.position.set(-3.77, 1.9, 0);
     parabrisas.rotation.y = -Math.PI / 2;
+    parabrisas.rotation.z = -0.12;
     g.add(parabrisas);
-    const rem = new THREE.Mesh(new THREE.BoxGeometry(4.6, 2.2, 2.2), colCaja);
-    rem.position.set(-0.5, 1.5, 0); rem.castShadow = true; g.add(rem);
-    const boca = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.0),
-        new THREE.MeshBasicMaterial({ color: 0x0f172a }));
-    boca.position.set(1.82, 1.6, 0); boca.rotation.y = Math.PI / 2; g.add(boca);
-    const puerta = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.0, 2.1), colCab);
-    puerta.position.set(2.15, 2.8, 0); puerta.rotation.z = -1.0; g.add(puerta);
-    const ruedaGeom = new THREE.CylinderGeometry(0.42, 0.42, 0.3, 12);
-    ruedaGeom.rotateX(Math.PI / 2);
-    const ruedaMat = new THREE.MeshLambertMaterial({ color: 0x1f2937 });
-    for (const [rx, rz] of [[-3.9, 0.95], [-3.9, -0.95], [-1.6, 0.95],
-                            [-1.6, -0.95], [0.4, 0.95], [0.4, -0.95]]) {
-        const r = new THREE.Mesh(ruedaGeom, ruedaMat);
-        r.position.set(rx, 0.42, rz);
-        g.add(r);
+    for (const fz of [-0.7, 0.7]) {
+        const faro = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.3),
+            new THREE.MeshBasicMaterial({ color: 0xfde68a }));
+        faro.position.set(-4.51, 0.9, fz);
+        g.add(faro);
     }
+    const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.6, 8), colOsc);
+    escape.position.set(-2.3, 2.3, 0.85);
+    g.add(escape);
+    // Remolque: caja con franja de color, techo y puerta trasera enmarcada
+    const rem = new THREE.Mesh(new THREE.BoxGeometry(4.4, 2.3, 2.15), colCaja);
+    rem.position.set(0.2, 1.75, 0); rem.castShadow = true; g.add(rem);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.42, 0.4, 2.17), colCab);
+    stripe.position.set(0.2, 1.35, 0);
+    g.add(stripe);
+    const boca = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 2.0),
+        new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+    boca.position.set(2.42, 1.7, 0); boca.rotation.y = Math.PI / 2; g.add(boca);
+    const puerta = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.05, 2.0), colCab);
+    puerta.position.set(2.6, 3.1, 0); puerta.rotation.z = -0.9; g.add(puerta);
+    // Ruedas: 1 eje delantero + doble eje trasero
+    const ruedaGeom = new THREE.CylinderGeometry(0.44, 0.44, 0.32, 14);
+    ruedaGeom.rotateX(Math.PI / 2);
+    const ruedaMat = new THREE.MeshLambertMaterial({ color: 0x111827 });
+    const hubMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af });
+    for (const [rx, rz] of [[-3.7, 0.95], [-3.7, -0.95], [0.6, 0.95],
+                            [0.6, -0.95], [1.6, 0.95], [1.6, -0.95]]) {
+        const r = new THREE.Mesh(ruedaGeom, ruedaMat);
+        r.position.set(rx, 0.44, rz);
+        g.add(r);
+        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.34, 10), hubMat);
+        hub.rotation.x = Math.PI / 2;
+        hub.position.set(rx, 0.44, rz);
+        g.add(hub);
+    }
+    // Rampa de descarga amarilla
     const rampa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 0.95),
         new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
-    rampa.position.set(2.95, 1.45, 0); rampa.rotation.z = -0.34; g.add(rampa);
+    rampa.position.set(3.6, 1.35, 0); rampa.rotation.z = -0.32; g.add(rampa);
     const cartel = crearCartel(cfg.etiqueta, cfg.sub, 3.4);
-    cartel.position.set(-0.5, 3.35, 0);
+    cartel.position.set(0.2, 3.75, 0);
     cartel.rotation.y = Math.PI / 2;
     g.add(cartel);
     g.userData.faseCam = Math.random() * 7;
@@ -1213,17 +1242,19 @@ function tickAlmacenes(dt) {
     almacenes.forEach(alm => {
         if (alm.idx >= alm.slots.length && alm.tVaciado < 0)
             alm.tVaciado = tGlobal;
-        if (alm.tVaciado >= 0 && tGlobal - alm.tVaciado > 1.6) {
-            let viva = false;
+        if (alm.tVaciado >= 0 && tGlobal - alm.tVaciado > 1.4) {
+            // Las cajas acumuladas vuelan a su destino final: la pared
+            let quedan = false;
             for (let i = 0; i < alm.idx; i++) {
                 const b = alm.pool[i];
                 if (!b.visible) continue;
-                viva = true;
-                b.scale.multiplyScalar(Math.max(0.02, 1 - dt * 3));
-                b.position.y += dt * 1.8;
-                if (b.scale.x < 0.06) b.visible = false;
+                if (!b._aTV) { b._aTV = true; lanzarVueloTV(b, i * 0.07); }
+                quedan = true;
             }
-            if (!viva) { alm.idx = 0; alm.tVaciado = -1; }
+            if (!quedan) {
+                alm.idx = 0; alm.tVaciado = -1;
+                alm.pool.forEach(b => { b._aTV = false; });
+            }
         }
     });
 }
@@ -1726,46 +1757,252 @@ const ficedBarras = [];
     }
 }
 
-// ============ PLAZA DE LA POBLACIÓN ============
-// La ciudadanía no es decoración: sus encuestas de satisfacción
-// vuelan a la línea de capacidad y conectan población ↔ organismos.
+// ============ PARED DE PANTALLAS (destino final) ============
+// Vieja época: muro de 6×6 televisores de tubo que consumen la
+// producción de TODOS los flujos. Cada caja que llega enciende
+// una pantalla con un gráfico estadístico aleatorio.
+const texCharts = [];
+function pintarChart(i) {
+    const cv = texCharts[i].image;
+    const c = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    const fondos = ['#f8fafc', '#fff7ed', '#f0f9ff', '#fdf4ff'];
+    const tintas = ['#1d4ed8', '#b45309', '#0e7490', '#7e22ce'];
+    const k = i % 4;
+    c.fillStyle = fondos[k]; c.fillRect(0, 0, W, H);
+    c.strokeStyle = '#cbd5e1'; c.lineWidth = 1;
+    for (let gy = 0; gy < 5; gy++) {
+        c.beginPath(); c.moveTo(28, 20 + gy * 32); c.lineTo(W - 12, 20 + gy * 32); c.stroke();
+    }
+    const tinta = tintas[k];
+    const tipo = i % 5;
+    if (tipo === 0) {                    // barras
+        const n = 6;
+        for (let b = 0; b < n; b++) {
+            const h = 20 + Math.random() * 110;
+            c.fillStyle = b % 2 ? tinta : '#94a3b8';
+            c.fillRect(34 + b * 34, H - 18 - h, 24, h);
+        }
+    } else if (tipo === 1) {             // línea
+        c.strokeStyle = tinta; c.lineWidth = 4;
+        c.beginPath();
+        let y = 100;
+        c.moveTo(30, y);
+        for (let x = 30; x < W - 14; x += 24) {
+            y += (Math.random() - 0.45) * 40;
+            y = Math.max(24, Math.min(H - 22, y));
+            c.lineTo(x, y);
+        }
+        c.stroke();
+    } else if (tipo === 2 || tipo === 3) {  // pie / donut
+        const cx = W / 2, cy = H / 2, R = 62;
+        const cols = ['#1d4ed8', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+        let a0 = -Math.PI / 2;
+        for (let s = 0; s < 4; s++) {
+            const a1 = a0 + Math.random() * 1.8 + 0.4;
+            c.fillStyle = cols[s];
+            c.beginPath(); c.moveTo(cx, cy);
+            c.arc(cx, cy, R, a0, a1); c.fill();
+            a0 = a1;
+        }
+        if (tipo === 3) {
+            c.fillStyle = fondos[k];
+            c.beginPath(); c.arc(cx, cy, 30, 0, 7); c.fill();
+        }
+    } else {                           // dispersión
+        c.fillStyle = tinta;
+        for (let d = 0; d < 26; d++) {
+            c.beginPath();
+            c.arc(32 + Math.random() * (W - 48),
+                  22 + Math.random() * (H - 44), 4, 0, 7);
+            c.fill();
+        }
+    }
+    texCharts[i].needsUpdate = true;
+}
+for (let i = 0; i < 10; i++) {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 192;
+    texCharts.push(new THREE.CanvasTexture(cv));
+    pintarChart(i);
+}
+let tUltimoChart = 0;
+
+const TVs = [];
+{
+    const paredG = new THREE.Group();
+    paredG.position.set(38.6, 0, 7);
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6.9, 8.2),
+        new THREE.MeshLambertMaterial({ color: 0x57534e }));
+    marco.position.set(0.28, 3.55, 0);
+    marco.castShadow = true;
+    paredG.add(marco);
+    for (const pz of [-3.8, 3.8]) {
+        const pata = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.1, 0.5),
+            new THREE.MeshLambertMaterial({ color: 0x44403c }));
+        pata.position.set(0.28, 0.55, pz);
+        paredG.add(pata);
+    }
+    const beiges = [0xd6cbb8, 0xc9bfb0, 0xb5a895];
+    for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 6; c++) {
+            const tv = new THREE.Group();
+            tv.position.set(0, 1.0 + r * 1.0, -3.05 + c * 1.22);
+            const carcasa = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.92, 1.12),
+                new THREE.MeshLambertMaterial({ color: beiges[(r + c) % 3] }));
+            tv.add(carcasa);
+            const mat = new THREE.MeshBasicMaterial({ map: texCharts[(r * 6 + c) % 10] });
+            const pantalla = new THREE.Mesh(new THREE.PlaneGeometry(0.92, 0.68), mat);
+            pantalla.position.x = -0.31;
+            pantalla.rotation.y = -Math.PI / 2;
+            tv.add(pantalla);
+            const flash = new THREE.Mesh(new THREE.PlaneGeometry(0.92, 0.68),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }));
+            flash.position.x = -0.325;
+            flash.rotation.y = -Math.PI / 2;
+            tv.add(flash);
+            for (const pz of [0.32, 0.47]) {
+                const perilla = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.045, 0.045, 0.08, 8),
+                    new THREE.MeshLambertMaterial({ color: 0x44403c }));
+                perilla.rotation.z = Math.PI / 2;
+                perilla.position.set(-0.32, -0.05, pz);
+                tv.add(perilla);
+            }
+            if (r === 5 && c % 2 === 0) {   // orejas de conejo
+                for (const s of [-1, 1]) {
+                    const ant = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.015, 0.015, 0.8, 6),
+                        new THREE.MeshLambertMaterial({ color: 0x78716c }));
+                    ant.position.set(0, 0.75, s * 0.1);
+                    ant.rotation.z = s * 0.5;
+                    tv.add(ant);
+                }
+            }
+            paredG.add(tv);
+            paredG.updateWorldMatrix(true, true);
+            TVs.push({ tv, pantalla, flash,
+                       mundo: tv.getWorldPosition(new THREE.Vector3()) });
+        }
+    }
+    const cartelTV = crearCartel('PANTALLAS', 'la producción se consume aquí', 4.2);
+    cartelTV.position.set(0, 7.6, 0);
+    cartelTV.rotation.y = -Math.PI / 2;
+    paredG.add(cartelTV);
+    scene.add(paredG);
+}
+function asignarGrafico(tv) {
+    tv.pantalla.material.map = texCharts[Math.floor(Math.random() * texCharts.length)];
+    tv.pantalla.material.needsUpdate = true;
+    tv.tFlash = tGlobal;
+}
+// Cajas de los almacenes → su destino final: la pared
+const vuelosTV = [];
+function lanzarVueloTV(mesh, delay = 0) {
+    const tv = TVs[Math.floor(Math.random() * TVs.length)];
+    vuelosTV.push({ mesh, tv, t: -delay, dur: 0.85,
+                    desde: mesh.position.clone(), hasta: tv.mundo });
+}
+function tickVuelosTV(dt) {
+    for (let i = vuelosTV.length - 1; i >= 0; i--) {
+        const v = vuelosTV[i];
+        v.t += dt;
+        if (v.t < 0) continue;
+        const k = Math.min(1, v.t / v.dur);
+        v.mesh.position.lerpVectors(v.desde, v.hasta, k);
+        v.mesh.position.y += Math.sin(k * Math.PI) * 2.2;
+        v.mesh.rotation.y += dt * 5;
+        if (k >= 1) {
+            v.mesh.visible = false;
+            asignarGrafico(v.tv);
+            soltarConfeti(v.hasta.x - 0.4, v.hasta.y, v.hasta.z);
+            vuelosTV.splice(i, 1);
+        }
+    }
+}
+
+// ============ GRADAS DE LA AUDIENCIA ============
+// La ciudadanía consume la pared de pantallas desde gradas
+// escalonadas. No es decoración: sus encuestas viajan por tubo
+// neumático a la estación de satisfacción.
 const ciudadanos = [];
 {
-    const parche = new THREE.Mesh(new THREE.CircleGeometry(7, 32),
+    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(9, 10),
         new THREE.MeshLambertMaterial({ color: 0xdbe7d3 }));
-    parche.rotation.x = -Math.PI / 2;
-    parche.position.set(16, 0.02, 11);
-    scene.add(parche);
-    const cartelPlaza = crearCartel('PLAZA', 'la ciudadanía opina', 2.4);
-    cartelPlaza.position.set(16, 3.2, 14.8);
-    cartelPlaza.rotation.y = Math.PI;
-    scene.add(cartelPlaza);
+    suelo.rotation.x = -Math.PI / 2;
+    suelo.position.set(32.8, 0.02, 7.4);
+    scene.add(suelo);
+    const cartelG = crearCartel('AUDIENCIA', 'la ciudadanía mira y opina', 3.2);
+    cartelG.position.set(33, 3.6, 12.6);
+    scene.add(cartelG);
+    // Tres filas de banca escalonadas mirando la pared (+x)
     const paleta = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9, 0xf97316];
-    for (let i = 0; i < 14; i++) {
-        const c = new THREE.Group();
-        const cuerpo = new THREE.Mesh(
-            new THREE.ConeGeometry(0.22, 0.85, 8),
-            new THREE.MeshLambertMaterial({ color: paleta[i % paleta.length] }));
-        cuerpo.position.y = 0.42;
-        const cabeza = new THREE.Mesh(
-            new THREE.SphereGeometry(0.16, 10, 10),
-            new THREE.MeshLambertMaterial({ color: 0xf5d0a9 }));
-        cabeza.position.y = 0.95;
-        c.add(cuerpo, cabeza);
-        const a = Math.random() * Math.PI * 2, r = 1.5 + Math.sqrt(Math.random()) * 4.6;
-        c.position.set(16 + Math.cos(a) * r * 1.15, 0, 11 + Math.sin(a) * r * 0.42);
-        c.userData.fase = Math.random() * 7;
-        scene.add(c);
-        ciudadanos.push(c);
+    let idx = 0;
+    for (let fila = 0; fila < 3; fila++) {
+        const bx = 30.8 + fila * 1.7, by = 0.35 + fila * 0.42;
+        const banca = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.14, 6.4),
+            new THREE.MeshLambertMaterial({ color: 0xa8b8c4 }));
+        banca.position.set(bx, by, 7.2);
+        banca.castShadow = true;
+        scene.add(banca);
+        const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, by, 6.4),
+            new THREE.MeshLambertMaterial({ color: 0x9aa8b4 }));
+        base.position.set(bx, by / 2 - 0.07, 7.2);
+        scene.add(base);
+        for (let s = 0; s < 6; s++) {
+            const c = new THREE.Group();
+            const cuerpo = new THREE.Mesh(
+                new THREE.ConeGeometry(0.2, 0.62, 8),
+                new THREE.MeshLambertMaterial({ color: paleta[idx % 6] }));
+            cuerpo.position.y = 0.31;
+            const cabeza = new THREE.Mesh(
+                new THREE.SphereGeometry(0.15, 10, 10),
+                new THREE.MeshLambertMaterial({ color: 0xf5d0a9 }));
+            cabeza.position.y = 0.72;
+            c.add(cuerpo, cabeza);
+            c.position.set(bx, by + 0.07, 4.7 + s * 1.0);
+            c.rotation.y = -Math.PI / 2;      // mira la pared
+            c.userData.fase = Math.random() * 7;
+            c.userData.y0 = by + 0.07;         // sentado en su banca
+            scene.add(c);
+            ciudadanos.push(c);
+            idx++;
+        }
+    }
+}
+// Tubo neumático: las encuestas viajan DENTRO de un tubo
+// transparente que va de las gradas a la tolva de satisfacción.
+const curvaTubo = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(33.5, 2.4, 9.5),
+    new THREE.Vector3(31.0, 6.5, 5.0),
+    new THREE.Vector3(14.0, 8.5, -2.0),
+    new THREE.Vector3(-4.0, 7.5, -8.0),
+    new THREE.Vector3(-8.0, 3.0, -10.4),
+]);
+{
+    const tubo = new THREE.Mesh(
+        new THREE.TubeGeometry(curvaTubo, 60, 0.22, 8, false),
+        new THREE.MeshLambertMaterial({ color: 0x93c5fd, transparent: true,
+                                        opacity: 0.28, depthWrite: false }));
+    scene.add(tubo);
+    const boca = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.4, 10),
+        new THREE.MeshLambertMaterial({ color: 0x64748b }));
+    boca.position.set(33.5, 2.2, 9.5);
+    scene.add(boca);
+    for (const [px, py, pz] of [[31, 3.2, 5], [14, 4.25, -2], [-4, 3.75, -8]]) {
+        const poste = new THREE.Mesh(new THREE.BoxGeometry(0.14, py * 2, 0.14),
+            new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+        poste.position.set(px, py, pz);
+        scene.add(poste);
     }
 }
 const encuestas = [];
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < 5; i++) {
     const pl = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.45, 0.6),
-        new THREE.MeshLambertMaterial({ color: 0xfefce8, side: THREE.DoubleSide }));
+        new THREE.PlaneGeometry(0.36, 0.5),
+        new THREE.MeshBasicMaterial({ color: 0xfefce8, side: THREE.DoubleSide }));
     scene.add(pl);
-    encuestas.push({ mesh: pl, t: i / 3, origen: new THREE.Vector3(16, 1, 11) });
+    encuestas.push({ mesh: pl, t: i * 0.2 });
 }
 
 // ============ RIEL + CARRO DEL SUPERVISOR ============
@@ -2214,34 +2451,36 @@ new GLTFLoader().load(
 
 // ============ TIMELINE / ACTOS ============
 const ACTOS = [
-    { t0: 0,   t1: 6,   acto: '', texto: '', sub: '',
-      cam: [[0, 24, 46], [0, 6, -4]] },
-    { t0: 6,   t1: 16,  acto: 'Acto I', texto: 'Los muelles de acceso', sub: 'Recolección, Delegado y Editorial — la materia prima llega en camión',
-      cam: [[-42, 7, 8], [-32, 2.5, -2]] },
-    { t0: 16,  t1: 26,  acto: 'Acto II', texto: 'El Taller', sub: `La máquina más grande: censo y prediagnóstico de ${STATS.organismos} organismos`,
+    { t0: 0,   t1: 8,   acto: '', texto: '', sub: '',
+      cam: [[0, 26, 50], [0, 6, -4]] },
+    { t0: 8,   t1: 20,  acto: 'Acto I', texto: 'Los muelles de acceso', sub: 'Recolección, Delegado y Editorial: la materia prima llega en camión',
+      cam: [[-42, 6, 8], [-33, 2, -4]] },
+    { t0: 20,  t1: 32,  acto: 'Acto II', texto: 'El Taller', sub: `La máquina más grande: censo y prediagnóstico de ${STATS.organismos} organismos`,
       cam: [[-30, 5, 10], [-26, 3.5, -2.5]] },
-    { t0: 26,  t1: 36,  acto: 'Acto III', texto: 'El grafo del ecosistema', sub: 'Su producto estrella: el grafo 3D que interrelaciona las variables',
+    { t0: 32,  t1: 44,  acto: 'Acto III', texto: 'El grafo del ecosistema', sub: 'Su producto estrella: el grafo 3D que interrelaciona las variables',
       cam: [[-22, 8.5, 7], [-16, 6.8, -3]] },
-    { t0: 36,  t1: 46,  acto: 'Acto IV', texto: 'Inventario de operaciones', sub: 'Las fuentes se inventarían como operaciones — acompañamiento y capacitación',
-      cam: [[-18, 4.5, 12], [-11, 2.8, 6.5]] },
-    { t0: 46,  t1: 56,  acto: 'Acto V', texto: 'El nodo T', sub: 'Del conjunto salen dos caminos: indicadores… o catálogo de consulta',
-      cam: [[-8, 5, 12], [-2, 2.6, 4]] },
-    { t0: 56,  t1: 65,  acto: 'Acto VI', texto: 'Catálogo de consulta', sub: 'Datos consultables que no son KPI — inventario propio',
-      cam: [[-7, 6, 14], [-2, 2.5, 20.5]] },
-    { t0: 65,  t1: 76,  acto: 'Acto VII', texto: 'La cadena del indicador', sub: 'Conjunto→fichas→extracción→validación SDMX→difusión',
-      cam: [[6, 5, 12], [17, 2.6, 4]] },
-    { t0: 76,  t1: 85,  acto: 'Acto VIII', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos — la producción inventariada`,
-      cam: [[26, 5, 12], [32.5, 3, 2.5]] },
-    { t0: 85,  t1: 95,  acto: 'Acto IX', texto: 'Calidad institucional', sub: 'Evaluación estratégica → la ciudadanía engorda el dossier → FICED',
+    { t0: 44,  t1: 56,  acto: 'Acto IV', texto: 'Inventario de operaciones', sub: 'Acompañamiento y capacitación: las fuentes se vuelven operaciones',
+      cam: [[-18, 5, 13], [-11, 2.8, 6.5]] },
+    { t0: 56,  t1: 68,  acto: 'Acto V', texto: 'El nodo T', sub: 'Del conjunto salen dos caminos: indicadores… o catálogo de consulta',
+      cam: [[-9, 5.5, 13], [-2, 2.6, 4]] },
+    { t0: 68,  t1: 80,  acto: 'Acto VI', texto: 'Catálogo de consulta', sub: 'Datos consultables que no son KPI — inventario propio',
+      cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
+    { t0: 80,  t1: 92,  acto: 'Acto VII', texto: 'La cadena del indicador', sub: 'Conjunto→fichas→extracción→validación SDMX→difusión',
+      cam: [[5, 5, 13], [17, 2.6, 4]] },
+    { t0: 92,  t1: 104, acto: 'Acto VIII', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos — la producción inventariada`,
+      cam: [[24, 5, 12], [32.5, 3, 2.5]] },
+    { t0: 104, t1: 116, acto: 'Acto IX', texto: 'La pared de pantallas', sub: 'El destino final de todo: 36 televisores mostrando gráficos',
+      cam: [[27, 5.5, 15], [38.5, 3, 7]] },
+    { t0: 116, t1: 128, acto: 'Acto X', texto: 'La audiencia opina', sub: 'La ciudadanía mira la producción; sus encuestas viajan por tubo a satisfacción',
+      cam: [[32, 5.5, 17], [33, 2.5, 7]] },
+    { t0: 128, t1: 140, acto: 'Acto XI', texto: 'Calidad institucional', sub: 'Evaluaciones que frenan el dossier, la ciudadanía lo engorda, FICED lo sella',
       cam: [[-24, 6, -17], [-4, 2.6, -10.5]] },
-    { t0: 95,  t1: 105, acto: 'Acto X', texto: 'La plaza y el FICED', sub: 'Las encuestas vuelan de la población a la planta; el FICED mide A–E',
-      cam: [[22, 7, 18], [4, 3, -15]] },
-    { t0: 105, t1: 115, acto: 'Acto XI', texto: 'El hall de capacidad', sub: 'La calidad de cada organismo queda inventariada — hojas de vida',
+    { t0: 140, t1: 150, acto: 'Acto XII', texto: 'El hall de capacidad', sub: 'La calidad de cada organismo queda inventariada — hojas de vida',
       cam: [[14, 6, -3], [28, 2.5, -10.5]] },
-    { t0: 115, t1: 125, acto: 'Acto XII', texto: 'Mini-maquilas de servicios', sub: 'Editorial, documentos y agenda — cada módulo también produce',
-      cam: [[-24, 6, 16], [-13, 2.2, 18]] },
-    { t0: 125, t1: 140, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
-      cam: [[0, 16, 34], [0, 3, -4]], finale: true },
+    { t0: 150, t1: 160, acto: 'Acto XIII', texto: 'Mini-maquilas de servicios', sub: 'Editorial, documentos y agenda — cada módulo también produce',
+      cam: [[-26, 6, 16], [-13, 2.2, 18]] },
+    { t0: 160, t1: 178, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
+      cam: [[0, 17, 36], [0, 3, -4]], finale: true },
 ];
 const DURACION = ACTOS[ACTOS.length - 1].t1;
 
@@ -2270,8 +2509,10 @@ function tickCamara(t) {
     const idx = ACTOS.findIndex(a => t >= a.t0 && t < a.t1);
     const i = idx === -1 ? ACTOS.length - 1 : idx;
     const acto = ACTOS[i];
-    const p = easeInOut(Math.min(1, Math.max(0, (t - acto.t0) / (acto.t1 - acto.t0))));
-    // Dolly continuo: viaja del encuadre anterior al actual durante el acto
+    // La cámara LLEGA rápido (≤3.5s) y luego SE DETIENE a explicar
+    const dur = acto.t1 - acto.t0;
+    const p = easeInOut(Math.min(1, Math.max(0,
+        (t - acto.t0) / Math.min(3.5, dur * 0.28))));
     const prev = i > 0 ? ACTOS[i - 1].cam : acto.cam;
     _vFrom.fromArray(prev[0]);
     _vTo.fromArray(acto.cam[0]);
@@ -2293,7 +2534,7 @@ function tickIntertitulos(t) {
             elTexto.textContent = a.texto;
             elSub.textContent = a.sub;
             elIntertitulo.classList.add('visible');
-            setTimeout(() => elIntertitulo.classList.remove('visible'), 3200);
+            setTimeout(() => elIntertitulo.classList.remove('visible'), 4200);
         }
         if (a && a.finale && !enFinal) {
             enFinal = true;
@@ -2429,6 +2670,16 @@ function animate() {
     famSrv.forEach((arr, l) => arr.forEach(f => tickFamSrv(f, l, dt)));
     tickLluvia(dt);
     tickAlmacenes(dt);
+    tickVuelosTV(dt);
+    // La parrilla de gráficos se refresca sola cada ~9s
+    if (tGlobal - tUltimoChart > 9) {
+        tUltimoChart = tGlobal;
+        for (let i = 0; i < texCharts.length; i++) pintarChart(i);
+    }
+    TVs.forEach(tv => {
+        if (tv.tFlash !== undefined)
+            tv.flash.material.opacity = Math.max(0, 0.85 - (tGlobal - tv.tFlash) * 3);
+    });
     camiones.forEach(cm => {
         cm.position.y = Math.abs(Math.sin(tGlobal * 1.7 + cm.userData.faseCam)) * 0.02;
     });
@@ -2442,26 +2693,16 @@ function animate() {
         b.scale.x = 0.06 + ((tGlobal * 0.22 + i * 0.19) % 1);
     });
 
-    // ---- Plaza: la ciudadanía respira y sus encuestas vuelan ----
+    // ---- Audiencia: respira en sus gradas; encuestas por el tubo ----
     ciudadanos.forEach(c => {
-        c.position.y = Math.sin(tGlobal * 2 + c.userData.fase) * 0.03;
+        c.position.y = c.userData.y0 + Math.sin(tGlobal * 2 + c.userData.fase) * 0.03;
     });
-    const destinoEnc = new THREE.Vector3(-8, 1.9, -10.5);   // tolva SATISFACCIÓN
     encuestas.forEach(e => {
-        e.t += dt / 9;
-        if (e.t >= 1 || e.origen.lengthSq() === 0) {
-            e.t = 0;
-            const c = ciudadanos[Math.floor(Math.random() * ciudadanos.length)];
-            e.origen.copy(c.position).setY(1.0);
-        }
-        const t2 = e.t;
-        const mx = (e.origen.x + destinoEnc.x) / 2, mz = (e.origen.z + destinoEnc.z) / 2;
-        const u = 1 - t2;
-        e.mesh.position.set(
-            u * u * e.origen.x + 2 * u * t2 * mx + t2 * t2 * destinoEnc.x,
-            u * u * e.origen.y + 2 * u * t2 * 8.5 + t2 * t2 * destinoEnc.y,
-            u * u * e.origen.z + 2 * u * t2 * mz + t2 * t2 * destinoEnc.z);
-        e.mesh.rotation.y = tGlobal * 2;
+        e.t += dt / 14;
+        if (e.t >= 1) e.t = 0;
+        e.mesh.position.copy(curvaTubo.getPointAt(Math.min(0.999, Math.max(0, e.t))));
+        e.mesh.rotation.y = tGlobal * 3;
+        e.mesh.visible = e.t > 0.01 && e.t < 0.96;
     });
 
     // ---- Estantería infinita: ciclo del gráfico de barras ----
@@ -2471,15 +2712,17 @@ function animate() {
     } else if (faseEstante === 'completo' && tGlobal - tCompleto > 2.2) {
         faseEstante = 'vaciando';
     } else if (faseEstante === 'vaciando') {
-        let viva = false;
-        barras.forEach(b => {
+        // Las barras acumuladas también van a la pared de pantallas
+        let quedan = false;
+        barras.forEach((b, i) => {
             if (!b.visible) return;
-            viva = true;
-            b.scale.multiplyScalar(Math.max(0, 1 - dt * 3));
-            b.position.y += dt * 1.8;
-            if (b.scale.x < 0.06) b.visible = false;
+            if (!b._aTV) { b._aTV = true; lanzarVueloTV(b, i * 0.05); }
+            quedan = true;
         });
-        if (!viva) { faseEstante = 'llenando'; columnas.fill(0); nuevosObjetivos(); }
+        if (!quedan) {
+            faseEstante = 'llenando'; columnas.fill(0); nuevosObjetivos();
+            barras.forEach(b => { b._aTV = false; });
+        }
     }
 
     // Máquinas trabajando
