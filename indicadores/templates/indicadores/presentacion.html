@@ -1123,18 +1123,26 @@ function crearCamion(cfg) {
     const rampa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 0.95),
         new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
     rampa.position.set(3.6, 1.35, 0); rampa.rotation.z = -0.32; g.add(rampa);
-    const cartel = crearCartel(cfg.etiqueta, cfg.sub, 3.4);
-    cartel.position.set(0.2, 3.75, 0);
-    cartel.rotation.y = Math.PI / 2;
+    // Poste lateral con el letrero del módulo de acceso que representa
+    // (mirando a cámara, como los carteles de las estaciones)
+    const posteL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.4, 0.12),
+        new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+    posteL.position.set(0.2, 2.2, 1.9);
+    g.add(posteL);
+    const cartel = crearCartel(cfg.etiqueta, cfg.sub, 3.2);
+    cartel.position.set(0.2, 4.1, 1.95);
     g.add(cartel);
     g.userData.faseCam = Math.random() * 7;
     scene.add(g);
     camiones.push(g);
     return g;
 }
-crearCamion({ x: -34.5, z: -2.5,  color: 0x38bdf8, etiqueta: 'RECOLECCIÓN', sub: 'módulo de acceso' });
-crearCamion({ x: -36.5, z: -10.5, color: 0xf59e0b, etiqueta: 'DELEGADO',    sub: 'organismos' });
-crearCamion({ x: -28.5, z: 17.5,  color: 0xef4444, etiqueta: 'EDITORIAL',   sub: 'módulo de acceso' });
+crearCamion({ x: -34.5, z: -2.5,  color: 0x38bdf8,
+              etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'ingesta de fuentes' });
+crearCamion({ x: -36.5, z: -10.5, color: 0xf59e0b,
+              etiqueta: 'DELEGADO ORGANISMO', sub: 'acceso del organismo' });
+crearCamion({ x: -28.5, z: 17.5,  color: 0xef4444,
+              etiqueta: 'MÓDULO EDITORIAL',   sub: 'contenido y servicios' });
 
 // Chute inclinado entre dos puntos del mundo
 function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
