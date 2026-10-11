@@ -897,7 +897,7 @@ function crearMaquina(cfg) {
             saco.castShadow = true;
             m.add(saco);
         }
-        const cartelSaco = crearCartel('REPORTES', 'materia prima', 1.6);
+        const cartelSaco = crearCartel('INSUMOS', 'materia prima', 1.6);
         cartelSaco.position.set(-1.4, 1.15, 2.35);
         m.add(cartelSaco);
         // Pedacito de reporte que cae de la tolva en bucle
@@ -1126,8 +1126,8 @@ function crearCamion(cfg) {
     camiones.push(g);
     return g;
 }
-crearCamion({ x: -34.5, z: -2.5,  color: 0x38bdf8,
-              etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'ingesta de fuentes' });
+crearCamion({ x: -16.5, z: -0.8,  color: 0x38bdf8,
+              etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'origen del flujo de datos' });
 crearCamion({ x: -36.5, z: -10.5, color: 0xf59e0b,
               etiqueta: 'DELEGADO ORGANISMO', sub: 'acceso del organismo' });
 crearCamion({ x: -28.5, z: 17.5,  color: 0xef4444,
@@ -1147,14 +1147,7 @@ function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
 }
 // Chute norte del taller → banda C (su producto: el censo del organismo)
 crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2), 0.8);
-// Tolva de entrada del taller (cara oeste): ahí descarga RECOLECCIÓN
-{
-    const tolva = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.1, 8, 1, true),
-        new THREE.MeshLambertMaterial({ color: 0xcbd5e1, side: THREE.DoubleSide }));
-    tolva.rotation.x = Math.PI;
-    tolva.position.set(-30.3, 1.5, -2.5);
-    scene.add(tolva);
-}
+// (el taller se autoabastece: no recibe camiones; aporta por banda y chute)
 // Hub editorial: del camión a las tres mini-maquilas de servicios
 {
     const hub = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 1.6),
@@ -1257,7 +1250,7 @@ function tickAlmacenes(dt) {
 }
 const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'ALMACÉN OP',  modelo: 'OperacionEstadistica · IOE', tex: texOp });
 const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'BaseCatalogo · consulta (no KPI)', tex: texCat });
-const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'HALL',      modelo: 'hall de capacidad · hojas de vida', tex: texICE });
+const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'INVENTARIO ICE', modelo: 'expedientes de organismos', tex: texICE });
 const Z_SRV = [12, 18, 24];
 const almSrv = Z_SRV.map((z, i) => crearAlmacen({
     x: -5.2, z, cols: 2, rows: 2,
@@ -1269,9 +1262,12 @@ const almSrv = Z_SRV.map((z, i) => crearAlmacen({
 // Flujo calidad (dossier del organismo: delegado | censo del taller)
 const famCal = [];
 for (let i = 0; i < 5; i++) famCal.push(nuevaFamilia(cajaUnitaria(texDeleg)));
-// Crudo: camión RECOLECCIÓN → tolva de OPERACIONES (vuelo alto)
+// Crudo: camión RECOLECCIÓN (muelle junto a OP) → tolva de OPERACIONES
 const famRec = [];
 for (let i = 0; i < 3; i++) famRec.push(nuevaFamilia(cajaUnitaria(texFuente)));
+// Reportes de auditoría → mesa del consejo (datos para decidir)
+const famRep = [];
+for (let i = 0; i < 2; i++) famRep.push(nuevaFamilia(cajaUnitaria(texOp)));
 // Taller → almacén OP (pequeñas)
 const famD1 = [];
 for (let i = 0; i < 5; i++) famD1.push(nuevaFamilia(cajaUnitaria(texFuente)));
@@ -1335,10 +1331,9 @@ function respawnRec(f) {
     f.mesh.scale.setScalar(0.5);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texFuente);
-    // Descarga directa en la tolva de la estación OPERACIONES:
-    // parábola alta que pasa por encima del taller
-    lanzarCaida(f, new THREE.Vector3(-34.9, 1.9, -2.5),
-                   new THREE.Vector3(-9.0, 4.6, -0.5), 1.6, 7.5);
+    // El camión está atracado junto a la estación: salto corto a la tolva
+    lanzarCaida(f, new THREE.Vector3(-12.7, 1.8, -0.8),
+                   new THREE.Vector3(-9.0, 4.6, -0.5), 0.85, 1.3);
 }
 function respawnD1(f) {
     f.seg = 'D1'; f.s = 0.8; f.pasadas.clear();
@@ -1369,6 +1364,7 @@ function resetFamilias() {
     famRec.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 2.1; f.mesh.visible = false; });
     famD1.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 2.6; f.mesh.visible = false; });
     famD2.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 3.8; f.mesh.visible = false; f.extra = {}; });
+    famRep.forEach((f, i) => { f.estado = 'espera'; f.tEspera = 4 + i * 7; f.mesh.visible = false; });
     famSrv.forEach((arr, l) => arr.forEach((f, i) => {
         f.estado = 'espera'; f.tEspera = i * 3.1 + l * 0.8; f.mesh.visible = false;
     }));
@@ -1440,6 +1436,22 @@ function tickFamRec(f, dt) {
         f.mesh.visible = false;
         f.estado = 'espera'; f.tEspera = 1.6 + Math.random() * 2;
         disparo('OPERACIONES');
+    }
+}
+function respawnRep(f) {
+    f.mesh.scale.setScalar(0.42);
+    f.mesh.rotation.set(0, 0, 0);
+    ponerTex(f, texOp);
+    // Del techo de la estación REPORTES a la mesa del consejo
+    lanzarCaida(f, new THREE.Vector3(11.5, 4.7, -0.2),
+                   new THREE.Vector3(30, 5.9, -16.5), 1.7, 4.5);
+}
+function tickFamRep(f, dt) {
+    if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnRep(f); return; }
+    tickCaida(f, dt);
+    if (f.estado === 'ride') {   // el reporte aterriza en la mesa
+        f.mesh.visible = false;
+        f.estado = 'espera'; f.tEspera = 5 + Math.random() * 4;
     }
 }
 function tickFamD1(f, dt) {
@@ -1780,27 +1792,28 @@ const grafo = new THREE.Group();
 // El formulario de capacidad es profundo: cinco secciones que se
 // llenan en ciclo mientras dure la medición.
 const ficedBarras = [];
+// El medidor es el tablero de la sala de juntas: va colgado en la
+// pared sur interior del podio, frente a la mesa del consejo
 {
-    const rack = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.6, 0.35),
+    const rack = new THREE.Mesh(new THREE.BoxGeometry(5.4, 2.5, 0.2),
         new THREE.MeshLambertMaterial({ color: 0xede9fe }));
-    rack.position.set(3.9, 1.9, -18.5);
-    rack.castShadow = true;
+    rack.position.set(30, 6.0, -18.45);
     scene.add(rack);
-    const cab = crearCartel('FICED', 'formulario de capacidad', 3.6);
-    cab.position.set(3.9, 4.2, -18.2);
+    const cab = crearCartel('FICED', 'tablero de capacidad', 2.6);
+    cab.position.set(30, 7.1, -18.28);
     scene.add(cab);
     const secciones = ['CARACT.', 'RR.HH.', 'PROCESOS', 'PROCED.', 'ICE'];
     for (let i = 0; i < secciones.length; i++) {
-        const etq = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.33),
+        const etq = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.3),
             new THREE.MeshBasicMaterial({
                 map: textoCanvas(secciones[i], '', '#7c3aed') }));
-        etq.position.set(1.75, 3.15 - i * 0.55, -18.2);
+        etq.position.set(28.0, 6.75 - i * 0.42, -18.32);
         scene.add(etq);
-        const g = new THREE.BoxGeometry(3.6, 0.32, 0.06);
-        g.translate(1.8, 0, 0);   // crece desde el borde izquierdo
+        const g = new THREE.BoxGeometry(3.4, 0.26, 0.06);
+        g.translate(1.7, 0, 0);   // crece desde el borde izquierdo
         const barra = new THREE.Mesh(g,
             new THREE.MeshBasicMaterial({ color: 0xa78bfa }));
-        barra.position.set(2.4, 3.15 - i * 0.55, -18.2);
+        barra.position.set(28.85, 6.75 - i * 0.42, -18.32);
         scene.add(barra);
         ficedBarras.push(barra);
     }
@@ -2444,7 +2457,7 @@ function crearPlanta() {
     const CONSEJO = [
         [27.5, -17.7, 1.3], [27.5, -15.4, 1.8],   // costado oeste
         [32.5, -17.7, -1.3], [32.5, -15.4, -1.8], // costado este
-        [30, -18.7, 0],                           // cabecera
+        [30, -14.4, Math.PI],                     // cabecera (frente al tablero)
     ];
     CONSEJO.forEach(([dx, dz, ry], di) => {
         let w;
@@ -2528,8 +2541,8 @@ const ACTOS = [
     // ======= PARTE A: PANEON — 90s de vuelo continuo =======
     { t0: 0,   t1: 9,   acto: '', texto: '', sub: '', pan: true,
       cam: [[0, 30, 55], [0, 5, -4]] },
-    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Muelles de acceso', sub: 'tres camiones traen la materia prima', pan: true,
-      cam: [[-46, 9, 6], [-33, 2.5, -2]] },
+    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Camiones de acceso', sub: 'delegado alimenta calidad · editorial alimenta servicios', pan: true,
+      cam: [[-46, 9, -4], [-30, 3.5, 14]] },
     { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller', sub: 'censo, prediagnóstico y el ecosistema 3D que genera', pan: true,
       cam: [[-34, 8, 12], [-26, 4, -3]] },
     { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'La cadena de datos', sub: 'operaciones → conjuntos → indicadores → difusión', pan: true,
@@ -2547,13 +2560,13 @@ const ACTOS = [
     { t0: 81,  t1: 90,  acto: 'Paneo', texto: 'Todo conecta', sub: 'del camión al televisor: el ciclo completo', pan: true,
       cam: [[0, 22, 40], [0, 4, -2]] },
     // ======= PARTE B: RECORRIDO — 20s por estación =======
-    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Muelle RECOLECCIÓN', sub: 'las fuentes crudas llegan en camión y se lanzan a OPERACIONES',
-      cam: [[-44, 5, 6], [-33.5, 2, -2.5]] },
+    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Módulo RECOLECCIÓN', sub: 'el origen del flujo: el camión descarga en la tolva de OPERACIONES',
+      cam: [[-22, 4.5, 4], [-13, 2.2, -0.6]] },
     { t0: 110, t1: 130, acto: 'Estación 02', texto: 'Muelle DELEGADO', sub: 'el organismo entrega su dossier: arranca la línea de calidad',
       cam: [[-44, 5, -4], [-35.5, 2, -10.5]] },
     { t0: 130, t1: 150, acto: 'Estación 03', texto: 'Muelle EDITORIAL', sub: 'contenido de servicios: noticias, documentos y agenda',
       cam: [[-36, 5, 24], [-27.5, 2, 17.5]] },
-    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `la máquina más grande: censo y prediagnóstico de ${STATS.organismos} organismos`,
+    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `censo y prediagnóstico de ${STATS.organismos} organismos — aporta al flujo por banda y chute`,
       cam: [[-32, 5, 9], [-26, 3.5, -2.5]] },
     { t0: 170, t1: 190, acto: 'Estación 05', texto: 'SALA DE JUNTAS', sub: 'el consejo analiza el ecosistema 3D al final de la línea de calidad',
       cam: [[18, 7.5, -8], [30, 5.4, -16]] },
@@ -2567,7 +2580,7 @@ const ACTOS = [
       cam: [[2, 4.5, 11], [2, 2.2, -0.2]] },
     { t0: 270, t1: 290, acto: 'Estación 10', texto: 'INDICADORES', sub: 'el conjunto se repica en fichas de indicador',
       cam: [[6.5, 4.5, 11], [6.5, 2.2, -0.2]] },
-    { t0: 290, t1: 310, acto: 'Estación 11', texto: 'REPORTES', sub: 'segunda cabina de control: trazabilidad del dato',
+    { t0: 290, t1: 310, acto: 'Estación 11', texto: 'REPORTES', sub: 'auditoría del dato — sus reportes vuelan a la sala de juntas',
       cam: [[11.5, 4.5, 11], [11.5, 2.2, -0.2]] },
     { t0: 310, t1: 330, acto: 'Estación 12', texto: 'EXTRACCIÓN', sub: 'ReglaExtraccion → Dato: se separa lo publicable',
       cam: [[15, 4.5, 11], [15, 2.2, -0.2]] },
@@ -2587,7 +2600,7 @@ const ACTOS = [
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
     { t0: 470, t1: 490, acto: 'Estación 20', texto: 'Evaluación táctica', sub: 'segunda cabina de auditoría del proceso',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
-    { t0: 490, t1: 510, acto: 'Estación 21', texto: 'FICED', sub: 'el formulario de capacidad sella el dossier en 5 secciones (A–E)',
+    { t0: 490, t1: 510, acto: 'Estación 21', texto: 'FICED', sub: 'sus resultados llenan el tablero dentro de la sala de juntas',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
     { t0: 510, t1: 530, acto: 'Estación 22', texto: 'Evaluación de organismo', sub: 'veredicto estratégico + táctico + operativo',
       cam: [[16, 5, -5], [16, 2.5, -14.7]] },
@@ -2787,6 +2800,7 @@ function animate() {
     // ---- Cajas: todos los flujos vivos ----
     famCal.forEach(f => tickFamCal(f, dt));
     famRec.forEach(f => tickFamRec(f, dt));
+    famRep.forEach(f => tickFamRep(f, dt));
     famD1.forEach(f => tickFamD1(f, dt));
     famD2.forEach(f => tickFamD2(f, dt));
     famSrv.forEach((arr, l) => arr.forEach(f => tickFamSrv(f, l, dt)));
