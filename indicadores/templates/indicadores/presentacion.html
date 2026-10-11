@@ -1252,6 +1252,45 @@ function crearCamion(cfg) {
         faro.position.set(-4.51, 0.9, fz);
         g.add(faro);
     }
+    // Parrilla + defensa cromada
+    const parrilla = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.32, 1.15), colOsc);
+    parrilla.position.set(-4.49, 1.05, 0); g.add(parrilla);
+    const defensa = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 1.95),
+        new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+    defensa.position.set(-4.58, 0.55, 0); g.add(defensa);
+    // Espejos retrovisores con brazo
+    for (const sz of [-1, 1]) {
+        const braz = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.3), colOsc);
+        braz.position.set(-3.78, 1.8, sz * 1.08); g.add(braz);
+        const espejo = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.32, 0.2), colOsc);
+        espejo.position.set(-3.78, 1.8, sz * 1.22); g.add(espejo);
+    }
+    // Aerodeflector de cabina + luces de techo
+    const aero = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 1.6),
+        new THREE.MeshLambertMaterial({ color: cfg.color }));
+    aero.position.set(-2.55, 2.8, 0); aero.rotation.z = -0.08; g.add(aero);
+    for (const lz of [-0.45, 0, 0.45]) {
+        const luzT = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.14),
+            new THREE.MeshBasicMaterial({ color: 0xfde68a }));
+        luzT.position.set(-3.58, 2.42, lz); g.add(luzT);
+    }
+    // Estribos de cabina
+    for (const sz of [-1, 1]) {
+        const estribo = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.08, 0.26),
+            new THREE.MeshLambertMaterial({ color: 0x64748b }));
+        estribo.position.set(-3.2, 0.72, sz * 1.02); g.add(estribo);
+    }
+    // Luces traseras rojas
+    for (const lz of [-0.7, 0.7]) {
+        const luzR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.22),
+            new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+        luzR.position.set(2.44, 0.75, lz); g.add(luzR);
+    }
+    // Carga del color del módulo asomando por la puerta trasera
+    for (const [bx, by, bz] of [[2.15, 1.6, -0.4], [2.15, 1.6, 0.42], [2.2, 2.18, 0]]) {
+        const caj = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.55, 0.6), colCab);
+        caj.position.set(bx, by, bz); g.add(caj);
+    }
     const escape = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.6, 8), colOsc);
     escape.position.set(-2.3, 2.3, 0.85);
     g.add(escape);
@@ -3046,11 +3085,12 @@ function crearPlanta() {
         operarios.push(w);
         ponerEstado(w, 'trabajar');
     });
-    // Descargadores de muelle: un operario junto a cada camión
+    // Descargadores de muelle: un operario JUNTO a cada punto
+    // de atraco real — siempre fuera de la vía del camión
     const DOCKS = [
-        [-32.4, -1.0, 2.6],   // RECOLECCIÓN → estación OP
-        [-32.4, -9.0, 2.4],   // DELEGADO → banda de calidad
-        [-25.6, 18.6, 0.7],   // EDITORIAL → distribuidor
+        [-14, -6.3, 0.7],     // RECOLECCIÓN → hueco taller/operaciones
+        [-20, -5.4, -2.2],    // DELEGADO → cabeza de banda C
+        [-27.2, 19.5, -1.5],  // EDITORIAL → muelle de líneas E
     ];
     DOCKS.forEach(([dx, dz, ry], di) => {
         let w;
