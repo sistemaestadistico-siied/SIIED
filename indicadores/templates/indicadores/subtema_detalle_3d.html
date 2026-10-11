@@ -2479,6 +2479,9 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     //   clip 3 'flex.' → antebrazos 108-119° doblan en plancha
     // Para que lea como vuelo:
     //   · piernas: se eliminan sus pistas → quedan recogidas
+    //   · AL UNÍSONO: el loro bate ambas alas a la vez — las
+    //     pistas R se espejan sobre las L (rig de ejes
+    //     espejados: quat (x,-y,-z,w), pos (-x,y,z))
     //   · estacionario: alas al doble de frecuencia en el ciclo
     //   · vuelo: apertura alar amplificada (delta^k sobre el
     //     primer keyframe) → alas se abren más y baten rápido
@@ -2492,6 +2495,33 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const dur = Math.max(...c.tracks.map(t => t.times[t.times.length - 1] || 0)) || clip.duration;
         const q0 = new THREE.Quaternion(), q = new THREE.Quaternion();
         const dq = new THREE.Quaternion(), rr = new THREE.Quaternion();
+        // Unísono: el lado derecho manda; el izquierdo es su espejo
+        const porNombre = {};
+        c.tracks.forEach(t => porNombre[t.name] = t);
+        c.tracks.forEach(t => {
+            const m = t.name.match(/^R_(\w+)\.(quaternion|position|scale)$/);
+            if (!m || !RE_ALAS.test('R_' + m[1])) return;
+            const l = porNombre['L_' + m[1] + '.' + m[2]];
+            if (!l) return;
+            const n = Math.min(t.times.length, l.times.length);
+            l.times = t.times.slice(0, n);
+            if (m[2] === 'quaternion') {
+                for (let i = 0; i < n * 4; i += 4) {
+                    l.values[i]     =  t.values[i];      //  x
+                    l.values[i + 1] = -t.values[i + 1];  // -y
+                    l.values[i + 2] = -t.values[i + 2];  // -z
+                    l.values[i + 3] =  t.values[i + 3];  //  w
+                }
+            } else if (m[2] === 'position') {
+                for (let i = 0; i < n * 3; i += 3) {
+                    l.values[i]     = -t.values[i];      // -x
+                    l.values[i + 1] =  t.values[i + 1];
+                    l.values[i + 2] =  t.values[i + 2];
+                }
+            } else {
+                for (let i = 0; i < n * 3; i++) l.values[i] = t.values[i];
+            }
+        });
         c.tracks.forEach(t => {
             if (dobleAlas && RE_ALAS.test(t.name)) {
                 // La pista se repite 2× dentro del mismo ciclo →
