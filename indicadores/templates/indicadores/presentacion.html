@@ -1644,7 +1644,7 @@ camDel.userData.ruta = { pts: [[52, -8], [-21, -8]],   i: 1, dir: 1, espera: 0 }
 camEdi.userData.ruta = { pts: [[30, -11.5], [38, -11.5], [38, -22],
     [62.5, -22], [56, -27], [62.5, -22], [62.5, -14], [62.5, -22],
     [38, -22], [-34, -22], [-34, 2.1], [-20.8, 2.1], [-26.6, 2.1],
-    [-26.6, 18], [-25.5, 18]],
+    [-26.6, 20.5], [-26.4, 20.5]],   // muelle al sur del hub: libre de los chutes z18/z24
     // paradas largas SOLO en las salas (idx 0 capa, 3 despacho,
     // 5 comité, 10 recolección): las esquinas no leen como parada
     i: 1, dir: 1, espera: 0, esperaMid: 0.6, paradas: [3, 5, 10] };
@@ -1890,7 +1890,7 @@ function respawnSrv(f, l) {
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texSrv[l]);
     if (f.sello) f.sello.visible = false;
-    lanzarCaida(f, new THREE.Vector3(-25.5, 1.9, 18),
+    lanzarCaida(f, new THREE.Vector3(-26.4, 2.0, 20.3),   // desde el muelle (sur del hub)
                    new THREE.Vector3(-20.6, 1.72, Z_SRV[l]), 0.8);
 }
 function resetFamilias() {
