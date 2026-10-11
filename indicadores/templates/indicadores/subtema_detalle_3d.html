@@ -2389,7 +2389,9 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
             const modelo = SkeletonUtils.clone(gltf.scene);
-            modelo.rotation.y = Math.PI;   // el GLB mira -z
+            // Los clips asienten al modelo mirando -x: con +PI/2
+            // queda viendo al frente (+z del loro), no a la derecha
+            modelo.rotation.y = Math.PI / 2;
             modelo.scale.setScalar(1.5);   // talla de vuelo
             modelo.traverse(o => {
                 if (o.isMesh || o.isSkinnedMesh) {
@@ -2401,8 +2403,9 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             visualDD.add(modelo);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
-            // Clip 1 = idle alas abajo (loop limpio)
-            rigDD.accion = rigDD.acciones[1] || rigDD.acciones[0];
+            // Clip 0 = nado boca abajo: en el aire es el planeo
+            // estacionario; clip 3 = flexiones = aleteo potente
+            rigDD.accion = rigDD.acciones[0] || rigDD.acciones[0];
             if (rigDD.accion) rigDD.accion.play();
         });
     
@@ -2443,18 +2446,18 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
 
         // ---------- Modelo GLB: clip idle / vuelo ----------
-        // Clip 1 = idle alas abajo · clip 3 = flexiones de pecho
-        // (en el aire se lee como aleteo). En movimiento va más
-        // rápido para sentir el batir de alas.
+        // Clip 0 = nado boca abajo → vuelo estacionario (planeo);
+        // clip 3 = flexiones de pecho → aleteo en movimiento.
         if (rig.mixer) {
-            const idxClip = o.moviendose ? 3 : 1;
+            const idxClip = o.moviendose ? 3 : 0;
             const prox = rig.acciones[idxClip] || rig.acciones[0];
             if (prox && rig.accion !== prox) {
                 prox.reset().fadeIn(0.35).play();
                 if (rig.accion) rig.accion.fadeOut(0.35);
                 rig.accion = prox;
             }
-            if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.35 : 1.0;
+            // En movimiento el batir va fuerte; estacionario, suave
+            if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.9 : 0.8;
             rig.mixer.update(dt);
         }
 
