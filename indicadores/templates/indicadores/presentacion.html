@@ -401,8 +401,12 @@ function texturaPaquete(etiqueta, color) {
     cx.fillStyle = color; cx.fillRect(0, 0, 128, 128);
     cx.strokeStyle = 'rgba(255,255,255,0.6)'; cx.lineWidth = 6;
     cx.strokeRect(8, 8, 112, 112);
-    cx.fillStyle = '#fff'; cx.font = 'bold 20px monospace';
+    cx.font = 'bold 20px monospace';
     cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    // contorno oscuro: la etiqueta se lee sobre cualquier relleno
+    cx.lineWidth = 5; cx.strokeStyle = 'rgba(15,23,42,0.9)';
+    cx.strokeText(etiqueta, 64, 64);
+    cx.fillStyle = '#fff';
     cx.fillText(etiqueta, 64, 64);
     return new THREE.CanvasTexture(cv);
 }
@@ -458,19 +462,19 @@ function ponerTex(f, tex) {
 }
 
 // Texturas por rol del paquete en cada flujo
-const texDeleg  = texturaPaquete('DELEG.',  '#f59e0b');
-const texCenso  = texturaPaquete('CENSO',   '#38bdf8');
+const texDeleg  = texturaPaquete('DELEG.',  '#c2410c');
+const texCenso  = texturaPaquete('CENSO',   '#0369a1');
 const texOrg    = texturaPaquete('ORG',     '#b45309');
 const texICE    = texturaPaquete('ICE ✓',   '#16a34a');
 const texFuente = texturaPaquete('FUENTE',  '#8a6d3b');
 const texOp     = texturaPaquete('OP',      '#2563eb');
 const texCjto   = texturaPaquete('CJTO',    '#1d4ed8');
-const texFicha  = texturaPaquete('FICHA',   '#0ea5e9');
+const texFicha  = texturaPaquete('FICHA',   '#075985');
 const texMiniD  = texturaPaquete('DATO',    '#0369a1');
 const texOkInd  = texturaPaquete('IND ✓',   '#059669');
 const texCat    = texturaPaquete('CAT',     '#0f766e');
 const texSrv    = [
-    texturaPaquete('NEWS', '#ef4444'),
+    texturaPaquete('NEWS', '#b91c1c'),
     texturaPaquete('DOC',  '#64748b'),
     texturaPaquete('AGD',  '#b45309')];
 
@@ -551,7 +555,7 @@ function textoCanvas(texto, sub, color = '#1e40af', fondo = '#f8fafc') {
     cx.font = 'bold 44px Arial, sans-serif'; cx.textAlign = 'center';
     cx.fillText(texto, 256, 70);
     cx.font = 'italic 26px Arial, sans-serif';
-    cx.fillStyle = '#a8a29e';
+    cx.fillStyle = '#57534e';
     cx.fillText(sub, 256, 120);
     return new THREE.CanvasTexture(cv);
 }
@@ -1295,7 +1299,7 @@ for (let l = 0; l < 3; l++)
     for (let i = 0; i < 4; i++) famSrv[l].push(nuevaFamilia(cajaUnitaria(texSrv[l])));
 
 // Lluvia de encuestas pequeñas sobre el dossier en SATISFACCIÓN
-const texEncuesta = texturaPaquete('SAT', '#a855f7');
+const texEncuesta = texturaPaquete('SAT', '#7e22ce');
 const lluvia = [];
 for (let i = 0; i < 10; i++) {
     lluvia.push({ mesh: cajaNueva(0.22, 0.22, 0.22, texEncuesta),
@@ -1969,7 +1973,7 @@ const ciudadanos = [];
             cabeza.position.y = 0.72;
             c.add(cuerpo, cabeza);
             c.position.set(bx, by + 0.07, 4.7 + s * 1.0);
-            c.rotation.y = -Math.PI / 2;      // mira la pared
+            c.rotation.y = Math.PI / 2;       // mira la pared (+x)
             c.userData.fase = Math.random() * 7;
             c.userData.y0 = by + 0.07;         // sentado en su banca
             scene.add(c);
@@ -2459,36 +2463,82 @@ new GLTFLoader().load(
 
 // ============ TIMELINE / ACTOS ============
 const ACTOS = [
-    { t0: 0,   t1: 8,   acto: '', texto: '', sub: '',
-      cam: [[0, 26, 50], [0, 6, -4]] },
-    { t0: 8,   t1: 20,  acto: 'Acto I', texto: 'Los muelles de acceso', sub: 'Recolección, Delegado y Editorial: la materia prima llega en camión',
-      cam: [[-42, 6, 8], [-33, 2, -4]] },
-    { t0: 20,  t1: 32,  acto: 'Acto II', texto: 'El Taller', sub: `La máquina más grande: censo y prediagnóstico de ${STATS.organismos} organismos`,
-      cam: [[-30, 5, 10], [-26, 3.5, -2.5]] },
-    { t0: 32,  t1: 44,  acto: 'Acto III', texto: 'El grafo del ecosistema', sub: 'Su producto estrella: el grafo 3D que interrelaciona las variables',
-      cam: [[-22, 8.5, 7], [-16, 6.8, -3]] },
-    { t0: 44,  t1: 56,  acto: 'Acto IV', texto: 'Inventario de operaciones', sub: 'Acompañamiento y capacitación: las fuentes se vuelven operaciones',
-      cam: [[-18, 5, 13], [-11, 2.8, 6.5]] },
-    { t0: 56,  t1: 68,  acto: 'Acto V', texto: 'El nodo T', sub: 'Del conjunto salen dos caminos: indicadores… o catálogo de consulta',
-      cam: [[-9, 5.5, 13], [-2, 2.6, 4]] },
-    { t0: 68,  t1: 80,  acto: 'Acto VI', texto: 'Catálogo de consulta', sub: 'Datos consultables que no son KPI — inventario propio',
+    // ======= PARTE A: PANEON — 90s de vuelo continuo =======
+    { t0: 0,   t1: 9,   acto: '', texto: '', sub: '', pan: true,
+      cam: [[0, 30, 55], [0, 5, -4]] },
+    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Muelles de acceso', sub: 'tres camiones traen la materia prima', pan: true,
+      cam: [[-46, 9, 6], [-33, 2.5, -2]] },
+    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller y su grafo', sub: 'censo, prediagnóstico y el grafo 3D del ecosistema', pan: true,
+      cam: [[-34, 8, 12], [-21, 4, -3]] },
+    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'La cadena de datos', sub: 'operaciones → conjuntos → indicadores → difusión', pan: true,
+      cam: [[-14, 7, 14], [9, 2.5, 4]] },
+    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'El nodo T', sub: 'un ramal se desvía al catálogo de consulta', pan: true,
+      cam: [[-10, 8, 16], [-2, 2.5, 12]] },
+    { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Almacén de indicadores', sub: 'la producción inventariada en un bar chart', pan: true,
+      cam: [[20, 7, 13], [32.5, 3, 2.5]] },
+    { t0: 54,  t1: 63,  acto: 'Paneo', texto: 'La pared y la audiencia', sub: '36 televisores consumen todo — la ciudadanía mira', pan: true,
+      cam: [[26, 7, 17], [38.5, 3, 7]] },
+    { t0: 63,  t1: 72,  acto: 'Paneo', texto: 'Calidad institucional', sub: 'evaluaciones, satisfacción y el FICED', pan: true,
+      cam: [[-26, 8, -15], [0, 2.5, -11]] },
+    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'Hall y servicios', sub: 'hojas de vida de organismos y mini-maquilas', pan: true,
+      cam: [[8, 7, -4], [-12, 2.5, 14]] },
+    { t0: 81,  t1: 90,  acto: 'Paneo', texto: 'Todo conecta', sub: 'del camión al televisor: el ciclo completo', pan: true,
+      cam: [[0, 22, 40], [0, 4, -2]] },
+    // ======= PARTE B: RECORRIDO — 20s por estación =======
+    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Muelle RECOLECCIÓN', sub: 'las fuentes crudas llegan en camión y caen a la tolva del taller',
+      cam: [[-44, 5, 6], [-33.5, 2, -2.5]] },
+    { t0: 110, t1: 130, acto: 'Estación 02', texto: 'Muelle DELEGADO', sub: 'el organismo entrega su dossier: arranca la línea de calidad',
+      cam: [[-44, 5, -4], [-35.5, 2, -10.5]] },
+    { t0: 130, t1: 150, acto: 'Estación 03', texto: 'Muelle EDITORIAL', sub: 'contenido de servicios: noticias, documentos y agenda',
+      cam: [[-36, 5, 24], [-27.5, 2, 17.5]] },
+    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `la máquina más grande: censo y prediagnóstico de ${STATS.organismos} organismos`,
+      cam: [[-32, 5, 9], [-26, 3.5, -2.5]] },
+    { t0: 170, t1: 190, acto: 'Estación 05', texto: 'Grafo del ecosistema', sub: 'el producto estrella del taller: variables interrelacionadas en 3D',
+      cam: [[-22, 8.5, 6], [-16, 6.8, -3]] },
+    { t0: 190, t1: 210, acto: 'Estación 06', texto: 'Almacén de operaciones', sub: 'acompañamiento y capacitación: las fuentes se vuelven operaciones',
+      cam: [[-17, 5, 13], [-10.5, 2.8, 7]] },
+    { t0: 210, t1: 230, acto: 'Estación 07', texto: 'Conjuntos y nodo T', sub: 'la prensa agrupa conjuntos; el ramal T parte al catálogo',
+      cam: [[-8, 5.5, 13], [-2, 2.5, 4]] },
+    { t0: 230, t1: 250, acto: 'Estación 08', texto: 'Catálogo de consulta', sub: 'datos consultables que no son KPI — inventario propio',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
-    { t0: 80,  t1: 92,  acto: 'Acto VII', texto: 'La cadena del indicador', sub: 'Conjunto→fichas→extracción→validación SDMX→difusión',
-      cam: [[5, 5, 13], [17, 2.6, 4]] },
-    { t0: 92,  t1: 104, acto: 'Acto VIII', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos — la producción inventariada`,
+    { t0: 250, t1: 270, acto: 'Estación 09', texto: 'ADMIN', sub: 'cabina de control intermedia — audita el paso de fichas',
+      cam: [[2, 4.5, 11], [2, 2.2, -0.2]] },
+    { t0: 270, t1: 290, acto: 'Estación 10', texto: 'INDICADORES', sub: 'el conjunto se repica en fichas de indicador',
+      cam: [[6.5, 4.5, 11], [6.5, 2.2, -0.2]] },
+    { t0: 290, t1: 310, acto: 'Estación 11', texto: 'REPORTES', sub: 'segunda cabina de control: trazabilidad del dato',
+      cam: [[11.5, 4.5, 11], [11.5, 2.2, -0.2]] },
+    { t0: 310, t1: 330, acto: 'Estación 12', texto: 'EXTRACCIÓN', sub: 'ReglaExtraccion → Dato: se separa lo publicable',
+      cam: [[15, 4.5, 11], [15, 2.2, -0.2]] },
+    { t0: 330, t1: 350, acto: 'Estación 13', texto: 'VALIDACIÓN', sub: 'sello SDMX: la ficha técnica queda validada',
+      cam: [[19.5, 4.5, 11], [19.5, 2.2, -0.2]] },
+    { t0: 350, t1: 370, acto: 'Estación 14', texto: 'DIFUSIÓN', sub: 'gráficos y calendario de difusión — el lanzador despacha',
+      cam: [[24.5, 5, 11], [24.5, 2.5, -0.2]] },
+    { t0: 370, t1: 390, acto: 'Estación 15', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos — el bar chart se llena`,
       cam: [[24, 5, 12], [32.5, 3, 2.5]] },
-    { t0: 104, t1: 116, acto: 'Acto IX', texto: 'La pared de pantallas', sub: 'El destino final de todo: 36 televisores mostrando gráficos',
+    { t0: 390, t1: 410, acto: 'Estación 16', texto: 'La pared de pantallas', sub: 'el destino final de TODO: 36 televisores de gráficos',
       cam: [[27, 5.5, 15], [38.5, 3, 7]] },
-    { t0: 116, t1: 128, acto: 'Acto X', texto: 'La audiencia opina', sub: 'La ciudadanía mira la producción; sus encuestas viajan por tubo a satisfacción',
-      cam: [[32, 5.5, 17], [33, 2.5, 7]] },
-    { t0: 128, t1: 140, acto: 'Acto XI', texto: 'Calidad institucional', sub: 'Evaluaciones que frenan el dossier, la ciudadanía lo engorda, FICED lo sella',
-      cam: [[-24, 6, -17], [-4, 2.6, -10.5]] },
-    { t0: 140, t1: 150, acto: 'Acto XII', texto: 'El hall de capacidad', sub: 'La calidad de cada organismo queda inventariada — hojas de vida',
-      cam: [[14, 6, -3], [28, 2.5, -10.5]] },
-    { t0: 150, t1: 160, acto: 'Acto XIII', texto: 'Mini-maquilas de servicios', sub: 'Editorial, documentos y agenda — cada módulo también produce',
-      cam: [[-26, 6, 16], [-13, 2.2, 18]] },
-    { t0: 160, t1: 178, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
-      cam: [[0, 17, 36], [0, 3, -4]], finale: true },
+    { t0: 410, t1: 430, acto: 'Estación 17', texto: 'La audiencia', sub: 'la ciudadanía consume la pared y opina por tubo neumático',
+      cam: [[24, 5.5, 14], [33, 2, 7.5]] },
+    { t0: 430, t1: 450, acto: 'Estación 18', texto: 'Evaluación estratégica', sub: 'primera cabina: el dossier del organismo se frena y audita',
+      cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
+    { t0: 450, t1: 470, acto: 'Estación 19', texto: 'SATISFACCIÓN', sub: 'las encuestas engordan el dossier — la ciudadanía pesa',
+      cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
+    { t0: 470, t1: 490, acto: 'Estación 20', texto: 'Evaluación táctica', sub: 'segunda cabina de auditoría del proceso',
+      cam: [[0, 5, -5], [0, 2.5, -14.7]] },
+    { t0: 490, t1: 510, acto: 'Estación 21', texto: 'FICED', sub: 'el formulario de capacidad sella el dossier en 5 secciones (A–E)',
+      cam: [[8, 5, -5], [8, 2.5, -14.7]] },
+    { t0: 510, t1: 530, acto: 'Estación 22', texto: 'Evaluación de organismo', sub: 'veredicto estratégico + táctico + operativo',
+      cam: [[16, 5, -5], [16, 2.5, -14.7]] },
+    { t0: 530, t1: 550, acto: 'Estación 23', texto: 'Hall de capacidad', sub: 'la calidad de cada organismo queda inventariada — hojas de vida',
+      cam: [[14, 6, -3], [27, 2.5, -10.5]] },
+    { t0: 550, t1: 570, acto: 'Estación 24', texto: 'Mini-maquila editorial', sub: 'redacción → publicación: noticias y eventos',
+      cam: [[-14, 4, 18], [-14, 1.5, 12]] },
+    { t0: 570, t1: 590, acto: 'Estación 25', texto: 'Mini-maquila documentos', sub: 'edición → clasificación: productos académicos y educativos',
+      cam: [[-14, 4, 24], [-14, 1.5, 18]] },
+    { t0: 590, t1: 610, acto: 'Estación 26', texto: 'Mini-maquila agenda', sub: 'programación → agenda: calendario de difusión',
+      cam: [[-14, 4, 30], [-14, 1.5, 24]] },
+    { t0: 610, t1: 640, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
+      cam: [[0, 18, 38], [0, 3, -4]], finale: true },
 ];
 const DURACION = ACTOS[ACTOS.length - 1].t1;
 
@@ -2517,10 +2567,11 @@ function tickCamara(t) {
     const idx = ACTOS.findIndex(a => t >= a.t0 && t < a.t1);
     const i = idx === -1 ? ACTOS.length - 1 : idx;
     const acto = ACTOS[i];
-    // La cámara LLEGA rápido (≤3.5s) y luego SE DETIENE a explicar
     const dur = acto.t1 - acto.t0;
-    const p = easeInOut(Math.min(1, Math.max(0,
-        (t - acto.t0) / Math.min(3.5, dur * 0.28))));
+    // pan: barrido continuo todo el acto · hold: llega ≤3.5s y SE DETIENE
+    const p = acto.pan
+        ? easeInOut(Math.min(1, Math.max(0, (t - acto.t0) / dur)))
+        : easeInOut(Math.min(1, Math.max(0, (t - acto.t0) / Math.min(3.5, dur * 0.28))));
     const prev = i > 0 ? ACTOS[i - 1].cam : acto.cam;
     _vFrom.fromArray(prev[0]);
     _vTo.fromArray(acto.cam[0]);
@@ -2542,7 +2593,8 @@ function tickIntertitulos(t) {
             elTexto.textContent = a.texto;
             elSub.textContent = a.sub;
             elIntertitulo.classList.add('visible');
-            setTimeout(() => elIntertitulo.classList.remove('visible'), 4200);
+            setTimeout(() => elIntertitulo.classList.remove('visible'),
+                       a.pan ? 5000 : 8000);
         }
         if (a && a.finale && !enFinal) {
             enFinal = true;
