@@ -280,3 +280,23 @@ Búsqueda de desags sin referencias ni vínculo indirecto → 17 encontradas:
 - Snapshot sueltas: `audit_desags_sueltas`. 0 refs rotas
 
 **Estado final: 176 dominios / 3.020 desags**
+
+### 7.8 Corrección de tipos por inconsistencia semántica
+
+Función `flip_tipo_dominio(id)` migra el dominio entre lados tematica↔geografica
+moviendo vínculos M2M, refs de datos, predeterminadas y FKs legacy:
+
+- **geo→tem (10)**: `Grupo de edad` ×2 (218/220), `Tipo de unidad de salud`(289),
+  `Tipo de obra`(202), `hora`(360), `día`(358), `especialidad_juzgado`(331),
+  `categoria_vehiculo`(397), `Sexo`(129), `Vocacion de uso del suelo`(176)
+- **tem→geo (22)**: `Barrio`(271, 335 desags), `Vereda` ×3 (272/273/335),
+  `corregimiento`(336), `Zona de expansión`(207), `Ciudad` ×2 (247/275),
+  `comuna`(353), `Centro de atención IPS`(313), `IPS` ×3 (305/309/311),
+  `Clínica`(315), `Institución de educación superior`(322), `Ámbito`(174),
+  `entidad_territorial`(388), `código_radio`(333), `rutas`/`tiempomin`/
+  `longitudkm`/`capacidad`(399-402)
+- Resync global de FKs legacy ejecutado; las 8 consistencias por lado quedaron
+  en **0** (ninguna desag en tabla del lado equivocado)
+- **Dominios con >100 desags**: `comunas`(449, geografica, 365),
+  `Barrio`(271, geografica, 335), `Centro de salud`(308, geografica, 108) —
+  legítimos: entidades geográficas por indicador
