@@ -2643,6 +2643,27 @@ const ciudadanos = [];
         ciudadanos.push(c);
     }
 }
+
+// Logo institucional pintado en la explanada entre el
+// catálogo de consulta y la ventanilla PQRS
+{
+    const logoM = new THREE.Mesh(
+        new THREE.PlaneGeometry(13, 13),
+        new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false }));
+    logoM.rotation.x = -Math.PI / 2;
+    logoM.rotation.z = -0.15;      // leve diagonal al paso peatonal
+    logoM.position.set(15, 0.03, 17);
+    logoM.visible = false;         // aparece cuando la textura carga
+    scene.add(logoM);
+    const cargadorLogo = new THREE.TextureLoader();
+    cargadorLogo.setCrossOrigin('anonymous');
+    cargadorLogo.load('https://i.ibb.co/3YWQvHpB/descarga-3.png', tex => {
+        logoM.scale.x = tex.image.width / tex.image.height;  // proporción real
+        logoM.material.map = tex;
+        logoM.material.needsUpdate = true;
+        logoM.visible = true;
+    });
+}
 // Tubo neumático: las encuestas viajan DENTRO de un tubo
 // transparente que va de la ventanilla a la tolva de satisfacción.
 const curvaTubo = new THREE.CatmullRomCurve3([
