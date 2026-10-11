@@ -246,7 +246,7 @@ scene.fog = new THREE.Fog(0x111a24, 40, 110);
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 300);
 camera.position.set(0, 22, 42);
 
-const ambient = new THREE.AmbientLight(0xdce9f7, 0.62);
+const ambient = new THREE.AmbientLight(0xdce9f7, 0.78);
 scene.add(ambient);
 const sol = new THREE.DirectionalLight(0xeaf2ff, 1.1);
 sol.position.set(-45, 42, -60);   // desde la luna (NE alto sobre la cordillera)
@@ -1489,6 +1489,22 @@ function crearMaquina(cfg) {
     cartel.position.set(0, 6.35, 1.6);
     m.add(cartel);
 
+    // Farol de la estación: poste con brazo y bombilla encendida
+    // sobre la banda — iluminación propia de cada flujo
+    const posteFar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.06, 0.08, 5.4, 6), posteMat);
+    posteFar.position.set(1.9, 2.7, 1.35); m.add(posteFar);
+    const brazoFar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 0.09, 1.0), posteMat);
+    brazoFar.position.set(1.9, 5.35, 0.9); m.add(brazoFar);
+    const pantFar = new THREE.Mesh(
+        new THREE.ConeGeometry(0.26, 0.2, 8, 1, true),
+        new THREE.MeshLambertMaterial({ color: 0x3f4a5a, side: THREE.DoubleSide }));
+    pantFar.position.set(1.9, 5.3, 0.42); m.add(pantFar);
+    const foco = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfff2c4 }));
+    foco.position.set(1.9, 5.2, 0.42); m.add(foco);
+
     // Plataforma del operario: larga para que el monitor quepa al extremo
     const plataforma = new THREE.Mesh(
         new THREE.BoxGeometry(3.0, 0.15, 1.4),
@@ -1780,6 +1796,16 @@ function crearSalaJunta(cfg) {
     mastil.position.set(0, AL + 1.2, 1.28); g.add(mastil);
     const cartel = crearCartel(cfg.nombre, cfg.modelo, 4);
     cartel.position.set(0, AL + 3.05, 1.35); g.add(cartel);
+    // Bombilla colgante: la sala tiene luz propia de noche
+    const matCor = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    const cordon = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, 0.7, 4), matCor);
+    cordon.position.set(0, AL - 0.4, 0); g.add(cordon);
+    const bombi = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffe9b0 }));
+    bombi.position.set(0, AL - 0.78, 0); g.add(bombi);
+    const luzSala = new THREE.PointLight(0xffe2b0, 0.9, 5.5, 1.6);
+    luzSala.position.set(0, AL - 1.0, 0); g.add(luzSala);
     // Lámpara de estado (misma lógica de las máquinas)
     const posteL = new THREE.Mesh(
         new THREE.CylinderGeometry(0.045, 0.045, 0.55, 6),
@@ -2925,6 +2951,22 @@ const TVs = [];
     paredG.add(cartelTV);
     scene.add(paredG);
 }
+
+// ============ LUZ PROPIA DE CADA FLUJO ============
+// Faroles reales sobre las bandas y los complejos: cada línea
+// de trabajo se lee iluminada aunque la escena sea nocturna.
+[[-8.5, 6.2, 0], [6.5, 6.2, -0.2], [21.5, 6.2, -0.2], [36.5, 6.2, -0.2],
+ [-18, 5.6, -14.7], [-8, 5.6, -14.7], [8, 5.6, -14.7],
+ [-14, 6, 18], [51, 5.5, 2.4], [30, 8.6, -16.5],
+ [52, 6.4, -14], [52, 8, -30]].forEach(([x, y, z]) => {
+    const pl = new THREE.PointLight(0xffd9a0, 1.0, 15, 2);
+    pl.position.set(x, y, z);
+    scene.add(pl);
+    const bulbo = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0xffe9b0 }));
+    bulbo.position.set(x, y, z);
+    scene.add(bulbo);
+});
 function asignarGrafico(tv) {
     tv.pantalla.material.map = texCharts[Math.floor(Math.random() * texCharts.length)];
     tv.pantalla.material.needsUpdate = true;
