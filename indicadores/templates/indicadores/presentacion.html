@@ -450,6 +450,18 @@ function ponerTex(f, tex) {
     f.mesh.material.map = tex;
     f.mesh.material.needsUpdate = true;
 }
+// Sello visible sobre la caja: marca que pasó un punto de control
+function sellar(f, color = 0xf59e0b) {
+    if (!f.sello) {
+        f.sello = new THREE.Mesh(
+            new THREE.BoxGeometry(0.34, 0.14, 0.34),
+            new THREE.MeshLambertMaterial({ color }));
+        f.sello.position.y = 0.58;
+        f.mesh.add(f.sello);
+    }
+    f.sello.material.color.setHex(color);
+    f.sello.visible = true;
+}
 
 // Texturas por rol del paquete en cada flujo
 const texDeleg  = texturaPaquete('DELEG.',  '#c2410c');
@@ -463,6 +475,7 @@ const texFicha  = texturaPaquete('FICHA',   '#075985');
 const texMiniD  = texturaPaquete('DATO',    '#0369a1');
 const texOkInd  = texturaPaquete('IND ✓',   '#059669');
 const texCat    = texturaPaquete('CAT',     '#0f766e');
+const texDif    = texturaPaquete('DIF',     '#8b5cf6');
 const texSrv    = [
     texturaPaquete('NEWS', '#b91c1c'),
     texturaPaquete('DOC',  '#64748b'),
@@ -764,12 +777,9 @@ function crearMaquina(cfg) {
     zocalo.position.y = 0.25;
     m.add(zocalo);
 
-    // Tubo de ventilación
-    const tubo = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.35, 0.45, 1.6, 10),
-        new THREE.MeshLambertMaterial({ color: 0xc4d0d9 }));
-    tubo.position.set(1.4, 4.3, 0);
-    m.add(tubo);
+    // (sin chimenea genérica: cada estación declara en su techo
+    // qué hace — antena, manómetro, luz de escaneo, ventilador...)
+    const posteMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
 
     // Luz de estado (parpadea)
     const lampMat = new THREE.MeshBasicMaterial({ color: 0x22cc44 });
@@ -872,9 +882,14 @@ function crearMaquina(cfg) {
         actuador = fan;
     }
 
-    // Cartel con nombre real del modelo
+    // Letrero de la estación en un mástil alto: la máquina nunca lo tapa
+    const mastil = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 3.2, 0.12),
+        new THREE.MeshLambertMaterial({ color: 0x64748b }));
+    mastil.position.set(0, 5.1, 1.52);
+    m.add(mastil);
     const cartel = crearCartel(cfg.nombre, cfg.modelo);
-    cartel.position.set(0, 2.6, 1.56);
+    cartel.position.set(0, 6.35, 1.6);
     m.add(cartel);
 
     // Plataforma del operario: larga para que el monitor quepa al extremo
@@ -900,6 +915,18 @@ function crearMaquina(cfg) {
         const cartelSaco = crearCartel('INSUMOS', 'materia prima', 1.6);
         cartelSaco.position.set(-1.4, 1.15, 2.35);
         m.add(cartelSaco);
+        // Techo: antena parabólica — la estación RECOGE materia prima
+        const ant = new THREE.Group();
+        const mastA = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), posteMat);
+        mastA.position.y = 0.45; ant.add(mastA);
+        const plato = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.35, 10, 1, true),
+            new THREE.MeshLambertMaterial({ color: 0xcbd5e1, side: THREE.DoubleSide }));
+        plato.position.y = 1.0; plato.rotation.x = -0.7; ant.add(plato);
+        const bola = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        bola.position.set(0, 1.12, 0.22); ant.add(bola);
+        ant.position.set(1.4, 3.6, -0.8); m.add(ant);
+        extras.antena = ant;
         // Pedacito de reporte que cae de la tolva en bucle
         const chunk = new THREE.Mesh(
             new THREE.BoxGeometry(0.28, 0.22, 0.28),
@@ -916,6 +943,16 @@ function crearMaquina(cfg) {
         g2.position.set(0.85, 1.25, 1.56);
         m.add(g2);
         extras.g1 = g1; extras.g2 = g2;
+        // Techo: ventilador que expulsa el calor del proceso
+        const fanR = new THREE.Group();
+        for (let i = 0; i < 4; i++) {
+            const aspaR = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.05, 0.14), posteMat);
+            aspaR.position.x = 0.28;
+            const pivR = new THREE.Group();
+            pivR.rotation.y = i * Math.PI / 2; pivR.add(aspaR); fanR.add(pivR);
+        }
+        fanR.position.set(1.4, 3.75, -0.8); m.add(fanR);
+        extras.fanR = fanR;
     } else if (cfg.tipo === 'prensa') {
         // Destello cuando el sello estampa sobre el paquete
         const flash = new THREE.Mesh(
@@ -931,6 +968,19 @@ function crearMaquina(cfg) {
         const placa = crearCartel(cfg.sello || 'DDI', 'estándar', 1.0);
         placa.position.set(0, 0.05, 0.65);
         actuador.add(placa);
+        // Techo: manómetro de presión — la aguja salta con el golpe
+        const mano = new THREE.Group();
+        const cajaM = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.14, 14), posteMat);
+        cajaM.rotation.x = Math.PI / 2; mano.add(cajaM);
+        const caraM = new THREE.Mesh(new THREE.CircleGeometry(0.24, 14),
+            new THREE.MeshBasicMaterial({ color: 0xf8fafc }));
+        caraM.position.z = 0.08; mano.add(caraM);
+        const pivA = new THREE.Group(); pivA.position.z = 0.1;
+        const aguja = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.2, 0.02),
+            new THREE.MeshBasicMaterial({ color: 0xdc2626 }));
+        aguja.position.y = 0.09; pivA.add(aguja); mano.add(pivA);
+        mano.position.set(1.4, 4.0, -0.8); m.add(mano);
+        extras.aguja = pivA;
     } else if (cfg.tipo === 'escaner' || cfg.tipo === 'eval') {
         // Semáforo de control: verde pasa, rojo evalúa
         const poste = new THREE.Mesh(
@@ -954,6 +1004,28 @@ function crearMaquina(cfg) {
         extras.semRojo = semRojo;
         extras.semVerde = semVerde;
         extras.semHasta = 0; // timestamp hasta el que el rojo queda encendido
+        if (cfg.tipo === 'escaner') {
+            // Techo: barra de luz giratoria que escanea
+            const bar = new THREE.Group();
+            const baseB = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.1, 8), posteMat);
+            bar.add(baseB);
+            const luzB = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.12, 0.16),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+            luzB.position.y = 0.12; bar.add(luzB);
+            bar.position.set(1.4, 3.72, -0.8); m.add(bar);
+            extras.luzbar = bar;
+        } else {
+            // Techo: domo CCTV — la cabina "observa" la cinta
+            const cctv = new THREE.Group();
+            const mastC = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.7, 6), posteMat);
+            mastC.position.y = 0.35; cctv.add(mastC);
+            const domo = new THREE.Mesh(
+                new THREE.SphereGeometry(0.22, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+                new THREE.MeshLambertMaterial({ color: 0x334155 }));
+            domo.rotation.x = Math.PI; domo.position.y = 0.78; cctv.add(domo);
+            cctv.position.set(1.4, 3.6, -0.8); m.add(cctv);
+            extras.cctv = cctv;
+        }
     } else if (cfg.tipo === 'lanzador') {
         // Banderines de feria sobre la estación
         const cuerda = new THREE.Mesh(
@@ -984,6 +1056,15 @@ function crearMaquina(cfg) {
             m.add(barra);
             extras.barras.push(barra);
         }
+        // Techo: banderín de despacho que ondea al lanzar
+        const astaD = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.3, 6), posteMat);
+        astaD.position.set(1.4, 4.25, -0.8); m.add(astaD);
+        const banderinTecho = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.35),
+            new THREE.MeshBasicMaterial({ color: 0x8b5cf6, side: THREE.DoubleSide }));
+        banderinTecho.geometry.translate(0.35, 0, 0);
+        banderinTecho.position.set(1.4, 4.75, -0.8);
+        m.add(banderinTecho);
+        extras.banderinTecho = banderinTecho;
     }
 
     scene.add(m);
@@ -1116,7 +1197,7 @@ function crearCamion(cfg) {
     // (mirando a cámara, como los carteles de las estaciones)
     const posteL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.4, 0.12),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-    posteL.position.set(0.2, 2.2, 1.9);
+    posteL.position.set(0.2, 2.2, 1.8);   // detrás del plano: no lo atraviesa
     g.add(posteL);
     const cartel = crearCartel(cfg.etiqueta, cfg.sub, 3.2);
     cartel.position.set(0.2, 4.1, 1.95);
@@ -1325,6 +1406,7 @@ function respawnCal(f) {
     f.mesh.scale.setScalar(0.72);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, src.tex());
+    if (f.sello) f.sello.visible = false;
     lanzarCaida(f, src.desde, src.hasta, 0.85);
 }
 function respawnRec(f) {
@@ -1348,6 +1430,7 @@ function respawnD2(f) {
     f.mesh.scale.setScalar(0.34);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texOp);
+    if (f.sello) f.sello.visible = false;
     lanzarCaida(f, new THREE.Vector3(-8.5, 3.0, 4),
                    new THREE.Vector3(-8.5, 1.72, 4), 0.5);
 }
@@ -1356,6 +1439,7 @@ function respawnSrv(f, l) {
     f.mesh.scale.setScalar(0.4);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texSrv[l]);
+    if (f.sello) f.sello.visible = false;
     lanzarCaida(f, new THREE.Vector3(-23.4, 1.95, 17.5),
                    new THREE.Vector3(-20.6, 1.72, Z_SRV[l]), 0.8);
 }
@@ -1406,7 +1490,7 @@ function tickFamCal(f, dt) {
     const x = f.mesh.position.x;
     if (!f.pasadas.has('e1') && x > -18) {
         f.pasadas.add('e1'); f.estado = 'eval'; f.tPausa = 0;
-        disparo('EVAL. ESTRATÉGICA', 0.9); return;
+        sellar(f); disparo('EVAL. ESTRATÉGICA', 0.9); return;
     }
     if (!f.pasadas.has('sat') && x > -8) {
         f.pasadas.add('sat'); f.estado = 'crece'; f.tCrece = 0;
@@ -1414,14 +1498,14 @@ function tickFamCal(f, dt) {
     }
     if (!f.pasadas.has('e2') && x > 0) {
         f.pasadas.add('e2'); f.estado = 'eval'; f.tPausa = 0;
-        disparo('EVAL. TÁCTICA', 0.9); return;
+        sellar(f); disparo('EVAL. TÁCTICA', 0.9); return;
     }
     if (!f.pasadas.has('fic') && x > 8) {
         f.pasadas.add('fic'); ponerTex(f, texICE); disparo('FICED');
     }
     if (!f.pasadas.has('e3') && x > 16) {
         f.pasadas.add('e3'); f.estado = 'eval'; f.tPausa = 0;
-        disparo('EVAL. ORGANISMO', 0.9); return;
+        sellar(f); disparo('EVAL. ORGANISMO', 0.9); return;
     }
     if (x > 24) {
         const slot = almHALL.idx < almHALL.slots.length
@@ -1530,7 +1614,7 @@ function tickFamD2(f, dt) {
     }
     if (!f.pasadas.has('adm') && x > 2) {
         f.pasadas.add('adm'); f.estado = 'eval'; f.tPausa = 0;
-        disparo('ADMIN', 0.8); return;
+        sellar(f); disparo('ADMIN', 0.8); return;
     }
     if (!f.pasadas.has('ind') && x > 6.5) {
         f.pasadas.add('ind'); f.mesh.scale.setScalar(0.34);
@@ -1538,7 +1622,7 @@ function tickFamD2(f, dt) {
     }
     if (!f.pasadas.has('rep') && x > 11.5) {
         f.pasadas.add('rep'); f.estado = 'eval'; f.tPausa = 0;
-        disparo('REPORTES', 0.8); return;
+        sellar(f); disparo('REPORTES', 0.8); return;
     }
     if (!f.pasadas.has('ext') && x > 15) {
         f.pasadas.add('ext'); f.mesh.scale.setScalar(0.24);
@@ -1548,7 +1632,8 @@ function tickFamD2(f, dt) {
         f.pasadas.add('val'); ponerTex(f, texOkInd); disparo('VALIDACIÓN');
     }
     if (!f.pasadas.has('dif') && x > 24.5) {
-        f.pasadas.add('dif'); disparo('DIFUSIÓN');
+        f.pasadas.add('dif'); f.mesh.scale.setScalar(0.28);
+        ponerTex(f, texDif); disparo('DIFUSIÓN');
     }
     if (x > 29) {
         const slot = faseEstante === 'llenando' ? siguienteSlot() : -1;
@@ -1575,11 +1660,12 @@ function tickFamSrv(f, l, dt) {
     posEnSeg(f);
     const x = f.mesh.position.x;
     if (!f.pasadas.has('a') && x > -17) {
-        f.pasadas.add('a');
+        f.pasadas.add('a'); f.mesh.scale.setScalar(0.33);
         disparo(['REDACCIÓN', 'EDICIÓN', 'PROGRAMACIÓN'][l]);
     }
     if (!f.pasadas.has('b') && x > -11) {
-        f.pasadas.add('b');
+        f.pasadas.add('b'); f.mesh.scale.setScalar(0.27);
+        sellar(f, 0x0ea5e9);
         disparo(['PUBLICACIÓN', 'CLASIFICACIÓN', 'AGENDA'][l]);
     }
     if (x > -7) {
@@ -1591,28 +1677,8 @@ function tickFamSrv(f, l, dt) {
 }
 
 // ============ HALL DE CAPACIDAD ESTADÍSTICA ============
-// Muro vitrina detrás de la estación HALL: placas de organismos
-{
-    const muro = new THREE.Mesh(
-        new THREE.BoxGeometry(9, 4.6, 0.25),
-        new THREE.MeshLambertMaterial({ color: 0xeef2f6 }));
-    muro.position.set(29.8, 2.3, -11.4);
-    muro.castShadow = true;
-    scene.add(muro);
-    const cab = crearCartel('HALL DE CAPACIDAD', 'hojas de vida de organismos', 5);
-    cab.position.set(29.8, 4.9, -11.2);
-    scene.add(cab);
-    const texPlaca = textoCanvas('ORGANISMO', 'ICE · hoja de vida', '#7c3aed');
-    const placaGeom = new THREE.PlaneGeometry(1.5, 0.47);
-    const placaMat = new THREE.MeshBasicMaterial({ map: texPlaca });
-    for (let r = 0; r < 3; r++) {
-        for (let c2 = 0; c2 < 4; c2++) {
-            const p = new THREE.Mesh(placaGeom, placaMat);
-            p.position.set(29.8 - 3.3 + c2 * 2.2, 2.7 - r * 0.75, -11.25);
-            scene.add(p);
-        }
-    }
-}
+// (la vitrina de hojas de vida vive DENTRO de la sala de juntas:
+// ver el panel oeste del podio más abajo)
 
 // ============ ZONA DE SERVICIOS (oeste) ============
 // Kioscos de los módulos de soporte: catálogos, documentos,
@@ -1628,7 +1694,7 @@ function crearKiosco(cfg) {
     const poste = new THREE.Mesh(
         new THREE.BoxGeometry(0.08, 2.2, 0.08),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-    poste.position.set(-0.2, 1.6, 0);
+    poste.position.set(-0.31, 1.6, 0);   // detrás del cartel (mira a +x)
     k.add(poste);
     const cartel = crearCartel(cfg.nombre, cfg.modelo, 2.4);
     cartel.position.set(-0.2, 3.0, 0);
@@ -1733,7 +1799,8 @@ const grafo = new THREE.Group();
         new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.4 })));
     // El grafo vive DENTRO de la sala de juntas del HALL, sobre
     // la mesa del consejo: ahí se analiza el ecosistema
-    grafo.position.set(30, 6.9, -16.5);
+    grafo.scale.setScalar(0.5);   // cabe holgado dentro de la sala
+    grafo.position.set(30, 6.05, -16.5);
     scene.add(grafo);
     const cartelG = crearCartel('GRAFO 3D', 'ecosistema · generado por el taller', 2.8);
     cartelG.position.set(30, 7.0, -14.15);
@@ -1747,11 +1814,12 @@ const grafo = new THREE.Group();
 {
     const junta = new THREE.Group();
     const matJ = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
-    const losa = new THREE.Mesh(new THREE.BoxGeometry(7, 0.25, 4.6), matJ);
+    // Podio amplio: cabe el consejo + grafo + vitrina + pantallas
+    const losa = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.25, 7.0), matJ);
     losa.position.y = 4.5; losa.castShadow = true; junta.add(losa);
-    const techo = new THREE.Mesh(new THREE.BoxGeometry(7, 0.18, 4.6), matJ);
+    const techo = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.18, 7.0), matJ);
     techo.position.y = 7.5; techo.castShadow = true; junta.add(techo);
-    for (const [px, pz] of [[-3.3, -2.1], [3.3, -2.1], [-3.3, 2.1], [3.3, 2.1]]) {
+    for (const [px, pz] of [[-4.6, -3.3], [4.6, -3.3], [-4.6, 3.3], [4.6, 3.3]]) {
         const pata = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.5, 0.22), matJ);
         pata.position.set(px, 2.25, pz); junta.add(pata);
         const dintel = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.0, 0.22), matJ);
@@ -1760,31 +1828,52 @@ const grafo = new THREE.Group();
     // Paredes de vidrio entre losa y techo
     const vidrio = new THREE.MeshLambertMaterial(
         { color: 0xbfe3f5, transparent: true, opacity: 0.22 });
-    const paredN = new THREE.Mesh(new THREE.BoxGeometry(6.6, 2.9, 0.08), vidrio);
-    paredN.position.set(0, 6.05, -2.2); junta.add(paredN);
-    const paredS = paredN.clone(); paredS.position.z = 2.2; junta.add(paredS);
-    const paredE = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.9, 4.3), vidrio);
-    paredE.position.set(3.3, 6.05, 0); junta.add(paredE);
-    const paredO = paredE.clone(); paredO.position.x = -3.3; junta.add(paredO);
+    const paredN = new THREE.Mesh(new THREE.BoxGeometry(9.2, 2.9, 0.08), vidrio);
+    paredN.position.set(0, 6.05, -3.4); junta.add(paredN);
+    const paredS = paredN.clone(); paredS.position.z = 3.4; junta.add(paredS);
+    const paredE = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.9, 6.6), vidrio);
+    paredE.position.set(4.6, 6.05, 0); junta.add(paredE);
+    const paredO = paredE.clone(); paredO.position.x = -4.6; junta.add(paredO);
     // Mesa del consejo con papeles
-    const mesa = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.14, 1.5),
+    const mesa = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.14, 2.0),
         new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
     mesa.position.y = 5.45; junta.add(mesa);
-    for (const mx of [-1.4, 1.4]) {
-        const pataM = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.75, 1.2), matJ);
+    for (const mx of [-1.9, 1.9]) {
+        const pataM = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.75, 1.6), matJ);
         pataM.position.set(mx, 5.0, 0); junta.add(pataM);
     }
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 7; i++) {
         const papel = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.03, 0.5),
             new THREE.MeshLambertMaterial({ color: 0xf8fafc }));
-        papel.position.set(-1.4 + i * 0.7, 5.55, (i % 2) * 0.4 - 0.2);
+        papel.position.set(-2.1 + i * 0.7, 5.55, (i % 2) * 0.5 - 0.25);
         papel.rotation.y = i * 0.7;
         junta.add(papel);
     }
+    // Vitrina del HALL dentro de la sala: hojas de vida en la pared
+    // oeste, frente a la mesa (el consejo consulta expedientes)
+    const vitrina = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.6, 6.0),
+        new THREE.MeshLambertMaterial({ color: 0xeef2f6 }));
+    vitrina.position.set(-4.4, 6.0, 0); junta.add(vitrina);
+    const texPlaca = textoCanvas('ORGANISMO', 'ICE · hoja de vida', '#7c3aed');
+    const placaGeom = new THREE.PlaneGeometry(1.5, 0.47);
+    const placaMat = new THREE.MeshBasicMaterial({ map: texPlaca });
+    for (let r = 0; r < 3; r++) {
+        for (let c2 = 0; c2 < 3; c2++) {
+            const p = new THREE.Mesh(placaGeom, placaMat);
+            p.position.set(-4.28, 6.7 - r * 0.65, -2.2 + c2 * 2.2);
+            p.rotation.y = Math.PI / 2;
+            junta.add(p);
+        }
+    }
+    const cabV = crearCartel('HALL DE CAPACIDAD', 'hojas de vida de organismos', 2.6);
+    cabV.position.set(-4.28, 7.05, 0); cabV.rotation.y = Math.PI / 2;
+    junta.add(cabV);
+    // (los televisores de la pared este se montan más abajo,
+    // después de crear las texturas de gráficos)
     junta.position.set(30, 0, -16.5);
     scene.add(junta);
     const cartelJ = crearCartel('SALA DE JUNTAS', 'hall de capacidad · decisión', 3.0);
-    cartelJ.position.set(30, 3.9, -14.1);
+    cartelJ.position.set(30, 4.2, -12.5);
     scene.add(cartelJ);
 }
 
@@ -1797,23 +1886,23 @@ const ficedBarras = [];
 {
     const rack = new THREE.Mesh(new THREE.BoxGeometry(5.4, 2.5, 0.2),
         new THREE.MeshLambertMaterial({ color: 0xede9fe }));
-    rack.position.set(30, 6.0, -18.45);
+    rack.position.set(30, 6.0, -19.6);
     scene.add(rack);
-    const cab = crearCartel('FICED', 'tablero de capacidad', 2.6);
-    cab.position.set(30, 7.1, -18.28);
+    const cab = crearCartel('FICED', 'tablero de capacidad', 2.0);
+    cab.position.set(30, 7.08, -19.48);
     scene.add(cab);
     const secciones = ['CARACT.', 'RR.HH.', 'PROCESOS', 'PROCED.', 'ICE'];
     for (let i = 0; i < secciones.length; i++) {
         const etq = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.3),
             new THREE.MeshBasicMaterial({
                 map: textoCanvas(secciones[i], '', '#7c3aed') }));
-        etq.position.set(28.0, 6.75 - i * 0.42, -18.32);
+        etq.position.set(28.0, 6.75 - i * 0.42, -19.46);
         scene.add(etq);
         const g = new THREE.BoxGeometry(3.4, 0.26, 0.06);
         g.translate(1.7, 0, 0);   // crece desde el borde izquierdo
         const barra = new THREE.Mesh(g,
             new THREE.MeshBasicMaterial({ color: 0xa78bfa }));
-        barra.position.set(28.85, 6.75 - i * 0.42, -18.32);
+        barra.position.set(28.85, 6.75 - i * 0.42, -19.46);
         scene.add(barra);
         ficedBarras.push(barra);
     }
@@ -1887,6 +1976,22 @@ for (let i = 0; i < 10; i++) {
     cv.width = 256; cv.height = 192;
     texCharts.push(new THREE.CanvasTexture(cv));
     pintarChart(i);
+}
+// Televisores de la sala de juntas (pared este interior): el
+// consejo monitorea la producción con los mismos gráficos que
+// la pared grande — se repintan solos cada ~9s
+{
+    for (let i = 0; i < 3; i++) {
+        const marco = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.3, 1.9),
+            new THREE.MeshLambertMaterial({ color: 0x1f2937 }));
+        marco.position.set(34.45, 6.15, -18.7 + i * 2.2);
+        scene.add(marco);
+        const pant = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.05),
+            new THREE.MeshBasicMaterial({ map: texCharts[1 + i * 3] }));
+        pant.position.set(34.38, 6.15, -18.7 + i * 2.2);
+        pant.rotation.y = -Math.PI / 2;
+        scene.add(pant);
+    }
 }
 let tUltimoChart = 0;
 
@@ -2021,6 +2126,14 @@ const ciudadanos = [];
                 new THREE.SphereGeometry(0.15, 10, 10),
                 new THREE.MeshLambertMaterial({ color: 0xf5d0a9 }));
             cabeza.position.y = 0.72;
+            // Ojos en la cara frontal: deja claro hacia dónde mira
+            const ojoGeom = new THREE.SphereGeometry(0.028, 6, 6);
+            const ojoMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+            for (const ox of [-0.055, 0.055]) {
+                const ojo = new THREE.Mesh(ojoGeom, ojoMat);
+                ojo.position.set(ox, 0.75, 0.13);
+                c.add(ojo);
+            }
             c.add(cuerpo, cabeza);
             c.position.set(bx, by + 0.07, 4.7 + s * 1.0);
             c.rotation.y = Math.PI / 2;       // mira la pared (+x)
@@ -2893,8 +3006,19 @@ function animate() {
             ex.semRojo.material.color.setHex(rojo ? 0xff2222 : 0x551111);
             ex.semVerde.material.color.setHex(rojo ? 0x115511 : 0x22ff55);
         }
-        // vapor periódico de la chimenea
-        if (((tGlobal + u.fase) % 1.4) < dt) soltarVapor(m.position.x + 1.4, 5.1, m.position.z);
+        // Bocanada corta al procesar cada caja (reacción, no chimenea)
+        if (edad >= 0 && edad < dt * 1.6)
+            soltarVapor(m.position.x + 1.4, 4.7 * (u.escala || 1), m.position.z);
+        // Rasgos de techo animados por tipo de estación
+        if (ex.antena) ex.antena.rotation.y += dt * 0.55;
+        if (ex.aguja) ex.aguja.rotation.z = -0.7 + golpe * 1.4;
+        if (ex.luzbar) ex.luzbar.rotation.y += dt * (1.6 + golpe * 9);
+        if (ex.fanR) ex.fanR.rotation.y += dt * (2.2 + golpe * 8);
+        if (ex.cctv) ex.cctv.rotation.y = Math.sin(tt * 0.7) * 0.85;
+        if (ex.banderinTecho) {
+            ex.banderinTecho.rotation.y = Math.sin(tt * 5.2) * 0.3;
+            ex.banderinTecho.scale.x = 1 + golpe * 0.35;
+        }
         if (u.actuador) {
             if (u.tipo === 'prensa') {
                 // golpe de prensa solo cuando se forma la mediana
