@@ -263,3 +263,20 @@ Dominio degenerado eliminado por decisión del equipo:
 - **Estado final: 177 dominios / 3.037 desags / 0 nombres genéricos**
 - Los 4 dominios `Grupo de edad` coexisten con nombre correcto (clusters por
   formato de rango, no se fusionaron por diff>2)
+
+### 7.7 Desags sin relación con ningún indicador
+
+Búsqueda de desags sin referencias ni vínculo indirecto → 17 encontradas:
+
+- **`componente` (id 116) eliminado**: quedó huérfano cuando su hijo `derecho`
+  (115) se eliminó en la criba. 11 desags con 0 refs/0 capa_geo/0 hijas →
+  dominio + desags borrados. Snapshot: `audit_d116_componente`
+- **`Sexo` (id 2)**: `Hombre`(101) y `Mujer`(103) eliminadas — nadie las usa
+  (los datos usan `Hombres`/`Mujeres`/`Total`). Queda con 3 desags
+- **`Área Geográfica` (id 4)**: `Sin Información`, `Área Metropolitana de Cali`,
+  `Nacional`, `Cali` eliminadas (sin capa_geo ni refs). Queda con las 3
+  desags con `capa_geo` (`Cabecera Municipal`, `Centros Poblados y Rural
+  Disperso`, `Total`)
+- Snapshot sueltas: `audit_desags_sueltas`. 0 refs rotas
+
+**Estado final: 176 dominios / 3.020 desags**
