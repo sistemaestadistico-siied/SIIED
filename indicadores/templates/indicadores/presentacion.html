@@ -1719,18 +1719,19 @@ const grafo = new THREE.Group();
     grafo.add(new THREE.LineSegments(
         new THREE.BufferGeometry().setFromPoints(pts),
         new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.4 })));
-    // El grafo vive del lado de CALIDAD DEL DATO (z<0), flotando
-    // sobre la línea de evaluaciones
-    grafo.position.set(12, 7.0, -18);
+    // El grafo vive DENTRO de la sala de juntas del HALL, sobre
+    // la mesa del consejo: ahí se analiza el ecosistema
+    grafo.position.set(30, 6.9, -16.5);
     scene.add(grafo);
-    const cartelG = crearCartel('GRAFO 3D', 'ecosistema · variables interrelacionadas', 2.8);
-    cartelG.position.set(12, 4.6, -17.4);
+    const cartelG = crearCartel('GRAFO 3D', 'ecosistema · generado por el taller', 2.8);
+    cartelG.position.set(30, 7.0, -14.15);
     scene.add(cartelG);
 }
 
-// ============ SALA DE JUNTAS ============
-// Donde antes flotaba el grafo: un podio elevado sobre el pasillo
-// del supervisor. El consejo de don Daticos delibera en idle.
+// ============ SALA DE JUNTAS DEL HALL ============
+// El complejo del final de la línea de calidad: almHALL (inventario)
+// + muro vitrina (hojas de vida) + esta sala donde el consejo de
+// don Daticos analiza el ecosistema 3D y decide la capacidad.
 {
     const junta = new THREE.Group();
     const matJ = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
@@ -1768,10 +1769,10 @@ const grafo = new THREE.Group();
         papel.rotation.y = i * 0.7;
         junta.add(papel);
     }
-    junta.position.set(-16, 0, -3);
+    junta.position.set(30, 0, -16.5);
     scene.add(junta);
-    const cartelJ = crearCartel('SALA DE JUNTAS', 'don Daticos · deliberación', 3.0);
-    cartelJ.position.set(-16, 3.8, -0.6);
+    const cartelJ = crearCartel('SALA DE JUNTAS', 'hall de capacidad · decisión', 3.0);
+    cartelJ.position.set(30, 3.9, -14.1);
     scene.add(cartelJ);
 }
 
@@ -2441,9 +2442,9 @@ function crearPlanta() {
     });
     // Consejo en la sala de juntas: don Daticos deliberando en idle
     const CONSEJO = [
-        [-18.4, -4.4, 1.0], [-18.4, -1.6, 2.1],   // costado oeste
-        [-13.6, -4.4, -1.0], [-13.6, -1.6, -2.1], // costado este
-        [-16, -4.9, 0],                          // cabecera
+        [27.5, -17.7, 1.3], [27.5, -15.4, 1.8],   // costado oeste
+        [32.5, -17.7, -1.3], [32.5, -15.4, -1.8], // costado este
+        [30, -18.7, 0],                           // cabecera
     ];
     CONSEJO.forEach(([dx, dz, ry], di) => {
         let w;
@@ -2529,8 +2530,8 @@ const ACTOS = [
       cam: [[0, 30, 55], [0, 5, -4]] },
     { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Muelles de acceso', sub: 'tres camiones traen la materia prima', pan: true,
       cam: [[-46, 9, 6], [-33, 2.5, -2]] },
-    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller y la junta', sub: 'censo, prediagnóstico y el consejo deliberando', pan: true,
-      cam: [[-34, 8, 12], [-18, 5, -3]] },
+    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller', sub: 'censo, prediagnóstico y el ecosistema 3D que genera', pan: true,
+      cam: [[-34, 8, 12], [-26, 4, -3]] },
     { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'La cadena de datos', sub: 'operaciones → conjuntos → indicadores → difusión', pan: true,
       cam: [[-14, 7, 14], [9, 2.5, 4]] },
     { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'El nodo T', sub: 'un ramal se desvía al catálogo de consulta', pan: true,
@@ -2539,14 +2540,14 @@ const ACTOS = [
       cam: [[20, 7, 13], [32.5, 3, 2.5]] },
     { t0: 54,  t1: 63,  acto: 'Paneo', texto: 'La pared y la audiencia', sub: '36 televisores consumen todo — la ciudadanía mira', pan: true,
       cam: [[26, 7, 17], [38.5, 3, 7]] },
-    { t0: 63,  t1: 72,  acto: 'Paneo', texto: 'Calidad institucional', sub: 'evaluaciones, satisfacción, FICED y el grafo 3D', pan: true,
+    { t0: 63,  t1: 72,  acto: 'Paneo', texto: 'Calidad institucional', sub: 'evaluaciones, satisfacción y el FICED', pan: true,
       cam: [[-26, 8, -15], [4, 3.5, -15]] },
-    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'Hall y servicios', sub: 'hojas de vida de organismos y mini-maquilas', pan: true,
-      cam: [[8, 7, -4], [-12, 2.5, 14]] },
+    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'El HALL: inventario y decisión', sub: 'hojas de vida y la sala de juntas con su grafo', pan: true,
+      cam: [[8, 7, -4], [29, 4, -14]] },
     { t0: 81,  t1: 90,  acto: 'Paneo', texto: 'Todo conecta', sub: 'del camión al televisor: el ciclo completo', pan: true,
       cam: [[0, 22, 40], [0, 4, -2]] },
     // ======= PARTE B: RECORRIDO — 20s por estación =======
-    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Muelle RECOLECCIÓN', sub: 'las fuentes crudas llegan en camión y caen a la tolva del taller',
+    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Muelle RECOLECCIÓN', sub: 'las fuentes crudas llegan en camión y se lanzan a OPERACIONES',
       cam: [[-44, 5, 6], [-33.5, 2, -2.5]] },
     { t0: 110, t1: 130, acto: 'Estación 02', texto: 'Muelle DELEGADO', sub: 'el organismo entrega su dossier: arranca la línea de calidad',
       cam: [[-44, 5, -4], [-35.5, 2, -10.5]] },
@@ -2554,8 +2555,8 @@ const ACTOS = [
       cam: [[-36, 5, 24], [-27.5, 2, 17.5]] },
     { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `la máquina más grande: censo y prediagnóstico de ${STATS.organismos} organismos`,
       cam: [[-32, 5, 9], [-26, 3.5, -2.5]] },
-    { t0: 170, t1: 190, acto: 'Estación 05', texto: 'SALA DE JUNTAS', sub: 'los don Daticos deliberan sobre la producción',
-      cam: [[-22, 8.5, 6], [-16, 5.4, -3]] },
+    { t0: 170, t1: 190, acto: 'Estación 05', texto: 'SALA DE JUNTAS', sub: 'el consejo analiza el ecosistema 3D al final de la línea de calidad',
+      cam: [[18, 7.5, -8], [30, 5.4, -16]] },
     { t0: 190, t1: 210, acto: 'Estación 06', texto: 'Almacén de operaciones', sub: 'acompañamiento y capacitación: las fuentes se vuelven operaciones',
       cam: [[-17, 5, 13], [-10.5, 2.8, 7]] },
     { t0: 210, t1: 230, acto: 'Estación 07', texto: 'Conjuntos y nodo T', sub: 'la prensa agrupa conjuntos; el ramal T parte al catálogo',
@@ -2588,10 +2589,10 @@ const ACTOS = [
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
     { t0: 490, t1: 510, acto: 'Estación 21', texto: 'FICED', sub: 'el formulario de capacidad sella el dossier en 5 secciones (A–E)',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
-    { t0: 510, t1: 530, acto: 'Estación 22', texto: 'Evaluación de organismo', sub: 'el veredicto final, bajo el grafo del ecosistema',
-      cam: [[16, 5, -5], [14, 4, -15.5]] },
-    { t0: 530, t1: 550, acto: 'Estación 23', texto: 'Hall de capacidad', sub: 'la calidad de cada organismo queda inventariada — hojas de vida',
-      cam: [[14, 6, -3], [27, 2.5, -10.5]] },
+    { t0: 510, t1: 530, acto: 'Estación 22', texto: 'Evaluación de organismo', sub: 'veredicto estratégico + táctico + operativo',
+      cam: [[16, 5, -5], [16, 2.5, -14.7]] },
+    { t0: 530, t1: 550, acto: 'Estación 23', texto: 'El complejo HALL', sub: 'inventario + muro de hojas de vida + sala de juntas con el grafo',
+      cam: [[18, 6.5, -5], [29, 3.5, -13]] },
     { t0: 550, t1: 570, acto: 'Estación 24', texto: 'Mini-maquila editorial', sub: 'redacción → publicación: noticias y eventos',
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
     { t0: 570, t1: 590, acto: 'Estación 25', texto: 'Mini-maquila documentos', sub: 'edición → clasificación: productos académicos y educativos',
