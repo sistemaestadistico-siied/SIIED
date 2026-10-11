@@ -2472,90 +2472,68 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     donDatico.position.set(-30, 20, -45); // Cerca de las montañas, volando alto
     scene.add(donDatico);
 
-    // ---------- Cirugía de clips: de humano a loro ----------
-    // El rig humanoide anima TODO el cuerpo (nado / flexiones):
-    //   clip 0 'nado'  → piernas 526° vs alas 444° — hay que
-    //                    congelarlas o patea como nadador
-    //   clip 3 'flex.' → antebrazos 108-119° doblan en plancha
-    // Para que lea como vuelo:
-    //   · piernas: se eliminan sus pistas → quedan recogidas
-    //   · AL UNÍSONO: el loro bate ambas alas a la vez — las
-    //     pistas R se espejan sobre las L (rig de ejes
-    //     espejados: quat (x,-y,-z,w), pos (-x,y,z))
-    //   · estacionario: alas al doble de frecuencia en el ciclo
-    //   · vuelo: apertura alar amplificada (delta^k sobre el
-    //     primer keyframe) → alas se abren más y baten rápido
-    const RE_PIERNAS = /Thigh|Calf|Foot|Toe/i;
-    const RE_ALAS    = /Clavicle|Upperarm|Forearm|Hand/i;
+    // ======== POSTPROCESO DE CLIPS PARA VUELO ========
+    // Rig: piernas Thigh/Calf/Foot/ToeBase · alas (brazos)
+    // Clavicle/Upperarm/Forearm (+ twists). Los clips están
+    // horneados con tra/rot/sca por hueso.
+    const HUESOS_PIERNA = /^(L|R)_(Thigh|Calf|Foot|ToeBase)/;
+    const HUESOS_ALA    = /^(L|R)_(Clavicle|Upperarm|Forearm)/;
 
-    function clonarClipVuelo(clip, { dobleAlas = false, abrirAlas = 0 } = {}) {
-        const c = clip.clone();
-        // piernas quietas: fuera todas sus pistas
-        c.tracks = c.tracks.filter(t => !RE_PIERNAS.test(t.name));
-        const dur = Math.max(...c.tracks.map(t => t.times[t.times.length - 1] || 0)) || clip.duration;
-        const q0 = new THREE.Quaternion(), q = new THREE.Quaternion();
-        const dq = new THREE.Quaternion(), rr = new THREE.Quaternion();
-        // Unísono: el lado derecho manda; el izquierdo es su espejo
-        const porNombre = {};
-        c.tracks.forEach(t => porNombre[t.name] = t);
-        c.tracks.forEach(t => {
-            const m = t.name.match(/^R_(\w+)\.(quaternion|position|scale)$/);
-            if (!m || !RE_ALAS.test('R_' + m[1])) return;
-            const l = porNombre['L_' + m[1] + '.' + m[2]];
-            if (!l) return;
-            const n = Math.min(t.times.length, l.times.length);
-            l.times = t.times.slice(0, n);
-            if (m[2] === 'quaternion') {
-                for (let i = 0; i < n * 4; i += 4) {
-                    l.values[i]     =  t.values[i];      //  x
-                    l.values[i + 1] = -t.values[i + 1];  // -y
-                    l.values[i + 2] = -t.values[i + 2];  // -z
-                    l.values[i + 3] =  t.values[i + 3];  //  w
-                }
-            } else if (m[2] === 'position') {
-                for (let i = 0; i < n * 3; i += 3) {
-                    l.values[i]     = -t.values[i];      // -x
-                    l.values[i + 1] =  t.values[i + 1];
-                    l.values[i + 2] =  t.values[i + 2];
-                }
-            } else {
-                for (let i = 0; i < n * 3; i++) l.values[i] = t.values[i];
-            }
-        });
-        c.tracks.forEach(t => {
-            if (dobleAlas && RE_ALAS.test(t.name)) {
-                // La pista se repite 2× dentro del mismo ciclo →
-                // alas al doble de ritmo sin romper el loop
-                const n = t.times.length;
-                const stride = t.values.length / n;
-                const t2 = new Float32Array(n * 2);
-                const v2 = new Float32Array(t.values.length * 2);
-                for (let i = 0; i < n; i++) {
-                    t2[i] = t.times[i] / 2;
-                    t2[i + n] = t.times[i] / 2 + dur / 2;
-                    for (let j = 0; j < stride; j++) {
-                        v2[i * stride + j] = t.values[i * stride + j];
-                        v2[(i + n) * stride + j] = t.values[i * stride + j];
-                    }
-                }
-                t.times = t2; t.values = v2;
-            }
-            if (abrirAlas && RE_ALAS.test(t.name) && t.name.endsWith('.quaternion')) {
-                const v = t.values;
-                q0.fromArray(v, 0).normalize();
-                const q0inv = q0.clone().invert();
-                for (let i = 4; i < v.length; i += 4) {
-                    q.fromArray(v, i).normalize();
-                    dq.copy(q0inv).multiply(q);          // delta vs pose inicial
-                    rr.identity().slerp(dq, abrirAlas);  // extrapola el delta
-                    q.copy(q0).multiply(rr).normalize();
-                    q.toArray(v, i);
-                }
-            }
-        });
-        c.resetDuration();
-        return c;
-    }
+    // Congela una pista en su primera llave (pierna quieta)
+    const pistaCongelada = trk => {
+        const n = trk.getValueSize();
+        return new trk.constructor(trk.name, [0],
+            Array.from(trk.values.slice(0, n)));
+    };
+    // Repite la pista N veces dentro de la misma duración
+    // (las alas baten más rápido que el cuerpo)
+    const pistaAcelerada = (trk, dur, veces) => {
+        const tramo = dur / veces;
+        const ts = [], vs = [];
+        for (let c = 0; c < veces; c++) {
+            for (let i = 0; i < trk.times.length; i++)
+                ts.push(trk.times[i] / veces + c * tramo);
+            for (let i = 0; i < trk.values.length; i++)
+                vs.push(trk.values[i]);
+        }
+        return new trk.constructor(trk.name, ts, vs);
+    };
+    // Amplifica rotaciones (alas más abiertas: slerp desde
+    // identidad con factor > 1)
+    const qAmp1 = new THREE.Quaternion(), qAmp2 = new THREE.Quaternion();
+    const pistaAmplificada = (trk, amp) => {
+        const vs = [];
+        for (let i = 0; i < trk.values.length; i += 4) {
+            qAmp1.fromArray(trk.values, i);
+            qAmp2.identity().slerp(qAmp1, amp);
+            vs.push(qAmp2.x, qAmp2.y, qAmp2.z, qAmp2.w);
+        }
+        return new trk.constructor(trk.name,
+            Array.from(trk.times), vs);
+    };
+
+    // Vuelo estacionario (del nado boca abajo): piernas
+    // quietas extendidas atrás, alas batiendo x2
+    const clipVueloEstatico = clip => new THREE.AnimationClip(
+        clip.name + '_hover', clip.duration,
+        clip.tracks.map(trk => {
+            const hueso = trk.name.split('.')[0];
+            if (HUESOS_PIERNA.test(hueso)) return pistaCongelada(trk);
+            if (HUESOS_ALA.test(hueso))
+                return pistaAcelerada(trk, clip.duration, 2);
+            return trk;
+        }));
+    // Vuelo en movimiento (de las flexiones): alas x1.35 de
+    // amplitud y batiendo x2
+    const clipVueloMovimiento = clip => new THREE.AnimationClip(
+        clip.name + '_flap', clip.duration,
+        clip.tracks.map(trk => {
+            const hueso = trk.name.split('.')[0];
+            if (!HUESOS_ALA.test(hueso)) return trk;
+            const base = trk.name.endsWith('quaternion')
+                ? pistaAmplificada(trk, 1.35) : trk;
+            return pistaAcelerada(base, clip.duration, 2);
+        }));
 
     new GLTFLoader().load(
         "{% static 'indicadores/models/dondaticolite.glb' %}",
@@ -2578,14 +2556,14 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             rigDD.procedural.visual.visible = false;   // queda el GLB
             visualDD.add(wrapperGLB);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
-            // 0 = vuelo estacionario (nado, alas al 2×) ·
-            // 1 = aleteo en marcha (flexiones, alas +55% apertura)
-            const clipsVuelo = [
-                clonarClipVuelo(gltf.animations[0], { dobleAlas: true }),
-                clonarClipVuelo(gltf.animations[3], { abrirAlas: 1.55 })
-            ];
-            rigDD.acciones = clipsVuelo.map(c => rigDD.mixer.clipAction(c));
-            rigDD.accion = rigDD.acciones[0];
+            rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
+            // Clips procesados: hover (piernas quietas, alas x2)
+            // y vuelo (alas x1.35 amplitud, x2 batidas)
+            const clip0 = gltf.animations[0];
+            const clip3 = gltf.animations[3] || clip0;
+            rigDD.accionHover = rigDD.mixer.clipAction(clipVueloEstatico(clip0));
+            rigDD.accionFlap  = rigDD.mixer.clipAction(clipVueloMovimiento(clip3));
+            rigDD.accion = rigDD.accionHover;
             if (rigDD.accion) rigDD.accion.play();
         });
     
@@ -2626,19 +2604,18 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const a = daticoAnim;
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
 
-        // ---------- Modelo GLB: clip idle / vuelo ----------
-        // Acción 0 = estacionario (nado, alas al 2×, piernas
-        // recogidas) · acción 1 = aleteo (flexiones +55% apertura)
+        // ---------- Modelo GLB: vuelo estacionario / aleteo ----------
+        // hover: nado con piernas congeladas y alas x2;
+        // flap: flexiones con alas más abiertas y rápidas.
         if (rig.mixer) {
-            const idxClip = o.moviendose ? 1 : 0;
-            const prox = rig.acciones[idxClip] || rig.acciones[0];
+            const prox = (o.moviendose ? rig.accionFlap : rig.accionHover)
+                || (rig.acciones && rig.acciones[0]);
             if (prox && rig.accion !== prox) {
                 prox.reset().fadeIn(0.35).play();
                 if (rig.accion) rig.accion.fadeOut(0.35);
                 rig.accion = prox;
             }
-            // En movimiento el batir va fuerte; estacionario, suave
-            if (rig.accion) rig.accion.timeScale = o.moviendose ? 2.3 : 1.05;
+            if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.4 : 0.85;
             rig.mixer.update(dt);
         }
 
