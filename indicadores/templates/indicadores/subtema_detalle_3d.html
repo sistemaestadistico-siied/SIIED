@@ -2573,37 +2573,52 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
             const modelo = SkeletonUtils.clone(gltf.scene);
-            // Cadena del ala en bind: pose local de reposo y eje
-            // de aleteo por articulación (horizontal en mundo,
-            // perpendicular al tramo hombro→codo→muñeca)
-            modelo.updateMatrixWorld(true);
+            // ======== EJES DE ALETEO EN POSE DE VUELO ========
+            // Clave: NO calcularlos en el bind erguido — con el
+            // clip el torso queda boca abajo y un eje calculado en
+            // bind gira con él: el ala barre adelante/atrás en vez
+            // de batir arriba/abajo. Se fuerza la pose de vuelo
+            // (flexiones SIN brazos: torso prone + alas en T) y
+            // el eje correcto ahí es el fuselaje: batida vertical.
             const huesosAla = {};
-            const vSpan = new THREE.Vector3(), vUp = new THREE.Vector3(0, 1, 0);
-            const qPadreMundo = new THREE.Quaternion(), vEje = new THREE.Vector3();
+            const huesosCadena = [];
+            // 1) Pose local de reposo por articulación (bind real,
+            // capturada antes de perturbar el modelo)
             ['Clavicle', 'Upperarm', 'Forearm', 'Hand'].forEach(seg => {
                 for (const lado of ['L', 'R']) {
                     const b = modelo.getObjectByName(`${lado}_${seg}`);
                     if (!b || !b.parent) continue;
-                    // Tramo del brazo en mundo (hacia el hueso hijo)
-                    const hijo = b.children.find(c => c.isBone || c.type === 'Bone');
-                    const p0 = new THREE.Vector3(), p1 = new THREE.Vector3();
-                    b.getWorldPosition(p0);
-                    (hijo || b.parent).getWorldPosition(p1);
-                    vSpan.subVectors(p1, p0);
-                    if (vSpan.lengthSq() < 1e-8) vSpan.set(1, 0, 0);
-                    // Eje de batida: horizontal y perpendicular al tramo
-                    vEje.crossVectors(vUp, vSpan).normalize();
-                    if (!isFinite(vEje.x) || vEje.lengthSq() < 0.5)
-                        vEje.set(0, 0, 1);
-                    // A espacio local del hueso, vía la rotación del padre
-                    b.parent.getWorldQuaternion(qPadreMundo).invert();
-                    vEje.applyQuaternion(qPadreMundo).normalize();
-                    huesosAla[b.name] = {
-                        bindLocal: b.quaternion.clone(),
-                        ejeLocal: vEje.clone()
-                    };
+                    huesosCadena.push(b);
+                    huesosAla[b.name] = { bindLocal: b.quaternion.clone() };
                 }
             });
+            // 2) Fuerza la pose de vuelo y deduce el eje en ella:
+            // batida vertical = eje horizontal ⊥ al tramo (fuselaje)
+            const tmpClip = clipVueloMovimiento(
+                gltf.animations[3] || gltf.animations[0], []);
+            const tmpMixer = new THREE.AnimationMixer(modelo);
+            const tmpAccion = tmpMixer.clipAction(tmpClip);
+            tmpAccion.play();
+            tmpMixer.update(tmpClip.duration * 0.25);
+            modelo.updateMatrixWorld(true);
+            const vSpan = new THREE.Vector3(), vUp = new THREE.Vector3(0, 1, 0);
+            const qPadreMundo = new THREE.Quaternion(), vEje = new THREE.Vector3();
+            huesosCadena.forEach(b => {
+                // Tramo del ala en mundo (hacia el hueso hijo)
+                const hijo = b.children.find(c => c.isBone || c.type === 'Bone');
+                const p0 = new THREE.Vector3(), p1 = new THREE.Vector3();
+                b.getWorldPosition(p0);
+                (hijo || b.parent).getWorldPosition(p1);
+                vSpan.subVectors(p1, p0);
+                if (vSpan.lengthSq() < 1e-8) vSpan.set(1, 0, 0);
+                vEje.crossVectors(vUp, vSpan).normalize();
+                if (!isFinite(vEje.x) || vEje.lengthSq() < 0.5)
+                    vEje.set(0, 0, 1);
+                b.parent.getWorldQuaternion(qPadreMundo).invert();
+                vEje.applyQuaternion(qPadreMundo).normalize();
+                huesosAla[b.name].ejeLocal = vEje.clone();
+            });
+            tmpAccion.stop();
             // El clip reescribe la rotación del modelo cada frame —
             // el giro va en un wrapper que la animación no toca.
             // De cara el GLB mira +x: -PI/2 lo pone mirando al
@@ -2623,7 +2638,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
             // Clips procesados: hover (piernas quietas, alas de
-            // nado en reversa x2) y vuelo (flexiones sin brazos +
+            // nado en reversa x3) y vuelo (flexiones sin brazos +
             // batida procedural en cadena, 2 batidas por ciclo)
             const clip0 = gltf.animations[0];
             const clip3 = gltf.animations[3] || clip0;
@@ -2683,7 +2698,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                 if (rig.accion) rig.accion.fadeOut(0.35);
                 rig.accion = prox;
             }
-            if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.4 : 0.85;
+            if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.4 : 1.1;
             rig.mixer.update(dt);
         }
 
@@ -3872,6 +3887,23 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     if (indicadorIdParam) {
         primerIndicador = nav.querySelector(`.indicador-link[data-indicador-id="${indicadorIdParam}"]`);
     }
+    if (!primerIndicador) {
+        primerIndicador = nav.querySelector('.indicador-link');
+    }
+    
+    if (primerIndicador) {
+        cargarDesagregacionesYGrafico(primerIndicador);
+    } else {
+        graficosContainer.innerHTML = `<div class="p-8 text-gray-500">No hay indicadores para mostrar.</div>`;
+    }
+
+    // Mensaje informativo removido según solicitud del usuario
+});
+</script>
+
+<!-- Nota: se omitió export CSV / tabla por petición del usuario -->
+
+{% endblock %}
     if (!primerIndicador) {
         primerIndicador = nav.querySelector('.indicador-link');
     }
