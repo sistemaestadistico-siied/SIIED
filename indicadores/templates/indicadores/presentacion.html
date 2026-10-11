@@ -526,7 +526,7 @@ for (let n = 0; n < 4; n++) {
 }
 scene.add(estanteria);
 const cartelIND = crearCartel('ALMACÉN DE INDICADORES',
-    'indicador activo → publicado', 6);
+    'Indicador validado → publicado', 6);
 cartelIND.position.set(EST_X0 + (N_COL - 1) * EST_DX / 2, 6.6, EST_Z + 0.6);
 scene.add(cartelIND);
 const columnas = new Array(N_COL).fill(0);
@@ -912,7 +912,7 @@ function crearMaquina(cfg) {
             saco.castShadow = true;
             m.add(saco);
         }
-        const cartelSaco = crearCartel('INSUMOS', 'materia prima', 1.6);
+        const cartelSaco = crearCartel('FUENTES', 'datos crudos', 1.6);
         cartelSaco.position.set(-1.4, 1.15, 2.35);
         m.add(cartelSaco);
         // Techo: antena parabólica — la estación RECOGE materia prima
@@ -1236,7 +1236,7 @@ crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2
     hub.position.set(-23.6, 1.55, 17.5);
     hub.castShadow = true;
     scene.add(hub);
-    const cartelH = crearCartel('DISTRIBUIDOR', 'editorial → servicios', 2.2);
+    const cartelH = crearCartel('HUB EDITORIAL', 'contenido → líneas de servicio', 2.2);
     cartelH.position.set(-23.6, 2.6, 17.5);
     scene.add(cartelH);
     [12, 18, 24].forEach(z =>
@@ -1250,7 +1250,7 @@ crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2
     placa.rotation.x = -Math.PI / 2;
     placa.position.set(-2, 0.025, 4);
     scene.add(placa);
-    const cartelT = crearCartel('NODO T', '→ catálogo de consulta', 1.8);
+    const cartelT = crearCartel('NODO T', '→ CatalogoConsulta público', 1.8);
     cartelT.position.set(-2, 1.0, 5.7);
     scene.add(cartelT);
 }
@@ -1802,7 +1802,7 @@ const grafo = new THREE.Group();
     grafo.scale.setScalar(0.5);   // cabe holgado dentro de la sala
     grafo.position.set(30, 6.05, -16.5);
     scene.add(grafo);
-    const cartelG = crearCartel('GRAFO 3D', 'ecosistema · generado por el taller', 2.8);
+    const cartelG = crearCartel('GRAFO 3D', 'ecosistema SIIED · relaciones del modelo', 2.8);
     cartelG.position.set(30, 7.0, -14.15);
     scene.add(cartelG);
 }
@@ -1872,7 +1872,7 @@ const grafo = new THREE.Group();
     // después de crear las texturas de gráficos)
     junta.position.set(30, 0, -16.5);
     scene.add(junta);
-    const cartelJ = crearCartel('SALA DE JUNTAS', 'hall de capacidad · decisión', 3.0);
+    const cartelJ = crearCartel('SALA DE JUNTAS', 'capacidad estadística · decisión', 3.0);
     cartelJ.position.set(30, 4.2, -12.5);
     scene.add(cartelJ);
 }
@@ -2052,7 +2052,7 @@ const TVs = [];
                        mundo: tv.getWorldPosition(new THREE.Vector3()) });
         }
     }
-    const cartelTV = crearCartel('PANTALLAS', 'la producción se consume aquí', 4.2);
+    const cartelTV = crearCartel('PANTALLAS', 'vitrina pública del SIIED', 4.2);
     cartelTV.position.set(0, 7.6, 0);
     cartelTV.rotation.y = -Math.PI / 2;
     paredG.add(cartelTV);
@@ -2099,7 +2099,7 @@ const ciudadanos = [];
     suelo.rotation.x = -Math.PI / 2;
     suelo.position.set(32.8, 0.02, 7.4);
     scene.add(suelo);
-    const cartelG = crearCartel('AUDIENCIA', 'la ciudadanía mira y opina', 3.2);
+    const cartelG = crearCartel('AUDIENCIA', 'PageVisit · satisfacción ciudadana', 3.2);
     cartelG.position.set(33, 3.6, 12.6);
     scene.add(cartelG);
     // Tres filas de banca escalonadas mirando la pared (+x)
