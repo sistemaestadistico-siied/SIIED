@@ -2513,7 +2513,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     };
 
     // Vuelo estacionario (del nado boca abajo): piernas
-    // quietas extendidas atrás, alas batiendo x2
+    // quietas extendidas atrás, alas batiendo x3
     const clipVueloEstatico = clip => new THREE.AnimationClip(
         clip.name + '_hover', clip.duration,
         clip.tracks.map(trk => {
@@ -2524,35 +2524,37 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                 // alas que empujan el aire hacia abajo
                 return pistaAcelerada(
                     pistaEnReversa(trk, clip.duration),
-                    clip.duration, 2);
+                    clip.duration, 3);
             return trk;
         }));
     // ======== BATIDA PROCEDURAL (vuelo en movimiento) ========
-    // Las flexiones no se rescatan: el torso boca abajo sirve de
-    // planeo, pero unas alas no nacen remezclando una lagartija.
-    // Las pistas de brazos se BORRAN del clip y el ala se
-    // sintetiza desde el bind: cada articulación rota alrededor
-    // de un eje de aleteo deducido de la geometría (horizontal
-    // en mundo, perpendicular al tramo del brazo) con retardo
-    // de fase en cadena — la punta del ala va detrás del hombro.
+    // De las flexiones solo se usa el torso boca abajo, congelado
+    // como planeo. Las pistas de brazos se BORRAN y el ala se
+    // sintetiza: extendida en envergadura y batiendo alrededor de
+    // un eje común (horizontal, perpendicular a la envergadura),
+    // con retardo de fase en cadena — la punta va tras el hombro.
     const HUESOS_ALA_VUELO = /^(L|R)_(Clavicle|Upperarm|Forearm|Hand)/;
-    const AMPL_ALA = { Clavicle: 0.22, Upperarm: 0.85,
-                       Forearm: 0.6, Hand: 0.5 };
-    const FASE_ALA = { Clavicle: 0, Upperarm: 0,
-                       Forearm: -0.6, Hand: -1.2 };
+    // La batida sale del hombro; codo y mano solo acompañan con
+    // retraso (el ala se mantiene extendida). Sesgo > 0 = arriba.
+    const AMPL_ALA  = { Clavicle: 0.12, Upperarm: 0.7,
+                        Forearm: 0.18, Hand: 0.15 };
+    const FASE_ALA  = { Clavicle: 0, Upperarm: 0,
+                        Forearm: -0.7, Hand: -1.3 };
+    const SESGO_ALA = { Clavicle: 0.05, Upperarm: 0,
+                        Forearm: 0, Hand: 0 };
 
     // Pistas quaternion de batida: N batidas por ciclo de clip
-    const sintetizarAlas = (huesosAlaMap, dur, veces = 2) => {
+    const sintetizarAlas = (huesosAlaMap, dur, veces = 3) => {
         const tracks = [];
-        const N = 24;
+        const N = 12 * veces;
         const q = new THREE.Quaternion();
         for (const [hueso, info] of Object.entries(huesosAlaMap)) {
             const seg = hueso.split('_')[1];
             const ts = [], vs = [];
             for (let k = 0; k <= N; k++) {
-                const ang = AMPL_ALA[seg] *
+                const ang = SESGO_ALA[seg] + AMPL_ALA[seg] *
                     Math.sin(Math.PI * 2 * veces * k / N + FASE_ALA[seg]);
-                q.setFromAxisAngle(info.ejeLocal, ang).multiply(info.bindLocal);
+                q.setFromAxisAngle(info.ejeLocal, ang).multiply(info.baseLocal);
                 ts.push(k / N * dur);
                 vs.push(q.x, q.y, q.z, q.w);
             }
@@ -2562,63 +2564,101 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         return tracks;
     };
 
-    // Clip de vuelo: flexiones sin los brazos + batida sintética
+    // Pista fija en la pose del instante t: el torso de las
+    // flexiones sube y baja; congelado queda de planeo
+    const T_POSE_VUELO = 0.25;
+    const pistaEnPose = (trk, t) => {
+        const v = trk.createInterpolant().evaluate(t);
+        return new trk.constructor(trk.name, [0], Array.from(v));
+    };
+
+    // Clip de vuelo: cuerpo de planeo congelado + batida sintética
     const clipVueloMovimiento = (clip, tracksAlas) => new THREE.AnimationClip(
         clip.name + '_flap', clip.duration,
         clip.tracks.filter(trk =>
             !HUESOS_ALA_VUELO.test(trk.name.split('.')[0]))
+            .map(trk => pistaEnPose(trk, clip.duration * T_POSE_VUELO))
             .concat(tracksAlas));
 
     new GLTFLoader().load(
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
             const modelo = SkeletonUtils.clone(gltf.scene);
-            // ======== EJES DE ALETEO EN POSE DE VUELO ========
-            // Clave: NO calcularlos en el bind erguido — con el
-            // clip el torso queda boca abajo y un eje calculado en
-            // bind gira con él: el ala barre adelante/atrás en vez
-            // de batir arriba/abajo. Se fuerza la pose de vuelo
-            // (flexiones SIN brazos: torso prone + alas en T) y
-            // el eje correcto ahí es el fuselaje: batida vertical.
+            // ======== ALA EXTENDIDA + EJE DE BATIDA ========
+            // Se calculan en la pose de planeo (torso boca abajo),
+            // no en el bind erguido. Medido en el GLB: el bind NO es T-pose (brazos en A,
+            // colgando adelante-abajo) y en la pose de las flexiones
+            // cuelgan bajo el pecho. Por eso el ala se EXTIENDE
+            // explícitamente antes de batir.
             const huesosAla = {};
-            const huesosCadena = [];
-            // 1) Pose local de reposo por articulación (bind real,
-            // capturada antes de perturbar el modelo)
-            ['Clavicle', 'Upperarm', 'Forearm', 'Hand'].forEach(seg => {
-                for (const lado of ['L', 'R']) {
-                    const b = modelo.getObjectByName(`${lado}_${seg}`);
-                    if (!b || !b.parent) continue;
-                    huesosCadena.push(b);
-                    huesosAla[b.name] = { bindLocal: b.quaternion.clone() };
-                }
-            });
-            // 2) Fuerza la pose de vuelo y deduce el eje en ella:
-            // batida vertical = eje horizontal ⊥ al tramo (fuselaje)
+            // 1) Pose de planeo: cuerpo congelado, brazos en bind
             const tmpClip = clipVueloMovimiento(
                 gltf.animations[3] || gltf.animations[0], []);
             const tmpMixer = new THREE.AnimationMixer(modelo);
             const tmpAccion = tmpMixer.clipAction(tmpClip);
             tmpAccion.play();
-            tmpMixer.update(tmpClip.duration * 0.25);
+            tmpMixer.update(0);
             modelo.updateMatrixWorld(true);
-            const vSpan = new THREE.Vector3(), vUp = new THREE.Vector3(0, 1, 0);
-            const qPadreMundo = new THREE.Quaternion(), vEje = new THREE.Vector3();
-            huesosCadena.forEach(b => {
-                // Tramo del ala en mundo (hacia el hueso hijo)
-                const hijo = b.children.find(c => c.isBone || c.type === 'Bone');
-                const p0 = new THREE.Vector3(), p1 = new THREE.Vector3();
-                b.getWorldPosition(p0);
-                (hijo || b.parent).getWorldPosition(p1);
-                vSpan.subVectors(p1, p0);
-                if (vSpan.lengthSq() < 1e-8) vSpan.set(1, 0, 0);
-                vEje.crossVectors(vUp, vSpan).normalize();
-                if (!isFinite(vEje.x) || vEje.lengthSq() < 0.5)
-                    vEje.set(0, 0, 1);
-                b.parent.getWorldQuaternion(qPadreMundo).invert();
-                vEje.applyQuaternion(qPadreMundo).normalize();
-                huesosAla[b.name].ejeLocal = vEje.clone();
-            });
+
+            const vUp = new THREE.Vector3(0, 1, 0);
+            const pos = n => {
+                const b = modelo.getObjectByName(n);
+                return b ? b.getWorldPosition(new THREE.Vector3()) : null;
+            };
+            // Frente del cuerpo (cadera→cabeza en horizontal)
+            const pHip = pos('Hip'), pHead = pos('Head');
+            const vFrente = (pHip && pHead)
+                ? pHead.clone().sub(pHip).setY(0).normalize()
+                : new THREE.Vector3(1, 0, 0);
+            const vLado = new THREE.Vector3().crossVectors(vFrente, vUp).normalize();
+
+            // Rota un hueso en mundo (qW) conservando la jerarquía
+            const qPadre = new THREE.Quaternion(), qPadreInv = new THREE.Quaternion();
+            const rotarEnMundo = (b, qW) => {
+                b.parent.getWorldQuaternion(qPadre);
+                qPadreInv.copy(qPadre).invert();
+                b.quaternion.premultiply(qPadre).premultiply(qW)
+                    .premultiply(qPadreInv);
+                b.updateMatrixWorld(true);
+            };
+            // Alinea el tramo b→hijo con la dirección D
+            const alinear = (b, hijoNombre, D) => {
+                const p0 = b.getWorldPosition(new THREE.Vector3());
+                const p1 = pos(hijoNombre);
+                if (!p1) return;
+                const cur = p1.sub(p0).normalize();
+                rotarEnMundo(b, new THREE.Quaternion().setFromUnitVectors(cur, D));
+            };
+
+            for (const lado of ['L', 'R']) {
+                const bClav = modelo.getObjectByName(`${lado}_Clavicle`);
+                const bHum  = modelo.getObjectByName(`${lado}_Upperarm`);
+                const bAnt  = modelo.getObjectByName(`${lado}_Forearm`);
+                const bMano = modelo.getObjectByName(`${lado}_Hand`);
+                if (!bHum || !bAnt) continue;
+                // Lado real del brazo respecto al cuerpo
+                const pS = pos(`${lado}_Upperarm`), pSp = pos('Spine02') || pHip;
+                const signo = Math.sign(pS.clone().sub(pSp).dot(vLado)) || 1;
+                // Envergadura: lateral, leve diedro y leve barrido atrás
+                const D = vLado.clone().multiplyScalar(signo)
+                    .addScaledVector(vUp, 0.18)
+                    .addScaledVector(vFrente, -0.12).normalize();
+                alinear(bHum, `${lado}_Forearm`, D);
+                alinear(bAnt, `${lado}_Hand`, D);
+                // Eje común de batida: D × up (ángulo > 0 = punta arriba)
+                const ejeMundo = new THREE.Vector3().crossVectors(D, vUp).normalize();
+                [bClav, bHum, bAnt, bMano].forEach(b => {
+                    if (!b || !b.parent) return;
+                    b.parent.getWorldQuaternion(qPadre);
+                    huesosAla[b.name] = {
+                        baseLocal: b.quaternion.clone(),
+                        ejeLocal: ejeMundo.clone()
+                            .applyQuaternion(qPadre.clone().invert()).normalize()
+                    };
+                });
+            }
             tmpAccion.stop();
+            tmpMixer.uncacheRoot(modelo);
             // El clip reescribe la rotación del modelo cada frame —
             // el giro va en un wrapper que la animación no toca.
             // De cara el GLB mira +x: -PI/2 lo pone mirando al
@@ -2638,14 +2678,14 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
             // Clips procesados: hover (piernas quietas, alas de
-            // nado en reversa x3) y vuelo (flexiones sin brazos +
-            // batida procedural en cadena, 2 batidas por ciclo)
+            // nado en reversa x3) y vuelo (torso de planeo + ala
+            // extendida batiendo en cadena, 3 batidas por ciclo)
             const clip0 = gltf.animations[0];
             const clip3 = gltf.animations[3] || clip0;
             rigDD.accionHover = rigDD.mixer.clipAction(clipVueloEstatico(clip0));
             rigDD.accionFlap  = rigDD.mixer.clipAction(
                 clipVueloMovimiento(clip3,
-                    sintetizarAlas(huesosAla, clip3.duration, 2)));
+                    sintetizarAlas(huesosAla, clip3.duration, 3)));
             rigDD.accion = rigDD.accionHover;
             if (rigDD.accion) rigDD.accion.play();
         });
@@ -3887,23 +3927,6 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     if (indicadorIdParam) {
         primerIndicador = nav.querySelector(`.indicador-link[data-indicador-id="${indicadorIdParam}"]`);
     }
-    if (!primerIndicador) {
-        primerIndicador = nav.querySelector('.indicador-link');
-    }
-    
-    if (primerIndicador) {
-        cargarDesagregacionesYGrafico(primerIndicador);
-    } else {
-        graficosContainer.innerHTML = `<div class="p-8 text-gray-500">No hay indicadores para mostrar.</div>`;
-    }
-
-    // Mensaje informativo removido según solicitud del usuario
-});
-</script>
-
-<!-- Nota: se omitió export CSV / tabla por petición del usuario -->
-
-{% endblock %}
     if (!primerIndicador) {
         primerIndicador = nav.querySelector('.indicador-link');
     }
