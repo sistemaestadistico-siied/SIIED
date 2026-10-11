@@ -576,6 +576,21 @@ scene.add(relleno);
     crearBomberos(-28, 37, 0.6);
     crearIglesia(48, 36, 0.6);
     crearFuente(14, 30, 0.8);
+    // Y cada landmark tiene su cuadra: casitas orillando los
+    // espacios abiertos, mirando hacia el punto de interés
+    function vecinas(cx, cz, lista) {
+        for (const [ox, oz] of lista)
+            casita(cx + ox, cz + oz, Math.atan2(-ox, -oz));
+    }
+    vecinas(6, -39.5, [[-8, 0], [8, 0], [-8, -2.5], [8, 2.5], [-8, 2.5], [8, -2.5]]);
+    vecinas(-24, -40.5, [[-5, 0], [5, 0], [0, 5.2], [-3, 5.2], [3, 5.2]]);
+    vecinas(-10, -39, [[-4.2, 0], [4.2, 0], [-4.2, -3], [4.2, 3]]);
+    vecinas(34, -41, [[-4.5, 0], [4.5, 0], [-4.5, 2], [4.5, -2]]);
+    vecinas(-8, 35, [[-7.5, 0], [7.5, 0], [-7.5, 3], [7.5, -3], [-7.5, -3], [7.5, 3]]);
+    vecinas(27, 36, [[-6, 0], [6, 0], [0, 6], [-6, 3], [6, -3]]);
+    vecinas(-28, 37, [[-4.8, 0], [4.8, 0], [0, 5], [0, -5]]);
+    vecinas(48, 36, [[-4.5, 0], [4.5, 0], [0, 5.5], [0, -5.5]]);
+    vecinas(14, 30, [[-4.5, 0], [4.5, 0], [0, 4.5], [0, -3.5]]);
 
     // Bóveda de estrellas: cúpula de puntos (fog apagado para
     // que brillen por encima del horizonte)
