@@ -1312,11 +1312,13 @@ const camEdi = crearCamion({ x: 30,   z: -11.5, color: 0xef4444,
 // EDITORIAL: RECOLECTA contenido en las 4 salas de juntas
 // (capa → recolección → despacho → comité) y descarga en el
 // origen real: los muelles de las líneas de servicio E.
-camRec.userData.ruta = { pts: [[39, -4.5], [-8, -4.5]], i: 1, dir: 1, espera: 0 };
+camRec.userData.ruta = { pts: [[39, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
 camDel.userData.ruta = { pts: [[52, -8], [-21, -8]],   i: 1, dir: 1, espera: 0 };
-camEdi.userData.ruta = { pts: [[30, -11.5], [22.5, -11.5], [22.5, -22],
-    [41, -22], [41, -15.8], [44, -22.5], [62.5, -22], [56, -27],
-    [62.5, -22], [62.5, -14], [62.5, 27], [-25.5, 27], [-25.5, 18]],
+camEdi.userData.ruta = { pts: [[30, -11.5], [30, -8], [-8, -8],
+    [-8, -4.5], [-17, -4.5], [-8, -4.5], [8, -8], [26, -8],
+    [26, -11.5], [22.5, -11.5], [22.5, -22], [44, -22], [62.5, -22],
+    [56, -27], [62.5, -22], [62.5, -14], [62.5, 27], [-25.5, 27],
+    [-25.5, 18]],
     i: 1, dir: 1, espera: 0, esperaMid: 3 };
 
 // Chute inclinado entre dos puntos del mundo
@@ -1524,7 +1526,7 @@ function respawnRec(f) {
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texFuente);
     // Del camión atracado al final de su ruta: salto a la tolva
-    lanzarCaida(f, new THREE.Vector3(-8, 2.0, -4.5),
+    lanzarCaida(f, new THREE.Vector3(-14, 2.0, -4.5),
                    new THREE.Vector3(-9.0, 4.6, -0.5), 0.85, 2.2);
 }
 function respawnD1(f) {
@@ -2497,10 +2499,10 @@ let comiteGrafo = null;
     const arch = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.5),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
     arch.position.set(-2.0, 0.9, -1.0); sala.add(arch);
-    sala.position.set(41, 0, -12);
+    sala.position.set(-17, 0, -0.8);   // hueco entre TALLER y OPERACIONES
     scene.add(sala);
     const cartelR = crearCartel('RECOLECCIÓN', 'equipo técnico SIIED · carga de indicadores', 3.2);
-    cartelR.position.set(41, 3.6, -10.2);
+    cartelR.position.set(-17, 3.6, 1.8);
     scene.add(cartelR);
 }
 
