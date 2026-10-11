@@ -1721,9 +1721,9 @@ const ESTACIONES_DAT = [
     { x: 6.5,  z: -0.2, nombre: 'MÓDULO DE ADMINISTRACIÓN DE LA PLATAFORMA DEL SIIED', modelo: 'RegistroCambio · administración', color: 0xf59e0b, tipo: 'sala' },
     { x: 14,   z: -0.2, nombre: 'INGESTA DE SERIES DE DATOS DE INDICADORES', modelo: 'Indicador · metadata completa', color: 0x10b981, tipo: 'turbina' },
     { x: 21.5, z: -0.2, nombre: 'MÓDULO DE REPORTES DEL SIIED', modelo: 'Reportes · auditoría', color: 0xf59e0b, tipo: 'sala' },
-    { x: 29, nombre: 'MÓDULO DE EXTRACCIÓN DEL SIIED', modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
-    { x: 36.5, nombre: 'MÓDULO DE FICHA TÉCNICA DEL SIIED', modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
-    { x: 44, nombre: 'MÓDULO DE DIFUSIÓN ESTADÍSTICA DEL SIIED', modelo: 'Grafico + CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
+    { x: 29, nombre: 'PROCESO DE EXTRACCIÓN DESDE EL WIZARD ESPECIALIZADO DEL ADMIN', modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
+    { x: 36.5, nombre: 'ESTANDARIZACIÓN DE METADATOS DE INDICADORES', modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
+    { x: 44, nombre: 'DIFUSIÓN, PUBLICACIÓN Y VISUALIZACIÓN DEL DATO ESTADÍSTICO', modelo: 'gráficos de indicadores, acceso por API abierta a datos', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
 ];
 
 // ============ SALAS DE JUNTAS COMO ESTACIONES ============
@@ -2438,14 +2438,14 @@ function tickFamD2(f, dt) {
     }
     if (!f.pasadas.has('ext') && x > 29) {
         f.pasadas.add('ext'); f.mesh.scale.setScalar(0.24);
-        ponerTex(f, texMiniD); disparo('MÓDULO DE EXTRACCIÓN DEL SIIED');
+        ponerTex(f, texMiniD); disparo('PROCESO DE EXTRACCIÓN DESDE EL WIZARD ESPECIALIZADO DEL ADMIN');
     }
     if (!f.pasadas.has('val') && x > 36.5) {
-        f.pasadas.add('val'); ponerTex(f, texOkInd); disparo('MÓDULO DE FICHA TÉCNICA DEL SIIED');
+        f.pasadas.add('val'); ponerTex(f, texOkInd); disparo('ESTANDARIZACIÓN DE METADATOS DE INDICADORES');
     }
     if (!f.pasadas.has('dif') && x > 44) {
         f.pasadas.add('dif'); f.mesh.scale.setScalar(0.28);
-        ponerTex(f, texDif); disparo('MÓDULO DE DIFUSIÓN ESTADÍSTICA DEL SIIED');
+        ponerTex(f, texDif); disparo('DIFUSIÓN, PUBLICACIÓN Y VISUALIZACIÓN DEL DATO ESTADÍSTICO');
     }
     if (x > 45) {
         const slot = faseEstante === 'llenando' ? siguienteSlot() : -1;
@@ -4043,11 +4043,11 @@ const ACTOS = [
       cam: [[11, 4.5, 11], [14, 2.2, -0.2]] },
     { t0: 240, t1: 252, acto: 'Estación 10', texto: 'REPORTES DEL SIIED', sub: 'auditoría del dato: los reportes alimentan las salas de decisión',
       cam: [[18.5, 4.5, 11], [21.5, 2.2, -0.2]] },
-    { t0: 252, t1: 264, acto: 'Estación 11', texto: 'EXTRACCIÓN DEL SIIED', sub: 'ReglaExtraccion: convierte series en datos publicables',
+    { t0: 252, t1: 264, acto: 'Estación 11', texto: 'EXTRACCIÓN POR WIZARD', sub: 'ReglaExtraccion: convierte series en datos publicables',
       cam: [[26, 4.5, 11], [29, 2.2, -0.2]] },
-    { t0: 264, t1: 276, acto: 'Estación 12', texto: 'FICHA TÉCNICA SDMX', sub: 'FichaTecnica SDMX: el estándar valida cada indicador',
+    { t0: 264, t1: 276, acto: 'Estación 12', texto: 'METADATOS DE INDICADORES', sub: 'FichaTecnica SDMX: el estándar valida cada indicador',
       cam: [[33.5, 4.5, 11], [36.5, 2.2, -0.2]] },
-    { t0: 276, t1: 288, acto: 'Estación 13', texto: 'DIFUSIÓN ESTADÍSTICA', sub: 'Grafico + CalendarioDifusion: publicación programada',
+    { t0: 276, t1: 288, acto: 'Estación 13', texto: 'DIFUSIÓN DEL DATO', sub: 'Grafico + CalendarioDifusion + API abierta: publicación programada',
       cam: [[40, 5, 11], [44, 2.4, -0.2]] },
     { t0: 288, t1: 302, acto: 'Estación 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores: ODS · Cali en Cifras · dominios del comité`,
       cam: [[44, 5.5, 12], [51.3, 3, 2.4]] },
