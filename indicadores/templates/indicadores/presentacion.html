@@ -1956,7 +1956,7 @@ function crearCamion(cfg) {
 const camRec = crearCamion({ x: 39,   z: -4.5, color: 0x38bdf8,
               etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'PerfilRecolector · ingesta de fuentes' });
 const camDel = crearCamion({ x: 52,   z: -8,   color: 0xf59e0b,
-              etiqueta: 'DELEGADO ORGANISMO', sub: 'registro de acceso · Organismo' });
+              etiqueta: 'DELEGADO DE ORGANISMO', sub: 'rol de enlace con organismos con capacidad de ingesta · llena formularios de talleres y FICED' });
 const camEdi = crearCamion({ x: 34,   z: -11.5, color: 0xef4444,
               etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
 // Rutas por pasillos libres — ninguna atraviesa bandas.
@@ -3932,7 +3932,7 @@ const ACTOS = [
     // ======= B: MÓDULOS DE ACCESO — la cámara los SIGUE =======
     { t0: 90,  t1: 106, acto: 'Módulo 01', texto: 'RECOLECCIÓN', sub: 'PerfilRecolector: atraca junto a la sala y carga la tolva de operaciones',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camRec' },
-    { t0: 106, t1: 122, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'acceso del organismo: entrega su dossier en la cabeza de la banda de calidad',
+    { t0: 106, t1: 122, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'rol de enlace con organismos que producen datos: diligencia los formularios de talleres y FICED',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel' },
     { t0: 122, t1: 140, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'NoticiaBanner + Evento: recolecta en las 4 salas por vías propias',
       cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi' },
