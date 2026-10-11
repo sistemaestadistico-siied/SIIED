@@ -354,7 +354,8 @@ function crearCinta(largo, z, x0 = 0, rotY = 0) {
     // Patas
     for (let x = -largo / 2 + 2; x <= largo / 2 - 2; x += 8) {
         for (const pz of [-0.9, 0.9]) {
-            const pata = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0, 0.2), colMat);
+            const pata = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0, 0.2),
+                new THREE.MeshLambertMaterial({ color: 0xe3eaf0 }));
             pata.position.set(x, 0.5, pz);
             c.add(pata);
         }
