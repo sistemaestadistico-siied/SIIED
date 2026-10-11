@@ -3228,90 +3228,129 @@ new GLTFLoader().load(
 );
 
 // ============ TIMELINE / ACTOS ============
+// cam[0] = posición (o OFFSET del camión si `sigue`), cam[1] = mira.
 const ACTOS = [
-    // ======= PARTE A: PANEON — 90s de vuelo continuo =======
+    // ======= A: PANEON — 90s sobre puntos de interés =======
     { t0: 0,   t1: 9,   acto: '', texto: '', sub: '', pan: true,
       cam: [[0, 30, 55], [0, 5, -4]] },
-    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Módulos de acceso', sub: 'el Delegado registra organismos · Editorial carga contenido', pan: true,
-      cam: [[-46, 9, -4], [-30, 3.5, 14]] },
-    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller', sub: 'censo y prediagnóstico: el sistema releva la capacidad de cada organismo', pan: true,
-      cam: [[-34, 8, 12], [-26, 4, -3]] },
+    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Módulos de acceso', sub: 'tres camiones, tres vías: recolección, delegado y editorial', pan: true,
+      cam: [[-8, 8, 14], [30, 2.5, -8]] },
+    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller del DADII', sub: 'censo y prediagnóstico · la sala recolección en su costado', pan: true,
+      cam: [[-34, 8, 12], [-22, 3, -1]] },
     { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'La cadena de datos', sub: 'OperacionEstadistica → ConjuntoDatos → Indicador → Grafico', pan: true,
       cam: [[-14, 7, 14], [9, 2.5, 4]] },
-    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'El nodo T', sub: 'los conjuntos también alimentan el catálogo público', pan: true,
+    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'El nodo T', sub: 'los conjuntos también alimentan el catálogo de consulta', pan: true,
       cam: [[-10, 8, 16], [-2, 2.5, 12]] },
-    { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Almacén de indicadores', sub: 'cada indicador validado entra al inventario del sistema', pan: true,
+    { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Inventario de indicadores', sub: 'tres conjuntos: ODS · Cali en Cifras · dominios del comité', pan: true,
       cam: [[20, 7, 13], [32.5, 3, 2.5]] },
-    { t0: 54,  t1: 63,  acto: 'Paneo', texto: 'La salida pública', sub: 'todos los módulos alimentan la visualización ciudadana', pan: true,
-      cam: [[26, 7, 17], [38.5, 3, 7]] },
+    { t0: 54,  t1: 63,  acto: 'Paneo', texto: 'La ciudadanía', sub: 'plaza, ventanilla PQRS y la pared de pantallas pública', pan: true,
+      cam: [[26, 7, 24], [42, 3, 10]] },
     { t0: 63,  t1: 72,  acto: 'Paneo', texto: 'Medición de capacidad', sub: 'evaluaciones + RespuestaSatisfaccion + ICEDFormulario', pan: true,
       cam: [[-26, 8, -15], [4, 3.5, -15]] },
-    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'El HALL: inventario y decisión', sub: 'expediente ICE y el consejo que decide la capacidad', pan: true,
-      cam: [[8, 7, -4], [29, 4, -14]] },
+    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'Las salas de gobierno', sub: 'junta del hall · comité de gestión · despacho de alcaldía', pan: true,
+      cam: [[8, 9, -4], [48, 3, -16]] },
     { t0: 81,  t1: 90,  acto: 'Paneo', texto: 'Todo conecta', sub: 'de la fuente cruda al gráfico público: el pipeline del SIIED', pan: true,
       cam: [[0, 22, 40], [0, 4, -2]] },
-    // ======= PARTE B: RECORRIDO — 20s por estación =======
-    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Módulo RECOLECCIÓN', sub: 'PerfilRecolector: las fuentes crudas entran por ingesta',
-      cam: [[-22, 4.5, 4], [-13, 2.2, -0.6]] },
-    { t0: 110, t1: 130, acto: 'Estación 02', texto: 'Módulo DELEGADO', sub: 'acceso del organismo: el Delegado entrega su dossier institucional',
-      cam: [[-44, 5, -4], [-35.5, 2, -10.5]] },
-    { t0: 130, t1: 150, acto: 'Estación 03', texto: 'Módulo EDITORIAL', sub: 'contenido del portal: NoticiaBanner, productos y CalendarioDifusion',
-      cam: [[-36, 5, 24], [-27.5, 2, 17.5]] },
-    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `censo y prediagnóstico de ${STATS.organismos} organismos · diseñado por el DADII (Departamento de Innovación de la Alcaldía)`,
-      cam: [[-32, 5, 9], [-26, 3.5, -2.5]] },
-    { t0: 170, t1: 190, acto: 'Estación 05', texto: 'SALA DE JUNTAS', sub: 'el ecosistema del SIIED: organismos, fuentes y variables conectadas',
-      cam: [[18, 7.5, -8], [30, 5.4, -16]] },
-    { t0: 190, t1: 210, acto: 'Estación 06', texto: 'Almacén de operaciones', sub: 'cada fuente acompañada se vuelve OperacionEstadistica',
-      cam: [[-17, 5, 13], [-10.5, 2.8, 7]] },
-    { t0: 210, t1: 230, acto: 'Estación 07', texto: 'Conjuntos y nodo T', sub: 'ConjuntoDatos agrupa series; un ramal va al catálogo de consulta',
-      cam: [[-8, 5.5, 13], [-3.5, 2.5, 4]] },
-    { t0: 230, t1: 250, acto: 'Estación 08', texto: 'Catálogo de consulta', sub: 'CatalogoConsulta: datos navegables por dominio y tema',
+    // ======= B: MÓDULOS DE ACCESO — la cámara los SIGUE =======
+    { t0: 90,  t1: 106, acto: 'Módulo 01', texto: 'RECOLECCIÓN', sub: 'PerfilRecolector: atraca junto a la sala y carga la tolva de operaciones',
+      cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camRec' },
+    { t0: 106, t1: 122, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'acceso del organismo: entrega su dossier en la cabeza de la banda de calidad',
+      cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel' },
+    { t0: 122, t1: 140, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'NoticiaBanner + Evento: recolecta en las 4 salas por vías propias',
+      cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi' },
+    // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
+    { t0: 140, t1: 154, acto: 'Módulo 04', texto: 'EL TALLER · DADII', sub: `censo y prediagnóstico de ${STATS.organismos} organismos — diseñado por el Departamento de Innovación de la Alcaldía`,
+      cam: [[-14, 5.5, 5], [-24, 3.4, -2.5]] },
+    { t0: 154, t1: 160, acto: 'Sala', texto: 'Equipo técnico', sub: 'la sala de recolección carga indicadores — la cámara entra', pan: true,
+      cam: [[-17, 1.5, -0.8], [-19.5, 1.3, -0.8]] },
+    { t0: 160, t1: 164, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[-17, 1.5, -0.8], [-17, 1.5, -2.2]] },
+    { t0: 164, t1: 168, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[-17, 1.5, -0.8], [-14.5, 1.3, -0.8]] },
+    { t0: 168, t1: 172, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[-17, 1.5, -0.8], [-17, 1.5, 0.9]] },
+    { t0: 172, t1: 178, acto: 'Sala', texto: 'Equipo técnico SIIED', sub: 'escritorios, monitores y el archivador de fichas cargadas', pan: true,
+      cam: [[-24, 4, 7], [-17, 1.6, -0.8]] },
+    // ======= D: CADENA DE DATOS — estación por estación =======
+    { t0: 178, t1: 192, acto: 'Estación 05', texto: 'INV. OPERACIONES', sub: 'OperacionEstadistica: cada fuente acompañada entra a la tolva',
+      cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]] },
+    { t0: 192, t1: 204, acto: 'Estación 06', texto: 'CONJUNTO DATOS', sub: 'ConjuntoDatos agrupa series por dominio; un ramal T va al catálogo',
+      cam: [[-8, 5, 12], [-3.5, 2.4, 0]] },
+    { t0: 204, t1: 216, acto: 'Estación 07', texto: 'Catálogo de consulta', sub: 'CatalogoConsulta: datos navegables por dominio y tema',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
-    { t0: 250, t1: 270, acto: 'Estación 09', texto: 'ADMIN SIIED', sub: 'RegistroCambio: trazabilidad total de cada paso del dato',
-      cam: [[1.5, 4.5, 11], [1.5, 2.2, -0.2]] },
-    { t0: 270, t1: 290, acto: 'Estación 10', texto: 'INDICADORES', sub: 'metadata completa: objetivo, método, fórmula y variables',
-      cam: [[6.5, 4.5, 11], [6.5, 2.2, -0.2]] },
-    { t0: 290, t1: 310, acto: 'Estación 11', texto: 'REPORTES', sub: 'auditoría del dato: los reportes alimentan la decisión en la sala',
-      cam: [[11.5, 4.5, 11], [11.5, 2.2, -0.2]] },
-    { t0: 310, t1: 330, acto: 'Estación 12', texto: 'EXTRACCIÓN', sub: 'ReglaExtraccion: convierte series en datos publicables',
-      cam: [[16.5, 4.5, 11], [16.5, 2.2, -0.2]] },
-    { t0: 330, t1: 350, acto: 'Estación 13', texto: 'FICHA TÉCNICA', sub: 'FichaTecnica SDMX: el estándar valida cada indicador',
-      cam: [[21.5, 4.5, 11], [21.5, 2.2, -0.2]] },
-    { t0: 350, t1: 370, acto: 'Estación 14', texto: 'DIFUSIÓN EST.', sub: 'Grafico + CalendarioDifusion: publicación programada',
-      cam: [[26.5, 5, 11], [26.5, 2.5, -0.2]] },
-    { t0: 370, t1: 390, acto: 'Estación 15', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores: ODS · Cali en Cifras · dominios del comité`,
-      cam: [[24, 5, 12], [32.5, 3, 2.5]] },
-    { t0: 390, t1: 410, acto: 'Estación 16', texto: 'La pared de pantallas', sub: 'la vitrina pública: todos los flujos terminan aquí',
-      cam: [[50, 6, 14], [38.6, 3, 7]] },
-    { t0: 410, t1: 430, acto: 'Estación 17', texto: 'La ventanilla', sub: 'PageVisit + encuestas: la ciudadanía hace fila y retroalimenta',
-      cam: [[45, 5, 19], [36, 1.5, 14]] },
-    { t0: 430, t1: 450, acto: 'Estación 18', texto: 'Evaluación estratégica', sub: 'dimensión estratégica: capacidad de decisión del organismo',
+    { t0: 216, t1: 228, acto: 'Estación 08', texto: 'ADMIN SIIED', sub: 'RegistroCambio: trazabilidad total de cada paso del dato',
+      cam: [[-3, 4.5, 11], [1.5, 2.2, -0.2]] },
+    { t0: 228, t1: 240, acto: 'Estación 09', texto: 'INDICADORES', sub: 'Indicador: metadata completa — objetivo, método, fórmula y variables',
+      cam: [[2, 4.5, 11], [6.5, 2.2, -0.2]] },
+    { t0: 240, t1: 252, acto: 'Estación 10', texto: 'REPORTES', sub: 'auditoría del dato: los reportes alimentan las salas de decisión',
+      cam: [[7, 4.5, 11], [11.5, 2.2, -0.2]] },
+    { t0: 252, t1: 264, acto: 'Estación 11', texto: 'EXTRACCIÓN', sub: 'ReglaExtraccion: convierte series en datos publicables',
+      cam: [[11, 4.5, 11], [16.5, 2.2, -0.2]] },
+    { t0: 264, t1: 276, acto: 'Estación 12', texto: 'FICHA TÉCNICA', sub: 'FichaTecnica SDMX: el estándar valida cada indicador',
+      cam: [[16, 4.5, 11], [21.5, 2.2, -0.2]] },
+    { t0: 276, t1: 288, acto: 'Estación 13', texto: 'DIFUSIÓN EST.', sub: 'Grafico + CalendarioDifusion: publicación programada',
+      cam: [[21, 5, 11], [26.5, 2.4, -0.2]] },
+    { t0: 288, t1: 302, acto: 'Estación 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores: ODS · Cali en Cifras · dominios del comité`,
+      cam: [[26, 5.5, 12], [32.5, 3, 2.5]] },
+    // ======= E: LÍNEA DE CALIDAD =======
+    { t0: 302, t1: 314, acto: 'Estación 15', texto: 'EVAL. ESTRATÉGICA', sub: 'dimensión estratégica: capacidad de decisión del organismo',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
-    { t0: 450, t1: 470, acto: 'Estación 19', texto: 'SATISFACCIÓN', sub: 'RespuestaSatisfaccion rápida y completa engordan el expediente',
+    { t0: 314, t1: 326, acto: 'Estación 16', texto: 'SATISFACCIÓN', sub: 'RespuestaSatisfaccion: llueven encuestas de la ventanilla ciudadana',
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
-    { t0: 470, t1: 490, acto: 'Estación 20', texto: 'Evaluación táctica', sub: 'dimensión táctica: la operación del organismo en detalle',
+    { t0: 326, t1: 338, acto: 'Estación 17', texto: 'EVAL. TÁCTICA', sub: 'dimensión táctica: la operación del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
-    { t0: 490, t1: 510, acto: 'Estación 21', texto: 'FICED', sub: 'ICEDFormulario en 5 secciones: caracterización→RRHH→procesos→ICE',
+    { t0: 338, t1: 350, acto: 'Estación 18', texto: 'FICED', sub: 'ICEDFormulario en 5 secciones: caracterización→RRHH→procesos→ICE',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
-    { t0: 510, t1: 530, acto: 'Estación 22', texto: 'Evaluación de organismo', sub: 'veredicto integral: estratégica + táctica + operativa',
+    { t0: 350, t1: 362, acto: 'Estación 19', texto: 'EVAL. ORGANISMO', sub: 'veredicto integral: estratégica + táctica + operativa',
       cam: [[16, 5, -5], [16, 2.5, -14.7]] },
-    { t0: 530, t1: 550, acto: 'Estación 23', texto: 'El complejo HALL', sub: 'expediente ICE + hojas de vida + tablero: aquí se decide la capacidad',
-      cam: [[18, 6.5, -5], [29, 3.5, -13]] },
-    { t0: 550, t1: 570, acto: 'Estación 24', texto: 'Línea editorial', sub: 'NoticiaBanner + Evento: del borrador a la portada',
+    { t0: 362, t1: 374, acto: 'Estación 20', texto: 'El complejo HALL', sub: 'expediente ICE + vitrina de hojas de vida: aquí se decide la capacidad',
+      cam: [[18, 6.5, -4], [29, 3.5, -11]] },
+    // ======= F: SALAS DE GOBIERNO — la cámara ENTRA y GIRA =======
+    { t0: 374, t1: 380, acto: 'Sala', texto: 'Junta del HALL', sub: 'el consejo de don Daticos deliberando — la cámara entra', pan: true,
+      cam: [[30, 5.9, -16.5], [24, 5.5, -16.5]] },
+    { t0: 380, t1: 384, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[30, 5.9, -16.5], [30, 6, -20]] },
+    { t0: 384, t1: 388, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[30, 5.9, -16.5], [36, 5.5, -16.5]] },
+    { t0: 388, t1: 392, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[30, 5.9, -16.5], [30, 5.5, -13]] },
+    { t0: 392, t1: 398, acto: 'Sala', texto: 'Junta del HALL', sub: 'grafo del ecosistema + TVs + vitrina: y la cámara sale', pan: true,
+      cam: [[30, 6.5, -8], [30, 5.9, -16.5]] },
+    { t0: 398, t1: 404, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan — la cámara entra', pan: true,
+      cam: [[52, 2.3, -14], [45.5, 2, -14]] },
+    { t0: 404, t1: 408, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[52, 2.3, -14], [52, 2.4, -17.8]] },
+    { t0: 408, t1: 412, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[52, 2.3, -14], [58.5, 2, -14]] },
+    { t0: 412, t1: 416, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[52, 2.3, -14], [52, 2.2, -10]] },
+    { t0: 416, t1: 422, acto: 'Sala', texto: 'Comité de Gestión', sub: 'plenaria de organismos + grafo + tablero ICED: y la cámara sale', pan: true,
+      cam: [[52, 3.5, -5], [52, 2.3, -14]] },
+    { t0: 422, t1: 428, acto: 'Sala', texto: 'Despacho de Alcaldía', sub: 'la decisión final — la cámara entra', pan: true,
+      cam: [[52, 4.9, -30], [49, 4.6, -30]] },
+    { t0: 428, t1: 432, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[52, 4.9, -30], [52, 5, -32.6]] },
+    { t0: 432, t1: 436, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[52, 4.9, -30], [55, 4.6, -30]] },
+    { t0: 436, t1: 440, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[52, 4.9, -30], [52, 4.6, -27.5]] },
+    { t0: 440, t1: 446, acto: 'Sala', texto: 'Despacho de Alcaldía', sub: 'escritorio, bandera y la decisión final: y la cámara sale', pan: true,
+      cam: [[52, 6.5, -23], [52, 4.9, -30]] },
+    // ======= G: LÍNEAS DE SERVICIO =======
+    { t0: 446, t1: 458, acto: 'Estación 21', texto: 'Línea editorial', sub: 'NoticiaBanner + Evento: del borrador a la portada',
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
-    { t0: 570, t1: 590, acto: 'Estación 25', texto: 'Línea de aprendizaje', sub: 'ProductoAcademico + ProductoEducativo: contenido formativo',
+    { t0: 458, t1: 470, acto: 'Estación 22', texto: 'Línea de aprendizaje', sub: 'ProductoAcademico + ProductoEducativo: contenido formativo',
       cam: [[-14, 4, 24], [-14, 1.5, 18]] },
-    { t0: 590, t1: 610, acto: 'Estación 26', texto: 'Línea de agenda', sub: 'CalendarioDifusion + Evento: agenda pública programada',
+    { t0: 470, t1: 482, acto: 'Estación 23', texto: 'Línea de agenda', sub: 'CalendarioDifusion + Evento: agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
-    { t0: 610, t1: 630, acto: 'Estación 27', texto: 'La ciudadanía', sub: 'la región que todo el sistema sirve: plaza, ventanilla y barrio',
-      cam: [[30, 11, 22], [50, 2, 12]] },
-    { t0: 630, t1: 650, acto: 'Estación 28', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
-      cam: [[35, 7, -9], [44.5, 3.2, -0.5]] },
-    { t0: 650, t1: 670, acto: 'Estación 29', texto: 'Comité de Gestión', sub: 'todos los organismos + grafo + TVs + tablero ICED',
-      cam: [[44, 7, -5], [52, 2.5, -14]] },
-    { t0: 670, t1: 690, acto: 'Estación 30', texto: 'Despacho de Alcaldía', sub: 'los reportes de ambas salas llegan a la decisión final',
-      cam: [[43, 9, -21], [52, 3.5, -30]] },
-    { t0: 690, t1: 720, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
+    // ======= H: CIUDADANÍA =======
+    { t0: 482, t1: 496, acto: 'Estación 24', texto: 'La ciudadanía', sub: 'la región que todo el sistema sirve: plaza, barrio y bandera', pan: true,
+      cam: [[30, 10, 24], [50, 2, 12]] },
+    { t0: 496, t1: 508, acto: 'Estación 25', texto: 'La ventanilla PQRS', sub: 'atención al ciudadano: encuestas que viajan por tubo a satisfacción',
+      cam: [[43, 4, 19], [36.5, 2, 14]] },
+    { t0: 508, t1: 520, acto: 'Estación 26', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
+      cam: [[36, 6, -9], [44.5, 3.2, -0.5]] },
+    { t0: 520, t1: 550, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
       cam: [[0, 18, 38], [0, 3, -4]], finale: true },
 ];
 const DURACION = ACTOS[ACTOS.length - 1].t1;
@@ -3337,6 +3376,8 @@ controls.target.set(0, 3, 0);
 const easeInOut = x => x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
 
 const _vFrom = new THREE.Vector3(), _vTo = new THREE.Vector3(), _vMira = new THREE.Vector3();
+const _vCamion = new THREE.Vector3();
+const CAMIONES = { camRec, camDel, camEdi };
 function tickCamara(t) {
     const idx = ACTOS.findIndex(a => t >= a.t0 && t < a.t1);
     const i = idx === -1 ? ACTOS.length - 1 : idx;
@@ -3349,6 +3390,19 @@ function tickCamara(t) {
     const prev = i > 0 ? ACTOS[i - 1].cam : acto.cam;
     _vFrom.fromArray(prev[0]);
     _vTo.fromArray(acto.cam[0]);
+    if (acto.sigue) {
+        // cam[0] es el OFFSET respecto al camión: la cámara se
+        // engancha tras el ease y viaja con él sin colisionar
+        const camion = CAMIONES[acto.sigue];
+        _vTo.add(camion.position);
+        camera.position.lerpVectors(_vFrom, _vTo, p);
+        camera.position.x += Math.sin(t * 0.4) * 0.25;
+        camera.position.y += Math.sin(t * 0.53) * 0.1;
+        _vCamion.copy(camion.position); _vCamion.y += 1.2;
+        _vMira.fromArray(prev[1]).lerp(_vCamion, p);
+        camera.lookAt(_vMira);
+        return;
+    }
     camera.position.lerpVectors(_vFrom, _vTo, p);
     // leve deriva orgánica (cámara en mano)
     camera.position.x += Math.sin(t * 0.4) * 0.4;
