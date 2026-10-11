@@ -2498,6 +2498,24 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             // estacionario; clip 3 = flexiones = aleteo potente
             rigDD.accion = rigDD.acciones[0] || rigDD.acciones[0];
             if (rigDD.accion) rigDD.accion.play();
+
+            // Mapa óseo para cirugía sobre los clips: el nado
+            // mueve piernas (hay que congelarlas) y las flexiones
+            // cierran los brazos (hay que abrirlos). Guardamos la
+            // pose de reposo de cada hueso como referencia.
+            rigDD.huesosAla = [];
+            rigDD.huesosPierna = [];
+            modelo.traverse(o => {
+                if (!o.isBone) return;
+                o.userData.restQ = o.quaternion.clone();
+                const n = o.name.toLowerCase();
+                if (/shoulder|arm|hand|clavicle|wing/.test(n))
+                    rigDD.huesosAla.push(o);
+                if (/upleg|leg|calf|shin|knee|foot|toe/.test(n))
+                    rigDD.huesosPierna.push(o);
+            });
+            console.log('🦜 huesos ala:', rigDD.huesosAla.map(b => b.name),
+                        '| pierna:', rigDD.huesosPierna.map(b => b.name));
         });
     
     // Variables de control del juego
@@ -2551,6 +2569,27 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             // En movimiento el batir va fuerte; estacionario, suave
             if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.9 : 0.8;
             rig.mixer.update(dt);
+
+            // ---------- Cirugía ósea sobre el clip ----------
+            // Idle (nado): piernas congeladas en reposo → el cuerpo
+            // va estirado; las alas baten rápido por encima del clip
+            // → se lee como vuelo estacionario.
+            // Vuelo (flexiones): alas sostenidas abiertas + batir de
+            // mayor amplitud → se lee como batida en desplazamiento.
+            a.faseAla = (a.faseAla || 0) + dt * (o.moviendose ? 11 : 8.5);
+            if (!o.moviendose && rig.huesosPierna) {
+                for (const b of rig.huesosPierna)
+                    b.quaternion.copy(b.userData.restQ);
+            }
+            if (rig.huesosAla && rig.huesosAla.length) {
+                const amp = o.moviendose ? 0.55 : 0.4;
+                const abierta = o.moviendose ? 0.35 : 0;
+                for (const b of rig.huesosAla) {
+                    // Mismo signo en .L/.R: los ejes locales ya están
+                    // espejados en el rig → el batir sale simétrico
+                    b.rotateZ(abierta + Math.sin(a.faseAla) * amp);
+                }
+            }
         }
 
         // ---------- Detección de baile (salsa caleña) ----------
