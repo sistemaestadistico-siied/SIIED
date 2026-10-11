@@ -2498,6 +2498,19 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         }
         return new trk.constructor(trk.name, ts, vs);
     };
+    // Invierte el tiempo de una pista: en el nado las alas
+    // van de abajo hacia arriba; el vuelo baten al revés
+    const pistaEnReversa = (trk, dur) => {
+        const n = trk.times.length, vsz = trk.getValueSize();
+        const ts = [], vs = [];
+        for (let i = 0; i < n; i++) {
+            const orig = n - 1 - i;
+            ts.push(dur - trk.times[orig]);
+            const base = orig * vsz;
+            for (let j = 0; j < vsz; j++) vs.push(trk.values[base + j]);
+        }
+        return new trk.constructor(trk.name, ts, vs);
+    };
     // Amplifica rotaciones (alas más abiertas: slerp desde
     // identidad con factor > 1)
     const qAmp1 = new THREE.Quaternion(), qAmp2 = new THREE.Quaternion();
@@ -2520,7 +2533,11 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             const hueso = trk.name.split('.')[0];
             if (HUESOS_PIERNA.test(hueso)) return pistaCongelada(trk);
             if (HUESOS_ALA.test(hueso))
-                return pistaAcelerada(trk, clip.duration, 2);
+                // La batida del nado en reversa se lee como
+                // alas que empujan el aire hacia abajo
+                return pistaAcelerada(
+                    pistaEnReversa(trk, clip.duration),
+                    clip.duration, 2);
             return trk;
         }));
     // Vuelo en movimiento (de las flexiones): alas x1.35 de
@@ -2531,7 +2548,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             const hueso = trk.name.split('.')[0];
             if (!HUESOS_ALA.test(hueso)) return trk;
             const base = trk.name.endsWith('quaternion')
-                ? pistaAmplificada(trk, 1.35) : trk;
+                ? pistaAmplificada(trk, 2.2) : trk;   // alas bien abiertas
             return pistaAcelerada(base, clip.duration, 2);
         }));
 
@@ -2557,8 +2574,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             visualDD.add(wrapperGLB);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
-            // Clips procesados: hover (piernas quietas, alas x2)
-            // y vuelo (alas x1.35 amplitud, x2 batidas)
+            // Clips procesados: hover (piernas quietas, alas
+            // en reversa x2) y vuelo (alas x2.2 amplitud, x2)
             const clip0 = gltf.animations[0];
             const clip3 = gltf.animations[3] || clip0;
             rigDD.accionHover = rigDD.mixer.clipAction(clipVueloEstatico(clip0));
@@ -2605,8 +2622,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
 
         // ---------- Modelo GLB: vuelo estacionario / aleteo ----------
-        // hover: nado con piernas congeladas y alas x2;
-        // flap: flexiones con alas más abiertas y rápidas.
+        // hover: nado en reversa → batida hacia abajo, piernas
+        // quietas; flap: flexiones con alas ampliadas x2.2.
         if (rig.mixer) {
             const prox = (o.moviendose ? rig.accionFlap : rig.accionHover)
                 || (rig.acciones && rig.acciones[0]);
