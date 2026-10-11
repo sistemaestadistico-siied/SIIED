@@ -436,7 +436,11 @@ function renderGrafico3D(containerId, grafico) {
                     ¡Juega con Don Datico!
                 </h3>
                 <p style="font-size: 1.1em; margin-bottom: 30px; opacity: 0.95;">
-                    Vuela y recolecta chontaduros 🍑
+                    ${['pie','treemap','piramide_poblacional'].includes((grafico?.tipo_grafico || '').toLowerCase())
+                        ? 'Recoge los sectores del mayor al menor 🥧'
+                        : ['barras_apiladas','areas_apiladas'].includes((grafico?.tipo_grafico || '').toLowerCase())
+                        ? 'Ordena cada pila de abajo hacia arriba 🧱'
+                        : 'Vuela y recolecta chontaduros 🍑'}
                 </p>
                 <button id="btn-activar-3d-${containerId}" style="
                     background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
@@ -1326,6 +1330,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                 valor: valor,
                 label: serieLabels[i] || labels[i] || `Dato ${i+1}`, // Usar label de la serie actual
                 serie: serie.name,
+                si: si, i: i,   // índices serie/columna: los usan los modos ordenados
                 altura: altura.toFixed(2),
                 tipo: tipo === 'casa' ? 'Casa' : 'Edificio',
                 proporcion: (proporcion * 100).toFixed(1) + '%',
@@ -2602,6 +2607,30 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         chontaduros.push(chontaduro);
         scene.add(chontaduro);
     });
+
+    // ========== MODO DE JUEGO POR TIPO DE GRÁFICO ==========
+    // 'libre' (líneas/barras/área/tablas): chontaduros sin orden.
+    // 'proporcion' (pie/treemap/pirámide): del sector mayor al
+    // menor — lee la composición del todo.
+    // 'pila' (apiladas): cada columna de abajo hacia arriba,
+    // recorriéndolas en orden — lee la estructura del apilado.
+    const modoJuegoTipo =
+        ['pie', 'treemap', 'piramide_poblacional'].includes(tipoGrafico) ? 'proporcion' :
+        ['barras_apiladas', 'areas_apiladas'].includes(tipoGrafico) ? 'pila' : 'libre';
+    gameState.ordenRequerido = (() => {
+        if (modoJuegoTipo === 'proporcion') {
+            return [...chontaduros].sort((a, b) =>
+                b.userData.edificio.userData.valor - a.userData.edificio.userData.valor);
+        }
+        if (modoJuegoTipo === 'pila') {
+            return [...chontaduros].sort((a, b) =>
+                a.userData.edificio.userData.i - b.userData.edificio.userData.i ||
+                a.userData.edificio.userData.si - b.userData.edificio.userData.si);
+        }
+        return null;
+    })();
+    gameState.modoTipo = modoJuegoTipo;
+    gameState.ordenIdx = 0;   // siguiente chontaduro válido en el modo ordenado
     
     // Splash screen para mostrar información
     const splashScreen = document.createElement('div');
@@ -2706,15 +2735,38 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     });
     
     // Función para detectar colisión con chontaduros
+    // Aviso cuando toca un chontaduro fuera de turno
+    function avisarOrden() {
+        const esperado = gameState.ordenRequerido[gameState.ordenIdx];
+        const e = esperado.userData.edificio.userData;
+        splashScreen.innerHTML = `
+            <div style="font-size: 1.4em; margin-bottom: 10px;">🔒 ¡Fuera de turno!</div>
+            <div style="font-size: 1em;">${modoJuegoTipo === 'pila'
+                ? 'Primero la base de la pila'
+                : 'Primero el sector más grande: <b>' + e.label + '</b>'}</div>
+        `;
+        splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
+        setTimeout(() => {
+            splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
+        }, 1800);
+    }
+
     function detectarColisiones() {
         chontaduros.forEach((chontaduro) => {
             if (chontaduro.userData.recolectado) return;
             
             const distancia = donDatico.position.distanceTo(chontaduro.position);
             if (distancia < 1) { // Radio de colisión
+                // Modo ordenado: fuera de turno avisa y rebota
+                if (gameState.ordenRequerido &&
+                    chontaduro !== gameState.ordenRequerido[gameState.ordenIdx]) {
+                    avisarOrden();
+                    return;
+                }
                 // ¡Recolectado!
                 chontaduro.userData.recolectado = true;
                 gameState.chontadurosRecolectados++;
+                gameState.ordenIdx++;
                 
                 // Animación de recolección
                 const escalaInicial = chontaduro.scale.clone();
