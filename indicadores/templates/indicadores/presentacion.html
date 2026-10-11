@@ -1452,7 +1452,7 @@ crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2
     placa.rotation.x = -Math.PI / 2;
     placa.position.set(-2, 0.025, 4);
     scene.add(placa);
-    const cartelT = crearCartel('NODO T', '→ CatalogoConsulta público', 1.8);
+    const cartelT = crearCartel('CONSULTA', 'dato público · no es indicador', 1.8);
     cartelT.position.set(-2, 1.0, 5.7);
     scene.add(cartelT);
 }
@@ -3247,7 +3247,7 @@ const ACTOS = [
       cam: [[-34, 8, 12], [-22, 3, -1]] },
     { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'La cadena de datos', sub: 'OperacionEstadistica → ConjuntoDatos → Indicador → Grafico', pan: true,
       cam: [[-14, 7, 14], [9, 2.5, 4]] },
-    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'El nodo T', sub: 'los conjuntos también alimentan el catálogo de consulta', pan: true,
+    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'Datos de consulta', sub: 'no todo conjunto es indicador: los datos de consulta se publican sin ser KPI', pan: true,
       cam: [[-10, 8, 16], [-2, 2.5, 12]] },
     { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Inventario de indicadores', sub: 'tres conjuntos: ODS · Cali en Cifras · dominios del comité', pan: true,
       cam: [[20, 7, 13], [32.5, 3, 2.5]] },
@@ -3282,9 +3282,9 @@ const ACTOS = [
     // ======= D: CADENA DE DATOS — estación por estación =======
     { t0: 178, t1: 192, acto: 'Estación 05', texto: 'INV. OPERACIONES', sub: 'OperacionEstadistica: cada fuente acompañada entra a la tolva',
       cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]] },
-    { t0: 192, t1: 204, acto: 'Estación 06', texto: 'CONJUNTO DATOS', sub: 'ConjuntoDatos agrupa series por dominio; un ramal T va al catálogo',
+    { t0: 192, t1: 204, acto: 'Estación 06', texto: 'CONJUNTO DATOS', sub: 'ConjuntoDatos agrupa series por dominio; parte se cataloga como consulta, no como indicador',
       cam: [[-8, 5, 12], [-3.5, 2.4, 0]] },
-    { t0: 204, t1: 216, acto: 'Estación 07', texto: 'Catálogo de consulta', sub: 'CatalogoConsulta: datos navegables por dominio y tema',
+    { t0: 204, t1: 216, acto: 'Estación 07', texto: 'Catálogo de consulta', sub: 'CatalogoConsulta: conjuntos publicados como dato de consulta — sin estatus de indicador',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
     { t0: 216, t1: 228, acto: 'Estación 08', texto: 'ADMIN SIIED', sub: 'RegistroCambio: trazabilidad total de cada paso del dato',
       cam: [[-3, 4.5, 11], [1.5, 2.2, -0.2]] },
