@@ -1361,6 +1361,10 @@ const TALLER = crearMaquina({
     scene.add(placa);
 }
 
+// Puestos de don Daticos de cada sala de juntas (los pone
+// crearPlanta); lo llenan las salas al crearse
+const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
+
 // Línea de CALIDAD INSTITUCIONAL (banda C): dossier → evals →
 // satisfacción (engorda) → FICED (cambia de color) → hall.
 const ESTACIONES_CAL = [
@@ -1390,7 +1394,6 @@ const ESTACIONES_DAT = [
 // son salas de juntas donde don Daticos del equipo técnico
 // deliberan. Conservan el letrero de la estación original
 // y NO son puntos de parada de camiones.
-const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
 function crearSalaJunta(cfg) {
     const g = new THREE.Group();
     g.position.set(cfg.x, 0, cfg.z ?? -0.2);
