@@ -514,6 +514,40 @@ function renderGrafico3D(containerId, grafico) {
     iniciarExperiencia3D(container, containerId, grafico, esMobil);
 }
 
+// Normaliza las series de api_get_graficos al formato
+// {name, x: [etiquetas], y: [números]} que usa el barrio 3D:
+// - la API manda y como texto ('18.41')
+// - pie / treemap llegan como labels/values (treemap: solo hojas,
+//   los nodos padre son sumas)
+// - la pirámide llega horizontal (x = valor, y = grupo de edad)
+//   y con un lado en negativo
+function normalizarSeries3D(grafico) {
+    const num = v => {
+        if (v === null || v === undefined || v === '') return NaN;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : NaN;
+    };
+    const tipo = (grafico?.tipo_grafico || '').toLowerCase();
+    return (grafico?.series || []).map(s => {
+        let x = s.x, y = s.y;
+        if (!y && s.values) {
+            x = s.labels || [];
+            y = s.values;
+            if (s.parents) {
+                const padres = new Set(s.parents.filter(p => p));
+                const hojas = x.map((_, i) => i).filter(i => !padres.has(x[i]));
+                x = hojas.map(i => x[i]);
+                y = hojas.map(i => y[i]);
+            }
+        } else if (s.orientation === 'h' && (y || []).some(v => isNaN(num(v)))) {
+            [x, y] = [y, x];
+        }
+        let yn = (y || []).map(num);
+        if (tipo.includes('piramide')) yn = yn.map(v => Math.abs(v));
+        return { ...s, x: (x || []).map(String), y: yn };
+    });
+}
+
 // 🎮 Función principal para iniciar la experiencia 3D
 function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
 
@@ -716,11 +750,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             
             // Ventanas (con luces en modo nocturno)
             const ventanaColor = modoNocturno ? 0xFFDD88 : 0x6699CC; // Amarillo cálido en noche
-            const ventanaMat = new THREE.MeshBasicMaterial({ 
-                color: ventanaColor,
-                emissive: modoNocturno ? 0xFFDD88 : 0x000000,
-                emissiveIntensity: modoNocturno ? 0.8 : 0
-            });
+            // MeshBasic no tiene emissive: el color ya es luz propia
+            const ventanaMat = new THREE.MeshBasicMaterial({ color: ventanaColor });
             for (let i = 0; i < Math.floor(altura / 1.5); i++) {
                 const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.05), ventanaMat);
                 ventana.position.set(0.6, 0.5 + i * 1.5, 1.01);
@@ -741,11 +772,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             
             // Ventanas en patrón (con luces en modo nocturno)
             const ventanaColor = modoNocturno ? 0xFFDD88 : 0x4A90E2;
-            const ventanaMat = new THREE.MeshBasicMaterial({ 
-                color: ventanaColor,
-                emissive: modoNocturno ? 0xFFDD88 : 0x000000,
-                emissiveIntensity: modoNocturno ? 0.8 : 0
-            });
+            // MeshBasic no tiene emissive: el color ya es luz propia
+            const ventanaMat = new THREE.MeshBasicMaterial({ color: ventanaColor });
             const numPisos = Math.floor(altura / 1.2);
             for (let piso = 0; piso < numPisos; piso++) {
                 for (let lado = 0; lado < 4; lado++) {
@@ -1272,7 +1300,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     }
 
     // 📊 Datos -> Edificios y casas del barrio
-    const series = grafico.series || [];
+    const series = normalizarSeries3D(grafico);
     const labels = series[0]?.x || [];
     let vmin = Infinity, vmax = -Infinity;
     series.forEach(s => s.y?.forEach(v => {
@@ -1309,22 +1337,40 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         // torre es una serie. Los pisos nacen como huecos
         // transparentes que Don Datico rellena llevando el
         // chontaduro del color correcto.
-        const numCats   = Math.min(Math.max(...series.map(s => s.y?.length || 0), labels.length), 8);
-        const numSeries = Math.min(series.length, 6);
+        // Categorías: unión de etiquetas x de todas las series
+        // (no se asume que compartan el mismo eje), las 8 más
+        // recientes. Series: las 6 de mayor peso en esas categorías
+        // (hay apiladas reales con 185 series).
+        const vistas = new Set(), catsTodas = [];
+        series.forEach(s => s.x.forEach(c => {
+            if (!vistas.has(c)) { vistas.add(c); catsTodas.push(c); }
+        }));
+        if (catsTodas.every(c => !isNaN(Number(c))))
+            catsTodas.sort((a, b) => Number(a) - Number(b));
+        const cats = catsTodas.slice(-8);
+        const valorDe = (s, c) => {
+            if (!s._mapa) s._mapa = new Map(s.x.map((xv, k) => [xv, s.y[k]]));
+            const v = s._mapa.get(c);
+            return (v === undefined || isNaN(v)) ? NaN : v;
+        };
+        const pesoSerie = s => cats.reduce((t, c) => t + (valorDe(s, c) || 0), 0);
+        const seriesPila = series
+            .map(s => ({ s, peso: pesoSerie(s) }))
+            .filter(o => o.peso > 0)
+            .sort((a, b) => b.peso - a.peso)
+            .slice(0, 6)
+            .map(o => o.s);
+        const numCats = cats.length, numSeries = seriesPila.length;
         // Escala común: la torre más alta cabe en alturaMaxima
         let maxPila = 0;
-        for (let i = 0; i < numCats; i++) {
-            let suma = 0;
-            for (let si = 0; si < numSeries; si++) {
-                const v = series[si]?.y?.[i];
-                if (!isNaN(v) && v != null) suma += v;
-            }
+        cats.forEach(c => {
+            const suma = seriesPila.reduce((t, s) => t + (valorDe(s, c) || 0), 0);
             maxPila = Math.max(maxPila, suma);
-        }
+        });
         const escPila = maxPila > 0 ? alturaMaxima / maxPila : 1;
 
         for (let i = 0; i < numCats; i++) {
-            const x = (i - numCats / 2) * gap * 1.6;
+            const x = (i - (numCats - 1) / 2) * gap * 1.6;
             let yBase = 0;
             const base = new THREE.Mesh(
                 new THREE.BoxGeometry(3, 0.4, 3),
@@ -1332,13 +1378,13 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             base.position.set(x, 0.2, 0);
             grupoBarras.add(base);
             // Letrero flotante con el nombre de la categoría
-            const nomCat = series[0]?.x?.[i] || labels[i] || `Cat ${i + 1}`;
+            const nomCat = cats[i];
             const etiqueta = crearEtiquetaSprite(nomCat);
             etiqueta.position.set(x, 1.5, 0);
             grupoBarras.add(etiqueta);
             for (let si = 0; si < numSeries; si++) {
-                const valor = series[si]?.y?.[i];
-                if (isNaN(valor) || valor == null) continue;
+                const valor = valorDe(seriesPila[si], nomCat);
+                if (isNaN(valor) || valor <= 0) continue;
                 const h = Math.max(0.4, valor * escPila);
                 const color = paletaColores[si % paletaColores.length];
                 const hueco = new THREE.Mesh(
@@ -1356,7 +1402,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                     data: {
                         label: nomCat,
                         valor: valor,
-                        serie: series[si]?.name || `Serie ${si + 1}`,
+                        serie: seriesPila[si].name || `Serie ${si + 1}`,
                         tipo: 'Segmento',
                         proporcion: (maxPila ? (valor / maxPila * 100).toFixed(1) : '0') + '%',
                         desagregaciones: grafico.desagregaciones || 'N/A'
@@ -1373,6 +1419,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const numBarras = serie.y.length;
         
         serie.y.forEach((valor, i) => {
+            if (isNaN(valor)) return;      // dato faltante: lote vacío
             // Usar proporción EXACTA sin aproximación
             const proporcion = (valor - vmin) / rangoValores;
             const altura = Math.max(0.5, proporcion * alturaMaxima); // Mínimo 0.5 para visibilidad
@@ -1401,6 +1448,51 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         });
     });
     scene.add(grupoBarras);
+
+    // ======== BARRIO ALREDEDOR DE LAS PILAS ========
+    // El mapa de la pila solo tenía torres: dos calles de casas
+    // de 1-2 pisos a cada lado. Fachadas coloniales fuera de la
+    // paleta de series (no confunden el juego). En el mapa
+    // nocturno (áreas apiladas): ventanas encendidas, farol en
+    // cada puerta y postes con luz cálida.
+    if (esApilado && slotsApilados.length) {
+        const barrio = new THREE.Group();
+        const fachadas = [0xF2F2EE, 0xA8C8E0, 0xB8D8B0, 0xE8B8C0, 0xC8C0E0];
+        let semilla = 7;   // pseudoaleatorio fijo: el barrio no cambia al recargar
+        const rnd = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647;
+        const ancho = Math.max(18, Math.max(...slotsApilados.map(s => Math.abs(s.x))) + 6);
+        const matFarol = new THREE.MeshBasicMaterial({ color: 0xFFC860 });
+        [-11, -15.5, 11, 15.5].forEach(z => {
+            for (let x = -ancho; x <= ancho; x += 3.4) {
+                if (rnd() < 0.12) { barrio.add(crearArbolUrbano(x, z)); continue; }
+                const casa = crearEdificio(2.2 + rnd() * 1.6, 'casa',
+                    fachadas[Math.floor(rnd() * fachadas.length)]);
+                casa.position.set(x + (rnd() - 0.5) * 0.4, 0, z);
+                barrio.add(casa);
+                if (modoNocturno) {
+                    const farol = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), matFarol);
+                    farol.position.set(casa.position.x, 1.3, z + 1.1);
+                    barrio.add(farol);
+                }
+            }
+        });
+        if (modoNocturno) {
+            // Postes en las dos calles: la luz que se ve en el piso
+            const matPoste = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            [-8, 8].forEach(z => {
+                [-ancho * 0.5, ancho * 0.5].forEach(x => {
+                    const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 5, 6), matPoste);
+                    poste.position.set(x, 2.5, z);
+                    const bombillo = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), matFarol);
+                    bombillo.position.set(x, 5.1, z);
+                    const luz = new THREE.PointLight(0xFFB050, 1.4, 20, 1.5);
+                    luz.position.set(x, 4.8, z);
+                    barrio.add(poste, bombillo, luz);
+                });
+            });
+        }
+        scene.add(barrio);
+    }
     
     // 🔊 Sonido ambiental de fondo
     const audioListener = new THREE.AudioListener();
@@ -2895,7 +2987,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             const r = anillo + (k % 3) * 2.2;
             chontaduro.position.set(
                 Math.cos(ang) * r,
-                3.5 + (k % 4) * 1.2,
+                6 + (k % 4) * 1.2,      // sobre los techos del barrio
                 Math.sin(ang) * r);
             // Aro con el color de su serie: dice a qué pila va
             const aro = new THREE.Mesh(
