@@ -159,6 +159,14 @@
         letter-spacing: 2px; cursor: pointer;
     }
     #btn-replay:hover { background: #1d4ed8; }
+    #chip-pausa {
+        position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+        background: rgba(15,23,42,.85); border: 1px solid #38bdf8; color: #7dd3fc;
+        padding: 8px 20px; border-radius: 20px;
+        font-family: 'JetBrains Mono', monospace; font-size: 13px;
+        display: none; z-index: 60; pointer-events: none;
+    }
+    #chip-pausa.visible { display: block; }
 </style>
 
 <script type="importmap">
@@ -213,7 +221,9 @@
     <button class="hud-btn" id="btn-sepia">SEPIA: ON</button>
     <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
     <button class="hud-btn" id="btn-saltar">SALTAR ⏭</button>
+    <button class="hud-btn" id="btn-pausa">⏸ PAUSAR [ESPACIO]</button>
 </div>
+<div id="chip-pausa">⏸ PAUSA — cámara libre · la fábrica sigue trabajando</div>
 <div id="progreso"></div>
 
 <script type="module">
@@ -318,7 +328,7 @@ for (const x of [-35, -25, -15, -5, 5, 15, 25, 35]) {
 // ============ CINTAS TRANSPORTADORAS ============
 // Línea 1 (z=0): producción de datos. Línea 2 (z=-10.6): capacidad
 // estadística (formularios FICED / satisfacción).
-function crearCinta(largo, z) {
+function crearCinta(largo, z, x0 = 0, rotY = 0) {
     const c = new THREE.Group();
     const estructura = new THREE.Mesh(
         new THREE.BoxGeometry(largo, 0.5, 2.4),
@@ -361,11 +371,12 @@ function crearCinta(largo, z) {
             c.add(pata);
         }
     }
-    c.position.set(0, 0, z);
+    c.position.set(x0, 0, z);
+    c.rotation.y = rotY;
     scene.add(c);
     return { grupo: c, tex, rodillos };
 }
-const cintas = [crearCinta(52, 0), crearCinta(46, -10.6)];
+const cintas = [crearCinta(52, 0), crearCinta(46, -10.6), crearCinta(30, 0, 44, Math.PI / 2)];
 
 // ============ PAQUETES DE DATOS ============
 function texturaPaquete(etiqueta, color) {
@@ -670,6 +681,7 @@ function crearMecanismo(cfg) {
 function crearMaquina(cfg) {
     const m = new THREE.Group();
     m.position.set(cfg.x, 0, cfg.z ?? -3.2);
+    if (cfg.rotY) m.rotation.y = cfg.rotY;
 
     // Cuerpo principal: gabinete blanco de laboratorio
     const cuerpo = new THREE.Mesh(
@@ -867,8 +879,8 @@ function crearMaquina(cfg) {
         flash.position.set(0, 1.32, 3.8);
         m.add(flash);
         extras.flash = flash;
-        // Placa "DDI" pegada al émbolo: baja con el golpe de prensa
-        const placa = crearCartel('DDI', 'estándar', 1.0);
+        // Placa con el sello del estándar pegada al émbolo
+        const placa = crearCartel(cfg.sello || 'DDI', 'estándar', 1.0);
         placa.position.set(0, 0.05, 0.65);
         actuador.add(placa);
     } else if (cfg.tipo === 'escaner') {
@@ -1079,6 +1091,131 @@ function crearKiosco(cfg) {
     { z: 2,    nombre: 'CALENDARIO',  modelo: 'CalendarioDifusion · Evento',       prop: 'calendario' },
     { z: 5,    nombre: 'METODOLOGÍA', modelo: 'DocumentoInfraestructura',          prop: 'libro' },
 ].forEach(s => crearKiosco({ ...s, x: -33 }));
+
+// ============ LÍNEA 3 — SUBIDA DE INDICADORES (este, perpendicular) ============
+// Extraer indicadores de los conjuntos es una maquila en sí misma:
+// ReglaExtraccion → Dato → ficha validada → indicador publicado.
+const ESTACIONES_EXT = [
+    { x: 48.5, z: 8,  nombre: 'EXTRACCIÓN',  modelo: 'ReglaExtraccion → Dato', color: 0x0ea5e9, tipo: 'turbina',  rotY: -Math.PI / 2 },
+    { x: 48.5, z: 0,  nombre: 'VALIDACIÓN',  modelo: 'ficha técnica · SDMX',   color: 0x6366f1, tipo: 'prensa',   sello: 'SDMX', rotY: -Math.PI / 2 },
+    { x: 48.5, z: -8, nombre: 'PUBLICACIÓN', modelo: 'Indicador activo → catálogo', color: 0x8b5cf6, tipo: 'lanzador', rotY: -Math.PI / 2 },
+];
+ESTACIONES_EXT.forEach(crearMaquina);
+const texInd = texturaPaquete('IND', '#6366f1');
+const familias3 = [];
+const Z3_INICIAL = [16, 26, 36, 46];
+for (const z0 of Z3_INICIAL) {
+    const c = cajaNueva(0.75, 0.55, 0.7, texInd);
+    c.visible = true;
+    c.position.set(44, 1.7, z0);
+    familias3.push({ mesh: c, pasadas: new Set() });
+}
+
+// ============ GRAFO 3D DEL ECOSISTEMA ============
+// El producto estrella del taller: un grafo que interrelaciona
+// organismos, fuentes, conjuntos y variables. Holograma rotatorio.
+const grafo = new THREE.Group();
+{
+    const nodoGeom = new THREE.SphereGeometry(0.16, 10, 10);
+    const colsNodo = [0x67e8f9, 0x38bdf8, 0xa78bfa, 0x34d399];
+    const posN = [];
+    for (let i = 0; i < 18; i++) {
+        const v = new THREE.Vector3(
+            Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1
+        ).normalize().multiplyScalar(0.8 + Math.random() * 1.9);
+        posN.push(v);
+        const n = new THREE.Mesh(nodoGeom,
+            new THREE.MeshBasicMaterial({ color: colsNodo[i % 4] }));
+        n.position.copy(v);
+        grafo.add(n);
+    }
+    const pts = [];
+    for (let i = 0; i < posN.length; i++) {
+        for (let j = i + 1; j < posN.length; j++) {
+            if (posN[i].distanceTo(posN[j]) < 2.2) { pts.push(posN[i], posN[j]); }
+        }
+    }
+    grafo.add(new THREE.LineSegments(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.4 })));
+    grafo.position.set(-20, 7.0, -1);
+    scene.add(grafo);
+    const cartelG = crearCartel('GRAFO 3D', 'ecosistema · variables interrelacionadas', 2.8);
+    cartelG.position.set(-20, 4.5, -0.5);
+    scene.add(cartelG);
+}
+
+// ============ MEDIDOR FICED ============
+// El formulario de capacidad es profundo: cinco secciones que se
+// llenan en ciclo mientras dure la medición.
+const ficedBarras = [];
+{
+    const rack = new THREE.Mesh(new THREE.BoxGeometry(5.6, 3.6, 0.35),
+        new THREE.MeshLambertMaterial({ color: 0xede9fe }));
+    rack.position.set(-5, 1.9, -16.4);
+    rack.castShadow = true;
+    scene.add(rack);
+    const cab = crearCartel('FICED', 'formulario de capacidad', 3.6);
+    cab.position.set(-5, 4.2, -16.1);
+    scene.add(cab);
+    const secciones = ['CARACT.', 'RR.HH.', 'PROCESOS', 'PROCED.', 'ICE'];
+    for (let i = 0; i < secciones.length; i++) {
+        const etq = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.33),
+            new THREE.MeshBasicMaterial({
+                map: textoCanvas(secciones[i], '', '#7c3aed') }));
+        etq.position.set(-7.15, 3.15 - i * 0.55, -16.15);
+        scene.add(etq);
+        const g = new THREE.BoxGeometry(3.6, 0.32, 0.06);
+        g.translate(1.8, 0, 0);   // crece desde el borde izquierdo
+        const barra = new THREE.Mesh(g,
+            new THREE.MeshBasicMaterial({ color: 0xa78bfa }));
+        barra.position.set(-6.5, 3.15 - i * 0.55, -16.15);
+        scene.add(barra);
+        ficedBarras.push(barra);
+    }
+}
+
+// ============ PLAZA DE LA POBLACIÓN ============
+// La ciudadanía no es decoración: sus encuestas de satisfacción
+// vuelan a la línea de capacidad y conectan población ↔ organismos.
+const ciudadanos = [];
+{
+    const parche = new THREE.Mesh(new THREE.CircleGeometry(7, 32),
+        new THREE.MeshLambertMaterial({ color: 0xdbe7d3 }));
+    parche.rotation.x = -Math.PI / 2;
+    parche.position.set(16, 0.02, 11);
+    scene.add(parche);
+    const cartelPlaza = crearCartel('PLAZA', 'la ciudadanía opina', 2.4);
+    cartelPlaza.position.set(16, 3.2, 14.8);
+    cartelPlaza.rotation.y = Math.PI;
+    scene.add(cartelPlaza);
+    const paleta = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9, 0xf97316];
+    for (let i = 0; i < 14; i++) {
+        const c = new THREE.Group();
+        const cuerpo = new THREE.Mesh(
+            new THREE.ConeGeometry(0.22, 0.85, 8),
+            new THREE.MeshLambertMaterial({ color: paleta[i % paleta.length] }));
+        cuerpo.position.y = 0.42;
+        const cabeza = new THREE.Mesh(
+            new THREE.SphereGeometry(0.16, 10, 10),
+            new THREE.MeshLambertMaterial({ color: 0xf5d0a9 }));
+        cabeza.position.y = 0.95;
+        c.add(cuerpo, cabeza);
+        const a = Math.random() * Math.PI * 2, r = 1.5 + Math.sqrt(Math.random()) * 4.6;
+        c.position.set(16 + Math.cos(a) * r * 1.15, 0, 11 + Math.sin(a) * r * 0.42);
+        c.userData.fase = Math.random() * 7;
+        scene.add(c);
+        ciudadanos.push(c);
+    }
+}
+const encuestas = [];
+for (let i = 0; i < 3; i++) {
+    const pl = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.45, 0.6),
+        new THREE.MeshLambertMaterial({ color: 0xfefce8, side: THREE.DoubleSide }));
+    scene.add(pl);
+    encuestas.push({ mesh: pl, t: i / 3, origen: new THREE.Vector3(16, 1, 11) });
+}
 
 // ============ RIEL + CARRO DEL SUPERVISOR ============
 // Monorriel sobre el pasillo: un carro colgante transporta al
@@ -1421,15 +1558,17 @@ function ponerEstado(w, estado) {
 function crearPlanta() {
     maquinas.forEach((m, i) => {
         let w;
+        m.updateWorldMatrix(true, false);
+        const posOp = m.localToWorld(new THREE.Vector3(-2.8, 1.58, 0.8));
         if (modeloGLB) {
             w = clonarOperario();
-            w.loro.position.set(m.position.x - 2.8, 1.58, m.position.z + 0.8);
-            w.loro.rotation.y = 0.6;
+            w.loro.position.copy(posOp);
+            w.loro.rotation.y = 0.6 + m.rotation.y;
             w.loro.scale.setScalar(1.05);
         } else {
             const o = crearDonDatico();
-            o.position.set(m.position.x - 2.8, 1.62, m.position.z + 0.8);
-            o.rotation.y = 0.9;
+            o.position.copy(posOp).setY(1.62);
+            o.rotation.y = 0.9 + m.rotation.y;
             o.scale.setScalar(1.1);
             w = { loro: o, mixer: null };
         }
@@ -1499,25 +1638,31 @@ new GLTFLoader().load(
 
 // ============ TIMELINE / ACTOS ============
 const ACTOS = [
-    { t0: 0,  t1: 6,  acto: '', texto: '', sub: '',
+    { t0: 0,   t1: 6,   acto: '', texto: '', sub: '',
       cam: [[0, 24, 46], [0, 6, -4]] },
-    { t0: 6,  t1: 15, acto: 'Acto I', texto: 'Taller de ecosistema', sub: `Se censan organismos y fuentes de datos — ${STATS.organismos} organismos`,
+    { t0: 6,   t1: 15,  acto: 'Acto I', texto: 'Taller de ecosistema', sub: `Censo y prediagnóstico: ${STATS.organismos} organismos y sus fuentes`,
       cam: [[-26, 4, 14], [-20, 3, -1.5]] },
-    { t0: 15, t1: 24, acto: 'Acto II', texto: 'Operaciones estadísticas', sub: 'Las fuentes se formalizan: las 8 fases del proceso DANE (IOE)',
+    { t0: 15,  t1: 24,  acto: 'Acto II', texto: 'El grafo del ecosistema', sub: 'El taller produce un grafo 3D que interrelaciona las variables',
+      cam: [[-26, 7, 12], [-20, 6.8, -1]] },
+    { t0: 24,  t1: 33,  acto: 'Acto III', texto: 'Operaciones estadísticas', sub: 'Las fuentes se formalizan: las 8 fases del proceso DANE (IOE)',
       cam: [[-16, 3.5, 12], [-10, 2.5, -1.5]] },
-    { t0: 24, t1: 33, acto: 'Acto III', texto: 'Conjuntos y variables', sub: `Conjuntos de datos y variables bajo el estándar DDI — ${STATS.conjuntos} inventariados`,
+    { t0: 33,  t1: 42,  acto: 'Acto IV', texto: 'Conjuntos y variables', sub: `Conjuntos de datos y variables bajo DDI — ${STATS.conjuntos} inventariados`,
       cam: [[-6, 3.5, 12], [0, 2.5, -1.5]] },
-    { t0: 33, t1: 42, acto: 'Acto IV', texto: 'Indicadores', sub: `Se extraen indicadores con ficha SDMX — ${STATS.indicadores} activos`,
+    { t0: 42,  t1: 51,  acto: 'Acto V', texto: 'Indicadores', sub: `Fichas SDMX completas — ${STATS.indicadores} activos`,
       cam: [[4, 3.5, 12], [10, 2.5, -1.5]] },
-    { t0: 42, t1: 51, acto: 'Acto V', texto: 'Difusión', sub: 'Gráficos, calendario de difusión y acceso para la ciudad',
+    { t0: 51,  t1: 60,  acto: 'Acto VI', texto: 'Difusión', sub: 'Gráficos, calendario de difusión y acceso para la ciudad',
       cam: [[14, 3.5, 12], [20, 2.5, 0]] },
-    { t0: 51, t1: 61, acto: 'Acto VI', texto: 'La línea de capacidad', sub: 'FICED y satisfacción ciudadana miden la capacidad real',
-      cam: [[30, 7, -3], [4, 2.5, -14]] },
-    { t0: 61, t1: 70, acto: 'Acto VII', texto: 'El hall de capacidad', sub: 'Hojas de vida de organismos — la vitrina estadística del Distrito',
+    { t0: 60,  t1: 69,  acto: 'Acto VII', texto: 'La plaza', sub: 'La ciudadanía opina — sus encuestas alimentan la planta',
+      cam: [[24, 6.5, 19], [16, 1.2, 11]] },
+    { t0: 69,  t1: 79,  acto: 'Acto VIII', texto: 'La línea de capacidad', sub: 'El FICED mide en 5 secciones: caracterización, RRHH, procesos…',
+      cam: [[30, 7, -3], [-5, 2.5, -15]] },
+    { t0: 79,  t1: 88,  acto: 'Acto IX', texto: 'El hall de capacidad', sub: 'Hojas de vida de organismos — la vitrina estadística del Distrito',
       cam: [[-4, 4.5, -3.5], [10, 2, -16]] },
-    { t0: 70, t1: 80, acto: 'Acto VIII', texto: 'Servicios de la planta', sub: 'Catálogos, documentos, noticias, calendario e infraestructura metodológica',
+    { t0: 88,  t1: 98,  acto: 'Acto X', texto: 'Subir indicadores es otra maquila', sub: 'ReglaExtraccion → Dato → ficha validada → indicador publicado',
+      cam: [[22, 7, -12], [46, 3, -2]] },
+    { t0: 98,  t1: 108, acto: 'Acto XI', texto: 'Servicios de la planta', sub: 'Catálogos, documentos, noticias, calendario e infraestructura metodológica',
       cam: [[-24, 5, -2], [-33, 2, -1]] },
-    { t0: 80, t1: 95, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
+    { t0: 108, t1: 123, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
       cam: [[0, 15, 32], [0, 3, -4]], finale: true },
 ];
 const DURACION = ACTOS[ACTOS.length - 1].t1;
@@ -1608,6 +1753,14 @@ document.getElementById('btn-replay').addEventListener('click', () => {
         f.mesh.position.x = X2_INICIAL[i];
         f.pasadas.clear();
     });
+    familias3.forEach((f, i) => {
+        f.mesh.position.z = Z3_INICIAL[i];
+        f.pasadas.clear();
+    });
+    pausado = false;
+    camaraLibre = false; controls.enabled = false;
+    btnPausa.textContent = '⏸ PAUSAR [ESPACIO]';
+    chipPausa.classList.remove('visible');
     columnas.fill(0);
     nuevosObjetivos();
     faseEstante = 'llenando';
@@ -1637,8 +1790,36 @@ function toggleLibre() {
 document.getElementById('btn-libre').addEventListener('click', toggleLibre);
 document.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'l') toggleLibre();
-    if (e.key === ' ') { e.preventDefault(); iniciarShow(); }
+    if (e.key === ' ') { e.preventDefault(); togglePausa(); }
 });
+
+// ============ PAUSA EXPOSITORA ============
+// Congela el timeline (cámara + intertítulos + música) pero la
+// fábrica sigue viva — pensado para sostener la charla hasta 40 min.
+let pausado = false;
+let tPausa = 0;
+const btnPausa = document.getElementById('btn-pausa');
+const chipPausa = document.getElementById('chip-pausa');
+function togglePausa() {
+    if (!iniciado) { iniciarShow(); return; }
+    pausado = !pausado;
+    const musica = document.getElementById('musica');
+    if (pausado) {
+        tPausa = reloj ? reloj.getElapsedTime() + offsetShow : 0;
+        camaraLibre = true; controls.enabled = true;
+        musica.pause();
+        btnPausa.textContent = '▶ SEGUIR';
+        chipPausa.classList.add('visible');
+    } else {
+        offsetShow = tPausa - reloj.getElapsedTime();
+        camaraLibre = false; controls.enabled = false;
+        document.getElementById('btn-libre').textContent = 'CÁMARA LIBRE [L]';
+        musica.play().catch(() => {});
+        btnPausa.textContent = '⏸ PAUSAR [ESPACIO]';
+        chipPausa.classList.remove('visible');
+    }
+}
+btnPausa.addEventListener('click', togglePausa);
 
 // ============ LOOP ============
 let tGlobal = 0;
@@ -1652,7 +1833,7 @@ function animate() {
     ultimoFrame = ahora;
     tGlobal += dt;
 
-    const t = reloj ? reloj.getElapsedTime() + offsetShow : tGlobal;
+    const t = reloj ? (pausado ? tPausa : reloj.getElapsedTime() + offsetShow) : tGlobal;
 
     if (iniciado && !camaraLibre) {
         tickCamara(t);
@@ -1682,6 +1863,51 @@ function animate() {
             }
         }
         if (c.position.x > 22) { c.position.x = -24; f.pasadas.clear(); }
+    });
+
+    // ---- Línea 3: subida de indicadores (fluye en -z por el este) ----
+    familias3.forEach(f => {
+        const c = f.mesh;
+        c.position.z -= velBanda * dt;
+        c.rotation.y = Math.sin(tGlobal * 0.8 + c.position.z) * 0.06;
+        for (let k = 0; k < ESTACIONES_EXT.length; k++) {
+            if (!f.pasadas.has(k) && c.position.z < ESTACIONES_EXT[k].z) {
+                f.pasadas.add(k);
+                maquinas[8 + k].userData.disparo = tGlobal;
+            }
+        }
+        if (c.position.z < -16) { c.position.z = 16; f.pasadas.clear(); }
+    });
+
+    // ---- Grafo del ecosistema: rotación holográfica permanente ----
+    grafo.rotation.y = tGlobal * 0.3;
+    grafo.rotation.x = Math.sin(tGlobal * 0.2) * 0.15;
+
+    // ---- Medidor FICED: las cinco secciones se llenan en ciclo ----
+    ficedBarras.forEach((b, i) => {
+        b.scale.x = 0.06 + ((tGlobal * 0.22 + i * 0.19) % 1);
+    });
+
+    // ---- Plaza: la ciudadanía respira y sus encuestas vuelan ----
+    ciudadanos.forEach(c => {
+        c.position.y = Math.sin(tGlobal * 2 + c.userData.fase) * 0.03;
+    });
+    const destinoEnc = new THREE.Vector3(0, 1.7, -9.8);   // tolva SATISFACCIÓN
+    encuestas.forEach(e => {
+        e.t += dt / 9;
+        if (e.t >= 1 || e.origen.lengthSq() === 0) {
+            e.t = 0;
+            const c = ciudadanos[Math.floor(Math.random() * ciudadanos.length)];
+            e.origen.copy(c.position).setY(1.0);
+        }
+        const t2 = e.t;
+        const mx = (e.origen.x + destinoEnc.x) / 2, mz = (e.origen.z + destinoEnc.z) / 2;
+        const u = 1 - t2;
+        e.mesh.position.set(
+            u * u * e.origen.x + 2 * u * t2 * mx + t2 * t2 * destinoEnc.x,
+            u * u * e.origen.y + 2 * u * t2 * 8.5 + t2 * t2 * destinoEnc.y,
+            u * u * e.origen.z + 2 * u * t2 * mz + t2 * t2 * destinoEnc.z);
+        e.mesh.rotation.y = tGlobal * 2;
     });
 
     // ---- Pipeline de cajas por estaciones ----
