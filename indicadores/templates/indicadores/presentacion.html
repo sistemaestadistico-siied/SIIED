@@ -180,7 +180,7 @@
 </head>
 <body>
 
-<audio id="musica" src="{% static 'indicadores/audio/maquila.mp3' %}" preload="auto"></audio>
+<audio id="musica" src="{% static 'indicadores/audio/ambiente_cali.mp3' %}" preload="auto"></audio>
 
 <div id="escena" class="sepia"></div>
 <div id="grano"></div>
@@ -592,8 +592,9 @@ function texturaPantalla(titulo, modelo) {
 // Recortes de las láminas originales conservando la relación de
 // aspecto de cada cara: ±z 683×559 (4.4/3.6), ±x 466×559 (3/3.6)
 const LAB_LOADER = new THREE.TextureLoader();
+const LAB_BASE = "{% static 'indicadores/images/' %}";
 const texLab = n => {
-    const t = LAB_LOADER.load(`{% static 'indicadores/images/${n}.jpg' %}`);
+    const t = LAB_LOADER.load(LAB_BASE + n + '.jpg');
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
 };
