@@ -3367,6 +3367,7 @@ function ponerEstado(w, estado) {
 
 function crearPlanta() {
     maquinas.forEach((m, i) => {
+        if (m.userData.tipo === 'sala') return;   // sus miembros van por `salas`
         let w;
         m.updateWorldMatrix(true, false);
         const posOp = m.localToWorld(new THREE.Vector3(-2.8, 1.58, 0.8));
