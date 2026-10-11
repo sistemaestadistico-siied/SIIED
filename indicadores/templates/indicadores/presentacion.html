@@ -2939,6 +2939,23 @@ const ciudadanos = [];
     logoM.position.set(15, 0.03, 17);
     logoM.visible = false;         // aparece cuando la textura carga
     scene.add(logoM);
+    // Halo blanco bajo el logo: el PNG está hecho para fondos
+    // claros — le pinta su propia sombra sobre la explanada
+    const gc = document.createElement('canvas'); gc.width = gc.height = 128;
+    const gcx = gc.getContext('2d');
+    const grad = gcx.createRadialGradient(64, 64, 8, 64, 64, 64);
+    grad.addColorStop(0, 'rgba(255,255,255,.95)');
+    grad.addColorStop(0.55, 'rgba(255,255,255,.4)');
+    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    gcx.fillStyle = grad; gcx.fillRect(0, 0, 128, 128);
+    const halo = new THREE.Mesh(
+        new THREE.PlaneGeometry(17, 17),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(gc),
+            transparent: true, depthWrite: false }));
+    halo.rotation.x = -Math.PI / 2;
+    halo.rotation.z = -0.15;
+    halo.position.set(15, 0.02, 17);
+    scene.add(halo);
     const cargadorLogo = new THREE.TextureLoader();
     cargadorLogo.setCrossOrigin('anonymous');
     cargadorLogo.load('https://i.ibb.co/3YWQvHpB/descarga-3.png', tex => {
