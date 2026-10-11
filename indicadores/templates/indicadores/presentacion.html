@@ -1273,27 +1273,102 @@ const TALLER = crearMaquina({
 // Línea de CALIDAD INSTITUCIONAL (banda C): dossier → evals →
 // satisfacción (engorda) → FICED (cambia de color) → hall.
 const ESTACIONES_CAL = [
-    { x: -18, nombre: 'EVAL. ESTRATÉGICA', modelo: 'dimensión estratégica del organismo', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
-    { x: -8,  nombre: 'SATISFACCIÓN',    modelo: 'RespuestaSatisfaccion rápida+completa', color: 0xa855f7, tipo: 'tolva', z: -14.7 },
-    { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'dimensión táctica del proceso', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
-    { x: 8,   nombre: 'FICED',           modelo: 'ICEDFormulario · caracterización→ICE', color: 0x7c3aed, tipo: 'escaner', z: -14.7 },
-    { x: 16,  nombre: 'EVAL. ORGANISMO', modelo: 'veredicto integral del organismo', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
+    { x: -18, nombre: 'EVAL. ESTRATÉGICA', modelo: 'Evaluacion estratégica', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
+    { x: -8,  nombre: 'SATISFACCIÓN',    modelo: 'RespuestaSatisfaccion', color: 0x84cc16, tipo: 'eval', z: -14.7 },
+    { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'Evaluacion táctica', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
+    { x: 8,   nombre: 'FICED',           modelo: 'ICEDFormulario', color: 0x22d3ee, tipo: 'escaner', z: -14.7 },
+    { x: 16,  nombre: 'EVAL. ORGANISMO', modelo: 'Evaluación del organismo', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
 ];
-ESTACIONES_CAL.forEach(crearMaquina);
+ESTACIONES_CAL.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina(m));
 
 // Cadena de GENERACIÓN DE DATOS (banda D2): del inventario de
 // operaciones a la difusión, con cabinas admin/reportes intermedias.
 const ESTACIONES_DAT = [
     { x: -8.5, nombre: 'INV. OPERACIONES', modelo: 'OperacionEstadistica · acompañamiento IOE', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
     { x: -3.5, nombre: 'CONJUNTO DATOS', modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
-    { x: 1.5,  nombre: 'ADMIN SIIED',   modelo: 'RegistroCambio · trazabilidad', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
-    { x: 6.5,  nombre: 'INDICADORES', modelo: 'Indicador · metadata + fórmula', color: 0x0284c7, tipo: 'escaner', z: -0.2 },
-    { x: 11.5, nombre: 'REPORTES',    modelo: 'auditoría · reportes del sistema', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
+    { x: 1.5,  z: -0.2, nombre: 'ADMIN SIIED',    modelo: 'RegistroCambio · administración', color: 0xf59e0b, tipo: 'sala' },
+    { x: 6.5,  z: -0.2, nombre: 'INDICADORES',    modelo: 'Indicador · metadata completa', color: 0x10b981, tipo: 'turbina' },
+    { x: 11.5, z: -0.2, nombre: 'REPORTES',       modelo: 'Reportes · auditoría', color: 0xf59e0b, tipo: 'sala' },
     { x: 16.5, nombre: 'EXTRACCIÓN',  modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
     { x: 21.5, nombre: 'FICHA TÉCNICA', modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
     { x: 26.5, nombre: 'DIFUSIÓN EST.', modelo: 'Grafico + CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
 ];
-ESTACIONES_DAT.forEach(crearMaquina);
+
+// ============ SALAS DE JUNTAS COMO ESTACIONES ============
+// Evaluaciones, administración y reportes no son máquinas:
+// son salas de juntas donde don Daticos del equipo técnico
+// deliberan. Conservan el letrero de la estación original
+// y NO son puntos de parada de camiones.
+const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
+function crearSalaJunta(cfg) {
+    const g = new THREE.Group();
+    g.position.set(cfg.x, 0, cfg.z ?? -0.2);
+    const matS = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
+    const AN = 5.0, PR = 3.2, AL = 3.4;
+    const losa = new THREE.Mesh(new THREE.BoxGeometry(AN, 0.2, PR), matS);
+    losa.position.y = 0.1; g.add(losa);
+    const techo = new THREE.Mesh(new THREE.BoxGeometry(AN, 0.14, PR), matS);
+    techo.position.y = AL - 0.07; g.add(techo);
+    for (const [px, pz] of [[-2.35, -1.45], [2.35, -1.45], [-2.35, 1.45], [2.35, 1.45]]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.15, AL - 0.3, 0.15), matS);
+        col.position.set(px, AL / 2, pz); g.add(col);
+    }
+    const vidrio = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.2 });
+    for (const pz of [-1.52, 1.52]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(AN - 0.3, AL - 0.5, 0.06), vidrio);
+        p.position.set(0, AL / 2, pz); g.add(p);
+    }
+    for (const px of [-2.42, 2.42]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.06, AL - 0.5, PR - 0.3), vidrio);
+        p.position.set(px, AL / 2, 0); g.add(p);
+    }
+    // Mesa de juntas con papeles y pata central
+    const mesa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 1.15),
+        new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+    mesa.position.set(0, 0.85, 0); g.add(mesa);
+    for (const px of [-1.15, 1.15]) {
+        const pata = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.78, 0.95), matS);
+        pata.position.set(px, 0.42, 0); g.add(pata);
+    }
+    for (let i = 0; i < 5; i++) {
+        const pap = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.4),
+            new THREE.MeshLambertMaterial({ color: 0xe8e0d0 }));
+        pap.position.set(-1 + i * 0.5, 0.93, (i % 2) * 0.3 - 0.15);
+        g.add(pap);
+    }
+    // Pantalla de la sala al fondo con el nombre de la estación
+    const mon = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.84),
+        new THREE.MeshBasicMaterial({ map: texturaPantalla(cfg.nombre, cfg.modelo) }));
+    mon.position.set(0, 1.9, -1.5); g.add(mon);
+    // Letrero conservado: mismo mástil alto de las estaciones
+    const mastil = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 3.2, 0.12),
+        new THREE.MeshLambertMaterial({ color: 0x64748b }));
+    mastil.position.set(0, AL + 1.55, 1.35); g.add(mastil);
+    const cartel = crearCartel(cfg.nombre, cfg.modelo, 4);
+    cartel.position.set(0, AL + 3.05, 1.35); g.add(cartel);
+    // Lámpara de estado (misma lógica de las máquinas)
+    const posteL = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.045, 0.55, 6),
+        new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+    posteL.position.set(-2.1, AL + 0.3, 1.3); g.add(posteL);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0x22cc44 });
+    const lampara = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), lampMat);
+    lampara.position.set(-2.1, AL + 0.68, 1.3); g.add(lampara);
+    // 3 puestos de junta: los don Daticos llegan en crearPlanta
+    salas.push({ grupo: g, y: 0.22, estado: 'supervisar',
+        puestos: [[-1.1, 0.85, 0.3], [1.1, 0.85, -0.3], [0, -0.9, Math.PI]] });
+    g.userData = { ...cfg, nombre: cfg.nombre, modelo: cfg.modelo, tipo: 'sala',
+        mecanismo: { animar: () => {} },
+        lampara, lampMat,
+        engranaje: new THREE.Object3D(), engranaje2: new THREE.Object3D(),
+        fase: Math.random() * 6, extras: {}, disparo: -99, escala: cfg.escala };
+    scene.add(g);
+    maquinas.push(g);
+    return g;
+}
+ESTACIONES_DAT.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina(m));
 
 // Mini-maquilas de SERVICIOS: 3 líneas cortas de 2 estaciones.
 const ESTACIONES_SRV = [
@@ -2521,18 +2596,20 @@ function crearFigura(color, opts = {}) {
         new THREE.ConeGeometry(0.2, opts.sentado ? 0.45 : 0.62, 8),
         new THREE.MeshLambertMaterial({ color }));
     cuerpo.position.y = opts.sentado ? 0.23 : 0.31;
-    const cabeza = new THREE.Mesh(
+    const cabeza = new THREE.Group();
+    cabeza.position.set(0, 0.95, 0.15);
+    const craneo = new THREE.Mesh(
         new THREE.SphereGeometry(0.15, 10, 10),
         new THREE.MeshLambertMaterial({ color: 0xf5d0a9 }));
-    cabeza.position.y = opts.sentado ? 0.52 : 0.72;
-    c.add(cuerpo, cabeza);
+    craneo.position.set(0, 0.15, 0.05);
     const ojoGeom = new THREE.SphereGeometry(0.028, 6, 6);
     const ojoMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
-    for (const ox of [-0.055, 0.055]) {
-        const ojo = new THREE.Mesh(ojoGeom, ojoMat);
-        ojo.position.set(ox, opts.sentado ? 0.55 : 0.75, 0.13);
-        c.add(ojo);
-    }
+    const ojoIzq = new THREE.Mesh(ojoGeom, ojoMat);
+    ojoIzq.position.set(-0.055, 0.25, 0.13);
+    const ojoDer = new THREE.Mesh(ojoGeom, ojoMat);
+    ojoDer.position.set(0.055, 0.25, 0.13);
+    cabeza.add(craneo, ojoIzq, ojoDer);
+    c.add(cuerpo, cabeza);
     return c;
 }
 
@@ -2639,7 +2716,7 @@ let comiteGrafo = null;
     const ocular = new THREE.Mesh(
         new THREE.CylinderGeometry(0.1, 0.14, 0.5, 8),
         new THREE.MeshLambertMaterial({ color: 0x64748b }));
-    ocular.position.y = -0.35; tel.add(ocular);
+    ocular.position.set(0, 1.12, 0.22); tel.add(ocular);
     tel.rotation.x = -0.62;
     tel.position.y = 4.0;
     obs.add(tel);
@@ -2682,10 +2759,10 @@ let comiteGrafo = null;
         mon.position.set(-1.4 + i * 1.4, 1.25, 0.55);
         mon.rotation.x = -0.15;
         sala.add(mon);
-        const fig = crearFigura(0x2563eb, { sentado: true });
-        fig.position.set(-1.4 + i * 1.4, 0.55, -0.3);
-        sala.add(fig);
     }
+    // Los puestos son de don Daticos (los pone crearPlanta)
+    salas.push({ grupo: sala, y: 0.22, estado: 'trabajar',
+        puestos: [[-1.4, -0.3, 0], [0, -0.3, 0], [1.4, -0.3, 0]] });
     // Archivador con fichas cargadas
     const arch = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.5),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
@@ -2726,13 +2803,10 @@ let comiteGrafo = null;
     mesaC.position.y = 0.95; com.add(mesaC);
     const paletaOrg = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9,
                        0xf97316, 0x14b8a6, 0xec4899];
-    for (let i = 0; i < 8; i++) {
-        const fig = crearFigura(paletaOrg[i], { sentado: true });
-        const lado = i < 4 ? -1 : 1;
-        fig.position.set(-3 + (i % 4) * 2, 0.72, lado * 1.6);
-        fig.rotation.y = lado > 0 ? Math.PI : 0;
-        com.add(fig);
-    }
+    // Plenaria: don Daticos (los pone crearPlanta) en los 8 puestos
+    salas.push({ grupo: com, y: 0.28, estado: 'supervisar',
+        puestos: [[-3, -1.6, 0], [-1, -1.6, 0], [1, -1.6, 0], [3, -1.6, 0],
+                  [-3, 1.6, Math.PI], [-1, 1.6, Math.PI], [1, 1.6, Math.PI], [3, 1.6, Math.PI]] });
     // Grafo del ecosistema (clon del de la capa estratégica)
     const grafoC = grafo.clone();
     grafoC.scale.setScalar(0.4);
@@ -2810,8 +2884,8 @@ let comiteGrafo = null;
     const lampD = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
         new THREE.MeshBasicMaterial({ color: 0xfde68a }));
     lampD.position.set(-0.9, 4.6, 0.3); des.add(lampD);
-    const figA = crearFigura(0x7f1d1d, { sentado: true });
-    figA.position.set(0, 4.05, -1.0); des.add(figA);
+    salas.push({ grupo: des, y: 3.95, estado: 'supervisar',
+        puestos: [[0, -1.0, 0]] });
     // Bandera de la alcaldía en mástil
     const mastD = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 6), matD);
     mastD.position.set(2.6, 5.5, -1.6); des.add(mastD);
@@ -3265,6 +3339,31 @@ function crearPlanta() {
         scene.add(w.loro);
         operarios.push(w);
         ponerEstado(w, 'supervisar');
+    });
+    // Miembros de las salas de juntas: don Daticos del equipo
+    // técnico (o del consejo) en cada puesto registrado
+    salas.forEach((s, si) => {
+        s.grupo.updateWorldMatrix(true, false);
+        s.puestos.forEach(([px, pz, ry], pi) => {
+            let w;
+            const pos = s.grupo.localToWorld(new THREE.Vector3(px, s.y, pz));
+            if (modeloGLB) {
+                w = clonarOperario();
+                w.loro.position.copy(pos);
+                w.loro.scale.setScalar(1.05);
+            } else {
+                const o = crearDonDatico();
+                o.position.copy(pos);
+                o.scale.setScalar(1.1);
+                w = { loro: o, mixer: null };
+            }
+            w.loro.rotation.y = ry;
+            w.desfase = 13 + si * 2.3 + pi * 0.9;
+            w.yBase = w.loro.position.y;
+            scene.add(w.loro);
+            operarios.push(w);
+            ponerEstado(w, s.estado || 'supervisar');
+        });
     });
     if (modeloGLB) {
         sup = clonarOperario();
