@@ -476,6 +476,10 @@ const texMiniD  = texturaPaquete('DATO',    '#0369a1');
 const texOkInd  = texturaPaquete('IND ✓',   '#059669');
 const texCat    = texturaPaquete('CAT',     '#0f766e');
 const texDif    = texturaPaquete('DIF',     '#8b5cf6');
+// Los tres conjuntos del inventario de indicadores
+const texODS    = texturaPaquete('ODS',     '#16a34a');
+const texCEC    = texturaPaquete('CEC',     '#0369a1');
+const texDOM    = texturaPaquete('DOM',     '#7c3aed');
 const texSrv    = [
     texturaPaquete('NEWS', '#b91c1c'),
     texturaPaquete('DOC',  '#64748b'),
@@ -525,10 +529,22 @@ for (let n = 0; n < 4; n++) {
     estanteria.add(larg);
 }
 scene.add(estanteria);
-const cartelIND = crearCartel('ALMACÉN DE INDICADORES',
-    'Indicador validado → publicado', 6);
+const cartelIND = crearCartel('INVENTARIO DE INDICADORES',
+    'ODS · Cali en Cifras · Dominios del Comité', 6.4);
 cartelIND.position.set(EST_X0 + (N_COL - 1) * EST_DX / 2, 6.6, EST_Z + 0.6);
 scene.add(cartelIND);
+// Columnas 0-2 → ODS, 3-5 → Cali en Cifras, 6-7 → Dominios
+const GRUPO_COL = [0, 0, 0, 1, 1, 1, 2, 2];
+const TEX_CONJ  = [texODS, texCEC, texDOM];
+['ODS', 'CALI EN CIFRAS', 'DOMINIOS'].forEach((nom, g) => {
+    const cols = GRUPO_COL.map((v, i) => v === g ? i : -1).filter(i => i >= 0);
+    const cx = EST_X0 + (cols[0] + cols[cols.length - 1]) / 2 * EST_DX;
+    const etq = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.8),
+        new THREE.MeshBasicMaterial({ map: textoCanvas(nom, g === 2 ? 'comité gestión' : '',
+            ['#16a34a', '#0369a1', '#7c3aed'][g]) }));
+    etq.position.set(cx, 5.7, EST_Z + 0.62);
+    scene.add(etq);
+});
 const columnas = new Array(N_COL).fill(0);
 let alturasObjetivo = [];
 function nuevosObjetivos() {
@@ -1189,14 +1205,14 @@ ESTACIONES_CAL.forEach(crearMaquina);
 // Cadena de GENERACIÓN DE DATOS (banda D2): del inventario de
 // operaciones a la difusión, con cabinas admin/reportes intermedias.
 const ESTACIONES_DAT = [
-    { x: -8.5, nombre: 'OPERACIONES',  modelo: 'OperacionEstadistica · acompañamiento IOE', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
-    { x: -2,   nombre: 'CONJUNTOS',   modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
-    { x: 2,    nombre: 'ADMIN',       modelo: 'RegistroCambio · trazabilidad', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
+    { x: -8.5, nombre: 'INV. OPERACIONES', modelo: 'OperacionEstadistica · acompañamiento IOE', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
+    { x: -2,   nombre: 'CONJUNTO DATOS', modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
+    { x: 2,    nombre: 'ADMIN SIIED',   modelo: 'RegistroCambio · trazabilidad', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
     { x: 6.5,  nombre: 'INDICADORES', modelo: 'Indicador · metadata + fórmula', color: 0x0284c7, tipo: 'escaner', z: -0.2 },
     { x: 11.5, nombre: 'REPORTES',    modelo: 'auditoría · reportes del sistema', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
     { x: 15,   nombre: 'EXTRACCIÓN',  modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
-    { x: 19.5, nombre: 'VALIDACIÓN',  modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
-    { x: 24.5, nombre: 'DIFUSIÓN',    modelo: 'Grafico + CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
+    { x: 19.5, nombre: 'FICHA TÉCNICA', modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
+    { x: 24.5, nombre: 'DIFUSIÓN EST.', modelo: 'Grafico + CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
 ];
 ESTACIONES_DAT.forEach(crearMaquina);
 
@@ -1691,7 +1707,7 @@ function tickFamRec(f, dt) {
     if (f.estado === 'ride') {   // llegó a la tolva de OPERACIONES
         f.mesh.visible = false;
         f.estado = 'espera'; f.tEspera = 1.6 + Math.random() * 2;
-        disparo('OPERACIONES');
+        disparo('INV. OPERACIONES');
     }
 }
 function respawnRep(f) {
@@ -1781,12 +1797,12 @@ function tickFamD2(f, dt) {
         } else {
             f.mesh.scale.setScalar(0.7); ponerTex(f, texCjto);  // → mediana
         }
-        disparo('CONJUNTOS');
+        disparo('CONJUNTO DATOS');
         return;
     }
     if (!f.pasadas.has('adm') && x > 2) {
         f.pasadas.add('adm'); f.estado = 'eval'; f.tPausa = 0;
-        sellar(f); disparo('ADMIN', 0.8); return;
+        sellar(f); disparo('ADMIN SIIED', 0.8); return;
     }
     if (!f.pasadas.has('ind') && x > 6.5) {
         f.pasadas.add('ind'); f.mesh.scale.setScalar(0.34);
@@ -1801,15 +1817,16 @@ function tickFamD2(f, dt) {
         ponerTex(f, texMiniD); disparo('EXTRACCIÓN');
     }
     if (!f.pasadas.has('val') && x > 19.5) {
-        f.pasadas.add('val'); ponerTex(f, texOkInd); disparo('VALIDACIÓN');
+        f.pasadas.add('val'); ponerTex(f, texOkInd); disparo('FICHA TÉCNICA');
     }
     if (!f.pasadas.has('dif') && x > 24.5) {
         f.pasadas.add('dif'); f.mesh.scale.setScalar(0.28);
-        ponerTex(f, texDif); disparo('DIFUSIÓN');
+        ponerTex(f, texDif); disparo('DIFUSIÓN EST.');
     }
     if (x > 29) {
         const slot = faseEstante === 'llenando' ? siguienteSlot() : -1;
         f.extra.slot = slot;
+        if (slot >= 0) ponerTex(f, TEX_CONJ[GRUPO_COL[slot]]);   // color del conjunto
         const hasta = slot >= 0
             ? new THREE.Vector3(EST_X0 + slot * EST_DX,
                                 EST_Y0 + columnas[slot] * EST_DY, EST_Z)
