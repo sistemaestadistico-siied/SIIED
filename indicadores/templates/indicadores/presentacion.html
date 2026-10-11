@@ -1084,18 +1084,18 @@ function crearMaquina(cfg) {
     const monPoste = new THREE.Mesh(
         new THREE.CylinderGeometry(0.05, 0.05, 2.75, 6),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-    monPoste.position.set(-4.1, 1.38, 1.2);   // llega al piso
+    monPoste.position.set(-3.0, 1.38, 1.2);   // llega al piso
     m.add(monPoste);
     const monMarco = new THREE.Mesh(
-        new THREE.BoxGeometry(1.5, 0.95, 0.08),
+        new THREE.BoxGeometry(1.15, 0.95, 0.08),
         new THREE.MeshLambertMaterial({ color: 0x1e293b }));
-    monMarco.position.set(-4.1, 2.75, 1.2);
+    monMarco.position.set(-3.0, 2.75, 1.2);
     monMarco.rotation.y = 0.3;
     m.add(monMarco);
     const monPantalla = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.32, 0.78),
+        new THREE.PlaneGeometry(1.0, 0.78),
         new THREE.MeshBasicMaterial({ map: texturaPantalla(cfg.nombre, cfg.modelo) }));
-    monPantalla.position.set(-4.1, 2.75, 1.25);
+    monPantalla.position.set(-3.0, 2.75, 1.25);
     monPantalla.rotation.y = 0.3;
     m.add(monPantalla);
 
@@ -1193,9 +1193,9 @@ function crearMaquina(cfg) {
 
     // Plataforma del operario: larga para que el monitor quepa al extremo
     const plataforma = new THREE.Mesh(
-        new THREE.BoxGeometry(3.0, 0.15, 1.4),
+        new THREE.BoxGeometry(1.9, 0.15, 1.6),
         new THREE.MeshLambertMaterial({ color: 0xd7e0e7 }));
-    plataforma.position.set(-3.0, 1.5, 0.8);
+    plataforma.position.set(-2.7, 1.5, 0.9);   // dentro del lado propio (-3.65..-1.75)
     m.add(plataforma);
 
     // ---- Detalles únicos por estación ----
@@ -3460,7 +3460,7 @@ function crearPlanta() {
         if (m.userData.tipo === 'sala') return;   // sus miembros van por `salas`
         let w;
         m.updateWorldMatrix(true, false);
-        const posOp = m.localToWorld(new THREE.Vector3(-2.8, 1.58, 0.8));
+        const posOp = m.localToWorld(new THREE.Vector3(-3.1, 1.58, 0.5));
         if (modeloGLB) {
             w = clonarOperario();
             w.loro.position.copy(posOp);
