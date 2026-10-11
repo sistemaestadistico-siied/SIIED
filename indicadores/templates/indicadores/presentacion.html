@@ -781,18 +781,34 @@ function crearMaquina(cfg) {
     // qué hace — antena, manómetro, luz de escaneo, ventilador...)
     const posteMat = new THREE.MeshLambertMaterial({ color: 0x94a3b8 });
 
-    // Luz de estado (parpadea)
+    // Luz de estado (parpadea) sobre un poste empotrado en el cuerpo
+    const posteLamp = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.045, 0.55, 6), posteMat);
+    posteLamp.position.set(-1.8, 3.65, 1.35);
+    m.add(posteLamp);
+    const baseLamp = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.13, 0.08, 8), posteMat);
+    baseLamp.position.set(-1.8, 3.92, 1.35);
+    m.add(baseLamp);
     const lampMat = new THREE.MeshBasicMaterial({ color: 0x22cc44 });
     const lampara = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), lampMat);
-    lampara.position.set(-1.8, 3.9, 1.6);
+    lampara.position.set(-1.8, 4.08, 1.35);
     m.add(lampara);
 
-    // Engranaje lateral
+    // Engranajes laterales sobre ejes que nacen del cuerpo
+    for (const [eg, egY, egR] of [[0, 2.2, 0.9], [1, 0.9, 0.55]]) {
+        const ejeG = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.07, 0.5, 8),
+            new THREE.MeshLambertMaterial({ color: 0x333333 }));
+        ejeG.rotation.z = Math.PI / 2;
+        ejeG.position.set(2.35, egY, 0.8);
+        m.add(ejeG);
+    }
     const engranaje = crearEngranaje(0.9, 0x94a3b8);
-    engranaje.position.set(2.4, 2.2, 0.8);
+    engranaje.position.set(2.55, 2.2, 0.8);
     m.add(engranaje);
     const engranaje2 = crearEngranaje(0.55, 0x7c8fa0);
-    engranaje2.position.set(2.4, 0.9, 0.8);
+    engranaje2.position.set(2.55, 0.9, 0.8);
     m.add(engranaje2);
 
     // Brazo en voladizo sobre la cinta (embebido en el cuerpo;
@@ -842,6 +858,7 @@ function crearMaquina(cfg) {
         actuador.add(guia);
         m.add(actuador);
     } else if (cfg.tipo === 'escaner') {
+        // Cortina de escaneo colgada del brazo por dos tirantes
         actuador = new THREE.Mesh(
             new THREE.PlaneGeometry(2.0, 0.12),
             new THREE.MeshBasicMaterial({
@@ -850,14 +867,25 @@ function crearMaquina(cfg) {
         actuador.rotation.x = -Math.PI / 2;
         actuador.position.set(0, 2.4, 4.2);
         m.add(actuador);
+        for (const tx of [-0.8, 0.8]) {
+            const tirante = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.025, 0.025, 1.0, 5), posteMat);
+            tirante.position.set(tx, 2.9, 4.2);
+            m.add(tirante);
+        }
     } else if (cfg.tipo === 'tolva') {
-        // Embudo que deja caer materia prima
+        // Embudo que deja caer materia prima — collarín lo une al brazo
         const embudo = new THREE.Mesh(
             new THREE.ConeGeometry(1.1, 1.4, 10, 1, true),
             new THREE.MeshLambertMaterial({ color: 0xcbd5e1, side: THREE.DoubleSide }));
         embudo.rotation.x = Math.PI;
         embudo.position.set(0, 3.0, 4.2);
         m.add(embudo);
+        const collar = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.28, 0.34, 0.5, 10),
+            new THREE.MeshLambertMaterial({ color: 0x9aa8b4 }));
+        collar.position.set(0, 3.55, 4.2);
+        m.add(collar);
     } else if (cfg.tipo === 'lanzador') {
         const rampa = new THREE.Mesh(
             new THREE.BoxGeometry(0.4, 1.8, 0.4),
@@ -902,15 +930,19 @@ function crearMaquina(cfg) {
     // ---- Detalles únicos por estación ----
     const extras = {};
     if (cfg.tipo === 'tolva') {
-        // Sacos de reportes amontonados junto a la tolva
-        const sacoGeom = new THREE.SphereGeometry(0.42, 8, 8);
-        const sacoMat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
+        // Tanques de fuentes crudas alimentando la tolva
+        const tanqueGeom = new THREE.CylinderGeometry(0.34, 0.34, 0.9, 10);
+        const tanqueMat = new THREE.MeshLambertMaterial({ color: 0xb0bec9 });
+        const bandaGeom = new THREE.CylinderGeometry(0.36, 0.36, 0.12, 10);
+        const bandaMat = new THREE.MeshLambertMaterial({ color: 0x64748b });
         for (let i = 0; i < 3; i++) {
-            const saco = new THREE.Mesh(sacoGeom, sacoMat);
-            saco.scale.set(1, 1.25, 0.9);
-            saco.position.set(-1.6 + (i % 2) * 0.8, 0.42 + Math.floor(i / 2) * 0.7, 2.0);
-            saco.castShadow = true;
-            m.add(saco);
+            const tanque = new THREE.Mesh(tanqueGeom, tanqueMat);
+            tanque.position.set(-1.7 + (i % 2) * 0.85, 0.45 + Math.floor(i / 2) * 0.95, 2.0);
+            tanque.castShadow = true;
+            m.add(tanque);
+            const banda = new THREE.Mesh(bandaGeom, bandaMat);
+            banda.position.copy(tanque.position); banda.position.y += 0.28;
+            m.add(banda);
         }
         const cartelSaco = crearCartel('FUENTES', 'datos crudos', 1.6);
         cartelSaco.position.set(-1.4, 1.15, 2.35);
@@ -1179,16 +1211,19 @@ function crearCamion(cfg) {
     ruedaGeom.rotateX(Math.PI / 2);
     const ruedaMat = new THREE.MeshLambertMaterial({ color: 0x111827 });
     const hubMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af });
+    const ruedas = [];
     for (const [rx, rz] of [[-3.7, 0.95], [-3.7, -0.95], [0.6, 0.95],
                             [0.6, -0.95], [1.6, 0.95], [1.6, -0.95]]) {
         const r = new THREE.Mesh(ruedaGeom, ruedaMat);
         r.position.set(rx, 0.44, rz);
         g.add(r);
+        ruedas.push(r);
         const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.34, 10), hubMat);
         hub.rotation.x = Math.PI / 2;
         hub.position.set(rx, 0.44, rz);
         g.add(hub);
     }
+    g.userData.ruedas = ruedas;
     // Rampa de descarga amarilla
     const rampa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 0.95),
         new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
@@ -1207,12 +1242,21 @@ function crearCamion(cfg) {
     camiones.push(g);
     return g;
 }
-crearCamion({ x: -16.5, z: -0.8,  color: 0x38bdf8,
+// Los camiones YA NO están estacionados: hacen rutas de ida y
+// vuelta entre su región de origen y el punto de descarga, y
+// solo mientras están atracados alimentan cajas a las bandas.
+const camRec = crearCamion({ x: 36.5, z: -4,   color: 0x38bdf8,
               etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'PerfilRecolector · ingesta de fuentes' });
-crearCamion({ x: -36.5, z: -10.5, color: 0xf59e0b,
+const camDel = crearCamion({ x: 46,   z: -14,  color: 0xf59e0b,
               etiqueta: 'DELEGADO ORGANISMO', sub: 'registro de acceso · Organismo' });
-crearCamion({ x: -28.5, z: 17.5,  color: 0xef4444,
+const camEdi = crearCamion({ x: 50,   z: 14,   color: 0xef4444,
               etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
+camRec.userData.ruta = { pts: [[36.5, -4], [36.5, 4.9], [-12.6, 4.9], [-12.6, 2.2]],
+    i: 1, dir: 1, espera: 0 };
+camDel.userData.ruta = { pts: [[46, -14], [46, -7.2], [-23.4, -7.2], [-23.4, -12.5]],
+    i: 1, dir: 1, espera: 0 };
+camEdi.userData.ruta = { pts: [[50, 14], [50, 27], [-23.4, 27]],
+    i: 1, dir: 1, espera: 0 };
 
 // Chute inclinado entre dos puntos del mundo
 function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
@@ -1396,11 +1440,16 @@ function tickLluvia(dt) {
 
 // ---- Respawns: cada familia renace en su muelle/chute ----
 const ORG_CAL = [
-    { desde: new THREE.Vector3(-34.6, 2.1, -10.5), hasta: new THREE.Vector3(-30.8, 1.72, -10.5), tex: () => texDeleg },
+    { desde: new THREE.Vector3(-23.4, 2.1, -12.5), hasta: new THREE.Vector3(-30.8, 1.72, -10.5), tex: () => texDeleg },
     { desde: new THREE.Vector3(-26, 3.2, -5.2),    hasta: new THREE.Vector3(-26, 1.72, -10.3),   tex: () => texCenso },
 ];
 let fuenteCal = 0;
 function respawnCal(f) {
+    // El dossier del delegado solo vuela cuando el camión atraca
+    if (fuenteCal % ORG_CAL.length === 0 && !camDel.userData.dock) {
+        f.estado = 'espera'; f.tEspera = 0.8;
+        return;
+    }
     const src = ORG_CAL[fuenteCal++ % ORG_CAL.length];
     f.seg = 'C'; f.s = src.hasta.x - SEGS.C.a0; f.pasadas.clear();
     f.mesh.scale.setScalar(0.72);
@@ -1413,8 +1462,8 @@ function respawnRec(f) {
     f.mesh.scale.setScalar(0.5);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texFuente);
-    // El camión está atracado junto a la estación: salto corto a la tolva
-    lanzarCaida(f, new THREE.Vector3(-12.7, 1.8, -0.8),
+    // Del camión atracado al final de su ruta: salto a la tolva
+    lanzarCaida(f, new THREE.Vector3(-12.6, 1.9, 2.2),
                    new THREE.Vector3(-9.0, 4.6, -0.5), 0.85, 1.3);
 }
 function respawnD1(f) {
@@ -1440,7 +1489,7 @@ function respawnSrv(f, l) {
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texSrv[l]);
     if (f.sello) f.sello.visible = false;
-    lanzarCaida(f, new THREE.Vector3(-23.4, 1.95, 17.5),
+    lanzarCaida(f, new THREE.Vector3(-23.4, 1.9, 26.5),
                    new THREE.Vector3(-20.6, 1.72, Z_SRV[l]), 0.8);
 }
 function resetFamilias() {
@@ -1514,7 +1563,11 @@ function tickFamCal(f, dt) {
     }
 }
 function tickFamRec(f, dt) {
-    if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnRec(f); return; }
+    if (f.estado === 'espera') {
+        f.tEspera -= dt;
+        if (f.tEspera <= 0 && camRec.userData.dock) respawnRec(f);
+        return;
+    }
     tickCaida(f, dt);
     if (f.estado === 'ride') {   // llegó a la tolva de OPERACIONES
         f.mesh.visible = false;
@@ -1646,7 +1699,11 @@ function tickFamD2(f, dt) {
     }
 }
 function tickFamSrv(f, l, dt) {
-    if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnSrv(f, l); return; }
+    if (f.estado === 'espera') {
+        f.tEspera -= dt;
+        if (f.tEspera <= 0 && camEdi.userData.dock) respawnSrv(f, l);
+        return;
+    }
     if (f.estado === 'caida') { tickCaida(f, dt); return; }
     if (f.estado === 'vuelo') {
         if (tickVuelo(f, dt)) {
@@ -1872,7 +1929,7 @@ const grafo = new THREE.Group();
     // después de crear las texturas de gráficos)
     junta.position.set(30, 0, -16.5);
     scene.add(junta);
-    const cartelJ = crearCartel('SALA DE JUNTAS', 'capacidad estadística · decisión', 3.0);
+    const cartelJ = crearCartel('CAPA ESTRATÉGICA', 'planeación · dadii · datic · cdo', 3.0);
     cartelJ.position.set(30, 4.2, -12.5);
     scene.add(cartelJ);
 }
@@ -2179,6 +2236,363 @@ for (let i = 0; i < 5; i++) {
     scene.add(pl);
     encuestas.push({ mesh: pl, t: i * 0.2 });
 }
+
+// ============ VÍAS DE LOS CAMIONES ============
+// Franjas de asfalto bajo cada ruta: se lee que los camiones
+// van y vienen entre su región de origen y la fábrica
+{
+    const viaMat = new THREE.MeshLambertMaterial({ color: 0x6b7280 });
+    const rayaMat = new THREE.MeshBasicMaterial({ color: 0xfef9c3 });
+    const segmentos = [
+        // RECOLECCIÓN: observatorios → tolva de OPERACIONES
+        [36.5, 4.9, 12.95, 1.7, Math.PI / 2], [12, 4.9, 49.1, 1.7, 0], [-12.6, 3.55, 2.7, 1.7, Math.PI / 2],
+        // DELEGADO: comité → cabeza de banda C
+        [46, -10.6, 6.8, 1.7, Math.PI / 2], [11.3, -7.2, 69.4, 1.7, 0], [-23.4, -9.85, 5.3, 1.7, Math.PI / 2],
+        // EDITORIAL: ciudadanía → hub de servicios
+        [50, 20.5, 13, 1.7, Math.PI / 2], [13.3, 27, 73.4, 1.7, 0],
+    ];
+    segmentos.forEach(([cx, cz, len, w, ry]) => {
+        const via = new THREE.Mesh(new THREE.PlaneGeometry(len, w), viaMat);
+        via.rotation.x = -Math.PI / 2; via.rotation.z = ry;
+        via.position.set(cx, 0.015, cz);
+        scene.add(via);
+        const raya = new THREE.Mesh(new THREE.PlaneGeometry(len, 0.1), rayaMat);
+        raya.rotation.x = -Math.PI / 2; raya.rotation.z = ry;
+        raya.position.set(cx, 0.018, cz);
+        scene.add(raya);
+    });
+}
+
+// Figura simple: cono + cabeza + ojos (ciudadanos, comité, equipo)
+function crearFigura(color, opts = {}) {
+    const c = new THREE.Group();
+    const cuerpo = new THREE.Mesh(
+        new THREE.ConeGeometry(0.2, opts.sentado ? 0.45 : 0.62, 8),
+        new THREE.MeshLambertMaterial({ color }));
+    cuerpo.position.y = opts.sentado ? 0.23 : 0.31;
+    const cabeza = new THREE.Mesh(
+        new THREE.SphereGeometry(0.15, 10, 10),
+        new THREE.MeshLambertMaterial({ color: 0xf5d0a9 }));
+    cabeza.position.y = opts.sentado ? 0.52 : 0.72;
+    c.add(cuerpo, cabeza);
+    const ojoGeom = new THREE.SphereGeometry(0.028, 6, 6);
+    const ojoMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+    for (const ox of [-0.055, 0.055]) {
+        const ojo = new THREE.Mesh(ojoGeom, ojoMat);
+        ojo.position.set(ox, opts.sentado ? 0.55 : 0.75, 0.13);
+        c.add(ojo);
+    }
+    return c;
+}
+
+// ============ REGIÓN CIUDADANÍA ============
+// La ciudad que el SIIED sirve: plaza amplia al este, con el
+// público de la pared, casitas de barrio, árboles y bandera
+{
+    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(24, 20),
+        new THREE.MeshLambertMaterial({ color: 0xdbe7d3 }));
+    plaza.rotation.x = -Math.PI / 2;
+    plaza.position.set(50, 0.02, 12);
+    scene.add(plaza);
+    const cartelC = crearCartel('CIUDADANÍA', 'la ciudad que el SIIED sirve', 4);
+    cartelC.position.set(50, 4.4, 20.5);
+    scene.add(cartelC);
+    // Casitas del barrio al fondo de la plaza
+    const paletaTecho = [0xef4444, 0xf59e0b, 0x0ea5e9, 0x8b5cf6];
+    for (let i = 0; i < 4; i++) {
+        const casa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.8, 2.2),
+            new THREE.MeshLambertMaterial({ color: 0xf1f5f9 }));
+        casa.position.set(41 + i * 4.6, 0.9, 20.4);
+        casa.castShadow = true;
+        scene.add(casa);
+        const techoC = new THREE.Mesh(
+            new THREE.ConeGeometry(2.0, 0.9, 4),
+            new THREE.MeshLambertMaterial({ color: paletaTecho[i] }));
+        techoC.rotation.y = Math.PI / 4;
+        techoC.position.set(41 + i * 4.6, 2.25, 20.4);
+        scene.add(techoC);
+    }
+    // Árboles de la plaza
+    for (const [ax, az] of [[43, 8], [47, 17], [57, 9]]) {
+        const tronco = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.16, 0.9, 6),
+            new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+        tronco.position.set(ax, 0.45, az);
+        scene.add(tronco);
+        const copa = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8),
+            new THREE.MeshLambertMaterial({ color: 0x22c55e }));
+        copa.position.set(ax, 1.35, az);
+        copa.castShadow = true;
+        scene.add(copa);
+    }
+    // Bandera de Cali (verde-blanco-verde) en asta alta
+    const asta = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 6, 6),
+        new THREE.MeshLambertMaterial({ color: 0x9ca3af }));
+    asta.position.set(55, 3, 16);
+    scene.add(asta);
+    [['#15803d', 0.5], ['#f8fafc', 0], ['#15803d', -0.5]].forEach(([col, dy]) => {
+        const franja = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.5),
+            new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }));
+        franja.position.set(55.92, 5.55 + dy, 16);
+        scene.add(franja);
+    });
+    // Ciudadanos de pie por la plaza
+    const paletaCiu = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9, 0xf97316];
+    for (let i = 0; i < 10; i++) {
+        const fig = crearFigura(paletaCiu[i % 6]);
+        fig.position.set(41 + (i % 5) * 3.6, 0, 5 + Math.floor(i / 5) * 8 + (i % 3));
+        fig.rotation.y = Math.random() * Math.PI * 2;
+        fig.userData.fase = Math.random() * 7;
+        fig.userData.y0 = 0;
+        scene.add(fig);
+        ciudadanos.push(fig);
+    }
+}
+
+// ============ OBSERVATORIOS DE ORGANISMOS ============
+// Punto intermedio del camión de recolección: cúpulas con
+// telescopios que BARREN la plaza observando a la ciudadanía
+const telescopios = [];
+let comiteGrafo = null;
+{
+    const cartelO = crearCartel('OBSERVATORIOS', 'organismos observando a la ciudadanía', 3.4);
+    cartelO.position.set(38.5, 4.2, -4);
+    scene.add(cartelO);
+    [[37, -8.5], [40.5, -5.5], [37.5, 0.5]].forEach(([ox, oz], di) => {
+        const obs = new THREE.Group();
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.1, 1.3, 1.6, 10),
+            new THREE.MeshLambertMaterial({ color: 0xcbd5e1 }));
+        base.position.y = 0.8; base.castShadow = true; obs.add(base);
+        const domo = new THREE.Mesh(
+            new THREE.SphereGeometry(1.05, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+            new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+        domo.position.y = 1.6; obs.add(domo);
+        // Telescopio: tubo que sale de la rendija del domo
+        const tel = new THREE.Group();
+        const tuboT = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.14, 0.22, 1.7, 8),
+            new THREE.MeshLambertMaterial({ color: 0x334155 }));
+        tuboT.position.y = 0.75; tel.add(tuboT);
+        const lente = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.2, 0.2, 0.08, 8),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        lente.position.y = 1.62; tel.add(lente);
+        tel.rotation.x = -0.55;   // apunta hacia arriba/afuera
+        tel.position.y = 1.9;
+        obs.add(tel);
+        obs.position.set(ox, 0, oz);
+        // Orientación base hacia la plaza (+x, +z)
+        obs.rotation.y = -0.5 - di * 0.3;
+        scene.add(obs);
+        telescopios.push({ obs, tel, base: -0.5 - di * 0.3, f: di * 2.1 });
+    });
+}
+
+// ============ SALA DE RECOLECCIÓN ============
+// Reemplaza al camión estacionario: el equipo técnico del SIIED
+// cargando indicadores. Sala aislada, no conectada a las demás.
+{
+    const sala = new THREE.Group();
+    const matS = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
+    const losaS = new THREE.Mesh(new THREE.BoxGeometry(5, 0.2, 3.2), matS);
+    losaS.position.y = 0.1; sala.add(losaS);
+    const techoS = new THREE.Mesh(new THREE.BoxGeometry(5, 0.15, 3.2), matS);
+    techoS.position.y = 2.8; sala.add(techoS);
+    for (const [px, pz] of [[-2.3, -1.4], [2.3, -1.4], [-2.3, 1.4], [2.3, 1.4]]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.8, 0.16), matS);
+        col.position.set(px, 1.45, pz); sala.add(col);
+    }
+    const vidrioS = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.2 });
+    const pN = new THREE.Mesh(new THREE.BoxGeometry(4.6, 2.4, 0.06), vidrioS);
+    pN.position.set(0, 1.5, -1.5); sala.add(pN);
+    const pS = pN.clone(); pS.position.z = 1.5; sala.add(pS);
+    const pE = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.4, 2.9), vidrioS);
+    pE.position.set(2.4, 1.5, 0); sala.add(pE);
+    const pO = pE.clone(); pO.position.x = -2.4; sala.add(pO);
+    // Escritorios del equipo técnico con monitores
+    for (let i = 0; i < 3; i++) {
+        const mesaD = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.07, 0.6), matS);
+        mesaD.position.set(-1.4 + i * 1.4, 0.75, 0.6); sala.add(mesaD);
+        const mon = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.42),
+            new THREE.MeshBasicMaterial({
+                map: texturaPantalla('IND ' + (i + 1), 'cargando…') }));
+        mon.position.set(-1.4 + i * 1.4, 1.25, 0.55);
+        mon.rotation.x = -0.15;
+        sala.add(mon);
+        const fig = crearFigura(0x2563eb, { sentado: true });
+        fig.position.set(-1.4 + i * 1.4, 0.55, -0.3);
+        sala.add(fig);
+    }
+    // Archivador con fichas cargadas
+    const arch = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.5),
+        new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+    arch.position.set(-2.0, 0.9, -1.0); sala.add(arch);
+    sala.position.set(-6, 0, -11.4);
+    scene.add(sala);
+    const cartelR = crearCartel('RECOLECCIÓN', 'equipo técnico SIIED · carga de indicadores', 3.2);
+    cartelR.position.set(-6, 3.6, -9.6);
+    scene.add(cartelR);
+}
+
+// ============ COMITÉ DE GESTIÓN DE LA INFO. ESTADÍSTICA ============
+// La sala grande junto a ciudadanía: todos los organismos de la
+// alcaldía deliberan aquí — grafo, TVs con gráficos y tablero ICED
+{
+    const com = new THREE.Group();
+    const matC = new THREE.MeshLambertMaterial({ color: 0x475569 });
+    const losaC = new THREE.Mesh(new THREE.BoxGeometry(13, 0.25, 7.5), matC);
+    losaC.position.y = 0.12; com.add(losaC);
+    const techoC = new THREE.Mesh(new THREE.BoxGeometry(13, 0.18, 7.5), matC);
+    techoC.position.y = 4.4; com.add(techoC);
+    for (const [px, pz] of [[-6.3, -3.5], [6.3, -3.5], [-6.3, 3.5], [6.3, 3.5],
+                            [0, -3.5], [0, 3.5]]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4.4, 0.2), matC);
+        col.position.set(px, 2.25, pz); com.add(col);
+    }
+    const vidrioC = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.2 });
+    const pNC = new THREE.Mesh(new THREE.BoxGeometry(12.4, 4.0, 0.08), vidrioC);
+    pNC.position.set(0, 2.25, -3.6); com.add(pNC);
+    const pSC = pNC.clone(); pSC.position.z = 3.6; com.add(pSC);
+    const pEC = new THREE.Mesh(new THREE.BoxGeometry(0.08, 4.0, 7.0), vidrioC);
+    pEC.position.set(6.3, 2.25, 0); com.add(pEC);
+    const pOC = pEC.clone(); pOC.position.x = -6.3; com.add(pOC);
+    // Mesa de plenaria con representantes de organismos
+    const mesaC = new THREE.Mesh(new THREE.BoxGeometry(8, 0.14, 2.4),
+        new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+    mesaC.position.y = 0.95; com.add(mesaC);
+    const paletaOrg = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9,
+                       0xf97316, 0x14b8a6, 0xec4899];
+    for (let i = 0; i < 8; i++) {
+        const fig = crearFigura(paletaOrg[i], { sentado: true });
+        const lado = i < 4 ? -1 : 1;
+        fig.position.set(-3 + (i % 4) * 2, 0.72, lado * 1.6);
+        fig.rotation.y = lado > 0 ? Math.PI : 0;
+        com.add(fig);
+    }
+    // Grafo del ecosistema (clon del de la capa estratégica)
+    const grafoC = grafo.clone();
+    grafoC.scale.setScalar(0.4);
+    grafoC.position.set(0, 2.6, 0);
+    com.add(grafoC);
+    com.userData = { grafoC };
+    // TVs con gráficos en la pared norte
+    for (let i = 0; i < 3; i++) {
+        const marcoT = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.2, 0.1),
+            new THREE.MeshLambertMaterial({ color: 0x1f2937 }));
+        marcoT.position.set(-3 + i * 3, 3.0, -3.45);
+        com.add(marcoT);
+        const pantT = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.95),
+            new THREE.MeshBasicMaterial({ map: texCharts[2 + i * 2] }));
+        pantT.position.set(-3 + i * 3, 3.0, -3.4);
+        com.add(pantT);
+    }
+    // Tablero ICED en la pared sur: mismas barras animadas del FICED
+    const rackC = new THREE.Mesh(new THREE.BoxGeometry(4.6, 2.0, 0.15),
+        new THREE.MeshLambertMaterial({ color: 0xede9fe }));
+    rackC.position.set(0, 2.7, 3.45);
+    com.add(rackC);
+    for (let i = 0; i < 5; i++) {
+        const g = new THREE.BoxGeometry(2.9, 0.22, 0.05);
+        g.translate(1.45, 0, 0);
+        const barra = new THREE.Mesh(g,
+            new THREE.MeshBasicMaterial({ color: 0xa78bfa }));
+        barra.position.set(-1.9, 3.3 - i * 0.35, 3.36);
+        com.add(barra);
+        ficedBarras.push(barra);   // se animan con el mismo ciclo
+    }
+    com.position.set(52, 0, -14);
+    scene.add(com);
+    comiteGrafo = grafoC;
+    const cartelCom = crearCartel('COMITÉ DE GESTIÓN', 'información estadística · todos los organismos', 4.6);
+    cartelCom.position.set(52, 5.2, -9.8);
+    scene.add(cartelCom);
+}
+
+// ============ DESPACHO DE ALCALDÍA ============
+// La tercera sala: podio elevado con escritorio, bandera y
+// sillón. Recibe los reportes de las DOS salas de juntas.
+{
+    const des = new THREE.Group();
+    const matD = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    const podio = new THREE.Mesh(new THREE.BoxGeometry(7, 0.3, 5), matD);
+    podio.position.y = 3.4; podio.castShadow = true; des.add(podio);
+    const techoD = new THREE.Mesh(new THREE.BoxGeometry(7, 0.18, 5), matD);
+    techoD.position.y = 6.4; des.add(techoD);
+    for (const [px, pz] of [[-3.3, -2.3], [3.3, -2.3], [-3.3, 2.3], [3.3, 2.3]]) {
+        const pata = new THREE.Mesh(new THREE.BoxGeometry(0.24, 3.4, 0.24), matD);
+        pata.position.set(px, 1.7, pz); des.add(pata);
+        const dint = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.9, 0.24), matD);
+        dint.position.set(px, 4.9, pz); des.add(dint);
+    }
+    const vidrioD = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.22 });
+    const pND = new THREE.Mesh(new THREE.BoxGeometry(6.6, 2.8, 0.08), vidrioD);
+    pND.position.set(0, 4.9, -2.4); des.add(pND);
+    const pSD = pND.clone(); pSD.position.z = 2.4; des.add(pSD);
+    const pED = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.8, 4.7), vidrioD);
+    pED.position.set(3.3, 4.9, 0); des.add(pED);
+    const pOD = pED.clone(); pOD.position.x = -3.3; des.add(pOD);
+    // Escritorio presidencial + sillón alto + lámpara
+    const escr = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 1.3),
+        new THREE.MeshLambertMaterial({ color: 0x78350f }));
+    escr.position.set(0, 4.35, 0); des.add(escr);
+    for (const ex of [-1.0, 1.0]) {
+        const pataE = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 1.1), matD);
+        pataE.position.set(ex, 3.95, 0); des.add(pataE);
+    }
+    const sillon = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.7),
+        new THREE.MeshLambertMaterial({ color: 0x7f1d1d }));
+    sillon.position.set(0, 4.3, -1.2); des.add(sillon);
+    const lampD = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xfde68a }));
+    lampD.position.set(-0.9, 4.6, 0.3); des.add(lampD);
+    const figA = crearFigura(0x7f1d1d, { sentado: true });
+    figA.position.set(0, 4.05, -1.0); des.add(figA);
+    // Bandera de la alcaldía en mástil
+    const mastD = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 6), matD);
+    mastD.position.set(2.6, 5.5, -1.6); des.add(mastD);
+    [['#15803d', 0.35], ['#f8fafc', 0], ['#15803d', -0.35]].forEach(([col, dy]) => {
+        const fr = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.35),
+            new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }));
+        fr.position.set(3.27, 6.25 + dy, -1.6);
+        des.add(fr);
+    });
+    des.position.set(52, 0, -30);
+    scene.add(des);
+    const cartelD = crearCartel('DESPACHO DE ALCALDÍA', 'la decisión final', 3.4);
+    cartelD.position.set(52, 7.3, -27.3);
+    scene.add(cartelD);
+}
+
+// Reportes de decisión: vuelan de cada sala de juntas al despacho
+const ORG_DEC = [
+    new THREE.Vector3(30, 7.4, -16.5),   // capa estratégica
+    new THREE.Vector3(52, 4.8, -14),     // comité de gestión
+];
+const texDec = texturaPaquete('DEC', '#b91c1c');
+const famDec = [];
+for (let i = 0; i < 2; i++) famDec.push(nuevaFamilia(cajaUnitaria(texDec)));
+let fuenteDec = 0;
+function respawnDec(f) {
+    const src = ORG_DEC[fuenteDec++ % ORG_DEC.length];
+    f.mesh.scale.setScalar(0.42);
+    f.mesh.rotation.set(0, 0, 0);
+    ponerTex(f, texDec);
+    lanzarCaida(f, src, new THREE.Vector3(52, 4.6, -30), 1.6, 4.0);
+}
+function tickFamDec(f, dt) {
+    if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnDec(f); return; }
+    tickCaida(f, dt);
+    if (f.estado === 'ride') {   // aterriza en el escritorio del alcalde
+        f.mesh.visible = false;
+        f.estado = 'espera'; f.tEspera = 6 + Math.random() * 5;
+    }
+}
+famDec.forEach((f, i) => { f.estado = 'espera'; f.tEspera = 8 + i * 9; f.mesh.visible = false; });
 
 // ============ RIEL + CARRO DEL SUPERVISOR ============
 // Monorriel sobre el pasillo: un carro colgante transporta al
@@ -2725,7 +3139,15 @@ const ACTOS = [
       cam: [[-14, 4, 24], [-14, 1.5, 18]] },
     { t0: 590, t1: 610, acto: 'Estación 26', texto: 'Línea de agenda', sub: 'CalendarioDifusion + Evento: agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
-    { t0: 610, t1: 640, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
+    { t0: 610, t1: 630, acto: 'Estación 27', texto: 'La ciudadanía', sub: 'la región que todo el sistema sirve: plaza, tribuna y barrio',
+      cam: [[30, 11, 22], [50, 2, 12]] },
+    { t0: 630, t1: 650, acto: 'Estación 28', texto: 'Observatorios', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
+      cam: [[31, 6, -11], [39, 2.5, -4]] },
+    { t0: 650, t1: 670, acto: 'Estación 29', texto: 'Comité de Gestión', sub: 'todos los organismos + grafo + TVs + tablero ICED',
+      cam: [[44, 7, -5], [52, 2.5, -14]] },
+    { t0: 670, t1: 690, acto: 'Estación 30', texto: 'Despacho de Alcaldía', sub: 'los reportes de ambas salas llegan a la decisión final',
+      cam: [[43, 9, -21], [52, 3.5, -30]] },
+    { t0: 690, t1: 720, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
       cam: [[0, 18, 38], [0, 3, -4]], finale: true },
 ];
 const DURACION = ACTOS[ACTOS.length - 1].t1;
@@ -2929,9 +3351,43 @@ function animate() {
         if (tv.tFlash !== undefined)
             tv.flash.material.opacity = Math.max(0, 0.85 - (tGlobal - tv.tFlash) * 3);
     });
+    // ---- Camiones: rutas de ida y vuelta con paradas en muelles ----
+    const VEL_CAM = 7;
     camiones.forEach(cm => {
+        const r = cm.userData.ruta;
+        cm.userData.dock = false;
+        if (!r) return;
+        if (r.espera > 0) {
+            r.espera -= dt;
+            if (r.i === r.pts.length - 1) cm.userData.dock = true; // atracado descargando
+            if (r.espera <= 0) {
+                if (r.dir === 1) { r.dir = -1; r.i--; }
+                else if (r.i === 0) { r.dir = 1; r.i++; }
+                else r.i--;
+            }
+        } else {
+            const [tx, tz] = r.pts[r.i];
+            const dx = tx - cm.position.x, dz = tz - cm.position.z;
+            const d = Math.hypot(dx, dz);
+            const paso = VEL_CAM * dt;
+            if (d <= paso) {
+                cm.position.x = tx; cm.position.z = tz;
+                r.espera = (r.i === r.pts.length - 1) ? 7 : 3.5;
+            } else {
+                cm.position.x += dx / d * paso;
+                cm.position.z += dz / d * paso;
+                cm.rotation.y = Math.atan2(dz, -dx);
+                cm.userData.ruedas.forEach(ru => { ru.rotation.z -= paso / 0.44; });
+            }
+        }
         cm.position.y = Math.abs(Math.sin(tGlobal * 1.7 + cm.userData.faseCam)) * 0.02;
     });
+    // Observatorios: los telescopios barren la ciudadanía
+    telescopios.forEach(t => {
+        t.obs.rotation.y = t.base + Math.sin(tGlobal * 0.35 + t.f) * 0.3;
+    });
+    if (comiteGrafo) comiteGrafo.rotation.y = -tGlobal * 0.4;
+    famDec.forEach(f => tickFamDec(f, dt));
 
     // ---- Grafo del ecosistema: rotación holográfica permanente ----
     grafo.rotation.y = tGlobal * 0.3;
