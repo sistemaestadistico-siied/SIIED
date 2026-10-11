@@ -866,24 +866,37 @@ function crearMecanismo(cfg) {
             biela.scale.y = Math.hypot(dx, dy);
         };
     } else if (cfg.tipo === 'eval') {
-        // Cabina de evaluación: barrera tipo peaje que baja a auditar
-        // la caja mientras el semáforo marca rojo → verde.
+        // Barrera de peaje: pivotea en un alojamiento articulado
+        // bajo el brazo en voladizo; al disparo baja a auditar.
+        const pivotX = -1.3, pivotY = -0.55;
+        // Alojamiento del pivote: poste del brazo + carcasa del eje
+        const soporte = new THREE.Mesh(
+            new THREE.BoxGeometry(0.16, 0.62, 0.16), acero);
+        soporte.position.set(pivotX, pivotY + 0.31, 0);
+        g.add(soporte);
+        const cajaEje = new THREE.Mesh(
+            new THREE.BoxGeometry(0.32, 0.24, 0.3), acero2);
+        cajaEje.position.set(pivotX, pivotY, 0);
+        g.add(cajaEje);
         const barrera = new THREE.Group();
-        barrera.position.set(-1.3, -0.55, 0);
+        barrera.position.set(pivotX, pivotY, 0);
         const brazoB = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.13, 0.13), acento);
         brazoB.position.x = 1.3;
         barrera.add(brazoB);
+        // Gusset soldado cerca del pivote + contrapeso trasero:
+        // giran con el brazo — el soporte nunca se desconecta
+        const gusset = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.1), acero);
+        gusset.position.set(0.3, 0.12, 0);
+        gusset.rotation.z = 0.4;
+        barrera.add(gusset);
+        const contrapeso = new THREE.Mesh(
+            new THREE.BoxGeometry(0.42, 0.3, 0.26), acento);
+        contrapeso.position.set(-0.3, 0, 0);
+        barrera.add(contrapeso);
         const puntaB = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), acero2);
         puntaB.position.set(2.55, -0.3, 0);
         barrera.add(puntaB);
         g.add(barrera);
-        // Ménsula del pivote al brazo en voladizo: la barrera
-        // ya no flota en el aire sobre la banda
-        const mensula = new THREE.Mesh(
-            new THREE.BoxGeometry(1.36, 0.1, 0.1), acero);
-        mensula.position.set(-0.65, -0.35, 0);
-        mensula.rotation.z = -0.3;
-        g.add(mensula);
         mec.animar = (dt, tt, golpe) => {
             // reposo arriba (abierta); al disparo baja a horizontal
             barrera.rotation.z = 1.05 - golpe * 1.05;
