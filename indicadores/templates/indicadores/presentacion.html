@@ -823,10 +823,16 @@ function crearMaquina(cfg) {
 
     // Cuerpo principal: panel de laboratorio texturizado
     // (cara ±z = 4.4×3.6 → crop 683×559; cara ±x = 3×3.6 → 466×559)
-    const [texF, texS] = LAB_TEX[LAB_TIPO[cfg.tipo] ?? LAB_TIPO.def];
+    const labKey = LAB_TIPO[cfg.tipo] ?? LAB_TIPO.def;
+    const [texF, texS] = LAB_TEX[labKey];
     const matF = new THREE.MeshLambertMaterial({ map: texF });
     const matS = new THREE.MeshLambertMaterial({ map: texS });
-    const matT = new THREE.MeshLambertMaterial({ color: 0xe8edf1 });
+    // Techo sin textura pero con color lab: verde claro o morado
+    const MAT_TECHOS = {
+        c1: 0x7de2c8, a2: 0xb8a5f5, b1: 0x8fe3c0,
+        c2: 0xc4a1e8, a1: 0x86dcb9, b2: 0xa78bdb,
+    };
+    const matT = new THREE.MeshLambertMaterial({ color: MAT_TECHOS[labKey] });
     const cuerpo = new THREE.Mesh(
         new THREE.BoxGeometry(4.4, 3.6, 3),
         [matS, matS, matT, matT, matF, matF]);
