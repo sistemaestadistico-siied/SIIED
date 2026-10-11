@@ -367,28 +367,105 @@ function texturaPaquete(etiqueta, color) {
 const texCrudo = texturaPaquete('CRUDO', '#8a6d3b');
 const texDato = texturaPaquete('DATO', '#0284c7');
 
-const paquetes = [];
-for (let i = 0; i < 14; i++) {
-    const pq = new THREE.Mesh(
-        new THREE.BoxGeometry(0.9, 0.7, 0.9),
-        new THREE.MeshLambertMaterial({ map: texCrudo }));
-    pq.position.set(-26 + i * 4, 1.75, 0);
-    pq.castShadow = true;
-    pq.userData.procesado = false;
-    scene.add(pq);
-    paquetes.push(pq);
+// ============ PIPELINE POR ESTACIONES ============
+//  E1 RECEPCIÓN (x=-20): sello → la caja toma el color de su familia
+//  E2 INGESTA   (x=-10): cada caja se divide en 3 cajas chicas
+//  E3 ESTÁNDAR  (x=0):   las chicas en desorden se agrupan en mediana
+//  E4 CALIDAD   (x=10):  la mediana recibe un color único
+//  E5 DIFUSIÓN  (x>26):  vuela a la estantería → gráfico de barras
+const N_CHICAS = 3;
+const COLORES_FAM = ['#2e8b57', '#c2703e', '#5b4fa0', '#b85c7a'];
+const texFam = COLORES_FAM.map(c => texturaPaquete('LOTE', c));
+const COLORES_UNI = ['#e63946', '#f4a261', '#e9c46a', '#2a9d8f',
+                     '#457b9d', '#9b5de5', '#00b4d8', '#ef476f'];
+const texUni = {};
+let idxUni = 0;
+function texUnica() {
+    const hex = COLORES_UNI[idxUni++ % COLORES_UNI.length];
+    if (!texUni[hex]) texUni[hex] = texturaPaquete('OK', hex);
+    return texUni[hex];
 }
 
-// Pila de productos terminados (pallet de difusión)
-const pallet = new THREE.Group();
-const basePallet = new THREE.Mesh(
-    new THREE.BoxGeometry(3, 0.25, 2.4),
-    new THREE.MeshLambertMaterial({ color: 0x8a6d3b }));
-basePallet.position.y = 0.12;
-pallet.add(basePallet);
-pallet.position.set(30, 0, 2.5);
-scene.add(pallet);
-let cajaApilada = 0;
+function cajaNueva(w, h, d, tex) {
+    const b = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshLambertMaterial({ map: tex || texCrudo }));
+    b.castShadow = true;
+    b.visible = false;
+    scene.add(b);
+    return b;
+}
+
+const X_INICIAL = [-26, -17, -8, 1];
+const familias = [];
+for (let f = 0; f < COLORES_FAM.length; f++) {
+    const fam = {
+        idx: f, colorIdx: f,
+        grande: cajaNueva(0.9, 0.7, 0.9),
+        chicas: Array.from({ length: N_CHICAS }, () => cajaNueva(0.42, 0.36, 0.42)),
+        mediana: cajaNueva(0.72, 0.6, 0.72, texDato),
+        fase: 'grande', chicasFin: 0, sellado: false, coloreado: false,
+        sello: 0, vy: 0, slot: -1
+    };
+    familias.push(fam);
+}
+function reiniciarFamilia(fam, xInicial) {
+    fam.fase = 'grande';
+    fam.chicasFin = 0; fam.sellado = false; fam.coloreado = false;
+    fam.sello = 0; fam.slot = -1;
+    fam.grande.visible = true;
+    fam.grande.material.map = texCrudo;
+    fam.grande.material.needsUpdate = true;
+    fam.grande.scale.setScalar(1);
+    fam.grande.rotation.set(0, 0, 0);
+    fam.grande.position.set(xInicial !== undefined ? xInicial : -32 - fam.idx * 3.5, 1.75, 0);
+    fam.chicas.forEach(c => { c.visible = false; c.scale.setScalar(1); });
+    fam.mediana.visible = false;
+    fam.mediana.material.map = texDato;
+    fam.mediana.material.needsUpdate = true;
+    fam.mediana.scale.setScalar(1);
+}
+familias.forEach((fam, f) => reiniciarFamilia(fam, X_INICIAL[f]));
+
+// ===== ESTANTERÍA INFINITA → gráfico de barras =====
+// Cada mediana que aterriza deja una "barra"; las columnas crecen
+// hasta su altura objetivo → la silueta es un bar chart. Cuando el
+// gráfico se completa, las barras despegan y empieza otro — infinito.
+const N_COL = 8;
+const EST_X0 = 29.5, EST_DX = 0.95, EST_Z = 2.4;
+const EST_Y0 = 0.62, EST_DY = 0.62;
+const estanteria = new THREE.Group();
+for (let i = 0; i <= N_COL; i++) {
+    const poste = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 5.6, 0.12),
+        new THREE.MeshLambertMaterial({ color: 0x4a4238 }));
+    poste.position.set(EST_X0 - EST_DX / 2 + i * EST_DX, 2.8, EST_Z + 0.5);
+    estanteria.add(poste);
+}
+for (let n = 0; n < 4; n++) {
+    const larg = new THREE.Mesh(
+        new THREE.BoxGeometry(N_COL * EST_DX + 0.3, 0.09, 1.0),
+        new THREE.MeshLambertMaterial({ color: 0x5b5245 }));
+    larg.position.set(EST_X0 + (N_COL - 1) * EST_DX / 2, 0.32 + n * 1.55, EST_Z + 0.15);
+    estanteria.add(larg);
+}
+scene.add(estanteria);
+const columnas = new Array(N_COL).fill(0);
+let alturasObjetivo = [];
+function nuevosObjetivos() {
+    const base = [3, 5, 7, 4, 6, 8, 4, 5];
+    alturasObjetivo = base.map(h => Math.max(2, h + Math.floor(Math.random() * 3) - 1));
+}
+nuevosObjetivos();
+let faseEstante = 'llenando';   // llenando | completo | vaciando
+let tCompleto = 0;
+const barras = [];
+for (let i = 0; i < 72; i++) barras.push(cajaNueva(0.72, 0.55, 0.7, texDato));
+function siguienteSlot() {
+    for (let c = 0; c < N_COL; c++)
+        if (columnas[c] < alturasObjetivo[c]) return c;
+    return -1;
+}
 
 // ============ MÁQUINAS ============
 function textoCanvas(texto, sub, color = '#f5ecd7', fondo = '#1c1917') {
@@ -1035,7 +1112,7 @@ function crearPlanta() {
         s.userData.rig.cresta.scale.setScalar(1.3);
         sup = { loro: s, mixer: null };
     }
-    sup.dir = 1;
+    sup.fase = 0;   // 0=ida pasillo 1=trepa 2=retorno alto 3=baja
     scene.add(sup.loro);
     ponerEstado(sup, 'caminar');
 }
@@ -1148,21 +1225,12 @@ document.getElementById('btn-replay').addEventListener('click', () => {
     offsetShow = 0;
     actoActual = -1;
     operarios.forEach(o => ponerEstado(o, 'trabajar'));
-    if (sup) ponerEstado(sup, 'caminar');
-    cajaApilada = 0;
-    paquetes.forEach((p, i) => {
-        p.position.set(-26 + i * 4, 1.75, 0);
-        p.rotation.set(0, 0, 0);
-        p.scale.setScalar(1);
-        p.userData.procesado = false;
-        p.userData.revisado = false;
-        p.userData.rechazado = false;
-        p.userData.sello = 0;
-        p.userData.vuelo = false;
-        p.userData.apilado = null;
-        p.material.map = texCrudo;
-        p.material.needsUpdate = true;
-    });
+    if (sup) { ponerEstado(sup, 'caminar'); sup.fase = 0; }
+    familias.forEach((fam, f) => reiniciarFamilia(fam, X_INICIAL[f]));
+    columnas.fill(0);
+    nuevosObjetivos();
+    faseEstante = 'llenando';
+    barras.forEach(b => { b.visible = false; b.scale.setScalar(1); });
     reloj = new THREE.Clock();
     const musica = document.getElementById('musica');
     musica.currentTime = 0;
@@ -1219,95 +1287,143 @@ function animate() {
     bandaTex.offset.x = -tGlobal * 0.55;
     rodillos.forEach(r => { r.rotation.z -= dt * 4; });
 
-    // Paquetes fluyendo por la cinta
-    paquetes.forEach(p => {
-        if (p.userData.rechazado) {
-            // Rechazado por Calidad: sale despedido hacia el frente
-            p.userData.vy -= 9.8 * dt;
-            p.position.x += 1.5 * dt;
-            p.position.z += p.userData.vz * dt;
-            p.position.y += p.userData.vy * dt;
-            p.rotation.x += dt * 5;
-            if (p.position.y < -0.5) {
-                p.userData.rechazado = false;
-                p.userData.revisado = false;
-                p.userData.procesado = false;
-                p.userData.vuelo = false;
-                p.userData.sello = 0;
-                p.material.map = texCrudo;
-                p.material.needsUpdate = true;
-                p.rotation.set(0, 0, 0);
-                p.scale.setScalar(1);
-                p.position.set(-26, 1.75, 0);
+    // ---- Pipeline de cajas por estaciones ----
+    familias.forEach(fam => {
+        // pulso de sello compartido (pop de escala breve)
+        const pulso = mesh => {
+            if (!fam.sello) return;
+            const f = Math.min(1, (tGlobal - fam.sello) / 0.45);
+            mesh.scale.setScalar(1 + (1 - f) * 0.4);
+            if (f >= 1) fam.sello = 0;
+        };
+        switch (fam.fase) {
+        case 'grande': {
+            const g = fam.grande;
+            g.position.x += velBanda * dt;
+            pulso(g);
+            // E1 Recepción: sello → color de familia
+            if (!fam.sellado && g.position.x > -20) {
+                fam.sellado = true; fam.sello = tGlobal;
+                g.material.map = texFam[fam.colorIdx];
+                g.material.needsUpdate = true;
             }
-            return;
-        }
-        if (p.userData.vuelo) {
-            // Arco hacia el pallet de difusión
-            p.userData.vy -= 9.8 * dt;
-            p.position.x += 3.5 * dt;
-            p.position.y += p.userData.vy * dt;
-            p.rotation.z += dt * 2;
-            const slot = p.userData.slot;
-            const piso = 0.55 + Math.floor(slot / 4) * 0.75;
-            if (p.position.y <= piso) {
-                p.position.set(
-                    29 + (slot % 2) * 1.2,
-                    piso + 0.35,
-                    2.0 + (Math.floor(slot / 2) % 2) * 1.0);
-                p.rotation.set(0, 0, 0);
-                p.userData.vuelo = false;
-                p.userData.apilado = tGlobal; // tiempo de descanso en el pallet
-                soltarConfeti(p.position.x, p.position.y + 0.5, p.position.z);
+            // E2 Ingesta: se divide en 3 cajas chicas (desorden)
+            if (g.position.x > -10) {
+                g.visible = false; fam.sello = 0;
+                fam.chicasFin = 0;
+                fam.chicas.forEach(c => {
+                    c.visible = true;
+                    c.material.map = texFam[fam.colorIdx];
+                    c.material.needsUpdate = true;
+                    c.position.set(
+                        g.position.x + (Math.random() - 0.5) * 1.2,
+                        1.58,
+                        (Math.random() - 0.5) * 1.3);
+                    c.rotation.y = Math.random() * Math.PI;
+                    c.userData.vx = velBanda * (0.9 + Math.random() * 0.2);
+                    c.userData.vz = (Math.random() - 0.5) * 0.5;
+                    c.userData.cruzada = false;
+                });
+                fam.fase = 'chicas';
             }
-            return;
+            break;
         }
-        if (p.userData.apilado) {
-            // descansa en el pallet un rato y vuelve al inicio de la línea
-            if (tGlobal - p.userData.apilado > 2.5) {
-                p.userData.apilado = null;
-                p.userData.procesado = false;
-                p.userData.revisado = false;
-                p.userData.sello = 0;
-                p.material.map = texCrudo;
-                p.material.needsUpdate = true;
-                p.scale.setScalar(1);
-                p.position.set(-26, 1.75, 0);
+        case 'chicas': {
+            fam.chicas.forEach(c => {
+                c.position.x += c.userData.vx * dt;
+                c.position.z += c.userData.vz * dt;
+                c.position.z = Math.max(-0.9, Math.min(0.9, c.position.z));
+                c.rotation.y += dt * 0.4;
+                if (!c.userData.cruzada && c.position.x > 0) {
+                    c.userData.cruzada = true; fam.chicasFin++;
+                }
+            });
+            // E3 Estándar: las 3 chicas se agrupan en una mediana
+            if (fam.chicasFin >= N_CHICAS) {
+                fam.chicas.forEach(c => { c.visible = false; });
+                const md = fam.mediana;
+                md.visible = true;
+                md.position.set(0.4, 1.7, 0);
+                md.rotation.set(0, 0, 0);
+                fam.sello = tGlobal;          // pop al agrupar
+                fam.coloreado = false;
+                fam.fase = 'mediana';
             }
-            return;
+            break;
         }
-        p.position.x += velBanda * dt;
-        // sello recién estampado: pulso de escala breve
-        if (p.userData.sello) {
-            const f = Math.min(1, (tGlobal - p.userData.sello) / 0.45);
-            p.scale.setScalar(1 + (1 - f) * 0.4);
-            if (f >= 1) p.userData.sello = 0;
-        }
-        // procesado al pasar el Estándar (x=0): cambia a empaque azul
-        if (!p.userData.procesado && p.position.x > 0) {
-            p.userData.procesado = true;
-            p.userData.sello = tGlobal;
-            p.material.map = texDato;
-            p.material.needsUpdate = true;
-        }
-        // Calidad (x=10): ~1 de cada 7 paquetes sale rechazado
-        if (!p.userData.revisado && p.position.x > 10) {
-            p.userData.revisado = true;
-            if (Math.random() < 0.14) {
-                p.userData.rechazado = true;
-                p.userData.vy = 2.8;
-                p.userData.vz = 4;
+        case 'mediana': {
+            const md = fam.mediana;
+            md.position.x += velBanda * dt;
+            pulso(md);
+            // E4 Calidad: color único
+            if (!fam.coloreado && md.position.x > 10) {
+                fam.coloreado = true; fam.sello = tGlobal;
+                md.material.map = texUnica();
+                md.material.needsUpdate = true;
                 const sem = maquinas[3] && maquinas[3].userData.extras;
-                if (sem && sem.semRojo) sem.semHasta = tGlobal + 1.4;
+                if (sem && sem.semRojo) sem.semHasta = 0; // siempre en verde
             }
+            // fin de banda → vuelo a la estantería
+            if (md.position.x > 26) {
+                fam.slot = faseEstante === 'llenando' ? siguienteSlot() : -1;
+                fam.vy = fam.slot >= 0
+                    ? 2.4 + (EST_Y0 + columnas[fam.slot] * EST_DY) * 1.1
+                    : 3.2;
+                fam.fase = 'vuelo';
+            }
+            break;
         }
-        if (p.position.x > 26) {
-            // despega hacia el pallet
-            p.userData.vuelo = true;
-            p.userData.vy = 2.6;
-            p.userData.slot = cajaApilada++;
+        case 'vuelo': {
+            const md = fam.mediana;
+            fam.vy -= 9.8 * dt;
+            md.position.x += 3.2 * dt;
+            md.position.y += fam.vy * dt;
+            md.rotation.z += dt * 1.6;
+            if (fam.slot >= 0) {
+                const ty = EST_Y0 + columnas[fam.slot] * EST_DY;
+                if (md.position.y <= ty) {
+                    // deja una "barra" estática y libera la mediana
+                    const barra = barras.find(b => !b.visible);
+                    if (barra) {
+                        barra.material.map = md.material.map;
+                        barra.material.needsUpdate = true;
+                        barra.scale.setScalar(1);
+                        barra.position.set(EST_X0 + fam.slot * EST_DX, ty, EST_Z);
+                        barra.rotation.set(0, 0, 0);
+                        barra.visible = true;
+                        soltarConfeti(barra.position.x, ty + 0.4, EST_Z);
+                    }
+                    columnas[fam.slot]++;
+                    md.visible = false;
+                    reiniciarFamilia(fam);
+                }
+            } else if (md.position.y < -1 || md.position.x > 40) {
+                // estantería llena o vaciando: la caja se marcha volando
+                md.visible = false;
+                reiniciarFamilia(fam);
+            }
+            break;
+        }
         }
     });
+
+    // ---- Estantería infinita: ciclo del gráfico de barras ----
+    if (faseEstante === 'llenando' &&
+        columnas.every((h, c) => h >= alturasObjetivo[c])) {
+        faseEstante = 'completo'; tCompleto = tGlobal;
+    } else if (faseEstante === 'completo' && tGlobal - tCompleto > 2.2) {
+        faseEstante = 'vaciando';
+    } else if (faseEstante === 'vaciando') {
+        let viva = false;
+        barras.forEach(b => {
+            if (!b.visible) return;
+            viva = true;
+            b.scale.multiplyScalar(Math.max(0, 1 - dt * 3));
+            b.position.y += dt * 1.8;
+            if (b.scale.x < 0.06) b.visible = false;
+        });
+        if (!viva) { faseEstante = 'llenando'; columnas.fill(0); nuevosObjetivos(); }
+    }
 
     // Máquinas trabajando
     maquinas.forEach(m => {
@@ -1356,31 +1472,56 @@ function animate() {
         else animarOperario(o.loro, dt, tGlobal, o.estado, o.desfase);
     });
 
-    // Supervisor patrulla la línea
+    // Supervisor: patrulla rectangular — ida baja por el pasillo,
+    // trepa, retorna alto sobre la banda y baja al pasillo
     if (sup) {
         if (sup.mixer) sup.mixer.update(dt);
         if (sup.estado === 'caminar') {
-            // clip0 = nado boca abajo → el supervisor VUELA patrullando
-            sup.loro.position.x += sup.dir * 2.2 * dt;
-            if (sup.loro.position.x > 23) sup.dir = -1;
-            if (sup.loro.position.x < -23) sup.dir = 1;
-            // mirar en la dirección real del movimiento; YAW_VUELO
-            // compensa el frente del clip (tecla F lo voltea en vivo)
-            const rotObjetivo = Math.atan2(sup.dir * 2.2, 0) + yawVuelo;
-            // lerp por el camino más corto (wrap ±PI)
+            const p = sup.loro.position;
+            const V = 2.2;
+            const Y_BAJO = sup.mixer ? 2.0 : 0.3, Y_ALTO = 4.8;
+            const Z_PASILLO = 3.4, Z_BANDA = 0.9;
+            let dirX = 1; // dirección horizontal hacia la que apunta
+            if (sup.fase === 0) {          // ida por el pasillo (bajo)
+                p.x += V * dt;
+                p.y += (Y_BAJO - p.y) * 0.06;
+                p.z += (Z_PASILLO - p.z) * 0.06;
+                if (p.x > 23) sup.fase = 1;
+            } else if (sup.fase === 1) {   // gana altura y gira al retorno
+                dirX = -1;
+                p.y += (Y_ALTO - p.y) * 0.05;
+                p.z += (Z_BANDA - p.z) * 0.05;
+                p.x += V * 0.3 * dt;       // leve avance mientras trepa
+                if (p.y > Y_ALTO - 0.2 && p.z < Z_BANDA + 0.2) sup.fase = 2;
+            } else if (sup.fase === 2) {   // retorno alto sobre la banda
+                dirX = -1;
+                p.x -= V * dt;
+                p.y += (Y_ALTO - p.y) * 0.06;
+                p.z += (Z_BANDA - p.z) * 0.06;
+                if (p.x < -23) sup.fase = 3;
+            } else {                       // fase 3: baja al pasillo
+                p.y += (Y_BAJO - p.y) * 0.05;
+                p.z += (Z_PASILLO - p.z) * 0.05;
+                p.x -= V * 0.3 * dt;
+                if (p.y < Y_BAJO + 0.2 && p.z > Z_PASILLO - 0.2) sup.fase = 0;
+            }
+            // yaw según la dirección real de avance
+            const rotObjetivo = Math.atan2(dirX * V, 0) + yawVuelo;
             const dYaw = Math.atan2(Math.sin(rotObjetivo - sup.loro.rotation.y),
                                     Math.cos(rotObjetivo - sup.loro.rotation.y));
-            sup.loro.rotation.y += dYaw * 0.15;
-            // nariz arriba → patas colgando; se endereza al aterrizar
-            sup.loro.rotation.z += (0.3 * sup.dir - sup.loro.rotation.z) * 0.08;
-            // asciende a altura de vuelo (solo GLB; el procedural queda en el suelo)
-            const yVuelo = sup.mixer ? 2.0 : 0.3;
-            sup.loro.position.y += (yVuelo - sup.loro.position.y) * 0.05;
+            sup.loro.rotation.y += dYaw * 0.12;
+            // pitch: nariz arriba en horizontal, más al trepar, leve picada al bajar
+            const pitchObj = sup.fase === 1 ? -0.55
+                           : sup.fase === 3 ? -0.15
+                           : 0.3 * dirX;
+            sup.loro.rotation.z += (pitchObj - sup.loro.rotation.z) * 0.08;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
         } else {
             sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
             sup.loro.rotation.z += (0 - sup.loro.rotation.z) * 0.08;
-            // aterriza suave al dejar de patrullar (finale)
+            // baja al centro del escenario para el finale
+            sup.loro.position.x += (0 - sup.loro.position.x) * 0.03;
+            sup.loro.position.z += (2.5 - sup.loro.position.z) * 0.03;
             sup.loro.position.y += (0.02 - sup.loro.position.y) * 0.05;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
         }
