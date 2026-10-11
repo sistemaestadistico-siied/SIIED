@@ -236,3 +236,30 @@ Dominio degenerado eliminado por decisión del equipo:
 - Los 6 indicadores inactivos no fueron procesados
 - `documentovector` sigue pendiente: requiere `CREATE EXTENSION vector` como
   superuser y restauración quirúrgica desde el backup
+
+### 7.6 Renombrado de dominios genéricos
+
+- **90 dominios renombrados** según el contenido real de sus desags:
+  `Barrio` (335 desags barriales), `Comuna` ×6, `Vereda` ×2, `Grupo de edad` ×3,
+  `Centro de salud`, `IPS` ×3, `Clínica`, `Uso del suelo` ×3, `Tipo de obra` ×3,
+  `Ciudad` ×2, `Municipio`, `Ámbito geográfico` ×2, `División de gasto` ×4,
+  `Tipo de emergencia` ×5, `Estrato`, `Entidad bancaria`, `Producto`,
+  `Causa de mortalidad` ×2, `Institución de educación superior` ×2, `Asignatura`,
+  `Modalidad`, `Nivel de formación`, `Sexo`, `Categoría hotelera`,
+  `Número de hogares`, `Zona de expansión`, `Tipo de suscriptor` ×2,
+  `Tipo de hurto`, `Tipo de maltrato`, `Tipo de dengue`, `Estado catastral`,
+  `Variable de cálculo` ×2, `Variable de salud` ×2, `Variable de población`,
+  `Variable de educación`, `Variable` ×3, `Valor` ×2, `Total`, `Expansión`,
+  `Suelo urbano/rural`, `Altura sobre el nivel del mar`, `Temperatura promedio`,
+  `Precipitación promedio anual`, `Humedad relativa media anual`,
+  `Esperanza de vida al nacer`, `Tipo de unidad de salud`,
+  `Tipo de servicio de salud`, `Centro de atención IPS`,
+  `Naturaleza de la institución`, `Medida de población estudiantil` ×3,
+  `Medida de desempeño`, `Ámbito`, `Ámbito y grado`
+- **Dominio `desagregacion_tematica_1` (id 63) eliminado**: último dominio gordo
+  sobreviviente, vinculado solo a ind-1528 (inactivo, 0 datos). Sus 487 desags
+  no tenían referencias ni `capa_geo` → purgadas, vínculo quitado, dominio borrado.
+  Snapshots: `audit_d63_desags`, `audit_d63_link`
+- **Estado final: 177 dominios / 3.037 desags / 0 nombres genéricos**
+- Los 4 dominios `Grupo de edad` coexisten con nombre correcto (clusters por
+  formato de rango, no se fusionaron por diff>2)
