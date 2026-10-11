@@ -1478,10 +1478,12 @@ function crearMaquina(cfg) {
     }
 
     // Letrero de la estación en un mástil alto: la máquina nunca lo tapa
+    // El mástil acaba en el borde inferior del cartel (y5.73):
+    // antes llegaba hasta y6.7 y se metía dentro del letrero
     const mastil = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 3.2, 0.12),
+        new THREE.BoxGeometry(0.12, 2.3, 0.12),
         new THREE.MeshLambertMaterial({ color: 0x64748b }));
-    mastil.position.set(0, 5.1, 1.52);
+    mastil.position.set(0, 4.6, 1.52);
     m.add(mastil);
     const cartel = crearCartel(cfg.nombre, cfg.modelo);
     cartel.position.set(0, 6.35, 1.6);
@@ -1770,11 +1772,12 @@ function crearSalaJunta(cfg) {
     const mon = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.84),
         new THREE.MeshBasicMaterial({ map: texturaPantalla(cfg.nombre, cfg.modelo) }));
     mon.position.set(0, 1.9, -1.5); g.add(mon);
-    // Letrero conservado: mismo mástil alto de las estaciones
+    // Letrero conservado: mástil detrás y solo hasta el borde
+    // inferior del cartel — antes era coplanar y lo atravesaba
     const mastil = new THREE.Mesh(
-        new THREE.BoxGeometry(0.12, 3.2, 0.12),
+        new THREE.BoxGeometry(0.12, 2.4, 0.12),
         new THREE.MeshLambertMaterial({ color: 0x64748b }));
-    mastil.position.set(0, AL + 1.55, 1.35); g.add(mastil);
+    mastil.position.set(0, AL + 1.2, 1.28); g.add(mastil);
     const cartel = crearCartel(cfg.nombre, cfg.modelo, 4);
     cartel.position.set(0, AL + 3.05, 1.35); g.add(cartel);
     // Lámpara de estado (misma lógica de las máquinas)
