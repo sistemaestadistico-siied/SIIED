@@ -1706,7 +1706,7 @@ const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
 // satisfacción (engorda) → FICED (cambia de color) → hall.
 const ESTACIONES_CAL = [
     { x: -18, nombre: 'EVAL. ESTRATÉGICA', modelo: 'Evaluacion estratégica', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
-    { x: -8,  nombre: 'SATISFACCIÓN',    modelo: 'RespuestaSatisfaccion', color: 0x84cc16, tipo: 'eval', z: -14.7 },
+    { x: -8,  nombre: 'MÓDULO DE SATISFACCIÓN CIUDADANA', modelo: 'encuesta en respuesta de requerimientos de información estadística', color: 0x84cc16, tipo: 'eval', z: -14.7 },
     { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'Evaluacion táctica', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
     { x: 8,   nombre: 'FICED',           modelo: 'ICEDFormulario', color: 0x22d3ee, tipo: 'escaner', z: -14.7 },
     { x: 16,  nombre: 'MÓDULO DE VALIDACIÓN', modelo: 'evaluación ICED', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
@@ -2300,7 +2300,7 @@ function tickFamCal(f, dt) {
     }
     if (!f.pasadas.has('sat') && x > -8) {
         f.pasadas.add('sat'); f.estado = 'crece'; f.tCrece = 0;
-        disparo('SATISFACCIÓN'); soltarLluvia(f.mesh.position); return;
+        disparo('MÓDULO DE SATISFACCIÓN CIUDADANA'); soltarLluvia(f.mesh.position); return;
     }
     if (!f.pasadas.has('e2') && x > 0) {
         f.pasadas.add('e2'); f.estado = 'eval'; f.tPausa = 0;
@@ -4054,7 +4054,7 @@ const ACTOS = [
     // ======= E: LÍNEA DE CALIDAD =======
     { t0: 302, t1: 314, acto: 'Estación 15', texto: 'EVAL. ESTRATÉGICA', sub: 'dimensión estratégica: capacidad de decisión del organismo',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
-    { t0: 314, t1: 326, acto: 'Estación 16', texto: 'SATISFACCIÓN', sub: 'RespuestaSatisfaccion: llueven encuestas de la ventanilla ciudadana',
+    { t0: 314, t1: 326, acto: 'Estación 16', texto: 'SATISFACCIÓN CIUDADANA', sub: 'RespuestaSatisfaccion: llueven encuestas de la ventanilla ciudadana',
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
     { t0: 326, t1: 338, acto: 'Estación 17', texto: 'EVAL. TÁCTICA', sub: 'dimensión táctica: la operación del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
