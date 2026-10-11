@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>La Fábrica de Datos — SIIED</title>
+<title>SIIED — Santiago de Cali</title>
 
 {{ stats|json_script:"stats-data" }}
 
@@ -14,7 +14,6 @@
     html, body { width: 100%; height: 100%; overflow: hidden; background: #0b1520; }
 
     #escena { position: fixed; inset: 0; }
-    #escena.sepia canvas { filter: sepia(0.35) contrast(1.06) brightness(0.97); }
 
     /* ---------- Grano de película + viñeta ---------- */
     #grano {
@@ -108,10 +107,6 @@
     #intro .subtitulo {
         font-size: 15px; color: #94a3b8; margin-bottom: 4px; font-weight: 500;
     }
-    #intro .stats-line {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 12px; color: #38bdf8; letter-spacing: 2px; text-transform: uppercase;
-    }
     #btn-play {
         margin-top: 8px;
         background: #2563eb; color: #f8fafc;
@@ -182,7 +177,7 @@
 
 <audio id="musica" src="{% static 'indicadores/audio/ambiente_cali.mp3' %}" preload="auto"></audio>
 
-<div id="escena" class="sepia"></div>
+<div id="escena"></div>
 <div id="grano"></div>
 <div id="vigneta"></div>
 <div id="parpadeo-pelicula"></div>
@@ -201,10 +196,8 @@
 <div id="intro">
     <div class="marco">
         <img src="https://i.ibb.co/3YWQvHpB/descarga-3.png" alt="SIIED" style="height:88px;margin-bottom:16px;filter:drop-shadow(0 3px 12px rgba(0,0,0,.5));">
-        <div class="subtitulo">El Sistema Integrado de Información Estadística Distrital presenta</div>
-        <h1>LA FÁBRICA<br>DE DATOS<span class="cali">*</span></h1>
-        <div class="subtitulo">* en Santiago de Cali, como debe ser</div>
-        <div class="stats-line" id="intro-stats"></div>
+        <div class="subtitulo">El Sistema Integrado de Información Estadística Distrital</div>
+        <div class="subtitulo">Santiago de Cali</div>
         <div style="margin-top:28px">
             <button id="btn-play">▶ INICIAR</button>
         </div>
@@ -217,13 +210,11 @@
         <img src="https://i.ibb.co/3YWQvHpB/descarga-3.png" alt="SIIED" style="height:64px;margin-bottom:10px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.5));">
         <div class="acto">Fin del reporte</div>
         <div class="texto">SIIED<br>El laboratorio de datos<br>de Santiago de Cali</div>
-        <div class="sub" id="creditos-stats"></div>
         <button id="btn-replay">↺ REINICIAR</button>
     </div>
 </div>
 
 <div id="hud">
-    <button class="hud-btn" id="btn-sepia">SEPIA: ON</button>
     <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
     <button class="hud-btn" id="btn-saltar">SALTAR ⏭</button>
     <button class="hud-btn" id="btn-pausa">⏸ PAUSAR [ESPACIO]</button>
@@ -238,10 +229,6 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const STATS = JSON.parse(document.getElementById('stats-data').textContent);
-document.getElementById('intro-stats').textContent =
-    `${STATS.modelos} modelos · ${STATS.indicadores} indicadores · ${STATS.conjuntos} conjuntos de datos`;
-document.getElementById('creditos-stats').textContent =
-    `${STATS.indicadores} indicadores · ${STATS.conjuntos} conjuntos · ${STATS.dominios} dominios · ${STATS.organismos} organismos productores`;
 
 // ============ ESCENA BASE ============
 const contenedor = document.getElementById('escena');
@@ -3864,10 +3851,6 @@ document.getElementById('btn-saltar').addEventListener('click', () => {
     const saltarA = ACTOS[ACTOS.length - 1].t0;
     const transcurrido = reloj ? reloj.getElapsedTime() + offsetShow : 0;
     if (transcurrido < saltarA) offsetShow = saltarA - reloj.getElapsedTime();
-});
-document.getElementById('btn-sepia').addEventListener('click', (e) => {
-    contenedor.classList.toggle('sepia');
-    e.target.textContent = contenedor.classList.contains('sepia') ? 'SEPIA: ON' : 'SEPIA: OFF';
 });
 function toggleLibre() {
     camaraLibre = !camaraLibre;
