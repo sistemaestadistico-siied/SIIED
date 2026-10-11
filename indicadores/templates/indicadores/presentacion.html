@@ -1450,12 +1450,13 @@ ESTACIONES_DAT.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina
 
 // Mini-maquilas de SERVICIOS: 3 líneas cortas de 2 estaciones.
 const ESTACIONES_SRV = [
-    { x: -17, z: 9.7,  nombre: 'REDACCIÓN',    modelo: 'NoticiaBanner · redacción', color: 0xef4444, tipo: 'prensa', sello: 'NEWS', escala: 0.55 },
-    { x: -11, z: 9.7,  nombre: 'PUBLICACIÓN',  modelo: 'Evento · banner público', color: 0xef4444, tipo: 'lanzador', escala: 0.55 },
-    { x: -17, z: 15.7, nombre: 'EDICIÓN',      modelo: 'ProductoAcademico · edición', color: 0x64748b, tipo: 'prensa', sello: 'DOC', escala: 0.55 },
-    { x: -11, z: 15.7, nombre: 'CLASIFICACIÓN',modelo: 'ProductoEducativo · SeccionEducativa', color: 0x64748b, tipo: 'escaner', escala: 0.55 },
-    { x: -17, z: 21.7, nombre: 'PROGRAMACIÓN', modelo: 'CalendarioDifusion · programación', color: 0xb45309, tipo: 'eval', escala: 0.55 },
-    { x: -11, z: 21.7, nombre: 'AGENDA',       modelo: 'Evento · agenda pública', color: 0xb45309, tipo: 'lanzador', escala: 0.55 },
+    // (escala 0.8: a 0.55 los mecanismos colisionaban con las bandas)
+    { x: -17, z: 9.7,  nombre: 'REDACCIÓN',    modelo: 'NoticiaBanner · redacción', color: 0xef4444, tipo: 'prensa', sello: 'NEWS', escala: 0.8 },
+    { x: -11, z: 9.7,  nombre: 'PUBLICACIÓN',  modelo: 'Evento · banner público', color: 0xef4444, tipo: 'lanzador', escala: 0.8 },
+    { x: -17, z: 15.7, nombre: 'EDICIÓN',      modelo: 'ProductoAcademico · edición', color: 0x64748b, tipo: 'prensa', sello: 'DOC', escala: 0.8 },
+    { x: -11, z: 15.7, nombre: 'CLASIFICACIÓN',modelo: 'ProductoEducativo · SeccionEducativa', color: 0x64748b, tipo: 'escaner', escala: 0.8 },
+    { x: -17, z: 21.7, nombre: 'PROGRAMACIÓN', modelo: 'CalendarioDifusion · programación', color: 0xb45309, tipo: 'eval', escala: 0.8 },
+    { x: -11, z: 21.7, nombre: 'AGENDA',       modelo: 'Evento · agenda pública', color: 0xb45309, tipo: 'lanzador', escala: 0.8 },
 ];
 ESTACIONES_SRV.forEach(crearMaquina);
 
