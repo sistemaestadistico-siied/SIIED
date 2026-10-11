@@ -881,9 +881,9 @@ function crearMaquina(cfg) {
     // Monitor de datos al extremo de la plataforma, inclinado
     // hacia cámara: no tapa la cara del operario
     const monPoste = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6),
+        new THREE.CylinderGeometry(0.05, 0.05, 2.75, 6),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-    monPoste.position.set(-4.1, 2.05, 1.2);
+    monPoste.position.set(-4.1, 1.38, 1.2);   // llega al piso
     m.add(monPoste);
     const monMarco = new THREE.Mesh(
         new THREE.BoxGeometry(1.5, 0.95, 0.08),
@@ -1120,6 +1120,12 @@ function crearMaquina(cfg) {
         cuerda.rotation.z = Math.PI / 2;
         cuerda.position.set(0, 4.6, 1.8);
         m.add(cuerda);
+        for (const px of [-2.2, 2.2]) {   // la cuerda cuelga de postes
+            const pC = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.03, 0.03, 1.0, 5), posteMat);
+            pC.position.set(px, 4.1, 1.8);
+            m.add(pC);
+        }
         const coloresFeria = [0xef4444, 0xfacc15, 0x38bdf8, 0xa855f7];
         for (let i = 0; i < 8; i++) {
             const band = new THREE.Mesh(
@@ -1332,6 +1338,16 @@ function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
     m.rotation.y = -Math.atan2(d.z, d.x);
     m.rotation.z = Math.asin(Math.max(-0.9, Math.min(0.9, d.y / len)));
     scene.add(m);
+    // Postes de soporte: el chute no flota en el aire
+    const matP = new THREE.MeshLambertMaterial({ color: 0x64748b });
+    for (const t of [0.3, 0.7]) {
+        const px = from.x + d.x * t, pz = from.z + d.z * t;
+        const py = from.y + d.y * t;
+        const poste = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12, Math.max(py, 0.2), 0.12), matP);
+        poste.position.set(px, py / 2, pz);
+        scene.add(poste);
+    }
     return m;
 }
 // Chute norte del taller → banda C (su producto: el censo del organismo)
@@ -2121,8 +2137,13 @@ const TVs = [];
     const paredG = new THREE.Group();
     paredG.position.set(38.6, 0, 7);
     paredG.rotation.y = Math.PI;   // pantallas hacia la plaza (+x)
+    // El reverso de la pared es un panel de laboratorio: ya no
+    // es una losa gris que apaga la escena vista desde la fábrica
+    const matMuroF = new THREE.MeshLambertMaterial({ map: LAB_CARAS.b1 });
+    const matMuroS = new THREE.MeshLambertMaterial({ map: LAB_LADOS.x2 });
+    const matMuroT = new THREE.MeshLambertMaterial({ color: 0x57534e });
     const marco = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6.9, 8.2),
-        new THREE.MeshLambertMaterial({ color: 0x57534e }));
+        [matMuroF, matMuroF, matMuroT, matMuroT, matMuroS, matMuroS]);
     marco.position.set(0.28, 3.55, 0);
     marco.castShadow = true;
     paredG.add(marco);
