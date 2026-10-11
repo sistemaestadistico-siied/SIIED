@@ -1944,6 +1944,8 @@ function crearCamion(cfg) {
         g.add(panel);
     }
     g.userData.faseCam = Math.random() * 7;
+    g.scale.setScalar(0.82);   // los camiones le quedan un poco
+                             // grandes a las máquinas — talla propia
     scene.add(g);
     camiones.push(g);
     return g;
@@ -4262,6 +4264,23 @@ function animate() {
             const dx = tx - cm.position.x, dz = tz - cm.position.z;
             const d = Math.hypot(dx, dz);
             const paso = VEL_CAM * dt;
+            // Esquina suave: cerca del vértice (y si no es parada
+            // real) el rumbo mezcla el tramo actual con el
+            // siguiente — el morro redondea la curva en vez de
+            // girar 90° de golpe
+            const RADIO = 3.2;
+            const esParada = r.i === r.pts.length - 1 || r.i === 0 ||
+                             (r.paradas && r.paradas.includes(r.i));
+            let hx = dx, hz = dz;
+            if (d < RADIO && !esParada) {
+                const ni = r.i + r.dir;
+                if (ni >= 0 && ni < r.pts.length) {
+                    const [nx, nz] = r.pts[ni];
+                    const k = 1 - d / RADIO;
+                    hx = dx * (1 - k) + (nx - tx) * k;
+                    hz = dz * (1 - k) + (nz - tz) * k;
+                }
+            }
             if (d <= paso) {
                 cm.position.x = tx; cm.position.z = tz;
                 const e = (r.i === r.pts.length - 1) ? 7 :
@@ -4273,7 +4292,13 @@ function animate() {
             } else {
                 cm.position.x += dx / d * paso;
                 cm.position.z += dz / d * paso;
-                cm.rotation.y = Math.atan2(dz, -dx);
+                // Volante amortiguado: el morro persigue el rumbo
+                // deseado (mezclado en esquinas), nunca pega el giro
+                const deseado = Math.atan2(hz, -hx);
+                let dif = deseado - cm.rotation.y;
+                while (dif > Math.PI) dif -= Math.PI * 2;
+                while (dif < -Math.PI) dif += Math.PI * 2;
+                cm.rotation.y += dif * Math.min(1, dt * 4);
                 cm.userData.ruedas.forEach(ru => { ru.rotation.z -= paso / 0.44; });
             }
         }
