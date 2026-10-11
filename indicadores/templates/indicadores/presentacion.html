@@ -2781,7 +2781,7 @@ const telescopios = [];
 let comiteGrafo = null;
 {
     const cartelO = crearCartel('OBSERVATORIO', 'organismos observando a la ciudadanía', 3.4);
-    cartelO.position.set(44.5, 6.0, -0.5);
+    cartelO.position.set(50, 6.0, 2);
     scene.add(cartelO);
     const obs = new THREE.Group();
     // Base: torre de dos cuerpos, bien asentada
@@ -2815,9 +2815,9 @@ let comiteGrafo = null;
     tel.rotation.x = 1.85;   // ~15° de depresión: barre a la ciudadanía, no el cielo
     tel.position.y = 4.0;
     obs.add(tel);
-    obs.position.set(44.5, 0, -0.5);   // junto al borde de la plaza
-    // La plaza está al este: el domo 'mira' hacia (+x, +z)
-    obs.rotation.y = Math.atan2(50 - 44.5, 12 + 0.5);
+    obs.position.set(50, 0, 2);   // orilla oeste de la plaza
+    // El centro de la plaza queda al sur: el domo 'mira' hacia +z
+    obs.rotation.y = 0;
     scene.add(obs);
     telescopios.push({ obs, tel, base: obs.rotation.y, f: 0 });
 }
@@ -3653,7 +3653,7 @@ const ACTOS = [
     { t0: 496, t1: 508, acto: 'Estación 25', texto: 'La ventanilla PQRS', sub: 'atención al ciudadano: encuestas que viajan por tubo a satisfacción',
       cam: [[43, 4, 19], [36.5, 2, 14]] },
     { t0: 508, t1: 520, acto: 'Estación 26', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
-      cam: [[36, 6, -9], [44.5, 3.2, -0.5]] },
+      cam: [[41, 6, -7], [50, 3.2, 2]] },
     { t0: 520, t1: 550, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
       cam: [[0, 18, 38], [0, 3, -4]], finale: true },
 ];
