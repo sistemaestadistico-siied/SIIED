@@ -807,19 +807,33 @@ function crearMecanismo(cfg) {
             sensor.rotation.z = Math.cos(tt * 2.4) * 0.3;
         };
     } else {
-        // Lanzador: brazo catapulta con cuchara — se amasa atrás y suelta
-        const brazoL = new THREE.Group();
-        const seg = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), acero);
-        seg.position.y = -0.5;
-        brazoL.add(seg);
+        // Lanzador: catapulta real — brazo oscilante sobre fulcro
+        // con contrapeso atrás y cuchara adelante (pedestal abajo)
+        const catapulta = new THREE.Group();
+        catapulta.position.set(0, -0.45, 0);        // fulcro
+        g.add(catapulta);
+        const ejeF = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), acero);
+        ejeF.rotation.x = Math.PI / 2;
+        catapulta.add(ejeF);
+        const trave = new THREE.Mesh(
+            new THREE.BoxGeometry(1.9, 0.12, 0.14), acero2);
+        catapulta.add(trave);
+        const peso = new THREE.Mesh(
+            new THREE.BoxGeometry(0.34, 0.34, 0.28), acento);
+        peso.position.set(-0.85, -0.12, 0);   // contrapeso
+        catapulta.add(peso);
+        const lanza = new THREE.Mesh(
+            new THREE.BoxGeometry(0.11, 0.55, 0.11), acero2);
+        lanza.position.set(0.85, -0.3, 0);    // lanza de la cuchara
+        catapulta.add(lanza);
         const cuchara = new THREE.Mesh(
-            new THREE.SphereGeometry(0.2, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), acento);
-        cuchara.rotation.x = Math.PI;
-        cuchara.position.y = -1.05;
-        brazoL.add(cuchara);
-        g.add(brazoL);
+            new THREE.SphereGeometry(0.22, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), acento);
+        cuchara.position.set(0.85, -0.52, 0);   // cuenco hacia arriba
+        catapulta.add(cuchara);
         mec.animar = (dt, tt, golpe) => {
-            brazoL.rotation.x = -0.35 + golpe * 1.1;
+            // reposo: cuchara baja atrás · al disparo voltea adelante
+            catapulta.rotation.z = -0.45 + golpe * 0.95;
         };
     }
     return mec;
@@ -976,12 +990,23 @@ function crearMaquina(cfg) {
         collar.position.set(0, 3.55, 4.2);
         m.add(collar);
     } else if (cfg.tipo === 'lanzador') {
-        const rampa = new THREE.Mesh(
-            new THREE.BoxGeometry(0.4, 1.8, 0.4),
+        // Pedestal que sostiene el fulcro de la catapulta:
+        // base sobre la banda + columna + horquilla del eje
+        const pedestal = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, 1.5, 0.4),
             new THREE.MeshLambertMaterial({ color: 0x93c5fd }));
-        rampa.position.set(0, 2.2, 4.2);
-        m.add(rampa);
-        actuador = rampa;
+        pedestal.position.set(0, 2.1, 4.2);
+        m.add(pedestal);
+        const baseP = new THREE.Mesh(
+            new THREE.BoxGeometry(0.75, 0.1, 0.75),
+            new THREE.MeshLambertMaterial({ color: 0x93c5fd }));
+        baseP.position.set(0, 1.4, 4.2);
+        m.add(baseP);
+        const yugo = new THREE.Mesh(
+            new THREE.BoxGeometry(0.14, 0.42, 0.6),
+            new THREE.MeshLambertMaterial({ color: 0x93c5fd }));
+        yugo.position.set(0, 2.95, 4.2);   // abraza el eje del fulcro
+        m.add(yugo);
     } else if (cfg.tipo === 'turbina') {
         const fan = new THREE.Group();
         for (let i = 0; i < 4; i++) {
