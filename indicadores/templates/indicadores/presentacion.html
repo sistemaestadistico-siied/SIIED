@@ -1212,15 +1212,14 @@ const operarios = [];
 let sup = null;               // supervisor patrullero
 let modeloGLB = null;
 let clipsGLB = [];
-const yawVuelo = Math.PI / 2; // frente del vuelo (calibrado en vivo)
 
 // Clips del GLB:
-//   0 = nadar boca abajo      → "vuela": supervisor patrulla la línea
-//   1 = idle alas abajo (17.6s, buen loop) → trabajar / supervisar
+//   0 = nadar boca abajo      → sin uso (no existe clip de vuelo real)
+//   1 = idle alas abajo (17.6s, buen loop) → trabajar / supervisar / caminar
 //   2 = idle mirándose los pies, mal corte de loop → sin uso
-//   3 = flexiones de pecho    → bailar (gag sincronizado del finale)
+//   3 = flexiones de pecho    → bailar (gag: ejercicio grupal en el piso)
 //   OJO: el GLB mira -z en todos los clips → wrapper gira +PI una vez
-const MAPA_CLIPS = { trabajar: 1, caminar: 0, bailar: 3, supervisar: 1 };
+const MAPA_CLIPS = { trabajar: 1, caminar: 1, bailar: 3, supervisar: 1 };
 
 function clonarOperario() {
     const c = SkeletonUtils.clone(modeloGLB);
@@ -1245,8 +1244,7 @@ function ponerEstado(w, estado) {
     if (!w.acciones || !w.acciones.length) return;
     const prox = w.acciones[MAPA_CLIPS[estado] ?? 0];
     if (w.accion === prox) return;
-    // aleteo más vivo al volar; los demás clips a velocidad natural
-    prox.timeScale = estado === 'caminar' ? 1.6 : 1;
+    prox.timeScale = 1;
     prox.reset().fadeIn(0.35).play();
     if (w.accion) w.accion.fadeOut(0.35);
     w.accion = prox;
@@ -1660,51 +1658,32 @@ function animate() {
     operarios.forEach(o => {
         if (o.mixer) o.mixer.update(dt);
         else animarOperario(o.loro, dt, tGlobal, o.estado, o.desfase);
+        // En el finale bajan de la plataforma al piso: las flexiones se
+        // leen como ejercicio grupal, no como "volar"
+        if (o.estado === 'bailar' && o.loro.position.y > 0.06) {
+            o.loro.position.y += (0.05 - o.loro.position.y) * 0.04;
+            o.loro.rotation.y += (0.4 - o.loro.rotation.y) * 0.04;
+        }
     });
 
-    // Supervisor: patrulla rectangular — ida baja por el pasillo,
-    // trepa, retorna alto sobre la banda y baja al pasillo
+    // Supervisor: patrulla A PIE por el pasillo, inspección tranquila
     if (sup) {
         if (sup.mixer) sup.mixer.update(dt);
         if (sup.estado === 'caminar') {
             const p = sup.loro.position;
-            const V = 2.2;
-            const Y_BAJO = sup.mixer ? 2.0 : 0.3, Y_ALTO = 4.8;
-            const Z_PASILLO = 3.4, Z_BANDA = 0.9;
-            let dirX = 1; // dirección horizontal hacia la que apunta
-            if (sup.fase === 0) {          // ida por el pasillo (bajo)
-                p.x += V * dt;
-                p.y += (Y_BAJO - p.y) * 0.06;
-                p.z += (Z_PASILLO - p.z) * 0.06;
-                if (p.x > 23) sup.fase = 1;
-            } else if (sup.fase === 1) {   // gana altura y gira al retorno
-                dirX = -1;
-                p.y += (Y_ALTO - p.y) * 0.05;
-                p.z += (Z_BANDA - p.z) * 0.05;
-                p.x += V * 0.3 * dt;       // leve avance mientras trepa
-                if (p.y > Y_ALTO - 0.2 && p.z < Z_BANDA + 0.2) sup.fase = 2;
-            } else if (sup.fase === 2) {   // retorno alto sobre la banda
-                dirX = -1;
-                p.x -= V * dt;
-                p.y += (Y_ALTO - p.y) * 0.06;
-                p.z += (Z_BANDA - p.z) * 0.06;
-                if (p.x < -23) sup.fase = 3;
-            } else {                       // fase 3: baja al pasillo
-                p.y += (Y_BAJO - p.y) * 0.05;
-                p.z += (Z_PASILLO - p.z) * 0.05;
-                p.x -= V * 0.3 * dt;
-                if (p.y < Y_BAJO + 0.2 && p.z > Z_PASILLO - 0.2) sup.fase = 0;
-            }
-            // yaw según la dirección real de avance
-            const rotObjetivo = Math.atan2(dirX * V, 0) + yawVuelo;
+            const V = 1.3;
+            const dirX = sup.fase === 0 ? 1 : -1;
+            p.x += dirX * V * dt;
+            p.y += (0.05 - p.y) * 0.08;
+            p.z += (3.4 - p.z) * 0.06;
+            if (p.x > 23) sup.fase = 1;
+            if (p.x < -23) sup.fase = 0;
+            // yaw según la dirección real de avance (clip idle es erguido)
+            const rotObjetivo = Math.atan2(dirX * V, 0);
             const dYaw = Math.atan2(Math.sin(rotObjetivo - sup.loro.rotation.y),
                                     Math.cos(rotObjetivo - sup.loro.rotation.y));
-            sup.loro.rotation.y += dYaw * 0.12;
-            // pitch: nariz arriba en horizontal, más al trepar, leve picada al bajar
-            const pitchObj = sup.fase === 1 ? -0.55
-                           : sup.fase === 3 ? -0.15
-                           : 0.3 * dirX;
-            sup.loro.rotation.z += (pitchObj - sup.loro.rotation.z) * 0.08;
+            sup.loro.rotation.y += dYaw * 0.1;
+            sup.loro.rotation.z += (0 - sup.loro.rotation.z) * 0.08;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
         } else {
             sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
