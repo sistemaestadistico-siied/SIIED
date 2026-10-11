@@ -1717,9 +1717,9 @@ ESTACIONES_CAL.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina
 // operaciones a la difusión, con cabinas admin/reportes intermedias.
 const ESTACIONES_DAT = [
     { x: -8.5, nombre: 'OPERACIONES ESTADÍSTICAS', modelo: 'Estándar DDI · acompañamiento metodológico', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
-    { x: -1, nombre: 'MÓDULO DE CONJUNTOS DE DATOS DEL SIIED', modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
+    { x: -1, nombre: 'INGESTA DE CONJUNTOS DE DATOS', modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
     { x: 6.5,  z: -0.2, nombre: 'MÓDULO DE ADMINISTRACIÓN DE LA PLATAFORMA DEL SIIED', modelo: 'RegistroCambio · administración', color: 0xf59e0b, tipo: 'sala' },
-    { x: 14,   z: -0.2, nombre: 'MÓDULO DE INDICADORES DEL SIIED', modelo: 'Indicador · metadata completa', color: 0x10b981, tipo: 'turbina' },
+    { x: 14,   z: -0.2, nombre: 'INGESTA DE SERIES DE DATOS DE INDICADORES', modelo: 'Indicador · metadata completa', color: 0x10b981, tipo: 'turbina' },
     { x: 21.5, z: -0.2, nombre: 'MÓDULO DE REPORTES DEL SIIED', modelo: 'Reportes · auditoría', color: 0xf59e0b, tipo: 'sala' },
     { x: 29, nombre: 'MÓDULO DE EXTRACCIÓN DEL SIIED', modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
     { x: 36.5, nombre: 'MÓDULO DE FICHA TÉCNICA DEL SIIED', modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
@@ -2421,7 +2421,7 @@ function tickFamD2(f, dt) {
         } else {
             f.mesh.scale.setScalar(0.7); ponerTex(f, texCjto);  // → mediana
         }
-        disparo('MÓDULO DE CONJUNTOS DE DATOS DEL SIIED');
+        disparo('INGESTA DE CONJUNTOS DE DATOS');
         return;
     }
     if (!f.pasadas.has('adm') && x > 6.5) {
@@ -2430,7 +2430,7 @@ function tickFamD2(f, dt) {
     }
     if (!f.pasadas.has('ind') && x > 14) {
         f.pasadas.add('ind'); f.mesh.scale.setScalar(0.34);
-        ponerTex(f, texFicha); disparo('MÓDULO DE INDICADORES DEL SIIED');
+        ponerTex(f, texFicha); disparo('INGESTA DE SERIES DE DATOS DE INDICADORES');
     }
     if (!f.pasadas.has('rep') && x > 21.5) {
         f.pasadas.add('rep'); f.estado = 'eval'; f.tPausa = 0;
@@ -4033,13 +4033,13 @@ const ACTOS = [
     // ======= D: CADENA DE DATOS — estación por estación =======
     { t0: 178, t1: 192, acto: 'Estación 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'Estándar DDI: acompañamiento metodológico de cada fuente',
       cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]] },
-    { t0: 192, t1: 204, acto: 'Estación 06', texto: 'CONJUNTOS DE DATOS', sub: 'ConjuntoDatos agrupa series por dominio; parte se cataloga como consulta, no como indicador',
+    { t0: 192, t1: 204, acto: 'Estación 06', texto: 'INGESTA DE CONJUNTOS', sub: 'ConjuntoDatos agrupa series por dominio; parte se cataloga como consulta, no como indicador',
       cam: [[-7, 5, 12], [-1, 2.4, 0]] },
     { t0: 204, t1: 216, acto: 'Estación 07', texto: 'Catálogo de consulta', sub: 'CatalogoConsulta: conjuntos publicados como dato de consulta — sin estatus de indicador',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
     { t0: 216, t1: 228, acto: 'Estación 08', texto: 'ADMINISTRACIÓN DE LA PLATAFORMA', sub: 'RegistroCambio: trazabilidad total de cada paso del dato',
       cam: [[3.5, 4.5, 11], [6.5, 2.2, -0.2]] },
-    { t0: 228, t1: 240, acto: 'Estación 09', texto: 'INDICADORES DEL SIIED', sub: 'Indicador: metadata completa — objetivo, método, fórmula y variables',
+    { t0: 228, t1: 240, acto: 'Estación 09', texto: 'SERIES DE INDICADORES', sub: 'Indicador: metadata completa — objetivo, método, fórmula y variables',
       cam: [[11, 4.5, 11], [14, 2.2, -0.2]] },
     { t0: 240, t1: 252, acto: 'Estación 10', texto: 'REPORTES DEL SIIED', sub: 'auditoría del dato: los reportes alimentan las salas de decisión',
       cam: [[18.5, 4.5, 11], [21.5, 2.2, -0.2]] },
