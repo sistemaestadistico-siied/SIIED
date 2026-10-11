@@ -436,11 +436,7 @@ function renderGrafico3D(containerId, grafico) {
                     ¡Juega con Don Datico!
                 </h3>
                 <p style="font-size: 1.1em; margin-bottom: 30px; opacity: 0.95;">
-                    ${['pie','treemap','piramide_poblacional'].includes((grafico?.tipo_grafico || '').toLowerCase())
-                        ? 'Recoge los sectores del mayor al menor 🥧'
-                        : ['barras_apiladas','areas_apiladas'].includes((grafico?.tipo_grafico || '').toLowerCase())
-                        ? 'Ordena cada pila de abajo hacia arriba 🧱'
-                        : 'Vuela y recolecta chontaduros 🍑'}
+                    Vuela y recolecta chontaduros 🍑
                 </p>
                 <button id="btn-activar-3d-${containerId}" style="
                     background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
@@ -524,6 +520,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     // Detectar tipo de gráfico y modo
     const tipoGrafico = (grafico?.tipo_grafico || grafico?.tipo || 'bar').toLowerCase();
     const modoNocturno = (tipoGrafico.includes('line') || tipoGrafico.includes('area'));
+    const esApilado = tipoGrafico.includes('apilad');   // 'clasifica la pila'
 
     // medidas base - AUMENTADAS para mayor protagonismo
     // En móviles usar toda la pantalla, en desktop usar altura fija
@@ -1305,7 +1302,70 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         0xA0826D  // Taupe (marrón grisáceo)
     ];
 
-    series.forEach((serie, si) => {
+    const slotsApilados = [];   // huecos fantasma de 'clasifica la pila'
+    if (esApilado && series.length > 0) {
+        // ============ MAPA 'CLASIFICA LA PILA' ============
+        // Una torre por categoría del eje x; cada piso de la
+        // torre es una serie. Los pisos nacen como huecos
+        // transparentes que Don Datico rellena llevando el
+        // chontaduro del color correcto.
+        const numCats   = Math.min(Math.max(...series.map(s => s.y?.length || 0), labels.length), 8);
+        const numSeries = Math.min(series.length, 6);
+        // Escala común: la torre más alta cabe en alturaMaxima
+        let maxPila = 0;
+        for (let i = 0; i < numCats; i++) {
+            let suma = 0;
+            for (let si = 0; si < numSeries; si++) {
+                const v = series[si]?.y?.[i];
+                if (!isNaN(v) && v != null) suma += v;
+            }
+            maxPila = Math.max(maxPila, suma);
+        }
+        const escPila = maxPila > 0 ? alturaMaxima / maxPila : 1;
+
+        for (let i = 0; i < numCats; i++) {
+            const x = (i - numCats / 2) * gap * 1.6;
+            let yBase = 0;
+            const base = new THREE.Mesh(
+                new THREE.BoxGeometry(3, 0.4, 3),
+                new THREE.MeshLambertMaterial({ color: 0x8B7355 }));
+            base.position.set(x, 0.2, 0);
+            grupoBarras.add(base);
+            // Letrero flotante con el nombre de la categoría
+            const nomCat = series[0]?.x?.[i] || labels[i] || `Cat ${i + 1}`;
+            const etiqueta = crearEtiquetaSprite(nomCat);
+            etiqueta.position.set(x, 1.5, 0);
+            grupoBarras.add(etiqueta);
+            for (let si = 0; si < numSeries; si++) {
+                const valor = series[si]?.y?.[i];
+                if (isNaN(valor) || valor == null) continue;
+                const h = Math.max(0.4, valor * escPila);
+                const color = paletaColores[si % paletaColores.length];
+                const hueco = new THREE.Mesh(
+                    new THREE.BoxGeometry(2.4, h, 2.4),
+                    new THREE.MeshLambertMaterial({
+                        color, transparent: true, opacity: 0.18 }));
+                hueco.add(new THREE.LineSegments(
+                    new THREE.EdgesGeometry(hueco.geometry),
+                    new THREE.LineBasicMaterial({ color })));
+                hueco.position.set(x, yBase + h / 2, 0);
+                grupoBarras.add(hueco);
+                slotsApilados.push({
+                    x, y: yBase, height: h, color,
+                    serieIdx: si, catIdx: i, mesh: hueco, lleno: false,
+                    data: {
+                        label: nomCat,
+                        valor: valor,
+                        serie: series[si]?.name || `Serie ${si + 1}`,
+                        tipo: 'Segmento',
+                        proporcion: (maxPila ? (valor / maxPila * 100).toFixed(1) : '0') + '%',
+                        desagregaciones: grafico.desagregaciones || 'N/A'
+                    }
+                });
+                yBase += h;
+            }
+        }
+    } else series.forEach((serie, si) => {
         // Asignar color a la serie (cíclico si hay más de 10 series)
         const colorSerie = paletaColores[si % paletaColores.length];
         // Usar el array x de la serie actual para obtener labels y longitud correcta
@@ -1330,7 +1390,6 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                 valor: valor,
                 label: serieLabels[i] || labels[i] || `Dato ${i+1}`, // Usar label de la serie actual
                 serie: serie.name,
-                si: si, i: i,   // índices serie/columna: los usan los modos ordenados
                 altura: altura.toFixed(2),
                 tipo: tipo === 'casa' ? 'Casa' : 'Edificio',
                 proporcion: (proporcion * 100).toFixed(1) + '%',
@@ -2370,6 +2429,29 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         
         return grupo;
     }
+
+    // Etiqueta flotante (sprite de canvas) para las torres
+    function crearEtiquetaSprite(texto) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.font = 'bold 42px Arial';
+        const w = Math.max(96, Math.ceil(ctx.measureText(String(texto)).width) + 24);
+        canvas.width = w; canvas.height = 64;
+        const c2 = canvas.getContext('2d');
+        c2.fillStyle = 'rgba(0,0,0,0.55)';
+        c2.fillRect(0, 0, w, 64);
+        c2.font = 'bold 42px Arial';
+        c2.fillStyle = '#ffffff';
+        c2.textAlign = 'center';
+        c2.textBaseline = 'middle';
+        c2.fillText(String(texto), w / 2, 32);
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: new THREE.CanvasTexture(canvas),
+            depthWrite: false
+        }));
+        sp.scale.set(w / 64 * 1.6, 1.6, 1);
+        return sp;
+    }
     
     // Crear Don Datico - Posición inicial cerca de las montañas
     // Don Datico real: GLB con rig humanoide y clips embebidos
@@ -2424,6 +2506,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         velocidadRotacion: 0.05,
         alturaVuelo: 3,
         chontadurosRecolectados: 0,
+        cargado: null,               // chontaduro en mano (modo pila)
         teclas: {},
         modoJuego: false // Se activa con tecla 'G'
     };
@@ -2593,6 +2676,33 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     
     // Crear chontaduros en la cima de cada edificio
     const chontaduros = [];
+    if (esApilado && slotsApilados.length) {
+        // 'Clasifica la pila': un chontaduro por hueco,
+        // esparcido por el mapa y teñido del color de su serie
+        const anillo = 10 + slotsApilados.length * 0.12;
+        slotsApilados.forEach((slot, k) => {
+            const chontaduro = crearChontaduro();
+            const ang = k * 2.399963;          // espiral áurea
+            const r = anillo + (k % 3) * 2.2;
+            chontaduro.position.set(
+                Math.cos(ang) * r,
+                3.5 + (k % 4) * 1.2,
+                Math.sin(ang) * r);
+            // Aro con el color de su serie: dice a qué pila va
+            const aro = new THREE.Mesh(
+                new THREE.TorusGeometry(0.55, 0.09, 8, 20),
+                new THREE.MeshBasicMaterial({ color: slot.color }));
+            aro.rotation.x = Math.PI / 2;
+            aro.position.y = -0.5;
+            chontaduro.add(aro);
+            chontaduro.userData.slot = slot;
+            chontaduro.userData.origen = chontaduro.position.clone();
+            chontaduro.userData.recolectado = false;
+            chontaduro.userData.index = k;
+            chontaduros.push(chontaduro);
+            scene.add(chontaduro);
+        });
+    } else
     barrasInteractivas.forEach((edificio, index) => {
         const chontaduro = crearChontaduro();
         const altura = parseFloat(edificio.userData.altura);
@@ -2607,30 +2717,6 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         chontaduros.push(chontaduro);
         scene.add(chontaduro);
     });
-
-    // ========== MODO DE JUEGO POR TIPO DE GRÁFICO ==========
-    // 'libre' (líneas/barras/área/tablas): chontaduros sin orden.
-    // 'proporcion' (pie/treemap/pirámide): del sector mayor al
-    // menor — lee la composición del todo.
-    // 'pila' (apiladas): cada columna de abajo hacia arriba,
-    // recorriéndolas en orden — lee la estructura del apilado.
-    const modoJuegoTipo =
-        ['pie', 'treemap', 'piramide_poblacional'].includes(tipoGrafico) ? 'proporcion' :
-        ['barras_apiladas', 'areas_apiladas'].includes(tipoGrafico) ? 'pila' : 'libre';
-    gameState.ordenRequerido = (() => {
-        if (modoJuegoTipo === 'proporcion') {
-            return [...chontaduros].sort((a, b) =>
-                b.userData.edificio.userData.valor - a.userData.edificio.userData.valor);
-        }
-        if (modoJuegoTipo === 'pila') {
-            return [...chontaduros].sort((a, b) =>
-                a.userData.edificio.userData.i - b.userData.edificio.userData.i ||
-                a.userData.edificio.userData.si - b.userData.edificio.userData.si);
-        }
-        return null;
-    })();
-    gameState.modoTipo = modoJuegoTipo;
-    gameState.ordenIdx = 0;   // siguiente chontaduro válido en el modo ordenado
     
     // Splash screen para mostrar información
     const splashScreen = document.createElement('div');
@@ -2735,38 +2821,16 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     });
     
     // Función para detectar colisión con chontaduros
-    // Aviso cuando toca un chontaduro fuera de turno
-    function avisarOrden() {
-        const esperado = gameState.ordenRequerido[gameState.ordenIdx];
-        const e = esperado.userData.edificio.userData;
-        splashScreen.innerHTML = `
-            <div style="font-size: 1.4em; margin-bottom: 10px;">🔒 ¡Fuera de turno!</div>
-            <div style="font-size: 1em;">${modoJuegoTipo === 'pila'
-                ? 'Primero la base de la pila'
-                : 'Primero el sector más grande: <b>' + e.label + '</b>'}</div>
-        `;
-        splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
-        setTimeout(() => {
-            splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
-        }, 1800);
-    }
-
     function detectarColisiones() {
+        if (esApilado) { detectarPilas(); return; }
         chontaduros.forEach((chontaduro) => {
             if (chontaduro.userData.recolectado) return;
             
             const distancia = donDatico.position.distanceTo(chontaduro.position);
             if (distancia < 1) { // Radio de colisión
-                // Modo ordenado: fuera de turno avisa y rebota
-                if (gameState.ordenRequerido &&
-                    chontaduro !== gameState.ordenRequerido[gameState.ordenIdx]) {
-                    avisarOrden();
-                    return;
-                }
                 // ¡Recolectado!
                 chontaduro.userData.recolectado = true;
                 gameState.chontadurosRecolectados++;
-                gameState.ordenIdx++;
                 
                 // Animación de recolección
                 const escalaInicial = chontaduro.scale.clone();
@@ -2820,6 +2884,95 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                 }
             }
         });
+    }
+
+    // ======== MODO 'CLASIFICA LA PILA' ========
+    // Recoger: rozar un chontaduro lo engancha bajo Don
+    // Datico. Entregar: volar sobre la torre correcta encaja
+    // el hueco de su color. Torre equivocada = rebote.
+    let ultimoAviso = 0;
+    const v3Pila = new THREE.Vector3();
+
+    function mostrarAviso(html) {
+        splashScreen.innerHTML = `<div style="font-size:1.1em;">${html}</div>`;
+        splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
+        setTimeout(() => {
+            splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
+        }, 1400);
+    }
+
+    function detectarPilas() {
+        const c = gameState.cargado;
+        if (!c) {
+            // Recoger el chontaduro más cercano alcanzable
+            for (const ch of chontaduros) {
+                if (ch.userData.recolectado) continue;
+                if (donDatico.position.distanceTo(ch.position) < 1.4) {
+                    ch.userData.recolectado = true;
+                    gameState.cargado = ch;
+                    reproducirSonidoRecoleccion();
+                    const s = ch.userData.slot;
+                    mostrarAviso(
+                        `🍑 <strong>${s.data.serie}</strong><br>` +
+                        `llévalo a la torre <strong>"${s.data.label}"</strong>`);
+                    break;
+                }
+            }
+            return;
+        }
+        // El chontaduro vuela colgado bajo Don Datico
+        c.position.lerp(v3Pila.set(
+            donDatico.position.x,
+            donDatico.position.y - 1.8,
+            donDatico.position.z), 0.35);
+        // ¿Sobre una torre con hueco pendiente?
+        for (const slot of slotsApilados) {
+            if (slot.lleno) continue;
+            const distH = Math.hypot(donDatico.position.x - slot.x,
+                                     donDatico.position.z);
+            if (distH > 2.6 ||
+                Math.abs(donDatico.position.y - (slot.y + slot.height)) > 6)
+                continue;
+            if (slot === c.userData.slot) {
+                // ✅ Encaja: el hueco se vuelve segmento sólido
+                slot.lleno = true;
+                slot.mesh.material.transparent = false;
+                slot.mesh.material.opacity = 1;
+                slot.mesh.castShadow = true;
+                scene.remove(c);
+                gameState.cargado = null;
+                gameState.chontadurosRecolectados++;
+                reproducirSonidoRecoleccion();
+                mostrarSplash({ userData: slot.data });
+                // ¿Torres completas?
+                if (gameState.chontadurosRecolectados === chontaduros.length) {
+                    setTimeout(() => {
+                        splashScreen.innerHTML = `
+                            <div style="font-size:4em; margin-bottom:15px;">🏆</div>
+                            <div style="font-size:2.5em; font-weight:bold; margin-bottom:10px;">
+                                ¡FELICIDADES!
+                            </div>
+                            <div style="font-size:1.5em;">
+                                Don Datico clasificó todos los datos
+                            </div>
+                            <div style="font-size:1.2em; margin-top:15px;">
+                                🦜 ${chontaduros.length}/${chontaduros.length} segmentos
+                            </div>`;
+                        splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
+                        setTimeout(() => {
+                            splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
+                        }, 5000);
+                    }, 3500);
+                }
+            } else if (Date.now() - ultimoAviso > 1500) {
+                // ❌ Torre equivocada: aviso y sigue cargado
+                ultimoAviso = Date.now();
+                mostrarAviso(
+                    `🚫 ¡No es su pila!<br>` +
+                    `busca <strong>"${c.userData.slot.data.label}"</strong>`);
+            }
+            break;
+        }
     }
     
     // Instrucciones de juego (solo en desktop)
