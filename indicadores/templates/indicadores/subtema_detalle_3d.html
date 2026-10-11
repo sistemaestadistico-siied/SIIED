@@ -2622,13 +2622,15 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             visualDD.add(wrapperGLB);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
-            // Clips procesados: hover (piernas quietas, alas en
-            // reversa x2) y vuelo (articulaciones del ala hacia su
-            // bind extendida, batidas x2)
+            // Clips procesados: hover (piernas quietas, alas de
+            // nado en reversa x2) y vuelo (flexiones sin brazos +
+            // batida procedural en cadena, 2 batidas por ciclo)
             const clip0 = gltf.animations[0];
             const clip3 = gltf.animations[3] || clip0;
             rigDD.accionHover = rigDD.mixer.clipAction(clipVueloEstatico(clip0));
-            rigDD.accionFlap  = rigDD.mixer.clipAction(clipVueloMovimiento(clip3, bindAlas));
+            rigDD.accionFlap  = rigDD.mixer.clipAction(
+                clipVueloMovimiento(clip3,
+                    sintetizarAlas(huesosAla, clip3.duration, 2)));
             rigDD.accion = rigDD.accionHover;
             if (rigDD.accion) rigDD.accion.play();
         });
