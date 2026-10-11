@@ -1691,7 +1691,7 @@ ESTACIONES_CAL.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina
 // Cadena de GENERACIÓN DE DATOS (banda D2): del inventario de
 // operaciones a la difusión, con cabinas admin/reportes intermedias.
 const ESTACIONES_DAT = [
-    { x: -8.5, nombre: 'INV. OPERACIONES', modelo: 'OperacionEstadistica · acompañamiento IOE', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
+    { x: -8.5, nombre: 'OPERACIONES ESTADÍSTICAS', modelo: 'Estándar DDI · acompañamiento metodológico', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
     { x: -1, nombre: 'CONJUNTO DATOS', modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
     { x: 6.5,  z: -0.2, nombre: 'ADMIN SIIED',    modelo: 'RegistroCambio · administración', color: 0xf59e0b, tipo: 'sala' },
     { x: 14,   z: -0.2, nombre: 'INDICADORES',    modelo: 'Indicador · metadata completa', color: 0x10b981, tipo: 'turbina' },
@@ -2102,7 +2102,7 @@ function tickAlmacenes(dt) {
         }
     });
 }
-const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'ALMACÉN OP',  modelo: 'OperacionEstadistica · ciclo IOE', tex: texOp });
+const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'INVENTARIO DE OPERACIONES ESTADÍSTICAS', modelo: 'OperacionEstadistica · ciclo IOE', tex: texOp });
 const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'CatalogoConsulta · dominio y tema', tex: texCat });
 const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'INVENTARIO ICED', modelo: 'Organismo + ICED · hojas de vida', tex: texICE });
 const Z_SRV = [12, 18, 24];
@@ -2301,7 +2301,7 @@ function tickFamRec(f, dt) {
     if (f.estado === 'ride') {   // llegó a la tolva de OPERACIONES
         f.mesh.visible = false;
         f.estado = 'espera'; f.tEspera = 1.6 + Math.random() * 2;
-        disparo('INV. OPERACIONES');
+        disparo('OPERACIONES ESTADÍSTICAS');
     }
 }
 function respawnRep(f) {
@@ -3948,7 +3948,7 @@ const ACTOS = [
     { t0: 172, t1: 178, acto: 'Sala', texto: 'Equipo técnico SIIED', sub: 'escritorios, monitores y el archivador de fichas cargadas', pan: true,
       cam: [[-24, 4, 7], [-17, 1.6, -0.8]] },
     // ======= D: CADENA DE DATOS — estación por estación =======
-    { t0: 178, t1: 192, acto: 'Estación 05', texto: 'INV. OPERACIONES', sub: 'OperacionEstadistica: cada fuente acompañada entra a la tolva',
+    { t0: 178, t1: 192, acto: 'Estación 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'Estándar DDI: acompañamiento metodológico de cada fuente',
       cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]] },
     { t0: 192, t1: 204, acto: 'Estación 06', texto: 'CONJUNTO DATOS', sub: 'ConjuntoDatos agrupa series por dominio; parte se cataloga como consulta, no como indicador',
       cam: [[-7, 5, 12], [-1, 2.4, 0]] },
