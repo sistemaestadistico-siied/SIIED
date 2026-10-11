@@ -858,10 +858,10 @@ function crearMaquina(cfg) {
         flash.position.set(0, 1.32, 3.8);
         m.add(flash);
         extras.flash = flash;
-        // Placa "SDMX" en el émbolo
+        // Placa "SDMX" pegada al émbolo: baja con el golpe de prensa
         const placa = crearCartel('SDMX', 'estándar', 1.0);
-        placa.position.set(0, 2.62, 4.42);
-        m.add(placa);
+        placa.position.set(0, 0.05, 0.65);
+        actuador.add(placa);
     } else if (cfg.tipo === 'escaner') {
         // Semáforo de control: verde pasa, rojo rechaza
         const poste = new THREE.Mesh(
@@ -1238,9 +1238,9 @@ let clipsGLB = [];
 //   0 = nadar boca abajo      → sin uso (no existe clip de vuelo real)
 //   1 = idle alas abajo (17.6s, buen loop) → trabajar / supervisar / caminar
 //   2 = idle mirándose los pies, mal corte de loop → sin uso
-//   3 = flexiones de pecho    → bailar (gag: ejercicio grupal en el piso)
+//   3 = flexiones de pecho    → sin uso (en el aire se lee como "volar")
 //   OJO: el GLB mira -z en todos los clips → wrapper gira +PI una vez
-const MAPA_CLIPS = { trabajar: 1, caminar: 1, bailar: 3, supervisar: 1 };
+const MAPA_CLIPS = { trabajar: 1, caminar: 1, bailar: 1, supervisar: 1 };
 
 function clonarOperario() {
     const c = SkeletonUtils.clone(modeloGLB);
@@ -1713,13 +1713,13 @@ function animate() {
     operarios.forEach(o => {
         if (o.mixer) o.mixer.update(dt);
         else animarOperario(o.loro, dt, tGlobal, o.estado, o.desfase);
-        // En el finale bajan de la plataforma al piso: las flexiones se
-        // leen como ejercicio grupal, no como "volar". Al volver a
-        // 'trabajar' regresan a la altura de su plataforma.
-        if (o.estado === 'bailar' && o.loro.position.y > 0.06) {
-            o.loro.position.y += (0.05 - o.loro.position.y) * 0.04;
-            o.loro.rotation.y += (0.4 - o.loro.rotation.y) * 0.04;
-        } else if (o.estado !== 'bailar' && o.yBase !== undefined &&
+        // Finale: giran y saltan SOBRE su plataforma (clip idle +
+        // celebración procedural — las flexiones se leían como "volar")
+        if (o.estado === 'bailar') {
+            o.loro.rotation.y += dt * 2.4;
+            const yBase = o.yBase ?? o.loro.position.y;
+            o.loro.position.y = yBase + Math.abs(Math.sin(tGlobal * 5 + o.desfase)) * 0.18;
+        } else if (o.yBase !== undefined &&
                    Math.abs(o.loro.position.y - o.yBase) > 0.02) {
             o.loro.position.y += (o.yBase - o.loro.position.y) * 0.06;
         }
@@ -1746,13 +1746,15 @@ function animate() {
             sup.loro.rotation.z += (0 - sup.loro.rotation.z) * 0.08;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, 'caminar', 0);
         } else {
-            sup.loro.rotation.y += (0.4 - sup.loro.rotation.y) * 0.05;
+            // Finale: el carro se estaciona al centro y el supervisor
+            // celebra girando sobre él — no se baja de su plataforma
+            if (carroSup) carroSup.position.x += (0 - carroSup.position.x) * 0.03;
+            sup.loro.position.x += ((carroSup ? carroSup.position.x : 0)
+                                  - sup.loro.position.x) * 0.1;
+            sup.loro.position.z += (3.4 - sup.loro.position.z) * 0.05;
+            sup.loro.position.y += (1.67 - sup.loro.position.y) * 0.05;
+            sup.loro.rotation.y += dt * 2.4;
             sup.loro.rotation.z += (0 - sup.loro.rotation.z) * 0.08;
-            // baja al centro del escenario para el finale
-            sup.loro.position.x += (0 - sup.loro.position.x) * 0.03;
-            sup.loro.position.z += (2.5 - sup.loro.position.z) * 0.03;
-            sup.loro.position.y += (0.02 - sup.loro.position.y) * 0.05;
-            if (carroSup) carroSup.position.x += (32 - carroSup.position.x) * 0.03; // estaciona fuera
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
         }
     }
