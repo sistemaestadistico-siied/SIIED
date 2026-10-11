@@ -405,7 +405,7 @@ scene.add(relleno);
 // Piso industrial
 const piso = new THREE.Mesh(
     new THREE.PlaneGeometry(140, 90),
-    new THREE.MeshLambertMaterial({ color: 0xd4dde4 }));
+    new THREE.MeshLambertMaterial({ color: 0xe6eef4 }));
 piso.rotation.x = -Math.PI / 2;
 piso.receiveShadow = true;
 scene.add(piso);
@@ -3707,7 +3707,9 @@ const ACTOS = [
     { t0: 470, t1: 482, acto: 'Estación 23', texto: 'Línea de agenda', sub: 'CalendarioDifusion + Evento: agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
     // ======= H: CIUDADANÍA =======
-    { t0: 482, t1: 496, acto: 'Estación 24', texto: 'La ciudadanía', sub: 'la región que todo el sistema sirve: plaza, barrio y bandera', pan: true,
+    { t0: 482, t1: 489, acto: 'Estación 24', texto: 'La ciudadanía', sub: 'la explanada del SIIED: logo institucional frente a la ventanilla', pan: true,
+      cam: [[30, 10, 24], [16, 0.8, 17]] },
+    { t0: 489, t1: 496, acto: 'Estación 24', texto: '', sub: 'la región que todo el sistema sirve: plaza, barrio y bandera', pan: true,
       cam: [[30, 10, 24], [50, 2, 12]] },
     { t0: 496, t1: 508, acto: 'Estación 25', texto: 'La ventanilla PQRS', sub: 'atención al ciudadano: encuestas que viajan por tubo a satisfacción',
       cam: [[43, 4, 19], [36.5, 2, 14]] },
