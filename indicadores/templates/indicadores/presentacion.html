@@ -2614,9 +2614,6 @@ const grafo = new THREE.Group();
     grafo.scale.setScalar(0.5);   // cabe holgado dentro de la sala
     grafo.position.set(30, 6.05, -16.5);
     scene.add(grafo);
-    const cartelG = crearCartel('GRAFO 3D', 'ecosistema SIIED · relaciones del modelo', 2.8);
-    cartelG.position.set(30, 7.0, -14.15);
-    scene.add(cartelG);
 }
 
 // ============ FACHADAS DE EDIFICIO PARA LAS SALAS ============
@@ -2726,8 +2723,11 @@ function pisosSobre(g, W, D, y0, pisos) {
     // después de crear las texturas de gráficos)
     junta.position.set(30, 0, -16.5);
     scene.add(junta);
-    const cartelJ = crearCartel('EVALUACIÓN ESTRATÉGICA', 'expedientes ICED · consejo del equipo técnico', 3.0);
-    cartelJ.position.set(30, 4.2, -12.5);
+    // El letrero va en el techo del edificio: la junta del
+    // hall es una reunión técnica permanente
+    const cartelJ = crearCartel('REUNIÓN TÉCNICA',
+        'evaluación a todos los niveles', 3.4);
+    cartelJ.position.set(30, 8.7, -13.1);
     scene.add(cartelJ);
 }
 
