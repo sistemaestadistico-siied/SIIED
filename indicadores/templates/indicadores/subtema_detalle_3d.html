@@ -2511,20 +2511,6 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         }
         return new trk.constructor(trk.name, ts, vs);
     };
-    // Mezcla cada llave hacia la pose de bind (T-pose: alas
-    // extendidas). Amplificar la rotación del clip solo doblaba
-    // el codo hacia atrás; lo que abre el ala es regresar cada
-    // articulación hacia su bind. peso 0..1 por hueso.
-    const qBlend = new THREE.Quaternion();
-    const pistaHaciaBind = (trk, bindQ, peso) => {
-        const vs = [];
-        for (let i = 0; i < trk.values.length; i += 4) {
-            qBlend.fromArray(trk.values, i).slerp(bindQ, peso);
-            vs.push(qBlend.x, qBlend.y, qBlend.z, qBlend.w);
-        }
-        return new trk.constructor(trk.name,
-            Array.from(trk.times), vs);
-    };
 
     // Vuelo estacionario (del nado boca abajo): piernas
     // quietas extendidas atrás, alas batiendo x2
@@ -2541,37 +2527,82 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                     clip.duration, 2);
             return trk;
         }));
-    // Vuelo en movimiento (de las flexiones): cada articulación
-    // del ala mezcla hacia su pose de bind (extendida) — clavícula
-    // abre moderado, húmero abduce, codo/mano casi rectos — y
-    // batidas x2.
-    const pesoAla = hueso =>
-        hueso.includes('Clavicle') ? 0.65 :
-        hueso.includes('Twist')    ? 0.8  : 0.85;
+    // ======== BATIDA PROCEDURAL (vuelo en movimiento) ========
+    // Las flexiones no se rescatan: el torso boca abajo sirve de
+    // planeo, pero unas alas no nacen remezclando una lagartija.
+    // Las pistas de brazos se BORRAN del clip y el ala se
+    // sintetiza desde el bind: cada articulación rota alrededor
+    // de un eje de aleteo deducido de la geometría (horizontal
+    // en mundo, perpendicular al tramo del brazo) con retardo
+    // de fase en cadena — la punta del ala va detrás del hombro.
     const HUESOS_ALA_VUELO = /^(L|R)_(Clavicle|Upperarm|Forearm|Hand)/;
-    const clipVueloMovimiento = (clip, bindAlas) => new THREE.AnimationClip(
+    const AMPL_ALA = { Clavicle: 0.22, Upperarm: 0.85,
+                       Forearm: 0.6, Hand: 0.5 };
+    const FASE_ALA = { Clavicle: 0, Upperarm: 0,
+                       Forearm: -0.6, Hand: -1.2 };
+
+    // Pistas quaternion de batida: N batidas por ciclo de clip
+    const sintetizarAlas = (huesosAlaMap, dur, veces = 2) => {
+        const tracks = [];
+        const N = 24;
+        const q = new THREE.Quaternion();
+        for (const [hueso, info] of Object.entries(huesosAlaMap)) {
+            const seg = hueso.split('_')[1];
+            const ts = [], vs = [];
+            for (let k = 0; k <= N; k++) {
+                const ang = AMPL_ALA[seg] *
+                    Math.sin(Math.PI * 2 * veces * k / N + FASE_ALA[seg]);
+                q.setFromAxisAngle(info.ejeLocal, ang).multiply(info.bindLocal);
+                ts.push(k / N * dur);
+                vs.push(q.x, q.y, q.z, q.w);
+            }
+            tracks.push(new THREE.QuaternionKeyframeTrack(
+                hueso + '.quaternion', ts, vs));
+        }
+        return tracks;
+    };
+
+    // Clip de vuelo: flexiones sin los brazos + batida sintética
+    const clipVueloMovimiento = (clip, tracksAlas) => new THREE.AnimationClip(
         clip.name + '_flap', clip.duration,
-        clip.tracks.map(trk => {
-            const hueso = trk.name.split('.')[0];
-            if (!HUESOS_ALA_VUELO.test(hueso)) return trk;
-            if (!trk.name.endsWith('quaternion') || !bindAlas[hueso])
-                return trk;
-            return pistaAcelerada(
-                pistaHaciaBind(trk, bindAlas[hueso], pesoAla(hueso)),
-                clip.duration, 2);
-        }));
+        clip.tracks.filter(trk =>
+            !HUESOS_ALA_VUELO.test(trk.name.split('.')[0]))
+            .concat(tracksAlas));
 
     new GLTFLoader().load(
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
             const modelo = SkeletonUtils.clone(gltf.scene);
-            // Bind pose por hueso del ala, capturada antes de que
-            // suene ningún clip (T-pose = alas extendidas)
-            const bindAlas = {};
-            modelo.traverse(o => {
-                if ((o.isBone || o.type === 'Bone') &&
-                    /^(L|R)_(Clavicle|Upperarm|Forearm|Hand)/.test(o.name))
-                    bindAlas[o.name] = o.quaternion.clone();
+            // Cadena del ala en bind: pose local de reposo y eje
+            // de aleteo por articulación (horizontal en mundo,
+            // perpendicular al tramo hombro→codo→muñeca)
+            modelo.updateMatrixWorld(true);
+            const huesosAla = {};
+            const vSpan = new THREE.Vector3(), vUp = new THREE.Vector3(0, 1, 0);
+            const qPadreMundo = new THREE.Quaternion(), vEje = new THREE.Vector3();
+            ['Clavicle', 'Upperarm', 'Forearm', 'Hand'].forEach(seg => {
+                for (const lado of ['L', 'R']) {
+                    const b = modelo.getObjectByName(`${lado}_${seg}`);
+                    if (!b || !b.parent) continue;
+                    // Tramo del brazo en mundo (hacia el hueso hijo)
+                    const hijo = b.children.find(c => c.isBone || c.type === 'Bone');
+                    const p0 = new THREE.Vector3(), p1 = new THREE.Vector3();
+                    b.getWorldPosition(p0);
+                    (hijo || b.parent).getWorldPosition(p1);
+                    vSpan.subVectors(p1, p0);
+                    if (vSpan.lengthSq() < 1e-8) vSpan.set(1, 0, 0);
+                    // Eje de batida: horizontal y perpendicular al tramo
+                    vEje.crossVectors(vUp, vSpan).normalize();
+                    if (!isFinite(vEje.x) || vEje.lengthSq() < 0.5)
+                        vEje.set(0, 0, 1);
+                    // A espacio local del hueso, vía la rotación del padre
+                    b.parent.getWorldQuaternion(qPadreMundo).invert();
+                    vEje.applyQuaternion(qPadreMundo).normalize();
+                    huesosAla[b.name] = {
+                        bindLocal: b.quaternion.clone(),
+                        ejeLocal: vEje.clone()
+                    };
+                }
             });
             // El clip reescribe la rotación del modelo cada frame —
             // el giro va en un wrapper que la animación no toca.
@@ -2640,8 +2671,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
 
         // ---------- Modelo GLB: vuelo estacionario / aleteo ----------
-        // hover: nado en reversa → batida hacia abajo, piernas
-        // quietas; flap: articulaciones del ala hacia bind.
+        // hover: nado en reversa → batida suave, piernas quietas;
+        // flap: flexiones sin brazos + aleteo procedural en cadena.
         if (rig.mixer) {
             const prox = (o.moviendose ? rig.accionFlap : rig.accionHover)
                 || (rig.acciones && rig.acciones[0]);
@@ -3854,5 +3885,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
 </script>
 
 <!-- Nota: se omitió export CSV / tabla por petición del usuario -->
+
+{% endblock %}
 
 {% endblock %}
