@@ -637,7 +637,7 @@ function crearMaquina(cfg) {
     const monPoste = new THREE.Mesh(
         new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-    monPoste.position.set(-3.6, 2.05, 1.1);4748b
+    monPoste.position.set(-3.6, 2.05, 1.1);
     m.add(monPoste);
     const monMarco = new THREE.Mesh(
         new THREE.BoxGeometry(1.5, 0.95, 0.08),
@@ -655,17 +655,17 @@ function crearMaquina(cfg) {
     if (cfg.tipo === 'prensa') {
         actuador = new THREE.Mesh(
             new THREE.BoxGeometry(1.2, 0.6, 1.2),
-            new THREE.MeshLambertMaterial({ color: 0x9a8a6a }));
+            new THREE.MeshLambertMaterial({ color: 0x64748b }));
         actuador.position.set(0, 2.6, 3.8); // sobre la cinta, bajo el brazo
         const guia = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.12, 0.12, 1.cbd)e1
+            new THREE.CylinderGeometry(0.12, 0.12, 1.4, 8),
             new THREE.MeshLambertMaterial({ color: 0x666666 }));
         guia.position.set(0, 0.8, 0);
         actuador.add(guia);
         m.add(actuador);
     } else if (cfg.tipo === 'escaner') {
         actuador = new THREE.Mesh(
-            new THREE.PlaneGeometry(2.0, 0.12),3c5fd
+            new THREE.PlaneGeometry(2.0, 0.12),
             new THREE.MeshBasicMaterial({
                 color: 0x44ddff, transparent: true, opacity: 0.8,
                 side: THREE.DoubleSide }));
@@ -674,16 +674,16 @@ function crearMaquina(cfg) {
         m.add(actuador);
     } else if (cfg.tipo === 'tolva') {
         // Embudo que deja caer materia prima
-        const embudo = new THREE.Mesh(4a3b8
+        const embudo = new THREE.Mesh(
             new THREE.ConeGeometry(1.1, 1.4, 10, 1, true),
-            new THREE.MeshLambertMaterial({ color: 0x8a7a5a, side: THREE.DoubleSide }));
+            new THREE.MeshLambertMaterial({ color: 0xcbd5e1, side: THREE.DoubleSide }));
         embudo.rotation.x = Math.PI;
         embudo.position.set(0, 3.0, 4.2);
         m.add(embudo);
     } else if (cfg.tipo === 'lanzador') {
         const rampa = new THREE.Mesh(
             new THREE.BoxGeometry(0.4, 1.8, 0.4),
-            new THREE.MeshLambertMaterial({ color: 0x9a8a6a }));
+            new THREE.MeshLambertMaterial({ color: 0x93c5fd }));
         rampa.position.set(0, 2.2, 4.2);
         m.add(rampa);
         actuador = rampa;
@@ -692,7 +692,7 @@ function crearMaquina(cfg) {
         for (let i = 0; i < 4; i++) {
             const aspa = new THREE.Mesh(
                 new THREE.BoxGeometry(0.25, 1.0, 0.08),
-                new THREE.MeshLambertMaterial({ color: 0xc0b090 }));
+                new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
             aspa.position.y = 0.5;
             const piv = new THREE.Group();
             piv.rotation.z = (i / 4) * Math.PI * 2;
@@ -703,7 +703,7 @@ function crearMaquina(cfg) {
         m.add(fan);
         actuador = fan;
     }
-e2e80
+
     // Cartel con nombre real del modelo
     const cartel = crearCartel(cfg.nombre, cfg.modelo);
     cartel.position.set(0, 2.6, 1.56);
@@ -717,16 +717,16 @@ e2e80
     m.add(plataforma);
 
     // ---- Detalles únicos por estación ----
-    const extras = {};60fa
+    const extras = {};
     if (cfg.tipo === 'tolva') {
         // Sacos de reportes amontonados junto a la tolva
         const sacoGeom = new THREE.SphereGeometry(0.42, 8, 8);
-        const sacoMat = new THREE.MeshLambertMaterial({ color: 0x9a7b4f });
+        const sacoMat = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
         for (let i = 0; i < 3; i++) {
-            const saco = new THREE.Mesh(sa9om3b8, sacoMat);
+            const saco = new THREE.Mesh(sacoGeom, sacoMat);
             saco.scale.set(1, 1.25, 0.9);
             saco.position.set(-1.6 + (i % 2) * 0.8, 0.42 + Math.floor(i / 2) * 0.7, 2.0);
-            saco.castShadow = true;7cf0
+            saco.castShadow = true;
             m.add(saco);
         }
         const cartelSaco = crearCartel('REPORTES', 'materia prima', 1.6);
@@ -735,16 +735,16 @@ e2e80
         // Pedacito de reporte que cae de la tolva en bucle
         const chunk = new THREE.Mesh(
             new THREE.BoxGeometry(0.28, 0.22, 0.28),
-            new THREE.MeshLambertMaterial({ color: 0xc9a25b, transparent: true }));
+            new THREE.MeshLambertMaterial({ color: 0x60a5fa, transparent: true }));
         chunk.position.set(0, 3.3, 4.2);
         m.add(chunk);
         extras.chunk = chunk;
     } else if (cfg.tipo === 'turbina') {
         // Par de engranajes grandes que engranan en la cara frontal
-        const g1 = crearEngranaje(0.85, 0x7a6a4a);
+        const g1 = crearEngranaje(0.85, 0x94a3b8);
         g1.position.set(-0.6, 2.0, 1.56);
         m.add(g1);
-        const g2 = crearEngranaje(0.6, 0x8a7a5a);
+        const g2 = crearEngranaje(0.6, 0x7c8fa0);
         g2.position.set(0.85, 1.25, 1.56);
         m.add(g2);
         extras.g1 = g1; extras.g2 = g2;
@@ -808,11 +808,11 @@ e2e80
         extras.barras = [];
         const coloresBarra = [0x38bdf8, 0xa855f7, 0x22cc66];
         for (let i = 0; i < 3; i++) {
-            const barra = new THREE.Mesh(38df8
-                new THREE.BoxGeometry(0.35, 1, 0.35),256eb
-                new THREE.MeshLambertMaterial({ color: coloresBarra[i] }));d4ed8
-            barra.position.set(-0.8 + i * 0.55, 4.0, -0.5);028c7
-            barra.geometry.translate(0, 0.5, 0); // crece desde la base6366f1
+            const barra = new THREE.Mesh(
+                new THREE.BoxGeometry(0.35, 1, 0.35),
+                new THREE.MeshLambertMaterial({ color: coloresBarra[i] }));
+            barra.position.set(-0.8 + i * 0.55, 4.0, -0.5);
+            barra.geometry.translate(0, 0.5, 0); // crece desde la base
             m.add(barra);
             extras.barras.push(barra);
         }
