@@ -1707,7 +1707,7 @@ const ESTACIONES_CAL = [
     { x: -8,  nombre: 'SATISFACCIÓN',    modelo: 'RespuestaSatisfaccion', color: 0x84cc16, tipo: 'eval', z: -14.7 },
     { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'Evaluacion táctica', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
     { x: 8,   nombre: 'FICED',           modelo: 'ICEDFormulario', color: 0x22d3ee, tipo: 'escaner', z: -14.7 },
-    { x: 16,  nombre: 'EVAL. ORGANISMO', modelo: 'Evaluación del organismo', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
+    { x: 16,  nombre: 'MÓDULO DE VALIDACIÓN', modelo: 'evaluación ICED', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
 ];
 ESTACIONES_CAL.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina(m));
 
@@ -2129,7 +2129,7 @@ function tickAlmacenes(dt) {
 }
 const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'INVENTARIO DE OPERACIONES ESTADÍSTICAS', modelo: 'OperacionEstadistica · ciclo IOE', tex: texOp });
 const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'CatalogoConsulta · dominio y tema', tex: texCat });
-const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'INVENTARIO ICED', modelo: 'Organismo + ICED · hojas de vida', tex: texICE });
+const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'HOJA DE VIDA DE LOS ORGANISMOS', modelo: 'ICED + Ecosistema + Satisfacción del usuario', tex: texICE });
 const Z_SRV = [12, 18, 24];
 const almSrv = Z_SRV.map((z, i) => crearAlmacen({
     x: -5.2, z, cols: 2, rows: 2,
@@ -2308,7 +2308,7 @@ function tickFamCal(f, dt) {
     }
     if (!f.pasadas.has('e3') && x > 16) {
         f.pasadas.add('e3'); f.estado = 'eval'; f.tPausa = 0;
-        sellar(f); disparo('EVAL. ORGANISMO', 0.9); return;
+        sellar(f); disparo('MÓDULO DE VALIDACIÓN', 0.9); return;
     }
     if (x > 24) {
         const slot = almHALL.idx < almHALL.slots.length
@@ -4057,7 +4057,7 @@ const ACTOS = [
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
     { t0: 338, t1: 350, acto: 'Estación 18', texto: 'FICED', sub: 'ICEDFormulario en 5 secciones: caracterización→RRHH→procesos→ICED',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
-    { t0: 350, t1: 362, acto: 'Estación 19', texto: 'EVAL. ORGANISMO', sub: 'veredicto integral: estratégica + táctica + operativa',
+    { t0: 350, t1: 362, acto: 'Estación 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'veredicto integral: estratégica + táctica + operativa',
       cam: [[16, 5, -5], [16, 2.5, -14.7]] },
     { t0: 362, t1: 374, acto: 'Estación 20', texto: 'Complejo de capacidad', sub: 'expediente ICED + vitrina de hojas de vida: aquí se decide la capacidad',
       cam: [[18, 6.5, -4], [29, 3.5, -11]] },
