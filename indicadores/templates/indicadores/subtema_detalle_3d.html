@@ -2472,6 +2472,61 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     donDatico.position.set(-30, 20, -45); // Cerca de las montañas, volando alto
     scene.add(donDatico);
 
+    // ---------- Cirugía de clips: de humano a loro ----------
+    // El rig humanoide anima TODO el cuerpo (nado / flexiones):
+    //   clip 0 'nado'  → piernas 526° vs alas 444° — hay que
+    //                    congelarlas o patea como nadador
+    //   clip 3 'flex.' → antebrazos 108-119° doblan en plancha
+    // Para que lea como vuelo:
+    //   · piernas: se eliminan sus pistas → quedan recogidas
+    //   · estacionario: alas al doble de frecuencia en el ciclo
+    //   · vuelo: apertura alar amplificada (delta^k sobre el
+    //     primer keyframe) → alas se abren más y baten rápido
+    const RE_PIERNAS = /Thigh|Calf|Foot|Toe/i;
+    const RE_ALAS    = /Clavicle|Upperarm|Forearm|Hand/i;
+
+    function clonarClipVuelo(clip, { dobleAlas = false, abrirAlas = 0 } = {}) {
+        const c = clip.clone();
+        // piernas quietas: fuera todas sus pistas
+        c.tracks = c.tracks.filter(t => !RE_PIERNAS.test(t.name));
+        const dur = Math.max(...c.tracks.map(t => t.times[t.times.length - 1] || 0)) || clip.duration;
+        const q0 = new THREE.Quaternion(), q = new THREE.Quaternion();
+        const dq = new THREE.Quaternion(), rr = new THREE.Quaternion();
+        c.tracks.forEach(t => {
+            if (dobleAlas && RE_ALAS.test(t.name)) {
+                // La pista se repite 2× dentro del mismo ciclo →
+                // alas al doble de ritmo sin romper el loop
+                const n = t.times.length;
+                const stride = t.values.length / n;
+                const t2 = new Float32Array(n * 2);
+                const v2 = new Float32Array(t.values.length * 2);
+                for (let i = 0; i < n; i++) {
+                    t2[i] = t.times[i] / 2;
+                    t2[i + n] = t.times[i] / 2 + dur / 2;
+                    for (let j = 0; j < stride; j++) {
+                        v2[i * stride + j] = t.values[i * stride + j];
+                        v2[(i + n) * stride + j] = t.values[i * stride + j];
+                    }
+                }
+                t.times = t2; t.values = v2;
+            }
+            if (abrirAlas && RE_ALAS.test(t.name) && t.name.endsWith('.quaternion')) {
+                const v = t.values;
+                q0.fromArray(v, 0).normalize();
+                const q0inv = q0.clone().invert();
+                for (let i = 4; i < v.length; i += 4) {
+                    q.fromArray(v, i).normalize();
+                    dq.copy(q0inv).multiply(q);          // delta vs pose inicial
+                    rr.identity().slerp(dq, abrirAlas);  // extrapola el delta
+                    q.copy(q0).multiply(rr).normalize();
+                    q.toArray(v, i);
+                }
+            }
+        });
+        c.resetDuration();
+        return c;
+    }
+
     new GLTFLoader().load(
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
@@ -2493,29 +2548,15 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             rigDD.procedural.visual.visible = false;   // queda el GLB
             visualDD.add(wrapperGLB);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
-            rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
-            // Clip 0 = nado boca abajo: en el aire es el planeo
-            // estacionario; clip 3 = flexiones = aleteo potente
-            rigDD.accion = rigDD.acciones[0] || rigDD.acciones[0];
+            // 0 = vuelo estacionario (nado, alas al 2×) ·
+            // 1 = aleteo en marcha (flexiones, alas +55% apertura)
+            const clipsVuelo = [
+                clonarClipVuelo(gltf.animations[0], { dobleAlas: true }),
+                clonarClipVuelo(gltf.animations[3], { abrirAlas: 1.55 })
+            ];
+            rigDD.acciones = clipsVuelo.map(c => rigDD.mixer.clipAction(c));
+            rigDD.accion = rigDD.acciones[0];
             if (rigDD.accion) rigDD.accion.play();
-
-            // Mapa óseo para cirugía sobre los clips: el nado
-            // mueve piernas (hay que congelarlas) y las flexiones
-            // cierran los brazos (hay que abrirlos). Guardamos la
-            // pose de reposo de cada hueso como referencia.
-            rigDD.huesosAla = [];
-            rigDD.huesosPierna = [];
-            modelo.traverse(o => {
-                if (!o.isBone) return;
-                o.userData.restQ = o.quaternion.clone();
-                const n = o.name.toLowerCase();
-                if (/shoulder|arm|hand|clavicle|wing/.test(n))
-                    rigDD.huesosAla.push(o);
-                if (/upleg|leg|calf|shin|knee|foot|toe/.test(n))
-                    rigDD.huesosPierna.push(o);
-            });
-            console.log('🦜 huesos ala:', rigDD.huesosAla.map(b => b.name),
-                        '| pierna:', rigDD.huesosPierna.map(b => b.name));
         });
     
     // Variables de control del juego
@@ -2556,10 +2597,10 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
 
         // ---------- Modelo GLB: clip idle / vuelo ----------
-        // Clip 0 = nado boca abajo → vuelo estacionario (planeo);
-        // clip 3 = flexiones de pecho → aleteo en movimiento.
+        // Acción 0 = estacionario (nado, alas al 2×, piernas
+        // recogidas) · acción 1 = aleteo (flexiones +55% apertura)
         if (rig.mixer) {
-            const idxClip = o.moviendose ? 3 : 0;
+            const idxClip = o.moviendose ? 1 : 0;
             const prox = rig.acciones[idxClip] || rig.acciones[0];
             if (prox && rig.accion !== prox) {
                 prox.reset().fadeIn(0.35).play();
@@ -2567,29 +2608,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                 rig.accion = prox;
             }
             // En movimiento el batir va fuerte; estacionario, suave
-            if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.9 : 0.8;
+            if (rig.accion) rig.accion.timeScale = o.moviendose ? 2.3 : 1.05;
             rig.mixer.update(dt);
-
-            // ---------- Cirugía ósea sobre el clip ----------
-            // Idle (nado): piernas congeladas en reposo → el cuerpo
-            // va estirado; las alas baten rápido por encima del clip
-            // → se lee como vuelo estacionario.
-            // Vuelo (flexiones): alas sostenidas abiertas + batir de
-            // mayor amplitud → se lee como batida en desplazamiento.
-            a.faseAla = (a.faseAla || 0) + dt * (o.moviendose ? 11 : 8.5);
-            if (!o.moviendose && rig.huesosPierna) {
-                for (const b of rig.huesosPierna)
-                    b.quaternion.copy(b.userData.restQ);
-            }
-            if (rig.huesosAla && rig.huesosAla.length) {
-                const amp = o.moviendose ? 0.55 : 0.4;
-                const abierta = o.moviendose ? 0.35 : 0;
-                for (const b of rig.huesosAla) {
-                    // Mismo signo en .L/.R: los ejes locales ya están
-                    // espejados en el rig → el batir sale simétrico
-                    b.rotateZ(abierta + Math.sin(a.faseAla) * amp);
-                }
-            }
         }
 
         // ---------- Detección de baile (salsa caleña) ----------
