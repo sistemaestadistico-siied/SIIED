@@ -2969,22 +2969,30 @@ let comiteGrafo = null;
     const pED = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.8, 4.7), vidrioD);
     pED.position.set(3.3, 4.9, 0); des.add(pED);
     const pOD = pED.clone(); pOD.position.x = -3.3; des.add(pOD);
-    // Escritorio presidencial + sillón alto + lámpara
-    const escr = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.14, 1.3),
+    // Junta de despacho: el gabinete decide — no una oficina
+    // de un solo alcalde. Mesa grande a la altura de daticos.
+    const mesaG = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.14, 1.6),
         new THREE.MeshLambertMaterial({ color: 0x78350f }));
-    escr.position.set(0, 4.35, 0); des.add(escr);
-    for (const ex of [-1.0, 1.0]) {
-        const pataE = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.8, 1.1), matD);
-        pataE.position.set(ex, 3.95, 0); des.add(pataE);
+    mesaG.position.set(0, 3.93, 0); des.add(mesaG);
+    for (const px of [-1.55, 1.55]) {
+        const pataE = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 1.3), matD);
+        pataE.position.set(px, 3.73, 0); des.add(pataE);
     }
-    const sillon = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.5, 0.7),
-        new THREE.MeshLambertMaterial({ color: 0x7f1d1d }));
-    sillon.position.set(0, 4.3, -1.2); des.add(sillon);
+    for (let i = 0; i < 5; i++) {
+        const pap = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.02, 0.42),
+            new THREE.MeshLambertMaterial({ color: 0xf8fafc }));
+        pap.position.set(-1.3 + i * 0.65, 4.02, (i % 2) * 0.5 - 0.25);
+        pap.rotation.y = i * 0.8;
+        des.add(pap);
+    }
     const lampD = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8),
         new THREE.MeshBasicMaterial({ color: 0xfde68a }));
-    lampD.position.set(-0.9, 4.6, 0.3); des.add(lampD);
-    salas.push({ grupo: des, y: 3.95, estado: 'supervisar',
-        puestos: [[0, -1.0, 0]] });
+    lampD.position.set(-1.5, 4.12, 0.55); des.add(lampD);
+    // Gabinete: 5 don Daticos deliberando alrededor de la mesa
+    salas.push({ grupo: des, y: 3.55, estado: 'supervisar',
+        puestos: [[-1.1, -1.15, 0], [1.1, -1.15, 0],
+                  [-1.1, 1.15, Math.PI], [1.1, 1.15, Math.PI],
+                  [-2.05, 0, Math.PI / 2]] });
     // Bandera de la alcaldía en mástil
     const mastD = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 6), matD);
     mastD.position.set(2.6, 5.5, -1.6); des.add(mastD);
@@ -2996,7 +3004,7 @@ let comiteGrafo = null;
     });
     des.position.set(52, 0, -30);
     scene.add(des);
-    const cartelD = crearCartel('DESPACHO DE ALCALDÍA', 'la decisión final', 3.4);
+    const cartelD = crearCartel('DESPACHO DE ALCALDÍA', 'junta de gabinete · la decisión final', 3.4);
     cartelD.position.set(52, 7.3, -27.3);
     scene.add(cartelD);
 }
@@ -3015,12 +3023,12 @@ function respawnDec(f) {
     f.mesh.scale.setScalar(0.42);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texDec);
-    lanzarCaida(f, src, new THREE.Vector3(52, 4.6, -30), 1.6, 4.0);
+    lanzarCaida(f, src, new THREE.Vector3(52, 4.2, -30), 1.6, 4.0);
 }
 function tickFamDec(f, dt) {
     if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnDec(f); return; }
     tickCaida(f, dt);
-    if (f.estado === 'ride') {   // aterriza en el escritorio del alcalde
+    if (f.estado === 'ride') {   // aterriza en la mesa del gabinete
         f.mesh.visible = false;
         f.estado = 'espera'; f.tEspera = 6 + Math.random() * 5;
     }
@@ -3622,7 +3630,7 @@ const ACTOS = [
       cam: [[52, 2.3, -14], [52, 2.2, -10]] },     // sur: vidrio
     { t0: 416, t1: 422, acto: 'Sala', texto: 'Comité de Gestión', sub: 'plenaria de organismos + grafo + tablero ICED: y la cámara sale', pan: true,
       cam: [[57, 6, -6], [52, 3, -14]] },   // sale por el SE: vidrio, no los backs de los TVs
-    { t0: 422, t1: 428, acto: 'Sala', texto: 'Despacho de Alcaldía', sub: 'la decisión final — la cámara entra', pan: true,
+    { t0: 422, t1: 428, acto: 'Sala', texto: 'Junta de despacho', sub: 'la decisión final — la cámara entra', pan: true,
       cam: [[52, 4.9, -30], [49, 4.6, -30]] },
     { t0: 428, t1: 432, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 4.9, -30], [52, 5, -32.6]] },
@@ -3630,7 +3638,7 @@ const ACTOS = [
       cam: [[52, 4.9, -30], [55, 4.6, -30]] },
     { t0: 436, t1: 440, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 4.9, -30], [52, 4.6, -27.5]] },
-    { t0: 440, t1: 446, acto: 'Sala', texto: 'Despacho de Alcaldía', sub: 'escritorio, bandera y la decisión final: y la cámara sale', pan: true,
+    { t0: 440, t1: 446, acto: 'Sala', texto: 'Junta de despacho', sub: 'mesa de gabinete, bandera y la decisión final: y la cámara sale', pan: true,
       cam: [[52, 6.5, -23], [52, 4.9, -30]] },
     // ======= G: LÍNEAS DE SERVICIO =======
     { t0: 446, t1: 458, acto: 'Estación 21', texto: 'Línea editorial', sub: 'NoticiaBanner + Evento: del borrador a la portada',
