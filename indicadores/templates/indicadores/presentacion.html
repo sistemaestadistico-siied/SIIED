@@ -1671,7 +1671,7 @@ const camRec = crearCamion({ x: 39,   z: -4.5, color: 0x38bdf8,
               etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'PerfilRecolector · ingesta de fuentes' });
 const camDel = crearCamion({ x: 52,   z: -8,   color: 0xf59e0b,
               etiqueta: 'DELEGADO ORGANISMO', sub: 'registro de acceso · Organismo' });
-const camEdi = crearCamion({ x: 30,   z: -11.5, color: 0xef4444,
+const camEdi = crearCamion({ x: 34,   z: -11.5, color: 0xef4444,
               etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
 // Rutas por pasillos libres — ninguna atraviesa bandas.
 // RECOLECCIÓN: muelle del observatorio → pasillo norte de la
@@ -1685,10 +1685,10 @@ const camEdi = crearCamion({ x: 30,   z: -11.5, color: 0xef4444,
 // z-4.5 de RECOLECCIÓN: los camiones ya no colisionan.
 camRec.userData.ruta = { pts: [[39, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
 camDel.userData.ruta = { pts: [[52, -8], [-21, -8]],   i: 1, dir: 1, espera: 0 };
-camEdi.userData.ruta = { pts: [[30, -11.5], [38, -11.5], [38, -22],
-    [62.5, -22], [56, -27], [62.5, -22], [62.5, -14], [62.5, -22],
-    [38, -22], [-34, -22], [-34, 2.1], [-20.8, 2.1], [-26.6, 2.1],
-    [-26.6, 20.5], [-26.4, 20.5]],   // muelle al sur del hub: libre de los chutes z18/z24
+camEdi.userData.ruta = { pts: [[34, -11.5], [38, -11.5], [38, -22],
+    [62.5, -22], [58.5, -25.5], [62.5, -22], [62.5, -14], [62.5, -22],
+    [38, -22], [-34, -22], [-34, 2.1], [-20.8, 2.1], [-27.2, 2.1],
+    [-27.2, 20.5], [-27.0, 20.5]],   // muelle al sur del hub: libre de los chutes z18/z24
     // paradas largas SOLO en las salas (idx 0 capa, 3 despacho,
     // 5 comité, 10 recolección): las esquinas no leen como parada
     i: 1, dir: 1, espera: 0, esperaMid: 0.6, paradas: [3, 5, 10] };
@@ -1934,7 +1934,7 @@ function respawnSrv(f, l) {
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texSrv[l]);
     if (f.sello) f.sello.visible = false;
-    lanzarCaida(f, new THREE.Vector3(-26.4, 2.0, 20.3),   // desde el muelle (sur del hub)
+    lanzarCaida(f, new THREE.Vector3(-27.0, 2.0, 20.3),   // desde el muelle (sur del hub)
                    new THREE.Vector3(-20.6, 1.72, Z_SRV[l]), 0.8);
 }
 function resetFamilias() {
@@ -3461,7 +3461,7 @@ function crearPlanta() {
     const DOCKS = [
         [-14, -6.3, 0.7],     // RECOLECCIÓN → hueco taller/operaciones
         [-20, -5.4, -2.2],    // DELEGADO → cabeza de banda C
-        [-27.2, 19.5, -1.5],  // EDITORIAL → muelle de líneas E
+        [-26.5, 22.3, -1.5],  // EDITORIAL → al sur del muelle, fuera del carril
     ];
     DOCKS.forEach(([dx, dz, ry], di) => {
         let w;
