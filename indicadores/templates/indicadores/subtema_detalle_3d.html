@@ -182,6 +182,8 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     // --- Variables y referencias (mismo flujo que template original) ---
@@ -2365,9 +2367,44 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     }
     
     // Crear Don Datico - Posición inicial cerca de las montañas
-    const donDatico = crearDonDatico();
+    // Don Datico real: GLB con rig humanoide y clips embebidos
+    // (idle alas abajo / flexiones = vuelo). Mientras carga o si
+    // falla, queda el loro procedural como respaldo.
+    const donDatico = new THREE.Group();        // posición + yaw
+    const visualDD = new THREE.Group();         // roll/pitch/bob
+    donDatico.add(visualDD);
+    const rigDD = {};
+    // Respaldo: el loro procedural vive dentro del mismo visual
+    const resguardo = crearDonDatico();
+    visualDD.add(resguardo.userData.rig.visual);
+    Object.assign(rigDD, resguardo.userData.rig);
+    rigDD.procedural = resguardo.userData.rig;
+    rigDD.visual = visualDD;                    // el wrapper externo
+    rigDD.mixer = null; rigDD.acciones = null; rigDD.accion = null;
+    donDatico.userData.rig = rigDD;
     donDatico.position.set(-30, 20, -45); // Cerca de las montañas, volando alto
     scene.add(donDatico);
+
+    new GLTFLoader().load(
+        "{% static 'indicadores/models/dondaticolite.glb' %}",
+        (gltf) => {
+            const modelo = SkeletonUtils.clone(gltf.scene);
+            modelo.rotation.y = Math.PI;   // el GLB mira -z
+            modelo.scale.setScalar(1.5);   // talla de vuelo
+            modelo.traverse(o => {
+                if (o.isMesh || o.isSkinnedMesh) {
+                    o.castShadow = true;
+                    o.frustumCulled = false;   // bounds skinned no se actualizan
+                }
+            });
+            rigDD.procedural.visual.visible = false;   // queda el GLB
+            visualDD.add(modelo);
+            rigDD.mixer = new THREE.AnimationMixer(modelo);
+            rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
+            // Clip 1 = idle alas abajo (loop limpio)
+            rigDD.accion = rigDD.acciones[1] || rigDD.acciones[0];
+            if (rigDD.accion) rigDD.accion.play();
+        });
     
     // Variables de control del juego
     const gameState = {
@@ -2404,6 +2441,22 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const rig = donDatico.userData.rig;
         const a = daticoAnim;
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
+
+        // ---------- Modelo GLB: clip idle / vuelo ----------
+        // Clip 1 = idle alas abajo · clip 3 = flexiones de pecho
+        // (en el aire se lee como aleteo). En movimiento va más
+        // rápido para sentir el batir de alas.
+        if (rig.mixer) {
+            const idxClip = o.moviendose ? 3 : 1;
+            const prox = rig.acciones[idxClip] || rig.acciones[0];
+            if (prox && rig.accion !== prox) {
+                prox.reset().fadeIn(0.35).play();
+                if (rig.accion) rig.accion.fadeOut(0.35);
+                rig.accion = prox;
+            }
+            if (rig.accion) rig.accion.timeScale = o.moviendose ? 1.35 : 1.0;
+            rig.mixer.update(dt);
+        }
 
         // ---------- Detección de baile (salsa caleña) ----------
         // Si está en modo juego quieto >6s, o se presionó 'b', baila.
@@ -2994,13 +3047,16 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         if (gameState.modoJuego) {
             // Controles RELATIVOS al loro (como juego de aventuras)
             let moviendose = false;
+            let velGiro = 0, velVertical = 0;   // alimentan el banking/pitch
             
             // A/D: Rotar el loro (girar izquierda/derecha)
             if (gameState.teclas['a']) {
                 donDatico.rotation.y += gameState.velocidadRotacion;
+                velGiro = gameState.velocidadRotacion;   // banking hacia el giro
             }
             if (gameState.teclas['d']) {
                 donDatico.rotation.y -= gameState.velocidadRotacion;
+                velGiro = -gameState.velocidadRotacion;
             }
             
             // W/S: Mover adelante/atrás en la dirección que mira el loro
