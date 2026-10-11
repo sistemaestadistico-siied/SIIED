@@ -2333,8 +2333,10 @@ function respawnRep(f) {
     f.mesh.scale.setScalar(0.42);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texOp);
-    // Del techo de la estación REPORTES a la mesa del consejo
-    lanzarCaida(f, new THREE.Vector3(11.5, 4.7, -0.2),
+    // Del techo del MÓDULO DE REPORTES (x21.5) a la mesa del
+    // consejo — antes salía de x11.5, posición vieja que hoy
+    // corresponde a administración
+    lanzarCaida(f, new THREE.Vector3(21.5, 4.7, -0.2),
                    new THREE.Vector3(30, 5.9, -16.5), 1.7, 4.5);
 }
 function tickFamRep(f, dt) {
