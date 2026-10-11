@@ -1245,18 +1245,20 @@ function crearCamion(cfg) {
 // Los camiones YA NO están estacionados: hacen rutas de ida y
 // vuelta entre su región de origen y el punto de descarga, y
 // solo mientras están atracados alimentan cajas a las bandas.
-const camRec = crearCamion({ x: 36.5, z: -4,   color: 0x38bdf8,
+const camRec = crearCamion({ x: 32,   z: -4.5, color: 0x38bdf8,
               etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'PerfilRecolector · ingesta de fuentes' });
-const camDel = crearCamion({ x: 46,   z: -14,  color: 0xf59e0b,
+const camDel = crearCamion({ x: 52,   z: -8,   color: 0xf59e0b,
               etiqueta: 'DELEGADO ORGANISMO', sub: 'registro de acceso · Organismo' });
 const camEdi = crearCamion({ x: 50,   z: 14,   color: 0xef4444,
               etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
-camRec.userData.ruta = { pts: [[36.5, -4], [36.5, 4.9], [-12.6, 4.9], [-12.6, 2.2]],
-    i: 1, dir: 1, espera: 0 };
-camDel.userData.ruta = { pts: [[46, -14], [46, -7.2], [-23.4, -7.2], [-23.4, -12.5]],
-    i: 1, dir: 1, espera: 0 };
-camEdi.userData.ruta = { pts: [[50, 14], [50, 27], [-23.4, 27]],
-    i: 1, dir: 1, espera: 0 };
+// Rutas rectas por pasillos libres — ninguna atraviesa bandas.
+// RECOLECCIÓN: muelle del observatorio → pasillo norte de la
+// línea D2; la carga entra a la tolva volando sobre la máquina.
+// DELEGADO: muelle del comité → pasillo entre TALLER y banda C.
+// EDITORIAL: plaza → vía sur sobre las líneas de servicio.
+camRec.userData.ruta = { pts: [[32, -4.5], [-8, -4.5]], i: 1, dir: 1, espera: 0 };
+camDel.userData.ruta = { pts: [[52, -8], [-24.5, -8]],  i: 1, dir: 1, espera: 0 };
+camEdi.userData.ruta = { pts: [[50, 14], [50, 27], [-23.4, 27]], i: 1, dir: 1, espera: 0 };
 
 // Chute inclinado entre dos puntos del mundo
 function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
@@ -1440,7 +1442,7 @@ function tickLluvia(dt) {
 
 // ---- Respawns: cada familia renace en su muelle/chute ----
 const ORG_CAL = [
-    { desde: new THREE.Vector3(-23.4, 2.1, -12.5), hasta: new THREE.Vector3(-30.8, 1.72, -10.5), tex: () => texDeleg },
+    { desde: new THREE.Vector3(-24.5, 2.1, -8), hasta: new THREE.Vector3(-30.8, 1.72, -10.5), tex: () => texDeleg },
     { desde: new THREE.Vector3(-26, 3.2, -5.2),    hasta: new THREE.Vector3(-26, 1.72, -10.3),   tex: () => texCenso },
 ];
 let fuenteCal = 0;
@@ -1463,8 +1465,8 @@ function respawnRec(f) {
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texFuente);
     // Del camión atracado al final de su ruta: salto a la tolva
-    lanzarCaida(f, new THREE.Vector3(-12.6, 1.9, 2.2),
-                   new THREE.Vector3(-9.0, 4.6, -0.5), 0.85, 1.3);
+    lanzarCaida(f, new THREE.Vector3(-8, 2.0, -4.5),
+                   new THREE.Vector3(-9.0, 4.6, -0.5), 0.85, 2.2);
 }
 function respawnD1(f) {
     f.seg = 'D1'; f.s = 0.8; f.pasadas.clear();
@@ -2151,14 +2153,9 @@ function tickVuelosTV(dt) {
 // neumático a la estación de satisfacción.
 const ciudadanos = [];
 {
-    const suelo = new THREE.Mesh(new THREE.PlaneGeometry(9, 10),
-        new THREE.MeshLambertMaterial({ color: 0xdbe7d3 }));
-    suelo.rotation.x = -Math.PI / 2;
-    suelo.position.set(32.8, 0.02, 7.4);
-    scene.add(suelo);
-    const cartelG = crearCartel('AUDIENCIA', 'PageVisit · satisfacción ciudadana', 3.2);
-    cartelG.position.set(33, 3.6, 12.6);
-    scene.add(cartelG);
+    // La tribuna es el borde oeste de la plaza de CIUDADANÍA:
+    // la audiencia y la ciudadanía son la misma región (la
+    // plaza unificada se dibuja en la sección de regiones)
     // Tres filas de banca escalonadas mirando la pared (+x)
     const paleta = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9, 0xf97316];
     let idx = 0;
@@ -2238,28 +2235,36 @@ for (let i = 0; i < 5; i++) {
 }
 
 // ============ VÍAS DE LOS CAMIONES ============
-// Franjas de asfalto bajo cada ruta: se lee que los camiones
-// van y vienen entre su región de origen y la fábrica
+// Franjas de asfalto dibujadas ENTRE los waypoints reales de
+// cada ruta: la vía siempre coincide con el camino del camión
 {
     const viaMat = new THREE.MeshLambertMaterial({ color: 0x6b7280 });
     const rayaMat = new THREE.MeshBasicMaterial({ color: 0xfef9c3 });
-    const segmentos = [
-        // RECOLECCIÓN: observatorios → tolva de OPERACIONES
-        [36.5, 4.9, 12.95, 1.7, Math.PI / 2], [12, 4.9, 49.1, 1.7, 0], [-12.6, 3.55, 2.7, 1.7, Math.PI / 2],
-        // DELEGADO: comité → cabeza de banda C
-        [46, -10.6, 6.8, 1.7, Math.PI / 2], [11.3, -7.2, 69.4, 1.7, 0], [-23.4, -9.85, 5.3, 1.7, Math.PI / 2],
-        // EDITORIAL: ciudadanía → hub de servicios
-        [50, 20.5, 13, 1.7, Math.PI / 2], [13.3, 27, 73.4, 1.7, 0],
-    ];
-    segmentos.forEach(([cx, cz, len, w, ry]) => {
-        const via = new THREE.Mesh(new THREE.PlaneGeometry(len, w), viaMat);
-        via.rotation.x = -Math.PI / 2; via.rotation.z = ry;
-        via.position.set(cx, 0.015, cz);
-        scene.add(via);
-        const raya = new THREE.Mesh(new THREE.PlaneGeometry(len, 0.1), rayaMat);
-        raya.rotation.x = -Math.PI / 2; raya.rotation.z = ry;
-        raya.position.set(cx, 0.018, cz);
-        scene.add(raya);
+    [camRec, camDel, camEdi].forEach(cm => {
+        const pts = cm.userData.ruta.pts;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const [ax, az] = pts[i], [bx, bz] = pts[i + 1];
+            const len = Math.hypot(bx - ax, bz - az);
+            if (len < 0.1) continue;
+            const cx = (ax + bx) / 2, cz = (az + bz) / 2;
+            const ry = Math.atan2(-(bz - az), bx - ax);
+            const via = new THREE.Mesh(new THREE.PlaneGeometry(len, 1.7), viaMat);
+            via.rotation.x = -Math.PI / 2; via.rotation.z = ry;
+            via.position.set(cx, 0.015, cz);
+            scene.add(via);
+            const raya = new THREE.Mesh(new THREE.PlaneGeometry(len, 0.1), rayaMat);
+            raya.rotation.x = -Math.PI / 2; raya.rotation.z = ry;
+            raya.position.set(cx, 0.018, cz);
+            scene.add(raya);
+        }
+        // Plataforma de muelle en cada extremo de la ruta
+        for (const [mx, mz] of [pts[0], pts[pts.length - 1]]) {
+            const muelle = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 3.4),
+                new THREE.MeshLambertMaterial({ color: 0x4b5563 }));
+            muelle.rotation.x = -Math.PI / 2;
+            muelle.position.set(mx, 0.017, mz);
+            scene.add(muelle);
+        }
     });
 }
 
@@ -2289,10 +2294,10 @@ function crearFigura(color, opts = {}) {
 // La ciudad que el SIIED sirve: plaza amplia al este, con el
 // público de la pared, casitas de barrio, árboles y bandera
 {
-    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(24, 20),
+    const plaza = new THREE.Mesh(new THREE.PlaneGeometry(36, 20),
         new THREE.MeshLambertMaterial({ color: 0xdbe7d3 }));
     plaza.rotation.x = -Math.PI / 2;
-    plaza.position.set(50, 0.02, 12);
+    plaza.position.set(46, 0.02, 12);
     scene.add(plaza);
     const cartelC = crearCartel('CIUDADANÍA', 'la ciudad que el SIIED sirve', 4);
     cartelC.position.set(50, 4.4, 20.5);
@@ -2350,44 +2355,53 @@ function crearFigura(color, opts = {}) {
     }
 }
 
-// ============ OBSERVATORIOS DE ORGANISMOS ============
-// Punto intermedio del camión de recolección: cúpulas con
-// telescopios que BARREN la plaza observando a la ciudadanía
+// ============ OBSERVATORIO DE ORGANISMOS ============
+// Punto intermedio del camión de recolección: UNA cúpula
+// grande cuyo telescopio BARRE la plaza observando a la
+// ciudadanía — los organismos toman los datos ahí
 const telescopios = [];
 let comiteGrafo = null;
 {
-    const cartelO = crearCartel('OBSERVATORIOS', 'organismos observando a la ciudadanía', 3.4);
-    cartelO.position.set(38.5, 4.2, -4);
+    const cartelO = crearCartel('OBSERVATORIO', 'organismos observando a la ciudadanía', 3.4);
+    cartelO.position.set(38, 6.0, -6);
     scene.add(cartelO);
-    [[37, -8.5], [40.5, -5.5], [37.5, 0.5]].forEach(([ox, oz], di) => {
-        const obs = new THREE.Group();
-        const base = new THREE.Mesh(
-            new THREE.CylinderGeometry(1.1, 1.3, 1.6, 10),
-            new THREE.MeshLambertMaterial({ color: 0xcbd5e1 }));
-        base.position.y = 0.8; base.castShadow = true; obs.add(base);
-        const domo = new THREE.Mesh(
-            new THREE.SphereGeometry(1.05, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-            new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-        domo.position.y = 1.6; obs.add(domo);
-        // Telescopio: tubo que sale de la rendija del domo
-        const tel = new THREE.Group();
-        const tuboT = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.14, 0.22, 1.7, 8),
-            new THREE.MeshLambertMaterial({ color: 0x334155 }));
-        tuboT.position.y = 0.75; tel.add(tuboT);
-        const lente = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.2, 0.2, 0.08, 8),
-            new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
-        lente.position.y = 1.62; tel.add(lente);
-        tel.rotation.x = -0.55;   // apunta hacia arriba/afuera
-        tel.position.y = 1.9;
-        obs.add(tel);
-        obs.position.set(ox, 0, oz);
-        // Orientación base hacia la plaza (+x, +z)
-        obs.rotation.y = -0.5 - di * 0.3;
-        scene.add(obs);
-        telescopios.push({ obs, tel, base: -0.5 - di * 0.3, f: di * 2.1 });
-    });
+    const obs = new THREE.Group();
+    // Base: torre de dos cuerpos, bien asentada
+    const base1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.1, 2.4, 2.4, 12),
+        new THREE.MeshLambertMaterial({ color: 0xcbd5e1 }));
+    base1.position.y = 1.2; base1.castShadow = true; obs.add(base1);
+    const base2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.7, 2.0, 1.2, 12),
+        new THREE.MeshLambertMaterial({ color: 0xa8b8c4 }));
+    base2.position.y = 3.0; obs.add(base2);
+    // Domo con rendija por donde asoma el telescopio
+    const domo = new THREE.Mesh(
+        new THREE.SphereGeometry(1.85, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshLambertMaterial({ color: 0x64748b }));
+    domo.position.y = 3.6; obs.add(domo);
+    // Telescopio grande: sale de la rendija apuntando a la plaza
+    const tel = new THREE.Group();
+    const tuboT = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28, 0.45, 3.4, 10),
+        new THREE.MeshLambertMaterial({ color: 0x1e293b }));
+    tuboT.position.y = 1.5; tel.add(tuboT);
+    const lente = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.4, 0.4, 0.12, 10),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+    lente.position.y = 3.25; tel.add(lente);
+    const ocular = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.14, 0.5, 8),
+        new THREE.MeshLambertMaterial({ color: 0x64748b }));
+    ocular.position.y = -0.35; tel.add(ocular);
+    tel.rotation.x = -0.62;
+    tel.position.y = 4.0;
+    obs.add(tel);
+    obs.position.set(38, 0, -6);
+    // La plaza está al noreste: el domo 'mira' hacia (+x, +z)
+    obs.rotation.y = Math.atan2(50 - 38, 12 + 6);
+    scene.add(obs);
+    telescopios.push({ obs, tel, base: obs.rotation.y, f: 0 });
 }
 
 // ============ SALA DE RECOLECCIÓN ============
@@ -2430,10 +2444,10 @@ let comiteGrafo = null;
     const arch = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.5),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
     arch.position.set(-2.0, 0.9, -1.0); sala.add(arch);
-    sala.position.set(-6, 0, -11.4);
+    sala.position.set(41, 0, -12);
     scene.add(sala);
     const cartelR = crearCartel('RECOLECCIÓN', 'equipo técnico SIIED · carga de indicadores', 3.2);
-    cartelR.position.set(-6, 3.6, -9.6);
+    cartelR.position.set(41, 3.6, -10.2);
     scene.add(cartelR);
 }
 
@@ -3361,9 +3375,9 @@ function animate() {
             r.espera -= dt;
             if (r.i === r.pts.length - 1) cm.userData.dock = true; // atracado descargando
             if (r.espera <= 0) {
-                if (r.dir === 1) { r.dir = -1; r.i--; }
-                else if (r.i === 0) { r.dir = 1; r.i++; }
-                else r.i--;
+                r.i += r.dir;
+                if (r.i >= r.pts.length) { r.dir = -1; r.i = r.pts.length - 2; }
+                else if (r.i < 0) { r.dir = 1; r.i = 1; }
             }
         } else {
             const [tx, tz] = r.pts[r.i];
@@ -3372,7 +3386,8 @@ function animate() {
             const paso = VEL_CAM * dt;
             if (d <= paso) {
                 cm.position.x = tx; cm.position.z = tz;
-                r.espera = (r.i === r.pts.length - 1) ? 7 : 3.5;
+                r.espera = (r.i === r.pts.length - 1) ? 7 :
+                           (r.i === 0 ? 4 : 0.8);
             } else {
                 cm.position.x += dx / d * paso;
                 cm.position.z += dz / d * paso;
