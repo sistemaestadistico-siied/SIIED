@@ -257,7 +257,7 @@ camera.position.set(0, 22, 42);
 const ambient = new THREE.AmbientLight(0xdce9f7, 0.62);
 scene.add(ambient);
 const sol = new THREE.DirectionalLight(0xeaf2ff, 1.1);
-sol.position.set(-18, 30, 20);
+sol.position.set(-45, 42, -60);   // desde la luna (NE alto sobre la cordillera)
 sol.castShadow = true;
 sol.shadow.mapSize.set(2048, 2048);
 sol.shadow.camera.left = -45; sol.shadow.camera.right = 45;
@@ -332,16 +332,44 @@ scene.add(relleno);
     const posE = [];
     for (let i = 0; i < 1100; i++) {
         const t = Math.random() * Math.PI * 2;
-        const fi = Math.acos(1 - Math.random() * 0.55);   // cúpula
+        const fi = Math.acos(1 - Math.random() * 0.9);   // hasta casi el horizonte
         const r = 100;
         posE.push(Math.cos(t) * Math.sin(fi) * r,
-                  12 + Math.cos(fi) * r * 0.9,
+                  6 + Math.cos(fi) * r * 0.95,
                   Math.sin(t) * Math.sin(fi) * r);
     }
     const geoE = new THREE.BufferGeometry();
     geoE.setAttribute('position', new THREE.Float32BufferAttribute(posE, 3));
     scene.add(new THREE.Points(geoE, new THREE.PointsMaterial(
         { color: 0xcfe8ff, size: 0.35, sizeAttenuation: true, fog: false })));
+
+    // Luna llena entre dos nubes: el foco de luz de la noche
+    // (la direcciónal 'sol' sale del mismo punto)
+    const luna = new THREE.Mesh(new THREE.SphereGeometry(4.6, 20, 14),
+        new THREE.MeshBasicMaterial({ color: 0xfff6dd, fog: false }));
+    luna.position.set(-45, 40, -60);
+    scene.add(luna);
+    const haloL = new THREE.Mesh(new THREE.CircleGeometry(8.5, 24),
+        new THREE.MeshBasicMaterial({ color: 0xfff1c4, transparent: true,
+            opacity: 0.14, side: THREE.DoubleSide, fog: false }));
+    haloL.position.copy(luna.position);
+    haloL.lookAt(0, 0, 0);
+    scene.add(haloL);
+    const matNube = new THREE.MeshLambertMaterial({ color: 0x8fa3c8,
+        transparent: true, opacity: 0.9 });
+    [[-8.5, -1.8], [9, 2.6]].forEach(([dx, dy]) => {
+        const nube = new THREE.Group();
+        for (let k = 0; k < 3; k++) {
+            const b = new THREE.Mesh(
+                new THREE.SphereGeometry(1.9, 10, 7), matNube);
+            b.position.set(k * 2.4 - 2.4, k === 1 ? 0.7 : 0, 0);
+            b.scale.set(1.8, 0.5, 1);
+            nube.add(b);
+        }
+        nube.scale.setScalar(1.6);
+        nube.position.set(-45 + dx, 40 + dy, -54);   // delante de la luna
+        scene.add(nube);
+    });
 
     // Constelaciones: gráficos estadísticos dibujados en el cielo
     const constel = new THREE.Group();
