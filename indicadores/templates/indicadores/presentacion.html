@@ -563,7 +563,7 @@ function siguienteSlot() {
 }
 
 // ============ MÁQUINAS ============
-function textoCanvas(texto, sub, color = '#1e40af', fondo = '#f8fafc') {
+function textoCanvas(texto, sub, color = '#22d3ee', fondo = '#0a1220') {
     const cv = document.createElement('canvas');
     cv.width = 512; cv.height = 160;
     const cx = cv.getContext('2d');
@@ -1190,6 +1190,14 @@ const TALLER = crearMaquina({
     x: -26, z: -2.5, nombre: 'TALLER', escala: 1.55,
     modelo: 'censo + prediagnóstico de organismos',
     color: 0x38bdf8, tipo: 'tolva' });
+// Placa DADII: el taller lo diseñó el Departamento de Innovación
+{
+    const placa = crearCartel('DADII · DPTO. DE INNOVACIÓN',
+        'diseño del taller · Alcaldía de Santiago de Cali', 3.4);
+    placa.position.set(-22.4, 3.2, -2.5);
+    placa.rotation.y = Math.PI / 2;   // en el costado este, hacia la fábrica
+    scene.add(placa);
+}
 
 // Línea de CALIDAD INSTITUCIONAL (banda C): dossier → evals →
 // satisfacción (engorda) → FICED (cambia de color) → hall.
@@ -2318,7 +2326,8 @@ const ciudadanos = [];
     caseta.position.set(35, 0, 14);
     scene.add(caseta);
     const cartelV = crearCartel('VENTANILLA', 'atención al ciudadano', 2.4);
-    cartelV.position.set(35, 2.8, 14);
+    cartelV.position.set(36.4, 2.45, 14);   // fuera del cilindro del tubo
+    cartelV.rotation.y = Math.PI / 2;     // mirando a la fila de la plaza
     scene.add(cartelV);
     // Fila de ciudadanos esperando turno (mirando -x, a la caseta)
     const paleta = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9];
@@ -3241,7 +3250,7 @@ const ACTOS = [
       cam: [[-44, 5, -4], [-35.5, 2, -10.5]] },
     { t0: 130, t1: 150, acto: 'Estación 03', texto: 'Módulo EDITORIAL', sub: 'contenido del portal: NoticiaBanner, productos y CalendarioDifusion',
       cam: [[-36, 5, 24], [-27.5, 2, 17.5]] },
-    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `censo y prediagnóstico: capacidad instalada de ${STATS.organismos} organismos`,
+    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `censo y prediagnóstico de ${STATS.organismos} organismos · diseñado por el DADII (Departamento de Innovación de la Alcaldía)`,
       cam: [[-32, 5, 9], [-26, 3.5, -2.5]] },
     { t0: 170, t1: 190, acto: 'Estación 05', texto: 'SALA DE JUNTAS', sub: 'el ecosistema del SIIED: organismos, fuentes y variables conectadas',
       cam: [[18, 7.5, -8], [30, 5.4, -16]] },
