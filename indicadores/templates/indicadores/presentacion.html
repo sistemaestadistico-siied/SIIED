@@ -565,7 +565,7 @@ function textoCanvas(texto, sub, color = '#1e40af', fondo = '#f8fafc') {
     }
     cx.fillText(texto, 256, 70);
     cx.font = 'italic 26px Arial, sans-serif';
-    cx.fillStyle = '#57534e';
+    cx.fillStyle = '#334155';
     cx.fillText(sub, 256, 120);
     return new THREE.CanvasTexture(cv);
 }
@@ -1080,42 +1080,42 @@ function crearMaquina(cfg) {
 // prediagnóstico; a su lado se genera el grafo 3D del ecosistema.
 const TALLER = crearMaquina({
     x: -26, z: -2.5, nombre: 'TALLER', escala: 1.55,
-    modelo: 'censo · prediagnóstico ecosistema',
+    modelo: 'censo + prediagnóstico de organismos',
     color: 0x38bdf8, tipo: 'tolva' });
 
 // Línea de CALIDAD INSTITUCIONAL (banda C): dossier → evals →
 // satisfacción (engorda) → FICED (cambia de color) → hall.
 const ESTACIONES_CAL = [
-    { x: -18, nombre: 'EVAL. ESTRATÉGICA', modelo: 'evaluación estratégica · decisiones', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
-    { x: -8,  nombre: 'SATISFACCIÓN',    modelo: 'Rapida+Completa · organismo/equipo', color: 0xa855f7, tipo: 'tolva', z: -14.7 },
-    { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'evaluación táctica · decisiones', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
-    { x: 8,   nombre: 'FICED',           modelo: 'ICEDFormulario · secciones A–E', color: 0x7c3aed, tipo: 'escaner', z: -14.7 },
-    { x: 16,  nombre: 'EVAL. ORGANISMO', modelo: 'estratégica · táctica · operativa', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
+    { x: -18, nombre: 'EVAL. ESTRATÉGICA', modelo: 'dimensión estratégica del organismo', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
+    { x: -8,  nombre: 'SATISFACCIÓN',    modelo: 'RespuestaSatisfaccion rápida+completa', color: 0xa855f7, tipo: 'tolva', z: -14.7 },
+    { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'dimensión táctica del proceso', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
+    { x: 8,   nombre: 'FICED',           modelo: 'ICEDFormulario · caracterización→ICE', color: 0x7c3aed, tipo: 'escaner', z: -14.7 },
+    { x: 16,  nombre: 'EVAL. ORGANISMO', modelo: 'veredicto integral del organismo', color: 0xf59e0b, tipo: 'eval', z: -14.7 },
 ];
 ESTACIONES_CAL.forEach(crearMaquina);
 
 // Cadena de GENERACIÓN DE DATOS (banda D2): del inventario de
 // operaciones a la difusión, con cabinas admin/reportes intermedias.
 const ESTACIONES_DAT = [
-    { x: -8.5, nombre: 'OPERACIONES',  modelo: 'acompañamiento · capacitación IOE', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
-    { x: -2,   nombre: 'CONJUNTOS',   modelo: 'ConjuntoDatos · DDI', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
-    { x: 2,    nombre: 'ADMIN',       modelo: 'módulo admin · control', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
-    { x: 6.5,  nombre: 'INDICADORES', modelo: 'Indicador · fichas', color: 0x0284c7, tipo: 'escaner', z: -0.2 },
-    { x: 11.5, nombre: 'REPORTES',    modelo: 'reportes · auditoría', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
-    { x: 15,   nombre: 'EXTRACCIÓN',  modelo: 'ReglaExtraccion → Dato', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
-    { x: 19.5, nombre: 'VALIDACIÓN',  modelo: 'ficha técnica · SDMX', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
-    { x: 24.5, nombre: 'DIFUSIÓN',    modelo: 'Grafico · CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
+    { x: -8.5, nombre: 'OPERACIONES',  modelo: 'OperacionEstadistica · acompañamiento IOE', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
+    { x: -2,   nombre: 'CONJUNTOS',   modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
+    { x: 2,    nombre: 'ADMIN',       modelo: 'RegistroCambio · trazabilidad', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
+    { x: 6.5,  nombre: 'INDICADORES', modelo: 'Indicador · metadata + fórmula', color: 0x0284c7, tipo: 'escaner', z: -0.2 },
+    { x: 11.5, nombre: 'REPORTES',    modelo: 'auditoría · reportes del sistema', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
+    { x: 15,   nombre: 'EXTRACCIÓN',  modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
+    { x: 19.5, nombre: 'VALIDACIÓN',  modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
+    { x: 24.5, nombre: 'DIFUSIÓN',    modelo: 'Grafico + CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
 ];
 ESTACIONES_DAT.forEach(crearMaquina);
 
 // Mini-maquilas de SERVICIOS: 3 líneas cortas de 2 estaciones.
 const ESTACIONES_SRV = [
-    { x: -17, z: 9.7,  nombre: 'REDACCIÓN',    modelo: 'NoticiaBanner', color: 0xef4444, tipo: 'prensa', sello: 'NEWS', escala: 0.55 },
-    { x: -11, z: 9.7,  nombre: 'PUBLICACIÓN',  modelo: 'Evento · banner', color: 0xef4444, tipo: 'lanzador', escala: 0.55 },
-    { x: -17, z: 15.7, nombre: 'EDICIÓN',      modelo: 'ProductoAcademico', color: 0x64748b, tipo: 'prensa', sello: 'DOC', escala: 0.55 },
-    { x: -11, z: 15.7, nombre: 'CLASIFICACIÓN',modelo: 'ProductoEducativo', color: 0x64748b, tipo: 'escaner', escala: 0.55 },
-    { x: -17, z: 21.7, nombre: 'PROGRAMACIÓN', modelo: 'CalendarioDifusion', color: 0xb45309, tipo: 'eval', escala: 0.55 },
-    { x: -11, z: 21.7, nombre: 'AGENDA',       modelo: 'Evento · calendario', color: 0xb45309, tipo: 'lanzador', escala: 0.55 },
+    { x: -17, z: 9.7,  nombre: 'REDACCIÓN',    modelo: 'NoticiaBanner · redacción', color: 0xef4444, tipo: 'prensa', sello: 'NEWS', escala: 0.55 },
+    { x: -11, z: 9.7,  nombre: 'PUBLICACIÓN',  modelo: 'Evento · banner público', color: 0xef4444, tipo: 'lanzador', escala: 0.55 },
+    { x: -17, z: 15.7, nombre: 'EDICIÓN',      modelo: 'ProductoAcademico · edición', color: 0x64748b, tipo: 'prensa', sello: 'DOC', escala: 0.55 },
+    { x: -11, z: 15.7, nombre: 'CLASIFICACIÓN',modelo: 'ProductoEducativo · SeccionEducativa', color: 0x64748b, tipo: 'escaner', escala: 0.55 },
+    { x: -17, z: 21.7, nombre: 'PROGRAMACIÓN', modelo: 'CalendarioDifusion · programación', color: 0xb45309, tipo: 'eval', escala: 0.55 },
+    { x: -11, z: 21.7, nombre: 'AGENDA',       modelo: 'Evento · agenda pública', color: 0xb45309, tipo: 'lanzador', escala: 0.55 },
 ];
 ESTACIONES_SRV.forEach(crearMaquina);
 
@@ -1208,11 +1208,11 @@ function crearCamion(cfg) {
     return g;
 }
 crearCamion({ x: -16.5, z: -0.8,  color: 0x38bdf8,
-              etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'origen del flujo de datos' });
+              etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'PerfilRecolector · ingesta de fuentes' });
 crearCamion({ x: -36.5, z: -10.5, color: 0xf59e0b,
-              etiqueta: 'DELEGADO ORGANISMO', sub: 'acceso del organismo' });
+              etiqueta: 'DELEGADO ORGANISMO', sub: 'registro de acceso · Organismo' });
 crearCamion({ x: -28.5, z: 17.5,  color: 0xef4444,
-              etiqueta: 'MÓDULO EDITORIAL',   sub: 'contenido y servicios' });
+              etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
 
 // Chute inclinado entre dos puntos del mundo
 function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
@@ -1329,9 +1329,9 @@ function tickAlmacenes(dt) {
         }
     });
 }
-const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'ALMACÉN OP',  modelo: 'OperacionEstadistica · IOE', tex: texOp });
-const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'BaseCatalogo · consulta (no KPI)', tex: texCat });
-const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'INVENTARIO ICE', modelo: 'expedientes de organismos', tex: texICE });
+const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'ALMACÉN OP',  modelo: 'OperacionEstadistica · ciclo IOE', tex: texOp });
+const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'CatalogoConsulta · dominio y tema', tex: texCat });
+const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'INVENTARIO ICE', modelo: 'Organismo + ICED · hojas de vida', tex: texICE });
 const Z_SRV = [12, 18, 24];
 const almSrv = Z_SRV.map((z, i) => crearAlmacen({
     x: -5.2, z, cols: 2, rows: 2,
@@ -2654,76 +2654,76 @@ const ACTOS = [
     // ======= PARTE A: PANEON — 90s de vuelo continuo =======
     { t0: 0,   t1: 9,   acto: '', texto: '', sub: '', pan: true,
       cam: [[0, 30, 55], [0, 5, -4]] },
-    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Camiones de acceso', sub: 'delegado alimenta calidad · editorial alimenta servicios', pan: true,
+    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Módulos de acceso', sub: 'el Delegado registra organismos · Editorial carga contenido', pan: true,
       cam: [[-46, 9, -4], [-30, 3.5, 14]] },
-    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller', sub: 'censo, prediagnóstico y el ecosistema 3D que genera', pan: true,
+    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El Taller', sub: 'censo y prediagnóstico: el sistema releva la capacidad de cada organismo', pan: true,
       cam: [[-34, 8, 12], [-26, 4, -3]] },
-    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'La cadena de datos', sub: 'operaciones → conjuntos → indicadores → difusión', pan: true,
+    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'La cadena de datos', sub: 'OperacionEstadistica → ConjuntoDatos → Indicador → Grafico', pan: true,
       cam: [[-14, 7, 14], [9, 2.5, 4]] },
-    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'El nodo T', sub: 'un ramal se desvía al catálogo de consulta', pan: true,
+    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'El nodo T', sub: 'los conjuntos también alimentan el catálogo público', pan: true,
       cam: [[-10, 8, 16], [-2, 2.5, 12]] },
-    { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Almacén de indicadores', sub: 'la producción inventariada en un bar chart', pan: true,
+    { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Almacén de indicadores', sub: 'cada indicador validado entra al inventario del sistema', pan: true,
       cam: [[20, 7, 13], [32.5, 3, 2.5]] },
-    { t0: 54,  t1: 63,  acto: 'Paneo', texto: 'La pared y la audiencia', sub: '36 televisores consumen todo — la ciudadanía mira', pan: true,
+    { t0: 54,  t1: 63,  acto: 'Paneo', texto: 'La salida pública', sub: 'todos los módulos alimentan la visualización ciudadana', pan: true,
       cam: [[26, 7, 17], [38.5, 3, 7]] },
-    { t0: 63,  t1: 72,  acto: 'Paneo', texto: 'Calidad institucional', sub: 'evaluaciones, satisfacción y el FICED', pan: true,
+    { t0: 63,  t1: 72,  acto: 'Paneo', texto: 'Medición de capacidad', sub: 'evaluaciones + RespuestaSatisfaccion + ICEDFormulario', pan: true,
       cam: [[-26, 8, -15], [4, 3.5, -15]] },
-    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'El HALL: inventario y decisión', sub: 'hojas de vida y la sala de juntas con su grafo', pan: true,
+    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'El HALL: inventario y decisión', sub: 'expediente ICE y el consejo que decide la capacidad', pan: true,
       cam: [[8, 7, -4], [29, 4, -14]] },
-    { t0: 81,  t1: 90,  acto: 'Paneo', texto: 'Todo conecta', sub: 'del camión al televisor: el ciclo completo', pan: true,
+    { t0: 81,  t1: 90,  acto: 'Paneo', texto: 'Todo conecta', sub: 'de la fuente cruda al gráfico público: el pipeline del SIIED', pan: true,
       cam: [[0, 22, 40], [0, 4, -2]] },
     // ======= PARTE B: RECORRIDO — 20s por estación =======
-    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Módulo RECOLECCIÓN', sub: 'el origen del flujo: el camión descarga en la tolva de OPERACIONES',
+    { t0: 90,  t1: 110, acto: 'Estación 01', texto: 'Módulo RECOLECCIÓN', sub: 'PerfilRecolector: las fuentes crudas entran por ingesta',
       cam: [[-22, 4.5, 4], [-13, 2.2, -0.6]] },
-    { t0: 110, t1: 130, acto: 'Estación 02', texto: 'Muelle DELEGADO', sub: 'el organismo entrega su dossier: arranca la línea de calidad',
+    { t0: 110, t1: 130, acto: 'Estación 02', texto: 'Módulo DELEGADO', sub: 'acceso del organismo: el Delegado entrega su dossier institucional',
       cam: [[-44, 5, -4], [-35.5, 2, -10.5]] },
-    { t0: 130, t1: 150, acto: 'Estación 03', texto: 'Muelle EDITORIAL', sub: 'contenido de servicios: noticias, documentos y agenda',
+    { t0: 130, t1: 150, acto: 'Estación 03', texto: 'Módulo EDITORIAL', sub: 'contenido del portal: NoticiaBanner, productos y CalendarioDifusion',
       cam: [[-36, 5, 24], [-27.5, 2, 17.5]] },
-    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `censo y prediagnóstico de ${STATS.organismos} organismos — aporta al flujo por banda y chute`,
+    { t0: 150, t1: 170, acto: 'Estación 04', texto: 'EL TALLER', sub: `censo y prediagnóstico: capacidad instalada de ${STATS.organismos} organismos`,
       cam: [[-32, 5, 9], [-26, 3.5, -2.5]] },
-    { t0: 170, t1: 190, acto: 'Estación 05', texto: 'SALA DE JUNTAS', sub: 'el consejo analiza el ecosistema 3D al final de la línea de calidad',
+    { t0: 170, t1: 190, acto: 'Estación 05', texto: 'SALA DE JUNTAS', sub: 'el ecosistema del SIIED: organismos, fuentes y variables conectadas',
       cam: [[18, 7.5, -8], [30, 5.4, -16]] },
-    { t0: 190, t1: 210, acto: 'Estación 06', texto: 'Almacén de operaciones', sub: 'acompañamiento y capacitación: las fuentes se vuelven operaciones',
+    { t0: 190, t1: 210, acto: 'Estación 06', texto: 'Almacén de operaciones', sub: 'cada fuente acompañada se vuelve OperacionEstadistica',
       cam: [[-17, 5, 13], [-10.5, 2.8, 7]] },
-    { t0: 210, t1: 230, acto: 'Estación 07', texto: 'Conjuntos y nodo T', sub: 'la prensa agrupa conjuntos; el ramal T parte al catálogo',
+    { t0: 210, t1: 230, acto: 'Estación 07', texto: 'Conjuntos y nodo T', sub: 'ConjuntoDatos agrupa series; un ramal va al catálogo de consulta',
       cam: [[-8, 5.5, 13], [-2, 2.5, 4]] },
-    { t0: 230, t1: 250, acto: 'Estación 08', texto: 'Catálogo de consulta', sub: 'datos consultables que no son KPI — inventario propio',
+    { t0: 230, t1: 250, acto: 'Estación 08', texto: 'Catálogo de consulta', sub: 'CatalogoConsulta: datos navegables por dominio y tema',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
-    { t0: 250, t1: 270, acto: 'Estación 09', texto: 'ADMIN', sub: 'cabina de control intermedia — audita el paso de fichas',
+    { t0: 250, t1: 270, acto: 'Estación 09', texto: 'ADMIN', sub: 'RegistroCambio: trazabilidad total de cada paso del dato',
       cam: [[2, 4.5, 11], [2, 2.2, -0.2]] },
-    { t0: 270, t1: 290, acto: 'Estación 10', texto: 'INDICADORES', sub: 'el conjunto se repica en fichas de indicador',
+    { t0: 270, t1: 290, acto: 'Estación 10', texto: 'INDICADORES', sub: 'metadata completa: objetivo, método, fórmula y variables',
       cam: [[6.5, 4.5, 11], [6.5, 2.2, -0.2]] },
-    { t0: 290, t1: 310, acto: 'Estación 11', texto: 'REPORTES', sub: 'auditoría del dato — sus reportes vuelan a la sala de juntas',
+    { t0: 290, t1: 310, acto: 'Estación 11', texto: 'REPORTES', sub: 'auditoría del dato: los reportes alimentan la decisión en la sala',
       cam: [[11.5, 4.5, 11], [11.5, 2.2, -0.2]] },
-    { t0: 310, t1: 330, acto: 'Estación 12', texto: 'EXTRACCIÓN', sub: 'ReglaExtraccion → Dato: se separa lo publicable',
+    { t0: 310, t1: 330, acto: 'Estación 12', texto: 'EXTRACCIÓN', sub: 'ReglaExtraccion: convierte series en datos publicables',
       cam: [[15, 4.5, 11], [15, 2.2, -0.2]] },
-    { t0: 330, t1: 350, acto: 'Estación 13', texto: 'VALIDACIÓN', sub: 'sello SDMX: la ficha técnica queda validada',
+    { t0: 330, t1: 350, acto: 'Estación 13', texto: 'VALIDACIÓN', sub: 'FichaTecnica SDMX: el estándar valida cada indicador',
       cam: [[19.5, 4.5, 11], [19.5, 2.2, -0.2]] },
-    { t0: 350, t1: 370, acto: 'Estación 14', texto: 'DIFUSIÓN', sub: 'gráficos y calendario de difusión — el lanzador despacha',
+    { t0: 350, t1: 370, acto: 'Estación 14', texto: 'DIFUSIÓN', sub: 'Grafico + CalendarioDifusion: publicación programada',
       cam: [[24.5, 5, 11], [24.5, 2.5, -0.2]] },
-    { t0: 370, t1: 390, acto: 'Estación 15', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos — el bar chart se llena`,
+    { t0: 370, t1: 390, acto: 'Estación 15', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos en el sistema`,
       cam: [[24, 5, 12], [32.5, 3, 2.5]] },
-    { t0: 390, t1: 410, acto: 'Estación 16', texto: 'La pared de pantallas', sub: 'el destino final de TODO: 36 televisores de gráficos',
+    { t0: 390, t1: 410, acto: 'Estación 16', texto: 'La pared de pantallas', sub: 'la vitrina pública: todos los flujos terminan aquí',
       cam: [[27, 5.5, 15], [38.5, 3, 7]] },
-    { t0: 410, t1: 430, acto: 'Estación 17', texto: 'La audiencia', sub: 'la ciudadanía consume la pared y opina por tubo neumático',
+    { t0: 410, t1: 430, acto: 'Estación 17', texto: 'La audiencia', sub: 'PageVisit + encuestas: la ciudadanía consume y retroalimenta',
       cam: [[24, 5.5, 14], [33, 2, 7.5]] },
-    { t0: 430, t1: 450, acto: 'Estación 18', texto: 'Evaluación estratégica', sub: 'primera cabina: el dossier del organismo se frena y audita',
+    { t0: 430, t1: 450, acto: 'Estación 18', texto: 'Evaluación estratégica', sub: 'dimensión estratégica: capacidad de decisión del organismo',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
-    { t0: 450, t1: 470, acto: 'Estación 19', texto: 'SATISFACCIÓN', sub: 'las encuestas engordan el dossier — la ciudadanía pesa',
+    { t0: 450, t1: 470, acto: 'Estación 19', texto: 'SATISFACCIÓN', sub: 'RespuestaSatisfaccion rápida y completa engordan el expediente',
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
-    { t0: 470, t1: 490, acto: 'Estación 20', texto: 'Evaluación táctica', sub: 'segunda cabina de auditoría del proceso',
+    { t0: 470, t1: 490, acto: 'Estación 20', texto: 'Evaluación táctica', sub: 'dimensión táctica: la operación del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
-    { t0: 490, t1: 510, acto: 'Estación 21', texto: 'FICED', sub: 'sus resultados llenan el tablero dentro de la sala de juntas',
+    { t0: 490, t1: 510, acto: 'Estación 21', texto: 'FICED', sub: 'ICEDFormulario en 5 secciones: caracterización→RRHH→procesos→ICE',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
-    { t0: 510, t1: 530, acto: 'Estación 22', texto: 'Evaluación de organismo', sub: 'veredicto estratégico + táctico + operativo',
+    { t0: 510, t1: 530, acto: 'Estación 22', texto: 'Evaluación de organismo', sub: 'veredicto integral: estratégica + táctica + operativa',
       cam: [[16, 5, -5], [16, 2.5, -14.7]] },
-    { t0: 530, t1: 550, acto: 'Estación 23', texto: 'El complejo HALL', sub: 'inventario + muro de hojas de vida + sala de juntas con el grafo',
+    { t0: 530, t1: 550, acto: 'Estación 23', texto: 'El complejo HALL', sub: 'expediente ICE + hojas de vida + tablero: aquí se decide la capacidad',
       cam: [[18, 6.5, -5], [29, 3.5, -13]] },
-    { t0: 550, t1: 570, acto: 'Estación 24', texto: 'Mini-maquila editorial', sub: 'redacción → publicación: noticias y eventos',
+    { t0: 550, t1: 570, acto: 'Estación 24', texto: 'Línea editorial', sub: 'NoticiaBanner + Evento: del borrador a la portada',
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
-    { t0: 570, t1: 590, acto: 'Estación 25', texto: 'Mini-maquila documentos', sub: 'edición → clasificación: productos académicos y educativos',
+    { t0: 570, t1: 590, acto: 'Estación 25', texto: 'Línea de aprendizaje', sub: 'ProductoAcademico + ProductoEducativo: contenido formativo',
       cam: [[-14, 4, 24], [-14, 1.5, 18]] },
-    { t0: 590, t1: 610, acto: 'Estación 26', texto: 'Mini-maquila agenda', sub: 'programación → agenda: calendario de difusión',
+    { t0: 590, t1: 610, acto: 'Estación 26', texto: 'Línea de agenda', sub: 'CalendarioDifusion + Evento: agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
     { t0: 610, t1: 640, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
       cam: [[0, 18, 38], [0, 3, -4]], finale: true },
