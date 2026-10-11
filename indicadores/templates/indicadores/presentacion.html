@@ -545,7 +545,7 @@ function sellar(f, color = 0xf59e0b) {
 const texDeleg  = texturaPaquete('DELEG.',  '#c2410c');
 const texCenso  = texturaPaquete('CENSO',   '#0369a1');
 const texOrg    = texturaPaquete('ORG',     '#b45309');
-const texICE    = texturaPaquete('ICE ✓',   '#16a34a');
+const texICE    = texturaPaquete('ICED ✓',  '#16a34a');
 const texFuente = texturaPaquete('FUENTE',  '#8a6d3b');
 const texOp     = texturaPaquete('OP',      '#2563eb');
 const texCjto   = texturaPaquete('CJTO',    '#1d4ed8');
@@ -1775,7 +1775,7 @@ function tickAlmacenes(dt) {
 }
 const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'ALMACÉN OP',  modelo: 'OperacionEstadistica · ciclo IOE', tex: texOp });
 const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'CatalogoConsulta · dominio y tema', tex: texCat });
-const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'INVENTARIO ICE', modelo: 'Organismo + ICED · hojas de vida', tex: texICE });
+const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'INVENTARIO ICED', modelo: 'Organismo + ICED · hojas de vida', tex: texICE });
 const Z_SRV = [12, 18, 24];
 const almSrv = Z_SRV.map((z, i) => crearAlmacen({
     x: -5.2, z, cols: 2, rows: 2,
@@ -2312,7 +2312,7 @@ const grafo = new THREE.Group();
     const vitrina = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.6, 6.0),
         new THREE.MeshLambertMaterial({ color: 0xeef2f6 }));
     vitrina.position.set(-4.4, 6.0, 0); junta.add(vitrina);
-    const texPlaca = textoCanvas('ORGANISMO', 'ICE · hoja de vida', '#7c3aed');
+    const texPlaca = textoCanvas('ORGANISMO', 'ICED · hoja de vida', '#7c3aed');
     const placaGeom = new THREE.PlaneGeometry(1.5, 0.47);
     const placaMat = new THREE.MeshBasicMaterial({ map: texPlaca });
     for (let r = 0; r < 3; r++) {
@@ -2323,14 +2323,14 @@ const grafo = new THREE.Group();
             junta.add(p);
         }
     }
-    const cabV = crearCartel('HALL DE CAPACIDAD', 'hojas de vida de organismos', 2.6);
+    const cabV = crearCartel('EXPEDIENTES ICED', 'hojas de vida de organismos', 2.6);
     cabV.position.set(-4.28, 7.05, 0); cabV.rotation.y = Math.PI / 2;
     junta.add(cabV);
     // (los televisores de la pared este se montan más abajo,
     // después de crear las texturas de gráficos)
     junta.position.set(30, 0, -16.5);
     scene.add(junta);
-    const cartelJ = crearCartel('CAPA ESTRATÉGICA', 'planeación · dadii · datic · cdo', 3.0);
+    const cartelJ = crearCartel('EVALUACIÓN ESTRATÉGICA', 'expedientes ICED · consejo del equipo técnico', 3.0);
     cartelJ.position.set(30, 4.2, -12.5);
     scene.add(cartelJ);
 }
@@ -2349,7 +2349,7 @@ const ficedBarras = [];
     const cab = crearCartel('FICED', 'tablero de capacidad', 2.0);
     cab.position.set(30, 7.08, -19.48);
     scene.add(cab);
-    const secciones = ['CARACT.', 'RR.HH.', 'PROCESOS', 'PROCED.', 'ICE'];
+    const secciones = ['CARACT.', 'RR.HH.', 'PROCESOS', 'PROCED.', 'ICED'];
     for (let i = 0; i < secciones.length; i++) {
         const etq = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.3),
             new THREE.MeshBasicMaterial({
@@ -3573,14 +3573,14 @@ const ACTOS = [
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
     { t0: 326, t1: 338, acto: 'Estación 17', texto: 'EVAL. TÁCTICA', sub: 'dimensión táctica: la operación del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
-    { t0: 338, t1: 350, acto: 'Estación 18', texto: 'FICED', sub: 'ICEDFormulario en 5 secciones: caracterización→RRHH→procesos→ICE',
+    { t0: 338, t1: 350, acto: 'Estación 18', texto: 'FICED', sub: 'ICEDFormulario en 5 secciones: caracterización→RRHH→procesos→ICED',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
     { t0: 350, t1: 362, acto: 'Estación 19', texto: 'EVAL. ORGANISMO', sub: 'veredicto integral: estratégica + táctica + operativa',
       cam: [[16, 5, -5], [16, 2.5, -14.7]] },
-    { t0: 362, t1: 374, acto: 'Estación 20', texto: 'El complejo HALL', sub: 'expediente ICE + vitrina de hojas de vida: aquí se decide la capacidad',
+    { t0: 362, t1: 374, acto: 'Estación 20', texto: 'Complejo de capacidad', sub: 'expediente ICED + vitrina de hojas de vida: aquí se decide la capacidad',
       cam: [[18, 6.5, -4], [29, 3.5, -11]] },
     // ======= F: SALAS DE GOBIERNO — la cámara ENTRA y GIRA =======
-    { t0: 374, t1: 380, acto: 'Sala', texto: 'Junta del HALL', sub: 'el consejo de don Daticos deliberando — la cámara entra', pan: true,
+    { t0: 374, t1: 380, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el consejo de don Daticos deliberando — la cámara entra', pan: true,
       cam: [[30, 5.9, -16.5], [24, 5.5, -16.5]] },
     { t0: 380, t1: 384, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [30, 6, -20]] },
@@ -3588,7 +3588,7 @@ const ACTOS = [
       cam: [[30, 5.9, -16.5], [36, 5.5, -16.5]] },
     { t0: 388, t1: 392, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [30, 5.5, -13]] },
-    { t0: 392, t1: 398, acto: 'Sala', texto: 'Junta del HALL', sub: 'grafo del ecosistema + TVs + vitrina: y la cámara sale', pan: true,
+    { t0: 392, t1: 398, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'grafo del ecosistema + TVs + vitrina: y la cámara sale', pan: true,
       cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // sale por el sur: vidrio (los TVs de la pared este darían la espalda)
     { t0: 398, t1: 404, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan — la cámara entra', pan: true,
       cam: [[52, 2.3, -14], [45.5, 2, -14]] },
