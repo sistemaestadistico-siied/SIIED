@@ -1220,13 +1220,13 @@ ESTACIONES_CAL.forEach(crearMaquina);
 // operaciones a la difusión, con cabinas admin/reportes intermedias.
 const ESTACIONES_DAT = [
     { x: -8.5, nombre: 'INV. OPERACIONES', modelo: 'OperacionEstadistica · acompañamiento IOE', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
-    { x: -2,   nombre: 'CONJUNTO DATOS', modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
-    { x: 2,    nombre: 'ADMIN SIIED',   modelo: 'RegistroCambio · trazabilidad', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
+    { x: -3.5, nombre: 'CONJUNTO DATOS', modelo: 'ConjuntoDatos · series por dominio', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
+    { x: 1.5,  nombre: 'ADMIN SIIED',   modelo: 'RegistroCambio · trazabilidad', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
     { x: 6.5,  nombre: 'INDICADORES', modelo: 'Indicador · metadata + fórmula', color: 0x0284c7, tipo: 'escaner', z: -0.2 },
     { x: 11.5, nombre: 'REPORTES',    modelo: 'auditoría · reportes del sistema', color: 0xf59e0b, tipo: 'eval', z: -0.2 },
-    { x: 15,   nombre: 'EXTRACCIÓN',  modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
-    { x: 19.5, nombre: 'FICHA TÉCNICA', modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
-    { x: 24.5, nombre: 'DIFUSIÓN EST.', modelo: 'Grafico + CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
+    { x: 16.5, nombre: 'EXTRACCIÓN',  modelo: 'ReglaExtraccion → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
+    { x: 21.5, nombre: 'FICHA TÉCNICA', modelo: 'FichaTecnica SDMX · validada', color: 0x6366f1, tipo: 'prensa', sello: 'SDMX', z: -0.2 },
+    { x: 26.5, nombre: 'DIFUSIÓN EST.', modelo: 'Grafico + CalendarioDifusion', color: 0x8b5cf6, tipo: 'lanzador', z: -0.2 },
 ];
 ESTACIONES_DAT.forEach(crearMaquina);
 
@@ -1804,7 +1804,7 @@ function tickFamD2(f, dt) {
         return;
     }
     const x = f.mesh.position.x;
-    if (!f.pasadas.has('conj') && x > -2) {
+    if (!f.pasadas.has('conj') && x > -3.5) {
         f.pasadas.add('conj');
         if (f.extra.desvio === undefined) f.extra.desvio = Math.random() < 0.42;
         if (f.extra.desvio) {
@@ -1815,7 +1815,7 @@ function tickFamD2(f, dt) {
         disparo('CONJUNTO DATOS');
         return;
     }
-    if (!f.pasadas.has('adm') && x > 2) {
+    if (!f.pasadas.has('adm') && x > 1.5) {
         f.pasadas.add('adm'); f.estado = 'eval'; f.tPausa = 0;
         sellar(f); disparo('ADMIN SIIED', 0.8); return;
     }
@@ -1827,14 +1827,14 @@ function tickFamD2(f, dt) {
         f.pasadas.add('rep'); f.estado = 'eval'; f.tPausa = 0;
         sellar(f); disparo('REPORTES', 0.8); return;
     }
-    if (!f.pasadas.has('ext') && x > 15) {
+    if (!f.pasadas.has('ext') && x > 16.5) {
         f.pasadas.add('ext'); f.mesh.scale.setScalar(0.24);
         ponerTex(f, texMiniD); disparo('EXTRACCIÓN');
     }
-    if (!f.pasadas.has('val') && x > 19.5) {
+    if (!f.pasadas.has('val') && x > 21.5) {
         f.pasadas.add('val'); ponerTex(f, texOkInd); disparo('FICHA TÉCNICA');
     }
-    if (!f.pasadas.has('dif') && x > 24.5) {
+    if (!f.pasadas.has('dif') && x > 26.5) {
         f.pasadas.add('dif'); f.mesh.scale.setScalar(0.28);
         ponerTex(f, texDif); disparo('DIFUSIÓN EST.');
     }
@@ -3264,22 +3264,22 @@ const ACTOS = [
     { t0: 190, t1: 210, acto: 'Estación 06', texto: 'Almacén de operaciones', sub: 'cada fuente acompañada se vuelve OperacionEstadistica',
       cam: [[-17, 5, 13], [-10.5, 2.8, 7]] },
     { t0: 210, t1: 230, acto: 'Estación 07', texto: 'Conjuntos y nodo T', sub: 'ConjuntoDatos agrupa series; un ramal va al catálogo de consulta',
-      cam: [[-8, 5.5, 13], [-2, 2.5, 4]] },
+      cam: [[-8, 5.5, 13], [-3.5, 2.5, 4]] },
     { t0: 230, t1: 250, acto: 'Estación 08', texto: 'Catálogo de consulta', sub: 'CatalogoConsulta: datos navegables por dominio y tema',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
-    { t0: 250, t1: 270, acto: 'Estación 09', texto: 'ADMIN', sub: 'RegistroCambio: trazabilidad total de cada paso del dato',
-      cam: [[2, 4.5, 11], [2, 2.2, -0.2]] },
+    { t0: 250, t1: 270, acto: 'Estación 09', texto: 'ADMIN SIIED', sub: 'RegistroCambio: trazabilidad total de cada paso del dato',
+      cam: [[1.5, 4.5, 11], [1.5, 2.2, -0.2]] },
     { t0: 270, t1: 290, acto: 'Estación 10', texto: 'INDICADORES', sub: 'metadata completa: objetivo, método, fórmula y variables',
       cam: [[6.5, 4.5, 11], [6.5, 2.2, -0.2]] },
     { t0: 290, t1: 310, acto: 'Estación 11', texto: 'REPORTES', sub: 'auditoría del dato: los reportes alimentan la decisión en la sala',
       cam: [[11.5, 4.5, 11], [11.5, 2.2, -0.2]] },
     { t0: 310, t1: 330, acto: 'Estación 12', texto: 'EXTRACCIÓN', sub: 'ReglaExtraccion: convierte series en datos publicables',
-      cam: [[15, 4.5, 11], [15, 2.2, -0.2]] },
-    { t0: 330, t1: 350, acto: 'Estación 13', texto: 'VALIDACIÓN', sub: 'FichaTecnica SDMX: el estándar valida cada indicador',
-      cam: [[19.5, 4.5, 11], [19.5, 2.2, -0.2]] },
-    { t0: 350, t1: 370, acto: 'Estación 14', texto: 'DIFUSIÓN', sub: 'Grafico + CalendarioDifusion: publicación programada',
-      cam: [[24.5, 5, 11], [24.5, 2.5, -0.2]] },
-    { t0: 370, t1: 390, acto: 'Estación 15', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos en el sistema`,
+      cam: [[16.5, 4.5, 11], [16.5, 2.2, -0.2]] },
+    { t0: 330, t1: 350, acto: 'Estación 13', texto: 'FICHA TÉCNICA', sub: 'FichaTecnica SDMX: el estándar valida cada indicador',
+      cam: [[21.5, 4.5, 11], [21.5, 2.2, -0.2]] },
+    { t0: 350, t1: 370, acto: 'Estación 14', texto: 'DIFUSIÓN EST.', sub: 'Grafico + CalendarioDifusion: publicación programada',
+      cam: [[26.5, 5, 11], [26.5, 2.5, -0.2]] },
+    { t0: 370, t1: 390, acto: 'Estación 15', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores: ODS · Cali en Cifras · dominios del comité`,
       cam: [[24, 5, 12], [32.5, 3, 2.5]] },
     { t0: 390, t1: 410, acto: 'Estación 16', texto: 'La pared de pantallas', sub: 'la vitrina pública: todos los flujos terminan aquí',
       cam: [[50, 6, 14], [38.6, 3, 7]] },
