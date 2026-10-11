@@ -2472,193 +2472,215 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     donDatico.position.set(-30, 20, -45); // Cerca de las montañas, volando alto
     scene.add(donDatico);
 
-    // ======== POSTPROCESO DE CLIPS PARA VUELO ========
-    // Rig: piernas Thigh/Calf/Foot/ToeBase · alas (brazos)
-    // Clavicle/Upperarm/Forearm (+ twists). Los clips están
-    // horneados con tra/rot/sca por hueso.
-    const HUESOS_PIERNA = /^(L|R)_(Thigh|Calf|Foot|ToeBase)/;
-    const HUESOS_ALA    = /^(L|R)_(Clavicle|Upperarm|Forearm)/;
-
-    // Congela una pista en su primera llave (pierna quieta)
-    const pistaCongelada = trk => {
-        const n = trk.getValueSize();
-        return new trk.constructor(trk.name, [0],
-            Array.from(trk.values.slice(0, n)));
-    };
-    // Repite la pista N veces dentro de la misma duración
-    // (las alas baten más rápido que el cuerpo)
-    const pistaAcelerada = (trk, dur, veces) => {
-        const tramo = dur / veces;
-        const ts = [], vs = [];
-        for (let c = 0; c < veces; c++) {
-            for (let i = 0; i < trk.times.length; i++)
-                ts.push(trk.times[i] / veces + c * tramo);
-            for (let i = 0; i < trk.values.length; i++)
-                vs.push(trk.values[i]);
-        }
-        return new trk.constructor(trk.name, ts, vs);
-    };
-    // Invierte el tiempo de una pista: en el nado las alas
-    // van de abajo hacia arriba; el vuelo baten al revés
-    const pistaEnReversa = (trk, dur) => {
-        const n = trk.times.length, vsz = trk.getValueSize();
-        const ts = [], vs = [];
-        for (let i = 0; i < n; i++) {
-            const orig = n - 1 - i;
-            ts.push(dur - trk.times[orig]);
-            const base = orig * vsz;
-            for (let j = 0; j < vsz; j++) vs.push(trk.values[base + j]);
-        }
-        return new trk.constructor(trk.name, ts, vs);
-    };
-
-    // Vuelo estacionario (del nado boca abajo): piernas
-    // quietas extendidas atrás, alas batiendo x3
-    const clipVueloEstatico = clip => new THREE.AnimationClip(
-        clip.name + '_hover', clip.duration,
-        clip.tracks.map(trk => {
-            const hueso = trk.name.split('.')[0];
-            if (HUESOS_PIERNA.test(hueso)) return pistaCongelada(trk);
-            if (HUESOS_ALA.test(hueso))
-                // La batida del nado en reversa se lee como
-                // alas que empujan el aire hacia abajo
-                return pistaAcelerada(
-                    pistaEnReversa(trk, clip.duration),
-                    clip.duration, 3);
-            return trk;
-        }));
-    // ======== BATIDA PROCEDURAL (vuelo en movimiento) ========
-    // De las flexiones solo se usa el torso boca abajo, congelado
-    // como planeo. Las pistas de brazos se BORRAN y el ala se
-    // sintetiza: extendida en envergadura y batiendo alrededor de
-    // un eje común (horizontal, perpendicular a la envergadura),
-    // con retardo de fase en cadena — la punta va tras el hombro.
+    // ======== VUELO SINTÉTICO SOBRE EL RIG DEL GLB ========
+    // Medido en el GLB (rig humanoide horneado, 4 clips):
+    // - el bind NO es T-pose: brazos en A colgando adelante-abajo
+    // - el nado (clip 0) es brazada bajo el pecho: la punta nunca
+    //   pasa del hombro, el codo se pliega a la mitad, L/R alternan
+    //   y las piernas quedan abiertas en rana
+    // - las flexiones (clip 3) dejan los brazos bajo el pecho y el
+    //   torso rebotando
+    // De los clips solo se toma el cuerpo boca abajo de las
+    // flexiones, congelado; las alas se sintetizan extendidas.
     const HUESOS_ALA_VUELO = /^(L|R)_(Clavicle|Upperarm|Forearm|Hand)/;
-    // La batida sale del hombro; codo y mano solo acompañan con
-    // retraso (el ala se mantiene extendida). Sesgo > 0 = arriba.
-    const AMPL_ALA  = { Clavicle: 0.12, Upperarm: 0.7,
-                        Forearm: 0.18, Hand: 0.15 };
-    const FASE_ALA  = { Clavicle: 0, Upperarm: 0,
-                        Forearm: -0.7, Hand: -1.3 };
-    const SESGO_ALA = { Clavicle: 0.05, Upperarm: 0,
-                        Forearm: 0, Hand: 0 };
+    const T_POSE_VUELO = 0.25;
+    const CABECEO_HOVER = 0.6;    // rad extra: cuerpo erguido al flotar
 
-    // Pistas quaternion de batida: N batidas por ciclo de clip
-    const sintetizarAlas = (huesosAlaMap, dur, veces = 3) => {
-        const tracks = [];
-        const N = 12 * veces;
-        const q = new THREE.Quaternion();
-        for (const [hueso, info] of Object.entries(huesosAlaMap)) {
-            const seg = hueso.split('_')[1];
-            const ts = [], vs = [];
-            for (let k = 0; k <= N; k++) {
-                const ang = SESGO_ALA[seg] + AMPL_ALA[seg] *
-                    Math.sin(Math.PI * 2 * veces * k / N + FASE_ALA[seg]);
-                q.setFromAxisAngle(info.ejeLocal, ang).multiply(info.baseLocal);
-                ts.push(k / N * dur);
-                vs.push(q.x, q.y, q.z, q.w);
-            }
-            tracks.push(new THREE.QuaternionKeyframeTrack(
-                hueso + '.quaternion', ts, vs));
+    // Perfil de batida por régimen (rad por hueso):
+    //  aleteo  arriba/abajo · barrido adelante (bajada)/atrás
+    //  pliegue recogida del ala en la subida · fase retardo
+    //  bajada  fracción del ciclo que dura la bajada
+    //  rebote  subida del cuerpo con cada bajada (unidades GLB)
+    const PERFIL_VUELO = {
+        crucero: {
+            aleteo:  { Clavicle: 0.12, Upperarm: 0.7, Forearm: 0.18, Hand: 0.15 },
+            fase:    { Forearm: -0.7, Hand: -1.3 },
+            sesgo:   { Clavicle: 0.05 },
+            barrido: {}, pliegue: {},
+            bajada: 0.5, rebote: 0
+        },
+        estacionario: {
+            aleteo:  { Clavicle: 0.1, Upperarm: 0.75, Forearm: 0.1, Hand: 0.1 },
+            fase:    { Forearm: -0.5, Hand: -0.9 },
+            sesgo:   { Clavicle: 0.04, Upperarm: 0.05 },
+            barrido: { Upperarm: 0.45 },
+            pliegue: { Forearm: 0.45, Hand: 0.35 },
+            bajada: 0.42, rebote: 0.015
         }
-        return tracks;
     };
 
-    // Pista fija en la pose del instante t: el torso de las
-    // flexiones sube y baja; congelado queda de planeo
-    const T_POSE_VUELO = 0.25;
+    const nombreHueso = trk => trk.name.split('.')[0];
+    // Pista fija en la pose del instante t
     const pistaEnPose = (trk, t) => {
         const v = trk.createInterpolant().evaluate(t);
         return new trk.constructor(trk.name, [0], Array.from(v));
     };
+    // Cuerpo de planeo: pose congelada del clip, sin brazos
+    const pistasCuerpo = clip => clip.tracks
+        .filter(trk => !HUESOS_ALA_VUELO.test(nombreHueso(trk)))
+        .map(trk => pistaEnPose(trk, clip.duration * T_POSE_VUELO));
 
-    // Clip de vuelo: cuerpo de planeo congelado + batida sintética
-    const clipVueloMovimiento = (clip, tracksAlas) => new THREE.AnimationClip(
-        clip.name + '_flap', clip.duration,
-        clip.tracks.filter(trk =>
-            !HUESOS_ALA_VUELO.test(trk.name.split('.')[0]))
-            .map(trk => pistaEnPose(trk, clip.duration * T_POSE_VUELO))
-            .concat(tracksAlas));
+    // Fase de batida 0..2π con bajada (0..π) más corta o larga
+    const faseBatida = (u, bajada) => u < bajada
+        ? Math.PI * u / bajada
+        : Math.PI + Math.PI * (u - bajada) / (1 - bajada);
+
+    // Rota un hueso en mundo (qW) conservando la jerarquía
+    const qPadre = new THREE.Quaternion(), qPadreInv = new THREE.Quaternion();
+    const rotarEnMundo = (b, qW) => {
+        b.parent.getWorldQuaternion(qPadre);
+        qPadreInv.copy(qPadre).invert();
+        b.quaternion.premultiply(qPadre).premultiply(qW).premultiply(qPadreInv);
+        b.updateMatrixWorld(true);
+    };
+    const aLocal = (b, vMundo) => {
+        b.parent.getWorldQuaternion(qPadre);
+        return vMundo.clone().applyQuaternion(qPadre.invert()).normalize();
+    };
+
+    // Pose de vuelo: cuerpo congelado (+cabeceo), ala extendida en
+    // envergadura lateral con diedro y ejes de batida por hueso
+    //  ejeAleteo  = D × up  (ángulo > 0: punta arriba)
+    //  ejeBarrido = ±up     (ángulo > 0: punta adelante)
+    function calcularPoseVuelo(modelo, clip, bindAlas, cabeceo) {
+        for (const [n, q] of Object.entries(bindAlas))
+            modelo.getObjectByName(n).quaternion.copy(q);
+        const mixer = new THREE.AnimationMixer(modelo);
+        const accion = mixer.clipAction(new THREE.AnimationClip(
+            'pose', clip.duration, pistasCuerpo(clip)));
+        accion.play();
+        mixer.update(0);
+        modelo.updateMatrixWorld(true);
+
+        const vUp = new THREE.Vector3(0, 1, 0);
+        const pos = n => {
+            const b = modelo.getObjectByName(n);
+            return b ? b.getWorldPosition(new THREE.Vector3()) : null;
+        };
+        const pHip = pos('Hip'), pHead = pos('Head');
+        const vFrente = (pHip && pHead)
+            ? pHead.clone().sub(pHip).setY(0).normalize()
+            : new THREE.Vector3(1, 0, 0);
+        const vLado = new THREE.Vector3().crossVectors(vFrente, vUp).normalize();
+
+        const pose = { huesosAla: {}, hipQuat: null, hipPos: null, reboteLocal: null };
+        const hip = modelo.getObjectByName('Hip');
+        if (hip && hip.parent) {
+            // vLado = frente × up: ángulo > 0 levanta la cabeza
+            if (cabeceo) {
+                rotarEnMundo(hip, new THREE.Quaternion().setFromAxisAngle(vLado, cabeceo));
+                modelo.updateMatrixWorld(true);
+                pose.hipQuat = hip.quaternion.clone();
+            }
+            pose.hipPos = hip.position.clone();
+            const w0 = hip.getWorldPosition(new THREE.Vector3());
+            const a0 = hip.parent.worldToLocal(w0.clone());
+            const a1 = hip.parent.worldToLocal(w0.clone().add(vUp));
+            pose.reboteLocal = a1.sub(a0);          // 1 unidad de mundo hacia arriba
+        }
+
+        const alinear = (b, hijoNombre, D) => {
+            const p1 = pos(hijoNombre);
+            if (!p1) return;
+            const cur = p1.sub(b.getWorldPosition(new THREE.Vector3())).normalize();
+            rotarEnMundo(b, new THREE.Quaternion().setFromUnitVectors(cur, D));
+        };
+        for (const lado of ['L', 'R']) {
+            const bClav = modelo.getObjectByName(`${lado}_Clavicle`);
+            const bHum  = modelo.getObjectByName(`${lado}_Upperarm`);
+            const bAnt  = modelo.getObjectByName(`${lado}_Forearm`);
+            const bMano = modelo.getObjectByName(`${lado}_Hand`);
+            if (!bHum || !bAnt) continue;
+            const pSp = pos('Spine02') || pHip;
+            const signo = Math.sign(pos(`${lado}_Upperarm`).sub(pSp).dot(vLado)) || 1;
+            // Envergadura: lateral, diedro ~10° y barrido leve atrás
+            const D = vLado.clone().multiplyScalar(signo)
+                .addScaledVector(vUp, 0.18)
+                .addScaledVector(vFrente, -0.12).normalize();
+            alinear(bHum, `${lado}_Forearm`, D);
+            alinear(bAnt, `${lado}_Hand`, D);
+            const ejeAleteo  = new THREE.Vector3().crossVectors(D, vUp).normalize();
+            const ejeBarrido = vUp.clone().multiplyScalar(signo);
+            [bClav, bHum, bAnt, bMano].forEach(b => {
+                if (!b || !b.parent) return;
+                pose.huesosAla[b.name] = {
+                    baseLocal:  b.quaternion.clone(),
+                    ejeAleteo:  aLocal(b, ejeAleteo),
+                    ejeBarrido: aLocal(b, ejeBarrido)
+                };
+            });
+        }
+        accion.stop();               // restaura el cuerpo al bind
+        mixer.uncacheRoot(modelo);
+        return pose;
+    }
+
+    // Pistas quaternion de las alas según el perfil
+    const qA = new THREE.Quaternion(), qB = new THREE.Quaternion();
+    const sintetizarAlas = (huesosAla, dur, veces, perfil) => {
+        const tracks = [];
+        const N = 16 * veces;
+        for (const [hueso, info] of Object.entries(huesosAla)) {
+            const seg = hueso.split('_')[1];
+            const A = perfil.aleteo[seg] || 0, B = perfil.barrido[seg] || 0;
+            const F = perfil.pliegue[seg] || 0, S = perfil.sesgo[seg] || 0;
+            const fase = (perfil.fase[seg] || 0) / (Math.PI * 2);
+            const ts = [], vs = [];
+            for (let k = 0; k <= N; k++) {
+                let u = (veces * k / N + fase) % 1;
+                if (u < 0) u += 1;
+                const ph = faseBatida(u, perfil.bajada);
+                const sn = Math.sin(ph);
+                qA.setFromAxisAngle(info.ejeAleteo, S + A * Math.cos(ph));
+                qB.setFromAxisAngle(info.ejeBarrido, B * sn - F * Math.max(0, -sn));
+                const q = qA.multiply(qB).multiply(info.baseLocal);
+                ts.push(k / N * dur);
+                vs.push(q.x, q.y, q.z, q.w);
+            }
+            tracks.push(new THREE.QuaternionKeyframeTrack(hueso + '.quaternion', ts, vs));
+        }
+        return tracks;
+    };
+
+    // Clip de vuelo: cuerpo congelado (+cabeceo y rebote) + alas
+    function clipVuelo(clip, pose, veces, perfil, nombre) {
+        let cuerpo = pistasCuerpo(clip);
+        const extra = [];
+        const esHip = (trk, prop) => nombreHueso(trk) === 'Hip' && trk.name.endsWith(prop);
+        if (pose.hipQuat) {
+            cuerpo = cuerpo.filter(trk => !esHip(trk, 'quaternion'));
+            extra.push(new THREE.QuaternionKeyframeTrack(
+                'Hip.quaternion', [0], pose.hipQuat.toArray()));
+        }
+        if (perfil.rebote && pose.reboteLocal && pose.hipPos) {
+            cuerpo = cuerpo.filter(trk => !esHip(trk, 'position'));
+            const N = 16 * veces, ts = [], vs = [];
+            for (let k = 0; k <= N; k++) {
+                const ph = faseBatida((veces * k / N) % 1, perfil.bajada);
+                // Más bajo arriba del golpe; sube con la bajada
+                const p = pose.hipPos.clone()
+                    .addScaledVector(pose.reboteLocal, -perfil.rebote * Math.cos(ph));
+                ts.push(k / N * clip.duration);
+                vs.push(p.x, p.y, p.z);
+            }
+            extra.push(new THREE.VectorKeyframeTrack('Hip.position', ts, vs));
+        }
+        return new THREE.AnimationClip(nombre, clip.duration, cuerpo.concat(
+            extra, sintetizarAlas(pose.huesosAla, clip.duration, veces, perfil)));
+    }
 
     new GLTFLoader().load(
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
             const modelo = SkeletonUtils.clone(gltf.scene);
-            // ======== ALA EXTENDIDA + EJE DE BATIDA ========
-            // Se calculan en la pose de planeo (torso boca abajo),
-            // no en el bind erguido. Medido en el GLB: el bind NO es T-pose (brazos en A,
-            // colgando adelante-abajo) y en la pose de las flexiones
-            // cuelgan bajo el pecho. Por eso el ala se EXTIENDE
-            // explícitamente antes de batir.
-            const huesosAla = {};
-            // 1) Pose de planeo: cuerpo congelado, brazos en bind
-            const tmpClip = clipVueloMovimiento(
-                gltf.animations[3] || gltf.animations[0], []);
-            const tmpMixer = new THREE.AnimationMixer(modelo);
-            const tmpAccion = tmpMixer.clipAction(tmpClip);
-            tmpAccion.play();
-            tmpMixer.update(0);
-            modelo.updateMatrixWorld(true);
-
-            const vUp = new THREE.Vector3(0, 1, 0);
-            const pos = n => {
-                const b = modelo.getObjectByName(n);
-                return b ? b.getWorldPosition(new THREE.Vector3()) : null;
-            };
-            // Frente del cuerpo (cadera→cabeza en horizontal)
-            const pHip = pos('Hip'), pHead = pos('Head');
-            const vFrente = (pHip && pHead)
-                ? pHead.clone().sub(pHip).setY(0).normalize()
-                : new THREE.Vector3(1, 0, 0);
-            const vLado = new THREE.Vector3().crossVectors(vFrente, vUp).normalize();
-
-            // Rota un hueso en mundo (qW) conservando la jerarquía
-            const qPadre = new THREE.Quaternion(), qPadreInv = new THREE.Quaternion();
-            const rotarEnMundo = (b, qW) => {
-                b.parent.getWorldQuaternion(qPadre);
-                qPadreInv.copy(qPadre).invert();
-                b.quaternion.premultiply(qPadre).premultiply(qW)
-                    .premultiply(qPadreInv);
-                b.updateMatrixWorld(true);
-            };
-            // Alinea el tramo b→hijo con la dirección D
-            const alinear = (b, hijoNombre, D) => {
-                const p0 = b.getWorldPosition(new THREE.Vector3());
-                const p1 = pos(hijoNombre);
-                if (!p1) return;
-                const cur = p1.sub(p0).normalize();
-                rotarEnMundo(b, new THREE.Quaternion().setFromUnitVectors(cur, D));
-            };
-
-            for (const lado of ['L', 'R']) {
-                const bClav = modelo.getObjectByName(`${lado}_Clavicle`);
-                const bHum  = modelo.getObjectByName(`${lado}_Upperarm`);
-                const bAnt  = modelo.getObjectByName(`${lado}_Forearm`);
-                const bMano = modelo.getObjectByName(`${lado}_Hand`);
-                if (!bHum || !bAnt) continue;
-                // Lado real del brazo respecto al cuerpo
-                const pS = pos(`${lado}_Upperarm`), pSp = pos('Spine02') || pHip;
-                const signo = Math.sign(pS.clone().sub(pSp).dot(vLado)) || 1;
-                // Envergadura: lateral, leve diedro y leve barrido atrás
-                const D = vLado.clone().multiplyScalar(signo)
-                    .addScaledVector(vUp, 0.18)
-                    .addScaledVector(vFrente, -0.12).normalize();
-                alinear(bHum, `${lado}_Forearm`, D);
-                alinear(bAnt, `${lado}_Hand`, D);
-                // Eje común de batida: D × up (ángulo > 0 = punta arriba)
-                const ejeMundo = new THREE.Vector3().crossVectors(D, vUp).normalize();
-                [bClav, bHum, bAnt, bMano].forEach(b => {
-                    if (!b || !b.parent) return;
-                    b.parent.getWorldQuaternion(qPadre);
-                    huesosAla[b.name] = {
-                        baseLocal: b.quaternion.clone(),
-                        ejeLocal: ejeMundo.clone()
-                            .applyQuaternion(qPadre.clone().invert()).normalize()
-                    };
-                });
-            }
-            tmpAccion.stop();
-            tmpMixer.uncacheRoot(modelo);
+            // Bind de las alas (incl. twists) para medir desde cero
+            const bindAlas = {};
+            modelo.traverse(o => {
+                if (HUESOS_ALA_VUELO.test(o.name)) bindAlas[o.name] = o.quaternion.clone();
+            });
+            const clipBase = gltf.animations[3] || gltf.animations[0];
+            const poseCrucero = calcularPoseVuelo(modelo, clipBase, bindAlas, 0);
+            const poseHover   = calcularPoseVuelo(modelo, clipBase, bindAlas, CABECEO_HOVER);
             // El clip reescribe la rotación del modelo cada frame —
             // el giro va en un wrapper que la animación no toca.
             // De cara el GLB mira +x: -PI/2 lo pone mirando al
@@ -2677,15 +2699,13 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             visualDD.add(wrapperGLB);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
-            // Clips procesados: hover (piernas quietas, alas de
-            // nado en reversa x3) y vuelo (torso de planeo + ala
-            // extendida batiendo en cadena, 3 batidas por ciclo)
-            const clip0 = gltf.animations[0];
-            const clip3 = gltf.animations[3] || clip0;
-            rigDD.accionHover = rigDD.mixer.clipAction(clipVueloEstatico(clip0));
-            rigDD.accionFlap  = rigDD.mixer.clipAction(
-                clipVueloMovimiento(clip3,
-                    sintetizarAlas(huesosAla, clip3.duration, 3)));
+            // Estacionario: cuerpo erguido, 4 batidas por ciclo con
+            // bajada al frente y subida plegada atrás; crucero:
+            // planeo boca abajo, 3 batidas arriba/abajo
+            rigDD.accionHover = rigDD.mixer.clipAction(clipVuelo(
+                clipBase, poseHover, 4, PERFIL_VUELO.estacionario, 'hover'));
+            rigDD.accionFlap  = rigDD.mixer.clipAction(clipVuelo(
+                clipBase, poseCrucero, 3, PERFIL_VUELO.crucero, 'flap'));
             rigDD.accion = rigDD.accionHover;
             if (rigDD.accion) rigDD.accion.play();
         });
@@ -2728,8 +2748,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
 
         // ---------- Modelo GLB: vuelo estacionario / aleteo ----------
-        // hover: nado en reversa → batida suave, piernas quietas;
-        // flap: flexiones sin brazos + aleteo procedural en cadena.
+        // hover: cuerpo erguido, bajada al frente / subida atrás;
+        // flap: planeo boca abajo, batida arriba/abajo.
         if (rig.mixer) {
             const prox = (o.moviendose ? rig.accionFlap : rig.accionHover)
                 || (rig.acciones && rig.acciones[0]);
