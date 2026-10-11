@@ -686,7 +686,13 @@ function textoCanvas(texto, sub, color = '#22d3ee', fondo = '#0a1220') {
         cx.font = `bold ${fs}px Arial, sans-serif`;
     }
     cx.fillText(texto, 256, 70);
-    cx.font = 'italic 26px Arial, sans-serif';
+    // El sub también auto-ajusta: antes se desbordaba del marco
+    let fsSub = 26;
+    cx.font = `italic ${fsSub}px Arial, sans-serif`;
+    while (cx.measureText(sub).width > 468 && fsSub > 13) {
+        fsSub -= 1;
+        cx.font = `italic ${fsSub}px Arial, sans-serif`;
+    }
     cx.fillStyle = '#334155';
     cx.fillText(sub, 256, 120);
     return new THREE.CanvasTexture(cv);
@@ -700,7 +706,14 @@ function texturaPantalla(titulo, modelo) {
     cx.fillStyle = '#67e8f9'; cx.font = 'bold 20px monospace';
     cx.textAlign = 'left'; cx.textBaseline = 'top';
     cx.fillText('> ' + titulo, 10, 10);
-    cx.fillStyle = '#38bdf8'; cx.font = '12px monospace';
+    cx.fillStyle = '#38bdf8';
+    let fsMod = 12;
+    cx.font = `${fsMod}px monospace`;
+    while (cx.measureText(modelo).width > 240 && fsMod > 8) {
+        fsMod -= 1;
+        cx.font = `${fsMod}px monospace`;
+    }
+    while (cx.measureText(modelo).width > 240) modelo = modelo.slice(0, -2) + '…';
     cx.fillText(modelo, 10, 36);
     cx.fillStyle = '#164e63';
     for (let y = 60; y < 140; y += 16) cx.fillRect(10, y, 236, 8);
@@ -754,7 +767,13 @@ function texturaFurgon(titulo, sub) {
     }
     cx.fillText(titulo, 256, 76);
     cx.shadowBlur = 0;
-    cx.fillStyle = '#67e8f9'; cx.font = '22px monospace';
+    cx.fillStyle = '#67e8f9';
+    let fsF = 22;
+    cx.font = `${fsF}px monospace`;
+    while (cx.measureText(sub).width > 460 && fsF > 13) {
+        fsF -= 1;
+        cx.font = `${fsF}px monospace`;
+    }
     cx.fillText(sub, 256, 136);
     return new THREE.CanvasTexture(cv);
 }
