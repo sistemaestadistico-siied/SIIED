@@ -1385,16 +1385,17 @@ const camEdi = crearCamion({ x: 30,   z: -11.5, color: 0xef4444,
 // línea D2; la carga entra a la tolva volando sobre la máquina.
 // DELEGADO: muelle del comité → cabeza de banda C (al oeste
 // del chute del taller, sin colisión).
-// EDITORIAL: RECOLECTA contenido en las 4 salas de juntas
-// (capa → recolección → despacho → comité) y descarga en el
-// origen real: los muelles de las líneas de servicio E.
+// EDITORIAL: RECOLECTA en las 4 salas (capa → despacho →
+// comité → recolección por el perímetro oeste) y descarga
+// en el muelle de líneas E. VÍAS PROPIAS: z=-11.5/z=-22/x=-34
+// y z=+2.1 — nunca comparte el carril z-8 de DELEGADO ni el
+// z-4.5 de RECOLECCIÓN: los camiones ya no colisionan.
 camRec.userData.ruta = { pts: [[39, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
 camDel.userData.ruta = { pts: [[52, -8], [-21, -8]],   i: 1, dir: 1, espera: 0 };
-camEdi.userData.ruta = { pts: [[30, -11.5], [30, -8], [-8, -8],
-    [-8, -4.5], [-17, -4.5], [-8, -4.5], [8, -8], [26, -8],
-    [26, -11.5], [22.5, -11.5], [22.5, -22], [44, -22], [62.5, -22],
-    [56, -27], [62.5, -22], [62.5, -14], [62.5, 27], [-25.5, 27],
-    [-25.5, 18]],
+camEdi.userData.ruta = { pts: [[30, -11.5], [38, -11.5], [38, -22],
+    [62.5, -22], [56, -27], [62.5, -22], [62.5, -14], [62.5, -22],
+    [38, -22], [-34, -22], [-34, 2.1], [-19, 2.1], [-26.6, 2.1],
+    [-26.6, 18], [-25.5, 18]],
     i: 1, dir: 1, espera: 0, esperaMid: 3 };
 
 // Chute inclinado entre dos puntos del mundo
