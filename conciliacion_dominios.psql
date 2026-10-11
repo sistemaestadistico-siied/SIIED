@@ -1,0 +1,322 @@
+-- ============================================================================
+-- FASE 2 — CONCILIACIÓN de dominios por-indicador
+--
+-- Objetivo: fusionar dominios "origen · ind-X" que difieran en ≤2
+-- desagregaciones (por nombre normalizado) en dominios compartidos.
+--
+-- Piezas:
+--   diff_sets(a,b)        diferencia simétrica de conjuntos de nombres
+--   absorbe_dominio(abs, canon)  función: reapunta desags iguales por nombre,
+--                         mueve las faltantes al canónico, migra vínculos,
+--                         borra el dominio absorbido. Devuelve # movidas.
+--   concilia_grupo(concepto, tipo)  procedimiento: clusters dentro del grupo
+--                         (prefiere dominio viejo canónico si existe)
+--
+-- Auditoría:
+--   audit_conciliacion       mapa desag_orig -> desag_final
+--   audit_conciliacion_log   resumen por grupo
+--
+-- Uso:
+--   psql -f conciliacion_dominios.psql
+--   bash: grupos=$(psql -Atc "SELECT split_part(nombre,' · ind-',1)||'|'||tipo FROM indicadores_dominiodesagregacion WHERE id>=122 GROUP BY 1,2")
+--   for g in $grupos; do psql -c "CALL concilia_grupo('${g%|*}','${g#*|}');"; done
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS audit_conciliacion (
+    id                    bigserial PRIMARY KEY,
+    concepto              text,
+    tipo                  text,
+    dominio_absorbido_id  bigint,
+    dominio_canonico_id   bigint,
+    desag_orig_id         bigint,
+    desag_final_id        bigint,
+    accion                text,
+    ts                    timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS audit_conciliacion_log (
+    id                   bigserial PRIMARY KEY,
+    concepto             text,
+    tipo                 text,
+    dominios_absorbidos  int,
+    desags_movidas       int,
+    detalle              text,
+    ts                   timestamptz DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
+-- Diferencia simétrica de conjuntos de nombres (normalizados lower+trim)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION diff_sets(p_a bigint, p_b bigint)
+RETURNS int LANGUAGE sql STABLE AS $$
+    SELECT (SELECT count(*) FROM (
+                SELECT DISTINCT lower(trim(nombre)) AS nm
+                FROM indicadores_desagregacion WHERE dominio_id = p_a
+                EXCEPT
+                SELECT DISTINCT lower(trim(nombre))
+                FROM indicadores_desagregacion WHERE dominio_id = p_b) x)
+         + (SELECT count(*) FROM (
+                SELECT DISTINCT lower(trim(nombre)) AS nm
+                FROM indicadores_desagregacion WHERE dominio_id = p_b
+                EXCEPT
+                SELECT DISTINCT lower(trim(nombre))
+                FROM indicadores_desagregacion WHERE dominio_id = p_a) y);
+$$;
+
+-- ---------------------------------------------------------------------------
+-- absorbe_dominio(absorbido, canónico) -> desags movidas al canónico
+--   - desags con nombre igual en el canónico: reapunta sus referencias y borra
+--   - desags sin igual: se MUEVEN al canónico (conservan id y referencias)
+--   - vínculos indicador↔dominio del absorbido migran al canónico
+--   - el dominio absorbido se elimina
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION absorbe_dominio(p_abs bigint, p_canon bigint,
+                                           p_concepto text DEFAULT NULL,
+                                           p_tipo text DEFAULT NULL)
+RETURNS int LANGUAGE plpgsql AS $$
+DECLARE
+    m        RECORD;
+    v_movidas int := 0;
+    v_elim    int := 0;
+BEGIN
+    -- Guardia: no absorber dominios que sean padre de otros
+    IF EXISTS (SELECT 1 FROM indicadores_dominiodesagregacion h
+               WHERE h.dominio_padre_id = p_abs) THEN
+        RAISE EXCEPTION 'dominio % es padre de otros dominios, no se absorbe', p_abs;
+    END IF;
+    -- Guardia: no absorber si alguna desag suya es padre de desags ajenas
+    IF EXISTS (SELECT 1 FROM indicadores_desagregacion h
+               JOIN indicadores_desagregacion x ON x.id = h.desagregacion_padre_id
+               WHERE x.dominio_id = p_abs AND h.dominio_id <> p_abs) THEN
+        RAISE EXCEPTION 'dominio % tiene desags que son padre de desags ajenas', p_abs;
+    END IF;
+
+    CREATE TEMP TABLE IF NOT EXISTS tmp_map (
+        orig_id bigint PRIMARY KEY, canon_id bigint);
+    DELETE FROM tmp_map;
+
+    -- Mapa: cada desag del absorbido -> su igual por nombre en el canónico
+    INSERT INTO tmp_map (orig_id, canon_id)
+    SELECT ds.id, (SELECT min(c.id) FROM indicadores_desagregacion c
+                   WHERE c.dominio_id = p_canon
+                     AND lower(trim(c.nombre)) = lower(trim(ds.nombre)))
+    FROM indicadores_desagregacion ds
+    WHERE ds.dominio_id = p_abs;
+
+    -- 1) Desags con igual en canónico: reapuntar referencias orig->canon
+    FOR m IN SELECT * FROM tmp_map WHERE canon_id IS NOT NULL LOOP
+        -- dato temática (insert dedupe + delete del orig)
+        INSERT INTO indicadores_dato_desagregaciones_tematicas
+            (dato_id, desagregacion_id)
+        SELECT dd.dato_id, m.canon_id
+        FROM indicadores_dato_desagregaciones_tematicas dd
+        WHERE dd.desagregacion_id = m.orig_id
+          AND NOT EXISTS (SELECT 1 FROM indicadores_dato_desagregaciones_tematicas t
+                          WHERE t.dato_id = dd.dato_id
+                            AND t.desagregacion_id = m.canon_id);
+        DELETE FROM indicadores_dato_desagregaciones_tematicas
+        WHERE desagregacion_id = m.orig_id;
+
+        -- dato geográfica
+        INSERT INTO indicadores_dato_desagregaciones_geograficas
+            (dato_id, desagregacion_id)
+        SELECT dd.dato_id, m.canon_id
+        FROM indicadores_dato_desagregaciones_geograficas dd
+        WHERE dd.desagregacion_id = m.orig_id
+          AND NOT EXISTS (SELECT 1 FROM indicadores_dato_desagregaciones_geograficas t
+                          WHERE t.dato_id = dd.dato_id
+                            AND t.desagregacion_id = m.canon_id);
+        DELETE FROM indicadores_dato_desagregaciones_geograficas
+        WHERE desagregacion_id = m.orig_id;
+
+        -- serie M2M unificada
+        INSERT INTO indicadores_graficoserie_desagregaciones
+            (graficoserie_id, desagregacion_id)
+        SELECT sdd.graficoserie_id, m.canon_id
+        FROM indicadores_graficoserie_desagregaciones sdd
+        WHERE sdd.desagregacion_id = m.orig_id
+          AND NOT EXISTS (SELECT 1 FROM indicadores_graficoserie_desagregaciones t
+                          WHERE t.graficoserie_id = sdd.graficoserie_id
+                            AND t.desagregacion_id = m.canon_id);
+        DELETE FROM indicadores_graficoserie_desagregaciones
+        WHERE desagregacion_id = m.orig_id;
+
+        -- predeterminadas tem/geo
+        INSERT INTO indicadores_grafico_desagregaciones_tematicas_predeterminadas
+            (grafico_id, desagregacion_id)
+        SELECT pd.grafico_id, m.canon_id
+        FROM indicadores_grafico_desagregaciones_tematicas_predeterminadas pd
+        WHERE pd.desagregacion_id = m.orig_id
+          AND NOT EXISTS (SELECT 1 FROM indicadores_grafico_desagregaciones_tematicas_predeterminadas t
+                          WHERE t.grafico_id = pd.grafico_id
+                            AND t.desagregacion_id = m.canon_id);
+        DELETE FROM indicadores_grafico_desagregaciones_tematicas_predeterminadas
+        WHERE desagregacion_id = m.orig_id;
+
+        INSERT INTO indicadores_grafico_desagregaciones_geograficas_predeterminadas
+            (grafico_id, desagregacion_id)
+        SELECT pd.grafico_id, m.canon_id
+        FROM indicadores_grafico_desagregaciones_geograficas_predeterminadas pd
+        WHERE pd.desagregacion_id = m.orig_id
+          AND NOT EXISTS (SELECT 1 FROM indicadores_grafico_desagregaciones_geograficas_predeterminadas t
+                          WHERE t.grafico_id = pd.grafico_id
+                            AND t.desagregacion_id = m.canon_id);
+        DELETE FROM indicadores_grafico_desagregaciones_geograficas_predeterminadas
+        WHERE desagregacion_id = m.orig_id;
+
+        -- FKs legacy en series
+        UPDATE indicadores_graficoserie SET desagregacion_tematica_id = m.canon_id
+        WHERE desagregacion_tematica_id = m.orig_id;
+        UPDATE indicadores_graficoserie SET desagregacion_geografica_id = m.canon_id
+        WHERE desagregacion_geografica_id = m.orig_id;
+
+        -- padres que apuntaban a la desag absorbida
+        UPDATE indicadores_desagregacion SET desagregacion_padre_id = m.canon_id
+        WHERE desagregacion_padre_id = m.orig_id;
+
+        INSERT INTO audit_conciliacion
+            (concepto, tipo, dominio_absorbido_id, dominio_canonico_id,
+             desag_orig_id, desag_final_id, accion)
+        VALUES (p_concepto, p_tipo, p_abs, p_canon, m.orig_id, m.canon_id, 'repoint');
+    END LOOP;
+
+    -- 2) Desags sin igual: moverlas al dominio canónico (conservan id/refs)
+    UPDATE indicadores_desagregacion ds SET dominio_id = p_canon
+    WHERE ds.dominio_id = p_abs
+      AND EXISTS (SELECT 1 FROM tmp_map t
+                  WHERE t.orig_id = ds.id AND t.canon_id IS NULL);
+    GET DIAGNOSTICS v_movidas = ROW_COUNT;
+
+    INSERT INTO audit_conciliacion
+        (concepto, tipo, dominio_absorbido_id, dominio_canonico_id,
+         desag_orig_id, desag_final_id, accion)
+    SELECT p_concepto, p_tipo, p_abs, p_canon, t.orig_id, t.orig_id, 'movida'
+    FROM tmp_map t WHERE t.canon_id IS NULL;
+
+    -- 3) Borrar las desags absorbidas (ya sin referencias)
+    DELETE FROM indicadores_desagregacion WHERE dominio_id = p_abs;
+    GET DIAGNOSTICS v_elim = ROW_COUNT;
+
+    -- 4) Migrar vínculos indicador↔dominio al canónico (dedupe) y quitar viejos
+    INSERT INTO indicadores_indicador_dominios_desagregacion_tematica
+        (indicador_id, dominiodesagregacion_id)
+    SELECT mm.indicador_id, p_canon
+    FROM indicadores_indicador_dominios_desagregacion_tematica mm
+    WHERE mm.dominiodesagregacion_id = p_abs
+      AND NOT EXISTS (SELECT 1 FROM indicadores_indicador_dominios_desagregacion_tematica t
+                      WHERE t.indicador_id = mm.indicador_id
+                        AND t.dominiodesagregacion_id = p_canon);
+    DELETE FROM indicadores_indicador_dominios_desagregacion_tematica
+    WHERE dominiodesagregacion_id = p_abs;
+
+    INSERT INTO indicadores_indicador_dominios_desagregacion_geografica
+        (indicador_id, dominiodesagregacion_id)
+    SELECT mm.indicador_id, p_canon
+    FROM indicadores_indicador_dominios_desagregacion_geografica mm
+    WHERE mm.dominiodesagregacion_id = p_abs
+      AND NOT EXISTS (SELECT 1 FROM indicadores_indicador_dominios_desagregacion_geografica t
+                      WHERE t.indicador_id = mm.indicador_id
+                        AND t.dominiodesagregacion_id = p_canon);
+    DELETE FROM indicadores_indicador_dominios_desagregacion_geografica
+    WHERE dominiodesagregacion_id = p_abs;
+
+    -- 5) Eliminar el dominio absorbido
+    DELETE FROM indicadores_dominiodesagregacion WHERE id = p_abs;
+
+    RAISE NOTICE 'dominio % absorbido en % (movidas: %, eliminadas: %)',
+        p_abs, p_canon, v_movidas, v_elim;
+    RETURN v_movidas;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- concilia_grupo(concepto, tipo)
+--   Miembros: dominios nuevos 'concepto · ind-*' del tipo dado.
+--   Canónicos: 1) dominio viejo (id<122) con nombre=concepto si existe
+--              2) si no, el miembro más grande
+--   Se absorben los que difieran en ≤2 del canónico activo; los que no,
+--   forman un cluster nuevo y se repite hasta que ya no haya fusiones.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE concilia_grupo(p_concepto text, p_tipo text)
+LANGUAGE plpgsql AS $$
+DECLARE
+    m           RECORD;
+    v_canon     bigint;
+    v_absorbs   int := 0;
+    v_movidas   int := 0;
+    v_n         int;
+    v_iter      int := 0;
+    v_cluster   int := 0;
+    v_sufijo    text := '';
+BEGIN
+    CREATE TEMP TABLE IF NOT EXISTS tmp_miembros (
+        dominio_id bigint PRIMARY KEY, n_desags int, absorbido boolean DEFAULT false);
+    DELETE FROM tmp_miembros;
+
+    INSERT INTO tmp_miembros (dominio_id, n_desags)
+    SELECT d.id, (SELECT count(*) FROM indicadores_desagregacion x
+                  WHERE x.dominio_id = d.id)
+    FROM indicadores_dominiodesagregacion d
+    WHERE d.id >= 122 AND d.tipo = p_tipo
+      AND split_part(d.nombre, ' · ind-', 1) = p_concepto;
+
+    -- ¿Hay dominio viejo canónico con ese nombre exacto?
+    SELECT d.id INTO v_canon
+    FROM indicadores_dominiodesagregacion d
+    WHERE d.id < 122 AND d.tipo = p_tipo AND d.nombre = p_concepto
+    ORDER BY (SELECT count(*) FROM indicadores_desagregacion x
+              WHERE x.dominio_id = d.id) DESC
+    LIMIT 1;
+
+    LOOP
+        v_iter := v_iter + 1;
+        -- canónico: el dominio viejo si existe (primera iteración), si no el
+        -- miembro más grande aún no absorbido
+        IF v_canon IS NULL THEN
+            SELECT dominio_id INTO v_canon FROM tmp_miembros
+            WHERE NOT absorbido ORDER BY n_desags DESC LIMIT 1;
+            EXIT WHEN v_canon IS NULL;
+        END IF;
+        v_cluster := v_cluster + 1;
+
+        -- absorber miembros con diff ≤2 respecto al canónico;
+        -- el BEGIN/EXCEPTION da savepoint implícito: si absorbe_dominio
+        -- falla a medias, todo su trabajo se deshace
+        FOR m IN SELECT dominio_id FROM tmp_miembros
+                 WHERE NOT absorbido AND dominio_id <> v_canon
+                 ORDER BY n_desags DESC LOOP
+            IF diff_sets(m.dominio_id, v_canon) <= 2 THEN
+                BEGIN
+                    v_n := absorbe_dominio(m.dominio_id, v_canon, p_concepto, p_tipo);
+                    v_movidas := v_movidas + v_n;
+                    v_absorbs := v_absorbs + 1;
+                    UPDATE tmp_miembros SET absorbido = true
+                    WHERE dominio_id = m.dominio_id;
+                EXCEPTION WHEN OTHERS THEN
+                    RAISE NOTICE 'salta dominio %: %', m.dominio_id, SQLERRM;
+                END;
+            END IF;
+        END LOOP;
+
+        -- renombrar el canónico del cluster (solo si es dominio nuevo):
+        -- el primer cluster toma el nombre limpio del concepto, los demás ' #N'
+        IF v_canon >= 122 THEN
+            UPDATE indicadores_dominiodesagregacion
+            SET nombre = left(p_concepto, 195) ||
+                         CASE WHEN v_cluster = 1 THEN ''
+                              ELSE ' #' || v_cluster END
+            WHERE id = v_canon;
+        END IF;
+
+        UPDATE tmp_miembros SET absorbido = true WHERE dominio_id = v_canon;
+        v_canon := NULL;
+        EXIT WHEN v_iter >= 20;
+    END LOOP;
+
+    INSERT INTO audit_conciliacion_log (concepto, tipo, dominios_absorbidos,
+                                        desags_movidas, detalle)
+    VALUES (p_concepto, p_tipo, v_absorbs, v_movidas, 'OK');
+
+    DROP TABLE tmp_miembros;
+END;
+$$;

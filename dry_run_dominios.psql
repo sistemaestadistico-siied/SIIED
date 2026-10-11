@@ -1,0 +1,184 @@
+-- ============================================================================
+-- DRY-RUN: saneamiento de dominios de desagregación por duplicación
+-- Lee TODO y no escribe NADA. Produce CSVs en /tmp para revisión.
+--
+--   /tmp/dryrun_celdas.csv      una fila por (indicador, lado, dominio-origen)
+--   /tmp/dryrun_indicadores.csv resumen por indicador
+--   /tmp/dryrun_sin_set.csv     indicadores activos sin set real detectable
+--   /tmp/dryrun_dominios_sobrantes.csv  dominios vinculados que aportan 0 uso
+--   /tmp/dryrun_desags.csv      detalle de desags por celda (set real exacto)
+-- ============================================================================
+
+-- ---------------------------------------------------------------------------
+-- 1) SET REAL: desagregaciones efectivamente usadas por cada indicador
+--    lado = en qué M2M/estrategia aparece (tematica|geografica)
+--    fuentes = de dónde proviene la evidencia (datos|serie_m2m|serie_fk|pred)
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE uso_indicador AS
+WITH uso AS (
+    -- A) Datos: lado temático
+    SELECT DISTINCT dt.indicador_id, 'tematica'::text AS lado,
+           dd.desagregacion_id, 'datos'::text AS fuente
+    FROM indicadores_dato dt
+    JOIN indicadores_dato_desagregaciones_tematicas dd ON dd.dato_id = dt.id
+    UNION
+    -- B) Datos: lado geográfico
+    SELECT DISTINCT dt.indicador_id, 'geografica', dd.desagregacion_id, 'datos'
+    FROM indicadores_dato dt
+    JOIN indicadores_dato_desagregaciones_geograficas dd ON dd.dato_id = dt.id
+    UNION
+    -- C) Series: M2M unificado — el lado lo dicta dominio.tipo de la desag
+    SELECT DISTINCT g.indicador_id, ds.tipo_lado, sdd.desagregacion_id, 'serie_m2m'
+    FROM indicadores_grafico g
+    JOIN indicadores_graficoserie gs ON gs.grafico_id = g.id
+    JOIN indicadores_graficoserie_desagregaciones sdd ON sdd.graficoserie_id = gs.id
+    JOIN (SELECT s.id, s.dominio_id, d.tipo AS tipo_lado
+          FROM indicadores_desagregacion s
+          JOIN indicadores_dominiodesagregacion d ON d.id = s.dominio_id) ds
+         ON ds.id = sdd.desagregacion_id
+    WHERE g.indicador_id IS NOT NULL
+    UNION
+    -- D) Series: FK legacy temático
+    SELECT DISTINCT g.indicador_id, 'tematica', gs.desagregacion_tematica_id, 'serie_fk'
+    FROM indicadores_grafico g
+    JOIN indicadores_graficoserie gs ON gs.grafico_id = g.id
+    WHERE g.indicador_id IS NOT NULL AND gs.desagregacion_tematica_id IS NOT NULL
+    UNION
+    -- E) Series: FK legacy geográfico
+    SELECT DISTINCT g.indicador_id, 'geografica', gs.desagregacion_geografica_id, 'serie_fk'
+    FROM indicadores_grafico g
+    JOIN indicadores_graficoserie gs ON gs.grafico_id = g.id
+    WHERE g.indicador_id IS NOT NULL AND gs.desagregacion_geografica_id IS NOT NULL
+    UNION
+    -- F) Predeterminadas temáticas del gráfico
+    SELECT DISTINCT g.indicador_id, 'tematica', pdd.desagregacion_id, 'pred'
+    FROM indicadores_grafico g
+    JOIN indicadores_grafico_desagregaciones_tematicas_predeterminadas pdd
+         ON pdd.grafico_id = g.id
+    WHERE g.indicador_id IS NOT NULL
+    UNION
+    -- G) Predeterminadas geográficas del gráfico
+    SELECT DISTINCT g.indicador_id, 'geografica', pdd.desagregacion_id, 'pred'
+    FROM indicadores_grafico g
+    JOIN indicadores_grafico_desagregaciones_geograficas_predeterminadas pdd
+         ON pdd.grafico_id = g.id
+    WHERE g.indicador_id IS NOT NULL
+)
+SELECT u.indicador_id, u.lado, ds.dominio_id, u.desagregacion_id,
+       string_agg(DISTINCT u.fuente, '+' ORDER BY u.fuente) AS fuentes,
+       (ds.desagregacion_padre_id IS NOT NULL) AS desag_con_padre
+FROM uso u
+JOIN indicadores_desagregacion ds ON ds.id = u.desagregacion_id
+GROUP BY u.indicador_id, u.lado, ds.dominio_id, u.desagregacion_id,
+         (ds.desagregacion_padre_id IS NOT NULL);
+
+-- ---------------------------------------------------------------------------
+-- 2) CELDAS DE CIRUGÍA: (indicador, lado, dominio-origen) → dominio nuevo
+--    + conteo exacto de filas a reapuntar en cada tabla de referencia
+-- ---------------------------------------------------------------------------
+CREATE TEMP TABLE celdas AS
+SELECT c.indicador_id, c.lado, c.dominio_id AS dominio_origen_id,
+       i.nombre AS indicador_nombre, i.activo,
+       d.nombre AS dominio_origen_nombre, d.tipo AS dominio_origen_tipo,
+       d.dominio_padre_id AS origen_tiene_padre,
+       c.n_desags, c.fuentes, c.n_desags_con_padre,
+       -- dominio-origen vinculado a la M2M del lado correcto?
+       EXISTS (SELECT 1 FROM indicadores_indicador_dominios_desagregacion_tematica m
+               WHERE c.lado='tematica' AND m.indicador_id=c.indicador_id
+                 AND m.dominiodesagregacion_id=c.dominio_id)
+    OR EXISTS (SELECT 1 FROM indicadores_indicador_dominios_desagregacion_geografica m
+               WHERE c.lado='geografica' AND m.indicador_id=c.indicador_id
+                 AND m.dominiodesagregacion_id=c.dominio_id) AS origen_vinculado,
+       ref.n_dato, ref.n_serie_m2m, ref.n_serie_fk, ref.n_pred
+FROM (
+    SELECT indicador_id, lado, dominio_id,
+           count(*) AS n_desags,
+           string_agg(DISTINCT fuentes, ',' ORDER BY fuentes) AS fuentes,
+           count(*) FILTER (WHERE desag_con_padre) AS n_desags_con_padre
+    FROM uso_indicador
+    GROUP BY indicador_id, lado, dominio_id
+) c
+JOIN indicadores_indicador i ON i.id = c.indicador_id
+JOIN indicadores_dominiodesagregacion d ON d.id = c.dominio_id
+LEFT JOIN LATERAL (
+    SELECT
+      (SELECT count(*) FROM indicadores_dato dt
+        JOIN indicadores_dato_desagregaciones_tematicas dd ON dd.dato_id=dt.id
+        JOIN uso_indicador u ON u.desagregacion_id=dd.desagregacion_id
+                            AND u.indicador_id=c.indicador_id AND u.lado=c.lado
+                            AND u.dominio_id=c.dominio_id
+        WHERE c.lado='tematica' AND dt.indicador_id=c.indicador_id
+          AND dd.desagregacion_id=u.desagregacion_id)
+     +(SELECT count(*) FROM indicadores_dato dt
+        JOIN indicadores_dato_desagregaciones_geograficas dd ON dd.dato_id=dt.id
+        JOIN uso_indicador u ON u.desagregacion_id=dd.desagregacion_id
+                            AND u.indicador_id=c.indicador_id AND u.lado=c.lado
+                            AND u.dominio_id=c.dominio_id
+        WHERE c.lado='geografica' AND dt.indicador_id=c.indicador_id
+          AND dd.desagregacion_id=u.desagregacion_id) AS n_dato,
+      (SELECT count(*) FROM indicadores_grafico g
+        JOIN indicadores_graficoserie gs ON gs.grafico_id=g.id
+        JOIN indicadores_graficoserie_desagregaciones sdd ON sdd.graficoserie_id=gs.id
+        JOIN uso_indicador u ON u.desagregacion_id=sdd.desagregacion_id
+                            AND u.indicador_id=c.indicador_id AND u.lado=c.lado
+                            AND u.dominio_id=c.dominio_id
+        WHERE g.indicador_id=c.indicador_id) AS n_serie_m2m,
+      (SELECT count(*) FROM indicadores_grafico g
+        JOIN indicadores_graficoserie gs ON gs.grafico_id=g.id
+        JOIN uso_indicador u ON u.indicador_id=c.indicador_id AND u.lado=c.lado
+                            AND u.dominio_id=c.dominio_id
+                            AND u.desagregacion_id =
+                                CASE WHEN c.lado='tematica'
+                                     THEN gs.desagregacion_tematica_id
+                                     ELSE gs.desagregacion_geografica_id END
+        WHERE g.indicador_id=c.indicador_id) AS n_serie_fk,
+      (SELECT count(*) FROM indicadores_grafico g
+        JOIN indicadores_grafico_desagregaciones_tematicas_predeterminadas pd
+             ON pd.grafico_id=g.id
+        JOIN uso_indicador u ON u.desagregacion_id=pd.desagregacion_id
+                            AND u.indicador_id=c.indicador_id AND u.lado=c.lado
+                            AND u.dominio_id=c.dominio_id
+        WHERE c.lado='tematica' AND g.indicador_id=c.indicador_id)
+     +(SELECT count(*) FROM indicadores_grafico g
+        JOIN indicadores_grafico_desagregaciones_geograficas_predeterminadas pd
+             ON pd.grafico_id=g.id
+        JOIN uso_indicador u ON u.desagregacion_id=pd.desagregacion_id
+                            AND u.indicador_id=c.indicador_id AND u.lado=c.lado
+                            AND u.dominio_id=c.dominio_id
+        WHERE c.lado='geografica' AND g.indicador_id=c.indicador_id) AS n_pred
+) ref ON true;
+
+-- ---------------------------------------------------------------------------
+-- REPORTE 1: celdas (dominio nuevo a crear por celda)
+-- ---------------------------------------------------------------------------
+\copy (SELECT indicador_id, left(indicador_nombre,60) AS indicador, activo, lado, dominio_origen_id, left(dominio_origen_nombre,40) AS dominio_origen, dominio_origen_tipo, CASE WHEN dominio_origen_tipo<>lado THEN 'MALTIPADO' ELSE '' END AS flag_tipo, CASE WHEN NOT origen_vinculado THEN 'NO_VINCULADO' ELSE '' END AS flag_vinculo, n_desags, fuentes, n_desags_con_padre AS con_padre, n_dato AS filas_dato, n_serie_m2m AS filas_serie_m2m, n_serie_fk AS filas_serie_fk, n_pred AS filas_pred, (n_dato+n_serie_m2m+n_serie_fk+n_pred) AS total_reapuntar, dominio_origen_nombre || ' · ind-' || indicador_id AS dominio_nuevo_prop FROM celdas ORDER BY indicador_id, lado, dominio_origen_id) TO '/tmp/dryrun_celdas.csv' CSV HEADER;
+
+-- ---------------------------------------------------------------------------
+-- REPORTE 2: resumen por indicador
+-- ---------------------------------------------------------------------------
+\copy (SELECT i.id, left(i.nombre,60) AS indicador, i.activo, (SELECT count(*) FROM indicadores_dato dt WHERE dt.indicador_id=i.id) AS n_datos, (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_tematica m WHERE m.indicador_id=i.id) AS dom_tem_vinculados, (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_geografica m WHERE m.indicador_id=i.id) AS dom_geo_vinculados, (SELECT count(*) FROM celdas c WHERE c.indicador_id=i.id) AS celdas, (SELECT sum(n_desags) FROM celdas c WHERE c.indicador_id=i.id) AS desags_a_duplicar, (SELECT sum(n_dato+n_serie_m2m+n_serie_fk+n_pred) FROM celdas c WHERE c.indicador_id=i.id) AS filas_a_reapuntar FROM indicadores_indicador i ORDER BY desags_a_duplicar DESC NULLS LAST, i.id) TO '/tmp/dryrun_indicadores.csv' CSV HEADER;
+
+-- ---------------------------------------------------------------------------
+-- REPORTE 3: indicadores activos SIN set real (ni datos ni series ni pred)
+-- ---------------------------------------------------------------------------
+\copy (SELECT * FROM (SELECT i.id, left(i.nombre,70) AS indicador, (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_tematica m WHERE m.indicador_id=i.id) AS dom_tem, (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_geografica m WHERE m.indicador_id=i.id) AS dom_geo FROM indicadores_indicador i WHERE i.activo AND NOT EXISTS (SELECT 1 FROM uso_indicador u WHERE u.indicador_id=i.id)) t ORDER BY t.dom_tem+t.dom_geo DESC) TO '/tmp/dryrun_sin_set.csv' CSV HEADER;
+
+-- ---------------------------------------------------------------------------
+-- REPORTE 4: dominios vinculados que aportan CERO desags al set real
+--            (candidatos a desvincular de la M2M sin crear dominio nuevo)
+-- ---------------------------------------------------------------------------
+\copy (SELECT m.indicador_id, left(i.nombre,55) AS indicador, 'tematica' AS lado, m.dominiodesagregacion_id AS dominio_id, left(d.nombre,40) AS dominio, (SELECT count(*) FROM indicadores_desagregacion x WHERE x.dominio_id=d.id) AS tam_dominio FROM indicadores_indicador_dominios_desagregacion_tematica m JOIN indicadores_indicador i ON i.id=m.indicador_id JOIN indicadores_dominiodesagregacion d ON d.id=m.dominiodesagregacion_id WHERE NOT EXISTS (SELECT 1 FROM uso_indicador u WHERE u.indicador_id=m.indicador_id AND u.dominio_id=m.dominiodesagregacion_id) UNION ALL SELECT m.indicador_id, left(i.nombre,55), 'geografica', m.dominiodesagregacion_id, left(d.nombre,40), (SELECT count(*) FROM indicadores_desagregacion x WHERE x.dominio_id=d.id) FROM indicadores_indicador_dominios_desagregacion_geografica m JOIN indicadores_indicador i ON i.id=m.indicador_id JOIN indicadores_dominiodesagregacion d ON d.id=m.dominiodesagregacion_id WHERE NOT EXISTS (SELECT 1 FROM uso_indicador u WHERE u.indicador_id=m.indicador_id AND u.dominio_id=m.dominiodesagregacion_id) ORDER BY 1) TO '/tmp/dryrun_dominios_sobrantes.csv' CSV HEADER;
+
+-- ---------------------------------------------------------------------------
+-- REPORTE 5: detalle del set real (desags por celda) — para inspección fina
+-- ---------------------------------------------------------------------------
+\copy (SELECT u.indicador_id, u.lado, u.dominio_id AS dominio_origen, left(ds.nombre,50) AS desagregacion, ds.codigo, u.fuentes, u.desag_con_padre, ds.desagregacion_padre_id AS padre_id FROM uso_indicador u JOIN indicadores_desagregacion ds ON ds.id=u.desagregacion_id ORDER BY u.indicador_id, u.lado, u.dominio_id, ds.nombre) TO '/tmp/dryrun_desags.csv' CSV HEADER;
+
+-- Resumen global a stdout
+SELECT 'celdas (dominios nuevos a crear)' AS metrica, count(*) AS n FROM celdas
+UNION ALL SELECT 'desags a duplicar (suma sets reales)', sum(n_desags) FROM celdas
+UNION ALL SELECT 'filas a reapuntar (dato+serie+fk+pred)', sum(n_dato+n_serie_m2m+n_serie_fk+n_pred) FROM celdas
+UNION ALL SELECT 'celdas con flag MALTIPADO', count(*) FROM celdas WHERE dominio_origen_tipo<>lado
+UNION ALL SELECT 'celdas con flag NO_VINCULADO', count(*) FROM celdas WHERE NOT origen_vinculado
+UNION ALL SELECT 'indicadores activos sin set', (SELECT count(*) FROM indicadores_indicador i WHERE i.activo AND NOT EXISTS (SELECT 1 FROM uso_indicador u WHERE u.indicador_id=i.id))
+UNION ALL SELECT 'vínculos dominio→indicador sobrantes', (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_tematica m WHERE NOT EXISTS (SELECT 1 FROM uso_indicador u WHERE u.indicador_id=m.indicador_id AND u.dominio_id=m.dominiodesagregacion_id)) + (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_geografica m WHERE NOT EXISTS (SELECT 1 FROM uso_indicador u WHERE u.indicador_id=m.indicador_id AND u.dominio_id=m.dominiodesagregacion_id));

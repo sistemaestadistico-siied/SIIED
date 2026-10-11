@@ -1,0 +1,380 @@
+-- ============================================================================
+-- CIRUGÍA: saneamiento de dominios de desagregación por DUPLICACIÓN
+--
+-- Por cada indicador (una transacción por llamada):
+--   1) Recalcula su set real (datos + series M2M/FK + predeterminadas)
+--   2) Crea un DominioDesagregacion por cada (lado, dominio-origen) usado
+--   3) Duplica las desagregaciones del set en el dominio nuevo
+--   4) Reapunta: dato M2M, serie M2M, serie FKs legacy, predeterminadas
+--   5) Resincroniza FKs legacy de series (= sincronizar_fks_legacy del modelo)
+--   6) Reset de M2M indicador↔dominio: quita TODOS los vínculos viejos
+--      (incluye fantasmas) y pone solo los dominios nuevos
+--   7) Remapea dominio_padre / desagregacion_padre entre duplicados
+--
+-- Auditoría:
+--   audit_duplicacion_desagregacion  mapa desag_orig -> desag_nuevo por celda
+--   audit_cirugia_log                resumen ejecutado por indicador
+--
+-- Uso:
+--   psql -f cirugia_dominios.psql                      -- crea tablas+procedimiento
+--   psql -c "CALL sanea_indicador(28);"                -- piloto 1 indicador
+--   bash: for id in $(psql -Atc "SELECT id FROM indicadores_indicador WHERE activo ORDER BY id"); do psql -c "CALL sanea_indicador($id);"; done
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS audit_duplicacion_desagregacion (
+    id                bigserial PRIMARY KEY,
+    indicador_id      bigint NOT NULL,
+    lado              text   NOT NULL,
+    dominio_origen_id bigint,
+    dominio_nuevo_id  bigint,
+    desag_orig_id     bigint,
+    desag_nuevo_id    bigint,
+    ts                timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS audit_cirugia_log (
+    id                bigserial PRIMARY KEY,
+    indicador_id      bigint NOT NULL,
+    celdas            int,
+    desags_duplicadas int,
+    filas_dato        int,
+    filas_serie_m2m   int,
+    filas_serie_fk    int,
+    filas_pred        int,
+    vinculos_quitados int,
+    vinculos_nuevos   int,
+    detalle           text,
+    ts                timestamptz DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
+-- Procedimiento principal
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE sanea_indicador(p_indicador_id bigint)
+LANGUAGE plpgsql AS $proc$
+DECLARE
+    celd RECORD;
+    v_dom_id     bigint;
+    v_nombre_dom text;
+    v_n_dups     int;
+    r_dato_t     int := 0; r_dato_g int := 0;
+    r_sm2m       int := 0; r_sfk_t  int := 0; r_sfk_g int := 0;
+    r_pred_t     int := 0; r_pred_g int := 0;
+    v_quit_t     int := 0; v_quit_g int := 0;
+    v_new_t      int := 0; v_new_g  int := 0;
+BEGIN
+    -- Guardia de idempotencia: un indicador saneado no se procesa dos veces
+    IF EXISTS (SELECT 1 FROM audit_duplicacion_desagregacion
+               WHERE indicador_id = p_indicador_id) THEN
+        RAISE EXCEPTION 'indicador % ya fue saneado (ver audit_duplicacion_desagregacion)',
+            p_indicador_id;
+    END IF;
+
+    -- ====================================================================
+    -- PASO 1: celdas = (lado, dominio-origen) del set real del indicador
+    --         (misma lógica del dry-run, filtrada a este indicador)
+    -- ====================================================================
+    CREATE TEMP TABLE tmp_celdas ON COMMIT DROP AS
+    WITH uso AS (
+        SELECT DISTINCT 'tematica'::text AS lado, dd.desagregacion_id
+        FROM indicadores_dato dt
+        JOIN indicadores_dato_desagregaciones_tematicas dd ON dd.dato_id = dt.id
+        WHERE dt.indicador_id = p_indicador_id
+        UNION
+        SELECT DISTINCT 'geografica', dd.desagregacion_id
+        FROM indicadores_dato dt
+        JOIN indicadores_dato_desagregaciones_geograficas dd ON dd.dato_id = dt.id
+        WHERE dt.indicador_id = p_indicador_id
+        UNION
+        SELECT DISTINCT ds.tipo_lado, sdd.desagregacion_id
+        FROM indicadores_grafico g
+        JOIN indicadores_graficoserie gs ON gs.grafico_id = g.id
+        JOIN indicadores_graficoserie_desagregaciones sdd ON sdd.graficoserie_id = gs.id
+        JOIN (SELECT s.id, s.dominio_id, d.tipo AS tipo_lado
+              FROM indicadores_desagregacion s
+              JOIN indicadores_dominiodesagregacion d ON d.id = s.dominio_id) ds
+             ON ds.id = sdd.desagregacion_id
+        WHERE g.indicador_id = p_indicador_id
+        UNION
+        SELECT DISTINCT 'tematica', gs.desagregacion_tematica_id
+        FROM indicadores_grafico g
+        JOIN indicadores_graficoserie gs ON gs.grafico_id = g.id
+        WHERE g.indicador_id = p_indicador_id AND gs.desagregacion_tematica_id IS NOT NULL
+        UNION
+        SELECT DISTINCT 'geografica', gs.desagregacion_geografica_id
+        FROM indicadores_grafico g
+        JOIN indicadores_graficoserie gs ON gs.grafico_id = g.id
+        WHERE g.indicador_id = p_indicador_id AND gs.desagregacion_geografica_id IS NOT NULL
+        UNION
+        SELECT DISTINCT 'tematica', pdd.desagregacion_id
+        FROM indicadores_grafico g
+        JOIN indicadores_grafico_desagregaciones_tematicas_predeterminadas pdd
+             ON pdd.grafico_id = g.id
+        WHERE g.indicador_id = p_indicador_id
+        UNION
+        SELECT DISTINCT 'geografica', pdd.desagregacion_id
+        FROM indicadores_grafico g
+        JOIN indicadores_grafico_desagregaciones_geograficas_predeterminadas pdd
+             ON pdd.grafico_id = g.id
+        WHERE g.indicador_id = p_indicador_id
+    )
+    SELECT u.lado, ds.dominio_id, u.desagregacion_id,
+           d.nombre AS dominio_nombre, d.nivel_geografico_id,
+           d.tipo_agregacion_total, d.dominio_padre_id
+    FROM uso u
+    JOIN indicadores_desagregacion ds ON ds.id = u.desagregacion_id
+    JOIN indicadores_dominiodesagregacion d ON d.id = ds.dominio_id;
+
+    -- ====================================================================
+    -- PASO 2+3: por celda → dominio nuevo + desags duplicadas (con audit)
+    -- ====================================================================
+    FOR celd IN
+        SELECT lado, dominio_id, dominio_nombre, nivel_geografico_id,
+               tipo_agregacion_total, dominio_padre_id, count(*) AS n
+        FROM tmp_celdas
+        GROUP BY lado, dominio_id, dominio_nombre, nivel_geografico_id,
+                 tipo_agregacion_total, dominio_padre_id
+    LOOP
+        v_nombre_dom := left(celd.dominio_nombre, 190) || ' · ind-' || p_indicador_id;
+
+        INSERT INTO indicadores_dominiodesagregacion
+            (nombre, tipo, nivel_geografico_id, dominio_padre_id, tipo_agregacion_total)
+        VALUES (v_nombre_dom, celd.lado, celd.nivel_geografico_id,
+                celd.dominio_padre_id, celd.tipo_agregacion_total)
+        RETURNING id INTO v_dom_id;
+
+        INSERT INTO indicadores_desagregacion
+            (nombre, codigo, descripcion, dominio_id, capa_geo_id,
+             desagregacion_padre_id, es_rango, valores_rango)
+        SELECT ds.nombre, ds.codigo, ds.descripcion, v_dom_id, ds.capa_geo_id,
+               ds.desagregacion_padre_id, ds.es_rango, ds.valores_rango
+        FROM indicadores_desagregacion ds
+        JOIN tmp_celdas tc ON tc.desagregacion_id = ds.id
+        WHERE tc.lado = celd.lado AND tc.dominio_id = celd.dominio_id;
+
+        GET DIAGNOSTICS v_n_dups = ROW_COUNT;
+
+        -- mapa origen → duplicado: empareja por (nombre, codigo, es_rango)
+        -- con row_number para que sea determinístico aunque el origen
+        -- tenga desags idénticas entre sí
+        INSERT INTO audit_duplicacion_desagregacion
+            (indicador_id, lado, dominio_origen_id, dominio_nuevo_id,
+             desag_orig_id, desag_nuevo_id)
+        SELECT p_indicador_id, celd.lado, celd.dominio_id, v_dom_id,
+               o.id, d.id
+        FROM (
+            SELECT ds.id, ds.nombre, ds.codigo, ds.es_rango,
+                   row_number() OVER (PARTITION BY ds.nombre, ds.codigo, ds.es_rango
+                                      ORDER BY ds.id) AS rn
+            FROM indicadores_desagregacion ds
+            JOIN tmp_celdas tc ON tc.desagregacion_id = ds.id
+            WHERE tc.lado = celd.lado AND tc.dominio_id = celd.dominio_id
+        ) o
+        JOIN (
+            SELECT ds.id, ds.nombre, ds.codigo, ds.es_rango,
+                   row_number() OVER (PARTITION BY ds.nombre, ds.codigo, ds.es_rango
+                                      ORDER BY ds.id) AS rn
+            FROM indicadores_desagregacion ds
+            WHERE ds.dominio_id = v_dom_id
+        ) d ON d.nombre = o.nombre
+           AND d.codigo IS NOT DISTINCT FROM o.codigo
+           AND d.es_rango = o.es_rango
+           AND d.rn = o.rn;
+
+        RAISE NOTICE 'celda lado=% dominio_origen=% -> dominio_nuevo=% (desags: %)',
+            celd.lado, celd.dominio_id, v_dom_id, v_n_dups;
+    END LOOP;
+
+    -- ====================================================================
+    -- PASO 4: reapuntar referencias del indicador al mapa de duplicados
+    -- ====================================================================
+    -- 4a) Dato M2M (por lado)
+    UPDATE indicadores_dato_desagregaciones_tematicas dd
+    SET desagregacion_id = a.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a, indicadores_dato dt
+    WHERE dt.id = dd.dato_id
+      AND a.indicador_id = p_indicador_id AND a.lado = 'tematica'
+      AND dt.indicador_id = p_indicador_id
+      AND dd.desagregacion_id = a.desag_orig_id;
+    GET DIAGNOSTICS r_dato_t = ROW_COUNT;
+
+    UPDATE indicadores_dato_desagregaciones_geograficas dd
+    SET desagregacion_id = a.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a, indicadores_dato dt
+    WHERE dt.id = dd.dato_id
+      AND a.indicador_id = p_indicador_id AND a.lado = 'geografica'
+      AND dt.indicador_id = p_indicador_id
+      AND dd.desagregacion_id = a.desag_orig_id;
+    GET DIAGNOSTICS r_dato_g = ROW_COUNT;
+
+    -- 4b) Serie M2M unificada (lado según dominio.tipo del origen — igual que el uso)
+    UPDATE indicadores_graficoserie_desagregaciones sdd
+    SET desagregacion_id = a.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a,
+         indicadores_graficoserie gs, indicadores_grafico g
+    WHERE gs.id = sdd.graficoserie_id
+      AND g.id = gs.grafico_id
+      AND a.indicador_id = p_indicador_id
+      AND g.indicador_id = p_indicador_id
+      AND sdd.desagregacion_id = a.desag_orig_id;
+    GET DIAGNOSTICS r_sm2m = ROW_COUNT;
+
+    -- 4c) FKs legacy en series (tem y geo)
+    UPDATE indicadores_graficoserie gs
+    SET desagregacion_tematica_id = a.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a, indicadores_grafico g
+    WHERE g.id = gs.grafico_id
+      AND a.indicador_id = p_indicador_id AND a.lado = 'tematica'
+      AND g.indicador_id = p_indicador_id
+      AND gs.desagregacion_tematica_id = a.desag_orig_id;
+    GET DIAGNOSTICS r_sfk_t = ROW_COUNT;
+
+    UPDATE indicadores_graficoserie gs
+    SET desagregacion_geografica_id = a.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a, indicadores_grafico g
+    WHERE g.id = gs.grafico_id
+      AND a.indicador_id = p_indicador_id AND a.lado = 'geografica'
+      AND g.indicador_id = p_indicador_id
+      AND gs.desagregacion_geografica_id = a.desag_orig_id;
+    GET DIAGNOSTICS r_sfk_g = ROW_COUNT;
+
+    -- 4d) Predeterminadas (por lado)
+    UPDATE indicadores_grafico_desagregaciones_tematicas_predeterminadas pd
+    SET desagregacion_id = a.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a, indicadores_grafico g
+    WHERE g.id = pd.grafico_id
+      AND a.indicador_id = p_indicador_id AND a.lado = 'tematica'
+      AND g.indicador_id = p_indicador_id
+      AND pd.desagregacion_id = a.desag_orig_id;
+    GET DIAGNOSTICS r_pred_t = ROW_COUNT;
+
+    UPDATE indicadores_grafico_desagregaciones_geograficas_predeterminadas pd
+    SET desagregacion_id = a.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a, indicadores_grafico g
+    WHERE g.id = pd.grafico_id
+      AND a.indicador_id = p_indicador_id AND a.lado = 'geografica'
+      AND g.indicador_id = p_indicador_id
+      AND pd.desagregacion_id = a.desag_orig_id;
+    GET DIAGNOSTICS r_pred_g = ROW_COUNT;
+
+    -- ====================================================================
+    -- PASO 5: resync FKs legacy de las series del indicador
+    --         (puerto exacto de GraficoSerie.sincronizar_fks_legacy)
+    -- ====================================================================
+    UPDATE indicadores_graficoserie gs SET desagregacion_tematica_id = sub.desag_id
+    FROM (
+        SELECT DISTINCT ON (sdd.graficoserie_id) sdd.graficoserie_id, sdd.desagregacion_id AS desag_id
+        FROM indicadores_graficoserie_desagregaciones sdd
+        JOIN indicadores_desagregacion ds ON ds.id = sdd.desagregacion_id
+        JOIN indicadores_dominiodesagregacion d ON d.id = ds.dominio_id
+        JOIN indicadores_graficoserie g2 ON g2.id = sdd.graficoserie_id
+        JOIN indicadores_grafico gf ON gf.id = g2.grafico_id
+        WHERE d.tipo = 'tematica' AND gf.indicador_id = p_indicador_id
+        ORDER BY sdd.graficoserie_id, sdd.desagregacion_id
+    ) sub
+    WHERE gs.id = sub.graficoserie_id;
+
+    UPDATE indicadores_graficoserie gs SET desagregacion_tematica_id = NULL
+    WHERE gs.grafico_id IN (SELECT id FROM indicadores_grafico WHERE indicador_id = p_indicador_id)
+      AND NOT EXISTS (
+        SELECT 1 FROM indicadores_graficoserie_desagregaciones sdd
+        JOIN indicadores_desagregacion ds ON ds.id = sdd.desagregacion_id
+        JOIN indicadores_dominiodesagregacion d ON d.id = ds.dominio_id
+        WHERE sdd.graficoserie_id = gs.id AND d.tipo = 'tematica');
+
+    UPDATE indicadores_graficoserie gs SET desagregacion_geografica_id = sub.desag_id
+    FROM (
+        SELECT DISTINCT ON (sdd.graficoserie_id) sdd.graficoserie_id, sdd.desagregacion_id AS desag_id
+        FROM indicadores_graficoserie_desagregaciones sdd
+        JOIN indicadores_desagregacion ds ON ds.id = sdd.desagregacion_id
+        JOIN indicadores_dominiodesagregacion d ON d.id = ds.dominio_id
+        JOIN indicadores_graficoserie g2 ON g2.id = sdd.graficoserie_id
+        JOIN indicadores_grafico gf ON gf.id = g2.grafico_id
+        WHERE d.tipo = 'geografica' AND gf.indicador_id = p_indicador_id
+        ORDER BY sdd.graficoserie_id, sdd.desagregacion_id
+    ) sub
+    WHERE gs.id = sub.graficoserie_id;
+
+    UPDATE indicadores_graficoserie gs SET desagregacion_geografica_id = NULL
+    WHERE gs.grafico_id IN (SELECT id FROM indicadores_grafico WHERE indicador_id = p_indicador_id)
+      AND NOT EXISTS (
+        SELECT 1 FROM indicadores_graficoserie_desagregaciones sdd
+        JOIN indicadores_desagregacion ds ON ds.id = sdd.desagregacion_id
+        JOIN indicadores_dominiodesagregacion d ON d.id = ds.dominio_id
+        WHERE sdd.graficoserie_id = gs.id AND d.tipo = 'geografica');
+
+    -- ====================================================================
+    -- PASO 6: reset de M2M indicador↔dominio (quita TODO, pone solo nuevos)
+    -- ====================================================================
+    DELETE FROM indicadores_indicador_dominios_desagregacion_tematica
+    WHERE indicador_id = p_indicador_id;
+    GET DIAGNOSTICS v_quit_t = ROW_COUNT;
+
+    DELETE FROM indicadores_indicador_dominios_desagregacion_geografica
+    WHERE indicador_id = p_indicador_id;
+    GET DIAGNOSTICS v_quit_g = ROW_COUNT;
+
+    INSERT INTO indicadores_indicador_dominios_desagregacion_tematica
+        (indicador_id, dominiodesagregacion_id)
+    SELECT DISTINCT p_indicador_id, dominio_nuevo_id
+    FROM audit_duplicacion_desagregacion
+    WHERE indicador_id = p_indicador_id AND lado = 'tematica';
+    GET DIAGNOSTICS v_new_t = ROW_COUNT;
+
+    INSERT INTO indicadores_indicador_dominios_desagregacion_geografica
+        (indicador_id, dominiodesagregacion_id)
+    SELECT DISTINCT p_indicador_id, dominio_nuevo_id
+    FROM audit_duplicacion_desagregacion
+    WHERE indicador_id = p_indicador_id AND lado = 'geografica';
+    GET DIAGNOSTICS v_new_g = ROW_COUNT;
+
+    -- ====================================================================
+    -- PASO 7: remapear padres entre duplicados del mismo indicador
+    -- ====================================================================
+    -- 7a) desagregacion_padre: si el padre también se duplicó para este
+    --     indicador, el duplicado apunta al duplicado del padre
+    UPDATE indicadores_desagregacion dup
+    SET desagregacion_padre_id = ap.desag_nuevo_id
+    FROM audit_duplicacion_desagregacion a
+    JOIN indicadores_desagregacion orig ON orig.id = a.desag_orig_id
+    JOIN audit_duplicacion_desagregacion ap
+         ON ap.desag_orig_id = orig.desagregacion_padre_id
+        AND ap.indicador_id = a.indicador_id
+        AND ap.lado = a.lado
+    WHERE dup.id = a.desag_nuevo_id
+      AND a.indicador_id = p_indicador_id
+      AND orig.desagregacion_padre_id IS NOT NULL;
+
+    -- 7b) dominio_padre: si el dominio padre también tiene celda en este
+    --     indicador, el dominio nuevo apunta a la copia del padre
+    UPDATE indicadores_dominiodesagregacion dn
+    SET dominio_padre_id = a2.dominio_nuevo_id
+    FROM (SELECT DISTINCT dominio_origen_id, dominio_nuevo_id
+          FROM audit_duplicacion_desagregacion
+          WHERE indicador_id = p_indicador_id) a
+    JOIN indicadores_dominiodesagregacion do2 ON do2.id = a.dominio_origen_id
+    JOIN (SELECT DISTINCT dominio_origen_id, dominio_nuevo_id
+          FROM audit_duplicacion_desagregacion
+          WHERE indicador_id = p_indicador_id) a2
+         ON a2.dominio_origen_id = do2.dominio_padre_id
+    WHERE dn.id = a.dominio_nuevo_id
+      AND do2.dominio_padre_id IS NOT NULL;
+
+    -- ====================================================================
+    -- Log final del indicador
+    -- ====================================================================
+    INSERT INTO audit_cirugia_log
+        (indicador_id, celdas, desags_duplicadas, filas_dato, filas_serie_m2m,
+         filas_serie_fk, filas_pred, vinculos_quitados, vinculos_nuevos, detalle)
+    SELECT p_indicador_id,
+           count(DISTINCT (lado, dominio_nuevo_id)),
+           count(*),
+           r_dato_t + r_dato_g, r_sm2m, r_sfk_t + r_sfk_g, r_pred_t + r_pred_g,
+           v_quit_t + v_quit_g, v_new_t + v_new_g,
+           CASE WHEN count(*) = 0 THEN 'SIN_SET' ELSE 'OK' END
+    FROM audit_duplicacion_desagregacion
+    WHERE indicador_id = p_indicador_id;
+
+    DROP TABLE tmp_celdas;
+END;
+$proc$;

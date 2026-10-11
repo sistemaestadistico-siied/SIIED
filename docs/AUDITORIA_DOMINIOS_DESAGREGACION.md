@@ -178,10 +178,61 @@ dominio sobreviviente o elegir canónica y redireccionar — detalle a decidir e
 
 ## 6. Checklist de verificación post-cirugía
 
-- [ ] Ningún indicador activo enlazado a un dominio "gordo"
-- [ ] Filtro del frontend lista solo las desags reales del indicador
-- [ ] Conteo de filas reapuntadas = filas previstas por el dry-run (sin huérfanos)
-- [ ] `dato_desagregaciones_*` del indicador solo referencia ids de sus dominios
-- [ ] Legacy FKs de series resincronizados (`sincronizar_fks_legacy`)
+- [x] Ningún indicador activo enlazado a un dominio "gordo"
+- [ ] Filtro del frontend lista solo las desags reales del indicador (verificación visual pendiente)
+- [x] Conteo de filas reapuntadas = filas previstas por el dry-run (sin huérfanos)
+- [x] `dato_desagregaciones_*` del indicador solo referencia ids de sus dominios
+- [x] Legacy FKs de series resincronizados (`sincronizar_fks_legacy`)
 - [ ] Jerarquías padre (2 dominios, 10 desags) verificadas visualmente en el filtro
 - [ ] `ReglaExtraccion.desagregaciones_asociadas` devuelve el set limpio
+
+---
+
+## 7. Resultados ejecutados (2026-10-11)
+
+### 7.1 Purga de `nombre_indicador` (dominio id 80)
+
+Dominio degenerado eliminado por decisión del equipo:
+- 144 desags eliminadas, 12.017 filas `dato_desagregaciones_tematicas`,
+  1.080 referencias de series (M2M + FK legacy), 139 vínculos indicador↔dominio
+- Snapshots: `audit_d80_desags`, `audit_d80_links`, `audit_d80_series_fk`
+
+### 7.2 Cirugía por duplicación (`cirugia_dominios.psql`)
+
+- **1.022/1.022 indicadores activos procesados, 0 fallos**
+- 407 dominios nuevos (`origen · ind-<id>`), 5.797 desags duplicadas
+- 186.301 filas reapuntadas (159.494 dato M2M · 13.475 serie M2M ·
+  13.383 serie FK legacy · 49 predeterminadas)
+- 744 vínculos viejos quitados → 407 nuevos
+- 0 indicadores activos en dominios gordos; 0 inconsistencias inversas
+- Guardia de idempotencia por indicador; transacción por CALL
+- Auditoría: `audit_duplicacion_desagregacion`, `audit_cirugia_log`
+
+### 7.3 Eliminación de dominios huérfanos
+
+- **85 dominios eliminados** + 2.235 desags (criterio: sin vínculos y sin
+  desags con datos relacionados ni `capa_geo`)
+- Sobreviven 5 viejos por protecciones: `Sexo`(2) y `componente`(116) por ser
+  `dominio_padre`, `Área Geográfica`(4) y otros con datos de inactivos
+- Snapshots: `audit_dominios_eliminados`, `audit_desags_eliminadas`
+
+### 7.4 Conciliación fase 2 (`conciliacion_dominios.psql`)
+
+- **215 dominios absorbidos** en clusters con diff ≤2 por nombre normalizado;
+  1 saltado (dominio 187, padre de otros — guardia correcta)
+- Canónico preferido: dominio viejo si existe (ej. `Sexo` id 2 absorbió miembros);
+  si no, el cluster forma dominio con nombre limpio del concepto o `#N`
+- Resultado: **178 dominios totales / 3.524 desags**
+- 0 links rotos, 0 refs rotas a desags tras la fusión
+- 19 dominios `· ind-` restantes (difiere >2 de todo canónico del grupo)
+- Auditoría: `audit_conciliacion`, `audit_conciliacion_log`
+- Dominios más compartidos post-fusión: `desagregacion_tematica_2 #3` (21 ind.),
+  `Área Geográfica #2` (16), `desagregacion_tematica_2 #14` (15), `Sexo` (12)
+
+### 7.5 Notas operativas
+
+- Scripts: `dry_run_dominios.psql` (reportes), `cirugia_dominios.psql`
+  (`sanea_indicador`), `conciliacion_dominios.psql` (`concilia_grupo`)
+- Los 6 indicadores inactivos no fueron procesados
+- `documentovector` sigue pendiente: requiere `CREATE EXTENSION vector` como
+  superuser y restauración quirúrgica desde el backup
