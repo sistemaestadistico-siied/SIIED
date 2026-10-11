@@ -943,14 +943,37 @@ function textoCanvas(texto, sub, color = '#22d3ee', fondo = '#0a1220') {
     cx.strokeRect(10, 10, 492, 140);
     cx.fillStyle = color;
     cx.textAlign = 'center';
-    // Auto-ajuste: el título nunca se trunca dentro del cartel
+    // Auto-ajuste: el título nunca se trunca dentro del cartel.
+    // Si ni al mínimo cabe, parte en dos líneas balanceadas
     let fs = 44;
     cx.font = `bold ${fs}px Arial, sans-serif`;
     while (cx.measureText(texto).width > 468 && fs > 20) {
         fs -= 2;
         cx.font = `bold ${fs}px Arial, sans-serif`;
     }
-    cx.fillText(texto, 256, 70);
+    if (cx.measureText(texto).width <= 468) {
+        cx.fillText(texto, 256, 70);
+    } else {
+        const pal = texto.split(' ');
+        let mejor = 1, mejorD = 1e9;
+        for (let i = 1; i < pal.length; i++) {
+            const a = pal.slice(0, i).join(' ');
+            const d = Math.abs(cx.measureText(a).width -
+                               cx.measureText(pal.slice(i).join(' ')).width);
+            if (d < mejorD) { mejorD = d; mejor = i; }
+        }
+        const l1 = pal.slice(0, mejor).join(' ');
+        const l2 = pal.slice(mejor).join(' ');
+        fs = 30;
+        cx.font = `bold ${fs}px Arial, sans-serif`;
+        while ((cx.measureText(l1).width > 468 ||
+                cx.measureText(l2).width > 468) && fs > 14) {
+            fs -= 2;
+            cx.font = `bold ${fs}px Arial, sans-serif`;
+        }
+        cx.fillText(l1, 256, 50);
+        cx.fillText(l2, 256, 86);
+    }
     // El sub también auto-ajusta: antes se desbordaba del marco
     let fsSub = 26;
     cx.font = `italic ${fsSub}px Arial, sans-serif`;
@@ -2596,6 +2619,45 @@ const grafo = new THREE.Group();
     scene.add(cartelG);
 }
 
+// ============ FACHADAS DE EDIFICIO PARA LAS SALAS ============
+// Las salas de juntas principales no son podios abiertos:
+// simulan edificios — caja cerrada con ventanas encendidas
+// que rellena el hueco del pilote o crece sobre el techo.
+function pisosBajo(g, W, D, alto, pisos) {
+    const pared = new THREE.MeshLambertMaterial({ color: 0x3d4a5c });
+    const matV = new THREE.MeshBasicMaterial({ color: 0xffd98a });
+    const caja = new THREE.Mesh(new THREE.BoxGeometry(W - 0.3, alto, D - 0.3), pared);
+    caja.position.y = alto / 2; caja.castShadow = true; g.add(caja);
+    for (let p = 0; p < pisos; p++) {
+        const wy = alto * (p + 0.5) / pisos;
+        for (const s of [1, -1]) {
+            const fa = new THREE.Mesh(new THREE.BoxGeometry(W - 1.1, 0.5, 0.06), matV);
+            fa.position.set(0, wy, s * (D - 0.28) / 2); g.add(fa);
+            const la = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, D - 1.1), matV);
+            la.position.set(s * (W - 0.28) / 2, wy, 0); g.add(la);
+        }
+    }
+}
+function pisosSobre(g, W, D, y0, pisos) {
+    const pared = new THREE.MeshLambertMaterial({ color: 0x3d4a5c });
+    const matV = new THREE.MeshBasicMaterial({ color: 0xffd98a });
+    const ALTO = 3.0;
+    for (let p = 0; p < pisos; p++) {
+        const y = y0 + p * ALTO;
+        const caja = new THREE.Mesh(new THREE.BoxGeometry(W - 0.6, ALTO, D - 0.6), pared);
+        caja.position.y = y + ALTO / 2; caja.castShadow = true; g.add(caja);
+        const wy = y + ALTO / 2;
+        for (const s of [1, -1]) {
+            const fa = new THREE.Mesh(new THREE.BoxGeometry(W - 1.4, 0.55, 0.06), matV);
+            fa.position.set(0, wy, s * (D - 0.58) / 2); g.add(fa);
+            const la = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.55, D - 1.4), matV);
+            la.position.set(s * (W - 0.58) / 2, wy, 0); g.add(la);
+        }
+        const cornisa = new THREE.Mesh(new THREE.BoxGeometry(W - 0.2, 0.15, D - 0.2), pared);
+        cornisa.position.y = y + ALTO + 0.04; g.add(cornisa);
+    }
+}
+
 // ============ SALA DE JUNTAS DEL HALL ============
 // El complejo del final de la línea de calidad: almHALL (inventario)
 // + muro vitrina (hojas de vida) + esta sala donde el consejo de
@@ -2603,6 +2665,9 @@ const grafo = new THREE.Group();
 {
     const junta = new THREE.Group();
     const matJ = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
+    // Edificio: la sala de juntas es el piso noble de arriba,
+    // abajo van dos pisos de oficinas con ventanas encendidas
+    pisosBajo(junta, 9.6, 7.0, 4.5, 2);
     // Podio amplio: cabe el consejo + grafo + vitrina + pantallas
     const losa = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.25, 7.0), matJ);
     losa.position.y = 4.5; losa.castShadow = true; junta.add(losa);
@@ -3302,6 +3367,9 @@ let comiteGrafo = null;
         com.add(barra);
         ficedBarras.push(barra);   // se animan con el mismo ciclo
     }
+    // Edificio: el comité crece un piso arriba del techo de
+    // vidrio — la planta alta son las oficinas de apoyo
+    pisosSobre(com, 13, 7.5, 4.4, 1);
     com.position.set(52, 0, -14);
     scene.add(com);
     comiteGrafo = grafoC;
@@ -3360,6 +3428,9 @@ let comiteGrafo = null;
                   [-2.05, 0, Math.PI / 2]] });
     // Bandera institucional SOBRE el techo: antes quedaba
     // dentro de la sala de vidrio pinchando el cristal
+    // Edificio: el despacho de alcaldía es el piso superior,
+    // abajo el podio cierra como planta baja con ventanas
+    pisosBajo(des, 7, 5, 3.4, 1);
     const mastD = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.3, 6), matD);
     mastD.position.set(2.3, 7.55, -1.6); des.add(mastD);
     const bandD = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.85),
