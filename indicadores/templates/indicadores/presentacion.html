@@ -2812,7 +2812,7 @@ let comiteGrafo = null;
         new THREE.CylinderGeometry(0.1, 0.14, 0.5, 8),
         new THREE.MeshLambertMaterial({ color: 0x64748b }));
     ocular.position.set(0, 1.12, 0.22); tel.add(ocular);
-    tel.rotation.x = -0.62;
+    tel.rotation.x = 1.85;   // ~15° de depresión: barre a la ciudadanía, no el cielo
     tel.position.y = 4.0;
     obs.add(tel);
     obs.position.set(44.5, 0, -0.5);   // junto al borde de la plaza
@@ -3565,7 +3565,7 @@ const ACTOS = [
     // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
     { t0: 140, t1: 154, acto: 'Módulo 04', texto: 'EL TALLER · DADII', sub: `censo y prediagnóstico de ${STATS.organismos} organismos — diseñado por el Departamento de Innovación de la Alcaldía`,
       cam: [[-14, 5.5, 5], [-24, 3.4, -2.5]] },
-    { t0: 154, t1: 160, acto: 'Sala', texto: 'Equipo técnico', sub: 'la sala de recolección carga indicadores — la cámara entra', pan: true,
+    { t0: 154, t1: 160, acto: 'Sala', texto: 'Equipo técnico', sub: 'la sala de recolección carga los indicadores del sistema', pan: true,
       cam: [[-17, 1.5, -0.8], [-15.4, 1.0, 0.55]] },   // escritorios SE
     { t0: 160, t1: 164, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[-17, 1.5, -0.8], [-18.6, 1.0, 0.55]] },   // escritorios SO
@@ -3610,7 +3610,7 @@ const ACTOS = [
     { t0: 362, t1: 374, acto: 'Estación 20', texto: 'Complejo de capacidad', sub: 'expediente ICED + vitrina de hojas de vida: aquí se decide la capacidad',
       cam: [[18, 6.5, -4], [29, 3.5, -11]] },
     // ======= F: SALAS DE GOBIERNO — la cámara ENTRA y GIRA =======
-    { t0: 374, t1: 380, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el consejo de don Daticos deliberando — la cámara entra', pan: true,
+    { t0: 374, t1: 380, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el consejo de don Daticos delibera sobre los expedientes ICED', pan: true,
       cam: [[30, 5.9, -16.5], [24, 5.5, -16.5]] },
     { t0: 380, t1: 384, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [30, 6, -20]] },
@@ -3618,9 +3618,9 @@ const ACTOS = [
       cam: [[30, 5.9, -16.5], [36, 5.5, -16.5]] },
     { t0: 388, t1: 392, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [30, 5.5, -13]] },
-    { t0: 392, t1: 398, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'grafo del ecosistema + TVs + vitrina: y la cámara sale', pan: true,
+    { t0: 392, t1: 398, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'grafo del ecosistema + TVs + vitrina de expedientes', pan: true,
       cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // sale por el sur: vidrio (los TVs de la pared este darían la espalda)
-    { t0: 398, t1: 404, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan — la cámara entra', pan: true,
+    { t0: 398, t1: 404, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan en plenaria', pan: true,
       cam: [[52, 2.3, -14], [45.5, 2, -14]] },
     { t0: 404, t1: 408, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 2.3, -14], [52, 2.4, -17.8]] },   // norte: TVs + tablero ICED
@@ -3628,9 +3628,9 @@ const ACTOS = [
       cam: [[52, 2.3, -14], [58.5, 2, -14]] },     // este: vidrio
     { t0: 412, t1: 416, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 2.3, -14], [52, 2.2, -10]] },     // sur: vidrio
-    { t0: 416, t1: 422, acto: 'Sala', texto: 'Comité de Gestión', sub: 'plenaria de organismos + grafo + tablero ICED: y la cámara sale', pan: true,
+    { t0: 416, t1: 422, acto: 'Sala', texto: 'Comité de Gestión', sub: 'plenaria de organismos + grafo + tablero ICED', pan: true,
       cam: [[57, 6, -6], [52, 3, -14]] },   // sale por el SE: vidrio, no los backs de los TVs
-    { t0: 422, t1: 428, acto: 'Sala', texto: 'Junta de despacho', sub: 'la decisión final — la cámara entra', pan: true,
+    { t0: 422, t1: 428, acto: 'Sala', texto: 'Junta de despacho', sub: 'la decisión final del sistema de información', pan: true,
       cam: [[52, 4.9, -30], [49, 4.6, -30]] },
     { t0: 428, t1: 432, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 4.9, -30], [52, 5, -32.6]] },
@@ -3638,7 +3638,7 @@ const ACTOS = [
       cam: [[52, 4.9, -30], [55, 4.6, -30]] },
     { t0: 436, t1: 440, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 4.9, -30], [52, 4.6, -27.5]] },
-    { t0: 440, t1: 446, acto: 'Sala', texto: 'Junta de despacho', sub: 'mesa de gabinete, bandera y la decisión final: y la cámara sale', pan: true,
+    { t0: 440, t1: 446, acto: 'Sala', texto: 'Junta de despacho', sub: 'mesa de gabinete, bandera y la decisión final', pan: true,
       cam: [[52, 6.5, -23], [52, 4.9, -30]] },
     // ======= G: LÍNEAS DE SERVICIO =======
     { t0: 446, t1: 458, acto: 'Estación 21', texto: 'Línea editorial', sub: 'NoticiaBanner + Evento: del borrador a la portada',
