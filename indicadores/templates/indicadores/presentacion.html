@@ -946,7 +946,7 @@ function crearMaquina(cfg) {
 }
 
 const ESTACIONES = [
-    { x: -20, nombre: 'TALLER',      modelo: 'Ecosistema · Organismo · FuenteDatos', color: 0x38bdf8, tipo: 'tolva' },
+    { x: -20, nombre: 'TALLER',      modelo: 'Organismo · FuenteDatos · FuenteOrigen', color: 0x38bdf8, tipo: 'tolva' },
     { x: -10, nombre: 'OPERACIONES', modelo: 'OperacionEstadistica · 8 fases (IOE)', color: 0x2563eb, tipo: 'turbina' },
     { x: 0,   nombre: 'CONJUNTOS',   modelo: 'ConjuntoDatos · VariableConjuntoDatos · DDI', color: 0x1d4ed8, tipo: 'prensa' },
     { x: 10,  nombre: 'INDICADORES', modelo: 'Indicador · ReglaExtraccion · SDMX',   color: 0x0284c7, tipo: 'escaner' },
@@ -956,8 +956,8 @@ ESTACIONES.forEach(crearMaquina);
 
 // Línea 2 — CAPACIDAD ESTADÍSTICA (al fondo, formularios morados)
 const ESTACIONES_CAP = [
-    { x: -10, nombre: 'FICED',       modelo: 'Formulario Índice de Capacidad', color: 0x7c3aed, tipo: 'escaner',  z: -14 },
-    { x: 0,   nombre: 'SATISFACCIÓN',modelo: 'RespuestaSatisfaccion · ciudadanía', color: 0xa855f7, tipo: 'tolva', z: -14 },
+    { x: -10, nombre: 'FICED',       modelo: 'ICEDFormulario · secciones A–E', color: 0x7c3aed, tipo: 'escaner',  z: -14 },
+    { x: 0,   nombre: 'SATISFACCIÓN',modelo: 'Rapida+Completa · organismo/equipo', color: 0xa855f7, tipo: 'tolva', z: -14 },
     { x: 10,  nombre: 'HALL',        modelo: 'Hall de capacidad · hojas de vida', color: 0x8b5cf6, tipo: 'lanzador', z: -14 },
 ];
 ESTACIONES_CAP.forEach(crearMaquina);
@@ -1085,7 +1085,7 @@ function crearKiosco(cfg) {
     return k;
 }
 [
-    { z: -8,   nombre: 'CATÁLOGOS',   modelo: 'CatalogoConsulta · ADDA',           prop: 'libros' },
+    { z: -8,   nombre: 'CATÁLOGOS',   modelo: 'BaseCatalogo · CampoCatalogo · ADDA', prop: 'libros' },
     { z: -5,   nombre: 'DOCUMENTOS',  modelo: 'ProductoAcademico · ProductoEducativo', prop: 'papeles' },
     { z: -2,   nombre: 'NOTICIAS',    modelo: 'NoticiaBanner · Evento',            prop: 'banner' },
     { z: 2,    nombre: 'CALENDARIO',  modelo: 'CalendarioDifusion · Evento',       prop: 'calendario' },
@@ -1648,21 +1648,21 @@ const ACTOS = [
       cam: [[-16, 3.5, 12], [-10, 2.5, -1.5]] },
     { t0: 33,  t1: 42,  acto: 'Acto IV', texto: 'Conjuntos y variables', sub: `Conjuntos de datos y variables bajo DDI — ${STATS.conjuntos} inventariados`,
       cam: [[-6, 3.5, 12], [0, 2.5, -1.5]] },
-    { t0: 42,  t1: 51,  acto: 'Acto V', texto: 'Indicadores', sub: `Fichas SDMX completas — ${STATS.indicadores} activos`,
-      cam: [[4, 3.5, 12], [10, 2.5, -1.5]] },
-    { t0: 51,  t1: 60,  acto: 'Acto VI', texto: 'Difusión', sub: 'Gráficos, calendario de difusión y acceso para la ciudad',
-      cam: [[14, 3.5, 12], [20, 2.5, 0]] },
-    { t0: 60,  t1: 69,  acto: 'Acto VII', texto: 'La plaza', sub: 'La ciudadanía opina — sus encuestas alimentan la planta',
-      cam: [[24, 6.5, 19], [16, 1.2, 11]] },
-    { t0: 69,  t1: 79,  acto: 'Acto VIII', texto: 'La línea de capacidad', sub: 'El FICED mide en 5 secciones: caracterización, RRHH, procesos…',
-      cam: [[30, 7, -3], [-5, 2.5, -15]] },
-    { t0: 79,  t1: 88,  acto: 'Acto IX', texto: 'El hall de capacidad', sub: 'Hojas de vida de organismos — la vitrina estadística del Distrito',
-      cam: [[-4, 4.5, -3.5], [10, 2, -16]] },
-    { t0: 88,  t1: 98,  acto: 'Acto X', texto: 'Subir indicadores es otra maquila', sub: 'ReglaExtraccion → Dato → ficha validada → indicador publicado',
+    { t0: 42,  t1: 51,  acto: 'Acto V', texto: 'Subir indicadores es otra maquila', sub: 'ReglaExtraccion → Dato → ficha validada → indicador publicado',
       cam: [[22, 7, -12], [46, 3, -2]] },
-    { t0: 98,  t1: 108, acto: 'Acto XI', texto: 'Servicios de la planta', sub: 'Catálogos, documentos, noticias, calendario e infraestructura metodológica',
+    { t0: 51,  t1: 60,  acto: 'Acto VI', texto: 'Indicadores', sub: `Fichas SDMX completas — ${STATS.indicadores} activos`,
+      cam: [[4, 3.5, 12], [10, 2.5, -1.5]] },
+    { t0: 60,  t1: 69,  acto: 'Acto VII', texto: 'Difusión', sub: 'Gráficos, calendario de difusión y acceso para la ciudad',
+      cam: [[14, 3.5, 12], [20, 2.5, 0]] },
+    { t0: 69,  t1: 78,  acto: 'Acto VIII', texto: 'La plaza', sub: 'La ciudadanía opina — sus encuestas alimentan la planta',
+      cam: [[24, 6.5, 19], [16, 1.2, 11]] },
+    { t0: 78,  t1: 88,  acto: 'Acto IX', texto: 'La línea de capacidad', sub: 'El FICED mide en 5 secciones (A–E): caracterización, RRHH, procesos…',
+      cam: [[30, 7, -3], [-5, 2.5, -15]] },
+    { t0: 88,  t1: 97,  acto: 'Acto X', texto: 'El hall de capacidad', sub: 'Hojas de vida de organismos — la vitrina estadística del Distrito',
+      cam: [[-4, 4.5, -3.5], [10, 2, -16]] },
+    { t0: 97,  t1: 107, acto: 'Acto XI', texto: 'Servicios de la planta', sub: 'Catálogos, documentos, noticias, calendario e infraestructura metodológica',
       cam: [[-24, 5, -2], [-33, 2, -1]] },
-    { t0: 108, t1: 123, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
+    { t0: 107, t1: 122, acto: 'Final', texto: 'Y al caer el turno…', sub: 'la fábrica entera celebra — esto es Cali',
       cam: [[0, 15, 32], [0, 3, -4]], finale: true },
 ];
 const DURACION = ACTOS[ACTOS.length - 1].t1;
