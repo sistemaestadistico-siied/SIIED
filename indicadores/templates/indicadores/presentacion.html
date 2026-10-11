@@ -1339,8 +1339,15 @@ function crearCamion(cfg) {
     const boca = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 2.0),
         new THREE.MeshBasicMaterial({ color: 0x0f172a }));
     boca.position.set(2.42, 1.7, 0); boca.rotation.y = Math.PI / 2; g.add(boca);
-    const puerta = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.05, 2.0), colCab);
-    puerta.position.set(2.6, 3.1, 0); puerta.rotation.z = -0.9; g.add(puerta);
+    // Puerta roll-up articulada en el dintel trasero: cerrada
+    // tapa la boca; al detenerse rueda hacia adentro del techo
+    const puertaG = new THREE.Group();
+    puertaG.position.set(2.42, 2.9, 0);
+    const hoja = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.1, 2.0), colCab);
+    hoja.position.set(0, -1.05, 0);   // cuelga del dintel
+    hoja.castShadow = true;
+    puertaG.add(hoja);
+    g.add(puertaG);
     // Ruedas: 1 eje delantero + doble eje trasero
     const ruedaGeom = new THREE.CylinderGeometry(0.44, 0.44, 0.32, 14);
     ruedaGeom.rotateX(Math.PI / 2);
@@ -1359,10 +1366,20 @@ function crearCamion(cfg) {
         g.add(hub);
     }
     g.userData.ruedas = ruedas;
-    // Rampa de descarga amarilla
-    const rampa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 0.95),
+    // Rampa-liftgate articulada en el borde del piso trasero:
+    // viaja plegada vertical contra la puerta y se despliega
+    // al piso cuando el camión se detiene a cargar/descargar
+    const rampaG = new THREE.Group();
+    rampaG.position.set(2.42, 0.72, 0);
+    const hojaR = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.1, 0.95),
         new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
-    rampa.position.set(3.6, 1.35, 0); rampa.rotation.z = -0.32; g.add(rampa);
+    hojaR.position.set(1.3, 0, 0);
+    rampaG.add(hojaR);
+    rampaG.rotation.z = 1.45;         // plegada vertical
+    g.add(rampaG);
+    g.userData.puertaG = puertaG;
+    g.userData.rampaG = rampaG;
+    g.userData.ap = 0;                // 0 cerrado → 1 abierto
     // El furgón ES el letrero: panel fluorescente a cada lado
     const texF = texturaFurgon(cfg.etiqueta, cfg.sub);
     for (const s of [1, -1]) {
@@ -3598,10 +3615,12 @@ function animate() {
             const paso = VEL_CAM * dt;
             if (d <= paso) {
                 cm.position.x = tx; cm.position.z = tz;
-                r.espera = (r.i === r.pts.length - 1) ? 7 :
+                const e = (r.i === r.pts.length - 1) ? 7 :
                            (r.i === 0 ? 4 :
                            (r.paradas && r.paradas.includes(r.i) ? 3 :
                            (r.esperaMid ?? 0.8)));
+                r.espera = e;
+                r.carga = e > 1;      // parada real: puerta y rampa abren
             } else {
                 cm.position.x += dx / d * paso;
                 cm.position.z += dz / d * paso;
@@ -3610,6 +3629,14 @@ function animate() {
             }
         }
         cm.position.y = Math.abs(Math.sin(tGlobal * 1.7 + cm.userData.faseCam)) * 0.02;
+        // Puerta + rampa: abren cuando el camión está en parada de carga
+        if (cm.userData.puertaG) {
+            const obj = (r.carga && r.espera > 0) ? 1 : 0;
+            cm.userData.ap += (obj - cm.userData.ap) * Math.min(1, dt * 3.2);
+            const ap = cm.userData.ap;
+            cm.userData.puertaG.rotation.z = -1.5 * ap;      // rueda hacia el techo
+            cm.userData.rampaG.rotation.z = 1.45 - 1.8 * ap; // se despliega al piso
+        }
     });
     // Observatorios: los telescopios barren la ciudadanía
     telescopios.forEach(t => {
