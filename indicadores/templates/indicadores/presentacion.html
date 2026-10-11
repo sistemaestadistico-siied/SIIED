@@ -588,6 +588,54 @@ function texturaPantalla(titulo, modelo) {
     return new THREE.CanvasTexture(cv);
 }
 
+// ============ TEXTURAS LAB (estética laboratorio Dexter) ============
+// Recortes de las láminas originales conservando la relación de
+// aspecto de cada cara: ±z 683×559 (4.4/3.6), ±x 466×559 (3/3.6)
+const LAB_LOADER = new THREE.TextureLoader();
+const texLab = n => {
+    const t = LAB_LOADER.load(`{% static 'indicadores/images/${n}.jpg' %}`);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+};
+const LAB_CARAS = {
+    a1: texLab('lab_a1'), a2: texLab('lab_a2'),
+    b1: texLab('lab_b1'), b2: texLab('lab_b2'),
+    c1: texLab('lab_c1'), c2: texLab('lab_c2'),
+};
+const LAB_LADOS = { x1: texLab('lab_x1'), x2: texLab('lab_x2'), x3: texLab('lab_x3') };
+const LAB_TEX = {
+    c1: [LAB_CARAS.c1, LAB_LADOS.x3], a2: [LAB_CARAS.a2, LAB_LADOS.x1],
+    b1: [LAB_CARAS.b1, LAB_LADOS.x2], c2: [LAB_CARAS.c2, LAB_LADOS.x1],
+    a1: [LAB_CARAS.a1, LAB_LADOS.x3], b2: [LAB_CARAS.b2, LAB_LADOS.x2],
+};
+const LAB_TIPO = {
+    tolva: 'c1', turbina: 'a2', prensa: 'b1', escaner: 'c2',
+    lanzador: 'a1', eval: 'b2', def: 'b1',
+};
+
+// Texto fluorescente para el furgón oscuro del camión
+function texturaFurgon(titulo, sub) {
+    const cv = document.createElement('canvas');
+    cv.width = 512; cv.height = 200;
+    const cx = cv.getContext('2d');
+    cx.fillStyle = '#0a1220'; cx.fillRect(0, 0, 512, 200);
+    cx.strokeStyle = '#164e63'; cx.lineWidth = 6;
+    cx.strokeRect(10, 10, 492, 180);
+    cx.fillStyle = '#22d3ee';
+    cx.shadowColor = '#22d3ee'; cx.shadowBlur = 18;
+    cx.font = 'bold 44px monospace';
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    let fs = 44;
+    while (cx.measureText(titulo).width > 460 && fs > 18) {
+        fs -= 2; cx.font = `bold ${fs}px monospace`;
+    }
+    cx.fillText(titulo, 256, 76);
+    cx.shadowBlur = 0;
+    cx.fillStyle = '#67e8f9'; cx.font = '22px monospace';
+    cx.fillText(sub, 256, 136);
+    return new THREE.CanvasTexture(cv);
+}
+
 function crearCartel(texto, sub, ancho = 4) {
     const tex = textoCanvas(texto, sub);
     const plano = new THREE.Mesh(
@@ -756,10 +804,15 @@ function crearMaquina(cfg) {
     m.position.set(cfg.x, 0, cfg.z ?? -3.2);
     if (cfg.rotY) m.rotation.y = cfg.rotY;
 
-    // Cuerpo principal: gabinete blanco de laboratorio
+    // Cuerpo principal: panel de laboratorio texturizado
+    // (cara ±z = 4.4×3.6 → crop 683×559; cara ±x = 3×3.6 → 466×559)
+    const [texF, texS] = LAB_TEX[LAB_TIPO[cfg.tipo] ?? LAB_TIPO.def];
+    const matF = new THREE.MeshLambertMaterial({ map: texF });
+    const matS = new THREE.MeshLambertMaterial({ map: texS });
+    const matT = new THREE.MeshLambertMaterial({ color: 0xe8edf1 });
     const cuerpo = new THREE.Mesh(
         new THREE.BoxGeometry(4.4, 3.6, 3),
-        new THREE.MeshLambertMaterial({ color: 0xe8edf1 }));
+        [matS, matS, matT, matT, matF, matF]);
     cuerpo.position.y = 1.8;
     cuerpo.castShadow = true;
     m.add(cuerpo);
@@ -1169,7 +1222,7 @@ function crearCamion(cfg) {
     const g = new THREE.Group();
     g.position.set(cfg.x, 0, cfg.z);
     const colCab = new THREE.MeshLambertMaterial({ color: cfg.color });
-    const colCaja = new THREE.MeshLambertMaterial({ color: 0xf1f5f9 });
+    const colCaja = new THREE.MeshLambertMaterial({ color: 0x0e1626 });
     const colOsc = new THREE.MeshLambertMaterial({ color: 0x334155 });
     // Chasis: larguero bajo que une cabina y remolque
     const chasis = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.28, 1.7), colOsc);
@@ -1228,15 +1281,15 @@ function crearCamion(cfg) {
     const rampa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 0.95),
         new THREE.MeshLambertMaterial({ color: 0xfacc15 }));
     rampa.position.set(3.6, 1.35, 0); rampa.rotation.z = -0.32; g.add(rampa);
-    // Poste lateral con el letrero del módulo de acceso que representa
-    // (mirando a cámara, como los carteles de las estaciones)
-    const posteL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 4.4, 0.12),
-        new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-    posteL.position.set(0.2, 2.2, 1.8);   // detrás del plano: no lo atraviesa
-    g.add(posteL);
-    const cartel = crearCartel(cfg.etiqueta, cfg.sub, 3.2);
-    cartel.position.set(0.2, 4.1, 1.95);
-    g.add(cartel);
+    // El furgón ES el letrero: panel fluorescente a cada lado
+    const texF = texturaFurgon(cfg.etiqueta, cfg.sub);
+    for (const s of [1, -1]) {
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 1.5),
+            new THREE.MeshBasicMaterial({ map: texF }));
+        panel.position.set(0.2, 1.85, s * 1.08);
+        if (s < 0) panel.rotation.y = Math.PI;
+        g.add(panel);
+    }
     g.userData.faseCam = Math.random() * 7;
     scene.add(g);
     camiones.push(g);
