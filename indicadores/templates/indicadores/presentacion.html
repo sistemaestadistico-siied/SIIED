@@ -397,6 +397,138 @@ scene.add(relleno);
         }
     }
 
+    // ===== LANDMARKS DEL OUTSKIRT (portados del detalle 3D) =====
+    // La ciudad real alrededor del SIIED: iglesia, estadio,
+    // parque, mall, bomberos, antena y fuentes — escalados a la
+    // franja vacía antes de los cerros.
+    function crearIglesia(x, z, s) {
+        const g = new THREE.Group();
+        const nave = new THREE.Mesh(new THREE.BoxGeometry(4, 6, 6),
+            new THREE.MeshLambertMaterial({ color: 0xe8d4a0 }));
+        nave.position.y = 3; nave.castShadow = true; g.add(nave);
+        const techo = new THREE.Mesh(new THREE.ConeGeometry(3.5, 2, 4),
+            new THREE.MeshLambertMaterial({ color: 0x8b4513 }));
+        techo.rotation.y = Math.PI / 4; techo.position.y = 7;
+        techo.castShadow = true; g.add(techo);
+        const torre = new THREE.Mesh(new THREE.BoxGeometry(1.5, 8, 1.5),
+            new THREE.MeshLambertMaterial({ color: 0xd4c4a0 }));
+        torre.position.set(0, 4, -3.5); torre.castShadow = true; g.add(torre);
+        const cruzV = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2, 0.2),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        cruzV.position.set(0, 9, -3.5); g.add(cruzV);
+        const cruzH = new THREE.Mesh(new THREE.BoxGeometry(1, 0.2, 0.2),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        cruzH.position.set(0, 8.5, -3.5); g.add(cruzH);
+        g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
+    }
+    function crearEstadio(x, z, s) {
+        const g = new THREE.Group();
+        const cuerpo = new THREE.Mesh(
+            new THREE.CylinderGeometry(10, 12, 8, 16, 1, true, 0, Math.PI * 1.7),
+            new THREE.MeshLambertMaterial({ color: 0xdddddd, side: THREE.DoubleSide }));
+        cuerpo.position.y = 4; cuerpo.castShadow = true; g.add(cuerpo);
+        const campo = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 0.2, 16),
+            new THREE.MeshLambertMaterial({ color: 0x00aa00 }));
+        campo.position.y = 0.1; g.add(campo);
+        for (const [tx, tz] of [[10, 10], [10, -10], [-10, 10], [-10, -10]]) {
+            const t = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 12, 6),
+                new THREE.MeshLambertMaterial({ color: 0x888888 }));
+            t.position.set(tx, 6, tz); g.add(t);
+            const luz = new THREE.Mesh(new THREE.BoxGeometry(1, 0.5, 1),
+                new THREE.MeshBasicMaterial({ color: 0xffff00 }));
+            luz.position.set(tx, 12.2, tz); g.add(luz);
+        }
+        g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
+    }
+    function crearParque(x, z, s) {
+        const g = new THREE.Group();
+        const cesped = new THREE.Mesh(new THREE.BoxGeometry(12, 0.1, 12),
+            new THREE.MeshLambertMaterial({ color: 0x228b22 }));
+        cesped.position.y = 0.05; g.add(cesped);
+        for (const [ax, az] of [[-4, -4], [4, -4], [-4, 4], [4, 4], [0, 0]]) {
+            const tronco = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 3, 6),
+                new THREE.MeshLambertMaterial({ color: 0x654321 }));
+            tronco.position.set(ax, 1.5, az); g.add(tronco);
+            const copa = new THREE.Mesh(new THREE.SphereGeometry(1.2, 8, 8),
+                new THREE.MeshLambertMaterial({ color: 0x228b22 }));
+            copa.position.set(ax, 3.5, az); copa.castShadow = true; g.add(copa);
+        }
+        const sendero1 = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, 12),
+            new THREE.MeshLambertMaterial({ color: 0xd2b48c }));
+        sendero1.position.y = 0.08; g.add(sendero1);
+        const sendero2 = new THREE.Mesh(new THREE.BoxGeometry(12, 0.05, 1),
+            new THREE.MeshLambertMaterial({ color: 0xd2b48c }));
+        sendero2.position.y = 0.08; g.add(sendero2);
+        g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
+    }
+    function crearMall(x, z, s) {
+        const g = new THREE.Group();
+        const ed = new THREE.Mesh(new THREE.BoxGeometry(8, 6, 10),
+            new THREE.MeshLambertMaterial({ color: 0xe0e0e0 }));
+        ed.position.y = 3; ed.castShadow = true; g.add(ed);
+        const letrero = new THREE.Mesh(new THREE.BoxGeometry(6, 1, 0.2),
+            new THREE.MeshBasicMaterial({ color: 0xff6600 }));
+        letrero.position.set(0, 6.5, 5.1); g.add(letrero);
+        const parking = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 8),
+            new THREE.MeshLambertMaterial({ color: 0x555555 }));
+        parking.position.set(0, 0.1, -9); g.add(parking);
+        g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
+    }
+    function crearBomberos(x, z, s) {
+        const g = new THREE.Group();
+        const ed = new THREE.Mesh(new THREE.BoxGeometry(5, 5, 4),
+            new THREE.MeshLambertMaterial({ color: 0xcc0000 }));
+        ed.position.y = 2.5; ed.castShadow = true; g.add(ed);
+        const puerta = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3, 0.1),
+            new THREE.MeshLambertMaterial({ color: 0xffffff }));
+        puerta.position.set(0, 1.5, 2.05); g.add(puerta);
+        const sirena = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.5, 8),
+            new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        sirena.position.set(0, 5.25, 0); g.add(sirena);
+        g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
+    }
+    function crearAntena(x, z, s) {
+        const g = new THREE.Group();
+        const torre = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 15, 4),
+            new THREE.MeshLambertMaterial({ color: 0xc0c0c0 }));
+        torre.position.y = 7.5; torre.castShadow = true; g.add(torre);
+        for (let i = 0; i < 3; i++) {
+            const plat = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.2, 8),
+                new THREE.MeshLambertMaterial({ color: 0x888888 }));
+            plat.position.y = 5 + i * 4; g.add(plat);
+        }
+        const luz = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        luz.position.y = 17; g.add(luz);
+        g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
+    }
+    function crearFuente(x, z, s) {
+        const g = new THREE.Group();
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.5, 0.5, 8),
+            new THREE.MeshLambertMaterial({ color: 0xcccccc }));
+        base.position.y = 0.25; g.add(base);
+        const piscina = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.8, 8),
+            new THREE.MeshLambertMaterial({ color: 0x4a90e2, transparent: true, opacity: 0.7 }));
+        piscina.position.y = 0.9; g.add(piscina);
+        const pilar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 2, 8),
+            new THREE.MeshLambertMaterial({ color: 0xaaaaaa }));
+        pilar.position.y = 1.5; g.add(pilar);
+        g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
+    }
+    // Norte: el sector vacío antes de la junta del hall — el
+    // despacho ya tiene su propio podio al este
+    crearEstadio(6, -39.5, 0.42);
+    crearIglesia(-24, -40.5, 0.55);
+    crearAntena(34, -41, 0.6);
+    crearFuente(-10, -39, 0.7);
+    // Sur: detrás de la ventanilla y el catálogo — la ciudad
+    // que recibe los datos
+    crearParque(-8, 35, 0.7);
+    crearMall(27, 36, 0.5);
+    crearBomberos(-28, 37, 0.6);
+    crearIglesia(48, 36, 0.6);
+    crearFuente(14, 30, 0.8);
+
     // Bóveda de estrellas: cúpula de puntos (fog apagado para
     // que brillen por encima del horizonte)
     const posE = [];
