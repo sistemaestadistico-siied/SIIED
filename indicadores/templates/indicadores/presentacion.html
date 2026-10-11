@@ -2962,10 +2962,6 @@ const TVs = [];
     const pl = new THREE.PointLight(0xffd9a0, 1.0, 15, 2);
     pl.position.set(x, y, z);
     scene.add(pl);
-    const bulbo = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xffe9b0 }));
-    bulbo.position.set(x, y, z);
-    scene.add(bulbo);
 });
 function asignarGrafico(tv) {
     tv.pantalla.material.map = texCharts[Math.floor(Math.random() * texCharts.length)];
