@@ -299,7 +299,9 @@ scene.add(relleno);
     for (const ox of [-2.4, 0, 2.4]) {
         const pv = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.4, 0.4), blanco);
         pv.position.set(-78 + ox, 28, 8); cordillera.add(pv);
-        const ph = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.4, 0.4), blanco);
+        // El brazo va en Z: la cruz abre hacia la ciudad (este),
+        // no apunta de canto como antes
+        const ph = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.7), blanco);
         ph.position.set(-78 + ox, 28.7, 8); cordillera.add(ph);
     }
     // CERRO DEL CRISTO REY (suroeste de Cali — más alto)
@@ -346,6 +348,7 @@ scene.add(relleno);
         .map(c => new THREE.MeshLambertMaterial({ color: c }));
     const matTej = [0x9a3412, 0x475569, 0x7f1d1d]
         .map(c => new THREE.MeshLambertMaterial({ color: c }));
+    const matVentana = new THREE.MeshBasicMaterial({ color: 0xffc977 });
     function casita(x, z, ry) {
         const c = new THREE.Group();
         const w = 1.6 + Math.random() * 0.8;
@@ -360,9 +363,44 @@ scene.add(relleno);
         techo.position.y = h + 0.32;
         techo.rotation.y = Math.PI / 4;
         c.add(techo);
+        // Ventana encendida en la fachada que mira a la planta —
+        // es de noche y las casas también alumbran
+        const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.05),
+            matVentana);
+        ventana.position.set(w * 0.18, h * 0.55, w * 0.45 + 0.03);
+        c.add(ventana);
         c.position.set(x, 0, z);
         c.rotation.y = ry;
         scene.add(c);
+    }
+    // Faroles de barrio: la periferia también tiene su luz
+    function farol(x, z) {
+        const f = new THREE.Group();
+        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.6, 6),
+            new THREE.MeshLambertMaterial({ color: 0x5b6d7c }));
+        poste.position.y = 1.3; f.add(poste);
+        const bombilla = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8),
+            new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+        bombilla.position.y = 2.65; f.add(bombilla);
+        f.position.set(x, 0, z);
+        scene.add(f);
+    }
+    for (let x = -58; x <= 58; x += 14) {
+        farol(x, -43.3); farol(x, 43.3);
+    }
+    for (let z = -33; z <= 33; z += 14) {
+        farol(67.3, z); farol(-67.3, z);
+        if (Math.abs(z) < 34) { farol(-51, z + 5); farol(-53.8, z - 5); }
+    }
+    // Tercera profundidad norte/sur: el borde queda más lleno
+    for (const zBorde of [-48.8, 48.8]) {
+        for (let x = -59; x <= 59; x += 9.5) {
+            const n = 2 + Math.round(Math.abs(Math.sin(x * 4.3 + zBorde)) * 2);
+            for (let k = 0; k < n; k++)
+                casita(x + k * 2.15 + Math.sin(k * 2.1) * 0.4,
+                       zBorde + Math.cos(k * 1.7) * 0.45,
+                       zBorde > 0 ? 0 : Math.PI);
+        }
     }
     // Norte y sur: dos profundidades, filas paralelas a la barda
     for (const zBorde of [-44.4, -46.6, 44.4, 46.6]) {
@@ -416,9 +454,19 @@ scene.add(relleno);
         const cruzV = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2, 0.2),
             new THREE.MeshBasicMaterial({ color: 0xffffff }));
         cruzV.position.set(0, 9, -3.5); g.add(cruzV);
+        // Barra en el tercio superior: antes quedaba cruz invertida
         const cruzH = new THREE.Mesh(new THREE.BoxGeometry(1, 0.2, 0.2),
             new THREE.MeshBasicMaterial({ color: 0xffffff }));
-        cruzH.position.set(0, 8.5, -3.5); g.add(cruzH);
+        cruzH.position.set(0, 9.3, -3.5); g.add(cruzH);
+        // De noche la parroquia enciende puerta y ventanas
+        const puertaI = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.1),
+            new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+        puertaI.position.set(0, 0.8, 3.01); g.add(puertaI);
+        for (const wx of [-1.2, 1.2]) {
+            const vit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.1, 0.1),
+                new THREE.MeshBasicMaterial({ color: 0xffc977 }));
+            vit.position.set(wx, 3.4, 3.01); g.add(vit);
+        }
         g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
     }
     function crearEstadio(x, z, s) {
