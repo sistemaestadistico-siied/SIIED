@@ -1400,9 +1400,11 @@ camRec.userData.ruta = { pts: [[39, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0
 camDel.userData.ruta = { pts: [[52, -8], [-21, -8]],   i: 1, dir: 1, espera: 0 };
 camEdi.userData.ruta = { pts: [[30, -11.5], [38, -11.5], [38, -22],
     [62.5, -22], [56, -27], [62.5, -22], [62.5, -14], [62.5, -22],
-    [38, -22], [-34, -22], [-34, 2.1], [-19, 2.1], [-26.6, 2.1],
+    [38, -22], [-34, -22], [-34, 2.1], [-20.8, 2.1], [-26.6, 2.1],
     [-26.6, 18], [-25.5, 18]],
-    i: 1, dir: 1, espera: 0, esperaMid: 3 };
+    // paradas largas SOLO en las salas (idx 0 capa, 3 despacho,
+    // 5 comité, 10 recolección): las esquinas no leen como parada
+    i: 1, dir: 1, espera: 0, esperaMid: 0.6, paradas: [3, 5, 10] };
 
 // Chute inclinado entre dos puntos del mundo
 function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
@@ -3597,7 +3599,9 @@ function animate() {
             if (d <= paso) {
                 cm.position.x = tx; cm.position.z = tz;
                 r.espera = (r.i === r.pts.length - 1) ? 7 :
-                           (r.i === 0 ? 4 : (r.esperaMid || 0.8));
+                           (r.i === 0 ? 4 :
+                           (r.paradas && r.paradas.includes(r.i) ? 3 :
+                           (r.esperaMid ?? 0.8)));
             } else {
                 cm.position.x += dx / d * paso;
                 cm.position.z += dz / d * paso;
