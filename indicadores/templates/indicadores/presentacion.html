@@ -2859,9 +2859,11 @@ const TVs = [];
     const matMuroF = new THREE.MeshLambertMaterial({ map: LAB_CARAS.b1 });
     const matMuroS = new THREE.MeshLambertMaterial({ map: LAB_LADOS.x2 });
     const matMuroT = new THREE.MeshLambertMaterial({ color: 0x57534e });
-    const marco = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6.9, 8.2),
+    // Muro más bajo: 5 filas — el observatorio vecino ya no
+    // tapa la pared ni le compite el skyline
+    const marco = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.4, 8.2),
         [matMuroF, matMuroF, matMuroT, matMuroT, matMuroS, matMuroS]);
-    marco.position.set(0.28, 3.55, 0);
+    marco.position.set(0.28, 2.8, 0);
     marco.castShadow = true;
     paredG.add(marco);
     for (const pz of [-3.8, 3.8]) {
@@ -2871,10 +2873,10 @@ const TVs = [];
         paredG.add(pata);
     }
     const beiges = [0xd6cbb8, 0xc9bfb0, 0xb5a895];
-    for (let r = 0; r < 6; r++) {
+    for (let r = 0; r < 5; r++) {
         for (let c = 0; c < 6; c++) {
             const tv = new THREE.Group();
-            tv.position.set(0, 1.0 + r * 1.0, -3.05 + c * 1.22);
+            tv.position.set(0, 0.9 + r * 0.95, -3.05 + c * 1.22);
             const carcasa = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.92, 1.12),
                 new THREE.MeshLambertMaterial({ color: beiges[(r + c) % 3] }));
             tv.add(carcasa);
@@ -2896,7 +2898,7 @@ const TVs = [];
                 perilla.position.set(-0.32, -0.05, pz);
                 tv.add(perilla);
             }
-            if (r === 5 && c % 2 === 0) {   // orejas de conejo
+            if (r === 4 && c % 2 === 0) {   // orejas de conejo
                 for (const s of [-1, 1]) {
                     const ant = new THREE.Mesh(
                         new THREE.CylinderGeometry(0.015, 0.015, 0.8, 6),
@@ -2912,8 +2914,8 @@ const TVs = [];
                        mundo: tv.getWorldPosition(new THREE.Vector3()) });
         }
     }
-    const cartelTV = crearCartel('SITIO WEB DEL SIIED', 'visualización de indicadores e información', 4.2);
-    cartelTV.position.set(0, 7.6, 0);
+    const cartelTV = crearCartel('INDICADORES.CALI.GOV.CO', 'plataforma web del SIIED', 4.2);
+    cartelTV.position.set(0, 5.7, 0);
     cartelTV.rotation.y = -Math.PI / 2;
     paredG.add(cartelTV);
     scene.add(paredG);
