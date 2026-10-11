@@ -1,0 +1,480 @@
+{% extends 'indicadores/base.html' %}
+{% load static humanize %}
+{% block content %}
+
+<style>
+    .doc code { font-family: ui-monospace, 'Consolas', 'Menlo', monospace; }
+    .doc-seccion { scroll-margin-top: 96px; }
+    .doc-entrada code {
+        background: #f1f5f9; color: #075985;
+        padding: 1px 6px; border-radius: 4px;
+        font-size: 12px; white-space: nowrap;
+    }
+    .doc-entrada code.ruta { background: #e0f2fe; color: #0c4a6e; }
+    .doc-paso {
+        counter-increment: paso;
+    }
+</style>
+
+<div class="doc min-h-screen bg-slate-100 text-slate-800">
+
+    <!-- ============ ENCABEZADO ============ -->
+    <div class="bg-gradient-to-br from-sky-900 via-sky-800 to-slate-900 text-white">
+        <div class="max-w-6xl mx-auto px-6 py-14">
+            <div class="flex items-start gap-4 mb-5">
+                <span class="w-14 h-14 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
+                    <i class="fas fa-code text-2xl text-sky-200"></i>
+                </span>
+                <div>
+                    <h1 class="text-3xl lg:text-4xl font-bold">SIIED · Oferta de software de código abierto</h1>
+                    <p class="text-sky-200 text-sm lg:text-base mt-1">
+                        Documentación del código de toda la plataforma, archivo por archivo, y manuales de operación
+                    </p>
+                </div>
+            </div>
+            <p class="max-w-3xl text-slate-200 text-sm leading-relaxed mb-8">
+                El Sistema Integrado de Información Estadística Distrital se construyó íntegramente en la
+                Subdirección de Desarrollo Integral del Departamento Administrativo de Planeación con
+                herramientas libres — <strong>Python, Django, PostgreSQL y Three.js</strong>. Publicamos su
+                código, su modelo de datos y sus manuales para que cualquier ciudad o institución pueda
+                montar su propio sistema estadístico sobre esta base.
+            </p>
+
+            {% if stats_doc.archivos_py %}
+            <!-- Métricas vivas: calculadas en tiempo real sobre el código instalado -->
+            <div class="flex flex-wrap gap-2 mb-8 text-xs lg:text-sm">
+                <span class="px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
+                    <i class="fas fa-file-code mr-1.5 text-sky-300"></i>{{ stats_doc.archivos_py|intcomma }} archivos Python
+                </span>
+                <span class="px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
+                    <i class="fas fa-bars mr-1.5 text-sky-300"></i>{{ stats_doc.lineas_py|intcomma }} líneas de Python
+                </span>
+                <span class="px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
+                    <i class="fas fa-layer-group mr-1.5 text-sky-300"></i>{{ stats_doc.plantillas|intcomma }} plantillas HTML
+                </span>
+                <span class="px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
+                    <i class="fas fa-database mr-1.5 text-sky-300"></i>{{ stats_doc.migraciones|intcomma }} migraciones
+                </span>
+                <span class="px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
+                    <i class="fas fa-folder-open mr-1.5 text-sky-300"></i>{{ stats_doc.estaticos|intcomma }} archivos estáticos
+                </span>
+            </div>
+            {% endif %}
+
+            <div class="flex flex-wrap gap-3">
+                <a href="{% url 'indicadores:modelo_datos' %}"
+                   class="inline-flex items-center px-5 py-2.5 bg-white text-sky-900 text-sm font-semibold rounded-lg hover:bg-sky-100 transition-all duration-300 shadow-lg">
+                    <i class="fas fa-project-diagram mr-2"></i> Modelo de la base de datos
+                </a>
+                <a href="{% url 'indicadores:presentacion' %}"
+                   class="inline-flex items-center px-5 py-2.5 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-500 transition-all duration-300 shadow-lg border border-white/20">
+                    <i class="fas fa-industry mr-2"></i> Presentación 3D · La Maquila de Datos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-6 py-10 space-y-16">
+
+        <!-- ============ NAVEGACIÓN ============ -->
+        <nav class="flex flex-wrap gap-2 text-sm">
+            <a href="#oferta" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-sky-400 hover:text-sky-700 transition-colors">La oferta</a>
+            <a href="#arquitectura" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-sky-400 hover:text-sky-700 transition-colors">Arquitectura</a>
+            <a href="#codigo" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-sky-400 hover:text-sky-700 transition-colors">Código, archivo por archivo</a>
+            <a href="#plantillas" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-sky-400 hover:text-sky-700 transition-colors">Plantillas</a>
+            <a href="#manuales" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-sky-400 hover:text-sky-700 transition-colors">Manuales de operación</a>
+            <a href="#modelo" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-sky-400 hover:text-sky-700 transition-colors">Base de datos</a>
+            <a href="#repositorio" class="px-4 py-2 rounded-full bg-white border border-slate-200 hover:border-sky-400 hover:text-sky-700 transition-colors">Repositorio GitHub</a>
+        </nav>
+
+        <!-- ============ LA OFERTA ============ -->
+        <section id="oferta" class="doc-seccion">
+            <h2 class="text-2xl font-bold mb-2">¿Qué se comparte y cómo usarlo?</h2>
+            <p class="text-sm text-slate-600 max-w-3xl mb-6">
+                Esta página es el <em>README</em> de la plataforma: funciona como portada de la documentación
+                open source y se mantiene al día porque sus métricas se calculan sobre el código que corre
+                en el servidor oficial, no sobre una copia congelada.
+            </p>
+            <div class="grid md:grid-cols-3 gap-5">
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <span class="w-11 h-11 rounded-full bg-sky-50 text-sky-700 flex items-center justify-center mb-3">
+                        <i class="fas fa-file-code"></i>
+                    </span>
+                    <h3 class="font-semibold mb-1">Documentación del código</h3>
+                    <p class="text-sm text-slate-600">Cada módulo del repositorio explicado: qué hace, quién lo usa y con qué se conecta — del núcleo Django hasta los asistentes de carga.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <span class="w-11 h-11 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3">
+                        <i class="fas fa-book"></i>
+                    </span>
+                    <h3 class="font-semibold mb-1">Manuales de operación</h3>
+                    <p class="text-sm text-slate-600">Guías paso a paso para instalar, cargar datos, operar los módulos, respaldar y desplegar la plataforma en producción.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <span class="w-11 h-11 rounded-full bg-violet-50 text-violet-700 flex items-center justify-center mb-3">
+                        <i class="fas fa-project-diagram"></i>
+                    </span>
+                    <h3 class="font-semibold mb-1">Modelo de datos abierto</h3>
+                    <p class="text-sm text-slate-600">El esquema completo de la base de datos, introspectado en vivo desde el ORM, se explora como diagrama interactivo en <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">/modelo/</code>.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ ARQUITECTURA ============ -->
+        <section id="arquitectura" class="doc-seccion">
+            <h2 class="text-2xl font-bold mb-2">Arquitectura de la plataforma</h2>
+            <p class="text-sm text-slate-600 max-w-3xl mb-6">
+                Una aplicación <strong>monolítica modular</strong>: un solo despliegue fácil de operar desde una
+                institución pública, con módulos internos desacoplados por carpeta.
+            </p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 class="font-semibold text-sm mb-1"><i class="fas fa-server text-sky-600 mr-2"></i>Backend · Python + Django</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">ORM, admin y vistas modulares (<code class="text-xs bg-slate-100 text-sky-800 px-1 rounded">views_*.py</code>). Cada módulo de negocio — recolección, validación, editorial, satisfacción, taller — vive en su propio archivo.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 class="font-semibold text-sm mb-1"><i class="fas fa-database text-sky-600 mr-2"></i>Base de datos · PostgreSQL</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">Esquema versionado con {{ stats_doc.migraciones|default_if_none:"más de 100" }} migraciones Django. Núcleo estadístico, catálogo SDMX, ICED y taller del ecosistema conviven con relaciones explícitas.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 class="font-semibold text-sm mb-1"><i class="fas fa-paint-brush text-sky-600 mr-2"></i>Frontend · HTML + CSS + JS</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">Plantillas Django con Tailwind CSS, Font Awesome y Chart.js para los gráficos oficiales. Sin frameworks de cliente: la página funciona sin pasos de compilación.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 class="font-semibold text-sm mb-1"><i class="fas fa-cubes text-sky-600 mr-2"></i>3D · Three.js</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">La Maquila de Datos (presentación), la navegación 3D del catálogo y los gráficos interactivos con <em>Don Datico</em> volando entre los datos (modelo GLB animado por rig).</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 class="font-semibold text-sm mb-1"><i class="fas fa-robot text-sky-600 mr-2"></i>IA · Transformers + embeddings</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">El asistente <em>Don Datico</em> responde en lenguaje natural sobre indicadores y conjuntos de datos; la ingesta detecta esquemas de archivo automáticamente.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <h3 class="font-semibold text-sm mb-1"><i class="fas fa-shield-alt text-sky-600 mr-2"></i>Infraestructura · Whitenoise + WSGI</h3>
+                    <p class="text-xs text-slate-600 leading-relaxed">Estáticos servidos por Whitenoise (en producción vía <code class="text-xs bg-slate-100 text-sky-800 px-1 rounded">collectstatic</code>), aplicación desplegable con gunicorn sin configurar un servidor de estáticos aparte.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ CÓDIGO ARCHIVO POR ARCHIVO ============ -->
+        <section id="codigo" class="doc-seccion">
+            <h2 class="text-2xl font-bold mb-2">El código, archivo por archivo</h2>
+            <p class="text-sm text-slate-600 max-w-3xl mb-6">
+                El repositorio en su orden natural: primero el andamiaje del proyecto, luego el modelo de
+                datos, las vistas por módulo, los formularios y asistentes, y las utilidades de soporte.
+            </p>
+
+            <div class="space-y-6">
+
+                <!-- Núcleo del proyecto -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+                        <i class="fas fa-cog text-slate-500"></i>
+                        <h3 class="font-semibold">Núcleo del proyecto</h3>
+                    </div>
+                    <ul class="px-6 py-4 grid md:grid-cols-2 gap-x-8 gap-y-2.5 doc-entrada text-sm text-slate-600">
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>manage.py</code> — utilitario de línea de comandos de Django: migraciones, servidor de desarrollo, shell y comandos de administración.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>myproject/settings.py</code> — configuración: base de datos PostgreSQL, estáticos con Whitenoise, modo DEBUG por entorno, correo y prefijo de despliegue.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>myproject/urls.py</code> — enrutador raíz: delega en <code>indicadores/urls.py</code> y en el admin de Django.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>myproject/wsgi.py</code> · <code>asgi.py</code> — puntos de entrada para gunicorn/uWSGI en producción.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>requirements-base.txt</code> — dependencias mínimas para operar la plataforma en desarrollo.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>requirements-production.txt</code> — dependencias del servidor de producción.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>requirements-ml.txt</code> — dependencias de IA (modelos de lenguaje y embeddings) para el asistente Don Datico.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Modelo de datos (ORM) -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+                        <i class="fas fa-database text-slate-500"></i>
+                        <h3 class="font-semibold">Modelo de datos (ORM)</h3>
+                    </div>
+                    <ul class="px-6 py-4 grid md:grid-cols-2 gap-x-8 gap-y-2.5 doc-entrada text-sm text-slate-600">
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models.py</code> — el núcleo estadístico: Dominio, Tema, Subtema, Indicador, Gráfico, Dato, Desagregación, Organismo, Menú de dominios, conjuntos de datos y microdatos, noticias, eventos, productos educativos y académicos, satisfacción y calendario de difusión.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models_catalogo.py</code> — metadatos del catálogo de datos: dominios y fuentes de referencia (estándar SDMX).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models_iced.py</code> — módulo ICED: operaciones, variables y subíndices del índice de capacidades estadísticas.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models_taller.py</code> — taller del ecosistema: organismos, asistentes y sesiones del wizard de censo.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>migrations/</code> — {{ stats_doc.migraciones|default:"más de 100" }} migraciones que versionan el esquema PostgreSQL: instalar la plataforma es ejecutar <code>migrate</code>.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Vistas -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+                        <i class="fas fa-eye text-slate-500"></i>
+                        <h3 class="font-semibold">Vistas por módulo</h3>
+                    </div>
+                    <ul class="px-6 py-4 grid md:grid-cols-2 gap-x-8 gap-y-2.5 doc-entrada text-sm text-slate-600">
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views.py</code> — el portal público: home, dominios/temas/subtemas, fichas de indicadores, gráficos, explorador de conjuntos, visor comparativo, API abierta, páginas 3D, presentación y modelo de datos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_import.py</code> — ingesta asistida de conjuntos de datos y microdatos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_recoleccion.py</code> — operación estadística de campo (módulo de recolección).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_validacion.py</code> — control de calidad y validación de datos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_editorial.py</code> — línea editorial: noticias, eventos y productos académicos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_delegado.py</code> — módulo delegado: gestión por organismo.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_satisfaccion.py</code> — módulo de satisfacción: encuestas de experiencia de usuario.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_taller.py</code> — taller del ecosistema: wizard del censo de organismos, dashboard y metodología.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_educativos.py</code> — contenidos educativos interactivos: secciones, quizzes y progreso por usuario.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_iced.py</code> — cálculo y visualización del índice ICED.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_catalogo.py</code> — catálogo de datos y explorador de conjuntos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_chat.py</code> — Don Datico: asistente de IA que responde en lenguaje natural sobre indicadores y datos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_chat_config.py</code> — administración del asistente: intenciones, respuestas y umbrales.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_monitoring.py</code> — monitoreo del sistema: salud y uso de la plataforma.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Formularios -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+                        <i class="fas fa-wpforms text-slate-500"></i>
+                        <h3 class="font-semibold">Formularios</h3>
+                    </div>
+                    <ul class="px-6 py-4 grid md:grid-cols-2 gap-x-8 gap-y-2.5 doc-entrada text-sm text-slate-600">
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_grafico.py</code> — alta y edición de gráficos e indicadores.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_import.py</code> — pasos de la ingesta de conjuntos de datos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_recoleccion.py</code> — operación estadística de campo.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_satisfaccion.py</code> — encuestas de satisfacción.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_editorial.py</code> — noticias, eventos y productos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_taller.py</code> — censo y prediagnóstico del taller.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_iced.py</code> — módulo ICED.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>forms_chat_config.py</code> — configuración del asistente.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Asistentes (wizards) -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+                        <i class="fas fa-magic text-slate-500"></i>
+                        <h3 class="font-semibold">Asistentes de carga (wizards)</h3>
+                    </div>
+                    <ul class="px-6 py-4 grid md:grid-cols-2 gap-x-8 gap-y-2.5 doc-entrada text-sm text-slate-600">
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_admin_unificado.py</code> — wizard unificado de administración: guía al usuario paso a paso (fuente → esquema → datos).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_parsers.py</code> — lectura de CSV/Excel y normalización de columnas.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_helpers.py</code> — utilidades comunes de los asistentes.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_taller.py</code> — wizard del censo de organismos del taller del ecosistema.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_unificado_forms.py</code> · <code>utils_wizard.py</code> — formularios y utilidades del wizard unificado.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Utilidades -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+                        <i class="fas fa-toolbox text-slate-500"></i>
+                        <h3 class="font-semibold">Utilidades y soporte</h3>
+                    </div>
+                    <ul class="px-6 py-4 grid md:grid-cols-2 gap-x-8 gap-y-2.5 doc-entrada text-sm text-slate-600">
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>admin.py</code> · <code>admin_eventos.py</code> — registro del admin de Django para todo el modelo de datos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>apps.py</code> — configuración de la aplicación Django.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>middleware.py</code> — middleware propio de la plataforma.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>context_processors.py</code> — variables globales disponibles en todas las plantillas.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>background.py</code> — tareas en segundo plano.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>cache_utils.py</code> — utilidades de caché para consultas frecuentes.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>calcular_iced.py</code> — motor de cálculo del índice ICED.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>chat_config.py</code> · <code>embeddings.py</code> — configuración semántica y vectores de búsqueda del asistente.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>catalogo_datalake.py</code> — puente con el datalake institucional.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>data_validation.py</code> · <code>schema_detection.py</code> — validación de datos y detección automática de esquemas de archivo.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>decorators.py</code> — decoradores de acceso (equipo estadístico, staff).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>notifications.py</code> — notificaciones internas.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>procesamiento_normalizado.py</code> — normalización de series de datos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>search.py</code> — búsqueda en el catálogo y los contenidos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>utils.py</code> — utilidades generales transversales.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>templatetags/</code> · <code>management/commands/</code> — filtros de plantilla propios y comandos de mantenimiento.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Frontend 3D y estáticos -->
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div class="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+                        <i class="fas fa-cubes text-slate-500"></i>
+                        <h3 class="font-semibold">Frontend 3D y estáticos</h3>
+                    </div>
+                    <ul class="px-6 py-4 grid md:grid-cols-2 gap-x-8 gap-y-2.5 doc-entrada text-sm text-slate-600">
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">templates/indicadores/presentacion.html</code> — <strong>La Maquila de Datos</strong>: presentación 3D de la fábrica de datos del SIIED (línea de tiempo con actos, máquinas y Don Daticos operarios).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">templates/indicadores/subtema_detalle_3d.html</code> — visualización 3D interactiva de los gráficos con <em>Don Datico</em> volador y modos de juego por tipo de gráfico.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">templates/indicadores/dominios_3d.html</code> · <code class="ruta">dominio_detalle_3d.html</code> · <code class="ruta">tema_detalle_3d.html</code> — navegación tridimensional del catálogo de dominios y temas.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">templates/indicadores/modelo_datos.html</code> — el diagrama interactivo del ORM al que enlaza esta documentación.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">static/indicadores/js</code> · <code class="ruta">css</code> — librerías y estilos del frontend (Three.js, Chart.js, utilidades).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">static/indicadores/models/dondaticolite.glb</code> — el modelo 3D real de Don Datico (esqueleto animado: vuelo estacionario y en movimiento).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">static/indicadores/audio/</code> — ambiente sonoro de las páginas 3D (ambiente de Cali, recolección).</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code class="ruta">media/</code> — archivos cargados en operación (microdatos, documentos, imágenes).</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ PLANTILLAS ============ -->
+        <section id="plantillas" class="doc-seccion">
+            <h2 class="text-2xl font-bold mb-2">Plantillas HTML</h2>
+            <p class="text-sm text-slate-600 max-w-3xl mb-6">
+                {{ stats_doc.plantillas|default:"Más de 200" }} plantillas organizadas por módulo funcional
+                (el conteo de cada carpeta se calcula en vivo):
+            </p>
+            <div class="grid md:grid-cols-2 gap-4">
+                {% for carpeta in carpetas_plantillas %}
+                <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-start gap-3">
+                    <span class="w-9 h-9 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 text-sm font-bold">{{ carpeta.cantidad }}</span>
+                    <div>
+                        <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">templates/{{ carpeta.nombre }}/</code>
+                        <p class="text-xs text-slate-600 mt-1">{{ carpeta.descripcion }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- ============ MANUALES DE OPERACIÓN ============ -->
+        <section id="manuales" class="doc-seccion">
+            <h2 class="text-2xl font-bold mb-2">Manuales de operación</h2>
+            <p class="text-sm text-slate-600 max-w-3xl mb-6">
+                Cómo se instala, opera y mantiene la plataforma — del entorno del desarrollador al servidor
+                de producción.
+            </p>
+            <div class="grid md:grid-cols-2 gap-5">
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-download text-sky-600 mr-2"></i>1 · Instalación para desarrolladores</h3>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1.5">
+                        <li>Clonar el repositorio (GitHub: próximamente) o solicitar el código al Sistema Estadístico Distrital.</li>
+                        <li><code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">python -m venv venv</code>, activarlo e instalar <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">requirements-base.txt</code> (y <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">requirements-ml.txt</code> para el asistente de IA).</li>
+                        <li>Crear la base PostgreSQL y registrar el acceso en <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">myproject/settings.py</code>.</li>
+                        <li><code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">python manage.py migrate</code> → <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">createsuperuser</code> → <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">runserver</code>.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-upload text-sky-600 mr-2"></i>2 · Carga de datos e indicadores</h3>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1.5">
+                        <li>Ingresar al asistente de ingesta con cuenta del equipo estadístico.</li>
+                        <li>Subir el archivo (CSV/Excel): <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">schema_detection.py</code> propone el esquema.</li>
+                        <li>Mapear dominio → tema → subtema → indicador y completar la ficha técnica.</li>
+                        <li>Publicar: el gráfico aparece en el portal con sus desagregaciones y descargables.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-newspaper text-sky-600 mr-2"></i>3 · Publicación editorial</h3>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1.5">
+                        <li>Noticias, eventos y productos académicos desde el módulo editorial o el admin.</li>
+                        <li>El calendario de difusión programa su publicación en portada.</li>
+                        <li>Los banners del home toman automáticamente las últimas noticias activas.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-people-carry text-sky-600 mr-2"></i>4 · Módulos de operación</h3>
+                    <ul class="list-disc list-inside text-sm text-slate-600 space-y-1.5">
+                        <li><strong>Recolección</strong> — operación estadística de campo.</li>
+                        <li><strong>Validación</strong> — control de calidad de los datos.</li>
+                        <li><strong>Delegado</strong> — gestión por organismo.</li>
+                        <li><strong>Satisfacción</strong> — encuestas de experiencia de usuario.</li>
+                        <li><strong>Taller del ecosistema</strong> — censo y prediagnóstico de organismos (DADII).</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-robot text-sky-600 mr-2"></i>5 · Asistente Don Datico</h3>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1.5">
+                        <li>Chat en lenguaje natural sobre indicadores y conjuntos de datos.</li>
+                        <li>Motor: <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">views_chat.py</code> + <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">embeddings.py</code>; administración en <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">views_chat_config.py</code>.</li>
+                        <li>Modelos de lenguaje según <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">requirements-ml.txt</code>.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-save text-sky-600 mr-2"></i>6 · Respaldos y mantenimiento</h3>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1.5">
+                        <li>Respaldo de la base con <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">pg_dump</code>.</li>
+                        <li>Respaldar <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">media/</code> (archivos cargados) y <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">sentence_models/</code> (modelos IA).</li>
+                        <li>Al actualizar el código: <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">python manage.py migrate</code> y revisar las migraciones nuevas.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-rocket text-sky-600 mr-2"></i>7 · Despliegue a producción</h3>
+                    <ol class="list-decimal list-inside text-sm text-slate-600 space-y-1.5">
+                        <li><code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">DEBUG = False</code> y <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">ALLOWED_HOSTS</code> en <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">myproject/settings.py</code>.</li>
+                        <li><code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">python manage.py collectstatic</code>: Whitenoise sirve todo desde <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">staticfiles/</code>.</li>
+                        <li>Servir con gunicorn desde <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">myproject.wsgi</code>.</li>
+                        <li>Verificar los estáticos pesados: <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">models/*.glb</code> y <code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">audio/</code> de las páginas 3D.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <h3 class="font-semibold mb-3"><i class="fas fa-globe text-sky-600 mr-2"></i>8 · Páginas de divulgación</h3>
+                    <ul class="list-disc list-inside text-sm text-slate-600 space-y-1.5">
+                        <li><code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">/presentacion/</code> — La Maquila de Datos: el show 3D con su línea de tiempo y controles de reproducción.</li>
+                        <li><code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">/modelo/</code> — el diagrama interactivo del modelo de datos.</li>
+                        <li><code class="text-xs bg-slate-100 text-sky-800 px-1.5 py-0.5 rounded">/dominios-3d/</code> — navegación tridimensional del catálogo.</li>
+                        <li>Las páginas 3D de cada subtema incluyen modo de juego con Don Datico.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ BASE DE DATOS ============ -->
+        <section id="modelo" class="doc-seccion">
+            <h2 class="text-2xl font-bold mb-2">El modelo de la base de datos</h2>
+            <p class="text-sm text-slate-600 max-w-3xl mb-6">
+                El esquema completo se explora como diagrama interactivo — introspectado en vivo desde el
+                ORM, con búsqueda, filtros por familia y el detalle de cada tabla. Las cuatro familias del
+                modelo:
+            </p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <span class="inline-block w-3 h-3 rounded-sm mb-2" style="background:#0284c7"></span>
+                    <h3 class="font-semibold text-sm mb-1">Núcleo SIIED</h3>
+                    <p class="text-xs text-slate-600">Dominios, temas, subtemas, indicadores, gráficos, datos, desagregaciones, organismos, conjuntos y microdatos.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <span class="inline-block w-3 h-3 rounded-sm mb-2" style="background:#059669"></span>
+                    <h3 class="font-semibold text-sm mb-1">Catálogo de datos</h3>
+                    <p class="text-xs text-slate-600">Metadatos SDMX: fuentes, series y dominios de referencia.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <span class="inline-block w-3 h-3 rounded-sm mb-2" style="background:#d97706"></span>
+                    <h3 class="font-semibold text-sm mb-1">ICED</h3>
+                    <p class="text-xs text-slate-600">Operaciones, variables y subíndices del índice de capacidades.</p>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 p-5">
+                    <span class="inline-block w-3 h-3 rounded-sm mb-2" style="background:#9333ea"></span>
+                    <h3 class="font-semibold text-sm mb-1">Taller Ecosistema</h3>
+                    <p class="text-xs text-slate-600">Censo de organismos, asistentes y sesiones del taller (DADII).</p>
+                </div>
+            </div>
+            <a href="{% url 'indicadores:modelo_datos' %}"
+               class="inline-flex items-center px-6 py-3 bg-sky-700 text-white font-semibold rounded-lg hover:bg-sky-800 transition-all duration-300 shadow-lg">
+                <i class="fas fa-project-diagram mr-2"></i> Abrir el modelo de datos interactivo
+            </a>
+        </section>
+
+        <!-- ============ REPOSITORIO ============ -->
+        <section id="repositorio" class="doc-seccion">
+            <div class="bg-white rounded-xl border-2 border-dashed border-slate-300 p-8 text-center">
+                <i class="fab fa-github text-4xl text-slate-400 mb-3"></i>
+                <h2 class="text-xl font-bold mb-2">Repositorio público en GitHub</h2>
+                <p class="text-sm text-slate-600 max-w-2xl mx-auto">
+                    El código completo de la plataforma se publicará en un repositorio abierto acompañado de
+                    esta documentación, su licencia de software libre y las guías de contribución. Mientras
+                    tanto, esta página documenta el código exactamente como corre en el servidor oficial
+                    del SIIED.
+                </p>
+                <!-- TODO: al publicar el repositorio, reemplazar este aviso por el botón con el enlace real -->
+                <p class="mt-4 text-xs text-slate-400 uppercase tracking-widest font-semibold">Enlace · próximamente</p>
+            </div>
+
+            <div class="mt-8 flex flex-wrap gap-3 justify-center">
+                <a href="{% url 'indicadores:presentacion' %}" class="inline-flex items-center px-5 py-2.5 bg-sky-700 text-white text-sm font-semibold rounded-lg hover:bg-sky-800 transition-all duration-300 shadow">
+                    <i class="fas fa-industry mr-2"></i> Ver la presentación 3D
+                </a>
+                <a href="{% url 'indicadores:home' %}" class="inline-flex items-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all duration-300 shadow-sm">
+                    <i class="fas fa-home mr-2"></i> Volver al inicio
+                </a>
+            </div>
+
+            <p class="text-center text-xs text-slate-500 mt-8">
+                <i class="fas fa-envelope mr-1"></i>
+                <a href="mailto:sistemaestadistico@cali.gov.co" class="text-sky-700 hover:underline font-medium">sistemaestadistico@cali.gov.co</a>
+                &nbsp;·&nbsp; Subdirección de Desarrollo Integral — Sistema Estadístico Distrital · Alcaldía de Santiago de Cali
+            </p>
+        </section>
+    </div>
+</div>
+{% endblock %}

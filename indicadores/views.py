@@ -6639,3 +6639,77 @@ def presentacion(request):
         'organismos': Organismo.objects.filter(activo=True).count() if hasattr(Organismo, 'activo') else Organismo.objects.count(),
     }
     return render(request, 'indicadores/presentacion.html', {'stats': stats})
+
+
+def documentacion(request):
+    """
+    Documentación open source de la plataforma: mapa del repositorio
+    archivo por archivo, manuales de operación y acceso al modelo de
+    datos. Las métricas del encabezado se calculan en VIVO sobre el
+    código instalado — el documento nunca se desactualiza respecto
+    al código que corre en el servidor.
+    """
+    from pathlib import Path
+
+    app_dir = Path(__file__).resolve().parent
+
+    def _lineas(archivos):
+        total = 0
+        for ruta in archivos:
+            try:
+                with open(ruta, 'r', encoding='utf-8', errors='ignore') as fh:
+                    total += sum(1 for _ in fh)
+            except OSError:
+                pass
+        return total
+
+    # Descripción de cada carpeta de plantillas de la app
+    DESC_CARPETAS = {
+        'indicadores': 'Portal público: dominios, fichas de indicadores, gráficos, '
+                       'páginas 3D, presentación y modelo de datos',
+        'admin': 'Personalización del admin de Django para el equipo estadístico',
+        'editorial': 'Línea editorial: noticias, eventos y productos académicos',
+        'taller': 'Taller del ecosistema: wizard del censo, dashboard y metodología',
+        'recoleccion': 'Operación estadística de campo',
+        'delegado': 'Módulo delegado por organismo',
+        'validacion': 'Control de calidad de los datos',
+        'reportes': 'Informes y reportes',
+        'satisfaccion': 'Encuestas de satisfacción',
+        'workspace': 'Área de trabajo interna',
+    }
+
+    stats_doc = {}
+    carpetas_plantillas = []
+    try:
+        pys = [p for p in app_dir.glob('*.py') if p.is_file()]
+        proyecto = [app_dir.parent / 'manage.py'] + \
+            list((app_dir.parent / 'myproject').glob('*.py'))
+        plantillas = list((app_dir / 'templates').rglob('*.html'))
+        estaticos = [p for p in (app_dir / 'static').rglob('*') if p.is_file()]
+        migraciones = [p for p in (app_dir / 'migrations').glob('*.py')
+                       if p.name != '__init__.py']
+        stats_doc = {
+            'archivos_py': len(pys) + len(proyecto),
+            'lineas_py': _lineas(pys) + _lineas(proyecto),
+            'plantillas': len(plantillas),
+            'lineas_plantillas': _lineas(plantillas),
+            'estaticos': len(estaticos),
+            'migraciones': len(migraciones),
+        }
+        for sub in (app_dir / 'templates').iterdir():
+            if sub.is_dir():
+                carpetas_plantillas.append({
+                    'nombre': sub.name,
+                    'cantidad': len(list(sub.rglob('*.html'))),
+                    'descripcion': DESC_CARPETAS.get(
+                        sub.name, 'Plantillas de la aplicación'),
+                })
+        carpetas_plantillas.sort(key=lambda c: -c['cantidad'])
+    except OSError:
+        pass
+
+    return render(request, 'indicadores/documentacion.html', {
+        'page': 'documentacion',
+        'stats_doc': stats_doc,
+        'carpetas_plantillas': carpetas_plantillas,
+    })
