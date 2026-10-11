@@ -2389,9 +2389,13 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
             const modelo = SkeletonUtils.clone(gltf.scene);
-            // Los clips asienten al modelo mirando -x: con +PI/2
-            // queda viendo al frente (+z del loro), no a la derecha
-            modelo.rotation.y = Math.PI / 2;
+            // El clip reescribe la rotación del modelo cada frame —
+            // el giro va en un wrapper que la animación no toca.
+            // De cara el GLB mira +x: -PI/2 lo pone mirando al
+            // frente del loro (+z)
+            const wrapperGLB = new THREE.Group();
+            wrapperGLB.add(modelo);
+            wrapperGLB.rotation.y = -Math.PI / 2;
             modelo.scale.setScalar(1.5);   // talla de vuelo
             modelo.traverse(o => {
                 if (o.isMesh || o.isSkinnedMesh) {
@@ -2400,7 +2404,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                 }
             });
             rigDD.procedural.visual.visible = false;   // queda el GLB
-            visualDD.add(modelo);
+            visualDD.add(wrapperGLB);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
             // Clip 0 = nado boca abajo: en el aire es el planeo
