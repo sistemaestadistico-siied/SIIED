@@ -2511,15 +2511,16 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         }
         return new trk.constructor(trk.name, ts, vs);
     };
-    // Amplifica rotaciones (alas más abiertas: slerp desde
-    // identidad con factor > 1)
-    const qAmp1 = new THREE.Quaternion(), qAmp2 = new THREE.Quaternion();
-    const pistaAmplificada = (trk, amp) => {
+    // Mezcla cada llave hacia la pose de bind (T-pose: alas
+    // extendidas). Amplificar la rotación del clip solo doblaba
+    // el codo hacia atrás; lo que abre el ala es regresar cada
+    // articulación hacia su bind. peso 0..1 por hueso.
+    const qBlend = new THREE.Quaternion();
+    const pistaHaciaBind = (trk, bindQ, peso) => {
         const vs = [];
         for (let i = 0; i < trk.values.length; i += 4) {
-            qAmp1.fromArray(trk.values, i);
-            qAmp2.identity().slerp(qAmp1, amp);
-            vs.push(qAmp2.x, qAmp2.y, qAmp2.z, qAmp2.w);
+            qBlend.fromArray(trk.values, i).slerp(bindQ, peso);
+            vs.push(qBlend.x, qBlend.y, qBlend.z, qBlend.w);
         }
         return new trk.constructor(trk.name,
             Array.from(trk.times), vs);
@@ -2540,22 +2541,38 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                     clip.duration, 2);
             return trk;
         }));
-    // Vuelo en movimiento (de las flexiones): alas x1.35 de
-    // amplitud y batiendo x2
-    const clipVueloMovimiento = clip => new THREE.AnimationClip(
+    // Vuelo en movimiento (de las flexiones): cada articulación
+    // del ala mezcla hacia su pose de bind (extendida) — clavícula
+    // abre moderado, húmero abduce, codo/mano casi rectos — y
+    // batidas x2.
+    const pesoAla = hueso =>
+        hueso.includes('Clavicle') ? 0.65 :
+        hueso.includes('Twist')    ? 0.8  : 0.85;
+    const HUESOS_ALA_VUELO = /^(L|R)_(Clavicle|Upperarm|Forearm|Hand)/;
+    const clipVueloMovimiento = (clip, bindAlas) => new THREE.AnimationClip(
         clip.name + '_flap', clip.duration,
         clip.tracks.map(trk => {
             const hueso = trk.name.split('.')[0];
-            if (!HUESOS_ALA.test(hueso)) return trk;
-            const base = trk.name.endsWith('quaternion')
-                ? pistaAmplificada(trk, 2.2) : trk;   // alas bien abiertas
-            return pistaAcelerada(base, clip.duration, 2);
+            if (!HUESOS_ALA_VUELO.test(hueso)) return trk;
+            if (!trk.name.endsWith('quaternion') || !bindAlas[hueso])
+                return trk;
+            return pistaAcelerada(
+                pistaHaciaBind(trk, bindAlas[hueso], pesoAla(hueso)),
+                clip.duration, 2);
         }));
 
     new GLTFLoader().load(
         "{% static 'indicadores/models/dondaticolite.glb' %}",
         (gltf) => {
             const modelo = SkeletonUtils.clone(gltf.scene);
+            // Bind pose por hueso del ala, capturada antes de que
+            // suene ningún clip (T-pose = alas extendidas)
+            const bindAlas = {};
+            modelo.traverse(o => {
+                if ((o.isBone || o.type === 'Bone') &&
+                    /^(L|R)_(Clavicle|Upperarm|Forearm|Hand)/.test(o.name))
+                    bindAlas[o.name] = o.quaternion.clone();
+            });
             // El clip reescribe la rotación del modelo cada frame —
             // el giro va en un wrapper que la animación no toca.
             // De cara el GLB mira +x: -PI/2 lo pone mirando al
@@ -2574,12 +2591,13 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             visualDD.add(wrapperGLB);
             rigDD.mixer = new THREE.AnimationMixer(modelo);
             rigDD.acciones = gltf.animations.map(c => rigDD.mixer.clipAction(c));
-            // Clips procesados: hover (piernas quietas, alas
-            // en reversa x2) y vuelo (alas x2.2 amplitud, x2)
+            // Clips procesados: hover (piernas quietas, alas en
+            // reversa x2) y vuelo (articulaciones del ala hacia su
+            // bind extendida, batidas x2)
             const clip0 = gltf.animations[0];
             const clip3 = gltf.animations[3] || clip0;
             rigDD.accionHover = rigDD.mixer.clipAction(clipVueloEstatico(clip0));
-            rigDD.accionFlap  = rigDD.mixer.clipAction(clipVueloMovimiento(clip3));
+            rigDD.accionFlap  = rigDD.mixer.clipAction(clipVueloMovimiento(clip3, bindAlas));
             rigDD.accion = rigDD.accionHover;
             if (rigDD.accion) rigDD.accion.play();
         });
@@ -2623,7 +2641,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
 
         // ---------- Modelo GLB: vuelo estacionario / aleteo ----------
         // hover: nado en reversa → batida hacia abajo, piernas
-        // quietas; flap: flexiones con alas ampliadas x2.2.
+        // quietas; flap: articulaciones del ala hacia bind.
         if (rig.mixer) {
             const prox = (o.moviendose ? rig.accionFlap : rig.accionHover)
                 || (rig.acciones && rig.acciones[0]);
