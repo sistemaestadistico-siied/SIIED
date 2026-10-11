@@ -589,7 +589,7 @@ function nuevaFamilia(mesh) {
 // hasta su altura objetivo → la silueta es un bar chart. Cuando el
 // gráfico se completa, las barras despegan y empieza otro — infinito.
 const N_COL = 8;
-const EST_X0 = 29.5, EST_DX = 0.95, EST_Z = 2.4;
+const EST_X0 = 36.5, EST_DX = 0.95, EST_Z = 2.4;
 const EST_Y0 = 0.62, EST_DY = 0.62;
 const estanteria = new THREE.Group();
 for (let i = 0; i <= N_COL; i++) {
@@ -2112,7 +2112,7 @@ function tickFamD2(f, dt) {
         const hasta = slot >= 0
             ? new THREE.Vector3(EST_X0 + slot * EST_DX,
                                 EST_Y0 + columnas[slot] * EST_DY, EST_Z)
-            : new THREE.Vector3(42, -1, 2.4);
+            : new THREE.Vector3(46, -1, 2.4);
         lanzarVuelo(f, hasta);
     }
 }
@@ -2473,8 +2473,8 @@ let tUltimoChart = 0;
 const TVs = [];
 {
     const paredG = new THREE.Group();
-    paredG.position.set(38.6, 0, 7);
-    paredG.rotation.y = Math.PI;   // pantallas hacia la plaza (+x)
+    paredG.position.set(62, 0, 7);   // borde este de la plaza
+    paredG.rotation.y = 0;         // pantallas hacia la plaza (-x)
     // El reverso de la pared es un panel de laboratorio: ya no
     // es una losa gris que apaga la escena vista desde la fábrica
     const matMuroF = new THREE.MeshLambertMaterial({ map: LAB_CARAS.b1 });
@@ -3541,7 +3541,7 @@ const ACTOS = [
     { t0: 54,  t1: 65,  acto: 'Paneo', texto: 'La ciudadanía', sub: 'el fin último del sistema: consulta, participación y servicio', pan: true,
       cam: [[34, 9, 26], [52, 2, 12]] },
     { t0: 65,  t1: 76,  acto: 'Paneo', texto: 'La vitrina pública', sub: 'la pared de pantallas: indicadores abiertos para toda la ciudad', pan: true,
-      cam: [[50, 5, 19], [38.6, 3, 7]] },
+      cam: [[57, 5, 19], [62, 3, 7]] },
     { t0: 76,  t1: 84,  acto: 'Paneo', texto: 'Del dato a la decisión', sub: 'junta del hall, comité de gestión y despacho de alcaldía', pan: true,
       cam: [[40, 8, -6], [52, 3, -16]] },
     { t0: 84,  t1: 90,  acto: 'Paneo', texto: 'Una sola plataforma', sub: 'producción, calidad, gobierno y difusión del dato distrital', pan: true,
@@ -3586,7 +3586,7 @@ const ACTOS = [
     { t0: 276, t1: 288, acto: 'Estación 13', texto: 'DIFUSIÓN EST.', sub: 'Grafico + CalendarioDifusion: publicación programada',
       cam: [[28, 5, 11], [33.5, 2.4, -0.2]] },
     { t0: 288, t1: 302, acto: 'Estación 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores: ODS · Cali en Cifras · dominios del comité`,
-      cam: [[26, 5.5, 12], [32.5, 3, 2.5]] },
+      cam: [[30, 5.5, 12], [39.8, 3, 2.4]] },
     // ======= E: LÍNEA DE CALIDAD =======
     { t0: 302, t1: 314, acto: 'Estación 15', texto: 'EVAL. ESTRATÉGICA', sub: 'dimensión estratégica: capacidad de decisión del organismo',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
