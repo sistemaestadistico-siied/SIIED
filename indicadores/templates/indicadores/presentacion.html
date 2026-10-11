@@ -1392,15 +1392,22 @@ function crearCamion(cfg) {
     // Remolque: caja con franja de color, techo y puerta trasera enmarcada
     const rem = new THREE.Mesh(new THREE.BoxGeometry(4.4, 2.3, 2.15), colCaja);
     rem.position.set(0.2, 1.75, 0); rem.castShadow = true; g.add(rem);
+    // Techo claro definido: capotón gris claro con filete del
+    // color del módulo en el perímetro (antes el techo era el
+    // mismo oscuro del cuerpo y no se distinguía)
+    const techoRem = new THREE.Mesh(new THREE.BoxGeometry(4.42, 0.1, 2.17),
+        new THREE.MeshLambertMaterial({ color: 0xdde6ee }));
+    techoRem.position.set(0.2, 2.93, 0);
+    g.add(techoRem);
+    const fileteTecho = new THREE.Mesh(new THREE.BoxGeometry(4.46, 0.06, 2.21), colCab);
+    fileteTecho.position.set(0.2, 2.87, 0);
+    g.add(fileteTecho);
     // Filetes de color como marco: borde inferior y superior,
     // sin tapar el panel del letrero (antes la franja cubría su
     // tercio inferior al sobresalir 0.005 más que el panel)
     const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.42, 0.34, 2.17), colCab);
     stripe.position.set(0.2, 0.72, 0);
     g.add(stripe);
-    const stripeTop = new THREE.Mesh(new THREE.BoxGeometry(4.42, 0.18, 2.17), colCab);
-    stripeTop.position.set(0.2, 2.81, 0);
-    g.add(stripeTop);
     const boca = new THREE.Mesh(new THREE.PlaneGeometry(1.95, 2.0),
         new THREE.MeshBasicMaterial({ color: 0x0f172a }));
     boca.position.set(2.42, 1.7, 0); boca.rotation.y = Math.PI / 2; g.add(boca);
