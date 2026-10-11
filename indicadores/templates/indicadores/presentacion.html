@@ -1245,20 +1245,26 @@ function crearCamion(cfg) {
 // Los camiones YA NO están estacionados: hacen rutas de ida y
 // vuelta entre su región de origen y el punto de descarga, y
 // solo mientras están atracados alimentan cajas a las bandas.
-const camRec = crearCamion({ x: 32,   z: -4.5, color: 0x38bdf8,
+const camRec = crearCamion({ x: 39,   z: -4.5, color: 0x38bdf8,
               etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'PerfilRecolector · ingesta de fuentes' });
 const camDel = crearCamion({ x: 52,   z: -8,   color: 0xf59e0b,
               etiqueta: 'DELEGADO ORGANISMO', sub: 'registro de acceso · Organismo' });
-const camEdi = crearCamion({ x: 50,   z: 14,   color: 0xef4444,
+const camEdi = crearCamion({ x: 30,   z: -11.5, color: 0xef4444,
               etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
-// Rutas rectas por pasillos libres — ninguna atraviesa bandas.
+// Rutas por pasillos libres — ninguna atraviesa bandas.
 // RECOLECCIÓN: muelle del observatorio → pasillo norte de la
 // línea D2; la carga entra a la tolva volando sobre la máquina.
-// DELEGADO: muelle del comité → pasillo entre TALLER y banda C.
-// EDITORIAL: plaza → vía sur sobre las líneas de servicio.
-camRec.userData.ruta = { pts: [[32, -4.5], [-8, -4.5]], i: 1, dir: 1, espera: 0 };
-camDel.userData.ruta = { pts: [[52, -8], [-24.5, -8]],  i: 1, dir: 1, espera: 0 };
-camEdi.userData.ruta = { pts: [[50, 14], [50, 27], [-23.4, 27]], i: 1, dir: 1, espera: 0 };
+// DELEGADO: muelle del comité → cabeza de banda C (al oeste
+// del chute del taller, sin colisión).
+// EDITORIAL: RECOLECTA contenido en las 4 salas de juntas
+// (capa → recolección → despacho → comité) y descarga en el
+// origen real: los muelles de las líneas de servicio E.
+camRec.userData.ruta = { pts: [[39, -4.5], [-8, -4.5]], i: 1, dir: 1, espera: 0 };
+camDel.userData.ruta = { pts: [[52, -8], [-21, -8]],   i: 1, dir: 1, espera: 0 };
+camEdi.userData.ruta = { pts: [[30, -11.5], [22.5, -11.5], [22.5, -22],
+    [41, -22], [41, -15.8], [44, -22.5], [62.5, -22], [56, -27],
+    [62.5, -22], [62.5, -14], [62.5, 27], [-25.5, 27], [-25.5, 18]],
+    i: 1, dir: 1, espera: 0, esperaMid: 3 };
 
 // Chute inclinado entre dos puntos del mundo
 function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
@@ -1442,7 +1448,7 @@ function tickLluvia(dt) {
 
 // ---- Respawns: cada familia renace en su muelle/chute ----
 const ORG_CAL = [
-    { desde: new THREE.Vector3(-24.5, 2.1, -8), hasta: new THREE.Vector3(-30.8, 1.72, -10.5), tex: () => texDeleg },
+    { desde: new THREE.Vector3(-21, 2.1, -8), hasta: new THREE.Vector3(-30.8, 1.72, -10.5), tex: () => texDeleg },
     { desde: new THREE.Vector3(-26, 3.2, -5.2),    hasta: new THREE.Vector3(-26, 1.72, -10.3),   tex: () => texCenso },
 ];
 let fuenteCal = 0;
@@ -1491,7 +1497,7 @@ function respawnSrv(f, l) {
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texSrv[l]);
     if (f.sello) f.sello.visible = false;
-    lanzarCaida(f, new THREE.Vector3(-23.4, 1.9, 26.5),
+    lanzarCaida(f, new THREE.Vector3(-25.5, 1.9, 18),
                    new THREE.Vector3(-20.6, 1.72, Z_SRV[l]), 0.8);
 }
 function resetFamilias() {
@@ -2058,6 +2064,7 @@ const TVs = [];
 {
     const paredG = new THREE.Group();
     paredG.position.set(38.6, 0, 7);
+    paredG.rotation.y = Math.PI;   // pantallas hacia la plaza (+x)
     const marco = new THREE.Mesh(new THREE.BoxGeometry(0.5, 6.9, 8.2),
         new THREE.MeshLambertMaterial({ color: 0x57534e }));
     marco.position.set(0.28, 3.55, 0);
@@ -2147,62 +2154,55 @@ function tickVuelosTV(dt) {
     }
 }
 
-// ============ GRADAS DE LA AUDIENCIA ============
-// La ciudadanía consume la pared de pantallas desde gradas
-// escalonadas. No es decoración: sus encuestas viajan por tubo
-// neumático a la estación de satisfacción.
+// ============ VENTANILLA DE ATENCIÓN ============
+// La ciudadanía hace fila en la ventanilla junto a la plaza;
+// sus encuestas viajan por tubo neumático a la estación de
+// satisfacción. La ventanilla REEMPLAZA a la tribuna: la
+// plaza entera es la región de la ciudadanía.
 const ciudadanos = [];
 {
-    // La tribuna es el borde oeste de la plaza de CIUDADANÍA:
-    // la audiencia y la ciudadanía son la misma región (la
-    // plaza unificada se dibuja en la sección de regiones)
-    // Tres filas de banca escalonadas mirando la pared (+x)
-    const paleta = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9, 0xf97316];
-    let idx = 0;
-    for (let fila = 0; fila < 3; fila++) {
-        const bx = 30.8 + fila * 1.7, by = 0.35 + fila * 0.42;
-        const banca = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.14, 6.4),
-            new THREE.MeshLambertMaterial({ color: 0xa8b8c4 }));
-        banca.position.set(bx, by, 7.2);
-        banca.castShadow = true;
-        scene.add(banca);
-        const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, by, 6.4),
-            new THREE.MeshLambertMaterial({ color: 0x9aa8b4 }));
-        base.position.set(bx, by / 2 - 0.07, 7.2);
-        scene.add(base);
-        for (let s = 0; s < 6; s++) {
-            const c = new THREE.Group();
-            const cuerpo = new THREE.Mesh(
-                new THREE.ConeGeometry(0.2, 0.62, 8),
-                new THREE.MeshLambertMaterial({ color: paleta[idx % 6] }));
-            cuerpo.position.y = 0.31;
-            const cabeza = new THREE.Mesh(
-                new THREE.SphereGeometry(0.15, 10, 10),
-                new THREE.MeshLambertMaterial({ color: 0xf5d0a9 }));
-            cabeza.position.y = 0.72;
-            // Ojos en la cara frontal: deja claro hacia dónde mira
-            const ojoGeom = new THREE.SphereGeometry(0.028, 6, 6);
-            const ojoMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
-            for (const ox of [-0.055, 0.055]) {
-                const ojo = new THREE.Mesh(ojoGeom, ojoMat);
-                ojo.position.set(ox, 0.75, 0.13);
-                c.add(ojo);
-            }
-            c.add(cuerpo, cabeza);
-            c.position.set(bx, by + 0.07, 4.7 + s * 1.0);
-            c.rotation.y = Math.PI / 2;       // mira la pared (+x)
-            c.userData.fase = Math.random() * 7;
-            c.userData.y0 = by + 0.07;         // sentado en su banca
-            scene.add(c);
-            ciudadanos.push(c);
-            idx++;
-        }
+    // Caseta de la ventanilla mirando a la plaza (+x)
+    const caseta = new THREE.Group();
+    const cuerpoV = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.9, 1.4),
+        new THREE.MeshLambertMaterial({ color: 0xe2e8f0 }));
+    cuerpoV.position.y = 0.95; cuerpoV.castShadow = true;
+    caseta.add(cuerpoV);
+    const mostrador = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 1.2),
+        new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+    mostrador.position.set(0.85, 1.05, 0);
+    caseta.add(mostrador);
+    const hueco = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.7),
+        new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+    hueco.position.set(0.78, 1.5, 0); hueco.rotation.y = Math.PI / 2;
+    caseta.add(hueco);
+    const toldo = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 1.6),
+        new THREE.MeshLambertMaterial({ color: 0xef4444 }));
+    toldo.position.set(0.95, 2.0, 0); toldo.rotation.z = -0.25;
+    caseta.add(toldo);
+    const techoV = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.14, 1.6),
+        new THREE.MeshLambertMaterial({ color: 0x475569 }));
+    techoV.position.y = 2.05; caseta.add(techoV);
+    caseta.position.set(35, 0, 14);
+    scene.add(caseta);
+    const cartelV = crearCartel('VENTANILLA', 'atención al ciudadano', 2.4);
+    cartelV.position.set(35, 2.8, 14);
+    scene.add(cartelV);
+    // Fila de ciudadanos esperando turno (mirando -x, a la caseta)
+    const paleta = [0xf59e0b, 0x10b981, 0xef4444, 0x8b5cf6, 0x0ea5e9];
+    for (let s = 0; s < 5; s++) {
+        const c = crearFigura(paleta[s]);
+        c.position.set(37.6 + s * 1.3, 0, 14 + (s % 2) * 0.3);
+        c.rotation.y = -Math.PI / 2;
+        c.userData.fase = Math.random() * 7;
+        c.userData.y0 = 0;
+        scene.add(c);
+        ciudadanos.push(c);
     }
 }
 // Tubo neumático: las encuestas viajan DENTRO de un tubo
-// transparente que va de las gradas a la tolva de satisfacción.
+// transparente que va de la ventanilla a la tolva de satisfacción.
 const curvaTubo = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(33.5, 2.4, 9.5),
+    new THREE.Vector3(35, 2.6, 14),
     new THREE.Vector3(31.0, 6.5, 5.0),
     new THREE.Vector3(14.0, 8.5, -2.0),
     new THREE.Vector3(-4.0, 7.5, -8.0),
@@ -2216,7 +2216,7 @@ const curvaTubo = new THREE.CatmullRomCurve3([
     scene.add(tubo);
     const boca = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.4, 10),
         new THREE.MeshLambertMaterial({ color: 0x64748b }));
-    boca.position.set(33.5, 2.2, 9.5);
+    boca.position.set(35, 2.4, 14);
     scene.add(boca);
     for (const [px, py, pz] of [[31, 3.2, 5], [14, 4.25, -2], [-4, 3.75, -8]]) {
         const poste = new THREE.Mesh(new THREE.BoxGeometry(0.14, py * 2, 0.14),
@@ -2363,7 +2363,7 @@ const telescopios = [];
 let comiteGrafo = null;
 {
     const cartelO = crearCartel('OBSERVATORIO', 'organismos observando a la ciudadanía', 3.4);
-    cartelO.position.set(38, 6.0, -6);
+    cartelO.position.set(44.5, 6.0, -0.5);
     scene.add(cartelO);
     const obs = new THREE.Group();
     // Base: torre de dos cuerpos, bien asentada
@@ -2397,9 +2397,9 @@ let comiteGrafo = null;
     tel.rotation.x = -0.62;
     tel.position.y = 4.0;
     obs.add(tel);
-    obs.position.set(38, 0, -6);
-    // La plaza está al noreste: el domo 'mira' hacia (+x, +z)
-    obs.rotation.y = Math.atan2(50 - 38, 12 + 6);
+    obs.position.set(44.5, 0, -0.5);   // junto al borde de la plaza
+    // La plaza está al este: el domo 'mira' hacia (+x, +z)
+    obs.rotation.y = Math.atan2(50 - 44.5, 12 + 0.5);
     scene.add(obs);
     telescopios.push({ obs, tel, base: obs.rotation.y, f: 0 });
 }
@@ -3132,9 +3132,9 @@ const ACTOS = [
     { t0: 370, t1: 390, acto: 'Estación 15', texto: 'Almacén de indicadores', sub: `${STATS.indicadores} indicadores activos en el sistema`,
       cam: [[24, 5, 12], [32.5, 3, 2.5]] },
     { t0: 390, t1: 410, acto: 'Estación 16', texto: 'La pared de pantallas', sub: 'la vitrina pública: todos los flujos terminan aquí',
-      cam: [[27, 5.5, 15], [38.5, 3, 7]] },
-    { t0: 410, t1: 430, acto: 'Estación 17', texto: 'La audiencia', sub: 'PageVisit + encuestas: la ciudadanía consume y retroalimenta',
-      cam: [[24, 5.5, 14], [33, 2, 7.5]] },
+      cam: [[50, 6, 14], [38.6, 3, 7]] },
+    { t0: 410, t1: 430, acto: 'Estación 17', texto: 'La ventanilla', sub: 'PageVisit + encuestas: la ciudadanía hace fila y retroalimenta',
+      cam: [[45, 5, 19], [36, 1.5, 14]] },
     { t0: 430, t1: 450, acto: 'Estación 18', texto: 'Evaluación estratégica', sub: 'dimensión estratégica: capacidad de decisión del organismo',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
     { t0: 450, t1: 470, acto: 'Estación 19', texto: 'SATISFACCIÓN', sub: 'RespuestaSatisfaccion rápida y completa engordan el expediente',
@@ -3153,10 +3153,10 @@ const ACTOS = [
       cam: [[-14, 4, 24], [-14, 1.5, 18]] },
     { t0: 590, t1: 610, acto: 'Estación 26', texto: 'Línea de agenda', sub: 'CalendarioDifusion + Evento: agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
-    { t0: 610, t1: 630, acto: 'Estación 27', texto: 'La ciudadanía', sub: 'la región que todo el sistema sirve: plaza, tribuna y barrio',
+    { t0: 610, t1: 630, acto: 'Estación 27', texto: 'La ciudadanía', sub: 'la región que todo el sistema sirve: plaza, ventanilla y barrio',
       cam: [[30, 11, 22], [50, 2, 12]] },
-    { t0: 630, t1: 650, acto: 'Estación 28', texto: 'Observatorios', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
-      cam: [[31, 6, -11], [39, 2.5, -4]] },
+    { t0: 630, t1: 650, acto: 'Estación 28', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
+      cam: [[35, 7, -9], [44.5, 3.2, -0.5]] },
     { t0: 650, t1: 670, acto: 'Estación 29', texto: 'Comité de Gestión', sub: 'todos los organismos + grafo + TVs + tablero ICED',
       cam: [[44, 7, -5], [52, 2.5, -14]] },
     { t0: 670, t1: 690, acto: 'Estación 30', texto: 'Despacho de Alcaldía', sub: 'los reportes de ambas salas llegan a la decisión final',
@@ -3387,7 +3387,7 @@ function animate() {
             if (d <= paso) {
                 cm.position.x = tx; cm.position.z = tz;
                 r.espera = (r.i === r.pts.length - 1) ? 7 :
-                           (r.i === 0 ? 4 : 0.8);
+                           (r.i === 0 ? 4 : (r.esperaMid || 0.8));
             } else {
                 cm.position.x += dx / d * paso;
                 cm.position.z += dz / d * paso;
