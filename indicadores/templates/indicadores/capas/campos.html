@@ -1,0 +1,131 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+  .norm-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  .norm-table th, .norm-table td { padding: 5px 8px; border: 1px solid var(--border-color,#e2e8f0); text-align: left; }
+  .norm-table th { background: var(--darkened-bg,#f1f5f9); }
+  .field-row { display: flex; gap: 1.5rem; flex-wrap: wrap; margin: 1rem 0; }
+  .field-row label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 3px; }
+  .field-row select, .field-row input[type=text] { padding: 7px 10px; border: 1px solid var(--border-color,#cbd5e1); border-radius: 6px; min-width: 220px; }
+  .section-box { border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; background: var(--darkened-bg,#f8fafc); }
+  .norm-btn { padding: 10px 22px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .btn-next { background: #4f46e5; color: #fff; }
+  .norm-help { color: var(--body-quiet-color,#64748b); font-size: .85rem; }
+  .radio-inline label { margin-right: 1.25rem; font-size: .9rem; }
+</style>
+<script>
+function toggleSections() {
+  var capaNueva = document.getElementById('capa_nueva').checked;
+  document.getElementById('sec-capa-ex').style.display = capaNueva ? 'none' : 'block';
+  document.getElementById('sec-capa-nueva').style.display = capaNueva ? 'block' : 'none';
+  var domNuevo = document.getElementById('dom_nuevo').checked;
+  document.getElementById('sec-dom-ex').style.display = domNuevo ? 'none' : 'block';
+  document.getElementById('sec-dom-nuevo').style.display = domNuevo ? 'block' : 'none';
+}
+window.addEventListener('DOMContentLoaded', toggleSections);
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <h1>Paso 2 — Campos, capa y dominio</h1>
+  <p class="norm-help">
+    Archivo: <strong>{{ src_name }}</strong> (formato {{ formato }},
+    {{ n_features }} features, {{ n_con_geom }} con geometría)
+  </p>
+
+  <h4>Vista previa (primeras filas)</h4>
+  <table class="norm-table">
+    <thead><tr>{% for c in preview_cols %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in preview %}<tr>{% for v in row.values %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}
+    </tbody>
+  </table>
+
+  <form method="post" action="{% url 'indicadores:wizard_capas_asociar' %}">
+    {% csrf_token %}
+    <input type="hidden" name="token" value="{{ token }}">
+
+    <div class="section-box">
+      <strong>1) Campos de código y nombre</strong>
+      <div class="field-row">
+        <div>
+          <label>Campo de CÓDIGO (match con Desagregacion.codigo)</label>
+          <select name="code_field" required>
+            {% for f in fields %}<option value="{{ f }}" {% if f == sug_cod %}selected{% endif %}>{{ f }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Campo de NOMBRE (etiqueta del mapa)</label>
+          <select name="name_field" required>
+            {% for f in fields %}<option value="{{ f }}" {% if f == sug_nom %}selected{% endif %}>{{ f }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <p class="norm-help">El match con desagregaciones se hace por código normalizado; el nombre se muestra en el mapa.</p>
+    </div>
+
+    <div class="section-box">
+      <strong>2) Capa destino (CapaGeo)</strong>
+      <div class="radio-inline" style="margin:.6rem 0;">
+        <label><input type="radio" name="capa_mode" id="capa_ex" checked onchange="toggleSections()"> Usar existente</label>
+        <label><input type="radio" name="capa_mode" id="capa_nueva" onchange="toggleSections()"> Crear nueva</label>
+      </div>
+      <div id="sec-capa-ex" class="field-row">
+        <div>
+          <label>Capa existente</label>
+          <select name="capa_ex">
+            {% for c in capas %}<option value="{{ c.id }}">{{ c.nombre }} ({{ c.nivel_geografico.nombre }})</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div id="sec-capa-nueva" class="field-row" style="display:none;">
+        <div>
+          <label>Nombre de la nueva capa</label>
+          <input type="text" name="capa_nombre" placeholder="Ej: Comunas Medellín">
+        </div>
+        <div>
+          <label>Nivel geográfico</label>
+          <select name="nivel_id">
+            {% for n in niveles %}<option value="ex_{{ n.id }}">{{ n.nombre }}</option>{% endfor %}
+            <option value="nueva">— crear nuevo nivel —</option>
+          </select>
+        </div>
+        <div>
+          <label>Nombre nuevo nivel (si aplica)</label>
+          <input type="text" name="nivel_nombre" placeholder="Ej: Comuna">
+        </div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <strong>3) Dominio de desagregación geográfica a asociar</strong>
+      <div class="radio-inline" style="margin:.6rem 0;">
+        <label><input type="radio" name="dom_mode" id="dom_ex" checked onchange="toggleSections()"> Usar existente</label>
+        <label><input type="radio" name="dom_mode" id="dom_nuevo" onchange="toggleSections()"> Crear nuevo</label>
+      </div>
+      <div id="sec-dom-ex" class="field-row">
+        <div>
+          <label>Dominio geográfica existente</label>
+          <select name="dominio_ex">
+            {% for d in dominios %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div id="sec-dom-nuevo" class="field-row" style="display:none;">
+        <div>
+          <label>Nombre del nuevo dominio (tipo geográfica)</label>
+          <input type="text" name="dominio_nombre" placeholder="Ej: Comuna">
+        </div>
+      </div>
+      <p class="norm-help">Si el dominio es nuevo, cada elemento podrá crear su desagregación automáticamente en el paso siguiente.</p>
+    </div>
+
+    <button type="submit" class="norm-btn btn-next">Asociar elementos →</button>
+    <a href="{% url 'indicadores:wizard_capas' %}" style="margin-left:1rem;">← Cancelar</a>
+  </form>
+</div>
+{% endblock %}

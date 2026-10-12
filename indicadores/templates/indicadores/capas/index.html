@@ -1,0 +1,59 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+  .upload-box { margin: 1.5rem 0; padding: 1.5rem; border: 2px dashed var(--border-color,#cbd5e1); border-radius: 10px; background: var(--darkened-bg,#f8fafc); }
+  .upload-box input[type=file] { font-size: .9rem; }
+  .norm-btn { padding: 10px 22px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .btn-up { background: #0ea5e9; color: #fff; }
+  .norm-table { width: 100%; border-collapse: collapse; font-size: .85rem; margin-top: 1rem; }
+  .norm-table th, .norm-table td { padding: 6px 8px; border: 1px solid var(--border-color,#e2e8f0); text-align: left; }
+  .norm-table th { background: var(--darkened-bg,#f1f5f9); }
+  .norm-help { color: var(--body-quiet-color,#64748b); font-size: .85rem; }
+  .fmt-badges span { display:inline-block; background:rgba(14,165,233,.12); color:#0284c7; border-radius:8px; padding:2px 9px; font-size:.78rem; font-weight:600; margin:2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <h1>Wizard de Carga de Capas Geográficas</h1>
+  <p class="norm-help">
+    Sube un archivo geográfico, el sistema lo normaliza a
+    <code>CapaGeo → ElementoGeo(codigo, nombre, geom_wkt)</code> y luego
+    lo asocias con el dominio de desagregación geográfica y sus desagregaciones.
+  </p>
+
+  <form method="post" enctype="multipart/form-data" class="upload-box">
+    {% csrf_token %}
+    <div class="fmt-badges" style="margin-bottom:.75rem;">
+      <span>GeoJSON</span><span>KML</span><span>KMZ</span>
+      <span>CSV (WKT o lon/lat)</span>
+      <span {% if not pyshp_ok %}title="requiere pip install pyshp" style="opacity:.5;"{% endif %}>Shapefile .zip{% if not pyshp_ok %} ⚠️ pyshp no instalado{% endif %}</span>
+    </div>
+    <input type="file" name="archivo" required
+           accept=".geojson,.json,.kml,.kmz,.zip,.csv">
+    <button type="submit" class="norm-btn btn-up">Subir y analizar →</button>
+    <p class="norm-help" style="margin-top:.75rem;">
+      Máx. 80 MB. Shapefile debe ir comprimido en .zip con .dbf (y .prj para reproyección).
+      Coordenadas deben ser WGS84 (EPSG:4326) salvo que el .prj indique otro CRS.
+    </p>
+  </form>
+
+  <h3>Capas cargadas ({{ capas|length }})</h3>
+  {% if capas %}
+  <table class="norm-table">
+    <thead><tr><th>ID</th><th>Capa</th><th>Nivel</th><th>Elementos</th><th>Desags asociadas</th></tr></thead>
+    <tbody>
+    {% for c in capas %}
+      <tr><td>{{ c.id }}</td><td>{{ c.nombre }}</td><td>{{ c.nivel }}</td>
+          <td>{{ c.n_elems }}</td><td>{{ c.n_desags }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="norm-help">Aún no hay capas. Sube la primera.</p>
+  {% endif %}
+</div>
+{% endblock %}
