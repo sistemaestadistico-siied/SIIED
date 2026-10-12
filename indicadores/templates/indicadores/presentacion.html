@@ -2195,22 +2195,77 @@ const camEdi = crearCamion({ x: 34,   z: -11.5, color: 0xef4444,
 // Rutas por pasillos libres — ninguna atraviesa bandas.
 // RECOLECCIÓN: muelle del observatorio → pasillo norte de la
 // línea D2; la carga entra a la tolva volando sobre la máquina.
-// DELEGADO: muelle del comité → cabeza de banda C (al oeste
-// del chute del taller, sin colisión).
-// EDITORIAL: RECOLECTA en las 4 salas (capa → despacho →
-// comité → recolección por el perímetro oeste) y descarga
-// en el muelle de líneas E. VÍAS PROPIAS: z=-11.5/z=-22/x=-34
-// y z=+2.1 — nunca comparte el carril z-8 de DELEGADO ni el
-// z-4.5 de RECOLECCIÓN: los camiones ya no colisionan.
+// DELEGADO: muelle del comité → cabeza de banda C, PERO con
+// parada obligatoria en la garita de validación (x=11): el
+// módulo de validación pre-aprueba cada movimiento suyo.
+// EDITORIAL es autónomo: no pasa por recolección ni pide
+// autorización al admin. Recoge contenido en despacho y
+// comité y descarga en el muelle de líneas E, subiendo por
+// el perímetro oeste (x=-34) hasta el hub — lejos de la
+// torre del admin. VÍAS PROPIAS: z=-11.5/z=-22/x=-34.
 camRec.userData.ruta = { pts: [[39, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
-camDel.userData.ruta = { pts: [[52, -8], [-21, -8]],   i: 1, dir: 1, espera: 0 };
+camDel.userData.ruta = { pts: [[52, -8], [11, -8], [-21, -8]],
+    i: 1, dir: 1, espera: 0, paradas: [1] };
 camEdi.userData.ruta = { pts: [[34, -11.5], [38, -11.5], [38, -22],
     [62.5, -22], [58.5, -25.5], [62.5, -22], [62.5, -14], [62.5, -22],
-    [38, -22], [-34, -22], [-34, 2.1], [-20.8, 2.1], [-27.2, 2.1],
-    [-27.2, 20.5], [-27.0, 20.5]],   // muelle al sur del hub: libre de los chutes z18/z24
+    [38, -22], [-34, -22], [-34, 20.5], [-27.2, 20.5], [-27.0, 20.5]],
+    // muelle al sur del hub: libre de los chutes z18/z24
     // paradas largas SOLO en las salas (idx 0 capa, 3 despacho,
-    // 5 comité, 10 recolección): las esquinas no leen como parada
-    i: 1, dir: 1, espera: 0, esperaMid: 0.6, paradas: [3, 5, 10] };
+    // 5 comité): las esquinas no leen como parada
+    i: 1, dir: 1, espera: 0, esperaMid: 0.6, paradas: [3, 5] };
+
+// ============ GARITA DE VALIDACIÓN — pre-aprueba al delegado ============
+// El módulo de validación pre-aprueba cada movimiento del delegado:
+// su camión se detiene en la garita (x=11, carril z=-8) antes de
+// alcanzar la cabeza de la banda. Editorial es autónomo (no pasa
+// por aquí) y recolección es el propio equipo técnico.
+const brazoGarita = new THREE.Group();
+const semG = {};
+{
+    const g = new THREE.Group();
+    g.position.set(11, 0, -6.05);
+    const matG = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
+    // cabina del validador
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.1, 1.0), matG);
+    cab.position.set(0, 1.05, 0); cab.castShadow = true; g.add(cab);
+    const vid = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.6, 0.9),
+        new THREE.MeshLambertMaterial({ color: 0xbfe3f5, transparent: true, opacity: 0.35 }));
+    vid.position.set(0, 1.55, 0); g.add(vid);
+    const tech = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.1, 1.2), matG);
+    tech.position.set(0, 2.15, 0); g.add(tech);
+    // poste de la barrera en el borde norte de la vía y brazo hacia el sur
+    const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.25, 8), matG);
+    poste.position.set(0, 0.62, -0.55); g.add(poste);
+    brazoGarita.position.set(0, 1.18, -0.55);
+    const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 3.0),
+        new THREE.MeshLambertMaterial({ color: 0xef4444 }));
+    brazo.position.z = -1.5; brazoGarita.add(brazo);
+    for (const fz of [-0.7, -1.6, -2.5]) {   // franjas blancas del brazo
+        const fr = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.28),
+            new THREE.MeshLambertMaterial({ color: 0xf8fafc }));
+        fr.position.z = fz; brazoGarita.add(fr);
+    }
+    g.add(brazoGarita);
+    // semáforo del validador
+    const paloS = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.5, 6), matG);
+    paloS.position.set(0.8, 0.75, -0.5); g.add(paloS);
+    const cajaS = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.44, 0.16),
+        new THREE.MeshLambertMaterial({ color: 0x1f2937 }));
+    cajaS.position.set(0.8, 1.62, -0.5); g.add(cajaS);
+    semG.rojo = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+    semG.rojo.position.set(0.8, 1.72, -0.41); g.add(semG.rojo);
+    semG.verde = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x14532d }));
+    semG.verde.position.set(0.8, 1.52, -0.41); g.add(semG.verde);
+    // letrero
+    const mastG = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.6, 0.09), matG);
+    mastG.position.set(-0.9, 0.8, -0.3); g.add(mastG);
+    const cartelG = crearCartel('GARITA DE VALIDACIÓN',
+        'pre-aprueba cada carga del delegado', 2.6);
+    cartelG.position.set(-0.9, 2.6, -0.3); g.add(cartelG);
+    scene.add(g);
+}
 
 // Chute inclinado entre dos puntos del mundo
 function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
@@ -4222,6 +4277,7 @@ const ACTOS_TODOS = [
     { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'El equipo técnico', sub: 'lo opera el equipo de estadísticas distritales · Subdirección de Desarrollo Integral, DAP', pan: true,
       cam: [[-20, 9, 22], [4, 3, 2]] },
     { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'Los canales de acceso', sub: 'los organismos y el portal alimentan el sistema por tres módulos', pan: true,
+      dato: 'Tres caminos distintos: recolección es del propio equipo, editorial es autónomo, y el delegado para primero en la garita — la validación pre-aprueba cada movimiento suyo.',
       cam: [[-8, 8, 14], [30, 2.5, -8]] },
     { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'Taller del ecosistema', sub: 'censo de fuentes de datos por organismo y prediagnóstico de riesgos de publicación · diseñado por el DADII', pan: true,
       cam: [[-36, 7, 10], [-24, 3, -2]] },
@@ -4243,9 +4299,10 @@ const ACTOS_TODOS = [
       dato: 'El DANE entrega al Distrito sus proyecciones de población actualizadas. Es el insumo: población total de Cali por año, edad y sexo.',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camRec' },
     { t0: 106, t1: 122, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'cada organismo carga sus series y conjuntos desde su portal: cargas parciales e incrementales, a prueba de errores (portal del Delegado)',
+      dato: 'Vea la barrera: el camión del delegado se detiene en la garita de validación. Todo lo que un organismo cargue — series, conjuntos, el FICED — queda pre-aprobado antes de tocar la banda.',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel' },
-    { t0: 122, t1: 140, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'la voz pública de la planta: noticias, eventos, agenda de difusión y productos académicos con gráficos interactivos embebidos (módulo Editorial)',
-      dato: 'El documento académico de la operación — el método DANE docente, hecho en Cali — se carga por este módulo y sale publicado con sus gráficos vivos.',
+    { t0: 122, t1: 140, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'la voz pública de la planta, y es autónoma: no pasa por recolección ni pide autorización al admin — noticias, eventos, agenda y productos académicos (módulo Editorial)',
+      dato: 'Su camión no para en la garita ni en la torre: publica por las líneas de servicio propias. El documento académico de la operación se carga aquí y sale con sus gráficos vivos.',
       cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi' },
     // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
     { t0: 140, t1: 154, acto: 'Módulo 04', texto: 'EL TALLER · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
@@ -4304,8 +4361,8 @@ const ACTOS_TODOS = [
     { t0: 338, t1: 350, acto: 'Estación 18', texto: 'FICED', sub: 'cinco módulos: identificación → entorno institucional → infraestructura → metodología estadística → accesibilidad y uso (ICEDFormulario)',
       dato: 'El ICED es el promedio ponderado de los módulos B a E. Un organismo con metodología estadística débil (módulo D) no llega a esta banda: el sistema lo mide y lo acompaña.',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
-    { t0: 350, t1: 362, acto: 'Estación 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'un validador revisa cada carga — series, conjuntos y el FICED — y la aprueba o la devuelve con observaciones',
-      dato: 'La coordinación es contractual: el delegado cargó y ahora la validación decide. Aprobar devuelve la caja a la banda rumbo a la publicación; devolver la hace devolver al organismo.',
+    { t0: 350, t1: 362, acto: 'Estación 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'pre-aprueba todo lo del delegado: la garita detiene su camión en la calle y esta sala decide el expediente — series, conjuntos y el FICED — aprobando o devolviendo con observaciones',
+      dato: 'La coordinación es contractual: el delegado cargó, la garita lo detuvo y ahora la validación decide. Aprobar devuelve la caja a la banda rumbo a la publicación; devolver la regresa al organismo.',
       cam: [[16, 5, -5], [16, 2.5, -14.7]] },
     { t0: 362, t1: 374, acto: 'Estación 20', texto: 'Complejo de capacidad', sub: 'expediente ICED + vitrina de hojas de vida: aquí se decide la capacidad',
       dato: 'La línea de capacidad mide a quien produce el dato, no al dato. Un organismo con baja capacidad estadística produce datos que esta fábrica no puede sellar.',
@@ -4710,6 +4767,16 @@ function animate() {
             cm.userData.rampaG.rotation.z = 1.45 - 1.8 * ap; // se despliega al piso
         }
     });
+    // Garita de validación: el brazo abre mientras el camión del
+    // delegado está en la zona del checkpoint (x ≈ 11, carril z=-8)
+    {
+        const enZona = Math.abs(camDel.position.z + 8) < 1.6 &&
+                       camDel.position.x > 9.6 && camDel.position.x < 12.6;
+        const obj = enZona ? 1.15 : 0;   // levanta el brazo hacia el techo
+        brazoGarita.rotation.x += (obj - brazoGarita.rotation.x) * Math.min(1, dt * 2.6);
+        semG.rojo.material.color.setHex(enZona ? 0x7f1d1d : 0xef4444);
+        semG.verde.material.color.setHex(enZona ? 0x22cc44 : 0x14532d);
+    }
     // Observatorios: los telescopios barren la ciudadanía
     telescopios.forEach(t => {
         t.obs.rotation.y = t.base + Math.sin(tGlobal * 0.35 + t.f) * 0.3;
