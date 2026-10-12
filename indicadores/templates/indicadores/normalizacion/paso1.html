@@ -27,7 +27,7 @@
     o elimina un dominio con sus desagregaciones sin borrar los datos relacionados.
   </p>
 
-  <form method="post" action="{% url 'indicadores:wizard_normalizacion_equivalencias' %}">
+  <form method="post" action="{% url 'normalizacion:wizard_normalizacion_equivalencias' %}">
     {% csrf_token %}
     <div class="scroll-box">
     <table class="norm-table">
@@ -44,7 +44,7 @@
         <tr>
           <td><input class="sel-dom" type="checkbox" name="dominios" value="{{ d.id }}"></td>
           <td>{{ d.id }}</td>
-          <td><a href="{% url 'indicadores:wizard_normalizacion_dominio' d.id %}" title="Ver desagregaciones / renombrar">{{ d.nombre }}</a></td>
+          <td><a href="{% url 'normalizacion:wizard_normalizacion_dominio' d.id %}" title="Ver desagregaciones / renombrar">{{ d.nombre }}</a></td>
           <td><span class="norm-badge badge-{{ d.tipo }}">{{ d.tipo }}</span></td>
           <td>{{ d.n_desags }}</td>
           <td>{{ d.n_indicadores }}</td>

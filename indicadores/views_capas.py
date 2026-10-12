@@ -64,15 +64,15 @@ def wizard_capas(request):
         raw = up.read()
         if len(raw) > 80 * 1024 * 1024:
             messages.error(request, 'Archivo demasiado grande (máx. 80 MB).')
-            return redirect('indicadores:wizard_capas')
+            return redirect('capas:wizard_capas')
         try:
             formato, parsed = detect_and_parse(up.name, raw)
         except (ValueError, KeyError, Exception) as e:
             messages.error(request, f'No se pudo leer "{up.name}": {e}')
-            return redirect('indicadores:wizard_capas')
+            return redirect('capas:wizard_capas')
         if not parsed['features']:
             messages.error(request, f'"{up.name}" no contiene features.')
-            return redirect('indicadores:wizard_capas')
+            return redirect('capas:wizard_capas')
 
         token = uuid.uuid4().hex
         with open(os.path.join(_wdir(token), 'input.bin'), 'wb') as f:
@@ -123,7 +123,7 @@ def wizard_capas(request):
 @staff_member_required
 def wizard_capas_asociar(request):
     if request.method != 'POST':
-        return redirect('indicadores:wizard_capas')
+        return redirect('capas:wizard_capas')
     token = request.POST['token']
     meta = _load_meta(token)
     with open(os.path.join(_wdir(token), 'parsed.json'), encoding='utf-8') as f:
@@ -133,7 +133,7 @@ def wizard_capas_asociar(request):
     name_field = request.POST.get('name_field') or None
     if not code_field or not name_field:
         messages.error(request, 'Debes elegir campo de código y de nombre.')
-        return redirect('indicadores:wizard_capas')
+        return redirect('capas:wizard_capas')
 
     # Traducir los radios del form: capa_mode ex|nueva, dom_mode ex|nuevo
     capa_mode = request.POST.get('capa_mode', 'ex')
@@ -147,7 +147,7 @@ def wizard_capas_asociar(request):
             capa_nombre = os.path.splitext(meta['src_name'])[0]
     else:
         messages.error(request, 'Selecciona una capa existente o crea una nueva.')
-        return redirect('indicadores:wizard_capas')
+        return redirect('capas:wizard_capas')
 
     dom_mode = request.POST.get('dom_mode', 'ex')
     dominio_ex = request.POST.get('dominio_ex')
@@ -160,7 +160,7 @@ def wizard_capas_asociar(request):
             dominio_nombre = capa_nombre
     else:
         messages.error(request, 'Selecciona un dominio existente o crea uno nuevo.')
-        return redirect('indicadores:wizard_capas')
+        return redirect('capas:wizard_capas')
 
     records = extract_records(parsed, code_field, name_field)
     meta.update({
@@ -228,7 +228,7 @@ def wizard_capas_asociar(request):
 @staff_member_required
 def wizard_capas_aplicar(request):
     if request.method != 'POST':
-        return redirect('indicadores:wizard_capas')
+        return redirect('capas:wizard_capas')
     token = request.POST['token']
     meta = _load_meta(token)
     with open(os.path.join(_wdir(token), 'records.json'), encoding='utf-8') as f:
@@ -306,7 +306,7 @@ def wizard_capas_aplicar(request):
                    f"en dominio '{dom.nombre}'")
     except Exception as e:
         messages.error(request, f'Error aplicando la carga (rollback): {e}')
-        return redirect('indicadores:wizard_capas')
+        return redirect('capas:wizard_capas')
 
     shutil.rmtree(_wdir(token), ignore_errors=True)
     messages.success(request,
@@ -314,4 +314,4 @@ def wizard_capas_aplicar(request):
         f"{stats['elems_upd']} actualizados, {stats['elems_skip']} omitidos; "
         f"{stats['asociadas']} desagregaciones asociadas "
         f"({stats['desags_nuevas']} creadas) en dominio '{dom.nombre}'.")
-    return redirect('indicadores:wizard_capas')
+    return redirect('capas:wizard_capas')

@@ -57,9 +57,9 @@ urlpatterns = [
     path('admin/satisfaccion/exportar-completas-csv/', views_satisfaccion.exportar_respuestas_completas_csv, name='exportar_respuestas_completas_csv'),
     
     # Wizard de Normalización de Desagregaciones (antes del admin para no caer en catch_all_view)
-    path('admin/normalizacion-desagregaciones/', include('indicadores.urls_normalizacion', namespace='indicadores')),
+    path('admin/normalizacion-desagregaciones/', include('indicadores.urls_normalizacion', namespace='normalizacion')),
     # Wizard de Carga de Capas Geográficas
-    path('admin/cargar-capa-geo/', include('indicadores.urls_capas', namespace='indicadores')),
+    path('admin/cargar-capa-geo/', include('indicadores.urls_capas', namespace='capas')),
 
     # CKEditor y Admin
     path('ckeditor5/', include('django_ckeditor_5.urls')),

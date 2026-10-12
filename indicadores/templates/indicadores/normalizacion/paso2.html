@@ -27,7 +27,7 @@
     Los verdes tienen match automático por nombre.
   </p>
 
-  <form method="post" action="{% url 'indicadores:wizard_normalizacion_preview' %}">
+  <form method="post" action="{% url 'normalizacion:wizard_normalizacion_preview' %}">
     {% csrf_token %}
     <input type="hidden" name="destino" value="{{ destino.id }}">
     <input type="hidden" name="origen_ids" value="{{ origen_ids }}">
@@ -69,7 +69,7 @@
 
     <div style="margin:1.5rem 0;display:flex;gap:1rem;">
       <button type="submit" class="norm-btn btn-next">Vista previa →</button>
-      <a href="{% url 'indicadores:wizard_normalizacion' %}" style="align-self:center;">← Volver</a>
+      <a href="{% url 'normalizacion:wizard_normalizacion' %}" style="align-self:center;">← Volver</a>
     </div>
   </form>
 </div>

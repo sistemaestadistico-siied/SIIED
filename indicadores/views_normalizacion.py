@@ -490,7 +490,7 @@ def wizard_dominio_detalle(request, dominio_id):
                 messages.warning(request,
                     f'Ojo: ya existe otro dominio llamado "{duplicado.nombre}" '
                     f'(id {duplicado.id}, tipo {duplicado.tipo}). Considera conciliarlos.')
-            return redirect('indicadores:wizard_normalizacion_dominio', dominio_id=dom.id)
+            return redirect('normalizacion:wizard_normalizacion_dominio', dominio_id=dom.id)
 
     desags = list(Desagregacion.objects.filter(dominio_id=dominio_id).order_by('nombre'))
     with connection.cursor() as cur:

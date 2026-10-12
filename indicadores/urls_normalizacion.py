@@ -2,13 +2,13 @@
 
 Se incluye en myproject/urls.py ANTES de `admin.site.urls` para que
 `/admin/normalizacion-desagregaciones/` no caiga en el catch-all del admin.
-El app_name 'indicadores' conserva el namespace de las plantillas.
+Namespace propio ('normalizacion') para no duplicar el de la app principal (urls.W005).
 """
 
 from django.urls import path
 from . import views_normalizacion
 
-app_name = 'indicadores'
+app_name = 'normalizacion'
 
 urlpatterns = [
     path('', views_normalizacion.wizard_normalizacion, name='wizard_normalizacion'),

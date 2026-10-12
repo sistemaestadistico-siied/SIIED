@@ -60,7 +60,7 @@
     {% for d in desags %}<div>{{ d.nombre }}</div>{% endfor %}
   </div>
 
-  <form method="post" action="{% url 'indicadores:wizard_normalizacion_eliminar' %}" style="margin-top:1.5rem;display:flex;gap:1rem;align-items:center;">
+  <form method="post" action="{% url 'normalizacion:wizard_normalizacion_eliminar' %}" style="margin-top:1.5rem;display:flex;gap:1rem;align-items:center;">
     {% csrf_token %}
     <input type="hidden" name="dominio_id" value="{{ dominio.id }}">
     <label style="font-size:.9rem;">
@@ -68,7 +68,7 @@
       Confirmo la eliminación del dominio y sus {{ stats.n_desags }} desagregaciones
     </label>
     <button type="submit" class="norm-btn btn-danger">Eliminar dominio</button>
-    <a href="{% url 'indicadores:wizard_normalizacion' %}">← Cancelar</a>
+    <a href="{% url 'normalizacion:wizard_normalizacion' %}">← Cancelar</a>
   </form>
 </div>
 {% endblock %}

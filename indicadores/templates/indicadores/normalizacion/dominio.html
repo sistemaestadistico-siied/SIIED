@@ -27,7 +27,7 @@
 
 {% block content %}
 <div class="norm-wrap">
-  <p><a href="{% url 'indicadores:wizard_normalizacion' %}">← Volver al listado</a></p>
+  <p><a href="{% url 'normalizacion:wizard_normalizacion' %}">← Volver al listado</a></p>
   <h1>{{ dominio.nombre }}
     <span class="norm-badge badge-{{ dominio.tipo }}">{{ dominio.tipo }}</span>
     <small style="font-weight:400;color:var(--body-quiet-color,#64748b);">id {{ dominio.id }}</small>

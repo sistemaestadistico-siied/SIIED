@@ -1,13 +1,13 @@
 """URLconf del Wizard de Carga de Capas Geográficas.
 
 Se incluye en myproject/urls.py ANTES de `admin.site.urls` (catch-all).
-El app_name 'indicadores' conserva el namespace de las plantillas.
+Namespace propio ('capas') para no duplicar el de la app principal (urls.W005).
 """
 
 from django.urls import path
 from . import views_capas
 
-app_name = 'indicadores'
+app_name = 'capas'
 
 urlpatterns = [
     path('', views_capas.wizard_capas, name='wizard_capas'),

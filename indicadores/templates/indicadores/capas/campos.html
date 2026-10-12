@@ -45,7 +45,7 @@ window.addEventListener('DOMContentLoaded', toggleSections);
     </tbody>
   </table>
 
-  <form method="post" action="{% url 'indicadores:wizard_capas_asociar' %}">
+  <form method="post" action="{% url 'capas:wizard_capas_asociar' %}">
     {% csrf_token %}
     <input type="hidden" name="token" value="{{ token }}">
 
@@ -125,7 +125,7 @@ window.addEventListener('DOMContentLoaded', toggleSections);
     </div>
 
     <button type="submit" class="norm-btn btn-next">Asociar elementos →</button>
-    <a href="{% url 'indicadores:wizard_capas' %}" style="margin-left:1rem;">← Cancelar</a>
+    <a href="{% url 'capas:wizard_capas' %}" style="margin-left:1rem;">← Cancelar</a>
   </form>
 </div>
 {% endblock %}

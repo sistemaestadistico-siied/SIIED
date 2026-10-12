@@ -43,7 +43,7 @@
     {% for d in detalles %}<div>{{ d }}</div>{% endfor %}
   </div>
 
-  <form method="post" action="{% url 'indicadores:wizard_normalizacion_aplicar' %}" style="margin-top:1.5rem;display:flex;gap:1rem;">
+  <form method="post" action="{% url 'normalizacion:wizard_normalizacion_aplicar' %}" style="margin-top:1.5rem;display:flex;gap:1rem;">
     {% csrf_token %}
     <input type="hidden" name="destino" value="{{ destino.id }}">
     <input type="hidden" name="origen_ids" value="{{ origen_ids }}">
@@ -52,7 +52,7 @@
             onclick="return confirm('¿Aplicar la conciliación? Operación transaccional con log de auditoría.')">
       ✓ Aplicar conciliación
     </button>
-    <a href="{% url 'indicadores:wizard_normalizacion' %}" style="align-self:center;">← Cancelar</a>
+    <a href="{% url 'normalizacion:wizard_normalizacion' %}" style="align-self:center;">← Cancelar</a>
   </form>
 </div>
 {% endblock %}
