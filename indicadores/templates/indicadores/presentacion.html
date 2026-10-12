@@ -1841,6 +1841,10 @@ const TALLER = crearMaquina({
     scene.add(placa);
 }
 
+// Puestos de don Daticos de cada sala de juntas (los pone
+// crearPlanta); lo llenan las salas al crearse
+const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
+
 // ============ TORRE DEL ADMIN — centro de control tecnológico ============
 // En la esquina superior izquierda del logo SIIED de la explanada:
 // desde ahí el admin ve toda la planta sin tapar ninguna estación.
@@ -1945,12 +1949,12 @@ const TALLER = crearMaquina({
     const lamparaT = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8),
         new THREE.MeshBasicMaterial({ color: 0x22cc44 }));
     lamparaT.position.set(-4.0, 9.8, 1.8); torre.add(lamparaT);
+    // Un operario tras cada consola (los pone crearPlanta)
+    salas.push({ grupo: torre, y: 6.62, estado: 'trabajar',
+        puestos: [[-3.4, 0.1, 0], [-1.7, 0.1, 0], [0, 0.1, 0],
+                  [1.7, 0.1, 0], [3.4, 0.1, 0]] });
     scene.add(torre);
 }
-
-// Puestos de don Daticos de cada sala de juntas (los pone
-// crearPlanta); lo llenan las salas al crearse
-const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
 
 // Línea de CALIDAD INSTITUCIONAL (banda C): dossier → evals →
 // satisfacción (engorda) → FICED (cambia de color) → hall.
