@@ -2299,12 +2299,60 @@ crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2
     hub.position.set(-23.6, 1.55, 17.5);
     hub.castShadow = true;
     scene.add(hub);
-    const cartelH = crearCartel('HUB EDITORIAL', 'contenido → líneas de servicio', 2.2);
+    const cartelH = crearCartel('EDITORIAL', 'contenido → líneas de servicio', 2.2);
     cartelH.position.set(-23.6, 2.6, 17.5);
     scene.add(cartelH);
     [12, 18, 24].forEach(z =>
         crearChute(new THREE.Vector3(-23.4, 1.85, 17.5),
                    new THREE.Vector3(-20.9, 1.72, z), 0.45));
+}
+
+// ============ OFICINA EDITORIAL — los redactores del muelle ============
+// Como la sala de recolección, pero para editorial: tres operarios
+// redactando junto al muelle, ANTES del nodo (el camión llega por el
+// oeste). Al sur del carril z=20.5 y al oeste del hub: sin colisión.
+{
+    const ofi = new THREE.Group();
+    const matO = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
+    const losaO = new THREE.Mesh(new THREE.BoxGeometry(4, 0.2, 2.8), matO);
+    losaO.position.y = 0.1; ofi.add(losaO);
+    const techoO = new THREE.Mesh(new THREE.BoxGeometry(4, 0.14, 2.8), matO);
+    techoO.position.y = 2.6; ofi.add(techoO);
+    for (const [px, pz] of [[-1.85, -1.25], [1.85, -1.25], [-1.85, 1.25], [1.85, 1.25]]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.6, 0.15), matO);
+        col.position.set(px, 1.35, pz); ofi.add(col);
+    }
+    const vidrioO = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.2 });
+    const mN = new THREE.Mesh(new THREE.BoxGeometry(3.7, 2.2, 0.06), vidrioO);
+    mN.position.set(0, 1.4, 1.36); ofi.add(mN);      // norte: hacia el muelle
+    const mS = mN.clone(); mS.position.z = -1.36; ofi.add(mS);
+    for (const px of [-1.93, 1.93]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.2, 2.6), vidrioO);
+        p.position.set(px, 1.4, 0); ofi.add(p);
+    }
+    // 3 escritorios con monitores: noticias, productos y agenda
+    const TAREAS = [['NOTICIA', 'redactando…'], ['PRODUCTO', 'editando secciones…'],
+                    ['AGENDA', 'programando…']];
+    TAREAS.forEach(([tit, st], i) => {
+        const mesaE = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.07, 0.55), matO);
+        mesaE.position.set(-1.3 + i * 1.3, 0.62, 0.5); ofi.add(mesaE);
+        const monE = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.38),
+            new THREE.MeshBasicMaterial({ map: texturaPantalla(tit, st) }));
+        monE.position.set(-1.3 + i * 1.3, 0.86, 0.46);
+        monE.rotation.x = -0.15;
+        ofi.add(monE);
+    });
+    // Los 3 operarios los pone crearPlanta (puestos mirando al muelle)
+    salas.push({ grupo: ofi, y: 0.22, estado: 'trabajar',
+        puestos: [[-1.3, -0.35, 0], [0, -0.35, 0], [1.3, -0.35, 0]] });
+    ofi.position.set(-30.5, 0, 17.4);   // al sur del carril, antes del nodo
+    scene.add(ofi);
+    const mastO = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.3, 0.09), matO);
+    mastO.position.set(-30.5, 3.25, 18.5); scene.add(mastO);   // sobre el techo, borde norte
+    const cartelO = crearCartel('OFICINA EDITORIAL', 'los redactores del muelle', 2.6);
+    cartelO.position.set(-30.5, 4.15, 18.5);
+    scene.add(cartelO);
 }
 // Placa del nodo T en conjuntos (desvío al catálogo de consulta)
 {
