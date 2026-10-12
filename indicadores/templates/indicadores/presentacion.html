@@ -1818,6 +1818,79 @@ const TALLER = crearMaquina({
     scene.add(placa);
 }
 
+// ============ TORRE DEL ADMIN — mezzanine de wizards sobre banda D1 ============
+// El admin no tiene camión ni máquina de banda: opera desde una mezzanine
+// que sobrevuela la banda D1 (taller → operaciones). Cada wizard del admin
+// es prácticamente un módulo completo: unificado (4 flujos: cartesiano,
+// serie directa, conjunto+serie y actualización; preview tipo hoja de
+// cálculo, metadata automática, creación de desagregaciones y gráficos),
+// normalización de dominios y carga de capas geográficas. La cuarta
+// consola es Don Datico: el agente IA real del portal (chat RAG), que el
+// admin configura y reentrena con embeddings.
+{
+    const torre = new THREE.Group();
+    torre.position.set(-24.5, 0, 4.9);
+    const matT = new THREE.MeshLambertMaterial({ color: 0x475569 });
+    const matPiso = new THREE.MeshLambertMaterial({ color: 0x64748b });
+    // 4 pilares que flanquean la banda D1 (la cinta pasa por debajo)
+    for (const [px, pz] of [[-4, -2.3], [4, -2.3], [-4, 2.3], [4, 2.3]]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.4, 0.22), matT);
+        p.position.set(px, 2.2, pz); torre.add(p);
+    }
+    const piso = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.18, 4.4), matPiso);
+    piso.position.y = 4.45; torre.add(piso);
+    const techo = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.14, 4.4), matT);
+    techo.position.y = 7.1; torre.add(techo);
+    for (const px of [-4.1, 4.1]) {
+        for (const pz of [-1.9, 1.9]) {
+            const c = new THREE.Mesh(new THREE.BoxGeometry(0.18, 2.6, 0.18), matT);
+            c.position.set(px, 5.75, pz); torre.add(c);
+        }
+    }
+    // barandal de vidrio perimetral
+    const vidrioT = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.22 });
+    for (const pz of [-2.17, 2.17]) {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(8.6, 0.9, 0.06), vidrioT);
+        b.position.set(0, 5.0, pz); torre.add(b);
+    }
+    for (const px of [-4.27, 4.27]) {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.9, 4.4), vidrioT);
+        b.position.set(px, 5.0, 0); torre.add(b);
+    }
+    // 4 consolas: 3 wizards + Don Datico IA
+    const CONSOLAS = [
+        { x: -3.0, txt: 'WIZARD UNIFICADO', sub: '4 flujos · preview · gráficos' },
+        { x: -1.0, txt: 'NORMALIZACIÓN', sub: 'dominios de desagregación' },
+        { x: 1.0,  txt: 'CAPAS GEO', sub: 'geojson · kml · shp · wkt' },
+        { x: 3.0,  txt: 'DON DATICO · IA', sub: 'chat RAG · 12 tools · embeddings' },
+    ];
+    for (const c of CONSOLAS) {
+        const desk = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.12, 0.8),
+            new THREE.MeshLambertMaterial({ color: 0x334155 }));
+        desk.position.set(c.x, 4.95, 1.2); torre.add(desk);
+        const mon = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.9),
+            new THREE.MeshBasicMaterial({ map: texturaPantalla(c.txt, c.sub) }));
+        mon.position.set(c.x, 5.85, 0.8); mon.rotation.x = -0.08; torre.add(mon);
+    }
+    // cartel principal sobre el techo
+    const mastT = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 0.12),
+        new THREE.MeshLambertMaterial({ color: 0x64748b }));
+    mastT.position.set(0, 8.0, 1.6); torre.add(mastT);
+    const cartelT = crearCartel('TORRE DEL ADMIN', 'los wizards: el cerebro de la maquila', 5);
+    cartelT.position.set(0, 9.4, 1.6); torre.add(cartelT);
+    // luz propia de noche + lámpara de estado
+    const luzT = new THREE.PointLight(0xbfd8ff, 0.8, 7, 1.6);
+    luzT.position.set(0, 6.2, 0); torre.add(luzT);
+    const posteT = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.55, 6),
+        new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+    posteT.position.set(-4.0, 7.3, 1.8); torre.add(posteT);
+    const lamparaT = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x22cc44 }));
+    lamparaT.position.set(-4.0, 7.6, 1.8); torre.add(lamparaT);
+    scene.add(torre);
+}
+
 // Puestos de don Daticos de cada sala de juntas (los pone
 // crearPlanta); lo llenan las salas al crearse
 const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
@@ -1939,12 +2012,12 @@ ESTACIONES_DAT.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina
 // Mini-maquilas de SERVICIOS: 3 líneas cortas de 2 estaciones.
 const ESTACIONES_SRV = [
     // (z alineado: el mecanismo cae al centro de la banda)
-    { x: -17, z: 8.64,  nombre: 'REDACCIÓN',    modelo: 'NoticiaBanner · redacción', color: 0xef4444, tipo: 'prensa', sello: 'NEWS', escala: 0.8 },
-    { x: -11, z: 8.64,  nombre: 'PUBLICACIÓN',  modelo: 'Evento · banner público', color: 0xef4444, tipo: 'lanzador', escala: 0.8 },
-    { x: -17, z: 14.64, nombre: 'EDICIÓN',      modelo: 'ProductoAcademico · edición', color: 0x64748b, tipo: 'prensa', sello: 'DOC', escala: 0.8 },
-    { x: -11, z: 14.64, nombre: 'CLASIFICACIÓN',modelo: 'ProductoEducativo · SeccionEducativa', color: 0x64748b, tipo: 'escaner', escala: 0.8 },
-    { x: -17, z: 20.64, nombre: 'PROGRAMACIÓN', modelo: 'CalendarioDifusion · programación', color: 0xb45309, tipo: 'eval', escala: 0.8 },
-    { x: -11, z: 20.64, nombre: 'AGENDA',       modelo: 'Evento · agenda pública', color: 0xb45309, tipo: 'lanzador', escala: 0.8 },
+    { x: -17, z: 8.64,  nombre: 'REDACCIÓN',    modelo: 'noticias: redacción, edición y preview', color: 0xef4444, tipo: 'prensa', sello: 'NEWS', escala: 0.8 },
+    { x: -11, z: 8.64,  nombre: 'PUBLICACIÓN',  modelo: 'eventos CRUD + banner público', color: 0xef4444, tipo: 'lanzador', escala: 0.8 },
+    { x: -17, z: 14.64, nombre: 'EDICIÓN',      modelo: 'wizard de productos: paper por secciones', color: 0x64748b, tipo: 'prensa', sello: 'DOC', escala: 0.8 },
+    { x: -11, z: 14.64, nombre: 'CLASIFICACIÓN',modelo: 'secciones + gráficos interactivos embebidos', color: 0x64748b, tipo: 'escaner', escala: 0.8 },
+    { x: -17, z: 20.64, nombre: 'PROGRAMACIÓN', modelo: 'calendario de difusión · exportable', color: 0xb45309, tipo: 'eval', escala: 0.8 },
+    { x: -11, z: 20.64, nombre: 'AGENDA',       modelo: 'agenda pública de difusión', color: 0xb45309, tipo: 'lanzador', escala: 0.8 },
 ];
 ESTACIONES_SRV.forEach(crearMaquina);
 
@@ -2265,7 +2338,7 @@ function tickAlmacenes(dt) {
     });
 }
 const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'INVENTARIO DE OPERACIONES ESTADÍSTICAS', modelo: 'OperacionEstadistica · ciclo IOE', tex: texOp });
-const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'CatalogoConsulta · dominio y tema', tex: texCat });
+const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'listados del anuario · carga por panel admin y censo del taller', tex: texCat });
 const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'HOJA DE VIDA DE LOS ORGANISMOS', modelo: 'ICED + Ecosistema + Satisfacción del usuario', tex: texICE });
 const Z_SRV = [12, 18, 24];
 const almSrv = Z_SRV.map((z, i) => crearAlmacen({
@@ -4152,8 +4225,8 @@ const ACTOS_TODOS = [
       cam: [[-8, 8, 14], [30, 2.5, -8]] },
     { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'Taller del ecosistema', sub: 'censo de fuentes de datos por organismo y prediagnóstico de riesgos de publicación · diseñado por el DADII', pan: true,
       cam: [[-36, 7, 10], [-24, 3, -2]] },
-    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'La producción del dato', sub: 'de la operación estadística al indicador publicado: ocho estaciones, dos controles de calidad', pan: true,
-      cam: [[-12, 7, 15], [8, 2.5, 0.5]] },
+    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'La producción del dato', sub: 'ocho estaciones, dos controles de calidad — y una torre de wizards que lo configura todo', pan: true,
+      cam: [[-32, 8, 12], [8, 2.5, 0.5]] },
     { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Consulta e indicadores', sub: 'conjuntos públicos y los tres marcos: ODS, Cali en Cifras, dominios del Comité', pan: true,
       cam: [[10, 7, 16], [28, 3, 3]] },
     { t0: 54,  t1: 65,  acto: 'Paneo', texto: 'La ciudadanía', sub: 'el fin último del sistema: consulta, participación y servicio', pan: true,
@@ -4184,8 +4257,9 @@ const ACTOS_TODOS = [
       cam: [[-17, 1.5, -0.8], [-18.6, 1.0, 0.55]] },   // escritorios SO
     { t0: 164, t1: 168, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[-17, 1.5, -0.8], [-19.2, 0.9, -1.4]] },   // archivador NO
-    { t0: 168, t1: 172, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[-17, 1.5, -0.8], [-17, 1.5, -2.2]] },     // vidrio norte
+    { t0: 168, t1: 172, acto: 'Torre', texto: 'TORRE DEL ADMIN', sub: 'mezzanine de wizards sobre la banda: el admin gobierna desde arriba, no desde una máquina', pan: true,
+      dato: 'Tres wizards —cada uno un módulo completo—: unificado con cuatro flujos y preview tipo hoja de cálculo, normalización de dominios y carga de capas geográficas. Y la cuarta consola es Don Datico.',
+      cam: [[-17, 1.5, -0.8], [-24.5, 5.4, 4.9]] },     // vidrio norte → torre
     { t0: 172, t1: 178, acto: 'Sala', texto: 'Equipo técnico SIIED', sub: 'escritorios, monitores y el archivador de fichas cargadas', pan: true,
       dato: 'Sin ficha MSD, sin dominios y sin regla de extracción, ningún camión mueve nada. Y cuando la metodología esté escrita, la cargará editorial: cada módulo hace lo suyo.',
       cam: [[-24, 4, 7], [-17, 1.6, -0.8]] },
@@ -4196,8 +4270,8 @@ const ACTOS_TODOS = [
     { t0: 192, t1: 204, acto: 'Estación 06', texto: 'INGESTA DE CONJUNTOS', sub: 'microdatos documentados con DDI completo: identificación, universo, cobertura, método y condiciones de uso (ConjuntoDatos)',
       dato: 'La operación produce UN conjunto de datos: población proyectada por año × edad simple × sexo × comuna/corregimiento. Es la base de todo lo que sigue.',
       cam: [[-7, 5, 12], [-1, 2.4, 0]] },
-    { t0: 204, t1: 216, acto: 'Estación 07', texto: 'Catálogo de consulta', sub: 'listados de referencia del anuario Cali en Cifras: nomencladores, directorios, fichas territoriales (CatalogoConsulta)',
-      dato: 'Este conjunto NO pasa por aquí. El catálogo publica tablas de referencia; la población proyectada no es un directorio: continúa su camino hacia el estatus de indicador.',
+    { t0: 204, t1: 216, acto: 'Estación 07', texto: 'Catálogo de consulta', sub: 'listados del anuario Cali en Cifras — se cargan desde el panel del catálogo (admin) y del censo de fuentes del taller; ningún camión los trae (CatalogoConsulta)',
+      dato: 'Este conjunto NO pasa por aquí. El catálogo publica tablas de referencia; la población proyectada no es un listado: continúa su camino hacia el estatus de indicador.',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
     { t0: 216, t1: 228, acto: 'Estación 08', texto: 'CONTROL DE CALIDAD Y DESAGREGACIÓN', sub: 'dominios de desagregación declarados, totales verificados y bitácora de cambios (DominioDesagregacion, RegistroCambio)',
       dato: 'Se declaran los dominios: sexo, grupo de edad, comuna, corregimiento. La suma de las 22 comunas y 15 corregimientos debe coincidir con el total distrital del DANE. Si no cuadra, no pasa.',
@@ -4238,7 +4312,7 @@ const ACTOS_TODOS = [
       cam: [[18, 6.5, -4], [29, 3.5, -11]] },
     // ======= F: SALAS DE GOBIERNO — la cámara ENTRA y GIRA =======
     { t0: 374, t1: 380, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el consejo de don Daticos delibera sobre los expedientes ICED', pan: true,
-      dato: 'Don Daticos es uno y es todos: el mismo funcionario multiplicado en cada sala. El Estado como un solo operario que se repite.',
+      dato: 'Don Daticos es uno y es todos — y es literal: don Datico es también el agente IA del portal, un chat con RAG y doce herramientas que el admin alimenta con embeddings de indicadores y documentos.',
       cam: [[30, 5.9, -16.5], [24, 5.5, -16.5]] },
     { t0: 380, t1: 384, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [30, 6, -20]] },
@@ -4272,8 +4346,8 @@ const ACTOS_TODOS = [
     // ======= G: LÍNEAS DE SERVICIO =======
     { t0: 446, t1: 458, acto: 'Estación 21', texto: 'Línea editorial', sub: 'noticias y eventos: del borrador a la portada (NoticiaBanner, Evento)',
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
-    { t0: 458, t1: 470, acto: 'Estación 22', texto: 'Línea de aprendizaje', sub: 'productos académicos y educativos: la metodología se publica y se enseña (ProductoAcademico, ProductoEducativo)',
-      dato: 'Aquí vive el documento metodológico de la proyección por comunas. Es público: cualquier estadístico puede replicarla o refutarla.',
+    { t0: 452, t1: 464, acto: 'Estación 22', texto: 'Línea de aprendizaje', sub: 'productos académicos y educativos: el wizard editorial arma el paper por secciones y le embebe gráficos interactivos de los propios indicadores (ProductoAcademico, ProductoEducativo)',
+      dato: 'El documento metodológico de la operación vive aquí, publicado para cualquiera: otro distrito puede replicar el método, y cualquier estadístico puede refutarlo.',
       cam: [[-14, 4, 24], [-14, 1.5, 18]] },
     { t0: 470, t1: 482, acto: 'Estación 23', texto: 'Línea de agenda', sub: 'calendario de difusión y eventos: agenda pública programada (CalendarioDifusion, Evento)',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
