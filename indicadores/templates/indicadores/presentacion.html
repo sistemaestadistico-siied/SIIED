@@ -2372,16 +2372,19 @@ const camEdi = crearCamion({ x: 34,   z: -11.5, color: 0xef4444,
 // RECOLECCIÓN: muelle del observatorio → pasillo norte de la
 // línea D2; la carga entra a la tolva volando sobre la máquina.
 // DELEGADO: muelle del comité → cabeza de banda C, PERO con
-// parada obligatoria en la garita de validación (x=11): el
-// módulo de validación pre-aprueba cada movimiento suyo.
+// parada obligatoria en el punto de validación (brazo en x=11):
+// se detiene ANTES de la barrera en cada sentido — 13.4 yendo
+// al oeste, 8.6 volviendo — y el módulo de validación
+// pre-aprueba cada movimiento suyo.
 // EDITORIAL es autónomo: no pasa por recolección ni pide
 // autorización al admin. Recoge contenido en despacho y
 // comité y descarga en el muelle de líneas E, subiendo por
 // el perímetro oeste (x=-34) hasta su muelle y oficina.
 // VÍAS PROPIAS: z=-11.5/z=-22/x=-34.
 camRec.userData.ruta = { pts: [[39, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
-camDel.userData.ruta = { pts: [[52, -8], [11, -8], [-21, -8]],
-    i: 1, dir: 1, espera: 0, paradas: [1] };
+camDel.userData.ruta = { pts: [[52, -8], [13.4, -8], [8.6, -8], [-21, -8]],
+    i: 1, dir: 1, espera: 0, esperaMid: 0,
+    paradas: [{ i: 1, dir: 1 }, { i: 2, dir: -1 }] };   // antes del brazo en cada sentido
 camEdi.userData.ruta = { pts: [[34, -11.5], [38, -11.5], [38, -22],
     [62.5, -22], [58.5, -25.5], [62.5, -22], [62.5, -14], [62.5, -22],
     [38, -22], [-34, -22], [-34, 20.5], [-27.2, 20.5], [-27.0, 20.5]],
@@ -4948,10 +4951,14 @@ function animate() {
             // Esquina suave: cerca del vértice (y si no es parada
             // real) el rumbo mezcla el tramo actual con el
             // siguiente — el morro redondea la curva en vez de
-            // girar 90° de golpe
+            // girar 90° de golpe. Las paradas pueden pedir un
+            // sentido de recorrido ({i, dir}).
             const RADIO = 3.2;
             const esParada = r.i === r.pts.length - 1 || r.i === 0 ||
-                             (r.paradas && r.paradas.includes(r.i));
+                             (r.paradas || []).some(p =>
+                                 (typeof p === 'number' ? p : p.i) === r.i &&
+                                 (typeof p === 'number' || p.dir === undefined ||
+                                  p.dir === r.dir));
             let hx = dx, hz = dz;
             if (d < RADIO && !esParada) {
                 const ni = r.i + r.dir;
@@ -4966,8 +4973,7 @@ function animate() {
                 cm.position.x = tx; cm.position.z = tz;
                 const e = (r.i === r.pts.length - 1) ? 7 :
                            (r.i === 0 ? 4 :
-                           (r.paradas && r.paradas.includes(r.i) ? 3 :
-                           (r.esperaMid ?? 0.8)));
+                           (esParada ? 3 : (r.esperaMid ?? 0.8)));
                 r.espera = e;
                 r.carga = e > 1;      // parada real: puerta y rampa abren
             } else {
@@ -4993,16 +4999,18 @@ function animate() {
             cm.userData.rampaG.rotation.z = 1.45 - 1.8 * ap; // se despliega al piso
         }
     });
-    // Punto de validación: el brazo se abre para dejar entrar o
-    // salir al camión del delegado, pero baja mientras dura la
-    // inspección — y vuelve a subir justo antes de que arranque
+    // Punto de validación: el camión para ANTES del brazo en
+    // cada sentido (13.4 oeste / 8.6 este). Barrera abajo y rojo
+    // durante la inspección; sube ~1 s antes de liberar y queda
+    // abierta solo mientras cruza el paso (9.3 < x < 12.8).
     {
-        const enZona = Math.abs(camDel.position.z + 8) < 1.6 &&
-                       camDel.position.x > 9.6 && camDel.position.x < 12.6;
         const rD = camDel.userData.ruta;
-        const inspeccion = enZona && rD.espera > 0.9 &&
-                           Math.abs(camDel.position.x - 11) < 0.5;
-        const abrir = enZona && !inspeccion;
+        const x = camDel.position.x;
+        const enCarril = Math.abs(camDel.position.z + 8) < 1.6;
+        const enPuesto = enCarril && rD.espera > 0 &&
+            (Math.abs(x - 13.4) < 0.9 || Math.abs(x - 8.6) < 0.9);
+        const enZona = enCarril && x > 9.3 && x < 12.8;
+        const abrir = enZona || (enPuesto && rD.espera <= 0.9);
         const obj = abrir ? 1.15 : 0;   // levanta el brazo hacia el techo
         brazoGarita.rotation.x += (obj - brazoGarita.rotation.x) * Math.min(1, dt * 2.6);
         semG.rojo.material.color.setHex(abrir ? 0x7f1d1d : 0xef4444);
