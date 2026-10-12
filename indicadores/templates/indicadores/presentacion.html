@@ -4983,6 +4983,11 @@ function animate() {
                            (esParada ? 3 : (r.esperaMid ?? 0.8)));
                 r.espera = e;
                 r.carga = e > 1;      // parada real: puerta y rampa abren
+                if (e <= 0) {         // tránsito: avanza ya, sin pausa
+                    r.i += r.dir;     // (sin esto espera=0 nunca llega
+                    if (r.i >= r.pts.length) { r.dir = -1; r.i = r.pts.length - 2; }
+                    else if (r.i < 0) { r.dir = 1; r.i = 1; }   // al bloque que avanza)
+                }
             } else {
                 cm.position.x += dx / d * paso;
                 cm.position.z += dz / d * paso;
