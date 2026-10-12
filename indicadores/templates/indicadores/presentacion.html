@@ -3739,30 +3739,31 @@ for (let i = 0; i < 5; i++) {
 
 // ============ DUCTOS DE DATOS — todo pasa por el admin ============
 // Los datos de los inventarios no aparecen solos en la pared de
-// TVs: los tubos de entrada descargan en el manifold del módulo
-// de administración (el nodo principal) y un solo tubo de salida
-// lleva el producto a la pared de televisores. Los paquetes
-// viajan dentro de los ductos — y los vuelos reales a la pared
-// también pasan por el nodo (ver lanzarVueloTV).
-const NODO_ADMIN = new THREE.Vector3(8.2, 6.5, 11);
+// TVs: los tubos de entrada trepan por la cara este de la torre
+// hasta la antena del módulo de administración — la punta del
+// mástil ES el nodo — y un solo tubo de salida baja el producto
+// a la pared de televisores. Los paquetes viajan dentro de los
+// ductos — y los vuelos reales a la pared también pasan por el
+// nodo (ver lanzarVueloTV).
+const NODO_ADMIN = new THREE.Vector3(8.2, 14.0, 11);
 const ductos = [];
 [
-    { pts: [[-10.5, 3.0, 7.2], [-4, 5.8, 10.5], [8.2, 6.4, 11]],
-      color: 0x93c5fd, n: 3 },        // almacén operaciones → torre
-    { pts: [[27, 3.0, -10.5], [22, 5.5, -3], [14, 6.2, 6], [8.2, 6.4, 11]],
-      color: 0x93c5fd, n: 3 },        // almacén del hall → torre
-    { pts: [[55, 5.8, 2.4], [42, 7.2, 5], [25, 7.2, 9], [8.2, 6.5, 11]],
-      color: 0x93c5fd, n: 4 },        // estantería indicadores → torre
-    { pts: [[-2, 3.0, 20.5], [2, 5.8, 16.5], [8.2, 6.4, 11]],
-      color: 0x93c5fd, n: 3 },        // catálogo → torre
-    { pts: [[-5.2, 3.0, 12], [-1, 5.8, 13], [8.2, 6.4, 11]],
-      color: 0x93c5fd, n: 2 },        // estantería editorial → torre
-    { pts: [[-5.2, 3.0, 18], [0, 6.0, 15.5], [8.2, 6.4, 11]],
-      color: 0x93c5fd, n: 2 },        // estantería docs → torre
-    { pts: [[-5.2, 3.0, 24], [-0.5, 6.3, 18], [8.2, 6.4, 11]],
-      color: 0x93c5fd, n: 2 },        // estantería agenda → torre
-    { pts: [[8.2, 6.5, 11], [30, 8.0, 10.5], [48, 7.2, 8.5], [61.4, 4.6, 7]],
-      color: 0xfbbf24, n: 4 },        // torre → pared de televisores
+    { pts: [[-10.5, 3.0, 7.2], [-4, 5.8, 10.5], [6.5, 9.0, 10.8], [8.2, 14.0, 11]],
+      color: 0x93c5fd, n: 3 },        // almacén operaciones → antena
+    { pts: [[27, 3.0, -10.5], [22, 5.5, -3], [14, 6.4, 6], [7.0, 9.2, 10.7], [8.2, 14.0, 11]],
+      color: 0x93c5fd, n: 3 },        // almacén del hall → antena
+    { pts: [[55, 5.8, 2.4], [42, 7.2, 5], [25, 7.6, 9], [9.5, 10.5, 10.8], [8.2, 14.0, 11]],
+      color: 0x93c5fd, n: 4 },        // estantería indicadores → antena
+    { pts: [[-2, 3.0, 20.5], [2, 5.8, 16.5], [7.5, 9.2, 12.2], [8.2, 14.0, 11]],
+      color: 0x93c5fd, n: 3 },        // catálogo → antena
+    { pts: [[-5.2, 3.0, 12], [-1, 5.8, 13], [6.8, 9.0, 12.0], [8.2, 14.0, 11]],
+      color: 0x93c5fd, n: 2 },        // estantería editorial → antena
+    { pts: [[-5.2, 3.0, 18], [0, 6.0, 15.5], [7.2, 9.2, 12.6], [8.2, 14.0, 11]],
+      color: 0x93c5fd, n: 2 },        // estantería docs → antena
+    { pts: [[-5.2, 3.0, 24], [-0.5, 6.3, 18], [7.5, 9.4, 13.2], [8.2, 14.0, 11]],
+      color: 0x93c5fd, n: 2 },        // estantería agenda → antena
+    { pts: [[8.2, 14.0, 11], [22, 11.0, 10.6], [48, 7.4, 8.5], [61.4, 4.6, 7]],
+      color: 0xfbbf24, n: 4 },        // antena → pared de televisores
 ].forEach(d => {
     d.pts0 = new THREE.Vector3(...d.pts[0]);   // boca del ducto
     d.curva = new THREE.CatmullRomCurve3(
@@ -3782,13 +3783,30 @@ const ductos = [];
     }
     ductos.push(d);
 });
-// Manifold de entrada en la cara este de la torre: el nodo
-const nodoAdmin = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.9),
-    new THREE.MeshLambertMaterial({ color: 0x475569 }));
-nodoAdmin.position.copy(NODO_ADMIN); nodoAdmin.position.y = 6.4; scene.add(nodoAdmin);
-const ledNodo = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0x22cc44 }));
-ledNodo.position.set(8.2, 6.95, 11); scene.add(ledNodo);
+// Antena del módulo de administración: mástil sobre el borde
+// este del techo (y≈9.4) — la punta ES el nodo de la red
+{
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.13, 5.0, 8),
+        new THREE.MeshLambertMaterial({ color: 0x64748b }));
+    mast.position.set(8.2, 11.6, 11); scene.add(mast);
+    // Dipolos cruzados: se lee como antena, no como chimenea
+    for (const [dy, w] of [[12.6, 1.1], [13.4, 0.75]]) {
+        const dip = new THREE.Mesh(new THREE.BoxGeometry(w, 0.06, 0.06),
+            new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
+        dip.position.set(8.2, dy, 11);
+        scene.add(dip);
+    }
+    // Equipo de la antena en la base del mástil, sobre el techo
+    const rackAnt = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.9),
+        new THREE.MeshLambertMaterial({ color: 0x475569 }));
+    rackAnt.position.set(7.9, 9.7, 11); scene.add(rackAnt);
+}
+const nodoAdmin = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 10),
+    new THREE.MeshBasicMaterial({ color: 0x38e0ff }));
+nodoAdmin.position.copy(NODO_ADMIN); scene.add(nodoAdmin);
+const ledNodo = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xff3344 }));   // luz de aviación
+ledNodo.position.set(8.2, 14.65, 11); scene.add(ledNodo);
 
 // ============ VÍAS DE LOS CAMIONES ============
 // Franjas de asfalto dibujadas ENTRE los waypoints reales de
