@@ -3447,11 +3447,19 @@ function asignarGrafico(tv) {
 const vuelosTV = [];
 function lanzarVueloTV(mesh, delay = 0) {
     const tv = TVs[Math.floor(Math.random() * TVs.length)];
-    // El dato no vuela en línea recta: pasa por el hub de la
-    // torre del admin — el nodo por donde entra y sale todo
-    vuelosTV.push({ mesh, tv, t: -delay, dur: 1.7,
-        curva: new THREE.CatmullRomCurve3(
-            [mesh.position.clone(), HUB_TORRE, tv.mundo]) });
+    // La caja viaja POR LOS DUCTOS, no por el aire: entra por la
+    // boca del tubo más cercano a su estantería, cruza el hub de
+    // la torre del admin y sale por el ducto ámbar hasta su TV
+    const dIn = ductos.slice(0, -1).reduce((b, d) =>
+        mesh.position.distanceToSquared(d.pts0) <
+        mesh.position.distanceToSquared(b.pts0) ? d : b);
+    const ruta = [mesh.position.clone(),
+        ...dIn.pts.slice(1).map(p => new THREE.Vector3(...p)),
+        ...ductos.at(-1).pts.slice(1).map(p => new THREE.Vector3(...p)),
+        tv.mundo.clone()];
+    const curva = new THREE.CatmullRomCurve3(ruta);
+    vuelosTV.push({ mesh, tv, t: -delay,
+                    dur: Math.max(1.4, curva.getLength() / 34), curva });
 }
 function tickVuelosTV(dt) {
     for (let i = vuelosTV.length - 1; i >= 0; i--) {
@@ -3616,6 +3624,7 @@ const ductos = [];
     { pts: [[8.2, 6.5, 11], [30, 8.0, 10.5], [48, 7.2, 8.5], [61.4, 4.6, 7]],
       color: 0xfbbf24, n: 4 },        // torre → pared de televisores
 ].forEach(d => {
+    d.pts0 = new THREE.Vector3(...d.pts[0]);   // boca del ducto
     d.curva = new THREE.CatmullRomCurve3(
         d.pts.map(p => new THREE.Vector3(...p)));
     d.largo = d.curva.getLength();
