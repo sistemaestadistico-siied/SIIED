@@ -1955,9 +1955,9 @@ const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
 // Línea de CALIDAD INSTITUCIONAL (banda C): dossier → evals →
 // satisfacción (engorda) → FICED (cambia de color) → hall.
 const ESTACIONES_CAL = [
-    { x: -18, nombre: 'EVAL. ESTRATÉGICA', modelo: 'evaluación estratégica', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
+    { x: -18, nombre: 'EVAL. ESTRATÉGICA', modelo: 'evaluación estratégica', letrero: 'EQUIPO TÉCNICO DEL SIIED', subLetrero: 'evaluación estratégica inicial', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
     { x: -8,  nombre: 'SATISFACCIÓN CIUDADANA', modelo: 'encuesta tras requerimientos de información', color: 0x84cc16, tipo: 'eval', z: -14.7 },
-    { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'evaluación táctica', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
+    { x: 0,   nombre: 'EVAL. TÁCTICA',   modelo: 'evaluación táctica', letrero: 'EQUIPO TÉCNICO DEL SIIED', subLetrero: 'evaluación táctica y operativa', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
     { x: 8,   nombre: 'FICED',           modelo: 'formulario ICED · cinco módulos', color: 0x22d3ee, tipo: 'escaner', z: -14.7 },
     { x: 16,  nombre: 'MÓDULO DE VALIDACIÓN', modelo: 'aprueba o devuelve cargas e ICED', color: 0xf59e0b, tipo: 'sala', z: -14.7 },
 ];
@@ -2032,7 +2032,7 @@ function crearSalaJunta(cfg) {
         new THREE.BoxGeometry(0.12, 2.4, 0.12),
         new THREE.MeshLambertMaterial({ color: 0x64748b }));
     mastil.position.set(0, AL + 1.2, 1.28); g.add(mastil);
-    const cartel = crearCartel(cfg.nombre, cfg.modelo, 4);
+    const cartel = crearCartel(cfg.letrero || cfg.nombre, cfg.subLetrero || cfg.modelo, 4);
     cartel.position.set(0, AL + 3.05, 1.35); g.add(cartel);
     // Bombilla colgante: la sala tiene luz propia de noche
     const matCor = new THREE.MeshLambertMaterial({ color: 0x334155 });
@@ -4457,11 +4457,11 @@ const ACTOS_TODOS = [
       dato: 'Los indicadores de población entran al marco Cali en Cifras. Y la plataforma entera gana denominadores: cualquier tasa por habitante del Distrito nace aquí.',
       cam: [[44, 5.5, 12], [51.3, 3, 2.4]] },
     // ======= E: LÍNEA DE CALIDAD =======
-    { t0: 302, t1: 314, acto: 'Estación 15', texto: 'EVAL. ESTRATÉGICA', sub: 'la mirada estratégica: entorno institucional y capacidad de decisión de cada organismo',
+    { t0: 302, t1: 314, acto: 'Estación 15', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación estratégica inicial: entorno institucional y capacidad de decisión de cada organismo',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
     { t0: 314, t1: 326, acto: 'Estación 16', texto: 'SATISFACCIÓN CIUDADANA', sub: 'la ciudadanía califica la atención estadística de cada organismo: pulso rápido y formulario completo',
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
-    { t0: 326, t1: 338, acto: 'Estación 17', texto: 'EVAL. TÁCTICA', sub: 'la mirada táctica: infraestructura y operación estadística del organismo en detalle',
+    { t0: 326, t1: 338, acto: 'Estación 17', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación táctica y operativa: infraestructura y operación estadística del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
     { t0: 338, t1: 350, acto: 'Estación 18', texto: 'FICED', sub: 'cinco módulos: identificación → entorno institucional → infraestructura → metodología estadística → accesibilidad y uso',
       dato: 'El ICED es el promedio ponderado de los módulos B a E. Un organismo con metodología estadística débil (módulo D) no llega a esta banda: el sistema lo mide y lo acompaña.',
