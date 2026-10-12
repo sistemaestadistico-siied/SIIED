@@ -3891,6 +3891,51 @@ let comiteGrafo = null;
         com.add(barra);
         ficedBarras.push(barra);   // se animan con el mismo ciclo
     }
+    // Proyección en la pared este: el comité delibera mirando
+    // el tablero de producción — KPIs vivos del sistema
+    const cvProy = document.createElement('canvas');
+    cvProy.width = 512; cvProy.height = 320;
+    const pc = cvProy.getContext('2d');
+    pc.fillStyle = '#0f1b29'; pc.fillRect(0, 0, 512, 320);
+    pc.strokeStyle = '#38bdf8'; pc.lineWidth = 6;
+    pc.strokeRect(3, 3, 506, 314);
+    pc.fillStyle = '#7dd3fc'; pc.font = 'bold 28px monospace';
+    pc.textAlign = 'left'; pc.textBaseline = 'top';
+    pc.fillText('TABLERO DE PRODUCCIÓN', 24, 16);
+    pc.fillStyle = '#94a3b8'; pc.font = '17px monospace';
+    pc.fillText('sesión del comité · SIIED', 26, 50);
+    [[STATS.indicadores, 'indicadores'], [STATS.organismos, 'organismos'],
+     [STATS.conjuntos, 'conjuntos'], [STATS.dominios, 'dominios']]
+        .forEach(([v, nom], i) => {
+            const kx = 24 + (i % 2) * 240, ky = 86 + Math.floor(i / 2) * 78;
+            pc.fillStyle = '#132a3f'; pc.fillRect(kx, ky, 222, 66);
+            pc.fillStyle = '#facc15'; pc.font = 'bold 32px monospace';
+            pc.fillText(String(v), kx + 14, ky + 6);
+            pc.fillStyle = '#7dd3fc'; pc.font = '15px monospace';
+            pc.fillText(nom, kx + 14, ky + 42);
+        });
+    pc.fillStyle = '#1d4ed8';              // mini barras de actividad
+    for (let b = 0; b < 12; b++) {
+        const h = 8 + Math.random() * 26;
+        pc.fillRect(30 + b * 38, 298 - h, 26, h);
+    }
+    const telon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.0, 4.6), matC);
+    telon.position.set(6.22, 2.6, 0); com.add(telon);
+    const panProy = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 2.6),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cvProy) }));
+    panProy.position.set(6.17, 2.6, 0);
+    panProy.rotation.y = -Math.PI / 2;      // mira hacia la mesa (-x)
+    com.add(panProy);
+    // Proyector de techo + cono de luz tenue hacia el telón
+    const proy = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.18, 0.3), matC);
+    proy.position.set(3.6, 4.2, 0); com.add(proy);
+    const cono = new THREE.Mesh(
+        new THREE.ConeGeometry(1.5, 2.7, 20, 1, true),
+        new THREE.MeshBasicMaterial({ color: 0xbfe3f5, transparent: true,
+            opacity: 0.05, side: THREE.DoubleSide, depthWrite: false }));
+    cono.position.set(4.9, 3.3, 0);
+    cono.rotation.z = Math.PI / 2 + 0.28;   // haz baja del proyector al telón
+    com.add(cono);
     // Edificio: el comité crece un piso arriba del techo de
     // vidrio — la planta alta son las oficinas de apoyo
     pisosSobre(com, 13, 7.5, 4.4, 1);
@@ -4622,12 +4667,12 @@ const ACTOS_TODOS = [
     { t0: 398, t1: 404, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan en plenaria', pan: true,
       cam: [[52, 2.3, -14], [45.5, 2, -14]] },
     { t0: 404, t1: 408, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 2.3, -14], [52, 2.4, -17.8]] },   // norte: TVs + tablero ICED
+      cam: [[52, 2.3, -14], [52, 2.4, -17.8]] },   // norte: TVs con gráficos
     { t0: 408, t1: 412, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 2.3, -14], [58.5, 2, -14]] },     // este: vidrio
+      cam: [[52, 2.3, -14], [58.5, 2, -14]] },     // este: proyección del tablero
     { t0: 412, t1: 416, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 2.3, -14], [52, 2.2, -10]] },     // sur: vidrio
-    { t0: 416, t1: 422, acto: 'Sala', texto: 'Comité de Gestión', sub: 'plenaria de organismos + grafo + tablero ICED', pan: true,
+      cam: [[52, 2.3, -14], [52, 2.2, -10]] },     // sur: tablero ICED animado
+    { t0: 416, t1: 422, acto: 'Sala', texto: 'Comité de Gestión', sub: 'plenaria de organismos + grafo del ecosistema + proyección del tablero de producción', pan: true,
       cam: [[57, 6, -6], [52, 3, -14]] },   // sale por el SE: vidrio, no los backs de los TVs
     { t0: 422, t1: 428, acto: 'Sala', texto: 'Junta de despacho', sub: 'la decisión final del sistema de información', pan: true,
       dato: 'La pirámide de la comuna 13 llega aquí: ¿dónde construir el próximo colegio, el próximo centro de salud? Un dato que no llega a esta mesa no cumplió su ciclo.',
