@@ -518,8 +518,8 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
         .map(c => new THREE.MeshBasicMaterial({ color: c }));
     function casita(x, z, ry) {
         const c = new THREE.Group();
-        const w = 1.6 + Math.random() * 0.8;
-        const h = 1.3 + Math.random() * 0.7;
+        const w = 2.5 + Math.random() * 1.3;   // casas de barrio, no
+        const h = 2.0 + Math.random() * 1.0;   // maquetas de juguete
         const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(w, h, w * 0.9),
             matCasas[(Math.random() * matCasas.length) | 0]);
         cuerpo.position.y = h / 2;
@@ -532,7 +532,7 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
         c.add(techo);
         // Ventana encendida en la fachada que mira a la planta —
         // es de noche y las casas también alumbran
-        const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.05),
+        const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.62, 0.05),
             matVentanas[(Math.random() * matVentanas.length) | 0]);
         ventana.position.set(w * 0.18, h * 0.55, w * 0.45 + 0.03);
         c.add(ventana);
@@ -548,12 +548,12 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     // Faroles de barrio: la periferia también tiene su luz
     function farol(x, z) {
         const f = new THREE.Group();
-        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.6, 6),
+        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 3.3, 6),
             new THREE.MeshLambertMaterial({ color: 0x5b6d7c }));
-        poste.position.y = 1.3; f.add(poste);
-        const bombilla = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8),
+        poste.position.y = 1.65; f.add(poste);
+        const bombilla = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8),
             new THREE.MeshBasicMaterial({ color: 0xffd98a }));
-        bombilla.position.y = 2.65; f.add(bombilla);
+        bombilla.position.y = 3.4; f.add(bombilla);
         f.position.set(x, 0, z);
         scene.add(f);
     }
@@ -616,11 +616,11 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     function arbol(x, z, s) {
         const t = new THREE.Group();
         const tr = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.09, 0.13, 0.9, 6), matTronco);
-        tr.position.y = 0.45; t.add(tr);
-        const copa = new THREE.Mesh(new THREE.SphereGeometry(0.75, 8, 7),
+            new THREE.CylinderGeometry(0.11, 0.16, 1.1, 6), matTronco);
+        tr.position.y = 0.55; t.add(tr);
+        const copa = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 7),
             matCopas[(Math.random() * matCopas.length) | 0]);
-        copa.position.y = 1.3;
+        copa.position.y = 1.55;
         copa.scale.y = 0.85 + Math.random() * 0.3;
         copa.castShadow = true;
         t.add(copa);
@@ -630,53 +630,59 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     }
     for (let x = -64; x <= 64; x += 6.4) {
         if (Math.abs(x + 52) < 3.4) continue;   // salta el puente
-        arbol(x + Math.sin(x * 1.7) * 0.7, -40, 1.05);
-        arbol(x - Math.sin(x * 1.9) * 0.7, 40, 1.05);
+        arbol(x + Math.sin(x * 1.7) * 0.7, -40, 1.3);
+        arbol(x - Math.sin(x * 1.9) * 0.7, 40, 1.3);
     }
     for (let z = -38; z <= 38; z += 6.4) {
-        arbol(-64.6, z + Math.sin(z * 1.3) * 0.6, 1.05);
-        arbol(64.6, z - Math.sin(z * 1.1) * 0.6, 1.05);
+        arbol(-64.6, z + Math.sin(z * 1.3) * 0.6, 1.3);
+        arbol(64.6, z - Math.sin(z * 1.1) * 0.6, 1.3);
     }
-    for (let z = -38; z <= 38; z += 7) {   // ribera del brazo oeste
-        arbol(-49.4, z, 1.15);
-        arbol(-54.7, z + 3.2, 1.15);
+    // Arboleda en la orilla externa de los ríos (el corredor
+    // del brazo oeste queda para el barrio)
+    for (let x = -66; x <= 66; x += 9) {
+        arbol(x + Math.sin(x * 2.1) * 1.2, -53.7, 1.4);
+        arbol(x - Math.sin(x * 1.7) * 1.2, 53.7, 1.4);
+    }
+    for (let z = -40; z <= 40; z += 9) {
+        arbol(-75.4, z + Math.sin(z * 1.9) * 1.1, 1.4);
+        arbol(75.4, z - Math.sin(z * 1.5) * 1.1, 1.4);
     }
 
     // Autos ambientales: puntos de luz que recorren la avenida
     // (los mueve tickAutos en el loop — vida, no escenografía)
     for (let i = 0; i < 5; i++) {
         const a = new THREE.Group();
-        const cab = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.4, 0.5),
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.62, 0.85),
             new THREE.MeshLambertMaterial({ color: [0x8b2f2f, 0x2f4a8b, 0x3d3d3d][i % 3] }));
-        cab.position.y = 0.28; a.add(cab);
-        const luzD = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6),
+        cab.position.y = 0.34; a.add(cab);
+        const luzD = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6),
             new THREE.MeshBasicMaterial({ color: 0xfff8dc }));
-        luzD.position.set(0.5, 0.24, 0); a.add(luzD);
-        const luzT = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6),
+        luzD.position.set(0.88, 0.3, 0); a.add(luzD);
+        const luzT = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 6),
             new THREE.MeshBasicMaterial({ color: 0xff2d2d }));
-        luzT.position.set(-0.5, 0.24, 0); a.add(luzT);
+        luzT.position.set(-0.88, 0.3, 0); a.add(luzT);
         scene.add(a);
         autosA.push({ g: a, d: i * LEN_AUTO / 5,
-                      vel: 5.5 + (i % 3) * 1.4, sentido: i % 2 ? 1 : -1 });
+                      vel: 6.5 + (i % 3) * 1.6, sentido: i % 2 ? 1 : -1 });
     }
 
     // Tercera profundidad norte/sur: el borde queda más lleno
     for (const zBorde of [-48.8, 48.8]) {
         for (let x = -59; x <= 59; x += 9.5) {
-            const n = 2 + Math.round(Math.abs(Math.sin(x * 4.3 + zBorde)) * 2);
+            const n = 1 + Math.round(Math.abs(Math.sin(x * 4.3 + zBorde)) * 2);   // 1-3
             for (let k = 0; k < n; k++)
-                casita(x + k * 2.15 + Math.sin(k * 2.1) * 0.4,
-                       zBorde + Math.cos(k * 1.7) * 0.45,
+                casita(x + k * 3.4 + Math.sin(k * 2.1) * 0.5,
+                       zBorde + Math.cos(k * 1.7) * 0.55,
                        zBorde > 0 ? 0 : Math.PI);
         }
     }
     // Norte y sur: dos profundidades, filas paralelas a la barda
     for (const zBorde of [-44.4, -46.6, 44.4, 46.6]) {
         for (let x = -63; x <= 63; x += 8.5) {
-            const n = 2 + Math.round(Math.abs(Math.sin(x * 3.7 + zBorde)) * 2);   // 2-4
+            const n = 1 + Math.round(Math.abs(Math.sin(x * 3.7 + zBorde)) * 2);   // 1-3
             for (let k = 0; k < n; k++)
-                casita(x + k * 2.15 + Math.sin(k * 2.1) * 0.4,
-                       zBorde + Math.cos(k * 1.7) * 0.5,
+                casita(x + k * 3.4 + Math.sin(k * 2.1) * 0.5,
+                       zBorde + Math.cos(k * 1.7) * 0.6,
                        zBorde > 0 ? 0 : Math.PI);
         }
     }
@@ -684,21 +690,21 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     // faldas de los cerros (que llegan a x≈69) se las comerían
     for (const xBorde of [-68.8, 68.8]) {
         for (let z = -38; z <= 38; z += 9.5) {
-            const n = 2 + Math.round(Math.abs(Math.sin(z * 4.1 + xBorde)) * 2);
+            const n = 1 + Math.round(Math.abs(Math.sin(z * 4.1 + xBorde)) * 2);
             for (let k = 0; k < n; k++)
-                casita(xBorde + Math.sin(k * 1.9) * 0.35,
-                       z + k * 2.5 + Math.cos(k * 2.3) * 0.3,
+                casita(xBorde + Math.sin(k * 1.9) * 0.45,
+                       z + k * 3.4 + Math.cos(k * 2.3) * 0.4,
                        xBorde > 0 ? -Math.PI / 2 : Math.PI / 2);
         }
     }
     // Barrio oeste: columnas de casitas a ambas orillas del
     // brazo del río en x=-52 — llena el hueco hasta la barda
-    for (const xCol of [-42.5, -45.5, -48.5, -55.5, -58.5, -61.5, -64.5]) {
+    for (const xCol of [-42.5, -46.4, -56.0, -59.9, -63.8, -67.7]) {
         for (let z = -38; z <= 38; z += 9.5) {
-            const n = 2 + Math.round(Math.abs(Math.sin(z * 4.1 + xCol)) * 2);
+            const n = 1 + Math.round(Math.abs(Math.sin(z * 4.1 + xCol)) * 2);
             for (let k = 0; k < n; k++)
-                casita(xCol + Math.sin(k * 1.9) * 0.35,
-                       z + k * 2.5 + Math.cos(k * 2.3) * 0.3,
+                casita(xCol + Math.sin(k * 1.9) * 0.45,
+                       z + k * 3.4 + Math.cos(k * 2.3) * 0.4,
                        xCol > -52 ? Math.PI / 2 : -Math.PI / 2);
         }
     }
@@ -833,24 +839,24 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     }
     // Norte: el sector vacío antes de la junta del hall — el
     // despacho ya tiene su propio podio al este
-    crearEstadio(6, -39.5, 0.42);
-    crearIglesia(-24, -40.5, 0.55);
-    crearAntena(34, -41, 0.6);
-    crearFuente(-10, -39, 0.7);
+    crearEstadio(6, -39.5, 0.55);
+    crearIglesia(-24, -40.5, 0.78);
+    crearAntena(34, -41, 0.85);
+    crearFuente(-10, -39, 0.95);
     // Sur: detrás de la ventanilla y el catálogo — la ciudad
     // que recibe los datos
-    crearParque(-8, 35, 0.7);
-    crearMall(27, 36, 0.5);
-    crearBomberos(-28, 37, 0.6);
-    crearIglesia(48, 36, 0.6);
-    crearFuente(14, 30, 0.8);
+    crearParque(-8, 35, 0.9);
+    crearMall(27, 36, 0.7);
+    crearBomberos(-28, 37, 0.85);
+    crearIglesia(48, 36, 0.85);
+    crearFuente(14, 30, 1.05);
     // Y cada landmark tiene su cuadra: casitas orillando los
     // espacios abiertos, mirando hacia el punto de interés
     function vecinas(cx, cz, lista) {
         for (const [ox, oz] of lista)
             casita(cx + ox, cz + oz, Math.atan2(-ox, -oz));
     }
-    vecinas(6, -39.5, [[-8, 0], [8, 0], [-8, -2.5], [8, 2.5], [-8, 2.5], [8, -2.5]]);
+    vecinas(6, -39.5, [[-10, 0], [10, 0], [-10, -2.5], [10, 2.5], [-10, 2.5], [10, -2.5]]);
     vecinas(-24, -40.5, [[-5, 0], [5, 0], [0, 5.2], [-3, 5.2], [3, 5.2]]);
     vecinas(-10, -39, [[-4.2, 0], [4.2, 0], [-4.2, -3], [4.2, 3]]);
     vecinas(34, -41, [[-4.5, 0], [4.5, 0], [-4.5, 2], [4.5, -2]]);
@@ -2474,7 +2480,7 @@ function crearCamion(cfg) {
         g.add(panel);
     }
     g.userData.faseCam = Math.random() * 7;
-    g.scale.setScalar(0.82);   // los camiones le quedan un poco
+    g.scale.setScalar(0.75);   // los camiones le quedan un poco
                              // grandes a las máquinas — talla propia
     scene.add(g);
     camiones.push(g);
