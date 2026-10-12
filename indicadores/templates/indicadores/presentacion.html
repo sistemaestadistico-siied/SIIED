@@ -291,6 +291,10 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const STATS = JSON.parse(document.getElementById('stats-data').textContent);
 
@@ -314,12 +318,22 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111a24);
 scene.fog = new THREE.Fog(0x111a24, 40, 110);
 
-const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 300);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 300);
 camera.position.set(0, 22, 42);
 
-const ambient = new THREE.AmbientLight(0xdce9f7, 0.78);
+// ============ DIRECCIÓN DE FOTOGRAFÍA ============
+// ACES filmic: altos suaves, negros con pie. La luz ambiente
+// plana se baja y cede el modelado a una hemisférica (cielo
+// frío / suelo oscuro) + rim cálido bajo desde el barrio.
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+let expoObjetivo = 1.18;
+renderer.toneMappingExposure = expoObjetivo;
+
+const ambient = new THREE.AmbientLight(0xdce9f7, 0.38);
 scene.add(ambient);
-const sol = new THREE.DirectionalLight(0xeaf2ff, 1.1);
+const cielo = new THREE.HemisphereLight(0x9db8d8, 0x1f2c3a, 0.55);
+scene.add(cielo);
+const sol = new THREE.DirectionalLight(0xcfe0ff, 1.25);
 sol.position.set(-45, 42, -60);   // desde la luna (NE alto sobre la cordillera)
 sol.castShadow = true;
 sol.shadow.mapSize.set(2048, 2048);
@@ -329,6 +343,76 @@ scene.add(sol);
 const relleno = new THREE.DirectionalLight(0x7dd3fc, 0.25);
 relleno.position.set(15, 12, -20);
 scene.add(relleno);
+// Rim cálido desde el barrio/ciudadanía: separa los volúmenes
+// del fondo y equilibra el frío de la luna (teal & orange)
+const rim = new THREE.DirectionalLight(0xffb37a, 0.22);
+rim.position.set(55, 10, 40);
+scene.add(rim);
+
+// ============ LUT DE GRADO: teal en sombras, cálido en altos ============
+// LUT 3D de 32³ generada proceduralmente en formato tira
+// (1024×32, un tile por valor de azul). Grado: contraste S
+// suave, split-tone frío/cálido, saturación +10%.
+function crearLUT() {
+    const N = 32, datos = new Uint8Array(N * N * N * 4);
+    let p = 0;
+    for (let b = 0; b < N; b++) for (let g = 0; g < N; g++) for (let r = 0; r < N; r++) {
+        let cr = r / 31, cg = g / 31, cb = b / 31;
+        // curva S: mix con smoothstep da contraste sin aplastar
+        cr += (cr * cr * (3 - 2 * cr) - cr) * 0.35;
+        cg += (cg * cg * (3 - 2 * cg) - cg) * 0.35;
+        cb += (cb * cb * (3 - 2 * cb) - cb) * 0.35;
+        const lum = cr * 0.2126 + cg * 0.7152 + cb * 0.0722;
+        const sK = (1 - lum) * 0.05, hK = lum * 0.045;
+        cr += -0.02 * sK + 0.04 * hK;   // sombras hacia teal
+        cg += 0.005 * sK + 0.01 * hK;   // altos hacia ámbar
+        cb += 0.04 * sK - 0.03 * hK;
+        const lum2 = cr * 0.2126 + cg * 0.7152 + cb * 0.0722;
+        cr = lum2 + (cr - lum2) * 1.1;   // saturación
+        cg = lum2 + (cg - lum2) * 1.1;
+        cb = lum2 + (cb - lum2) * 1.1;
+        datos[p++] = Math.round(Math.min(Math.max(cr, 0), 1) * 255);
+        datos[p++] = Math.round(Math.min(Math.max(cg, 0), 1) * 255);
+        datos[p++] = Math.round(Math.min(Math.max(cb, 0), 1) * 255);
+        datos[p++] = 255;
+    }
+    const tex = new THREE.DataTexture(datos, N * N, N);
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.needsUpdate = true;
+    return tex;
+}
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new OutputPass());   // ACES → sRGB
+const paseGrado = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, lutMap: { value: crearLUT() },
+                tiempo: { value: 0 } },
+    vertexShader: `varying vec2 vUv;
+        void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform sampler2D tDiffuse; uniform sampler2D lutMap;
+        uniform float tiempo; varying vec2 vUv;
+        vec3 grade(vec3 c) {
+            c = clamp(c, 0.0, 1.0);
+            float b = c.b * 31.0;               // tile = índice de azul
+            float b0 = floor(b); float f = b - b0;
+            float v = (c.g * 31.0 + 0.5) / 32.0;
+            float u0 = (b0 * 32.0 + c.r * 31.0 + 0.5) / 1024.0;
+            float u1 = (min(b0 + 1.0, 31.0) * 32.0 + c.r * 31.0 + 0.5) / 1024.0;
+            return mix(texture2D(lutMap, vec2(u0, v)).rgb,
+                       texture2D(lutMap, vec2(u1, v)).rgb, f);
+        }
+        void main() {
+            vec4 tex = texture2D(tDiffuse, vUv);
+            vec3 c = grade(tex.rgb);
+            // grano de película sutil, animado
+            float n = fract(sin(dot(vUv * 719.0 + mod(tiempo, 100.0),
+                                  vec2(12.9898, 78.233))) * 43758.5453);
+            c += (n - 0.5) * 0.026;
+            gl_FragColor = vec4(clamp(c, 0.0, 1.0), tex.a);
+        }` });
+composer.addPass(paseGrado);
 
 // ============ HORIZONTE NOCTURNO: CORDILLERA + BÓVEDA ============
 // Sin techo ni lámparas colgantes: el borde de la retícula se
@@ -739,9 +823,40 @@ scene.add(relleno);
 }
 
 // Piso industrial
+// Piso de concreto procedural: moteado, juntas de expansión
+// y manchas sutiles — antes un plano liso sin textura
+function texPisoConcreto() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 512;
+    const x = c.getContext('2d');
+    x.fillStyle = '#dfe7ec'; x.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 9000; i++) {   // moteado mineral
+        x.fillStyle = Math.random() < 0.55
+            ? 'rgba(88,103,116,0.09)' : 'rgba(255,255,255,0.07)';
+        x.fillRect(Math.random() * 512, Math.random() * 512, 1.7, 1.7);
+    }
+    for (let i = 0; i < 24; i++) {     // manchas de uso
+        x.fillStyle = 'rgba(96,110,120,0.05)';
+        x.beginPath();
+        x.arc(Math.random() * 512, Math.random() * 512,
+              12 + Math.random() * 40, 0, 7);
+        x.fill();
+    }
+    x.strokeStyle = 'rgba(72,84,97,0.4)'; x.lineWidth = 2;
+    for (let i = 0; i <= 512; i += 128) {   // juntas de expansión
+        x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 512); x.stroke();
+        x.beginPath(); x.moveTo(0, i); x.lineTo(512, i); x.stroke();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(10, 7);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+}
 const piso = new THREE.Mesh(
     new THREE.PlaneGeometry(140, 90),
-    new THREE.MeshLambertMaterial({ color: 0xe6eef4 }));
+    new THREE.MeshLambertMaterial({ map: texPisoConcreto(),
+                                    color: 0xffffff }));
 piso.rotation.x = -Math.PI / 2;
 piso.receiveShadow = true;
 scene.add(piso);
@@ -4633,6 +4748,7 @@ function tickIntertitulos(t) {
         if (a && !a.sigue) marcadorDato.sigue = null;
         if (a && a.finale && !enFinal) {
             enFinal = true;
+            expoObjetivo = 0.92;   // la escena se atenúa al caer el turno
             operarios.forEach(o => ponerEstado(o, 'bailar'));
             if (sup) ponerEstado(sup, 'bailar');
         }
@@ -4655,6 +4771,7 @@ document.getElementById('btn-play').addEventListener('click', iniciarShow);
 document.getElementById('btn-replay').addEventListener('click', () => {
     elCreditos.classList.remove('visible');
     enFinal = false;
+    expoObjetivo = 1.18;
     offsetShow = 0;
     actoActual = -1;
     operarios.forEach(o => ponerEstado(o, 'trabajar'));
@@ -5053,7 +5170,11 @@ function animate() {
         }
     }
 
-    renderer.render(scene, camera);
+    // Exposición: transición suave al valor objetivo del acto
+    renderer.toneMappingExposure +=
+        (expoObjetivo - renderer.toneMappingExposure) * Math.min(1, dt * 1.4);
+    paseGrado.uniforms.tiempo.value = tGlobal;   // grano animado
+    composer.render();
 }
 animate();
 
@@ -5061,6 +5182,7 @@ addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    composer.setSize(innerWidth, innerHeight);
 });
 </script>
 </body>
