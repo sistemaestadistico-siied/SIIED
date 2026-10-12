@@ -1087,19 +1087,22 @@ for (let n = 0; n < 4; n++) {
 }
 scene.add(estanteria);
 const cartelIND = crearCartel('INVENTARIO DE INDICADORES',
-    'ODS · Cali en Cifras · Dominios del Comité', 6.4);
+    'la colección completa en los tres marcos', 6.4);
 cartelIND.position.set(EST_X0 + (N_COL - 1) * EST_DX / 2, 6.6, EST_Z + 0.6);
 scene.add(cartelIND);
-// Columnas 0-2 → ODS, 3-5 → Cali en Cifras, 6-7 → Dominios
+// Columnas 0-2 → ODS, 3-5 → Cali en Cifras, 6-7 → Dominios.
+// Las etiquetas cuelgan en la cabecera del estante, en fila y
+// centradas sobre su grupo de columnas — antes quedaban
+// coplanares al cartel y le tapaban el subtítulo
 const GRUPO_COL = [0, 0, 0, 1, 1, 1, 2, 2];
 const TEX_CONJ  = [texODS, texCEC, texDOM];
 ['ODS', 'CALI EN CIFRAS', 'DOMINIOS'].forEach((nom, g) => {
     const cols = GRUPO_COL.map((v, i) => v === g ? i : -1).filter(i => i >= 0);
     const cx = EST_X0 + (cols[0] + cols[cols.length - 1]) / 2 * EST_DX;
-    const etq = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.8),
+    const etq = new THREE.Mesh(new THREE.PlaneGeometry(2.15, 0.67),
         new THREE.MeshBasicMaterial({ map: textoCanvas(nom, g === 2 ? 'comité gestión' : '',
             ['#16a34a', '#0369a1', '#7c3aed'][g]) }));
-    etq.position.set(cx, 5.7, EST_Z + 0.62);
+    etq.position.set(cx, 5.05, EST_Z + 0.62);
     scene.add(etq);
 });
 const columnas = new Array(N_COL).fill(0);
