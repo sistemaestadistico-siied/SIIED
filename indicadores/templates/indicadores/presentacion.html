@@ -1132,13 +1132,31 @@ function texturaFurgon(titulo, sub) {
     cx.fillText(titulo, 256, 76);
     cx.shadowBlur = 0;
     cx.fillStyle = '#67e8f9';
+    cx.shadowBlur = 0;
     let fsF = 22;
     cx.font = `${fsF}px monospace`;
-    while (cx.measureText(sub).width > 460 && fsF > 13) {
+    while (cx.measureText(sub).width > 460 && fsF > 15) {
         fsF -= 1;
         cx.font = `${fsF}px monospace`;
     }
-    cx.fillText(sub, 256, 136);
+    if (cx.measureText(sub).width <= 460) {
+        cx.fillText(sub, 256, 136);
+    } else {
+        // Dos líneas balanceadas: nada se corta en el borde
+        const pal = sub.split(' ');
+        let mejor = 1, mejorD = 1e9;
+        for (let i = 1; i < pal.length; i++) {
+            const a = pal.slice(0, i).join(' ');
+            const d = Math.abs(cx.measureText(a).width -
+                               cx.measureText(pal.slice(i).join(' ')).width);
+            if (d < mejorD) { mejorD = d; mejor = i; }
+        }
+        let l1 = pal.slice(0, mejor).join(' '), l2 = pal.slice(mejor).join(' ');
+        while (cx.measureText(l1).width > 460) l1 = l1.slice(0, -2) + '…';
+        while (cx.measureText(l2).width > 460) l2 = l2.slice(0, -2) + '…';
+        cx.fillText(l1, 256, 116);
+        cx.fillText(l2, 256, 156);
+    }
     return new THREE.CanvasTexture(cv);
 }
 
@@ -2228,7 +2246,7 @@ function crearCamion(cfg) {
 const camRec = crearCamion({ x: 39,   z: -4.5, color: 0x38bdf8,
               etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'equipo técnico · ingesta de fuentes' });
 const camDel = crearCamion({ x: 52,   z: -8,   color: 0xf59e0b,
-              etiqueta: 'DELEGADO DE ORGANISMO', sub: 'enlace de organismos · carga datos y FICED' });
+              etiqueta: 'DELEGADO DE ORGANISMO', sub: 'enlace del organismo · datos y FICED' });
 const camEdi = crearCamion({ x: 34,   z: -11.5, color: 0xef4444,
               etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
 // Rutas por pasillos libres — ninguna atraviesa bandas.
@@ -4854,15 +4872,20 @@ function animate() {
             cm.userData.rampaG.rotation.z = 1.45 - 1.8 * ap; // se despliega al piso
         }
     });
-    // Garita de validación: el brazo abre mientras el camión del
-    // delegado está en la zona del checkpoint (x ≈ 11, carril z=-8)
+    // Punto de validación: el brazo se abre para dejar entrar o
+    // salir al camión del delegado, pero baja mientras dura la
+    // inspección — y vuelve a subir justo antes de que arranque
     {
         const enZona = Math.abs(camDel.position.z + 8) < 1.6 &&
                        camDel.position.x > 9.6 && camDel.position.x < 12.6;
-        const obj = enZona ? 1.15 : 0;   // levanta el brazo hacia el techo
+        const rD = camDel.userData.ruta;
+        const inspeccion = enZona && rD.espera > 0.9 &&
+                           Math.abs(camDel.position.x - 11) < 0.5;
+        const abrir = enZona && !inspeccion;
+        const obj = abrir ? 1.15 : 0;   // levanta el brazo hacia el techo
         brazoGarita.rotation.x += (obj - brazoGarita.rotation.x) * Math.min(1, dt * 2.6);
-        semG.rojo.material.color.setHex(enZona ? 0x7f1d1d : 0xef4444);
-        semG.verde.material.color.setHex(enZona ? 0x22cc44 : 0x14532d);
+        semG.rojo.material.color.setHex(abrir ? 0x7f1d1d : 0xef4444);
+        semG.verde.material.color.setHex(abrir ? 0x22cc44 : 0x14532d);
     }
     // Observatorios: los telescopios barren la ciudadanía
     telescopios.forEach(t => {
