@@ -16,4 +16,5 @@ urlpatterns = [
     path('preview/', views_normalizacion.wizard_preview, name='wizard_normalizacion_preview'),
     path('aplicar/', views_normalizacion.wizard_aplicar, name='wizard_normalizacion_aplicar'),
     path('eliminar/', views_normalizacion.wizard_eliminar_aplicar, name='wizard_normalizacion_eliminar'),
+    path('dominio/<int:dominio_id>/', views_normalizacion.wizard_dominio_detalle, name='wizard_normalizacion_dominio'),
 ]

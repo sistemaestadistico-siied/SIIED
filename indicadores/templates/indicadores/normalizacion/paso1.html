@@ -44,7 +44,7 @@
         <tr>
           <td><input class="sel-dom" type="checkbox" name="dominios" value="{{ d.id }}"></td>
           <td>{{ d.id }}</td>
-          <td>{{ d.nombre }}</td>
+          <td><a href="{% url 'indicadores:wizard_normalizacion_dominio' d.id %}" title="Ver desagregaciones / renombrar">{{ d.nombre }}</a></td>
           <td><span class="norm-badge badge-{{ d.tipo }}">{{ d.tipo }}</span></td>
           <td>{{ d.n_desags }}</td>
           <td>{{ d.n_indicadores }}</td>

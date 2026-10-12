@@ -1,0 +1,96 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+  .metric-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 0; }
+  .metric { flex: 1; min-width: 130px; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color,#e2e8f0); text-align: center; }
+  .metric .val { font-size: 1.6rem; font-weight: 700; }
+  .metric .lbl { font-size: .78rem; color: var(--body-quiet-color,#64748b); }
+  .norm-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .75rem; font-weight: 600; }
+  .badge-tematica { background: rgba(79,70,229,.12); color: #4f46e5; }
+  .badge-geografica { background: rgba(16,185,129,.12); color: #10b981; }
+  .norm-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .norm-table th, .norm-table td { padding: 5px 8px; border: 1px solid var(--border-color,#e2e8f0); text-align: left; }
+  .norm-table th { background: var(--darkened-bg,#f1f5f9); position: sticky; top: 0; }
+  .scroll-box { max-height: 55vh; overflow-y: auto; border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px; }
+  .rename-box { margin: 1.5rem 0; padding: 1rem 1.25rem; border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px; background: var(--darkened-bg,#f8fafc); display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+  .rename-box input[type=text] { padding: 7px 12px; border: 1px solid var(--border-color,#cbd5e1); border-radius: 6px; min-width: 320px; font-size: .9rem; }
+  .norm-btn { padding: 8px 18px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .btn-rename { background: #f59e0b; color: #fff; }
+  .norm-help { color: var(--body-quiet-color,#64748b); font-size: .85rem; }
+  .indicador-chips { margin-top: .5rem; }
+  .indicador-chips span { display: inline-block; background: var(--darkened-bg,#f1f5f9); border: 1px solid var(--border-color,#e2e8f0); padding: 2px 8px; border-radius: 8px; font-size: .78rem; margin: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <p><a href="{% url 'indicadores:wizard_normalizacion' %}">← Volver al listado</a></p>
+  <h1>{{ dominio.nombre }}
+    <span class="norm-badge badge-{{ dominio.tipo }}">{{ dominio.tipo }}</span>
+    <small style="font-weight:400;color:var(--body-quiet-color,#64748b);">id {{ dominio.id }}</small>
+  </h1>
+  {% if padre %}<p class="norm-help">Dominio padre: {{ padre.nombre }}</p>{% endif %}
+  {% if subdominios %}
+  <p class="norm-help">Subdominios: {% for s in subdominios %}{{ s.1 }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+  {% endif %}
+
+  <div class="metric-row">
+    <div class="metric"><div class="val">{{ stats.n_desags }}</div><div class="lbl">Desagregaciones</div></div>
+    <div class="metric"><div class="val">{{ stats.n_links }}</div><div class="lbl">Indicadores vinculados</div></div>
+    <div class="metric"><div class="val">{{ tot.datos }}</div><div class="lbl">Etiquetas en datos</div></div>
+    <div class="metric"><div class="val">{{ tot.series }}</div><div class="lbl">Refs en series</div></div>
+    <div class="metric"><div class="val">{{ tot.fks }}</div><div class="lbl">FKs legacy</div></div>
+    <div class="metric"><div class="val">{{ tot.pred }}</div><div class="lbl">Predeterminadas</div></div>
+    <div class="metric"><div class="val">{{ stats.n_capa }}</div><div class="lbl">Con capa geo</div></div>
+    <div class="metric"><div class="val">{{ stats.n_catalogos }}</div><div class="lbl">Catálogos</div></div>
+  </div>
+
+  {% if stats.indicadores %}
+  <div class="indicador-chips">
+    <span class="norm-help">Indicadores que lo usan:</span>
+    {% for ind in stats.indicadores %}<span title="id {{ ind.0 }}">{{ ind.1 }}</span>{% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="post" class="rename-box">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="renombrar">
+    <strong>Renombrar:</strong>
+    <input type="text" name="nuevo_nombre" value="{{ dominio.nombre }}" required>
+    <button type="submit" class="norm-btn btn-rename">Guardar nombre</button>
+    <span class="norm-help">Cambio inmediato, se registra en el log de auditoría.</span>
+  </form>
+
+  <h3>Desagregaciones ({{ stats.n_desags }})</h3>
+  <div class="scroll-box">
+    <table class="norm-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Datos</th><th>Series</th>
+          <th>FKs</th><th>Pred</th><th>Hijas</th><th>Capa geo</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for d in desags %}
+        <tr>
+          <td>{{ d.id }}</td>
+          <td>{{ d.nombre }}</td>
+          <td>{{ d.refs.datos }}</td>
+          <td>{{ d.refs.series }}</td>
+          <td>{{ d.refs.fks }}</td>
+          <td>{{ d.refs.pred }}</td>
+          <td>{{ d.refs.hijas }}</td>
+          <td>{% if d.capa_geo_id %}🗺️ sí{% else %}—{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="norm-help">Sin desagregaciones.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="norm-help">Volví al listado para conciliar (checkbox origen + radio destino) o eliminar (solo 1 checkbox).</p>
+</div>
+{% endblock %}

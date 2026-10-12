@@ -18,7 +18,7 @@ import unicodedata
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import connection, transaction
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from .models import DominioDesagregacion, Desagregacion
 
@@ -461,3 +461,49 @@ def wizard_eliminar_aplicar(request):
         f'Dominio "{nombre}" y sus {len(desag_ids)} desagregaciones eliminadas. '
         'Los datos permanecen intactos.')
     return wizard_normalizacion(request)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# DETALLE de dominio: inspección de desagregaciones + renombrar
+# ──────────────────────────────────────────────────────────────────────────
+
+@staff_member_required
+def wizard_dominio_detalle(request, dominio_id):
+    """Ficha del dominio: stats, indicadores vinculados, listado completo de
+    desagregaciones con conteo de referencias, subdominios y renombrado."""
+    dom = DominioDesagregacion.objects.get(pk=dominio_id)
+
+    if request.method == 'POST' and request.POST.get('accion') == 'renombrar':
+        nuevo = (request.POST.get('nuevo_nombre') or '').strip()
+        if not nuevo or nuevo == dom.nombre:
+            messages.error(request, 'Nombre vacío o sin cambios.')
+        else:
+            viejo = dom.nombre
+            duplicado = DominioDesagregacion.objects.filter(
+                nombre__iexact=nuevo).exclude(pk=dom.id).first()
+            dom.nombre = nuevo
+            dom.save(update_fields=['nombre'])
+            _audit(nuevo, 'renombrar', 0, 0,
+                   f'Dominio id {dom.id}: "{viejo}" → "{nuevo}"')
+            messages.success(request, f'Dominio renombrado: "{viejo}" → "{nuevo}".')
+            if duplicado:
+                messages.warning(request,
+                    f'Ojo: ya existe otro dominio llamado "{duplicado.nombre}" '
+                    f'(id {duplicado.id}, tipo {duplicado.tipo}). Considera conciliarlos.')
+            return redirect('indicadores:wizard_normalizacion_dominio', dominio_id=dom.id)
+
+    desags = list(Desagregacion.objects.filter(dominio_id=dominio_id).order_by('nombre'))
+    with connection.cursor() as cur:
+        stats = _dominio_stats(cur, dominio_id)
+        refs = _desag_refs_count(cur, [d.id for d in desags])
+        cur.execute("SELECT id, nombre FROM indicadores_dominiodesagregacion WHERE dominio_padre_id=%s", [dominio_id])
+        subdominios = cur.fetchall()
+    tot = {k: sum(r[k] for r in refs.values())
+           for k in ('datos', 'series', 'fks', 'pred', 'hijas')}
+    for d in desags:
+        d.refs = refs[d.id]
+    return render(request, 'indicadores/normalizacion/dominio.html', {
+        'dominio': dom, 'desags': desags, 'stats': stats,
+        'subdominios': subdominios, 'tot': tot,
+        'padre': dom.dominio_padre,
+    })
