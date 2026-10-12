@@ -3447,8 +3447,11 @@ function asignarGrafico(tv) {
 const vuelosTV = [];
 function lanzarVueloTV(mesh, delay = 0) {
     const tv = TVs[Math.floor(Math.random() * TVs.length)];
-    vuelosTV.push({ mesh, tv, t: -delay, dur: 0.85,
-                    desde: mesh.position.clone(), hasta: tv.mundo });
+    // El dato no vuela en línea recta: pasa por el hub de la
+    // torre del admin — el nodo por donde entra y sale todo
+    vuelosTV.push({ mesh, tv, t: -delay, dur: 1.7,
+        curva: new THREE.CatmullRomCurve3(
+            [mesh.position.clone(), HUB_TORRE, tv.mundo]) });
 }
 function tickVuelosTV(dt) {
     for (let i = vuelosTV.length - 1; i >= 0; i--) {
@@ -3456,13 +3459,12 @@ function tickVuelosTV(dt) {
         v.t += dt;
         if (v.t < 0) continue;
         const k = Math.min(1, v.t / v.dur);
-        v.mesh.position.lerpVectors(v.desde, v.hasta, k);
-        v.mesh.position.y += Math.sin(k * Math.PI) * 2.2;
+        v.mesh.position.copy(v.curva.getPointAt(Math.min(0.999, k)));
         v.mesh.rotation.y += dt * 5;
         if (k >= 1) {
             v.mesh.visible = false;
             asignarGrafico(v.tv);
-            soltarConfeti(v.hasta.x - 0.4, v.hasta.y, v.hasta.z);
+            soltarConfeti(v.tv.mundo.x - 0.4, v.tv.mundo.y, v.tv.mundo.z);
             vuelosTV.splice(i, 1);
         }
     }
@@ -3586,6 +3588,50 @@ for (let i = 0; i < 5; i++) {
     scene.add(pl);
     encuestas.push({ mesh: pl, t: i * 0.2 });
 }
+
+// ============ DUCTOS DE DATOS — todo pasa por la torre ============
+// Los inventarios no "teletransportan" a la pared de TVs: tres
+// tubos de entrada descargan en el manifold de la torre del
+// admin (el nodo principal) y un solo tubo de salida lleva el
+// producto a la pared de televisores. Los paquetes viajan
+// dentro de los ductos — y los vuelos reales a la pared
+// también pasan por el hub (ver lanzarVueloTV).
+const HUB_TORRE = new THREE.Vector3(8.2, 6.5, 11);
+const ductos = [];
+[
+    { pts: [[-10.5, 3.0, 7.2], [-4, 5.8, 10.5], [8.2, 6.4, 11]],
+      color: 0x93c5fd, n: 3 },        // almacén operaciones → torre
+    { pts: [[27, 3.0, -10.5], [22, 5.5, -3], [14, 6.2, 6], [8.2, 6.4, 11]],
+      color: 0x93c5fd, n: 3 },        // almacén del hall → torre
+    { pts: [[55, 5.8, 2.4], [42, 7.2, 5], [25, 7.2, 9], [8.2, 6.5, 11]],
+      color: 0x93c5fd, n: 4 },        // estantería indicadores → torre
+    { pts: [[8.2, 6.5, 11], [30, 8.0, 10.5], [48, 7.2, 8.5], [61.4, 4.6, 7]],
+      color: 0xfbbf24, n: 4 },        // torre → pared de televisores
+].forEach(d => {
+    d.curva = new THREE.CatmullRomCurve3(
+        d.pts.map(p => new THREE.Vector3(...p)));
+    d.largo = d.curva.getLength();
+    const tubo = new THREE.Mesh(
+        new THREE.TubeGeometry(d.curva, 64, 0.19, 8, false),
+        new THREE.MeshLambertMaterial({ color: d.color, transparent: true,
+                                        opacity: 0.26, depthWrite: false }));
+    scene.add(tubo);
+    d.paq = [];
+    for (let i = 0; i < d.n; i++) {   // paquetes en circulación
+        const pk = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2),
+            new THREE.MeshBasicMaterial({ color: d.color }));
+        scene.add(pk);
+        d.paq.push({ mesh: pk, t: i / d.n });
+    }
+    ductos.push(d);
+});
+// Manifold de entrada en la cara este de la torre: el hub
+const hubM = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.9),
+    new THREE.MeshLambertMaterial({ color: 0x475569 }));
+hubM.position.copy(HUB_TORRE); hubM.position.y = 6.4; scene.add(hubM);
+const ledHub = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0x22cc44 }));
+ledHub.position.set(8.2, 6.95, 11); scene.add(ledHub);
 
 // ============ VÍAS DE LOS CAMIONES ============
 // Franjas de asfalto dibujadas ENTRE los waypoints reales de
@@ -5106,6 +5152,13 @@ function animate() {
         e.mesh.rotation.y = tGlobal * 3;
         e.mesh.visible = e.t > 0.01 && e.t < 0.96;
     });
+    // Paquetes circulando por los ductos: inventarios → torre → pared
+    ductos.forEach(d => d.paq.forEach(p => {
+        p.t += dt * 2.4 / d.largo;
+        if (p.t >= 1) p.t = 0;
+        p.mesh.position.copy(d.curva.getPointAt(Math.min(0.999, p.t)));
+        p.mesh.rotation.y = tGlobal * 3;
+    }));
 
     // ---- Estantería infinita: ciclo del gráfico de barras ----
     if (faseEstante === 'llenando' &&
