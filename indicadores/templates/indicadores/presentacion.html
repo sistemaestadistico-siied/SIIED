@@ -414,6 +414,14 @@ const paseGrado = new ShaderPass({
         }` });
 composer.addPass(paseGrado);
 
+// Autos ambientales de la avenida perimetral: los puebla el
+// bloque del decorado (horizonte) y los mueve tickAutos
+const autosA = [];
+const SEGS_AUTO = [[-66.2, -41.6], [66.2, -41.6], [66.2, 41.6], [-66.2, 41.6]]
+    .map((p, i, arr) => { const q = arr[(i + 1) % 4];
+        return { p, q, len: Math.hypot(q[0] - p[0], q[1] - p[1]) }; });
+const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
+
 // ============ HORIZONTE NOCTURNO: CORDILLERA + BÓVEDA ============
 // Sin techo ni lámparas colgantes: el borde de la retícula se
 // ofusca tras una cordillera verde (estilo subtema_detalle_3d,
@@ -423,7 +431,8 @@ composer.addPass(paseGrado);
     const cordillera = new THREE.Group();
     const montanaMat = new THREE.MeshLambertMaterial({ color: 0x4a6741, flatShading: true });
     const plataMat = new THREE.MeshLambertMaterial({ color: 0x5a6d4a });
-    const blanco = new THREE.MeshLambertMaterial({ color: 0xf5f5f5 });
+    // Emisivo: los monumentos de los cerros van alumbrados de noche
+    const blanco = new THREE.MeshLambertMaterial({ color: 0xf5f5f5, emissive: 0x6a7683 });
     function cerro(x, z, r, h) {
         const c = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.3, r, h, 8), montanaMat);
         c.position.set(x, h / 2, z);
@@ -462,7 +471,7 @@ composer.addPass(paseGrado);
     // CERRO DEL CRISTO REY (suroeste de Cali — más alto)
     cerro(-64, -46, 16, 30);
     const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.9, 4, 8),
-        new THREE.MeshLambertMaterial({ color: 0xa0a0a0 }));
+        new THREE.MeshLambertMaterial({ color: 0xa0a0a0, emissive: 0x3a4149 }));
     pedestal.position.set(-64, 32.5, -46); cordillera.add(pedestal);
     const tunica = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, 5.5, 8), blanco);
     tunica.position.set(-64, 37, -46); cordillera.add(tunica);
@@ -503,7 +512,10 @@ composer.addPass(paseGrado);
         .map(c => new THREE.MeshLambertMaterial({ color: c }));
     const matTej = [0x9a3412, 0x475569, 0x7f1d1d]
         .map(c => new THREE.MeshLambertMaterial({ color: c }));
-    const matVentana = new THREE.MeshBasicMaterial({ color: 0xffc977 });
+    // Luces de casa: cálidas y alguna fría de TV — variación, no
+    // una ciudad de una sola bombilla
+    const matVentanas = [0xffc977, 0xffd98a, 0xbfd9ff]
+        .map(c => new THREE.MeshBasicMaterial({ color: c }));
     function casita(x, z, ry) {
         const c = new THREE.Group();
         const w = 1.6 + Math.random() * 0.8;
@@ -521,9 +533,14 @@ composer.addPass(paseGrado);
         // Ventana encendida en la fachada que mira a la planta —
         // es de noche y las casas también alumbran
         const ventana = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.05),
-            matVentana);
+            matVentanas[(Math.random() * matVentanas.length) | 0]);
         ventana.position.set(w * 0.18, h * 0.55, w * 0.45 + 0.03);
         c.add(ventana);
+        if (Math.random() < 0.45) {   // segundo cuarto encendido
+            const v2 = ventana.clone();
+            v2.position.x = -w * 0.22;
+            c.add(v2);
+        }
         c.position.set(x, 0, z);
         c.rotation.y = ry;
         scene.add(c);
@@ -547,6 +564,102 @@ composer.addPass(paseGrado);
         farol(67.3, z); farol(-67.3, z);
         if (Math.abs(z) < 34) { farol(-51, z + 5); farol(-53.8, z - 5); }
     }
+
+    // Avenidas perimetrales bajo los faroles + puente sobre el
+    // brazo del río: la ciudad no flota sobre el pasto
+    const matVia = new THREE.MeshLambertMaterial({ color: 0x232a30 });
+    const matRayaV = new THREE.MeshBasicMaterial({ color: 0xe8d9a0 });
+    function avenida(x, z, largo, horizontal, yv) {
+        const v = new THREE.Mesh(new THREE.PlaneGeometry(
+            horizontal ? largo : 2.4, horizontal ? 2.4 : largo), matVia);
+        v.rotation.x = -Math.PI / 2;
+        v.position.set(x, yv, z);
+        scene.add(v);
+        const n = Math.floor(largo / 2.6);
+        for (let i = 0; i < n; i++) {
+            const r = new THREE.Mesh(new THREE.PlaneGeometry(
+                horizontal ? 1.1 : 0.13, horizontal ? 0.13 : 1.1), matRayaV);
+            r.rotation.x = -Math.PI / 2;
+            const t = (i - (n - 1) / 2) * 2.6;
+            r.position.set(horizontal ? x + t : x, yv + 0.012,
+                           horizontal ? z : z + t);
+            scene.add(r);
+        }
+    }
+    function puente(x, z) {
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(5.4, 3.2), matVia);
+        p.rotation.x = -Math.PI / 2;
+        p.position.set(x, 0.03, z);
+        scene.add(p);
+        for (const b of [-1.55, 1.55]) {   // barandas ámbar
+            const bar = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.12, 0.12),
+                new THREE.MeshBasicMaterial({ color: 0xfbbf24 }));
+            bar.position.set(x, 0.2, z + b);
+            scene.add(bar);
+        }
+    }
+    // N/S: el brazo del río (x=-52) corta la avenida — puente
+    avenida(-62, -41.6, 16, true, 0.016);
+    avenida(10, -41.6, 120, true, 0.016);
+    avenida(-62, 41.6, 16, true, 0.016);
+    avenida(10, 41.6, 120, true, 0.016);
+    puente(-52, -41.6); puente(-52, 41.6);
+    // E/W: reborde del piso junto a las casitas
+    avenida(-66.2, 0, 88, false, 0.021);
+    avenida(66.2, 0, 88, false, 0.021);
+
+    // Árboles urbanos: hileras sobre el borde interno de las
+    // avenidas + ribera del brazo oeste — la periferia vive
+    const matTronco = new THREE.MeshLambertMaterial({ color: 0x4a3728 });
+    const matCopas = [0x2d5a34, 0x3f6b3a, 0x35654a]
+        .map(c => new THREE.MeshLambertMaterial({ color: c }));
+    function arbol(x, z, s) {
+        const t = new THREE.Group();
+        const tr = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.09, 0.13, 0.9, 6), matTronco);
+        tr.position.y = 0.45; t.add(tr);
+        const copa = new THREE.Mesh(new THREE.SphereGeometry(0.75, 8, 7),
+            matCopas[(Math.random() * matCopas.length) | 0]);
+        copa.position.y = 1.3;
+        copa.scale.y = 0.85 + Math.random() * 0.3;
+        copa.castShadow = true;
+        t.add(copa);
+        t.scale.setScalar(s);
+        t.position.set(x, 0, z);
+        scene.add(t);
+    }
+    for (let x = -64; x <= 64; x += 6.4) {
+        if (Math.abs(x + 52) < 3.4) continue;   // salta el puente
+        arbol(x + Math.sin(x * 1.7) * 0.7, -40, 1.05);
+        arbol(x - Math.sin(x * 1.9) * 0.7, 40, 1.05);
+    }
+    for (let z = -38; z <= 38; z += 6.4) {
+        arbol(-64.6, z + Math.sin(z * 1.3) * 0.6, 1.05);
+        arbol(64.6, z - Math.sin(z * 1.1) * 0.6, 1.05);
+    }
+    for (let z = -38; z <= 38; z += 7) {   // ribera del brazo oeste
+        arbol(-49.4, z, 1.15);
+        arbol(-54.7, z + 3.2, 1.15);
+    }
+
+    // Autos ambientales: puntos de luz que recorren la avenida
+    // (los mueve tickAutos en el loop — vida, no escenografía)
+    for (let i = 0; i < 5; i++) {
+        const a = new THREE.Group();
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.4, 0.5),
+            new THREE.MeshLambertMaterial({ color: [0x8b2f2f, 0x2f4a8b, 0x3d3d3d][i % 3] }));
+        cab.position.y = 0.28; a.add(cab);
+        const luzD = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6),
+            new THREE.MeshBasicMaterial({ color: 0xfff8dc }));
+        luzD.position.set(0.5, 0.24, 0); a.add(luzD);
+        const luzT = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6),
+            new THREE.MeshBasicMaterial({ color: 0xff2d2d }));
+        luzT.position.set(-0.5, 0.24, 0); a.add(luzT);
+        scene.add(a);
+        autosA.push({ g: a, d: i * LEN_AUTO / 5,
+                      vel: 5.5 + (i % 3) * 1.4, sentido: i % 2 ? 1 : -1 });
+    }
+
     // Tercera profundidad norte/sur: el borde queda más lleno
     for (const zBorde of [-48.8, 48.8]) {
         for (let x = -59; x <= 59; x += 9.5) {
@@ -842,7 +955,7 @@ function texPisoConcreto() {
               12 + Math.random() * 40, 0, 7);
         x.fill();
     }
-    x.strokeStyle = 'rgba(72,84,97,0.4)'; x.lineWidth = 2;
+    x.strokeStyle = 'rgba(72,84,97,0.15)'; x.lineWidth = 1;
     for (let i = 0; i <= 512; i += 128) {   // juntas de expansión
         x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 512); x.stroke();
         x.beginPath(); x.moveTo(0, i); x.lineTo(512, i); x.stroke();
@@ -3461,6 +3574,27 @@ function lanzarVueloTV(mesh, delay = 0) {
     vuelosTV.push({ mesh, tv, t: -delay,
                     dur: Math.max(1.4, curva.getLength() / 34), curva });
 }
+// Autos de la periferia: recorren la avenida con luces — la
+// ciudad vive mientras el show corre
+function tickAutos(dt) {
+    for (const a of autosA) {
+        a.d = (a.d + a.vel * dt * a.sentido + LEN_AUTO) % LEN_AUTO;
+        let resto = a.d;
+        for (const sg of SEGS_AUTO) {
+            if (resto <= sg.len) {
+                const u = resto / sg.len;
+                a.g.position.set(sg.p[0] + (sg.q[0] - sg.p[0]) * u, 0,
+                                 sg.p[1] + (sg.q[1] - sg.p[1]) * u);
+                a.g.rotation.y = Math.atan2(-(sg.q[1] - sg.p[1]),
+                                            sg.q[0] - sg.p[0])
+                                 + (a.sentido < 0 ? Math.PI : 0);
+                break;
+            }
+            resto -= sg.len;
+        }
+    }
+}
+
 function tickVuelosTV(dt) {
     for (let i = vuelosTV.length - 1; i >= 0; i--) {
         const v = vuelosTV[i];
@@ -5041,6 +5175,7 @@ function animate() {
     tickLluvia(dt);
     tickAlmacenes(dt);
     tickVuelosTV(dt);
+    tickAutos(dt);
     // La parrilla de gráficos se refresca sola cada ~9s
     if (tGlobal - tUltimoChart > 9) {
         tUltimoChart = tGlobal;
