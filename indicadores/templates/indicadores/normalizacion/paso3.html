@@ -1,0 +1,58 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+  .metric-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 0; }
+  .metric { flex: 1; min-width: 150px; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color,#e2e8f0); text-align: center; }
+  .metric .val { font-size: 1.75rem; font-weight: 700; }
+  .metric .lbl { font-size: .8rem; color: var(--body-quiet-color,#64748b); }
+  .norm-btn { padding: 10px 22px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .btn-apply { background: #10b981; color: #fff; }
+  .detalle-box { max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px; padding: .75rem; font-size: .85rem; }
+  .warn-box { background: rgba(245,158,11,.12); border: 1px solid #f59e0b; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <h1>Paso 3 — Vista previa de conciliación</h1>
+  <p>
+    Destino: <strong>{{ destino.nombre }}</strong> ({{ destino.tipo }}) ←
+    {% for o in origenes %}{{ o.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}
+  </p>
+
+  <div class="metric-row">
+    <div class="metric"><div class="val" style="color:#10b981;">{{ resumen.equiv }}</div><div class="lbl">Equivalencias</div></div>
+    <div class="metric"><div class="val" style="color:#4f46e5;">{{ resumen.nuevo }}</div><div class="lbl">Desags movidas</div></div>
+    <div class="metric"><div class="val" style="color:#f43f5e;">{{ resumen.descartar }}</div><div class="lbl">Descartadas</div></div>
+    <div class="metric"><div class="val">{{ resumen.refs_movidas }}</div><div class="lbl">Refs redirigidas</div></div>
+    <div class="metric"><div class="val" style="color:#f43f5e;">{{ resumen.refs_descartadas }}</div><div class="lbl">Refs cortadas</div></div>
+  </div>
+
+  {% if resumen.descartar %}
+  <div class="warn-box">
+    ⚠️ <strong>{{ resumen.descartar }}</strong> desagregaciones serán descartadas y sus
+    <strong>{{ resumen.refs_descartadas }}</strong> referencias cortadas (los datos quedan sin esa etiqueta).
+  </div>
+  {% endif %}
+
+  <h3>Detalle por desagregación</h3>
+  <div class="detalle-box">
+    {% for d in detalles %}<div>{{ d }}</div>{% endfor %}
+  </div>
+
+  <form method="post" action="{% url 'indicadores:wizard_normalizacion_aplicar' %}" style="margin-top:1.5rem;display:flex;gap:1rem;">
+    {% csrf_token %}
+    <input type="hidden" name="destino" value="{{ destino.id }}">
+    <input type="hidden" name="origen_ids" value="{{ origen_ids }}">
+    <input type="hidden" name="payload" value='{{ payload }}'>
+    <button type="submit" class="norm-btn btn-apply"
+            onclick="return confirm('¿Aplicar la conciliación? Operación transaccional con log de auditoría.')">
+      ✓ Aplicar conciliación
+    </button>
+    <a href="{% url 'indicadores:wizard_normalizacion' %}" style="align-self:center;">← Cancelar</a>
+  </form>
+</div>
+{% endblock %}

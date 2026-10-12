@@ -1,0 +1,76 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+  .norm-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .norm-table th, .norm-table td { padding: 6px 8px; border: 1px solid var(--border-color, #e2e8f0); text-align: left; }
+  .norm-table th { background: var(--darkened-bg, #f1f5f9); position: sticky; top: 0; }
+  .norm-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 600; }
+  .badge-tematica { background: rgba(79,70,229,.12); color: #4f46e5; }
+  .badge-geografica { background: rgba(16,185,129,.12); color: #10b981; }
+  .norm-actions { margin: 1.5rem 0; padding: 1.25rem; border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px; background: var(--darkened-bg, #f8fafc); display: flex; gap: 1.25rem; flex-wrap: wrap; align-items: center; }
+  .norm-btn { padding: 8px 18px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: .9rem; }
+  .btn-conciliar { background: #4f46e5; color: #fff; }
+  .btn-eliminar { background: #f43f5e; color: #fff; }
+  .norm-help { color: var(--body-quiet-color, #64748b); font-size: .85rem; }
+  .scroll-box { max-height: 65vh; overflow-y: auto; border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <h1>Wizard de Normalización de Desagregaciones</h1>
+  <p class="norm-help">
+    Concilia varios dominios en uno solo verificando equivalencias entre desagregaciones,
+    o elimina un dominio con sus desagregaciones sin borrar los datos relacionados.
+  </p>
+
+  <form method="post" action="{% url 'indicadores:wizard_normalizacion_equivalencias' %}">
+    {% csrf_token %}
+    <div class="scroll-box">
+    <table class="norm-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" onclick="document.querySelectorAll('.sel-dom').forEach(c=>c.checked=this.checked)"></th>
+          <th>ID</th><th>Dominio</th><th>Tipo</th><th>Desags</th>
+          <th>Indicadores</th><th>Refs</th><th>Capa geo</th><th>Catálogos</th>
+          <th>Destino</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for d in dominios %}
+        <tr>
+          <td><input class="sel-dom" type="checkbox" name="dominios" value="{{ d.id }}"></td>
+          <td>{{ d.id }}</td>
+          <td>{{ d.nombre }}</td>
+          <td><span class="norm-badge badge-{{ d.tipo }}">{{ d.tipo }}</span></td>
+          <td>{{ d.n_desags }}</td>
+          <td>{{ d.n_indicadores }}</td>
+          <td>{{ d.n_refs }}</td>
+          <td>{{ d.n_capa }}</td>
+          <td>{{ d.n_cat }}</td>
+          <td><input type="radio" name="destino" value="{{ d.id }}"></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    <div class="norm-actions">
+      <button type="submit" name="accion" value="conciliar" class="norm-btn btn-conciliar">
+        Conciliar seleccionados → destino marcado
+      </button>
+      <button type="submit" name="accion" value="eliminar" class="norm-btn btn-eliminar"
+              onclick="return confirm('¿Eliminar el dominio seleccionado con sus desagregaciones? Los datos permanecen.')">
+        Eliminar dominio seleccionado (sin borrar datos)
+      </button>
+      <span class="norm-help">
+        Para conciliar: marca ≥1 origen (checkbox) + 1 destino (radio).
+        Para eliminar: marca solo 1 dominio.
+      </span>
+    </div>
+  </form>
+</div>
+{% endblock %}

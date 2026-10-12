@@ -14,6 +14,7 @@ from . import views_educativos
 from . import views_editorial
 from . import views_taller
 from . import views_catalogo
+from . import views_normalizacion
 
 # Custom path converter for organismo codes with accented characters
 class OrganismoCodeConverter:
@@ -108,6 +109,12 @@ urlpatterns = [
     # path('api/get_unified_data/<int:indicador_id>/', views.get_unified_visualization_data, name='unified_visualization_data'),
     # path('api/unified_geo/<int:indicador_id>/', get_unified_geo_data, name='unified_geo_data'),
     # Procesos en vivo (logs en tiempo real por polling)
+    # Wizard de Normalización de Desagregaciones (admin-only)
+    path('admin/normalizacion-desagregaciones/', views_normalizacion.wizard_normalizacion, name='wizard_normalizacion'),
+    path('admin/normalizacion-desagregaciones/equivalencias/', views_normalizacion.wizard_equivalencias, name='wizard_normalizacion_equivalencias'),
+    path('admin/normalizacion-desagregaciones/preview/', views_normalizacion.wizard_preview, name='wizard_normalizacion_preview'),
+    path('admin/normalizacion-desagregaciones/aplicar/', views_normalizacion.wizard_aplicar, name='wizard_normalizacion_aplicar'),
+    path('admin/normalizacion-desagregaciones/eliminar/', views_normalizacion.wizard_eliminar_aplicar, name='wizard_normalizacion_eliminar'),
     path('admin/procesos/', views.admin_procesos_dashboard, name='admin_procesos_dashboard'),
     path('procesos/<int:proceso_id>/', views.proceso_en_vivo, name='proceso_en_vivo'),
     path('api/procesos/<int:proceso_id>/status/', views.api_proceso_status, name='api_proceso_status'),

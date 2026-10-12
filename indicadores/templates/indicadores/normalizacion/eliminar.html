@@ -1,0 +1,74 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+  .metric-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 0; }
+  .metric { flex: 1; min-width: 140px; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color,#e2e8f0); text-align: center; }
+  .metric .val { font-size: 1.75rem; font-weight: 700; }
+  .metric .lbl { font-size: .8rem; color: var(--body-quiet-color,#64748b); }
+  .warn-box { background: rgba(244,63,94,.1); border: 1px solid #f43f5e; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .info-box { background: rgba(14,165,233,.1); border: 1px solid #0ea5e9; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .norm-btn { padding: 10px 22px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .btn-danger { background: #f43f5e; color: #fff; }
+  .desag-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px; padding: .75rem; font-size: .85rem; columns: 3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <h1>Eliminar dominio de desagregación</h1>
+
+  <h2>{{ dominio.nombre }} <span style="font-weight:400;color:var(--body-quiet-color,#64748b);">({{ dominio.tipo }}, id {{ dominio.id }})</span></h2>
+
+  <div class="info-box">
+    Los <strong>datos no se borran</strong>: solo se cortan las etiquetas de desagregación
+    (en datos, series y predeterminadas) y los FKs legacy quedan en NULL.
+  </div>
+
+  <div class="metric-row">
+    <div class="metric"><div class="val">{{ stats.n_desags }}</div><div class="lbl">Desagregaciones</div></div>
+    <div class="metric"><div class="val">{{ stats.n_links }}</div><div class="lbl">Indicadores vinculados</div></div>
+    <div class="metric"><div class="val">{{ tot.datos }}</div><div class="lbl">Etiquetas en datos</div></div>
+    <div class="metric"><div class="val">{{ tot.series }}</div><div class="lbl">Refs en series</div></div>
+    <div class="metric"><div class="val">{{ tot.fks }}</div><div class="lbl">FKs legacy</div></div>
+    <div class="metric"><div class="val">{{ tot.pred }}</div><div class="lbl">Predeterminadas</div></div>
+    <div class="metric"><div class="val">{{ tot.hijas }}</div><div class="lbl">Desags hijas</div></div>
+    <div class="metric"><div class="val">{{ stats.n_capa }}</div><div class="lbl">Con capa geo</div></div>
+    <div class="metric"><div class="val">{{ stats.n_catalogos }}</div><div class="lbl">Catálogos</div></div>
+  </div>
+
+  {% if subdominios %}
+  <div class="warn-box">
+    ⚠️ Este dominio es padre de: {% for s in subdominios %}{{ s.1 }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    — quedarán sin dominio padre.
+  </div>
+  {% endif %}
+  {% if stats.n_catalogos %}
+  <div class="warn-box">⚠️ Tiene {{ stats.n_catalogos }} catálogo(s) publicado(s) — serán eliminados (cascade).</div>
+  {% endif %}
+  {% if stats.n_links %}
+  <div class="warn-box">⚠️ Está vinculado a {{ stats.n_links }} indicador(es) — los vínculos se quitarán.</div>
+  {% endif %}
+  {% if tot.datos %}
+  <div class="info-box">ℹ️ {{ tot.datos }} etiquetas en datos se cortarán (los Dato quedan sin esta dimensión).</div>
+  {% endif %}
+
+  <h3>Desagregaciones a eliminar ({{ stats.n_desags }})</h3>
+  <div class="desag-list">
+    {% for d in desags %}<div>{{ d.nombre }}</div>{% endfor %}
+  </div>
+
+  <form method="post" action="{% url 'indicadores:wizard_normalizacion_eliminar' %}" style="margin-top:1.5rem;display:flex;gap:1rem;align-items:center;">
+    {% csrf_token %}
+    <input type="hidden" name="dominio_id" value="{{ dominio.id }}">
+    <label style="font-size:.9rem;">
+      <input type="checkbox" name="confirmar" value="si" required>
+      Confirmo la eliminación del dominio y sus {{ stats.n_desags }} desagregaciones
+    </label>
+    <button type="submit" class="norm-btn btn-danger">Eliminar dominio</button>
+    <a href="{% url 'indicadores:wizard_normalizacion' %}">← Cancelar</a>
+  </form>
+</div>
+{% endblock %}
