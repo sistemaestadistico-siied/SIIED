@@ -299,7 +299,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 const STATS = JSON.parse(document.getElementById('stats-data').textContent);
 
 // Cifras vivas del sistema en los créditos: la prueba de que
-// la fábrica existe la construyó el equipo
+// la plataforma existe la construyó el equipo
 document.getElementById('cred-stats').textContent =
     `${STATS.modelos} MODELOS · ${STATS.indicadores} INDICADORES · ` +
     `${STATS.organismos} ORGANISMOS · ${STATS.dominios} DOMINIOS · ` +
@@ -928,7 +928,7 @@ function crearCinta(largo, z, x0 = 0, rotY = 0) {
 //   D1 (z=+4):    Taller → almacén de operaciones (pequeñas)
 //   D2 (z=+4):    operaciones → conjuntos → indicadores → difusión → IND
 //   T  (x=-2):    desvío en T desde conjuntos → catálogo de consulta
-//   E1-E3:        mini-maquilas de servicios (editorial/docs/agenda)
+//   E1-E3:        estaciones de servicio (editorial/docs/agenda)
 const cintas = [
     crearCinta(56, -10.5, -4),              // C:  x -32 … +24
     crearCinta(13, 4, -17.5),               // D1: x -24 … -11
@@ -1417,7 +1417,7 @@ function crearMecanismo(cfg) {
         // Barrera de peaje de verdad: el poste nace del PISO junto
         // al borde de la banda y el brazo la CRUZA completa al bajar
         // (gira sobre el eje x). La banda es fija en el mundo: si la
-        // máquina viene a escala (mini-maquilas), se compensa.
+        // estación viene a escala (estaciones de servicio), se compensa.
         const esc = cfg.escala || 1;
         const pz = -1.45 / esc;           // g-local: borde cercano de la banda
         const largo = 2.65 / esc;         // hasta el borde lejano
@@ -1955,7 +1955,7 @@ const TALLER = crearMaquina({
 {
     const placa = crearCartel('DADII · DPTO. DE INNOVACIÓN',
         'diseño del taller · Alcaldía de Santiago de Cali', 3.4);
-    placa.position.set(-26, 3.3, -0.1);   // en la cara de la banda, hacia la fábrica
+    placa.position.set(-26, 3.3, -0.1);   // en la cara de la banda, hacia la planta
     scene.add(placa);
 }
 
@@ -2323,7 +2323,7 @@ function crearCamion(cfg) {
     const ruedaGeom = new THREE.CylinderGeometry(0.44, 0.44, 0.32, 14);
     ruedaGeom.rotateX(Math.PI / 2);
     const ruedaMat = new THREE.MeshLambertMaterial({ color: 0x111827 });
-    const hubMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af });
+    const bujeMat = new THREE.MeshLambertMaterial({ color: 0x9ca3af });
     const ruedas = [];
     for (const [rx, rz] of [[-3.7, 0.95], [-3.7, -0.95], [0.6, 0.95],
                             [0.6, -0.95], [1.6, 0.95], [1.6, -0.95]]) {
@@ -2331,10 +2331,10 @@ function crearCamion(cfg) {
         r.position.set(rx, 0.44, rz);
         g.add(r);
         ruedas.push(r);
-        const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.34, 10), hubMat);
-        hub.rotation.x = Math.PI / 2;
-        hub.position.set(rx, 0.44, rz);
-        g.add(hub);
+        const buje = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.34, 10), bujeMat);
+        buje.rotation.x = Math.PI / 2;
+        buje.position.set(rx, 0.44, rz);
+        g.add(buje);
     }
     g.userData.ruedas = ruedas;
     // Rampa-liftgate articulada en el borde del piso trasero:
@@ -2396,7 +2396,7 @@ camDel.userData.ruta = { pts: [[52, -8], [13.4, -8], [8.6, -8], [-21, -8]],
 camEdi.userData.ruta = { pts: [[34, -11.5], [38, -11.5], [38, -22],
     [62.5, -22], [58.5, -25.5], [62.5, -22], [62.5, -14], [62.5, -22],
     [38, -22], [-34, -22], [-34, 20.5], [-27.2, 20.5], [-27.0, 20.5]],
-    // muelle al sur del hub: libre de los chutes z18/z24
+    // muelle al sur del nodo editorial: libre de los chutes z18/z24
     // paradas largas SOLO en las salas (idx 0 capa, 3 despacho,
     // 5 comité): las esquinas no leen como parada
     i: 1, dir: 1, espera: 0, esperaMid: 0.6, paradas: [3, 5] };
@@ -2479,13 +2479,13 @@ function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
 // Chute norte del taller → banda C (su producto: el censo del organismo)
 crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2), 0.8);
 // (el taller se autoabastece: no recibe camiones; aporta por banda y chute)
-// Hub editorial: del camión a las tres mini-maquilas de servicios
+// Muelle editorial: del camión a las tres estaciones de servicio
 {
-    const hub = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 1.6),
+    const muelleEd = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 1.6),
         new THREE.MeshLambertMaterial({ color: 0x94a3b8 }));
-    hub.position.set(-23.6, 1.55, 17.5);
-    hub.castShadow = true;
-    scene.add(hub);
+    muelleEd.position.set(-23.6, 1.55, 17.5);
+    muelleEd.castShadow = true;
+    scene.add(muelleEd);
     const cartelH = crearCartel('EDITORIAL', 'contenido → líneas de servicio', 2.2);
     cartelH.position.set(-23.6, 2.6, 17.5);
     scene.add(cartelH);
@@ -2497,7 +2497,7 @@ crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2
 // ============ OFICINA EDITORIAL — los redactores del muelle ============
 // Como la sala de recolección, pero para editorial: tres operarios
 // redactando junto al muelle, ANTES del nodo (el camión llega por el
-// oeste). Al sur del carril z=20.5 y al oeste del hub: sin colisión.
+// oeste). Al sur del carril z=20.5 y al oeste del muelle: sin colisión.
 {
     const ofi = new THREE.Group();
     const matO = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
@@ -2654,7 +2654,7 @@ for (let i = 0; i < 5; i++) famD1.push(nuevaFamilia(cajaUnitaria(texFuente)));
 // OP → conjuntos → indicadores → extracción → validación → difusión
 const famD2 = [];
 for (let i = 0; i < 7; i++) famD2.push(nuevaFamilia(cajaUnitaria(texOp)));
-// Mini-maquilas de servicios
+// Estaciones de servicio
 const famSrv = [[], [], []];
 for (let l = 0; l < 3; l++)
     for (let i = 0; i < 4; i++) famSrv[l].push(nuevaFamilia(cajaUnitaria(texSrv[l])));
@@ -2744,7 +2744,7 @@ function respawnSrv(f, l) {
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texSrv[l]);
     if (f.sello) f.sello.visible = false;
-    lanzarCaida(f, new THREE.Vector3(-27.0, 2.0, 20.3),   // desde el muelle (sur del hub)
+    lanzarCaida(f, new THREE.Vector3(-27.0, 2.0, 20.3),   // desde el muelle editorial
                    new THREE.Vector3(-20.6, 1.72, Z_SRV[l]), 0.8);
 }
 function resetFamilias() {
@@ -3082,7 +3082,7 @@ function crearKiosco(cfg) {
     scene.add(k);
     return k;
 }
-// (los servicios ahora son mini-maquilas: ver ESTACIONES_SRV)
+// (los servicios son estaciones propias: ver ESTACIONES_SRV)
 
 
 // ============ GRAFO 3D DEL ECOSISTEMA ============
@@ -3361,7 +3361,7 @@ const TVs = [];
     paredG.position.set(62, 0, 7);   // borde este de la plaza
     paredG.rotation.y = 0;         // pantallas hacia la plaza (-x)
     // El reverso de la pared es un panel de laboratorio: ya no
-    // es una losa gris que apaga la escena vista desde la fábrica
+    // es una losa gris que apaga la escena vista desde la planta
     const matMuroF = new THREE.MeshLambertMaterial({ map: LAB_CARAS.b1 });
     const matMuroS = new THREE.MeshLambertMaterial({ map: LAB_LADOS.x2 });
     const matMuroT = new THREE.MeshLambertMaterial({ color: 0x57534e });
@@ -3448,8 +3448,8 @@ const vuelosTV = [];
 function lanzarVueloTV(mesh, delay = 0) {
     const tv = TVs[Math.floor(Math.random() * TVs.length)];
     // La caja viaja POR LOS DUCTOS, no por el aire: entra por la
-    // boca del tubo más cercano a su estantería, cruza el hub de
-    // la torre del admin y sale por el ducto ámbar hasta su TV
+    // boca del tubo más cercano a su estantería, cruza el nodo
+    // del módulo de administración y sale por el ducto ámbar a su TV
     const dIn = ductos.slice(0, -1).reduce((b, d) =>
         mesh.position.distanceToSquared(d.pts0) <
         mesh.position.distanceToSquared(b.pts0) ? d : b);
@@ -3597,14 +3597,14 @@ for (let i = 0; i < 5; i++) {
     encuestas.push({ mesh: pl, t: i * 0.2 });
 }
 
-// ============ DUCTOS DE DATOS — todo pasa por la torre ============
-// Los inventarios no "teletransportan" a la pared de TVs: tres
-// tubos de entrada descargan en el manifold de la torre del
-// admin (el nodo principal) y un solo tubo de salida lleva el
-// producto a la pared de televisores. Los paquetes viajan
-// dentro de los ductos — y los vuelos reales a la pared
-// también pasan por el hub (ver lanzarVueloTV).
-const HUB_TORRE = new THREE.Vector3(8.2, 6.5, 11);
+// ============ DUCTOS DE DATOS — todo pasa por el admin ============
+// Los datos de los inventarios no aparecen solos en la pared de
+// TVs: los tubos de entrada descargan en el manifold del módulo
+// de administración (el nodo principal) y un solo tubo de salida
+// lleva el producto a la pared de televisores. Los paquetes
+// viajan dentro de los ductos — y los vuelos reales a la pared
+// también pasan por el nodo (ver lanzarVueloTV).
+const NODO_ADMIN = new THREE.Vector3(8.2, 6.5, 11);
 const ductos = [];
 [
     { pts: [[-10.5, 3.0, 7.2], [-4, 5.8, 10.5], [8.2, 6.4, 11]],
@@ -3642,13 +3642,13 @@ const ductos = [];
     }
     ductos.push(d);
 });
-// Manifold de entrada en la cara este de la torre: el hub
-const hubM = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.9),
+// Manifold de entrada en la cara este de la torre: el nodo
+const nodoAdmin = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.9),
     new THREE.MeshLambertMaterial({ color: 0x475569 }));
-hubM.position.copy(HUB_TORRE); hubM.position.y = 6.4; scene.add(hubM);
-const ledHub = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8),
+nodoAdmin.position.copy(NODO_ADMIN); nodoAdmin.position.y = 6.4; scene.add(nodoAdmin);
+const ledNodo = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8),
     new THREE.MeshBasicMaterial({ color: 0x22cc44 }));
-ledHub.position.set(8.2, 6.95, 11); scene.add(ledHub);
+ledNodo.position.set(8.2, 6.95, 11); scene.add(ledNodo);
 
 // ============ VÍAS DE LOS CAMIONES ============
 // Franjas de asfalto dibujadas ENTRE los waypoints reales de
@@ -4612,7 +4612,7 @@ new GLTFLoader().load(
 // cam[0] = posición (o OFFSET del camión si `sigue`), cam[1] = mira.
 //
 // EL DATO PROTAGONISTA (campo `dato`): una sola pieza de información
-// real recorre la fábrica de principio a fin — las proyecciones de
+// real recorre la plataforma de principio a fin — las proyecciones de
 // población del DANE, que el DAP convierte en una operación
 // estadística propia: proyección por comunas y corregimientos de
 // Santiago de Cali. Cada estación cuenta qué le pasa a ESE dato.
@@ -4650,7 +4650,7 @@ const ACTOS_TODOS = [
       dato: 'Vea la barrera: el camión del delegado se detiene en el punto de validación. Todo lo que un organismo cargue — series, conjuntos, el FICED — queda pre-aprobado antes de tocar la banda.',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel' },
     { t0: 122, t1: 140, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'la voz pública de la plataforma, y es autónoma: no pasa por recolección ni pide autorización — noticias, eventos, agenda y productos académicos',
-      dato: 'Su camión no para en validación: publica por las líneas de servicio propias — aunque su producción también se reporta al hub de la torre. El documento académico de la operación se carga aquí y sale con sus gráficos vivos.',
+      dato: 'Su camión no para en validación: publica por las líneas de servicio propias — aunque su producción también se reporta al módulo de administración. El documento académico de la operación se carga aquí y sale con sus gráficos vivos.',
       cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi' },
     // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
     { t0: 140, t1: 154, acto: 'Módulo 04', texto: 'EL TALLER · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
@@ -4938,7 +4938,7 @@ document.addEventListener('keydown', (e) => {
 
 // ============ PAUSA EXPOSITORA ============
 // Congela el timeline (cámara + intertítulos + música) pero la
-// fábrica sigue viva — pensado para sostener la charla hasta 40 min.
+// plataforma sigue viva — pensado para sostener la charla hasta 40 min.
 let pausado = false;
 let tPausa = 0;
 const btnPausa = document.getElementById('btn-pausa');
