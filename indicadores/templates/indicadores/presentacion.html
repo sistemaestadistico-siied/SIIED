@@ -189,11 +189,6 @@
     .cred-fila .nom { font-size: 14.5px; font-weight: 700; color: #0f172a; white-space: nowrap; }
     .cred-inst { font-size: 12px; color: #475569; line-height: 1.7; }
     .cred-inst strong { color: #0f172a; font-weight: 700; }
-    .cred-stats {
-        margin-top: 18px; font-family: 'JetBrains Mono', monospace;
-        font-size: 11.5px; letter-spacing: 1.5px; text-transform: uppercase;
-        color: #0284c7;
-    }
     #btn-replay {
         margin-top: 20px; background: #2563eb; color: #f8fafc;
         border: none; border-radius: 9px; padding: 10px 28px;
@@ -255,8 +250,8 @@
 
 <div id="creditos">
     <div class="tarjeta">
-        <img src="{% static 'indicadores/images/siied-logo.png' %}" alt="SIIED" style="height:56px;margin-bottom:8px;filter:drop-shadow(0 0 12px rgba(255,255,255,.9)) drop-shadow(0 0 4px rgba(255,255,255,.55));">
-        <div class="acto">FIN DEL TURNO</div>
+        <img src="{% static 'indicadores/images/siied-logo.png' %}" alt="SIIED" style="height:100px;margin-bottom:14px;filter:drop-shadow(0 0 16px rgba(255,255,255,.95)) drop-shadow(0 0 6px rgba(255,255,255,.6));">
+        <div class="acto">CRÉDITOS</div>
         <div class="texto">La plataforma de datos<br>de Santiago de Cali</div>
         <div class="equipo">
             <div class="cred-fila"><span class="rol">Dirección · Departamento Administrativo de Planeación</span><span class="nom">Vanessa Fernanda López Rojas</span></div>
@@ -274,7 +269,6 @@
             Subdirección de Desarrollo Integral · Departamento Administrativo de Planeación Distrital<br>
             Departamento Administrativo de Desarrollo e Innovación Institucional (DADII) · Alcaldía de Santiago de Cali
         </div>
-        <div class="cred-stats" id="cred-stats"></div>
         <button id="btn-replay">↺ REINICIAR</button>
     </div>
 </div>
@@ -298,13 +292,6 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
 const STATS = JSON.parse(document.getElementById('stats-data').textContent);
-
-// Cifras vivas del sistema en los créditos: la prueba de que
-// la plataforma existe la construyó el equipo
-document.getElementById('cred-stats').textContent =
-    `${STATS.modelos} MODELOS · ${STATS.indicadores} INDICADORES · ` +
-    `${STATS.organismos} ORGANISMOS · ${STATS.dominios} DOMINIOS · ` +
-    `${STATS.conjuntos} CONJUNTOS`;
 
 // ============ ESCENA BASE ============
 const contenedor = document.getElementById('escena');
@@ -1042,16 +1029,16 @@ function crearCinta(largo, z, x0 = 0, rotY = 0) {
     scene.add(c);
     return { grupo: c, tex, rodillos };
 }
-// Topología: cada flujo nace en un muelle (camión) y muere en un
-// almacén — nacimiento y final lógicos, sin gran loop.
+// Topología: cada flujo nace en un rol (camión) o en un módulo
+// y muere en un almacén — nacimiento y final lógicos, sin gran loop.
 //   C  (z=-10.5): CALIDAD INSTITUCIONAL  Delegado→Evals→Satisf→FICED→Hall
-//   D1 (z=+4):    Taller → almacén de operaciones (pequeñas)
+//   D1 (z=+4):    delegado (indicadores) → taller → almacén de operaciones
 //   D2 (z=+4):    operaciones → conjuntos → indicadores → difusión → IND
 //   T  (x=-2):    desvío en T desde conjuntos → catálogo de consulta
 //   E1-E3:        estaciones de servicio (editorial/docs/agenda)
 const cintas = [
-    crearCinta(56, -10.5, -4),              // C:  x -32 … +24
-    crearCinta(13, 4, -17.5),               // D1: x -24 … -11
+    crearCinta(60.5, -10.5, -6.25),         // C:  x -36.5 … +24 (cabeza junto al módulo del delegado)
+    crearCinta(27, 4, -24.5),               // D1: x -38 … -11 (cabeza al oeste del taller)
     crearCinta(56.5, 4, 17.25),             // D2: x -11 … +45.5
     crearCinta(14, 11, -2, -Math.PI / 2),   // T:  z +4 … +18 en x=-2
     crearCinta(14, 12, -14),                // E1: x -21 … -7
@@ -1084,8 +1071,8 @@ const texDato = texturaPaquete('DATO', '#0284c7');
 // 'caida' (del camión/chute a la banda) → 'ride' → estaciones
 // ('eval' pausa, 'crece' engorda, transformaciones) → 'vuelo' al almacén.
 const SEGS = {
-    C:  { axis: 'x', a0: -32, a1: 24,  fixed: -10.5 },  // calidad
-    D1: { axis: 'x', a0: -27, a1: -11, fixed: 4 },      // taller→OP
+    C:  { axis: 'x', a0: -36.5, a1: 24, fixed: -10.5 }, // calidad
+    D1: { axis: 'x', a0: -38, a1: -11, fixed: 4 },      // delegado→taller→OP
     D2: { axis: 'x', a0: -11, a1: 56.5,  fixed: 4 },    // OP→almacén IND
     T:  { axis: 'z', a0: 4,   a1: 18,  fixed: -2 },     // nodo T → catálogo
     E1: { axis: 'x', a0: -21, a1: -7,  fixed: 12 },     // editorial
@@ -2335,8 +2322,8 @@ function disparo(nombre, retardo = 0) {
         m.userData.extras.semHasta = tGlobal + retardo;
 }
 
-// ============ MUELLES: LOS MÓDULOS DE ACCESO SON CAMIONES ============
-// Nada aparece de la nada: cada flujo nace en un camión que
+// ============ MUELLES: LOS MÓDULOS DE ACCESO SON ROLES ============
+// Nada aparece de la nada: cada flujo nace en un rol (camión) que
 // descarga en banda (o en la tolva del taller).
 const camiones = [];
 function crearCamion(cfg) {
@@ -2487,35 +2474,38 @@ function crearCamion(cfg) {
     camiones.push(g);
     return g;
 }
-// Los camiones YA NO están estacionados: hacen rutas de ida y
-// vuelta entre su región de origen y el punto de descarga, y
-// solo mientras están atracados alimentan cajas a las bandas.
+// Los roles (camiones) hacen rutas de ida y vuelta entre su módulo
+// de origen y los puntos de descarga, y solo mientras están
+// atracados alimentan cajas a las bandas.
 const camRec = crearCamion({ x: 39,   z: -4.5, color: 0x38bdf8,
-              etiqueta: 'MÓDULO RECOLECCIÓN', sub: 'equipo técnico · ingesta de fuentes' });
+              etiqueta: 'ROL DE RECOLECCIÓN', sub: 'equipo técnico · ingesta de fuentes' });
 const camDel = crearCamion({ x: 52,   z: -8,   color: 0xf59e0b,
-              etiqueta: 'DELEGADO DE ORGANISMO', sub: 'enlace del organismo · datos y FICED' });
+              etiqueta: 'ROL DEL DELEGADO', sub: 'enlace del organismo · datos, FICED e indicadores' });
 const camEdi = crearCamion({ x: 34,   z: -11.5, color: 0xef4444,
-              etiqueta: 'MÓDULO EDITORIAL',   sub: 'noticias · productos · agenda' });
+              etiqueta: 'ROL EDITORIAL',   sub: 'noticias · productos · agenda' });
 // Rutas por pasillos libres — ninguna atraviesa bandas.
-// RECOLECCIÓN: muelle del observatorio → pasillo norte de la
+// RECOLECCIÓN: módulo del observatorio → pasillo norte de la
 // línea D2; la carga entra a la tolva volando sobre la máquina.
-// DELEGADO: muelle del comité → cabeza de banda C, PERO con
-// parada obligatoria en el punto de validación (brazo en x=11):
-// se detiene ANTES de la barrera en cada sentido — 13.4 yendo
-// al oeste, 8.6 volviendo — y el módulo de validación
-// pre-aprueba cada movimiento suyo.
+// DELEGADO: módulo del comité → DOS descargas. Primero el dossier
+// en la banda de calidad (x=-21, entre el taller y la evaluación
+// estratégica), con parada obligatoria en la validación (brazo en
+// x=11: 13.4 yendo, 8.6 volviendo); después da la vuelta por el
+// oeste (x=-39.5) y descarga indicadores del otro lado del taller
+// sobre la banda D1, en su segundo módulo — y regresa a casa.
 // EDITORIAL es autónomo: no pasa por recolección ni pide
 // autorización al admin. Recoge contenido en despacho y
 // comité y descarga en el muelle de líneas E, subiendo por
-// el perímetro oeste (x=-34) hasta su muelle y oficina.
-// VÍAS PROPIAS: z=-11.5/z=-22/x=-34.
+// el perímetro oeste (x=-42) hasta su muelle y módulo.
+// VÍAS PROPIAS: z=-11.5/z=-22/x=-42.
 camRec.userData.ruta = { pts: [[39, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
-camDel.userData.ruta = { pts: [[52, -8], [13.4, -8], [8.6, -8], [-21, -8]],
+camDel.userData.ruta = { pts: [[52, -8], [13.4, -8], [8.6, -8], [-21, -8],
+    [-39.5, -8], [-39.5, 7], [-35, 7]],
     i: 1, dir: 1, espera: 0, esperaMid: 0,
-    paradas: [{ i: 1, dir: 1 }, { i: 2, dir: -1 }] };   // antes del brazo en cada sentido
+    paradas: [{ i: 1, dir: 1 }, { i: 2, dir: -1 }],   // antes del brazo en cada sentido
+    dockIdx: [{ i: 3, dir: 1 }] };                   // descarga 1: banda de calidad (solo ida)
 camEdi.userData.ruta = { pts: [[34, -11.5], [38, -11.5], [38, -22],
     [62.5, -22], [58.5, -25.5], [62.5, -22], [62.5, -14], [62.5, -22],
-    [38, -22], [-34, -22], [-34, 20.5], [-27.2, 20.5], [-27.0, 20.5]],
+    [38, -22], [-42, -22], [-42, 20.5], [-27.2, 20.5], [-27.0, 20.5]],
     // muelle al sur del nodo editorial: libre de los chutes z18/z24
     // paradas largas SOLO en las salas (idx 0 capa, 3 despacho,
     // 5 comité): las esquinas no leen como parada
@@ -2658,10 +2648,59 @@ crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2
     scene.add(ofi);
     const mastO = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.3, 0.09), matO);
     mastO.position.set(-30.5, 3.25, 18.5); scene.add(mastO);   // sobre el techo, borde norte
-    const cartelO = crearCartel('OFICINA EDITORIAL', 'equipo de contenidos', 2.6);
+    const cartelO = crearCartel('MÓDULO EDITORIAL', 'equipo de contenidos', 2.6);
     cartelO.position.set(-30.5, 4.15, 18.5);
     scene.add(cartelO);
 }
+
+// ============ MÓDULOS DEL DELEGADO — dos oficinas, dos bandas ============
+// El delegado del organismo tiene su módulo ANTES de la primera
+// estación de la banda de calidad — su rol descarga allí el
+// dossier — y un segundo módulo antes del taller: también puede
+// cargar indicadores, así que su rol da la vuelta por el oeste y
+// descarga del otro lado del taller sobre la banda D1.
+function crearModuloAcceso(x, z, nombre, sub, anchoCartel, cartelZ, miraNorte) {
+    const ofi = new THREE.Group();
+    const matO = new THREE.MeshLambertMaterial({ color: 0x5b6d7c });
+    const losaO = new THREE.Mesh(new THREE.BoxGeometry(4, 0.2, 2.8), matO);
+    losaO.position.y = 0.1; ofi.add(losaO);
+    const techoO = new THREE.Mesh(new THREE.BoxGeometry(4, 0.14, 2.8), matO);
+    techoO.position.y = 2.6; ofi.add(techoO);
+    for (const [px, pz] of [[-1.85, -1.25], [1.85, -1.25], [-1.85, 1.25], [1.85, 1.25]]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2.6, 0.15), matO);
+        col.position.set(px, 1.35, pz); ofi.add(col);
+    }
+    const vidrioO = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.2 });
+    const mA = new THREE.Mesh(new THREE.BoxGeometry(3.7, 2.2, 0.06), vidrioO);
+    mA.position.set(0, 1.4, 1.36); ofi.add(mA);
+    const mB = mA.clone(); mB.position.z = -1.36; ofi.add(mB);
+    for (const px of [-1.93, 1.93]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.2, 2.6), vidrioO);
+        p.position.set(px, 1.4, 0); ofi.add(p);
+    }
+    // Escritorio con pantalla: el enlace carga desde su portal
+    const mesaO = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.07, 0.6), matO);
+    mesaO.position.set(0, 0.62, 0); ofi.add(mesaO);
+    const monO = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.44),
+        new THREE.MeshBasicMaterial({ map: texturaPantalla('CARGA', 'portal del organismo') }));
+    monO.position.set(0, 0.92, miraNorte ? -0.28 : 0.28);
+    monO.rotation.x = -0.15; if (!miraNorte) monO.rotation.y = Math.PI;
+    ofi.add(monO);
+    salas.push({ grupo: ofi, y: 0.22, estado: 'trabajar',
+        puestos: miraNorte ? [[-0.8, 0.55, 0], [0.8, 0.55, 0]]
+                           : [[-0.8, -0.55, Math.PI], [0.8, -0.55, Math.PI]] });
+    const mastM = new THREE.Mesh(new THREE.BoxGeometry(0.09, 1.3, 0.09), matO);
+    mastM.position.set(0, 3.25, cartelZ * 0.8); ofi.add(mastM);
+    const cartelM = crearCartel(nombre, sub, anchoCartel);
+    cartelM.position.set(0, 4.15, cartelZ); ofi.add(cartelM);
+    ofi.position.set(x, 0, z);
+    scene.add(ofi);
+}
+crearModuloAcceso(-36.5, -14.7, 'MÓDULO DEL DELEGADO DEL ORGANISMO',
+    'enlace: descarga del organismo · dossier y FICED', 5.0, 1.5, true);
+crearModuloAcceso(-36, 9.9, 'MÓDULO DEL DELEGADO',
+    'carga de indicadores y conjuntos del organismo', 4.2, -1.5, false);
 // Placa del nodo T en conjuntos (desvío al catálogo de consulta)
 {
     const placa = new THREE.Mesh(new THREE.PlaneGeometry(3, 3),
@@ -2771,6 +2810,9 @@ for (let i = 0; i < 2; i++) famRep.push(nuevaFamilia(cajaUnitaria(texOp)));
 // Taller → almacén OP (pequeñas)
 const famD1 = [];
 for (let i = 0; i < 5; i++) famD1.push(nuevaFamilia(cajaUnitaria(texFuente)));
+// Indicadores del delegado → cabeza oeste de la banda del taller
+const famDel2 = [];
+for (let i = 0; i < 3; i++) famDel2.push(nuevaFamilia(cajaUnitaria(texDeleg)));
 // OP → conjuntos → indicadores → extracción → validación → difusión
 const famD2 = [];
 for (let i = 0; i < 7; i++) famD2.push(nuevaFamilia(cajaUnitaria(texOp)));
@@ -2815,7 +2857,7 @@ function tickLluvia(dt) {
 
 // ---- Respawns: cada familia renace en su muelle/chute ----
 const ORG_CAL = [
-    { desde: new THREE.Vector3(-21, 2.1, -8), hasta: new THREE.Vector3(-30.8, 1.72, -10.5), tex: () => texDeleg },
+    { desde: new THREE.Vector3(-21, 2.1, -8), hasta: new THREE.Vector3(-35.3, 1.72, -10.5), tex: () => texDeleg },
     { desde: new THREE.Vector3(-26, 3.2, -5.2),    hasta: new THREE.Vector3(-26, 1.72, -10.3),   tex: () => texCenso },
 ];
 let fuenteCal = 0;
@@ -2842,12 +2884,22 @@ function respawnRec(f) {
                    new THREE.Vector3(-9.0, 4.6, -0.5), 0.85, 2.2);
 }
 function respawnD1(f) {
-    f.seg = 'D1'; f.s = 0.8; f.pasadas.clear();
+    f.seg = 'D1'; f.s = 12; f.pasadas.clear();   // bajo el chute del taller (x=-26)
     f.mesh.scale.setScalar(0.34);
     f.mesh.rotation.set(0, 0, 0);
     ponerTex(f, texFuente);
     lanzarCaida(f, new THREE.Vector3(-26, 4.3, 4),
                    new THREE.Vector3(-26, 1.72, 4), 0.55);
+}
+function respawnDel2(f) {
+    f.seg = 'D1'; f.s = 1.0; f.pasadas.clear();
+    f.mesh.scale.setScalar(0.5);
+    f.mesh.rotation.set(0, 0, 0);
+    ponerTex(f, texDeleg);
+    if (f.sello) f.sello.visible = false;
+    // Del rol atracado al oeste del taller → cabeza de la banda D1
+    lanzarCaida(f, new THREE.Vector3(-35, 2.0, 7),
+                   new THREE.Vector3(-37, 1.72, 4), 0.7, 0.5);
 }
 function respawnD2(f) {
     f.seg = 'D2'; f.s = 1.4; f.pasadas.clear();
@@ -2871,6 +2923,7 @@ function resetFamilias() {
     famCal.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 3.4; f.mesh.visible = false; f.extra = {}; });
     famRec.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 2.1; f.mesh.visible = false; });
     famD1.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 2.6; f.mesh.visible = false; });
+    famDel2.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 4.4; f.mesh.visible = false; });
     famD2.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 3.8; f.mesh.visible = false; f.extra = {}; });
     famRep.forEach((f, i) => { f.estado = 'espera'; f.tEspera = 4 + i * 7; f.mesh.visible = false; });
     famSrv.forEach((arr, l) => arr.forEach((f, i) => {
@@ -2986,6 +3039,16 @@ function tickFamD1(f, dt) {
             ? almOP.slots[almOP.idx] : new THREE.Vector3(-10.5, -1, 9);
         lanzarVuelo(f, slot.clone().add(new THREE.Vector3(0, 0.25, 0)), 0.6);
     }
+}
+function tickFamDel2(f, dt) {
+    if (f.estado === 'espera') {
+        f.tEspera -= dt;
+        // La segunda descarga del delegado solo vuela con el rol
+        // atracado en su módulo del oeste
+        if (f.tEspera <= 0 && camDel.userData.dock2) respawnDel2(f);
+        return;
+    }
+    tickFamD1(f, dt);   // misma banda D1 → almacén de operaciones
 }
 function tickFamD2(f, dt) {
     if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnD2(f); return; }
@@ -3832,8 +3895,10 @@ ledNodo.position.set(8.2, 14.65, 11); scene.add(ledNodo);
             raya.position.set(cx, 0.018, cz);
             scene.add(raya);
         }
-        // Plataforma de muelle en cada extremo de la ruta
-        for (const [mx, mz] of [pts[0], pts[pts.length - 1]]) {
+        // Plataforma de muelle en cada punto de descarga de la ruta
+        for (const [mx, mz] of [pts[0], pts[pts.length - 1],
+                ...(cm.userData.ruta.dockIdx || []).map(
+                    p => pts[typeof p === 'number' ? p : p.i])]) {
             const muelle = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 3.4),
                 new THREE.MeshLambertMaterial({ color: 0x4b5563 }));
             muelle.rotation.x = -Math.PI / 2;
@@ -4639,6 +4704,7 @@ function crearPlanta() {
         [-14, -6.3, 0.7],     // RECOLECCIÓN → hueco taller/operaciones
         [-20, -5.4, -2.2],    // DELEGADO → cabeza de banda C
         [-26.5, 22.3, -1.5],  // EDITORIAL → al sur del muelle, fuera del carril
+        [-33.8, 8.4, -2.0],   // DELEGADO · 2ª descarga → oeste del taller
     ];
     DOCKS.forEach(([dx, dz, ry], di) => {
         let w;
@@ -4783,12 +4849,14 @@ const ACTOS_TODOS = [
       cam: [[0, 30, 55], [0, 5, -4]] },
     { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'El equipo técnico', sub: 'lo opera el equipo de estadísticas distritales · Subdirección de Desarrollo Integral, DAP', pan: true,
       cam: [[-20, 9, 22], [4, 3, 2]] },
-    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'Los canales de acceso', sub: 'los organismos y el portal alimentan el sistema por tres módulos', pan: true,
+    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'Los canales de acceso', sub: 'los organismos y el portal alimentan el sistema por tres roles', pan: true,
       dato: 'Tres caminos distintos: recolección es del propio equipo, editorial es autónomo, y el delegado para primero en el punto de validación — la validación pre-aprueba cada movimiento suyo.',
       cam: [[-8, 8, 14], [30, 2.5, -8]] },
-    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'Taller de gestión de datos institucionales', sub: 'censo de fuentes de datos por organismo y prediagnóstico de riesgos de publicación · diseñado por el DADII', pan: true,
+    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'Taller de gestión de datos institucionales', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
+      dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — así arranca la segunda banda, la de capacidad estadística.',
       cam: [[-36, 7, 10], [-24, 3, -2]] },
-    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'La producción del dato', sub: 'ocho estaciones, dos controles de calidad — y la torre de administración sobre la explanada', pan: true,
+    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'La producción del dato', sub: 'ocho módulos, dos controles de calidad — y la torre de administración sobre la explanada', pan: true,
+      dato: 'Ahora bajamos a la plataforma: el rol de recolección llega con las proyecciones del DANE. Fíjese en algo: ningún módulo funciona solo — es producción de datos coordinada de punta a punta.',
       cam: [[-32, 8, 12], [7, 3, 3]] },
     { t0: 45,  t1: 54,  acto: 'Paneo', texto: 'Consulta e indicadores', sub: 'conjuntos públicos y los tres marcos: ODS, Cali en Cifras, dominios del Comité', pan: true,
       cam: [[10, 7, 16], [32, 3.4, 3]] },
@@ -4799,21 +4867,21 @@ const ACTOS_TODOS = [
     { t0: 76,  t1: 84,  acto: 'Paneo', texto: 'Del dato a la decisión', sub: 'junta del hall, comité de gestión y despacho de alcaldía', pan: true,
       cam: [[40, 8, -6], [52, 3, -16]] },
     { t0: 84,  t1: 90,  acto: 'Paneo', texto: 'Una sola plataforma', sub: 'producción, calidad, gobierno y difusión del dato distrital', pan: true,
-      dato: 'Ahora bajamos a la plataforma: un camión llega con las proyecciones del DANE. Fíjese en algo: ningún módulo funciona solo — es producción de datos coordinada de punta a punta.',
+      dato: 'Ahora bajamos a la plataforma: el rol de recolección llega con las proyecciones del DANE. Fíjese en algo: ningún módulo funciona solo — es producción de datos coordinada de punta a punta.',
       cam: [[0, 24, 44], [0, 3, -4]] },
     // ======= B: MÓDULOS DE ACCESO — la cámara los SIGUE =======
     { t0: 90,  t1: 106, acto: 'Módulo 01', texto: 'RECOLECCIÓN', sub: 'suministro técnico: carga series y conjuntos con las plantillas normalizadas del equipo, y registra operaciones',
       dato: 'El DANE entrega al Distrito sus proyecciones de población actualizadas. Es el insumo: población total de Cali por año, edad y sexo.',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camRec' },
     { t0: 106, t1: 122, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'cada organismo carga sus series y conjuntos desde su portal: cargas parciales e incrementales, a prueba de errores',
-      dato: 'Vea la barrera: el camión del delegado se detiene en el punto de validación. Todo lo que un organismo cargue — series, conjuntos, el FICED — queda pre-aprobado antes de tocar la banda.',
+      dato: 'Vea la barrera: el rol del delegado se detiene en el punto de validación. Todo lo que un organismo cargue — series, conjuntos, el FICED — queda pre-aprobado antes de tocar la banda. Y no solo trae el dossier: descarga en la banda de calidad, da la vuelta por el oeste y entrega también los indicadores del organismo del otro lado del taller.',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel' },
     { t0: 122, t1: 140, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'la voz pública de la plataforma, y es autónoma: no pasa por recolección ni pide autorización — noticias, eventos, agenda y productos académicos',
-      dato: 'Su camión no para en validación: publica por las líneas de servicio propias — aunque su producción también se reporta al módulo de administración. El documento académico de la operación se carga aquí y sale con sus gráficos vivos.',
+      dato: 'El rol editorial no para en validación: publica por las líneas de servicio propias — aunque su producción también se reporta al módulo de administración. El documento académico de la operación se carga aquí y sale con sus gráficos vivos.',
       cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi' },
     // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
     { t0: 140, t1: 154, acto: 'Módulo 04', texto: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
-      dato: 'De aquí no sale un camión: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — así arranca la segunda banda, la de capacidad estadística.',
+      dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — así arranca la segunda banda, la de capacidad estadística.',
       cam: [[-14, 5.5, 5], [-24, 3.4, -2.5]] },
     { t0: 154, t1: 160, acto: 'Sala', texto: 'Equipo técnico', sub: 'la cabina de administración: carga indicadores con el procesador de la torre y configura fichas MSD, dominios, reglas y capas geográficas', pan: true,
       dato: 'Aquí el equipo diseña la operación: llevar la proyección del DANE al nivel subdistrital — 22 comunas y 15 corregimientos. El administrador configura aquí toda la operación.',
@@ -4826,54 +4894,54 @@ const ACTOS_TODOS = [
       dato: 'Cinco consolas: extracción y cálculo automático de indicadores desde conjuntos, validación de las cargas de recolección, gestor de capas geoestadísticas, gestor de variables y desagregaciones — y Don Datico.',
       cam: [[-2, 9, 20], [4.5, 8.8, 11.3]] },   // consolas + cartel de la torre en cuadro
     { t0: 172, t1: 178, acto: 'Sala', texto: 'Equipo técnico SIIED', sub: 'escritorios, monitores y el archivador de fichas cargadas', pan: true,
-      dato: 'Sin ficha MSD, sin dominios y sin regla de extracción, ningún camión mueve nada. Y cuando la metodología esté escrita, la cargará editorial: cada módulo hace lo suyo.',
+      dato: 'Sin ficha MSD, sin dominios y sin regla de extracción, ningún rol mueve nada. Y cuando la metodología esté escrita, la cargará editorial: cada módulo hace lo suyo.',
       cam: [[-24, 4, 7], [-17, 1.6, -0.8]] },
     // ======= D: CADENA DE DATOS — estación por estación =======
-    { t0: 178, t1: 192, acto: 'Estación 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'inventario distrital de operaciones (OOEE): cada una con enlace al ADDA y a sus documentos metodológicos',
+    { t0: 178, t1: 192, acto: 'Módulo 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'inventario distrital de operaciones (OOEE): cada una con enlace al ADDA y a sus documentos metodológicos',
       dato: 'La operación nació primero en el ADDA, la plataforma de datos abiertos del Distrito. Aquí entra al inventario con su enlace, su ficha metodológica y su diccionario de datos.',
       cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]] },
-    { t0: 192, t1: 204, acto: 'Estación 06', texto: 'INGESTA DE CONJUNTOS', sub: 'microdatos documentados con DDI completo: identificación, universo, cobertura, método y condiciones de uso',
+    { t0: 192, t1: 204, acto: 'Módulo 06', texto: 'INGESTA DE CONJUNTOS', sub: 'microdatos documentados con DDI completo: identificación, universo, cobertura, método y condiciones de uso',
       dato: 'La operación produce UN conjunto de datos: población proyectada por año × edad simple × sexo × comuna/corregimiento. Es la base de todo lo que sigue.',
       cam: [[-7, 5, 12], [-1, 2.4, 0]] },
-    { t0: 204, t1: 216, acto: 'Estación 07', texto: 'Catálogo de consulta', sub: 'listados del anuario Cali en Cifras — se cargan desde el panel del catálogo (admin) y del censo de fuentes del taller; ningún camión los trae',
+    { t0: 204, t1: 216, acto: 'Módulo 07', texto: 'Catálogo de consulta', sub: 'listados del anuario Cali en Cifras — se cargan desde el panel del catálogo (admin) y del censo de fuentes del taller; ningún rol los trae',
       dato: 'Este conjunto NO pasa por aquí. El catálogo publica tablas de referencia; la población proyectada no es un listado: continúa su camino hacia el estatus de indicador.',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
-    { t0: 216, t1: 228, acto: 'Estación 08', texto: 'CONTROL DE CALIDAD Y DESAGREGACIÓN', sub: 'dominios de desagregación declarados, totales verificados y bitácora de cambios',
+    { t0: 216, t1: 228, acto: 'Módulo 08', texto: 'CONTROL DE CALIDAD Y DESAGREGACIÓN', sub: 'dominios de desagregación declarados, totales verificados y bitácora de cambios',
       dato: 'Se declaran los dominios: sexo, grupo de edad, comuna, corregimiento. La suma de las 22 comunas y 15 corregimientos debe coincidir con el total distrital del DANE. Si no cuadra, no pasa.',
       cam: [[3.5, 4.5, 11], [6.5, 2.2, -0.2]] },
-    { t0: 228, t1: 240, acto: 'Estación 09', texto: 'SERIES DE INDICADORES', sub: 'cada indicador con su metadata: objetivo, método, fórmula y variables',
+    { t0: 228, t1: 240, acto: 'Módulo 09', texto: 'SERIES DE INDICADORES', sub: 'cada indicador con su metadata: objetivo, método, fórmula y variables',
       dato: 'Del conjunto se derivan indicadores: pirámide poblacional por comuna, población por sexo, estructura por grupos de edad. Cada uno con fórmula explícita sobre el conjunto fuente.',
       cam: [[11, 4.5, 11], [14, 2.2, -0.2]] },
-    { t0: 240, t1: 252, acto: 'Estación 10', texto: 'REPORTES Y AUDITORÍA', sub: 'tablero de monitoreo de la plataforma: indicadores sin datos, series desactualizadas, completitud MSD+SDMX, producción mensual y trazabilidad',
+    { t0: 240, t1: 252, acto: 'Módulo 10', texto: 'REPORTES Y AUDITORÍA', sub: 'tablero de monitoreo de la plataforma: indicadores sin datos, series desactualizadas, completitud MSD+SDMX, producción mensual y trazabilidad',
       dato: 'Cuando la pirámide llegue, este tablero debe prenderse en verde: con datos, sin alertas, ficha completa. Si algo falta, aparece aquí antes que afuera.',
       cam: [[18.5, 4.5, 11], [21.5, 2.2, -0.2]] },
-    { t0: 252, t1: 264, acto: 'Estación 11', texto: 'EXTRACCIÓN', sub: 'del conjunto a las series: el administrador define para cada indicador las columnas fuente, la fórmula y el orden de desagregaciones',
+    { t0: 252, t1: 264, acto: 'Módulo 11', texto: 'EXTRACCIÓN', sub: 'del conjunto a las series: el administrador define para cada indicador las columnas fuente, la fórmula y el orden de desagregaciones',
       dato: 'La regla de extracción recorta el conjunto: para la pirámide de la comuna 13, hombres y mujeres por grupo quinquenal, año a año.',
       cam: [[26, 4.5, 11], [29, 2.2, -0.2]] },
-    { t0: 264, t1: 276, acto: 'Estación 12', texto: 'METADATOS · FICHA TÉCNICA', sub: 'ficha técnica del indicador bajo el estándar MSD del DANE, con secciones SDMX: referencias APA y responsable institucional',
+    { t0: 264, t1: 276, acto: 'Módulo 12', texto: 'METADATOS · FICHA TÉCNICA', sub: 'ficha técnica del indicador bajo el estándar MSD del DANE, con secciones SDMX: referencias APA y responsable institucional',
       dato: 'Fuente: DANE + operación distrital. Unidad: personas. Periodicidad anual. Desagregaciones: sexo, edad, comuna, corregimiento. Y un responsable de validación con nombre y cargo.',
       cam: [[33.5, 4.5, 11], [36.5, 2.2, -0.2]] },
-    { t0: 276, t1: 288, acto: 'Estación 13', texto: 'DIFUSIÓN DEL DATO', sub: 'gráficos, calendario de difusión y API abierta: publicación programada',
+    { t0: 276, t1: 288, acto: 'Módulo 13', texto: 'DIFUSIÓN DEL DATO', sub: 'gráficos, calendario de difusión y API abierta: publicación programada',
       dato: 'La pirámide poblacional de cada comuna queda publicada, con fecha en el calendario y disponible por API para quien la necesite.',
       cam: [[40, 5, 11], [44, 2.4, -0.2]] },
-    { t0: 288, t1: 302, acto: 'Estación 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`,
+    { t0: 288, t1: 302, acto: 'Módulo 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`,
       dato: 'Los indicadores de población entran al marco Cali en Cifras. Y la plataforma entera gana denominadores: cualquier tasa por habitante del Distrito nace aquí.',
       cam: [[44, 5.5, 12], [51.3, 4, 2.4]] },
     // ======= E: LÍNEA DE CAPACIDAD — arrancó en el taller =======
-    { t0: 302, t1: 314, acto: 'Estación 15', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación estratégica inicial: entorno institucional y capacidad de decisión de cada organismo',
+    { t0: 302, t1: 314, acto: 'Módulo 15', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación estratégica inicial: entorno institucional y capacidad de decisión de cada organismo',
       dato: 'Esta banda no empieza aquí: ya venía rodando desde el taller de gestión de datos institucionales — el censo de fuentes y el prediagnóstico pusieron a cada organismo en la fila.',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
-    { t0: 314, t1: 326, acto: 'Estación 16', texto: 'SATISFACCIÓN CIUDADANA', sub: 'la ciudadanía califica la atención estadística de cada organismo: pulso rápido y formulario completo',
+    { t0: 314, t1: 326, acto: 'Módulo 16', texto: 'SATISFACCIÓN CIUDADANA', sub: 'la ciudadanía califica la atención estadística de cada organismo: pulso rápido y formulario completo',
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
-    { t0: 326, t1: 338, acto: 'Estación 17', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación táctica y operativa: infraestructura y operación estadística del organismo en detalle',
+    { t0: 326, t1: 338, acto: 'Módulo 17', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación táctica y operativa: infraestructura y operación estadística del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
-    { t0: 338, t1: 350, acto: 'Estación 18', texto: 'FICED', sub: 'cinco módulos: identificación → entorno institucional → infraestructura → metodología estadística → accesibilidad y uso',
+    { t0: 338, t1: 350, acto: 'Módulo 18', texto: 'FICED', sub: 'cinco módulos: identificación → entorno institucional → infraestructura → metodología estadística → accesibilidad y uso',
       dato: 'El ICED es el promedio ponderado de los módulos B a E. Un organismo con metodología estadística débil (módulo D) no llega a esta banda: el sistema lo mide y lo acompaña.',
       cam: [[8, 5, -5], [8, 2.5, -14.7]] },
-    { t0: 350, t1: 362, acto: 'Estación 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'pre-aprueba todo lo del delegado: el punto de control detiene su camión en la calle y esta sala decide el expediente — series, conjuntos y el FICED — aprobando o devolviendo con observaciones',
+    { t0: 350, t1: 362, acto: 'Módulo 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'pre-aprueba todo lo del delegado: el punto de control detiene al rol en la calle y esta sala decide el expediente — series, conjuntos y el FICED — aprobando o devolviendo con observaciones',
       dato: 'La coordinación es contractual: el delegado cargó, el punto de validación lo detuvo y ahora la validación decide. Aprobar devuelve la caja a la banda rumbo a la publicación; devolver la regresa al organismo.',
       cam: [[16, 5, -5], [16, 2.5, -14.7]] },
-    { t0: 362, t1: 374, acto: 'Estación 20', texto: 'Complejo de capacidad', sub: 'expediente ICED + vitrina de hojas de vida: aquí se decide la capacidad',
+    { t0: 362, t1: 374, acto: 'Módulo 20', texto: 'Complejo de capacidad', sub: 'expediente ICED + vitrina de hojas de vida: aquí se decide la capacidad',
       dato: 'La línea de capacidad mide a quien produce el dato, no al dato. Un organismo con baja capacidad estadística produce datos que esta plataforma no puede publicar.',
       cam: [[18, 6.5, -4], [29, 3.5, -11]] },
     // ======= F: SALAS DE GOBIERNO — la cámara ENTRA y GIRA =======
@@ -4904,22 +4972,22 @@ const ACTOS_TODOS = [
     { t0: 434, t1: 446, acto: 'Sala', texto: 'Despacho del Alcalde', sub: 'mesa de gabinete, bandera y la decisión final', pan: true,
       cam: [[64, 10, -40], [52, 4.8, -30]] },   // barrido exterior sobre la esquina
     // ======= G: LÍNEAS DE SERVICIO =======
-    { t0: 446, t1: 458, acto: 'Estación 21', texto: 'Línea editorial', sub: 'noticias y eventos: del borrador a la portada',
+    { t0: 446, t1: 458, acto: 'Módulo 21', texto: 'Línea editorial', sub: 'noticias y eventos: del borrador a la portada',
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
-    { t0: 458, t1: 470, acto: 'Estación 22', texto: 'Línea de aprendizaje', sub: 'productos académicos y educativos: el editor arma el producto por secciones y le embebe gráficos interactivos de los propios indicadores',
+    { t0: 458, t1: 470, acto: 'Módulo 22', texto: 'Línea de aprendizaje', sub: 'productos académicos y educativos: el editor arma el producto por secciones y le embebe gráficos interactivos de los propios indicadores',
       dato: 'El documento metodológico de la operación vive aquí, publicado para cualquiera: otro distrito puede replicar el método, y cualquier estadístico puede refutarlo.',
       cam: [[-14, 4, 24], [-14, 1.5, 18]] },
-    { t0: 470, t1: 482, acto: 'Estación 23', texto: 'Línea de agenda', sub: 'calendario de difusión y eventos: agenda pública programada',
+    { t0: 470, t1: 482, acto: 'Módulo 23', texto: 'Línea de agenda', sub: 'calendario de difusión y eventos: agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
     // ======= H: CIUDADANÍA =======
-    { t0: 482, t1: 489, acto: 'Estación 24', texto: 'La ciudadanía', sub: 'la explanada del SIIED: logo institucional frente a la ventanilla', pan: true,
+    { t0: 482, t1: 489, acto: 'Módulo 24', texto: 'La ciudadanía', sub: 'la explanada del SIIED: logo institucional frente a la ventanilla', pan: true,
       cam: [[30, 10, 24], [16, 0.8, 17]] },
-    { t0: 489, t1: 496, acto: 'Estación 24', texto: '', sub: 'la región que todo el sistema sirve: plaza, barrio y bandera', pan: true,
+    { t0: 489, t1: 496, acto: 'Módulo 24', texto: '', sub: 'la región que todo el sistema sirve: plaza, barrio y bandera', pan: true,
       cam: [[30, 10, 24], [50, 2.5, 14]] },
-    { t0: 496, t1: 508, acto: 'Estación 25', texto: 'La ventanilla PQRS', sub: 'atención al ciudadano: encuestas que viajan por tubo a satisfacción',
+    { t0: 496, t1: 508, acto: 'Módulo 25', texto: 'La ventanilla PQRS', sub: 'atención al ciudadano: encuestas que viajan por tubo a satisfacción',
       dato: 'Una ciudadana pregunta cuántos niños menores de cinco años hay en su comuna. La respuesta salió de esta plataforma.',
       cam: [[43, 4, 19], [36.5, 2, 14]] },
-    { t0: 508, t1: 520, acto: 'Estación 26', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
+    { t0: 508, t1: 520, acto: 'Módulo 26', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
       dato: 'El círculo se cierra: la población que el DANE proyectó es la misma que hace la pregunta. El dato sale de la gente y vuelve a la gente.',
       cam: [[50, 6, -4], [58.8, 3.8, 0]] },
     { t0: 520, t1: 550, acto: 'Final', texto: 'Y al caer el turno…', sub: 'un sistema de información no se legitima por lo que promete sino por lo que ya produjo — esto es Cali',
@@ -5191,6 +5259,7 @@ function animate() {
     famRec.forEach(f => tickFamRec(f, dt));
     famRep.forEach(f => tickFamRep(f, dt));
     famD1.forEach(f => tickFamD1(f, dt));
+    famDel2.forEach(f => tickFamDel2(f, dt));
     famD2.forEach(f => tickFamD2(f, dt));
     famSrv.forEach((arr, l) => arr.forEach(f => tickFamSrv(f, l, dt)));
     tickLluvia(dt);
@@ -5206,15 +5275,23 @@ function animate() {
         if (tv.tFlash !== undefined)
             tv.flash.material.opacity = Math.max(0, 0.85 - (tGlobal - tv.tFlash) * 3);
     });
-    // ---- Camiones: rutas de ida y vuelta con paradas en muelles ----
+    // ---- Roles en movimiento: rutas con paradas en los muelles ----
     const VEL_CAM = 7;
     camiones.forEach(cm => {
         const r = cm.userData.ruta;
         cm.userData.dock = false;
+        cm.userData.dock2 = false;
         if (!r) return;
         if (r.espera > 0) {
             r.espera -= dt;
-            if (r.i === r.pts.length - 1) cm.userData.dock = true; // atracado descargando
+            // dock = descarga principal; dock2 = la segunda descarga
+            // del delegado (indicadores, al oeste del taller).
+            // Los muelles pueden pedir sentido de recorrido ({i, dir}).
+            const enMuelle = (r.dockIdx || [r.pts.length - 1]).some(p =>
+                (typeof p === 'number' ? p : p.i) === r.i &&
+                (typeof p === 'number' || p.dir === undefined || p.dir === r.dir));
+            if (enMuelle) cm.userData.dock = true;
+            if (r.dockIdx && r.i === r.pts.length - 1) cm.userData.dock2 = true;
             if (r.espera <= 0) {
                 r.i += r.dir;
                 if (r.i >= r.pts.length) { r.dir = -1; r.i = r.pts.length - 2; }
@@ -5232,6 +5309,10 @@ function animate() {
             // sentido de recorrido ({i, dir}).
             const RADIO = 3.2;
             const esParada = r.i === r.pts.length - 1 || r.i === 0 ||
+                             (r.dockIdx || []).some(p =>
+                                 (typeof p === 'number' ? p : p.i) === r.i &&
+                                 (typeof p === 'number' || p.dir === undefined ||
+                                  p.dir === r.dir)) ||
                              (r.paradas || []).some(p =>
                                  (typeof p === 'number' ? p : p.i) === r.i &&
                                  (typeof p === 'number' || p.dir === undefined ||
@@ -5248,7 +5329,11 @@ function animate() {
             }
             if (d <= paso) {
                 cm.position.x = tx; cm.position.z = tz;
-                const e = (r.i === r.pts.length - 1) ? 7 :
+                const e = (r.i === r.pts.length - 1 ||
+                           (r.dockIdx || []).some(p =>
+                               (typeof p === 'number' ? p : p.i) === r.i &&
+                               (typeof p === 'number' || p.dir === undefined ||
+                                p.dir === r.dir))) ? 7 :
                            (r.i === 0 ? 4 :
                            (esParada ? 3 : (r.esperaMid ?? 0.8)));
                 r.espera = e;
