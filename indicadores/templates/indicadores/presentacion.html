@@ -44,7 +44,8 @@
     /* ---------- Intertítulos estilo laboratorio ---------- */
     #intertitulo {
         position: fixed; inset: 0; z-index: 40; pointer-events: none;
-        display: flex; align-items: center; justify-content: center;
+        display: flex; align-items: flex-end; justify-content: center;
+        padding-bottom: 72px;   /* franja baja: la tarjeta no tapa las estaciones */
         opacity: 0; transition: opacity 0.8s ease;
     }
     #intertitulo.visible { opacity: 1; }
@@ -3739,28 +3740,28 @@ for (let i = 0; i < 5; i++) {
 
 // ============ DUCTOS DE DATOS — todo pasa por el admin ============
 // Los datos de los inventarios no aparecen solos en la pared de
-// TVs: los tubos de entrada trepan por la cara este de la torre
-// hasta la antena del módulo de administración — la punta del
-// mástil ES el nodo — y un solo tubo de salida baja el producto
-// a la pared de televisores. Los paquetes viajan dentro de los
-// ductos — y los vuelos reales a la pared también pasan por el
-// nodo (ver lanzarVueloTV).
+// TVs: cada tubo de entrada SUBE a la altura del nodo ANTES de
+// acercarse a la torre y llega en horizontal a la punta del mástil
+// — así ningún ducto cruza la estructura de la torre — y un solo
+// tubo de salida baja el producto a la pared de televisores. Los
+// paquetes viajan dentro de los ductos — y los vuelos reales a la
+// pared también pasan por el nodo (ver lanzarVueloTV).
 const NODO_ADMIN = new THREE.Vector3(8.2, 14.0, 11);
 const ductos = [];
 [
-    { pts: [[-10.5, 3.0, 7.2], [-4, 5.8, 10.5], [6.5, 9.0, 10.8], [8.2, 14.0, 11]],
+    { pts: [[-10.5, 3.0, 7.2], [-4, 5.8, 10.5], [4.4, 14.3, 10.9], [8.2, 14.0, 11]],
       color: 0x93c5fd, n: 3 },        // almacén operaciones → antena
-    { pts: [[27, 3.0, -10.5], [22, 5.5, -3], [14, 6.4, 6], [7.0, 9.2, 10.7], [8.2, 14.0, 11]],
+    { pts: [[27, 3.0, -10.5], [22, 5.5, -3], [14, 6.4, 6], [4.6, 14.3, 9.8], [8.2, 14.0, 11]],
       color: 0x93c5fd, n: 3 },        // almacén del hall → antena
-    { pts: [[55, 5.8, 2.4], [42, 7.2, 5], [25, 7.6, 9], [9.5, 10.5, 10.8], [8.2, 14.0, 11]],
+    { pts: [[55, 5.8, 2.4], [42, 7.2, 5], [25, 7.6, 9], [4.8, 14.3, 10.4], [8.2, 14.0, 11]],
       color: 0x93c5fd, n: 4 },        // estantería indicadores → antena
-    { pts: [[-2, 3.0, 20.5], [2, 5.8, 16.5], [7.5, 9.2, 12.2], [8.2, 14.0, 11]],
+    { pts: [[-2, 3.0, 20.5], [2, 5.8, 16.5], [8.0, 14.3, 14.6], [8.2, 14.0, 11]],
       color: 0x93c5fd, n: 3 },        // catálogo → antena
-    { pts: [[-5.2, 3.0, 12], [-1, 5.8, 13], [6.8, 9.0, 12.0], [8.2, 14.0, 11]],
+    { pts: [[-5.2, 3.0, 12], [-1, 5.8, 13], [4.4, 14.3, 12.1], [8.2, 14.0, 11]],
       color: 0x93c5fd, n: 2 },        // estantería editorial → antena
-    { pts: [[-5.2, 3.0, 18], [0, 6.0, 15.5], [7.2, 9.2, 12.6], [8.2, 14.0, 11]],
+    { pts: [[-5.2, 3.0, 18], [0, 6.0, 15.5], [4.9, 14.3, 13.0], [8.2, 14.0, 11]],
       color: 0x93c5fd, n: 2 },        // estantería docs → antena
-    { pts: [[-5.2, 3.0, 24], [-0.5, 6.3, 18], [7.5, 9.4, 13.2], [8.2, 14.0, 11]],
+    { pts: [[-5.2, 3.0, 24], [-0.5, 6.3, 18], [5.4, 14.3, 15.0], [8.2, 14.0, 11]],
       color: 0x93c5fd, n: 2 },        // estantería agenda → antena
     { pts: [[8.2, 14.0, 11], [22, 11.0, 10.6], [48, 7.4, 8.5], [61.4, 4.6, 7]],
       color: 0xfbbf24, n: 4 },        // antena → pared de televisores
@@ -4888,26 +4889,20 @@ const ACTOS_TODOS = [
     { t0: 392, t1: 398, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'grafo del ecosistema + TVs + vitrina de expedientes', pan: true,
       cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // sale por el sur: vidrio (los TVs de la pared este darían la espalda)
     { t0: 398, t1: 404, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan en plenaria', pan: true,
-      cam: [[52, 2.3, -14], [45.5, 2, -14]] },
+      cam: [[52, 1.7, -14], [45.5, 1.35, -14]] },  // a la altura de los don Daticos
     { t0: 404, t1: 408, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 2.3, -14], [52, 2.4, -17.8]] },   // norte: TVs con gráficos
+      cam: [[52, 1.7, -14], [52, 1.7, -17.8]] },   // norte: TVs con gráficos
     { t0: 408, t1: 412, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 2.3, -14], [58.5, 2, -14]] },     // este: proyección del tablero
+      cam: [[52, 1.7, -14], [58.5, 1.5, -14]] },   // este: proyección del tablero
     { t0: 412, t1: 416, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 2.3, -14], [52, 2.2, -10]] },     // sur: tablero ICED animado
+      cam: [[52, 1.7, -14], [52, 1.6, -10]] },     // sur: tablero ICED animado
     { t0: 416, t1: 422, acto: 'Sala', texto: 'Comité de Gestión', sub: 'plenaria de organismos + grafo del ecosistema + proyección del tablero de producción', pan: true,
       cam: [[57, 6, -6], [52, 3, -14]] },   // sale por el SE: vidrio, no los backs de los TVs
-    { t0: 422, t1: 428, acto: 'Sala', texto: 'Junta de despacho', sub: 'la decisión final del sistema de información', pan: true,
+    { t0: 422, t1: 434, acto: 'Sala', texto: 'Información estratégica para la toma de decisiones', sub: 'llega al despacho del Alcalde', pan: true,
       dato: 'La pirámide de la comuna 13 llega aquí: ¿dónde construir el próximo colegio, el próximo centro de salud? Un dato que no llega a esta mesa no cumplió su ciclo.',
-      cam: [[52, 4.9, -30], [49, 4.6, -30]] },
-    { t0: 428, t1: 432, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 4.9, -30], [52, 5, -32.6]] },
-    { t0: 432, t1: 436, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 4.9, -30], [55, 4.6, -30]] },
-    { t0: 436, t1: 440, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[52, 4.9, -30], [52, 4.6, -27.5]] },
-    { t0: 440, t1: 446, acto: 'Sala', texto: 'Junta de despacho', sub: 'mesa de gabinete, bandera y la decisión final', pan: true,
-      cam: [[52, 6.5, -23], [52, 4.9, -30]] },
+      cam: [[42, 10, -18], [52, 4.8, -30]] },   // paneo EXTERIOR: frente y cartel
+    { t0: 434, t1: 446, acto: 'Sala', texto: 'Despacho del Alcalde', sub: 'mesa de gabinete, bandera y la decisión final', pan: true,
+      cam: [[64, 10, -40], [52, 4.8, -30]] },   // barrido exterior sobre la esquina
     // ======= G: LÍNEAS DE SERVICIO =======
     { t0: 446, t1: 458, acto: 'Estación 21', texto: 'Línea editorial', sub: 'noticias y eventos: del borrador a la portada',
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
