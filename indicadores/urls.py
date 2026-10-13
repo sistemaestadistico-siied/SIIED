@@ -348,6 +348,7 @@ urlpatterns = [
 
     # FICED — Formulario de Capacidad Estadística Distrital
     path('delegado/ficed/', views_delegado.delegado_ficed, name='delegado_ficed'),
+    path('delegado/ficed/equipo/', views_delegado.delegado_ficed_equipo, name='delegado_ficed_equipo'),
 
     # ========================================================================
     # PANEL DE VALIDACIÓN (EQUIPO TÉCNICO SIIED)

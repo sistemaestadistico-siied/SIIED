@@ -1498,10 +1498,14 @@ def delegado_ficed(request):
     from .models_iced import ICEDFormulario
     periodo_actual = str(timezone.now().year)
 
-    # Un FICED por equipo técnico (subrol_ficed); '' = formulario completo
+    # Un FICED por equipo técnico (subrol_ficed). Si el delegado no tiene
+    # equipo asignado, lo elige él mismo la primera vez que entra.
     equipo = getattr(
         getattr(request.user, 'perfil_recolector', None), 'subrol_ficed', ''
     ) or ''
+
+    if not equipo:
+        return redirect('indicadores:delegado_ficed_equipo')
 
     # Buscar formulario existente del equipo
     ficed = ICEDFormulario.objects.filter(
@@ -1520,6 +1524,57 @@ def delegado_ficed(request):
     else:
         # No existe → crear nuevo
         return redirect('indicadores:iced_formulario_nuevo')
+
+
+@delegado_required
+def delegado_ficed_equipo(request):
+    """
+    El delegado elige su equipo técnico FICED (primera vez que entra).
+    Se guarda en subrol_ficed de su perfil; el admin puede corregirlo luego.
+    """
+    organismo = _get_organismo(request)
+    if not organismo:
+        messages.error(request, 'No tienes un organismo asignado.')
+        return redirect('indicadores:delegado_dashboard')
+
+    from .models_iced import ICEDFormulario
+    perfil = getattr(request.user, 'perfil_recolector', None)
+
+    # Ya tiene equipo → directo al formulario
+    if perfil and perfil.subrol_ficed:
+        return redirect('indicadores:delegado_ficed')
+
+    equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
+    validos = {e for e, _ in equipos}
+
+    if request.method == 'POST':
+        equipo = request.POST.get('equipo', '')
+        if equipo not in validos or not perfil:
+            messages.error(request, 'Selecciona un equipo válido.')
+        else:
+            perfil.subrol_ficed = equipo
+            perfil.save(update_fields=['subrol_ficed'])
+            messages.success(
+                request,
+                f'Equipo {equipo} asignado. Solo verás las preguntas de tu equipo.'
+            )
+            return redirect('indicadores:delegado_ficed')
+
+    # Formularios ya creados por equipo, para que el delegado vea cuáles
+    # ya están siendo diligenciados por otros compañeros
+    periodo = str(timezone.now().year)
+    ocupados = set(
+        ICEDFormulario.objects
+        .filter(organismo=organismo, periodo=periodo)
+        .exclude(equipo='')
+        .values_list('equipo', flat=True)
+    )
+
+    return render(request, 'delegado/ficed_equipo.html', {
+        'organismo': organismo,
+        'equipos': equipos,
+        'ocupados': ocupados,
+    })
 
 
 # ============================================================================
