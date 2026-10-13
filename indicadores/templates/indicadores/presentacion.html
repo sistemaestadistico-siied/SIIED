@@ -676,15 +676,19 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     // (los mueve tickAutos en el loop — vida, no escenografía)
     for (let i = 0; i < 5; i++) {
         const a = new THREE.Group();
-        const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.62, 0.85),
-            new THREE.MeshLambertMaterial({ color: [0x8b2f2f, 0x2f4a8b, 0x3d3d3d][i % 3] }));
-        cab.position.y = 0.34; a.add(cab);
-        const luzD = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6),
+        const matAuto = new THREE.MeshLambertMaterial(
+            { color: [0x8b2f2f, 0x2f4a8b, 0x3d3d3d][i % 3] });
+        // tamaño comparable a los camiones: ~3.6 de largo
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.05, 1.8), matAuto);
+        cab.position.y = 0.55; a.add(cab);
+        const cabina = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.7, 1.5), matAuto);
+        cabina.position.set(-0.25, 1.4, 0); a.add(cabina);
+        const luzD = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 6),
             new THREE.MeshBasicMaterial({ color: 0xfff8dc }));
-        luzD.position.set(0.88, 0.3, 0); a.add(luzD);
-        const luzT = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 6),
+        luzD.position.set(1.85, 0.6, 0); a.add(luzD);
+        const luzT = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 6),
             new THREE.MeshBasicMaterial({ color: 0xff2d2d }));
-        luzT.position.set(-0.88, 0.3, 0); a.add(luzT);
+        luzT.position.set(-1.85, 0.6, 0); a.add(luzT);
         scene.add(a);
         autosA.push({ g: a, d: i * LEN_AUTO / 5,
                       vel: 6.5 + (i % 3) * 1.6, sentido: i % 2 ? 1 : -1 });
@@ -712,8 +716,8 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     }
     // Este y oeste: en el reborde del piso — más adentro y las
     // faldas de los cerros (que llegan a x≈69) se las comerían
-    for (const xBorde of [-68.8, 68.8]) {
-        for (let z = -38; z <= 38; z += 9.5) {
+    for (const xBorde of [-70.6, 70.6]) {   // fuera de la avenida x=±66.2
+        for (let z = -38; z <= 33; z += 9.5) {   // sin la fila z=38: libra las esquinas N/S
             const n = 1 + Math.round(Math.abs(Math.sin(z * 4.1 + xBorde)) * 2);
             for (let k = 0; k < n; k++)
                 casita(xBorde + Math.sin(k * 1.9) * 0.45,
@@ -724,7 +728,7 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     // Barrio oeste: columnas de casitas a ambas orillas del
     // brazo del río en x=-52 — llena el hueco hasta la barda.
     // (sin columna en x=-42.5: es el carril del rol editorial)
-    for (const xCol of [-46.4, -56.0, -59.9, -63.8, -67.7]) {
+    for (const xCol of [-46.4, -56.0, -59.9, -62.4, -70.6]) {   // -62.4/-70.6 flanquean la avenida x=-66.2
         for (let z = -38; z <= 38; z += 9.5) {
             const n = 1 + Math.round(Math.abs(Math.sin(z * 4.1 + xCol)) * 2);
             for (let k = 0; k < n; k++)
@@ -863,11 +867,12 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
         g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
     }
     // Norte: el sector vacío antes de la junta del hall — el
-    // despacho ya tiene su propio podio al este
-    crearEstadio(6, -39.5, 0.55);
-    crearIglesia(-24, -40.5, 0.78);
-    crearAntena(34, -41, 0.85);
-    crearFuente(-10, -39, 0.95);
+    // despacho ya tiene su propio podio al este. Todos al margen
+    // norte de la avenida ambiental (z=-41.6): la vía queda libre.
+    crearEstadio(6, -36.2, 0.55);
+    crearIglesia(-24, -37.6, 0.78);
+    crearAntena(34, -37.8, 0.85);
+    crearFuente(-10, -36.4, 0.95);
     // Sur: detrás de la ventanilla y el catálogo — la ciudad
     // que recibe los datos
     crearParque(-8, 35, 0.9);
@@ -881,14 +886,14 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
         for (const [ox, oz] of lista)
             casita(cx + ox, cz + oz, Math.atan2(-ox, -oz));
     }
-    vecinas(6, -39.5, [[-10, 0], [10, 0], [-10, -2.5], [10, 2.5], [-10, 2.5], [10, -2.5]]);
-    vecinas(-24, -40.5, [[-5, 0], [5, 0], [0, 5.2], [-3, 5.2], [3, 5.2]]);
-    vecinas(-10, -39, [[-4.2, 0], [4.2, 0], [-4.2, -3], [4.2, 3]]);
-    vecinas(34, -41, [[-4.5, 0], [4.5, 0], [-4.5, 2], [4.5, -2]]);
+    vecinas(6, -35.8, [[-10, 0], [10, 0], [-10, -2.5], [10, 2.5], [-10, 2.5], [10, -2.5]]);
+    vecinas(-24, -38.0, [[-5, 0], [5, 0], [0, 5.2], [-3, 5.2], [3, 5.2]]);
+    vecinas(-10, -35.4, [[-4.2, 0], [4.2, 0], [-4.2, -3], [4.2, 3]]);
+    vecinas(34, -36.2, [[-4.5, 0], [4.5, 0], [-4.5, 2], [4.5, -2]]);
     vecinas(-8, 35, [[-7.5, 0], [7.5, 0], [-7.5, 3], [7.5, -3], [-7.5, -3], [7.5, 3]]);
-    vecinas(27, 36, [[-6, 0], [6, 0], [0, 6], [-6, 3], [6, -3]]);
-    vecinas(-28, 37, [[-4.8, 0], [4.8, 0], [0, 5], [0, -5]]);
-    vecinas(48, 36, [[-4.5, 0], [4.5, 0], [0, 5.5], [0, -5.5]]);
+    vecinas(27, 36, [[-6, 0], [6, 0], [0, 2], [-6, 3], [6, -3]]);   // al margen de la avenida sur
+    vecinas(-28, 37, [[-4.8, 0], [4.8, 0], [0, 1.0], [0, -5]]);
+    vecinas(48, 36, [[-4.5, 0], [4.5, 0], [0, 2.0], [0, -5.5]]);
     vecinas(14, 30, [[-4.5, 0], [4.5, 0], [0, 4.5], [0, -3.5]]);
 
     // Bóveda de estrellas: cúpula de puntos (fog apagado para
