@@ -2919,7 +2919,7 @@ class RespuestaSatisfaccionCompletaAdmin(admin.ModelAdmin):
 
 
 # =============================================================================
-# TALLER DE ECOSISTEMAS + CATÁLOGO DE DATOS (módulos nuevos)
+# TALLER DE GESTIÓN DE DATOS + CATÁLOGO DE DATOS (módulos nuevos)
 # =============================================================================
 
 @admin.register(OpcionTaller)

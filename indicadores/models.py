@@ -3437,7 +3437,7 @@ class CatalogoConsulta(models.Model):
 
 
 # ======================================================================
-# MÓDULO TALLER DE ECOSISTEMAS + CATÁLOGO DE DATOS (portado de formulario/)
+# MÓDULO TALLER DE GESTIÓN DE DATOS + CATÁLOGO DE DATOS (portado de formulario/)
 # Se importan aquí para que makemigrations los detecte sin depender del
 # orden de autodiscovery del admin.
 # ======================================================================

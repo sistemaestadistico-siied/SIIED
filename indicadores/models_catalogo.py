@@ -4,7 +4,7 @@ Módulo propio del SIIED (no es el catálogo de consulta de indicadores, que es
 `CatalogoConsulta`). Contiene:
 
   - FuenteDatos / FuenteOrigen / VariableFuente: caracterización F1 de las
-    fuentes levantada en el taller de ecosistemas — es la entrada viva del
+    fuentes levantada en el taller de gestión de datos — es la entrada viva del
     catálogo por organismo/suborganismo/equipo.
   - EvaluacionSeguridad (F3): valoración de seguridad y privacidad por fuente.
   - BaseCatalogo / CampoCatalogo: catálogo de bases de datos del Data Lake

@@ -1,4 +1,4 @@
-"""Importa los datos del taller de ecosistemas 2026 desde el proyecto `formulario/` (SQLite).
+"""Importa los datos del taller de gestión de datos 2026 desde el proyecto `formulario/` (SQLite).
 
 Uso:
     python manage.py importar_taller_2026 [--sqlite /ruta/a/db.sqlite3]
@@ -134,7 +134,7 @@ def df(valor):
 
 
 class Command(BaseCommand):
-    help = 'Importa los datos del taller de ecosistemas 2026 (formulario/db.sqlite3) al SIIED'
+    help = 'Importa los datos del taller de gestión de datos 2026 (formulario/db.sqlite3) al SIIED'
 
     def add_arguments(self, parser):
         parser.add_argument('--sqlite', default=str(DEFAULT_DB),
