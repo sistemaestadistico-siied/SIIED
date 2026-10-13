@@ -4820,35 +4820,42 @@ solHUD.position.set(2, 4, 5);
 escHUD.add(solHUD);
 const hudAncla = new THREE.Group();   // se pega a la cámara cada frame
 escHUD.add(hudAncla);
-const loroHUD = crearDonDatico();
+let loroHUD = crearDonDatico();   // respaldo si el GLB no carga
 loroHUD.scale.setScalar(0.24);
 loroHUD.position.set(2.15, -1.0, -4.4);   // a la derecha de la tarjeta
 loroHUD.rotation.y = -0.55;               // de tres cuartos hacia ella
 hudAncla.add(loroHUD);
 hudAncla.visible = false;
 const daticoHUD = { fase: 0, lookT: 0, lookYaw: 0, lookPitch: 0,
-                    lookYawC: 0, lookPitchC: 0 };
+                    lookYawC: 0, lookPitchC: 0, w: null };
 function tickDaticoHUD(dt, t) {
     hudAncla.visible = elIntertitulo.classList.contains('visible');
     if (!hudAncla.visible) return;
     hudAncla.position.copy(camera.position);
     hudAncla.quaternion.copy(camera.quaternion);
-    const rig = loroHUD.userData.rig;
     const d = daticoHUD;
-    // Batida de vuelo (del detalle_3d): subida rápida, bajada con poder
+    // Planeo: bob + vaivén suave + banqueo (del detalle_3d)
+    loroHUD.position.x = 2.15 + Math.sin(t * 0.5) * 0.18;
+    loroHUD.position.y = -1.0 + Math.sin(t * 1.4) * 0.1;
+    loroHUD.rotation.y = -0.55 + Math.sin(t * 0.4) * 0.12;
+    loroHUD.rotation.z = Math.sin(t * 0.8) * 0.12;
+    loroHUD.rotation.x = Math.sin(t * 0.6) * 0.06;
+    if (d.w) {   // el real: el vuelo es su propio clip
+        if (d.w.mixer) d.w.mixer.update(dt);
+        return;
+    }
+    // Respaldo procedural: batida asimétrica seno+armónico
+    const rig = loroHUD.userData.rig;
     d.fase += dt * 9;
     const flap = Math.sin(d.fase) * 0.75 + Math.sin(d.fase * 2) * 0.25;
     rig.alaDer.rotation.z = flap * 0.85;
     rig.alaIzq.rotation.z = -flap * 0.85;
     rig.alaDer.rotation.x = Math.sin(d.fase - 0.4) * 0.15;
     rig.alaIzq.rotation.x = Math.sin(d.fase - 0.4) * 0.15;
-    // Planeo: bob + vaivén suave + banqueo
     rig.visual.position.y = Math.sin(d.fase) * 0.07;
-    rig.visual.rotation.z = Math.sin(t * 0.8) * 0.12;
-    rig.visual.rotation.x = Math.sin(t * 0.6) * 0.06;
-    loroHUD.position.x = 2.15 + Math.sin(t * 0.5) * 0.18;
-    loroHUD.position.y = -1.0 + Math.sin(t * 1.4) * 0.1;
-    loroHUD.rotation.y = -0.55 + Math.sin(t * 0.4) * 0.12;
+    // Las patas se recogen en vuelo
+    rig.pataIzq.rotation.x = -1.2;
+    rig.pataDer.rotation.x = -1.2;
     // Mirada errática (como en el detalle): cambia cada pocos segundos
     d.lookT -= dt;
     if (d.lookT <= 0) {
@@ -4860,9 +4867,6 @@ function tickDaticoHUD(dt, t) {
     d.lookPitchC += (d.lookPitch - d.lookPitchC) * Math.min(1, 2.5 * dt);
     rig.cabeza.rotation.y = d.lookYawC;
     rig.cabeza.rotation.x = d.lookPitchC;
-    // Las patas se recogen en vuelo
-    rig.pataIzq.rotation.x = -1.2;
-    rig.pataDer.rotation.x = -1.2;
 }
 
 // ============ PLANTA DE OPERARIOS ============
@@ -5067,6 +5071,19 @@ new GLTFLoader().load(
         modeloGLB = gltf.scene;
         clipsGLB = gltf.animations;
         console.log('[siied] clips:', clipsGLB.map((c, i) => `${i}:${c.name}(${c.duration.toFixed(1)}s)`).join(' '));
+        // El acompañante del HUD también es el modelo REAL: clon
+        // volando — el clip 3 (flexiones) en el aire lee como
+        // aleteo; reemplaza al procedural de respaldo
+        const wHUD = clonarOperario();
+        wHUD.loro.scale.setScalar(0.24);
+        wHUD.loro.position.copy(loroHUD.position);
+        wHUD.loro.rotation.copy(loroHUD.rotation);
+        hudAncla.remove(loroHUD);
+        hudAncla.add(wHUD.loro);
+        const actVuelo = wHUD.acciones[3] || wHUD.acciones[0];
+        if (actVuelo) { actVuelo.timeScale = 1.3; actVuelo.play(); }
+        loroHUD = wHUD.loro;
+        daticoHUD.w = wHUD;
         crearPlanta();
     },
     undefined,
