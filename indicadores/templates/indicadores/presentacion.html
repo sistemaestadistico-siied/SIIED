@@ -3802,15 +3802,59 @@ function tickVuelosTV(dt) {
         v.mesh.position.copy(v.curva.getPointAt(Math.min(0.999, k)));
         v.mesh.rotation.y += dt * 5;
         if (k >= 1) {
-            v.mesh.visible = false;
-            if (v.edi) {   // entró a la banda: la estación trabaja
-                disparo(['REDACCIÓN', 'EDICIÓN', 'PROGRAMACIÓN'][v.l]);
+            if (v.edi) {
+                // No se esfuma en la puerta: MONTA la banda como una
+                // caja más — pasa las dos estaciones de su línea y
+                // cierra en su almacén de servicio
+                const f = { mesh: v.mesh, seg: 'E' + (v.l + 1), s: 0,
+                            pasadas: new Set(), estado: 'ride', l: v.l,
+                            desde: new THREE.Vector3(),
+                            hasta: new THREE.Vector3(),
+                            tVuelo: 0, durVuelo: 0, extra: {} };
+                ponerTex(f, texSrv[v.l]);
+                f.mesh.scale.setScalar(0.4);
+                f.mesh.rotation.set(0, 0, 0);
+                ridesEdi.push(f);
             } else {
+                v.mesh.visible = false;
                 asignarGrafico(v.tv);
                 soltarConfeti(v.tv.mundo.x - 0.4, v.tv.mundo.y, v.tv.mundo.z);
             }
             vuelosTV.splice(i, 1);
         }
+    }
+}
+
+// Cajas del inventario montadas en las bandas E: ruedan como una
+// familia de servicio más — dos estaciones con sello y aterrizaje
+// en el almacén de la línea que les tocó
+const ridesEdi = [];
+function tickRidesEdi(f, dt) {
+    if (f.estado === 'vuelo') {
+        if (tickVuelo(f, dt)) {
+            llenarSlot(almSrv[f.l], texSrv[f.l]);
+            f.mesh.visible = false;
+            f.done = true;
+        }
+        return;
+    }
+    f.s += velBanda * dt;
+    posEnSeg(f);
+    const x = f.mesh.position.x;
+    if (!f.pasadas.has('a') && x > -17) {
+        f.pasadas.add('a'); f.mesh.scale.setScalar(0.33);
+        disparo(['REDACCIÓN', 'EDICIÓN', 'PROGRAMACIÓN'][f.l]);
+    }
+    if (!f.pasadas.has('b') && x > -11) {
+        f.pasadas.add('b'); f.mesh.scale.setScalar(0.27);
+        sellar(f, 0x0ea5e9);
+        disparo(['PUBLICACIÓN', 'CLASIFICACIÓN', 'AGENDA'][f.l]);
+    }
+    if (x > -7) {
+        const slot = almSrv[f.l].idx < almSrv[f.l].slots.length
+            ? almSrv[f.l].slots[almSrv[f.l].idx]
+            : new THREE.Vector3(-5, -1, Z_SRV[f.l]);
+        lanzarVuelo(f, slot.clone().add(new THREE.Vector3(0, 0.25, 0)), 0.55);
     }
 }
 
@@ -5537,6 +5581,11 @@ function animate() {
     famDel2.forEach(f => tickFamDel2(f, dt));
     famD2.forEach(f => tickFamD2(f, dt));
     famSrv.forEach((arr, l) => arr.forEach(f => tickFamSrv(f, l, dt)));
+    for (let i = ridesEdi.length - 1; i >= 0; i--) {
+        const f = ridesEdi[i];
+        tickRidesEdi(f, dt);
+        if (f.done) ridesEdi.splice(i, 1);
+    }
     tickLluvia(dt);
     tickAlmacenes(dt);
     tickVuelosTV(dt);
