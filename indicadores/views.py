@@ -4947,7 +4947,9 @@ def api_conjunto_datos_detail(request, conjunto_datos_id):
 def cleanup_old_requests(max_age_minutes=None, max_processing_time=None, max_users=None):
     """Limpieza optimizada de requests antiguos por usuario"""
     # Usar valores de configuración si no se proporcionan
-    max_age_minutes = max_age_minutes or get_config('REQUEST_MAX_AGE_MINUTES', 5)
+    # OJO: streams LLM legítimos pueden durar varios minutos; un umbral
+    # corto hacía que el cleanup "cancelara" respuestas en curso.
+    max_age_minutes = max_age_minutes or get_config('REQUEST_MAX_AGE_MINUTES', 20)
     max_processing_time = max_processing_time or get_config('CLEANUP_MAX_TIME', 3.0)
     max_users = max_users or get_config('MAX_ACTIVE_USERS', 50)
     
@@ -5480,7 +5482,6 @@ def chat_stream(request):
         
         # Configurar headers para evitar caché
         response['Cache-Control'] = 'no-cache'
-        response['Connection'] = 'keep-alive'
         response['X-Accel-Buffering'] = 'no'  # Deshabilitar buffering en Nginx
         response['X-Request-ID'] = request_id  # Incluir el ID de solicitud
         
