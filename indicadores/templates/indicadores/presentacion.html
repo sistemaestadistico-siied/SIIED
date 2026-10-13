@@ -1348,6 +1348,17 @@ function textoCanvas(texto, sub, color = '#22d3ee', fondo = '#0a1220') {
     return new THREE.CanvasTexture(cv);
 }
 
+// Pantalla legible por los dos lados: una gemela espalda con
+// espalda a 8mm. (Un DoubleSide dibujaría el texto espejado)
+function pantallaDoble(m, padre) {
+    const t = m.clone();
+    t.rotation.y += Math.PI;
+    const e = new THREE.Vector3(0, 0, -0.008).applyEuler(m.rotation);
+    t.position.add(e);
+    padre.add(t);
+    return t;
+}
+
 function texturaPantalla(titulo, modelo) {
     const cv = document.createElement('canvas');
     cv.width = 256; cv.height = 148;
@@ -2207,6 +2218,7 @@ const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
         const mon = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.5),
             new THREE.MeshBasicMaterial({ map: texturaPantalla(c.txt, c.sub) }));
         mon.position.set(c.x, 7.9, 1.0); mon.rotation.x = -0.08; torre.add(mon);
+        pantallaDoble(mon, torre);
     }
     // rack de servidores al fondo (la plataforma corre sobre hardware)
     const rack = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.1, 0.55), matT);
@@ -2325,6 +2337,7 @@ function crearSalaJunta(cfg) {
     const mon = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.84),
         new THREE.MeshBasicMaterial({ map: texturaPantalla(cfg.nombre, cfg.modelo) }));
     mon.position.set(0, 1.9, -1.5); g.add(mon);
+    pantallaDoble(mon, g);
     // Letrero conservado: mástil detrás y solo hasta el borde
     // inferior del cartel — antes era coplanar y lo atravesaba
     const mastil = new THREE.Mesh(
@@ -2721,6 +2734,7 @@ crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2
         monE.rotation.x = -0.15;
         monE.rotation.y = Math.PI;   // pantalla hacia el operario (−z)
         ofi.add(monE);
+        pantallaDoble(monE, ofi);   // también se lee desde el carril
     });
     // Operarios ante las consolas (los pone crearPlanta)
     salas.push({ grupo: ofi, y: 0.22, estado: 'trabajar',
@@ -2770,6 +2784,7 @@ function crearModuloAcceso(x, z, nombre, sub, anchoCartel, cartelZ, miraNorte) {
     monO.position.set(0, 0.92, miraNorte ? -0.28 : 0.28);
     monO.rotation.x = -0.15; if (!miraNorte) monO.rotation.y = Math.PI;
     ofi.add(monO);
+    pantallaDoble(monO, ofi);
     salas.push({ grupo: ofi, y: 0.22, estado: 'trabajar',
         puestos: miraNorte ? [[-0.8, 0.55, 0], [0.8, 0.55, 0]]
                            : [[-0.8, -0.55, Math.PI], [0.8, -0.55, Math.PI]] });
@@ -3294,6 +3309,7 @@ function crearKiosco(cfg) {
     pant.position.set(-0.1, 1.5, 0.55);
     pant.rotation.y = Math.PI / 2;
     k.add(pant);
+    pantallaDoble(pant, k);
     // Prop distintivo por módulo
     if (cfg.prop === 'libros') {
         const cols = [0x2563eb, 0x0ea5e9, 0x7c3aed, 0x059669];
@@ -4218,6 +4234,7 @@ let comiteGrafo = null;
         mon.rotation.x = -0.15;
         mon.rotation.y = Math.PI;   // pantalla hacia el operario (−z)
         sala.add(mon);
+        pantallaDoble(mon, sala);
     }
     // Los puestos son de don Daticos (los pone crearPlanta)
     salas.push({ grupo: sala, y: 0.22, estado: 'trabajar',
