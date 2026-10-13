@@ -6634,6 +6634,27 @@ def presentacion(request):
     return render(request, 'indicadores/presentacion.html', {'stats': stats})
 
 
+def presentacion_slides(request):
+    """
+    Presentación del SIIED en diapositivas — versión "para proyectar y
+    leer" del recorrido de la Maquila 3D: plataforma → portal público →
+    censo de conjuntos → inventarios → roles → líneas de producción
+    (D, C, E1-E3) → módulos administrativos → validación →
+    administración → nivel estratégico → ciudadanía → código abierto.
+
+    Pensada para audiencias y contextos donde el show 3D no aplica;
+    comparte los mismos stats en vivo del sistema.
+    """
+    stats = {
+        'modelos': len(list(apps.get_app_config('indicadores').get_models())),
+        'indicadores': Indicador.objects.filter(activo=True).count(),
+        'conjuntos': ConjuntoDatos.objects.filter(activo=True).count() if hasattr(ConjuntoDatos, 'activo') else ConjuntoDatos.objects.count(),
+        'dominios': MenuDominio.objects.filter(activo=True).count(),
+        'organismos': Organismo.objects.filter(activo=True).count() if hasattr(Organismo, 'activo') else Organismo.objects.count(),
+    }
+    return render(request, 'indicadores/presentacion_slides.html', {'stats': stats})
+
+
 def documentacion(request):
     """
     Documentación open source de la plataforma: mapa del repositorio

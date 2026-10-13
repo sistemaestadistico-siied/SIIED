@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIIED — Presentación de la plataforma</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+.deck { position: fixed; inset: 0; background: linear-gradient(135deg,#001a33 0%,#003a6b 55%,#00578f 100%); font-family:'Montserrat',sans-serif; display:flex; align-items:center; justify-content:center; }
+.slide { display:none; width:100%; height:100%; padding:48px 60px 84px; overflow:hidden; animation:fadeIn .35s ease; }
+.slide.activa { display:flex; flex-direction:column; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+.kicker { font-size:12px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:#7cc4f0; margin-bottom:10px; }
+.kicker.band-d{color:#7cc4f0;} .kicker.band-c{color:#ffd166;} .kicker.band-e{color:#6fce8f;} .kicker.ctl{color:#ef92c4;}
+.slide h2 { color:#fff; font-size:32px; font-weight:900; line-height:1.15; margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px; }
+.slide h2 .n { color:#67e8f9; }
+.slide .sub { color:#b8d9f0; font-size:15px; font-weight:600; margin-bottom:20px; max-width:1150px; }
+.slide-body { flex:1; min-height:0; display:flex; gap:20px; }
+.col { flex:1; min-width:0; display:flex; flex-direction:column; gap:14px; }
+.card { background:rgba(255,255,255,.97); border-radius:14px; padding:18px 20px; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+.card h4 { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:#004b87; margin-bottom:10px; }
+.card p, .card li { font-size:13px; color:#2d3748; line-height:1.55; }
+.card ul { list-style:none; }
+.card li { padding:4px 0 4px 22px; position:relative; }
+.card li i { position:absolute; left:0; top:7px; color:#007bb5; font-size:11px; }
+.card .lead { font-size:14px; font-weight:600; color:#1a365d; }
+.kpis { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+.kpi { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); border-radius:12px; padding:14px 20px; min-width:140px; backdrop-filter:blur(4px); }
+.kpi .n { font-size:36px; font-weight:900; color:#fff; line-height:1; }
+.kpi .l { font-size:10px; font-weight:700; text-transform:uppercase; color:#b8d9f0; margin-top:6px; letter-spacing:.5px; }
+.kpi.cyan .n{color:#67e8f9;} .kpi.gold .n{color:#ffd166;} .kpi.green .n{color:#6fce8f;} .kpi.pink .n{color:#ef92c4;}
+.flow { display:flex; align-items:stretch; gap:10px; flex-wrap:wrap; }
+.flow .nodo { flex:1; min-width:125px; background:rgba(255,255,255,.95); border-radius:12px; padding:14px 12px; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,.2); display:flex; flex-direction:column; justify-content:center; gap:6px; }
+.flow .nodo i { font-size:20px; color:#007bb5; }
+.flow .nodo .t { font-size:11.5px; font-weight:800; color:#003a6b; text-transform:uppercase; letter-spacing:.4px; }
+.flow .nodo .d { font-size:11px; color:#4a5568; line-height:1.35; }
+.flow .arr { align-self:center; color:#7cc4f0; font-size:20px; font-weight:900; }
+.lanes { display:flex; flex-direction:column; gap:11px; flex:1; }
+.lane { display:flex; align-items:center; gap:16px; border-radius:13px; padding:13px 18px; background:rgba(255,255,255,.95); box-shadow:0 6px 18px rgba(0,0,0,.2); }
+.lane .tag { flex-shrink:0; width:96px; text-align:center; font-weight:900; font-size:12px; color:#fff; border-radius:9px; padding:9px 4px; letter-spacing:.4px; }
+.lane.b-d .tag{background:#007bb5;} .lane.b-c .tag{background:#b7791f;} .lane.b-e .tag{background:#2f855a;}
+.lane .tt { font-size:13px; font-weight:800; color:#003a6b; }
+.lane .dd { font-size:11.5px; color:#4a5568; line-height:1.4; }
+.roles { display:flex; gap:16px; }
+.rol { flex:1; background:rgba(255,255,255,.97); border-radius:14px; padding:18px; border-top:5px solid #007bb5; box-shadow:0 8px 22px rgba(0,0,0,.25); }
+.rol.v2{border-top-color:#b7791f;} .rol.v3{border-top-color:#2f855a;}
+.rol .icono { font-size:26px; color:#004b87; margin-bottom:8px; }
+.rol h4 { font-size:13px; font-weight:900; color:#003a6b; text-transform:uppercase; margin-bottom:6px; }
+.rol p { font-size:12.5px; color:#4a5568; line-height:1.5; }
+.bigquote { font-size:25px; font-weight:800; color:#fff; line-height:1.45; max-width:920px; text-shadow:0 2px 12px rgba(0,0,0,.3); }
+.bigquote em { color:#67e8f9; font-style:normal; }
+.glass { background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.2); border-radius:14px; padding:16px 20px; color:#dbeafe; backdrop-filter:blur(6px); font-size:13px; line-height:1.6; }
+.glass strong { color:#fff; }
+.chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); color:#e0f2fe; font-size:11.5px; font-weight:700; margin:3px 4px 3px 0; }
+.chip i { color:#67e8f9; font-size:10px; }
+.nav-ui { position:fixed; bottom:0; left:0; right:0; z-index:300; display:flex; align-items:center; justify-content:space-between; padding:14px 26px; pointer-events:none; }
+.nav-ui > * { pointer-events:auto; }
+.nav-btn { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); color:#fff; font-family:inherit; font-weight:800; font-size:12px; padding:9px 18px; border-radius:999px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all .2s; }
+.nav-btn:hover { background:rgba(255,255,255,.28); }
+.progreso { position:fixed; top:0; left:0; height:4px; z-index:300; background:linear-gradient(90deg,#06b6d4,#67e8f9); width:0%; transition:width .3s ease; box-shadow:0 0 10px rgba(103,232,249,.7); }
+.contador { color:#b8d9f0; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+.salir { position:fixed; top:18px; right:24px; z-index:300; color:#b8d9f0; text-decoration:none; font-size:12px; font-weight:700; padding:8px 16px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); transition:all .2s; }
+.salir:hover { background:rgba(255,255,255,.2); color:#fff; }
+.mini { display:flex; gap:6px; flex-wrap:wrap; max-width:58vw; justify-content:center; }
+.mini a { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.25); transition:all .2s; display:block; }
+.mini a.on { background:#67e8f9; transform:scale(1.35); }
+.mini a:hover { background:rgba(255,255,255,.6); }
+.slide.cover { align-items:center; justify-content:center; text-align:center; }
+.slide.cover h1 { color:#fff; font-size:60px; font-weight:900; letter-spacing:2px; line-height:1.05; text-shadow:0 4px 30px rgba(0,0,0,.4); }
+.slide.cover h1 span { color:#67e8f9; }
+.slide.cover .tagline { color:#b8d9f0; font-size:17px; font-weight:600; margin-top:18px; max-width:760px; line-height:1.6; }
+.duo { display:grid; grid-template-columns:1fr 1fr; gap:16px; flex:1; min-height:0; }
+@media (max-width: 900px) { .slide { padding:30px 22px 90px; overflow-y:auto; } .slide-body, .roles, .duo { flex-direction:column; grid-template-columns:1fr; } .mini{display:none;} }
+</style>
+</head>
+<body>
+<div class="progreso" id="progreso"></div>
+<a class="salir" href="{% url 'indicadores:home' %}">✕ Salir</a>
+<div class="deck" id="deck">
+
+<!-- ═══ S1 · PORTADA ═══ -->
+<section class="slide cover activa" data-titulo="Portada">
+  <div>
+    <div class="kicker" style="margin-bottom:20px;">Departamento Administrativo de Planeación · Santiago de Cali</div>
+    <h1>SIIED<br><span>Sistema Integrado de Información Estadística Distrital</span></h1>
+    <p class="tagline">La plataforma oficial donde el Distrito produce, valida y publica su información estadística. Un solo sistema que conecta organismos, datos y ciudadanía — documentado y de código abierto.</p>
+    <div style="margin-top:34px;">
+      <span class="chip"><i class="fas fa-circle"></i> {{ stats.indicadores }} indicadores activos</span>
+      <span class="chip"><i class="fas fa-circle"></i> {{ stats.organismos }} organismos</span>
+      <span class="chip"><i class="fas fa-circle"></i> {{ stats.conjuntos }} conjuntos de datos</span>
+      <span class="chip"><i class="fas fa-circle"></i> {{ stats.dominios }} dominios temáticos</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S2 · LA PLATAFORMA ═══ -->
+<section class="slide" data-titulo="La plataforma">
+  <div class="kicker">El sistema</div>
+  <h2>Una sola plataforma para toda la estadística distrital</h2>
+  <p class="sub">El SIIED integra personas, procesos y tecnología. Lo que antes era una cadena de correos, Excels y fichas sueltas hoy es un ciclo continuo: el dato nace en los organismos, viaja por la plataforma y sale validado hacia la ciudadanía.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-bullseye"></i> Objetivo</h4>
+        <p class="lead">Optimizar la gestión, integración, administración y difusión de los datos e información estadística oficial del Distrito — con calidad, oportunidad y accesibilidad.</p>
+        <p style="margin-top:8px;">Aporta insumos a la planeación, la toma de decisiones y el seguimiento de las políticas públicas.</p></div>
+      <div class="card"><h4><i class="fas fa-landmark"></i> Operador</h4>
+        <p>Liderado técnica y estratégicamente por la <strong>Subdirección de Desarrollo Integral del DAP</strong>, dentro del Sistema Estadístico Nacional conforme a la <strong>Ley 2335 de 2023</strong> y el <strong>Decreto 411.0.20.0516 de 2016</strong>.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-route"></i> El ciclo del dato</h4>
+        <ul>
+          <li><i class="fas fa-warehouse"></i><strong>Origen:</strong> inventario y censo de conjuntos de datos de cada organismo.</li>
+          <li><i class="fas fa-truck-loading"></i><strong>Producción:</strong> roles que cargan series, metadata y conjuntos documentados.</li>
+          <li><i class="fas fa-check-double"></i><strong>Control:</strong> validación, calidad y evaluación de capacidad estadística.</li>
+          <li><i class="fas fa-bullhorn"></i><strong>Difusión:</strong> fichas, gráficos, API abierta y productos editoriales.</li>
+          <li><i class="fas fa-city"></i><strong>Cierre:</strong> el dato llega al ciudadano y su percepción retroalimenta el sistema.</li>
+        </ul></div>
+      <div class="glass"><strong>Desde 1986</strong> con <em>Cali en Cifras</em> → <strong>2012</strong> el SIS automatizó la integración → <strong>2025</strong> el SIIED lo consolida todo en una plataforma unificada.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S3 · EL PRODUCTO VISIBLE ═══ -->
+<section class="slide" data-titulo="El portal público">
+  <div class="kicker">El producto</div>
+  <h2>Lo que la ciudadanía ve <span class="n">— el portal</span></h2>
+  <p class="sub">Antes de explicar la fábrica, miremos el producto terminado: el portal público es la vitrina donde todo el trabajo interno se convierte en información consultable.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-chart-line"></i> Consulta</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>Catálogo de indicadores con fichas técnicas y metadatos MSD/SDMX.</li>
+          <li><i class="fas fa-check"></i>Explorador de conjuntos de datos y microdatos descargables.</li>
+          <li><i class="fas fa-check"></i>Visor comparativo, mapas y gráficos interactivos.</li>
+          <li><i class="fas fa-check"></i>API abierta de acceso programático — sin registro ni autenticación.</li>
+        </ul></div>
+      <div class="card"><h4><i class="fas fa-robot"></i> Don Datico</h4>
+        <p>Asistente virtual con IA: consultas en lenguaje natural sobre los indicadores y conjuntos del Distrito.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-newspaper"></i> Contenido editorial</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>Noticias, eventos y línea editorial del ecosistema estadístico.</li>
+          <li><i class="fas fa-check"></i>Productos académicos y educativos para niños, niñas y adolescentes.</li>
+          <li><i class="fas fa-check"></i>Calendario y agenda pública de difusión estadística.</li>
+        </ul></div>
+      <div class="glass"><strong>Principio rector:</strong> un sistema de información no se legitima por lo que promete, sino por lo que ya produjo. Todo lo del portal sale de un proceso trazable que empieza en el inventario.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S4 · ORIGEN ═══ -->
+<section class="slide" data-titulo="El origen: censo">
+  <div class="kicker">Origen del dato</div>
+  <h2>Todo empieza por el <span class="n">censo de conjuntos de datos</span></h2>
+  <p class="sub">Antes de publicar un solo indicador hay que saber qué existe. El <strong>Taller de Gestión de Datos</strong> es el módulo donde cada organismo hace el inventario de sus fuentes de información.</p>
+  <div class="slide-body">
+    <div class="flow" style="flex:1; align-items:stretch;">
+      <div class="nodo"><i class="fas fa-clipboard-list"></i><div class="t">Wizard del censo</div><div class="d">Cada organismo registra sus conjuntos de datos: fuentes primarias y secundarias, dueño, periodicidad y soporte.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-stethoscope"></i><div class="t">Prediagnóstico</div><div class="d">Cada fuente se evalúa en tres fases (F1-F2-F3): madurez, documentación y retos identificados.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-users"></i><div class="t">Junta de taller</div><div class="d">El equipo técnico SIIED revisa el censo organismo por organismo y aprueba el inventario.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-boxes"></i><div class="t">Inventario oficial</div><div class="d">Las fuentes aprobadas alimentan los estantes: indicadores, operaciones estadísticas y catálogo.</div></div>
+    </div>
+  </div>
+  <div class="glass" style="margin-top:16px;"><strong>Sin censo no hay producción:</strong> el inventario define qué conjuntos de datos pueden dar origen a indicadores, qué operaciones estadísticas existen y quién responde por cada fuente.</div>
+</section>
+
+<!-- ═══ S5 · INVENTARIOS ═══ -->
+<section class="slide" data-titulo="Los inventarios">
+  <div class="kicker">Los estantes de la fábrica</div>
+  <h2>Los <span class="n">inventarios</span> del SIIED</h2>
+  <p class="sub">Lo que el censo levanta se ordena en cuatro inventarios vivos — cada uno con su módulo de gestión y su responsable.</p>
+  <div class="duo">
+    <div class="card"><h4><i class="fas fa-chart-line"></i> Inventario de indicadores</h4>
+      <p class="lead">{{ stats.indicadores }} indicadores activos</p>
+      <p style="margin-top:6px;">ODS · Cali en Cifras · dominios del Comité de Gestión. Cada indicador con ficha técnica MSD, serie histórica y desagregaciones.</p></div>
+    <div class="card"><h4><i class="fas fa-cogs"></i> Operaciones estadísticas</h4>
+      <p class="lead">Inventario distrital de OOEE</p>
+      <p style="margin-top:6px;">Cada operación con enlace al ADDA y a sus documentos metodológicos — el mapa de quién produce qué en el Distrito.</p></div>
+    <div class="card"><h4><i class="fas fa-list-alt"></i> Catálogo de consulta</h4>
+      <p class="lead">Listados del anuario Cali en Cifras</p>
+      <p style="margin-top:6px;">Gestionado por el módulo editorial: el archivo histórico que sostiene la memoria estadística de la ciudad.</p></div>
+    <div class="card"><h4><i class="fas fa-id-card"></i> Hoja de vida del organismo</h4>
+      <p class="lead">Expediente ICED + vitrina de hojas de vida</p>
+      <p style="margin-top:6px;">La capacidad estadística de cada organismo documentada: personas, procesos, infraestructura y metodología.</p></div>
+  </div>
+</section>
+
+<!-- ═══ S6 · ROLES ═══ -->
+<section class="slide" data-titulo="Los roles">
+  <div class="kicker">Quiénes mueven el sistema</div>
+  <h2>Tres roles, <span class="n">alimentados desde la base</span></h2>
+  <p class="sub">El SIIED no produce datos por sí solo: los observatorios y el Comité de Gestión alimentan tres roles que operan dentro de la plataforma, cada uno con su alcance.</p>
+  <div class="slide-body" style="flex-direction:column;">
+    <div class="roles">
+      <div class="rol"><div class="icono"><i class="fas fa-dolly"></i></div><h4>Recolector</h4>
+        <p>Personal de cada organismo que carga series, conjuntos y metadata. Trabaja con plantillas oficiales, cargas masivas y evidencias trazables de cada envío.</p></div>
+      <div class="rol v2"><div class="icono"><i class="fas fa-user-tie"></i></div><h4>Delegado</h4>
+        <p>Responsable designado por el organismo: completa fichas técnicas, responde el FICED por equipos técnicos y gestiona la información institucional de su dependencia.</p></div>
+      <div class="rol v3"><div class="icono"><i class="fas fa-shield-halved"></i></div><h4>Validador</h4>
+        <p>Equipo técnico del SIIED: revisa, aprueba o devuelve con observaciones todo lo que sube el delegado — series, conjuntos, metadata y expedientes FICED.</p></div>
+    </div>
+    <div class="glass"><strong>Quién les da el trabajo:</strong> los <strong>observatorios</strong> de cada organismo observan a la ciudadanía y generan la materia prima; el <strong>Comité de Gestión</strong> del Sistema Estadístico Distrital define lineamientos, dominios y prioridades que ordenan la producción.</div>
+  </div>
+</section>
+
+<!-- ═══ S7 · MAPA DE LÍNEAS ═══ -->
+<section class="slide" data-titulo="Líneas de producción">
+  <div class="kicker">El recorrido del dato</div>
+  <h2>Cinco líneas de <span class="n">producción</span></h2>
+  <p class="sub">En la presentación 3D estas líneas son las bandas transportadoras por las que viaja la información. Cada una tiene sus módulos, sus roles y su destino.</p>
+  <div class="lanes">
+    <div class="lane b-d"><div class="tag">Línea D</div><div><div class="tt">Generación de datos — Recolección y Delegado</div><div class="dd">Series estadísticas, conjuntos documentados y metadata institucional suben del organismo a la plataforma.</div></div></div>
+    <div class="lane b-c"><div class="tag">Línea C</div><div><div class="tt">Capacidad estadística — FICED / ICED</div><div class="dd">El formulario de capacidad estadística evalúa a cada organismo en cinco módulos y produce el índice ICED.</div></div></div>
+    <div class="lane b-e"><div class="tag">Línea E1</div><div><div class="tt">Editorial — noticias y productos</div><div class="dd">La línea editorial convierte el dato en contenido: noticias, eventos y listados del anuario.</div></div></div>
+    <div class="lane b-e"><div class="tag">Línea E2</div><div><div class="tt">Aprendizaje — productos educativos</div><div class="dd">Contenido académico con gráficos interactivos construidos sobre los propios indicadores.</div></div></div>
+    <div class="lane b-e"><div class="tag">Línea E3</div><div><div class="tt">Agenda — difusión programada</div><div class="dd">Calendario de difusión estadística y agenda pública: la programación oficial de lo que sale y cuándo.</div></div></div>
+  </div>
+</section>
+
+<!-- ═══ S8 · LÍNEA D ═══ -->
+<section class="slide" data-titulo="Línea D · Recolección">
+  <div class="kicker band-d">Línea D · Generación de datos</div>
+  <h2>Recolección y Delegado <span class="n">— la materia prima sube</span></h2>
+  <p class="sub">El recolector trabaja sobre su organismo; el delegado responde por la información institucional. Ambos descargan el resultado de su trabajo en los módulos administrativos de la plataforma.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-cloud-arrow-up"></i> Qué cargan</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>Series de indicadores por archivo maestro o formulario.</li>
+          <li><i class="fas fa-check"></i>Conjuntos de datos (microdatos) con documentación DDI completa.</li>
+          <li><i class="fas fa-check"></i>Metadata de ficha técnica bajo el estándar MSD del DANE.</li>
+          <li><i class="fas fa-check"></i>Evidencias con código único de carga para trazabilidad.</li>
+        </ul></div>
+      <div class="card"><h4><i class="fas fa-users-gear"></i> FICED por equipos</h4>
+        <p>El delegado reparte el formulario entre los equipos técnicos del organismo; cada equipo responde sus preguntas asignadas.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-box-archive"></i> Ingesta de conjuntos</h4>
+        <p>Microdatos documentados con <strong>DDI completo</strong>: identificación, universo, cobertura, método y condiciones de uso — el estándar internacional de archivos de datos.</p></div>
+      <div class="glass"><strong>Regla de oro del ciclo:</strong> nada de lo que sube el organismo se publica directo. Todo pasa primero por el punto de control — la validación.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S9 · LÍNEA C — FICED/ICED ═══ -->
+<section class="slide" data-titulo="Línea C · Capacidad">
+  <div class="kicker band-c">Línea C · Capacidad estadística</div>
+  <h2>FICED <span class="n">— el examen de capacidad del organismo</span></h2>
+  <p class="sub">El Formulario de Indicadores de Capacidad Estadística y Datos evalúa a cada organismo en cinco dimensiones. Del FICED diligenciado nace el ICED: el índice oficial de capacidad estadística distrital.</p>
+  <div class="slide-body">
+    <div class="flow" style="flex:1;">
+      <div class="nodo"><i class="fas fa-id-badge"></i><div class="t">A · Identificación</div><div class="d">Organismo, personas de contacto y datos institucionales.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-sitemap"></i><div class="t">B · Entorno institucional</div><div class="d">Planificación, coordinación y mecanismos de continuidad.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-server"></i><div class="t">C · Infraestructura</div><div class="d">Herramientas, recurso humano (hojas de vida) y financiación.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-flask"></i><div class="t">D · Metodología</div><div class="d">Operaciones, indicadores, analítica y observatorios.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-universal-access"></i><div class="t">E · Accesibilidad y uso</div><div class="d">Difusión, satisfacción del usuario y apertura del dato.</div></div>
+    </div>
+  </div>
+  <div class="slide-body" style="margin-top:14px; flex:0;">
+    <div class="card" style="flex:1;"><h4><i class="fas fa-people-arrows"></i> Por equipos técnicos</h4>
+      <p>Cada pregunta se asigna a un equipo del organismo (ETUAG-PSP, ETOBS, ETPP, ETSGC, ETGIE). Las respuestas compartidas se <strong>concilian</strong> en un formulario consolidado.</p></div>
+    <div class="card" style="flex:1;"><h4><i class="fas fa-scale-balanced"></i> Del formulario al índice</h4>
+      <p>El validador revisa el consolidado, calcula el puntaje por dimensión y obtiene el <strong>ICED (0-100)</strong> con nivel de madurez del organismo.</p></div>
+    <div class="card" style="flex:1;"><h4><i class="fas fa-briefcase"></i> Complejo de capacidad</h4>
+      <p>El expediente ICED viaja junto a la vitrina de hojas de vida del recurso humano estadístico — capacidad medida con evidencia, no con declaraciones.</p></div>
+  </div>
+</section>
+
+<!-- ═══ S10 · LÍNEA E ═══ -->
+<section class="slide" data-titulo="Línea E · Difusión">
+  <div class="kicker band-e">Línea E · Lo que sale</div>
+  <h2>El dato se convierte en <span class="n">contenido</span></h2>
+  <p class="sub">Tres sublíneas convierten la estadística validada en productos para cada público.</p>
+  <div class="roles">
+    <div class="rol v3"><div class="icono"><i class="fas fa-newspaper"></i></div><h4>E1 · Editorial</h4>
+      <p>Gestión de noticias, redacción, portada y calendario de eventos. Administra también los listados del anuario Cali en Cifras que el catálogo de consulta publica.</p></div>
+    <div class="rol v3"><div class="icono"><i class="fas fa-graduation-cap"></i></div><h4>E2 · Aprendizaje</h4>
+      <p>Productos académicos y educativos para cada público — niños, jóvenes, academia — con gráficos interactivos construidos sobre los propios indicadores de la plataforma.</p></div>
+    <div class="rol v3"><div class="icono"><i class="fas fa-calendar-days"></i></div><h4>E3 · Agenda</h4>
+      <p>Calendario de difusión estadística y agenda pública programada: qué producto sale, cuándo y por qué canal — la programación oficial del ecosistema.</p></div>
+  </div>
+</section>
+
+<!-- ═══ S11 · MAPA DE MÓDULOS ═══ -->
+<section class="slide" data-titulo="Módulos administrativos">
+  <div class="kicker">Detrás del portal</div>
+  <h2>Los módulos donde los roles <span class="n">descargan su trabajo</span></h2>
+  <p class="sub">Todo lo que cargan recolectores y delegados aterriza en módulos administrativos que el equipo técnico SIIED opera y audita.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-database"></i> Datos</h4>
+        <ul>
+          <li><i class="fas fa-check"></i><strong>Operaciones estadísticas</strong> — inventario OOEE + ADDA.</li>
+          <li><i class="fas fa-check"></i><strong>Ingesta de conjuntos</strong> — microdatos con DDI.</li>
+          <li><i class="fas fa-check"></i><strong>Catálogo de consulta</strong> — anuario Cali en Cifras.</li>
+          <li><i class="fas fa-check"></i><strong>Control de calidad y desagregación</strong> — dominios declarados, totales verificados, bitácora.</li>
+        </ul></div>
+      <div class="card"><h4><i class="fas fa-chart-column"></i> Series y publicación</h4>
+        <ul>
+          <li><i class="fas fa-check"></i><strong>Series de indicadores</strong> — cada indicador con su metadata completa.</li>
+          <li><i class="fas fa-check"></i><strong>Extracción</strong> — del conjunto a la serie: columnas fuente, fórmula y orden de desagregaciones.</li>
+          <li><i class="fas fa-check"></i><strong>Metadatos</strong> — ficha técnica MSD con secciones SDMX.</li>
+          <li><i class="fas fa-check"></i><strong>Difusión del dato</strong> — gráficos, calendario y API abierta.</li>
+        </ul></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-clipboard-check"></i> Evaluación y control</h4>
+        <ul>
+          <li><i class="fas fa-check"></i><strong>Reportes y auditoría</strong> — tablero de monitoreo: indicadores sin datos, series desactualizadas, completitud MSD+SDMX, trazabilidad.</li>
+          <li><i class="fas fa-check"></i><strong>Evaluación estratégica</strong> — entorno institucional y capacidad de decisión de cada organismo.</li>
+          <li><i class="fas fa-check"></i><strong>Evaluación táctica y operativa</strong> — infraestructura y operación estadística en detalle.</li>
+          <li><i class="fas fa-check"></i><strong>Satisfacción ciudadana</strong> — pulso rápido y formulario completo de la atención estadística.</li>
+        </ul></div>
+      <div class="glass"><strong>Inventario de indicadores:</strong> {{ stats.indicadores }} activos — ODS · Cali en Cifras · dominios del Comité de Gestión.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S12 · VALIDACIÓN ═══ -->
+<section class="slide" data-titulo="Validación">
+  <div class="kicker">Punto de control</div>
+  <h2>Validación <span class="n">— nada se publica sin pasar por aquí</span></h2>
+  <p class="sub">El punto de control detiene el expediente en la sala de decisión: el equipo técnico SIIED revisa todo lo que subió el delegado — series, conjuntos, metadata y FICED.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-clipboard-check"></i> Qué revisa</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>Series y cargas masivas con sus evidencias.</li>
+          <li><i class="fas fa-check"></i>Conjuntos de datos y su documentación DDI.</li>
+          <li><i class="fas fa-check"></i>Fichas de metadata MSD por indicador.</li>
+          <li><i class="fas fa-check"></i>Formularios FICED por equipo y su consolidado.</li>
+        </ul></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-code-branch"></i> Qué decide</h4>
+        <ul>
+          <li><i class="fas fa-check"></i><strong>Aprobar</strong> — el dato queda publicado y trazable.</li>
+          <li><i class="fas fa-check"></i><strong>Devolver</strong> — regresa con observaciones al organismo.</li>
+          <li><i class="fas fa-check"></i><strong>Conciliar</strong> — cuando varios equipos respondieron la misma pregunta, elige la respuesta oficial.</li>
+        </ul></div>
+      <div class="glass"><strong>Trazabilidad total:</strong> cada decisión queda con observaciones del validador, fecha y responsable — la bitácora es parte del dato.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S13 · ADMINISTRACIÓN ═══ -->
+<section class="slide" data-titulo="Administración">
+  <div class="kicker ctl">Torre de control</div>
+  <h2>Módulo de administración <span class="n">— la cabina</span></h2>
+  <p class="sub">El equipo técnico opera la plataforma desde las consolas del módulo de administración: configuración, fichas, dominios y reglas del sistema.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-sliders"></i> Configura</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>Fichas MSD y reglas de metadata por indicador.</li>
+          <li><i class="fas fa-check"></i>Dominios temáticos y desagregaciones oficiales.</li>
+          <li><i class="fas fa-check"></i>Capas geográficas y mapas base.</li>
+          <li><i class="fas fa-check"></i>Usuarios, roles y asignaciones pregunta-equipo del FICED.</li>
+        </ul></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-gauge-high"></i> Monitorea</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>Tablero de producción mensual y producción por organismo.</li>
+          <li><i class="fas fa-check"></i>Completitud de fichas y frescura de series.</li>
+          <li><i class="fas fa-check"></i>Cargas pendientes de validación por módulo.</li>
+        </ul></div>
+      <div class="glass"><strong>La administración opera desde las consolas</strong>, no desde el código: el equipo técnico puede abrir, corregir y reprogramar el ecosistema sin tocar un despliegue.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S14 · NIVEL ESTRATÉGICO ═══ -->
+<section class="slide" data-titulo="Nivel estratégico">
+  <div class="kicker">El grafo completo</div>
+  <h2>Del organismo <span class="n">al despacho del Alcalde</span></h2>
+  <p class="sub">Cuando todas las líneas producen, el ecosistema funciona como un grafo: cada nodo informa al siguiente y el resultado llega al nivel estratégico.</p>
+  <div class="slide-body">
+    <div class="flow" style="flex:1;">
+      <div class="nodo"><i class="fas fa-building"></i><div class="t">Organismos</div><div class="d">Delegados y recolectores cargan datos, metadata y evidencias.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-shield-halved"></i><div class="t">Equipo técnico SIIED</div><div class="d">Valida, consolida y calcula: series, conjuntos, ICED.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-users-rectangle"></i><div class="t">Comité de Gestión</div><div class="d">Todos los organismos deliberan en plenaria sobre el ecosistema.</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-landmark-dome"></i><div class="t">Despacho del Alcalde</div><div class="d">Información estratégica para la toma de decisiones.</div></div>
+    </div>
+  </div>
+  <div class="slide-body" style="margin-top:14px; flex:0;">
+    <div class="card" style="flex:1;"><h4><i class="fas fa-diagram-project"></i> El grafo</h4>
+      <p>Inventarios, roles, líneas y módulos no son piezas sueltas: cada respuesta de un organismo alimenta un indicador, cada indicador un tablero, cada tablero una decisión.</p></div>
+    <div class="card" style="flex:1;"><h4><i class="fas fa-table-columns"></i> Tablero de producción</h4>
+      <p>La plenaria del Comité proyecta el tablero de producción mensual: quién entregó, qué falta y dónde está el cuello de botella del ecosistema.</p></div>
+    <div class="card" style="flex:1;"><h4><i class="fas fa-flag"></i> Decisión informada</h4>
+      <p>La información estratégica llega al despacho con trazabilidad completa: del dato crudo del organismo a la cifra publicada.</p></div>
+  </div>
+</section>
+
+<!-- ═══ S15 · LA CIUDADANÍA ═══ -->
+<section class="slide" data-titulo="La ciudadanía">
+  <div class="kicker">Para quién es todo esto</div>
+  <h2>La ciudadanía <span class="n">— el destino y el punto de partida</span></h2>
+  <p class="sub">El ecosistema cierra el círculo: la ciudadanía observa, consume y evalúa — y su evaluación vuelve a entrar al sistema.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-headset"></i> Ventanilla PQRS</h4>
+        <p>Atención al ciudadano con encuestas que viajan al módulo de satisfacción — la atención estadística de cada organismo queda medida.</p></div>
+      <div class="card"><h4><i class="fas fa-binoculars"></i> El observatorio</h4>
+        <p>Los organismos observan a la ciudadanía: ahí nace la necesidad de información que reinicia el ciclo de recolección.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-rotate"></i> El círculo completo</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>La ciudadanía necesita respuestas →</li>
+          <li><i class="fas fa-check"></i>el organismo produce el dato →</li>
+          <li><i class="fas fa-check"></i>el SIIED lo valida y publica →</li>
+          <li><i class="fas fa-check"></i>la ciudadanía lo consume y califica →</li>
+          <li><i class="fas fa-check"></i>la calificación retroalimenta al organismo.</li>
+        </ul></div>
+      <div class="glass"><strong>La región que todo el sistema sirve:</strong> detrás de cada indicador hay una plaza, un barrio y una decisión pública que afecta a 2.2 millones de personas.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S16 · SOFTWARE ABIERTO ═══ -->
+<section class="slide" data-titulo="Código abierto">
+  <div class="kicker">Más allá de Cali</div>
+  <h2>El SIIED también es <span class="n">software de código abierto</span></h2>
+  <p class="sub">Toda la plataforma se documenta y comparte para que otras ciudades e instituciones construyan su propio sistema estadístico sobre esta base.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-box-open"></i> Qué se comparte</h4>
+        <ul>
+          <li><i class="fas fa-check"></i>Núcleo estadístico: indicadores, conjuntos, fichas MSD/SDMX.</li>
+          <li><i class="fas fa-check"></i>Módulos de recolección, delegado, validación y taller.</li>
+          <li><i class="fas fa-check"></i>Editorial, satisfacción, evaluación FICED/ICED.</li>
+          <li><i class="fas fa-check"></i>Don Datico: el asistente de IA sobre los datos.</li>
+        </ul></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-book"></i> Documentación viva</h4>
+        <p>La sección <strong>Documentación</strong> del portal describe la plataforma archivo por archivo, con métricas calculadas en vivo sobre el código instalado — el documento nunca se desactualiza respecto a lo que corre el servidor.</p>
+        <p style="margin-top:10px;"><a href="{% url 'indicadores:documentacion' %}" class="chip" style="background:#007bb5; border-color:#007bb5; color:#fff;"><i class="fas fa-arrow-right"></i> Ver documentación</a>
+           <a href="{% url 'indicadores:presentacion' %}" class="chip" style="background:#003a6b; border-color:#003a6b; color:#fff;"><i class="fas fa-cube"></i> Versión 3D</a></p></div>
+      <div class="glass"><strong>{{ stats.modelos }} modelos de datos</strong> documentados — la arquitectura completa del ecosistema estadístico distrital.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ S17 · CIERRE ═══ -->
+<section class="slide cover" data-titulo="Cierre">
+  <div>
+    <div class="kicker" style="margin-bottom:26px;">Y al caer el turno…</div>
+    <p class="bigquote">Un sistema de información no se legitima por lo que <em>promete</em>,<br>sino por lo que <em>ya produjo</em> — esto es Cali.</p>
+    <div style="margin-top:38px;">
+      <span class="chip"><i class="fas fa-chart-line"></i> {{ stats.indicadores }} indicadores publicados</span>
+      <span class="chip"><i class="fas fa-database"></i> {{ stats.conjuntos }} conjuntos de datos</span>
+      <span class="chip"><i class="fas fa-building"></i> {{ stats.organismos }} organismos en el ecosistema</span>
+      <span class="chip"><i class="fas fa-code-branch"></i> Código abierto</span>
+    </div>
+    <p class="tagline" style="margin:30px auto 0; text-align:center;">SIIED · Subdirección de Desarrollo Integral · Departamento Administrativo de Planeación<br>sistemaestadistico@cali.gov.co</p>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<div class="nav-ui">
+  <button class="nav-btn" id="btnPrev">← Anterior</button>
+  <div style="display:flex; align-items:center; gap:16px;">
+    <div class="mini" id="mini"></div>
+    <span class="contador" id="contador">1 / 17</span>
+  </div>
+  <button class="nav-btn" id="btnNext">Siguiente →</button>
+</div>
+
+<script>
+(function() {
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const total = slides.length;
+    let cur = 0;
+
+    const mini = document.getElementById('mini');
+    slides.forEach((s, i) => {
+        const a = document.createElement('a');
+        a.href = '#'; a.title = s.dataset.titulo || ('Slide ' + (i+1));
+        a.addEventListener('click', e => { e.preventDefault(); ir(i); });
+        mini.appendChild(a);
+    });
+
+    function ir(n) {
+        cur = Math.max(0, Math.min(total - 1, n));
+        slides.forEach((s, i) => s.classList.toggle('activa', i === cur));
+        document.getElementById('contador').textContent = (cur + 1) + ' / ' + total;
+        document.getElementById('progreso').style.width = ((cur + 1) / total * 100) + '%';
+        mini.querySelectorAll('a').forEach((a, i) => a.classList.toggle('on', i === cur));
+        // Deep-link por slide para compartir posición
+        history.replaceState(null, '', '#s' + (cur + 1));
+    }
+
+    document.getElementById('btnPrev').addEventListener('click', () => ir(cur - 1));
+    document.getElementById('btnNext').addEventListener('click', () => ir(cur + 1));
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); ir(cur + 1); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); ir(cur - 1); }
+        else if (e.key === 'Home') { e.preventDefault(); ir(0); }
+        else if (e.key === 'End') { e.preventDefault(); ir(total - 1); }
+    });
+
+    // Click en mitades de pantalla navega (fuera de controles)
+    document.getElementById('deck').addEventListener('click', e => {
+        if (e.target.closest('a, button, .nav-ui')) return;
+        ir(cur + (e.clientX > window.innerWidth / 2 ? 1 : -1));
+    });
+
+    // Arrancar en el slide del hash (#sN)
+    const m = (location.hash || '').match(/^#s(\d+)$/);
+    ir(m ? parseInt(m[1], 10) - 1 : 0);
+})();
+</script>
+</body>
+</html>
