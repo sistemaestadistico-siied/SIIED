@@ -217,7 +217,9 @@ class ParseadorMetadata:
         try:
             import pandas as pd
             if archivo_path.endswith(('.xlsx', '.xls')):
-                df = pd.read_excel(archivo_path, sheet_name=0, nrows=2)
+                hoja = ParseadorMetadata._elegir_hoja(
+                    archivo_path, ('indicadores', 'metadata'))
+                df = pd.read_excel(archivo_path, sheet_name=hoja, nrows=2)
             else:
                 encoding = ParseadorMetadata._detectar_encoding(archivo_path)
                 df = pd.read_csv(archivo_path, encoding=encoding, nrows=2)
@@ -254,7 +256,9 @@ class ParseadorMetadata:
         try:
             import pandas as pd
             if archivo_path.endswith(('.xlsx', '.xls')):
-                df = pd.read_excel(archivo_path, sheet_name=0)
+                hoja = ParseadorMetadata._elegir_hoja(
+                    archivo_path, ('variables',))
+                df = pd.read_excel(archivo_path, sheet_name=hoja)
             else:
                 encoding = ParseadorMetadata._detectar_encoding(archivo_path)
                 df = pd.read_csv(archivo_path, encoding=encoding)
@@ -282,6 +286,23 @@ class ParseadorMetadata:
                 'variables': []
             }
     
+    @staticmethod
+    def _elegir_hoja(archivo_path: str, preferidas) -> str:
+        """Elige la hoja del Excel a leer. La plantilla oficial de
+        metadatos trae 'Diccionario de datos' en la hoja 0 — los datos
+        están en 'Indicadores' o 'Variables'."""
+        import pandas as pd
+        libro = pd.ExcelFile(archivo_path)
+        nombres = {h.lower(): h for h in libro.sheet_names}
+        for pref in preferidas:
+            p = pref.lower()
+            if p in nombres:
+                return nombres[p]
+            parciales = [h for h in libro.sheet_names if p in h.lower()]
+            if parciales:
+                return parciales[0]
+        return libro.sheet_names[0]
+
     @staticmethod
     def _detectar_encoding(archivo_path: str) -> str:
         """Detecta el encoding del archivo"""

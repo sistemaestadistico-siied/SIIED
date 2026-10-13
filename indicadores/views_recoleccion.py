@@ -298,19 +298,40 @@ def cargar_serie_indicador(request):
     return render(request, 'recoleccion/cargar_serie_indicador.html', context)
 
 
-def _leer_archivo_datos(path):
-    """Lee un archivo Excel o CSV según su extensión."""
+def _leer_archivo_datos(path, hojas_preferidas=None):
+    """Lee un archivo Excel o CSV según su extensión.
+
+    hojas_preferidas: nombres de hoja a intentar primero
+    (case-insensitive, igualdad o 'contiene'). La plantilla oficial
+    de metadatos trae 'Diccionario de datos' en la hoja 0 — los
+    callers de metadata deben pedir 'Indicadores'.
+    """
     if path.lower().endswith('.csv'):
         from .wizard_admin_unificado import _leer_csv_auto_sep
         return _leer_csv_auto_sep(path)
-    return pd.read_excel(path)
+    if not hojas_preferidas:
+        return pd.read_excel(path)
+    libro = pd.ExcelFile(path)
+    elegida = None
+    nombres = {h.lower(): h for h in libro.sheet_names}
+    for pref in hojas_preferidas:
+        p = pref.lower()
+        if p in nombres:
+            elegida = nombres[p]
+            break
+        parciales = [h for h in libro.sheet_names if p in h.lower()]
+        if parciales:
+            elegida = parciales[0]
+            break
+    return pd.read_excel(libro, sheet_name=elegida or libro.sheet_names[0])
 
 
 def procesar_serie_indicador(carga):
     """Procesa los archivos xlsx/csv y los convierte a csv. La metadata es opcional."""
     try:
         # Leer y convertir archivo de datos
-        df_datos = _leer_archivo_datos(carga.archivo_datos_xlsx.path)
+        df_datos = _leer_archivo_datos(carga.archivo_datos_xlsx.path,
+                                       hojas_preferidas=('datos',))
         csv_buffer = BytesIO()
         df_datos.to_csv(csv_buffer, index=False, encoding='utf-8', sep=';')
         csv_buffer.seek(0)
@@ -321,7 +342,9 @@ def procesar_serie_indicador(carga):
         
         # Procesar metadata solo si fue adjuntada
         if carga.archivo_metadata_xlsx and carga.archivo_metadata_xlsx.name:
-            df_metadata = _leer_archivo_datos(carga.archivo_metadata_xlsx.path)
+            df_metadata = _leer_archivo_datos(
+                carga.archivo_metadata_xlsx.path,
+                hojas_preferidas=('indicadores', 'metadata'))
             csv_buffer_meta = BytesIO()
             df_metadata.to_csv(csv_buffer_meta, index=False, encoding='utf-8', sep=';')
             csv_buffer_meta.seek(0)
@@ -915,11 +938,16 @@ def descargar_plantilla_serie_datos(request):
 
 
 def descargar_plantilla_metadata_indicador(request):
-    """Descarga plantilla Excel de ejemplo para metadata de indicadores"""
+    """Descarga la plantilla oficial de metadatos (portal delegado y
+    carga individual). Es el mismo archivo que la carga masiva."""
+    return _servir_plantilla_oficial_metadatos(
+        request, 'indicadores:cargar_serie_indicador')
+
+
+def _descargar_plantilla_metadata_indicador_generada(request):
+    """Generador histórico (deprecado): estándar MSD numerado viejo.
+    Solo respaldo; ya no se expone en ninguna URL."""
     try:
-        # Plantilla MSD: encabezados numerados idénticos al estándar de
-        # referencia y a la ficha técnica pública. El cargador masivo los
-        # normaliza automáticamente (quita el prefijo "N.N " y las tildes).
         data = {
             '0.2 Código del Indicador': ['ICET_SAL_DEM_MOR_02'],
             '0.1 Nombre del Indicador': ['Tasa de mortalidad de niños menores de 5 años'],
@@ -1805,7 +1833,7 @@ def _generar_xlsx_metadata_indicador(data):
         'Correo_Contacto', 'Telefono_Contacto',
         'Fecha_Publicacion_Metadatos',
         # Sección 2: Características del Indicador
-        'Descripcion_Indicador', 'Objetivo',
+        'Descripcion_Indicador',
         'Metodo_Medicion', 'Formula', 'Variables',
         'Unidad_Medida',
         'Nomenclaturas_Clasificaciones',
@@ -2024,7 +2052,6 @@ def cargar_metadata_form(request):
                 'Nombre_Indicador': i.nombre or '',
                 'Sigla': i.sigla or '',
                 'Descripcion_Indicador': i.descripcion_indicador or '',
-                'Objetivo': i.objetivo or '',
                 'Justificacion': '',  # campo legacy eliminado
                 'Metodo_Medicion': i.metodo_medicion or '',
                 'Formula': i.formula_ficha or '',
@@ -2092,7 +2119,7 @@ def cargar_metadata_form(request):
         campos = [
             'Grupo_Indicador', 'Dominio', 'Tema', 'Subtema',
             'Codigo_Indicador', 'Nombre_Indicador', 'Sigla',
-            'Descripcion_Indicador', 'Objetivo',
+            'Descripcion_Indicador',
             'Metodo_Medicion', 'Formula', 'Variables',
             'Unidad_Medida',
             'Nomenclaturas_Clasificaciones',
@@ -2152,7 +2179,6 @@ def cargar_metadata_form(request):
         # Actualizar indicador con campos MSD
         indicador.variables = data.get('Variables', '')
         indicador.descripcion_indicador = data.get('Descripcion_Indicador', '')
-        indicador.objetivo = data.get('Objetivo', '')
         indicador.metodo_medicion = data.get('Metodo_Medicion', '')
         indicador.formula_ficha = data.get('Formula', '')
         indicador.unidad_medida = data.get('Unidad_Medida', '')
@@ -2903,6 +2929,37 @@ def _procesar_archivo_masivo(carga_masiva):
     }
 
 
+def _resolver_subtema_desde_texto(nombre_subtema, nombre_tema=None, nombre_dominio=None):
+    """Resuelve Dominio/Tema/Subtema de la plantilla oficial al MenuSubtema.
+
+    Busca exacto (acotado por tema/dominio si vienen), luego por nombre
+    normalizado (sin tildes/case) y por último icontains. Devuelve None
+    si no hay coincidencia.
+    """
+    from .models import MenuSubtema
+
+    nombre_subtema = str(nombre_subtema or '').strip()
+    if not nombre_subtema:
+        return None
+    sub_qs = MenuSubtema.objects.filter(activo=True)
+    nombre_tema = str(nombre_tema or '').strip()
+    nombre_dominio = str(nombre_dominio or '').strip()
+    if nombre_tema:
+        sub_qs = sub_qs.filter(tema__nombre__iexact=nombre_tema)
+    if nombre_dominio:
+        sub_qs = sub_qs.filter(tema__dominio__nombre__iexact=nombre_dominio)
+    subtema = sub_qs.filter(nombre__iexact=nombre_subtema).first()
+    if not subtema:
+        for s in MenuSubtema.objects.filter(activo=True):
+            if _normalizar_nombre(s.nombre) == _normalizar_nombre(nombre_subtema):
+                subtema = s
+                break
+    if not subtema:
+        subtema = MenuSubtema.objects.filter(
+            activo=True, nombre__icontains=nombre_subtema).first()
+    return subtema
+
+
 def _actualizar_metadata_indicador_masiva(indicador, fila):
     """
     Actualiza los campos de metadata de un indicador a partir de una fila del DataFrame.
@@ -3100,28 +3157,10 @@ def _actualizar_metadata_indicador_masiva(indicador, fila):
     # ------------------------------------------------------------------
     # Taxonomía SIIED (plantilla oficial): Dominio / Tema / Subtema
     # ------------------------------------------------------------------
-    nombre_subtema = str(fila.get('subtema', '') or '').strip()
-    if nombre_subtema:
-        from .models import MenuSubtema
-        sub_qs = MenuSubtema.objects.filter(activo=True)
-        nombre_tema = str(fila.get('tema', '') or '').strip()
-        nombre_dominio = str(fila.get('dominio', '') or '').strip()
-        if nombre_tema:
-            sub_qs = sub_qs.filter(tema__nombre__iexact=nombre_tema)
-        if nombre_dominio:
-            sub_qs = sub_qs.filter(tema__dominio__nombre__iexact=nombre_dominio)
-        subtema = sub_qs.filter(nombre__iexact=nombre_subtema).first()
-        # Sin filtro o sin exacta: búsqueda normalizada global
-        if not subtema:
-            for s in MenuSubtema.objects.filter(activo=True):
-                if _normalizar_nombre(s.nombre) == _normalizar_nombre(nombre_subtema):
-                    subtema = s
-                    break
-        if not subtema:
-            subtema = MenuSubtema.objects.filter(
-                activo=True, nombre__icontains=nombre_subtema).first()
-        if subtema:
-            indicador.subtema = subtema
+    subtema = _resolver_subtema_desde_texto(
+        fila.get('subtema'), fila.get('tema'), fila.get('dominio'))
+    if subtema:
+        indicador.subtema = subtema
 
     indicador.save()
 
@@ -3637,13 +3676,13 @@ def descargar_plantilla_masiva_datos(request):
         return redirect('indicadores:cargar_masiva_series')
 
 
-def descargar_plantilla_masiva_metadata(request):
-    """Descarga la plantilla oficial de metadatos de indicadores.
+def _servir_plantilla_oficial_metadatos(request, fallback_url):
+    """Sirve verbatim la plantilla oficial de metadatos de indicadores
+    (hojas: 'Diccionario de datos', 'Indicadores', 'Variables').
 
-    Sirve verbatim el archivo aprobado por el equipo (hojas:
-    'Diccionario de datos', 'Indicadores', 'Variables'). Antes se
-    generaba un Excel distinto: sin diccionario, con otro orden de
-    columnas y nombres legados (objetivo, metodo_medicion…).
+    Es el archivo aprobado por el equipo: mismo orden de columnas y
+    nomenclatura. Todos los puntos de descarga (carga masiva, carga
+    individual y portal delegado) sirven este mismo archivo.
     """
     import os
     from django.conf import settings
@@ -3660,7 +3699,13 @@ def descargar_plantilla_masiva_metadata(request):
         )
     except FileNotFoundError:
         messages.error(request, 'La plantilla oficial no está instalada en el servidor.')
-        return redirect('indicadores:cargar_masiva_series')
+        return redirect(fallback_url)
+
+
+def descargar_plantilla_masiva_metadata(request):
+    """Descarga la plantilla oficial (botón de carga masiva)."""
+    return _servir_plantilla_oficial_metadatos(
+        request, 'indicadores:cargar_masiva_series')
 
 
 def _descargar_plantilla_masiva_metadata_generada(request):

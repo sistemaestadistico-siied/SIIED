@@ -482,7 +482,8 @@ def _convertir_serie_a_csv(carga):
     from .views_recoleccion import _leer_archivo_datos
     try:
         if carga.tiene_datos:
-            df_datos = _leer_archivo_datos(carga.archivo_datos_xlsx.path)
+            df_datos = _leer_archivo_datos(carga.archivo_datos_xlsx.path,
+                                           hojas_preferidas=('datos',))
             buf = BytesIO()
             df_datos.to_csv(buf, index=False, encoding='utf-8', sep=';')
             buf.seek(0)
@@ -493,7 +494,9 @@ def _convertir_serie_a_csv(carga):
             carga.registros_procesados = len(df_datos)
 
         if carga.tiene_metadata:
-            df_meta = _leer_archivo_datos(carga.archivo_metadata_xlsx.path)
+            df_meta = _leer_archivo_datos(
+                carga.archivo_metadata_xlsx.path,
+                hojas_preferidas=('indicadores', 'metadata'))
             buf2 = BytesIO()
             df_meta.to_csv(buf2, index=False, encoding='utf-8', sep=';')
             buf2.seek(0)
@@ -718,7 +721,8 @@ def _convertir_conjunto_datos_a_csv(carga):
     from .views_recoleccion import _leer_archivo_datos
     try:
         if carga.tiene_conjunto_datos:
-            df = _leer_archivo_datos(carga.archivo_microdata_xlsx.path)
+            df = _leer_archivo_datos(carga.archivo_microdata_xlsx.path,
+                                     hojas_preferidas=('conjuntos', 'datos'))
             buf = BytesIO()
             df.to_csv(buf, index=False, encoding='utf-8', sep=';')
             buf.seek(0)
@@ -729,7 +733,9 @@ def _convertir_conjunto_datos_a_csv(carga):
             carga.registros_procesados = len(df)
 
         if carga.tiene_metadata_variables:
-            df_vars = _leer_archivo_datos(carga.archivo_metadata_variables_xlsx.path)
+            df_vars = _leer_archivo_datos(
+                carga.archivo_metadata_variables_xlsx.path,
+                hojas_preferidas=('variables',))
             buf2 = BytesIO()
             df_vars.to_csv(buf2, index=False, encoding='utf-8', sep=';')
             buf2.seek(0)
@@ -1088,7 +1094,6 @@ def delegado_cargar_metadata_form(request):
                 'Nombre_Indicador': i.nombre or '',
                 'Sigla': i.sigla or '',
                 'Descripcion_Indicador': i.descripcion_indicador or '',
-                'Objetivo': i.objetivo or '',
                 'Justificacion': '',  # campo legacy eliminado
                 'Metodo_Medicion': i.metodo_medicion or '',
                 'Formula': i.formula_ficha or '',
@@ -1153,7 +1158,7 @@ def delegado_cargar_metadata_form(request):
         campos = [
             'Grupo_Indicador', 'Dominio', 'Tema', 'Subtema',
             'Codigo_Indicador', 'Nombre_Indicador', 'Sigla',
-            'Descripcion_Indicador', 'Objetivo',
+            'Descripcion_Indicador',
             'Metodo_Medicion', 'Formula', 'Variables',
             'Unidad_Medida',
             'Nomenclaturas_Clasificaciones',
@@ -1204,7 +1209,6 @@ def delegado_cargar_metadata_form(request):
         # Actualizar indicador con campos MSD
         indicador.variables = data.get('Variables', '')
         indicador.descripcion_indicador = data.get('Descripcion_Indicador', '')
-        indicador.objetivo = data.get('Objetivo', '')
         indicador.metodo_medicion = data.get('Metodo_Medicion', '')
         indicador.formula_ficha = data.get('Formula', '')
         indicador.unidad_medida = data.get('Unidad_Medida', '')

@@ -2635,19 +2635,46 @@ class WizardAdminUnificado(SessionWizardView):
             if archivo_path:
                 resultado = ParseadorMetadata.parsear_metadata_indicador(archivo_path)
                 if resultado['exitoso']:
+                    meta = resultado['metadata']
+                    # Normalizar encabezados al esquema canónico: acepta la
+                    # plantilla oficial (ID_Indicador_SIIED, Cálculo del
+                    # indicador…) además del MSD numerado viejo.
+                    from .views_recoleccion import (
+                        _normalizar_columnas_metadata,
+                        _resolver_subtema_desde_texto,
+                    )
+
+                    def _canon(k):
+                        return _normalizar_columnas_metadata([k])[0]
+
+                    canon = {}
+                    for _k, _v in meta.items():
+                        canon.setdefault(_canon(_k), _v)
+
                     for col, campo in MAPA_CAMPOS.items():
-                        val = resultado['metadata'].get(col, '').strip()
+                        val = (meta.get(col, '') or '').strip()
+                        if not val:
+                            val = str(canon.get(_canon(col), '') or '').strip()
                         if val and val != 'nan':
                             setattr(indicador, campo, val)
                             changed = True
                     for col, campo in MAPA_FECHAS.items():
-                        val = resultado['metadata'].get(col, '').strip()
+                        val = (meta.get(col, '') or '').strip()
+                        if not val:
+                            val = str(canon.get(_canon(col), '') or '').strip()
                         if val and val != 'nan':
                             try:
                                 setattr(indicador, campo, pd.to_datetime(val).date())
                                 changed = True
                             except Exception:
                                 pass
+                    # Taxonomía oficial: Dominio/Tema/Subtema → subtema FK
+                    subtema = _resolver_subtema_desde_texto(
+                        canon.get('subtema'), canon.get('tema'),
+                        canon.get('dominio'))
+                    if subtema and indicador.subtema_id != subtema.id:
+                        indicador.subtema = subtema
+                        changed = True
 
         # 2. Campos manuales del formulario (tienen precedencia sobre el archivo)
         MAPA_FORM = {

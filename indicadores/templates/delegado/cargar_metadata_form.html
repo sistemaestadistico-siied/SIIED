@@ -40,7 +40,7 @@
     <!-- 1. Identificación y Contacto Institucional (MSD) -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <button type="button" class="w-full px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-left accordion-toggle" data-target="sec-ident">
-        <span class="font-semibold text-slate-700">1. Identificación y Contacto Institucional (MSD)</span>
+        <span class="font-semibold text-slate-700">Identificación y contacto institucional (plantilla oficial)</span>
         <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
@@ -63,7 +63,7 @@
           </select>
           {% if organismo %}<p class="text-xs text-slate-400 mt-1">Organismo: <strong>{{ organismo.nombre }}</strong></p>{% endif %}
         </div>
-        <div><label class="block text-xs text-slate-500 mb-1">0.4 Grupo Indicador</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Grupo indicador</label>
           <input type="text" name="Grupo_Indicador" placeholder="ICET / SIIET"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
         <div><label class="block text-xs text-slate-500 mb-1">Dominio</label>
@@ -75,24 +75,24 @@
         <div><label class="block text-xs text-slate-500 mb-1">Subtema</label>
           <input type="text" name="Subtema" readonly
                  class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">0.2 Código del Indicador</label>
+        <div><label class="block text-xs text-slate-500 mb-1">ID_Indicador_SIIED</label>
           <input type="text" name="Codigo_Indicador" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">0.1 Nombre del Indicador</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Nombre indicador</label>
           <input type="text" name="Nombre_Indicador" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">0.3 Sigla</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Sigla o abreviatura</label>
           <input type="text" name="Sigla" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
 
         <!-- Contacto Institucional MSD -->
         <div class="md:col-span-2 border-t border-slate-200 pt-4 mt-2">
-          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">1. Contacto Institucional</h4>
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">Contacto institucional</h4>
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">1.1 Entidad o Institución Responsable</label>
+          <label class="block text-xs text-slate-500 mb-1">Organismo responsable</label>
           <input type="text" value="{{ organismo.nombre|default:'' }}" readonly
                  class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed">
         </div>
         <div>
-          <label class="block text-xs text-slate-500 mb-1">1.3 Área o Dependencia Responsable</label>
+          <label class="block text-xs text-slate-500 mb-1">Suborganismo responsable</label>
           <select name="suborganismo_id" id="sel-suborganismo"
                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
             <option value="">— Selecciona —</option>
@@ -103,13 +103,13 @@
             {% endfor %}
           </select>
         </div>
-        <div><label class="block text-xs text-slate-500 mb-1">1.4 Correo Electrónico de Contacto</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Dirección de correo electrónico de contacto</label>
           <input type="email" name="Correo_Contacto"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">1.5 Número Telefónico</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Número telefónico</label>
           <input type="text" name="Telefono_Contacto"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">1.6 Fecha de Publicación de los Metadatos</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Fecha de publicación de los metadatos</label>
           <input type="date" name="Fecha_Publicacion_Metadatos"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
         <div><label class="block text-xs text-slate-500 mb-1">Fecha de Elaboración</label>
@@ -119,53 +119,51 @@
           <input type="date" name="Fecha_Actualizacion"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
 
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.3 Objetivo</label>
-          <textarea name="Objetivo" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
       </div>
     </div>
 
     <!-- 2. Características del Indicador (MSD) -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <button type="button" class="w-full px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-left accordion-toggle" data-target="sec-met">
-        <span class="font-semibold text-slate-700">2. Características del Indicador (MSD)</span>
+        <span class="font-semibold text-slate-700">Características del indicador (plantilla oficial)</span>
         <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
       </button>
       <div id="sec-met" class="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.2 Descripción del Indicador</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Descripción del indicador</label>
           <textarea name="Descripcion_Indicador" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.4 Cálculo del Indicador / Método de Medición</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Cálculo del indicador</label>
           <textarea name="Metodo_Medicion" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.5 Fórmula</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Fórmula del indicador</label>
           <input type="text" name="Formula" placeholder="ej. TMM5 = (V₁ / V₂) × 1.000"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.6 Variables</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Variables</label>
           <textarea name="Variables" rows="2" placeholder="edad, triage salud, comuna"
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.10 Nombre del Conjunto de Datos</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Nombre del conjunto de datos</label>
           <input type="text" name="Nombre_Conjunto_conjunto_datos" placeholder="Ej: Encuesta Calidad de Vida 2024"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
           <p class="text-xs text-slate-400 mt-1">Si ya existe un conjunto de datos con este nombre, se asociará automáticamente.</p>
         </div>
-        <div><label class="block text-xs text-slate-500 mb-1">2.7 Unidad de Medida</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Unidad de medida</label>
           <input type="text" name="Unidad_Medida" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">2.8 Fuente de la Información</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Fuente de la información</label>
           <input type="text" name="Fuente_Datos" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">2.9 Nombre de la Operación Estadística</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Nombre de la operación estadística</label>
           <input type="text" name="Operacion_Estadistica" placeholder="Ej: Encuesta de Calidad de Vida"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.11 Nomenclaturas y Clasificaciones</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Nomenclatura y clasificaciones estadísticas</label>
           <textarea name="Nomenclaturas_Clasificaciones" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.12 Alcance Temático</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Alcance temático</label>
           <textarea name="Alcance_Tematico" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.13 Población Objetivo</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Población objetivo</label>
           <textarea name="Poblacion_Objetivo" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">2.14 Cobertura Geográfica</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Cobertura geográfica</label>
           <textarea name="Cobertura_Geografica" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div><label class="block text-xs text-slate-500 mb-1">2.15 Período de Referencia</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Periodo de referencia</label>
           <input type="text" name="Periodo_Referencia" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">2.16 Período Base</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Periodo base</label>
           <input type="text" name="Periodo_Base" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
       </div>
     </div>
@@ -173,16 +171,16 @@
     <!-- 3. Difusión  +  4. Comentarios + Fechas (MSD) -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
       <button type="button" class="w-full px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between text-left accordion-toggle" data-target="sec-tec">
-        <span class="font-semibold text-slate-700">3. Difusión, Comentarios y Fechas (MSD)</span>
+        <span class="font-semibold text-slate-700">Difusión, comentarios y responsabilidad (plantilla oficial)</span>
         <svg class="w-4 h-4 text-slate-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
         </svg>
       </button>
       <div id="sec-tec" class="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div><label class="block text-xs text-slate-500 mb-1">3.1 Serie Histórica Disponible</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Serie histórica disponible</label>
           <input type="text" name="Serie_Historica_Disponible" placeholder="Ej: 2010-2024"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">3.2 Frecuencia de Difusión</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Frecuencia de difusión</label>
           <select name="Frecuencia_Difusion"
                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
             <option value="">— Selecciona —</option>
@@ -191,24 +189,24 @@
             <option>Anual</option><option>Bienal</option><option>Quinquenal</option>
             <option>A demanda</option>
           </select></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">3.3 Medios de Difusión</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Medios de difusión</label>
           <textarea name="Medios_Difusion" rows="2" placeholder="Internet, correo electrónico, impreso, etc."
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">4.1 Comentarios Adicionales</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Comentarios adicionales</label>
           <textarea name="Comentarios_Adicionales" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
 
         <!-- Sección SDMX: Referencias y Responsabilidad Institucional -->
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">5.1 Referencias (APA 7)</label>
+        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Referencias</label>
           <textarea name="Referencias" rows="3" placeholder="Fuentes bibliográficas, normativas y metodológicas con enlaces o DOI" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div><label class="block text-xs text-slate-500 mb-1">6.3 Equipo Responsable</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Equipo responsable</label>
           <input type="text" name="Equipo_Responsable" placeholder="Nombre del equipo del suborganismo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Nombre Responsable Técnico</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Nombre responsable técnico de validación</label>
           <input type="text" name="Nombre_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Cargo Responsable Técnico</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Cargo responsable técnico de validación</label>
           <input type="text" name="Cargo_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Correo Responsable Técnico</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Correo electrónico del responsable técnico del indicador</label>
           <input type="email" name="Correo_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div><label class="block text-xs text-slate-500 mb-1">Celular Responsable Técnico</label>
+        <div><label class="block text-xs text-slate-500 mb-1">Celular responsable técnico de validación</label>
           <input type="text" name="Celular_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
       </div>
     </div>
