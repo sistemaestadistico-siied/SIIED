@@ -889,35 +889,41 @@ const _cRef = new THREE.Color();
         pilar.position.y = 1.5; g.add(pilar);
         g.scale.setScalar(s); g.position.set(x, 0, z); scene.add(g);
     }
-    // Norte: el sector vacío antes de la junta del hall — el
-    // despacho ya tiene su propio podio al este. Todos al margen
-    // norte de la avenida ambiental (z=-41.6): la vía queda libre.
-    crearEstadio(6, -36.2, 0.55);
-    crearIglesia(-24, -37.6, 0.78);
-    crearAntena(34, -37.8, 0.85);
-    crearFuente(-10, -36.4, 0.95);
-    // Sur: detrás de la ventanilla y el catálogo — la ciudad
-    // que recibe los datos
-    crearParque(-8, 35, 0.9);
-    crearMall(27, 36, 0.7);
-    crearBomberos(-28, 37, 0.85);
-    crearIglesia(48, 36, 0.85);
-    crearFuente(14, 30, 1.05);
-    // Y cada landmark tiene su cuadra: casitas orillando los
-    // espacios abiertos, mirando hacia el punto de interés
-    function vecinas(cx, cz, lista) {
-        for (const [ox, oz] of lista)
-            casita(cx + ox, cz + oz, Math.atan2(-ox, -oz));
+    // Norte: una cuadra ordenada al margen de la avenida (z=-41.6)
+    // — landmarks repartidos con aire y dos filas de casitas
+    // alineadas a la vía; el estadio más adentro para que su
+    // muro no pise la avenida
+    crearIglesia(-32, -36.4, 0.78);
+    crearFuente(-19, -37.2, 0.95);
+    crearEstadio(6, -33.6, 0.5);
+    crearAntena(26, -37.5, 0.85);
+    // Sur: la cuadra que recibe al público, igual de ordenada
+    crearParque(-8, 33.6, 0.85);
+    crearMall(27, 35.5, 0.7);
+    crearBomberos(-30, 37, 0.85);
+    crearIglesia(48, 35.5, 0.85);
+    crearFuente(14, 30.5, 1.05);
+    // Filas de casitas frente a cada avenida, saltando los huecos
+    // de los landmarks: nada de casas traslapadas ni sobre la vía
+    const XS_CUADRA = [-38.5, -34.3, -30.1, -25.9, -21.7, -17.5, -13.3,
+                       -9.1, -4.9, -0.7, 3.5, 7.7, 11.9, 16.1, 20.3,
+                       24.5, 28.7, 32.9, 37.1];
+    const XS_CUADRA_S = XS_CUADRA.concat([41.3, 45.5, 49.7, 53.9]);
+    function filaCasitas(z, xs, ry, huecos = []) {
+        for (const x of xs)
+            if (!huecos.some(([a, b]) => x > a && x < b))
+                casita(x, z, ry);
     }
-    vecinas(6, -35.8, [[-10, 0], [10, 0], [-10, -2.5], [10, 2.5], [-10, 2.5], [10, -2.5]]);
-    vecinas(-24, -38.0, [[-5, 0], [5, 0], [0, 5.2], [-3, 5.2], [3, 5.2]]);
-    vecinas(-10, -35.4, [[-4.2, 0], [4.2, 0], [-4.2, -3], [4.2, 3]]);
-    vecinas(34, -36.2, [[-4.5, 0], [4.5, 0], [-4.5, 2], [4.5, -2]]);
-    vecinas(-8, 35, [[-7.5, 0], [7.5, 0], [-7.5, 3], [7.5, -3], [-7.5, -3], [7.5, 3]]);
-    vecinas(27, 36, [[-6, 0], [6, 0], [0, 2], [-6, 3], [6, -3]]);   // al margen de la avenida sur
-    vecinas(-28, 37, [[-4.8, 0], [4.8, 0], [0, 1.0], [0, -5]]);
-    vecinas(48, 36, [[-4.5, 0], [4.5, 0], [0, 2.0], [0, -5.5]]);
-    vecinas(14, 30, [[-4.5, 0], [4.5, 0], [0, 4.5], [0, -3.5]]);
+    // Frente a la vía norte (las fachadas miran a la avenida)
+    filaCasitas(-37.9, XS_CUADRA, Math.PI,
+        [[-35, -29], [-22.5, -15.5], [-3, 15], [23, 28.5]]);
+    filaCasitas(-33.2, XS_CUADRA, Math.PI,
+        [[-35, -29], [-22.5, -15.5], [-3, 15]]);
+    // Frente a la vía sur
+    filaCasitas(38.4, XS_CUADRA_S, 0,
+        [[-32, -25], [-14, -2], [21.5, 32], [44.5, 51.5]]);
+    filaCasitas(33.4, XS_CUADRA_S, 0,
+        [[-32, -25], [-14, -2], [10.5, 17.5], [21.5, 32], [44.5, 51.5]]);
 
     // Bóveda de estrellas: cúpula de puntos (fog apagado para
     // que brillen por encima del horizonte)
