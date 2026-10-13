@@ -37,26 +37,26 @@ CHAT_CONFIG = {
     # Configuración de Modelos IA
     # API Principal (Cerebras, OpenAI, etc.)
     'CEREBRAS_API_KEY': '***REMOVED***',  # API Key Principal
-    'CEREBRAS_BASE_URL': 'https://api.cerebras.ai/v1',  # URL base de la API Principal
-    'CEREBRAS_MODEL': 'gpt-oss-120b',  # Modelo Principal
+    'CEREBRAS_BASE_URL': 'https://generativelanguage.googleapis.com/v1beta/openai/',  # URL base de la API Principal
+    'CEREBRAS_MODEL': 'gemini-3.8-flash',  # Modelo Principal
     'CEREBRAS_MAX_TOKENS': 14200,  # Máximo de tokens Principal
     'CEREBRAS_TEMPERATURE': 0.15,  # Temperatura Principal
     'CEREBRAS_TOP_P': 0.92,  # Top P Principal
-    
+
     # API Respaldo (Ollama, LocalAI, etc.)
-    'OLLAMA_API_KEY': 'ollama',  # API Key Respaldo (opcional para local)
-    'OLLAMA_BASE_URL': 'http://localhost:11434/v1',  # URL base Respaldo
-    'OLLAMA_MODEL': 'cogito:3b',  # Modelo Respaldo
-    'OLLAMA_MAX_TOKENS': 8000,  # Máximo de tokens Respaldo
-    'OLLAMA_TEMPERATURE': 0.2,  # Temperatura Respaldo
+    'OLLAMA_API_KEY': '***REMOVED***',  # API Key Respaldo (opcional para local)
+    'OLLAMA_BASE_URL': 'https://api.cerebras.ai/v1',  # URL base Respaldo
+    'OLLAMA_MODEL': 'gpt-oss-120b',  # Modelo Respaldo
+    'OLLAMA_MAX_TOKENS': 14200,  # Máximo de tokens Respaldo
+    'OLLAMA_TEMPERATURE': 0.15,  # Temperatura Respaldo
     'OLLAMA_TOP_P': 0.9,  # Top P Respaldo
-    'OLLAMA_CLIENT_TIMEOUT_SECONDS': 120,  # Timeout del cliente Ollama en segundos
-    'OLLAMA_STREAM_TIMEOUT_SECONDS': 180,  # Timeout de streaming para Ollama en segundos
+    'OLLAMA_CLIENT_TIMEOUT_SECONDS': 300,  # Timeout del cliente Ollama en segundos
+    'OLLAMA_STREAM_TIMEOUT_SECONDS': 400,  # Timeout de streaming para Ollama en segundos
     'OLLAMA_MAX_CONTEXT_TOKENS': 100000,  # Límite máximo de tokens de contexto antes de truncar
     'OLLAMA_TRUNCATE_MESSAGES_COUNT': 10,  # Número de mensajes a mantener al truncar
     
     # Timeouts y Límites HTTP
-    'HTTP_TOOLS_TIMEOUT_SECONDS': 30,  # Timeout para llamadas HTTP a herramientas
+    'HTTP_TOOLS_TIMEOUT_SECONDS': 45,  # Timeout para llamadas HTTP a herramientas
     'TOOLS_FALLBACK_BASE_URL': 'http://127.0.0.1:8000',  # URL base de fallback para herramientas
 }
 

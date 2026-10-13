@@ -2610,6 +2610,8 @@ class WizardAdminUnificado(SessionWizardView):
             'Correo_Contacto': 'correo_contacto',
             'Telefono_Contacto': 'telefono_contacto',
             'Grupo_Indicador': 'grupo_indicador',
+            'Nombre_Conjunto_conjunto_datos': 'nombre_conjunto_datos',
+            'Nombre_Conjunto_Datos': 'nombre_conjunto_datos',
             'Referencias': 'referencias',
             'Nombre_Responsable_Validacion': 'nombre_responsable_validacion',
             'Cargo_Responsable_Validacion': 'cargo_responsable_validacion',
@@ -2675,6 +2677,57 @@ class WizardAdminUnificado(SessionWizardView):
                     if subtema and indicador.subtema_id != subtema.id:
                         indicador.subtema = subtema
                         changed = True
+
+                    # FKs por nombre — paridad con _actualizar_metadata_indicador_masiva
+                    from unidecode import unidecode
+                    from .models import Organismo, Suborganismo, OperacionEstadistica
+
+                    def _buscar_por_nombre(qs, nombre):
+                        nombre = str(nombre or '').strip()
+                        if not nombre:
+                            return None
+                        obj = qs.filter(nombre__iexact=nombre).first()
+                        if not obj:
+                            norm = unidecode(nombre.lower())
+                            obj = next((o for o in qs
+                                        if unidecode(o.nombre.lower().strip()) == norm), None)
+                        if not obj:
+                            obj = qs.filter(nombre__icontains=nombre).first()
+                        return obj
+
+                    organismo = _buscar_por_nombre(
+                        Organismo.objects.filter(activo=True),
+                        canon.get('organismo_responsable'))
+                    if organismo and indicador.organismo_responsable_id != organismo.id:
+                        indicador.organismo_responsable = organismo
+                        changed = True
+                        sub = _buscar_por_nombre(
+                            Suborganismo.objects.filter(
+                                organismo=organismo, activo=True),
+                            canon.get('suborganismo'))
+                        if sub and indicador.suborganismo_id != sub.id:
+                            indicador.suborganismo = sub
+                            changed = True
+                    operacion = _buscar_por_nombre(
+                        OperacionEstadistica.objects.all(),
+                        canon.get('operacion'))
+                    if operacion and indicador.operacion_id != operacion.id:
+                        indicador.operacion = operacion
+                        changed = True
+                    nombre_equipo = str(canon.get('equipo_responsable') or '').strip()
+                    if nombre_equipo:
+                        from .models import EquipoOrganismo
+                        eq_qs = EquipoOrganismo.objects.filter(activo=True)
+                        # Acotar al suborganismo/organismo ya resuelto
+                        if indicador.suborganismo_id:
+                            eq_qs = eq_qs.filter(suborganismo=indicador.suborganismo)
+                        elif indicador.organismo_responsable_id:
+                            eq_qs = eq_qs.filter(
+                                suborganismo__organismo=indicador.organismo_responsable)
+                        equipo = _buscar_por_nombre(eq_qs, nombre_equipo)
+                        if equipo and indicador.equipo_responsable_id != equipo.id:
+                            indicador.equipo_responsable = equipo
+                            changed = True
 
         # 2. Campos manuales del formulario (tienen precedencia sobre el archivo)
         MAPA_FORM = {

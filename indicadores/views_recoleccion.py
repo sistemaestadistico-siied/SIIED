@@ -714,33 +714,51 @@ def descargar_metadata_indicador(request, indicador_id=None):
             indicadores = Indicador.objects.filter(activo=True)
             filename = f"metadata_todos_indicadores_{datetime.now().strftime('%Y%m%d')}.xlsx"
         
-        # Crear DataFrame con metadata
+        # Crear DataFrame con metadata — encabezados de la plantilla
+        # oficial (Metadatos_SDMX) para que el archivo sea re-subible
+        # tal cual por la vía masiva o la carga individual.
         data = []
         for ind in indicadores:
             data.append({
-                'Codigo_Indicador': ind.codigo_indicador,
-                'Nombre_Indicador': ind.nombre,
-                'Sigla': ind.sigla or '',
-                'Grupo_Indicador': ind.grupo_indicador or '',
+                'Grupo_indicador': ind.grupo_indicador or '',
+                'ID_Indicador_SIIED': ind.codigo_indicador,
                 'Dominio': ind.subtema.tema.dominio.nombre if ind.subtema else '',
                 'Tema': ind.subtema.tema.nombre if ind.subtema else '',
                 'Subtema': ind.subtema.nombre if ind.subtema else '',
-                'Descripcion_Indicador': ind.descripcion_indicador or '',
-                'Objetivo': ind.objetivo or '',
-                'Metodo_Medicion': ind.metodo_medicion or '',
+                'Nombre indicador': ind.nombre,
+                'Sigla o abreviatura': ind.sigla or '',
+                'Descripción del indicador': ind.descripcion_indicador or '',
+                'Cálculo del indicador': ind.metodo_medicion or '',
+                'Unidad de medida': ind.unidad_medida or '',
+                'Fuente de la información': ind.fuente_datos or '',
+                'Nombre de la operación estadística': ind.operacion.nombre if ind.operacion else '',
+                'Nomenclatura y clasificaciones estadísticas': ind.nomenclaturas_clasificaciones or '',
+                'Alcance temático': ind.alcance_tematico or '',
+                'Población objetivo': ind.poblacion_objetivo or '',
+                'Cobertura geográfica': ind.cobertura_geografica or '',
+                'Periodo de referencia': ind.periodo_referencia or '',
+                'Periodo base': ind.periodo_base or '',
+                'Serie histórica disponible': ind.serie_historica_disponible or '',
+                'Frecuencia de difusión': ind.frecuencia_difusion or '',
+                'Medios de difusión': ind.medios_difusion or '',
+                'Comentarios adicionales': ind.comentarios_adicionales or '',
+                'Referencias': ind.referencias or '',
+                'Organismo responsable': ind.organismo_responsable.nombre if ind.organismo_responsable else (ind.entidad_responsable or ''),
+                'Suborganismo responsable': ind.suborganismo.nombre if ind.suborganismo else '',
+                'Equipo responsable': ind.equipo_responsable.nombre if ind.equipo_responsable else '',
+                'Dirección de correo electrónico de contacto': ind.correo_contacto or '',
+                'Nombre responsable técnico de validación': ind.nombre_responsable_validacion or '',
+                'Cargo responsable técnico de validación': ind.cargo_responsable_validacion or '',
+                'Correo electrónico del responsable técnico del indicador': ind.correo_responsable_validacion or '',
+                'Celular responsable técnico de validación': ind.celular_responsable_validacion or '',
+                # Extras internos (fuera del estándar) — roundtrip completo:
                 'Formula': ind.formula_ficha or '',
                 'Variables': ind.variables or '',
-                'Unidad_Medida': ind.unidad_medida or '',
-                'Frecuencia_Difusion': ind.frecuencia_difusion or '',
-                'Fuente_Datos': ind.fuente_datos or '',
-                'Entidad_Responsable': ind.entidad_responsable or '',
-                'Comentarios_Adicionales': ind.comentarios_adicionales or '',
-                'Referencias': ind.referencias or '',
-                'Equipo_Responsable': ind.equipo_responsable.nombre if ind.equipo_responsable else '',
-                'Nombre_Responsable_Validacion': ind.nombre_responsable_validacion or '',
-                'Cargo_Responsable_Validacion': ind.cargo_responsable_validacion or '',
-                'Correo_Responsable_Validacion': ind.correo_responsable_validacion or '',
-                'Celular_Responsable_Validacion': ind.celular_responsable_validacion or '',
+                'Nombre_Conjunto_Datos': ind.nombre_conjunto_datos or '',
+                'Telefono_Contacto': ind.telefono_contacto or '',
+                'Fecha_Publicacion_Metadatos': str(ind.fecha_publicacion_metadatos) if ind.fecha_publicacion_metadatos else '',
+                'Fecha_Elaboracion': str(ind.fecha_elaboracion) if ind.fecha_elaboracion else '',
+                'Fecha_Actualizacion': str(ind.fecha_actualizacion_ficha) if ind.fecha_actualizacion_ficha else '',
             })
         
         df = pd.DataFrame(data)
@@ -2700,6 +2718,7 @@ _COLUMNAS_METADATA_ALIAS = {
     'operacion': 'operacion',
     'nombre_del_conjunto_de_datos': 'nombre_conjunto_datos',
     'nombre_conjunto_datos': 'nombre_conjunto_datos',
+    'nombre_conjunto_conjunto_datos': 'nombre_conjunto_datos',  # forms inline
     'nomenclaturas_y_clasificaciones': 'nomenclaturas_clasificaciones',
     'nomenclaturas_y_clasificaciones_estadisticas': 'nomenclaturas_clasificaciones',
     'nomenclatura_y_clasificaciones_estadisticas': 'nomenclaturas_clasificaciones',  # oficial
@@ -2981,6 +3000,7 @@ def _actualizar_metadata_indicador_masiva(indicador, fila):
         'formula': 'formula_ficha',
         'variables': 'variables',
         'unidad_medida': 'unidad_medida',
+        'nombre_conjunto_datos': 'nombre_conjunto_datos',
         'nomenclaturas_clasificaciones': 'nomenclaturas_clasificaciones',
         'alcance_tematico': 'alcance_tematico',
         'poblacion_objetivo': 'poblacion_objetivo',
