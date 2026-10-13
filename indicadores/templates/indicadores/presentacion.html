@@ -4917,7 +4917,7 @@ function tickDaticoHUD(dt, t) {
     // sintetizado; de frente al espectador con leve inclinación
     loroHUD.position.x = 1.95 + Math.sin(t * 0.5) * 0.18;
     loroHUD.position.y = -1.05 + Math.sin(t * 1.4) * 0.1;
-    loroHUD.rotation.y = 0.15 + Math.sin(t * 0.4) * 0.12;
+    loroHUD.rotation.y = 0.85 + Math.sin(t * 0.4) * 0.12;   // de frente: antes daba la espalda
     loroHUD.rotation.z = Math.sin(t * 0.8) * 0.12;
     loroHUD.rotation.x = Math.sin(t * 0.6) * 0.05;
     if (d.w) {   // el real: el vuelo es su propio clip
