@@ -797,6 +797,14 @@ class IndicadorAdminForm(forms.ModelForm):
     class Meta:
         model = Indicador
         fields = '__all__'
+        # Nombres de la plantilla oficial de metadatos (Metadatos_SDMX):
+        # no existe 'Objetivo' ni 'Método de medición' como campos propios —
+        # el cálculo del indicador los integra en un solo metadato.
+        labels = {
+            'metodo_medicion': 'Cálculo del indicador (fórmula + método de medición)',
+            'formula_ficha': 'Fórmula del indicador',
+            'objetivo': 'Objetivo (legado — fuera de la plantilla oficial)',
+        }
         # Especificar widgets Textarea para TODOS los campos de texto (sin CKEditor)
         widgets = {
             # Campos descriptivos (MSD)
@@ -859,12 +867,21 @@ class IndicadorAdmin(admin.ModelAdmin):
             'description': 'Campos 1.1–1.6 del estándar MSD.'
         }),
         ('2. Características del Indicador (MSD)', {
-            'fields': ('descripcion_indicador', 'objetivo', 'metodo_medicion', 'formula_ficha',
+            'fields': ('descripcion_indicador', 'metodo_medicion', 'formula_ficha',
                       'variables', 'unidad_medida', 'fuente_datos', 'operacion',
                       'nombre_conjunto_datos',
                       'nomenclaturas_clasificaciones', 'alcance_tematico', 'poblacion_objetivo',
                       'cobertura_geografica', 'periodo_referencia', 'periodo_base'),
-            'description': 'Campos 2.2–2.16 del estándar MSD (2.1 es el nombre, en sección 0).'
+            'description': 'Campos de la plantilla oficial de metadatos '
+                          '(Metadatos_SDMX). En esa plantilla el "Cálculo del '
+                          'indicador" integra fórmula y método de medición.'
+        }),
+        ('Campos del estándar anterior (legado)', {
+            'fields': ('objetivo',),
+            'classes': ('collapse',),
+            'description': 'La plantilla oficial ya no incluye "Objetivo" como '
+                          'metadato: se conserva por compatibilidad con datos '
+                          'históricos, pero no se usa en fichas nuevas.'
         }),
         ('3. Difusión (MSD)', {
             'fields': ('serie_historica_disponible', 'frecuencia_difusion', 'medios_difusion'),

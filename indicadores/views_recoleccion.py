@@ -2546,14 +2546,34 @@ def cargar_masiva_series(request):
     return render(request, 'recoleccion/cargar_masiva_series.html', context)
 
 
-def _leer_archivo_a_df(archivo):
-    """Lee un archivo Excel o CSV y retorna un DataFrame."""
+def _leer_archivo_a_df(archivo, hojas_preferidas=None):
+    """Lee un archivo Excel o CSV y retorna un DataFrame.
+
+    hojas_preferidas: lista de nombres de hoja a intentar primero
+    (case-insensitive, coincidencia por igualdad o 'contiene'). La
+    plantilla oficial de metadatos trae 'Diccionario de datos' en la
+    hoja 0 — sin preferencia se leería esa hoja en vez de 'Indicadores'.
+    """
     if not archivo:
         return None
     extension = archivo.name.lower().split('.')[-1]
     try:
         if extension in ('xlsx', 'xls'):
-            return pd.read_excel(archivo.path)
+            if not hojas_preferidas:
+                return pd.read_excel(archivo.path)
+            libro = pd.ExcelFile(archivo.path)
+            elegida = None
+            nombres = {h.lower(): h for h in libro.sheet_names}
+            for pref in hojas_preferidas:
+                p = pref.lower()
+                if p in nombres:
+                    elegida = nombres[p]
+                    break
+                parciales = [h for h in libro.sheet_names if p in h.lower()]
+                if parciales:
+                    elegida = parciales[0]
+                    break
+            return pd.read_excel(libro, sheet_name=elegida or libro.sheet_names[0])
         elif extension == 'csv':
             mejor_df = None
             mejor_cols = 0
@@ -2597,10 +2617,16 @@ _COLUMNAS_METADATA_ALIAS = {
     'nombre_indicador': 'nombre_indicador',
     'codigo_del_indicador': 'codigo_indicador',
     'codigo_indicador': 'codigo_indicador',
+    'id_indicador_siied': 'codigo_indicador',      # plantilla oficial
     'codigo': 'codigo_indicador',
     'sigla': 'sigla',
+    'sigla_o_abreviatura': 'sigla',                # plantilla oficial
     'grupo_indicador': 'grupo_indicador',
     'grupo': 'grupo_indicador',
+    # Taxonomía SIIED (plantilla oficial): se resuelven a MenuSubtema
+    'dominio': 'dominio',
+    'tema': 'tema',
+    'subtema': 'subtema',
     # Sección 1 — Contacto Institucional
     'entidad_o_institucion_responsable': 'entidad_responsable',
     'entidad_institucion': 'entidad_institucion',
@@ -2611,7 +2637,9 @@ _COLUMNAS_METADATA_ALIAS = {
     'area_o_dependencia_responsable': 'suborganismo',
     'area_dependencia': 'suborganismo',
     'suborganismo': 'suborganismo',
+    'suborganismo_responsable': 'suborganismo',    # plantilla oficial
     'correo_electronico_de_contacto': 'correo_contacto',
+    'direccion_de_correo_electronico_de_contacto': 'correo_contacto',  # oficial
     'correo_electronico': 'correo_contacto',
     'correo_contacto': 'correo_contacto',
     'numero_telefonico': 'telefono_contacto',
@@ -2648,6 +2676,7 @@ _COLUMNAS_METADATA_ALIAS = {
     'nombre_conjunto_datos': 'nombre_conjunto_datos',
     'nomenclaturas_y_clasificaciones': 'nomenclaturas_clasificaciones',
     'nomenclaturas_y_clasificaciones_estadisticas': 'nomenclaturas_clasificaciones',
+    'nomenclatura_y_clasificaciones_estadisticas': 'nomenclaturas_clasificaciones',  # oficial
     'nomenclaturas_clasificaciones': 'nomenclaturas_clasificaciones',
     'alcance_tematico': 'alcance_tematico',
     'poblacion_objetivo': 'poblacion_objetivo',
@@ -2671,6 +2700,11 @@ _COLUMNAS_METADATA_ALIAS = {
     'referencias': 'referencias',
     # Sección 6 — Responsabilidad
     'equipo_responsable': 'equipo_responsable',
+    # Plantilla oficial — responsable técnico de validación
+    'nombre_responsable_tecnico_de_validacion': 'nombre_responsable_validacion',
+    'cargo_responsable_tecnico_de_validacion': 'cargo_responsable_validacion',
+    'correo_electronico_del_responsable_tecnico_del_indicador': 'correo_responsable_validacion',
+    'celular_responsable_tecnico_de_validacion': 'celular_responsable_validacion',
     # Trazabilidad
     'fecha_elaboracion': 'fecha_elaboracion',
     'fecha_actualizacion': 'fecha_actualizacion',
@@ -2713,13 +2747,16 @@ def _procesar_archivo_masivo(carga_masiva):
 
     # Leer archivo de datos si aplica
     if tipo in ('datos', 'ambos') and carga_masiva.archivo_maestro_datos:
-        df_datos = _leer_archivo_a_df(carga_masiva.archivo_maestro_datos)
+        df_datos = _leer_archivo_a_df(carga_masiva.archivo_maestro_datos,
+                                      hojas_preferidas=('datos',))
         if df_datos is None:
             return {'error': 'No se pudo leer el archivo maestro de datos. Verifique el formato.'}
 
     # Leer archivo de metadata si aplica
     if tipo in ('metadata', 'ambos') and carga_masiva.archivo_maestro_metadata:
-        df_metadata = _leer_archivo_a_df(carga_masiva.archivo_maestro_metadata)
+        df_metadata = _leer_archivo_a_df(
+            carga_masiva.archivo_maestro_metadata,
+            hojas_preferidas=('indicadores', 'metadata'))
         if df_metadata is None:
             return {'error': 'No se pudo leer el archivo maestro de metadata. Verifique el formato.'}
 
@@ -3059,6 +3096,32 @@ def _actualizar_metadata_indicador_masiva(indicador, fila):
         notas_actuales = (indicador.notas or '').strip()
         agregado = ' | '.join(notas_extras)
         indicador.notas = f'{notas_actuales}\n{agregado}'.strip() if notas_actuales else agregado
+
+    # ------------------------------------------------------------------
+    # Taxonomía SIIED (plantilla oficial): Dominio / Tema / Subtema
+    # ------------------------------------------------------------------
+    nombre_subtema = str(fila.get('subtema', '') or '').strip()
+    if nombre_subtema:
+        from .models import MenuSubtema
+        sub_qs = MenuSubtema.objects.filter(activo=True)
+        nombre_tema = str(fila.get('tema', '') or '').strip()
+        nombre_dominio = str(fila.get('dominio', '') or '').strip()
+        if nombre_tema:
+            sub_qs = sub_qs.filter(tema__nombre__iexact=nombre_tema)
+        if nombre_dominio:
+            sub_qs = sub_qs.filter(tema__dominio__nombre__iexact=nombre_dominio)
+        subtema = sub_qs.filter(nombre__iexact=nombre_subtema).first()
+        # Sin filtro o sin exacta: búsqueda normalizada global
+        if not subtema:
+            for s in MenuSubtema.objects.filter(activo=True):
+                if _normalizar_nombre(s.nombre) == _normalizar_nombre(nombre_subtema):
+                    subtema = s
+                    break
+        if not subtema:
+            subtema = MenuSubtema.objects.filter(
+                activo=True, nombre__icontains=nombre_subtema).first()
+        if subtema:
+            indicador.subtema = subtema
 
     indicador.save()
 
@@ -3575,7 +3638,34 @@ def descargar_plantilla_masiva_datos(request):
 
 
 def descargar_plantilla_masiva_metadata(request):
-    """Descarga plantilla Excel de ejemplo para carga masiva de metadata de indicadores (MSD)"""
+    """Descarga la plantilla oficial de metadatos de indicadores.
+
+    Sirve verbatim el archivo aprobado por el equipo (hojas:
+    'Diccionario de datos', 'Indicadores', 'Variables'). Antes se
+    generaba un Excel distinto: sin diccionario, con otro orden de
+    columnas y nombres legados (objetivo, metodo_medicion…).
+    """
+    import os
+    from django.conf import settings
+    from django.http import FileResponse
+
+    ruta = os.path.join(
+        settings.BASE_DIR, 'indicadores', 'plantillas',
+        'plantilla_metadatos_indicadores.xlsx')
+    try:
+        return FileResponse(
+            open(ruta, 'rb'),
+            as_attachment=True,
+            filename='plantilla_metadatos_indicadores.xlsx',
+        )
+    except FileNotFoundError:
+        messages.error(request, 'La plantilla oficial no está instalada en el servidor.')
+        return redirect('indicadores:cargar_masiva_series')
+
+
+def _descargar_plantilla_masiva_metadata_generada(request):
+    """Generador histórico (deprecado): queda por si la plantilla
+    oficial desaparece del servidor. Usa columnas del estándar viejo."""
     try:
         data = {
             'codigo_indicador': ['ICET_SAL_DEM_MOR_02', 'ICET_EDU_TIE_ESC_01'],
