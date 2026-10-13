@@ -20,9 +20,11 @@
 <div class="norm-wrap">
   <h1>Wizard de Carga de Capas Geográficas</h1>
   <p class="norm-help">
-    Sube un archivo geográfico, el sistema lo normaliza a
-    <code>CapaGeo → ElementoGeo(codigo, nombre, geom_wkt)</code> y luego
-    lo asocias con el dominio de desagregación geográfica y sus desagregaciones.
+    La estructura de geodatos del SIIED es de tres niveles:
+    <code>NivelGeografico</code> → dominio de desagregación geográfica
+    (<code>DominioDesagregacion</code>) → <code>Desagregacion</code> ↔ elemento
+    de la <code>CapaGeo</code> del mismo nivel. Sube un archivo geográfico,
+    elige el nivel, y el dominio y la capa deben colgar de él.
   </p>
 
   <form method="post" enctype="multipart/form-data" class="upload-box">
@@ -41,19 +43,23 @@
     </p>
   </form>
 
-  <h3>Capas cargadas ({{ capas|length }})</h3>
-  {% if capas %}
-  <table class="norm-table">
-    <thead><tr><th>ID</th><th>Capa</th><th>Nivel</th><th>Elementos</th><th>Desags asociadas</th></tr></thead>
-    <tbody>
-    {% for c in capas %}
-      <tr><td>{{ c.id }}</td><td>{{ c.nombre }}</td><td>{{ c.nivel }}</td>
-          <td>{{ c.n_elems }}</td><td>{{ c.n_desags }}</td></tr>
+  <h3>Estructura de geodatos por nivel</h3>
+  {% if grupos %}
+    {% for g in grupos %}
+    <table class="norm-table">
+      <thead>
+        <tr><th colspan="3" style="background:rgba(14,165,233,.15);">Nivel: {{ g.nivel }}</th></tr>
+        <tr><th>Tipo</th><th>Nombre</th><th>Detalle</th></tr>
+      </thead>
+      <tbody>
+        {% for it in g.items %}
+        <tr><td>{{ it.tipo }}</td><td>{{ it.nombre }}</td><td>{{ it.detalle }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
     {% endfor %}
-    </tbody>
-  </table>
   {% else %}
-  <p class="norm-help">Aún no hay capas. Sube la primera.</p>
+  <p class="norm-help">Aún no hay estructura de geodatos. Sube la primera capa.</p>
   {% endif %}
 </div>
 {% endblock %}

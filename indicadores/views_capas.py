@@ -26,6 +26,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import connection, transaction
+from django.db.models import Count, Prefetch
 from django.shortcuts import redirect, render
 
 from .models import (CapaGeo, Desagregacion, DominioDesagregacion,
@@ -99,20 +100,44 @@ def wizard_capas(request):
             'n_con_geom': sum(1 for f in parsed['features'] if f.get('geom')),
             'capas': CapaGeo.objects.select_related('nivel_geografico').order_by('nombre'),
             'niveles': NivelGeografico.objects.order_by('nombre'),
-            'dominios': DominioDesagregacion.objects.filter(
-                tipo='geografica').order_by('nombre'),
+            'dominios': (DominioDesagregacion.objects.filter(tipo='geografica')
+                        .select_related('nivel_geografico').order_by('nombre')),
         })
 
-    # GET: formulario + capas existentes
-    capas = (CapaGeo.objects
-             .select_related('nivel_geografico')
-             .prefetch_related('elementos', 'desagregaciones')
-             .order_by('nombre'))
-    rows = [{'id': c.id, 'nombre': c.nombre, 'nivel': c.nivel_geografico.nombre,
-             'n_elems': len(c.elementos.all()),
-             'n_desags': len(c.desagregaciones.all())} for c in capas]
+    # GET: formulario + estructura de geodatos agrupada por nivel
+    # (el nivel manda: dominios geográficos y capas cuelgan de él)
+    niveles = (NivelGeografico.objects
+               .prefetch_related(
+                   Prefetch('capas', queryset=CapaGeo.objects.annotate(
+                       n_elems=Count('elementos', distinct=True),
+                       n_desags=Count('desagregaciones', distinct=True))
+                       .order_by('nombre')),
+                   Prefetch('dominios_desagregacion',
+                            queryset=DominioDesagregacion.objects.filter(
+                                tipo='geografica').annotate(
+                                n_desags=Count('desagregaciones'))
+                            .order_by('nombre')),
+               ).order_by('nombre'))
+    grupos = []
+    for n in niveles:
+        items = ([{'tipo': 'Dominio geo', 'nombre': d.nombre,
+                   'detalle': f'{d.n_desags} desags'}
+                  for d in n.dominios_desagregacion.all()]
+                 + [{'tipo': 'Capa', 'nombre': c.nombre,
+                     'detalle': f'{c.n_elems} elementos · {c.n_desags} desags asociadas'}
+                    for c in n.capas.all()])
+        if items:
+            grupos.append({'nivel': n.nombre, 'items': items})
+    huerfanas = (DominioDesagregacion.objects
+                 .filter(tipo='geografica', nivel_geografico__isnull=True)
+                 .annotate(n_desags=Count('desagregaciones')).order_by('nombre'))
+    if huerfanas:
+        grupos.append({'nivel': '⚠ dominios sin nivel asignado', 'items': [
+            {'tipo': 'Dominio geo', 'nombre': d.nombre,
+             'detalle': f'{d.n_desags} desags — al usarse adoptará el nivel de la capa'}
+            for d in huerfanas]})
     return render(request, 'indicadores/capas/index.html', {
-        'capas': rows, 'pyshp_ok': shapefile is not None,
+        'grupos': grupos, 'pyshp_ok': shapefile is not None,
     })
 
 
@@ -135,7 +160,14 @@ def wizard_capas_asociar(request):
         messages.error(request, 'Debes elegir campo de código y de nombre.')
         return redirect('capas:wizard_capas')
 
-    # Traducir los radios del form: capa_mode ex|nueva, dom_mode ex|nuevo
+    # Traducir los radios del form. El nivel manda (estructura SIIED:
+    # NivelGeografico → dominios geográficos → desags ↔ elementos
+    # de la CapaGeo del mismo nivel).
+    nivel_mode = request.POST.get('nivel_mode', 'ex')
+    nivel_id = request.POST.get('nivel_id')
+    nivel_src = f'ex_{nivel_id}' if nivel_mode == 'ex' and nivel_id else 'nueva'
+    nivel_nombre = (request.POST.get('nivel_nombre') or '').strip()
+
     capa_mode = request.POST.get('capa_mode', 'ex')
     capa_ex = request.POST.get('capa_ex')
     capa_nombre = (request.POST.get('capa_nombre') or '').strip()
@@ -162,13 +194,52 @@ def wizard_capas_asociar(request):
         messages.error(request, 'Selecciona un dominio existente o crea uno nuevo.')
         return redirect('capas:wizard_capas')
 
+    # Coherencia de nivel: una capa existente fija el nivel; el dominio
+    # existente debe ser de ese nivel (o no tener nivel aún — lo adoptará).
+    nivel_obj = None
+    if nivel_src.startswith('ex_'):
+        nivel_obj = NivelGeografico.objects.filter(pk=int(nivel_src[3:])).first()
+        if nivel_obj is None:
+            messages.error(request, 'El nivel geográfico elegido no existe.')
+            return redirect('capas:wizard_capas')
+    if capa_src.startswith('ex_'):
+        capa_obj = (CapaGeo.objects.filter(pk=int(capa_src[3:]))
+                    .select_related('nivel_geografico').first())
+        if capa_obj is None:
+            messages.error(request, 'La capa elegida no existe.')
+            return redirect('capas:wizard_capas')
+        if nivel_src == 'nueva':
+            messages.error(request, f"La capa '{capa_obj.nombre}' ya pertenece al nivel "
+                                    f"'{capa_obj.nivel_geografico.nombre}': no puede "
+                                    f"colgar de un nivel nuevo.")
+            return redirect('capas:wizard_capas')
+        if nivel_obj and capa_obj.nivel_geografico_id != nivel_obj.id:
+            messages.error(request, f"La capa '{capa_obj.nombre}' pertenece al nivel "
+                                    f"'{capa_obj.nivel_geografico.nombre}', no a "
+                                    f"'{nivel_obj.nombre}'.")
+            return redirect('capas:wizard_capas')
+        nivel_obj = capa_obj.nivel_geografico
+        nivel_src = f'ex_{nivel_obj.id}'
+    if dominio_src.startswith('ex_'):
+        dom_obj = (DominioDesagregacion.objects.filter(pk=int(dominio_src[3:]))
+                   .select_related('nivel_geografico').first())
+        if dom_obj is None:
+            messages.error(request, 'El dominio elegido no existe.')
+            return redirect('capas:wizard_capas')
+        if (dom_obj.nivel_geografico_id and nivel_obj
+                and dom_obj.nivel_geografico_id != nivel_obj.id):
+            messages.error(request, f"El dominio '{dom_obj.nombre}' pertenece al nivel "
+                                    f"'{dom_obj.nivel_geografico.nombre}', no a "
+                                    f"'{nivel_obj.nombre}'.")
+            return redirect('capas:wizard_capas')
+
     records = extract_records(parsed, code_field, name_field)
     meta.update({
         'code_field': code_field, 'name_field': name_field,
         'capa_src': capa_src,
         'capa_nombre': capa_nombre,
-        'nivel_id': request.POST.get('nivel_id'),           # 'ex_<id>' | 'nueva'
-        'nivel_nombre': (request.POST.get('nivel_nombre') or '').strip(),
+        'nivel_src': nivel_src,                              # 'ex_<id>' | 'nueva'
+        'nivel_nombre': nivel_nombre,
         'dominio_src': dominio_src,
         'dominio_nombre': dominio_nombre,
     })
@@ -218,6 +289,8 @@ def wizard_capas_asociar(request):
             pk=int(meta['capa_src'][3:])).nombre
             if (meta['capa_src'] or '').startswith('ex_')
             else meta['capa_nombre'] + ' (nueva)'),
+        'nivel_display': (nivel_obj.nombre if nivel_obj
+                          else (nivel_nombre or 'Nivel nuevo') + ' (nuevo)'),
     })
 
 
@@ -243,26 +316,35 @@ def wizard_capas_aplicar(request):
              'asociadas': 0, 'desags_nuevas': 0}
     try:
         with transaction.atomic():
-            # 1) CapaGeo (existente o nueva con su nivel)
+            # 1) Nivel + CapaGeo: una capa existente fija el nivel
+            if (meta.get('nivel_src') or '').startswith('ex_'):
+                nivel = NivelGeografico.objects.get(pk=int(meta['nivel_src'][3:]))
+            else:
+                nivel = None
             if (meta.get('capa_src') or '').startswith('ex_'):
                 capa = CapaGeo.objects.get(pk=int(meta['capa_src'][3:]))
+                nivel = capa.nivel_geografico
             else:
-                if (meta.get('nivel_id') or '').startswith('ex_'):
-                    nivel = NivelGeografico.objects.get(pk=int(meta['nivel_id'][3:]))
-                else:
+                if nivel is None:
                     nivel, _ = NivelGeografico.objects.get_or_create(
                         nombre=meta['nivel_nombre'] or 'Sin nivel')
                 capa, _ = CapaGeo.objects.get_or_create(
                     nombre=meta['capa_nombre'] or meta['src_name'],
                     nivel_geografico=nivel)
-            # 2) Dominio geográfica
+            # 2) Dominio geográfico del mismo nivel (si no tenía, lo adopta)
             if (meta.get('dominio_src') or '').startswith('ex_'):
                 dom = DominioDesagregacion.objects.get(pk=int(meta['dominio_src'][3:]))
+                if dom.nivel_geografico_id is None:
+                    dom.nivel_geografico = nivel
+                    dom.save(update_fields=['nivel_geografico'])
+                elif dom.nivel_geografico_id != nivel.id:
+                    raise ValueError(
+                        f"El dominio '{dom.nombre}' pertenece al nivel "
+                        f"'{dom.nivel_geografico.nombre}', no a '{nivel.nombre}'.")
             else:
                 dom = DominioDesagregacion.objects.create(
                     nombre=meta['dominio_nombre'] or meta['capa_nombre'],
-                    tipo='geografica',
-                    nivel_geografico=capa.nivel_geografico)
+                    tipo='geografica', nivel_geografico=nivel)
             # 3) Upsert de elementos
             for r in records:
                 if not r['valido']:

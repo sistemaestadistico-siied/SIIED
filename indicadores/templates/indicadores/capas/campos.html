@@ -17,13 +17,46 @@
   .radio-inline label { margin-right: 1.25rem; font-size: .9rem; }
 </style>
 <script>
+function nivelEsNueva() { return document.getElementById('nivel_nueva').checked; }
 function toggleSections() {
-  var capaNueva = document.getElementById('capa_nueva').checked;
-  document.getElementById('sec-capa-ex').style.display = capaNueva ? 'none' : 'block';
-  document.getElementById('sec-capa-nueva').style.display = capaNueva ? 'block' : 'none';
-  var domNuevo = document.getElementById('dom_nuevo').checked;
-  document.getElementById('sec-dom-ex').style.display = domNuevo ? 'none' : 'block';
-  document.getElementById('sec-dom-nuevo').style.display = domNuevo ? 'block' : 'none';
+  var nN = nivelEsNueva();
+  document.getElementById('sec-nivel-ex').style.display = nN ? 'none' : 'block';
+  document.getElementById('sec-nivel-nueva').style.display = nN ? 'block' : 'none';
+  if (nN) {  // con nivel nuevo, dominio y capa también nacen
+    document.getElementById('dom_nuevo').checked = true;
+    document.getElementById('capa_nueva').checked = true;
+  }
+  var dN = document.getElementById('dom_nuevo').checked;
+  var cN = document.getElementById('capa_nueva').checked;
+  document.getElementById('sec-dom-ex').style.display = (nN || dN) ? 'none' : 'block';
+  document.getElementById('sec-dom-nuevo').style.display = (nN || dN) ? 'block' : 'none';
+  document.getElementById('sec-capa-ex').style.display = (nN || cN) ? 'none' : 'block';
+  document.getElementById('sec-capa-nueva').style.display = (nN || cN) ? 'block' : 'none';
+  filtraPorNivel();
+}
+function filtra(idSel) {
+  var sel = document.getElementById(idSel);
+  var nivelVal = document.getElementById('nivel_ex_sel').value;
+  var primero = -1;
+  for (var i = 0; i < sel.options.length; i++) {
+    var o = sel.options[i];
+    // un dominio sin nivel asignado sigue siendo elegible (adoptará el nivel)
+    var ok = (o.dataset.nivel === nivelVal) || (o.dataset.nivel === '');
+    o.hidden = !ok; o.disabled = !ok;
+    if (ok && primero < 0) primero = i;
+  }
+  if (primero >= 0 && sel.options[sel.selectedIndex].disabled)
+    sel.selectedIndex = primero;
+}
+function filtraPorNivel() { filtra('dominio_ex'); filtra('capa_ex_sel'); }
+function onCapaChange() {
+  var sel = document.getElementById('capa_ex_sel');
+  var o = sel.options[sel.selectedIndex];
+  var nSel = document.getElementById('nivel_ex_sel');
+  if (o && o.dataset.nivel && nSel.value !== o.dataset.nivel) {
+    nSel.value = o.dataset.nivel;
+    filtraPorNivel();
+  }
 }
 window.addEventListener('DOMContentLoaded', toggleSections);
 </script>
@@ -69,49 +102,41 @@ window.addEventListener('DOMContentLoaded', toggleSections);
     </div>
 
     <div class="section-box">
-      <strong>2) Capa destino (CapaGeo)</strong>
+      <strong>2) Nivel geográfico</strong>
+      <p class="norm-help">El nivel manda: la capa (<code>CapaGeo</code>) y el dominio
+        de desagregación geográfica deben colgar del mismo
+        <code>NivelGeografico</code> — es la estructura de geodatos del SIIED.</p>
       <div class="radio-inline" style="margin:.6rem 0;">
-        <label><input type="radio" name="capa_mode" id="capa_ex" checked onchange="toggleSections()"> Usar existente</label>
-        <label><input type="radio" name="capa_mode" id="capa_nueva" onchange="toggleSections()"> Crear nueva</label>
+        <label><input type="radio" name="nivel_mode" id="nivel_ex" value="ex" checked onchange="toggleSections()"> Usar existente</label>
+        <label><input type="radio" name="nivel_mode" id="nivel_nueva" value="nueva" onchange="toggleSections()"> Crear nuevo</label>
       </div>
-      <div id="sec-capa-ex" class="field-row">
+      <div id="sec-nivel-ex" class="field-row">
         <div>
-          <label>Capa existente</label>
-          <select name="capa_ex">
-            {% for c in capas %}<option value="{{ c.id }}">{{ c.nombre }} ({{ c.nivel_geografico.nombre }})</option>{% endfor %}
+          <label>Nivel existente</label>
+          <select name="nivel_id" id="nivel_ex_sel" onchange="filtraPorNivel()">
+            {% for n in niveles %}<option value="{{ n.id }}">{{ n.nombre }}</option>{% endfor %}
           </select>
         </div>
       </div>
-      <div id="sec-capa-nueva" class="field-row" style="display:none;">
+      <div id="sec-nivel-nueva" class="field-row" style="display:none;">
         <div>
-          <label>Nombre de la nueva capa</label>
-          <input type="text" name="capa_nombre" placeholder="Ej: Comunas Medellín">
-        </div>
-        <div>
-          <label>Nivel geográfico</label>
-          <select name="nivel_id">
-            {% for n in niveles %}<option value="ex_{{ n.id }}">{{ n.nombre }}</option>{% endfor %}
-            <option value="nueva">— crear nuevo nivel —</option>
-          </select>
-        </div>
-        <div>
-          <label>Nombre nuevo nivel (si aplica)</label>
+          <label>Nombre del nuevo nivel</label>
           <input type="text" name="nivel_nombre" placeholder="Ej: Comuna">
         </div>
       </div>
     </div>
 
     <div class="section-box">
-      <strong>3) Dominio de desagregación geográfica a asociar</strong>
+      <strong>3) Dominio de desagregación geográfica (del nivel elegido)</strong>
       <div class="radio-inline" style="margin:.6rem 0;">
-        <label><input type="radio" name="dom_mode" id="dom_ex" checked onchange="toggleSections()"> Usar existente</label>
-        <label><input type="radio" name="dom_mode" id="dom_nuevo" onchange="toggleSections()"> Crear nuevo</label>
+        <label><input type="radio" name="dom_mode" id="dom_ex" value="ex" checked onchange="toggleSections()"> Usar existente</label>
+        <label><input type="radio" name="dom_mode" id="dom_nuevo" value="nuevo" onchange="toggleSections()"> Crear nuevo</label>
       </div>
       <div id="sec-dom-ex" class="field-row">
         <div>
-          <label>Dominio geográfica existente</label>
-          <select name="dominio_ex">
-            {% for d in dominios %}<option value="{{ d.id }}">{{ d.nombre }}</option>{% endfor %}
+          <label>Dominio geográfico existente</label>
+          <select name="dominio_ex" id="dominio_ex">
+            {% for d in dominios %}<option value="{{ d.id }}" data-nivel="{{ d.nivel_geografico_id|default:'' }}">{{ d.nombre }}{% if d.nivel_geografico %} ({{ d.nivel_geografico.nombre }}){% else %} — sin nivel, adoptará el elegido{% endif %}</option>{% endfor %}
           </select>
         </div>
       </div>
@@ -122,6 +147,29 @@ window.addEventListener('DOMContentLoaded', toggleSections);
         </div>
       </div>
       <p class="norm-help">Si el dominio es nuevo, cada elemento podrá crear su desagregación automáticamente en el paso siguiente.</p>
+    </div>
+
+    <div class="section-box">
+      <strong>4) Capa destino (CapaGeo del nivel elegido)</strong>
+      <div class="radio-inline" style="margin:.6rem 0;">
+        <label><input type="radio" name="capa_mode" id="capa_ex" value="ex" checked onchange="toggleSections()"> Usar existente</label>
+        <label><input type="radio" name="capa_mode" id="capa_nueva" value="nueva" onchange="toggleSections()"> Crear nueva</label>
+      </div>
+      <div id="sec-capa-ex" class="field-row">
+        <div>
+          <label>Capa existente</label>
+          <select name="capa_ex" id="capa_ex_sel" onchange="onCapaChange()">
+            {% for c in capas %}<option value="{{ c.id }}" data-nivel="{{ c.nivel_geografico_id }}">{{ c.nombre }} ({{ c.nivel_geografico.nombre }})</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div id="sec-capa-nueva" class="field-row" style="display:none;">
+        <div>
+          <label>Nombre de la nueva capa</label>
+          <input type="text" name="capa_nombre" placeholder="Ej: Comunas Cali">
+        </div>
+      </div>
+      <p class="norm-help">La nueva capa hereda el nivel de la sección 2; sus elementos quedan ligados a las desagregaciones del dominio.</p>
     </div>
 
     <button type="submit" class="norm-btn btn-next">Asociar elementos →</button>
