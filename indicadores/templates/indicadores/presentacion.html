@@ -1945,18 +1945,23 @@ function crearMaquina(cfg) {
             pataS.position.set(-1.4 + lx, 0.45, 2.55);
             m.add(pataS);
         }
-        // Techo: antena parabólica — la estación RECOGE materia prima
+        // Techo: antena parabólica — la estación RECOGE materia prima.
+        // (el taller la omite: choca con la sala de juntas del 2° piso)
+        if (!cfg.sinAntena) {
         const ant = new THREE.Group();
         const mastA = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.9, 6), posteMat);
         mastA.position.y = 0.45; ant.add(mastA);
         const plato = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.35, 10, 1, true),
             new THREE.MeshLambertMaterial({ color: 0xcbd5e1, side: THREE.DoubleSide }));
-        plato.position.y = 1.0; plato.rotation.x = -0.7; ant.add(plato);
+        // La boca abre hacia el cielo-frontal — antes apuntaba abajo
+        // y se leía como sombrilla
+        plato.position.y = 1.02; plato.rotation.x = Math.PI + 0.85; ant.add(plato);
         const bola = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8),
             new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
         bola.position.set(0, 1.12, 0.22); ant.add(bola);
         ant.position.set(1.4, 3.6, -0.8); m.add(ant);
         extras.antena = ant;
+        }
         // Pedacito de reporte que cae de la tolva en bucle
         const chunk = new THREE.Mesh(
             new THREE.BoxGeometry(0.28, 0.22, 0.28),
@@ -2131,7 +2136,7 @@ function crearMaquina(cfg) {
 const TALLER = crearMaquina({
     x: -26, z: -2.5, nombre: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES', escala: 1.75,
     modelo: 'censo + prediagnóstico de organismos',
-    color: 0x38bdf8, tipo: 'tolva' });
+    color: 0x38bdf8, tipo: 'tolva', sinAntena: true });   // su techo es la sala de juntas
 // Placa DADII: el taller lo diseñó el Departamento de Innovación
 {
     const placa = crearCartel('DADII · DPTO. DE INNOVACIÓN',
