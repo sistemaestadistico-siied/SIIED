@@ -441,10 +441,16 @@ composer.addPass(paseGrado);
 // Autos ambientales de la avenida perimetral: los puebla el
 // bloque del decorado (horizonte) y los mueve tickAutos
 const autosA = [];
-const SEGS_AUTO = [[-66.2, -41.6], [66.2, -41.6], [66.2, 41.6], [-66.2, 41.6]]
+const SEGS_AUTO = [[-64.4, -41.6], [64.4, -41.6], [64.4, 41.6], [-64.4, 41.6]]
     .map((p, i, arr) => { const q = arr[(i + 1) % 4];
         return { p, q, len: Math.hypot(q[0] - p[0], q[1] - p[1]) }; });
 const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
+
+// Reflectores de colores para los monumentos del horizonte —
+// Tres Cruces y Cristo Rey se iluminan de noche, como en Cali.
+// El loop los hace girar por la rueda de color.
+const REFLEJOS = [];
+const _cRef = new THREE.Color();
 
 // ============ HORIZONTE NOCTURNO: CORDILLERA + BÓVEDA ============
 // Sin techo ni lámparas colgantes: el borde de la retícula se
@@ -467,52 +473,67 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     }
     // Anillo de cerros que ofusca el borde de la retícula
     const borde = [];
+    // El anillo queda FUERA del río (z=±51, x=±72.8): ni el río
+    // ni las casitas quedan tapados por las faldas
     for (let x = -70; x <= 70; x += 12) {
-        borde.push([x + Math.sin(x) * 2.5, -52 - (Math.abs(x) % 17) * 0.4]);
-        borde.push([x - Math.sin(x * 1.3) * 2.5, 52 + (Math.abs(x) % 13) * 0.4]);
+        borde.push([x + Math.sin(x) * 2.5, -63 - (Math.abs(x) % 13) * 0.4]);
+        borde.push([x - Math.sin(x * 1.3) * 2.5, 63 + (Math.abs(x) % 13) * 0.4]);
     }
     for (let z = -40; z <= 40; z += 13) {
-        borde.push([-78 - (Math.abs(z) % 11) * 0.5, z]);
-        borde.push([78 + (Math.abs(z) % 9) * 0.5, z]);
+        borde.push([-90 - (Math.abs(z) % 9) * 0.5, z]);
+        borde.push([90 + (Math.abs(z) % 9) * 0.5, z]);
     }
     borde.forEach(([x, z], i) => {
-        const r = 7 + (i % 4) * 2.5;
+        const r = 6.5 + (i % 4) * 1.0;
         const h = 9 + ((i * 7) % 12);
         const cono = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), montanaMat);
         cono.position.set(x, h / 2, z);
         cordillera.add(cono);
     });
-    // CERRO DE LAS TRES CRUCES (oeste — como en Cali real)
-    cerro(-78, 8, 14, 26);
-    for (const ox of [-2.4, 0, 2.4]) {
-        const pv = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.4, 0.4), blanco);
-        pv.position.set(-78 + ox, 28, 8); cordillera.add(pv);
-        // El brazo va en Z: la cruz abre hacia la ciudad (este),
-        // no apunta de canto como antes
-        const ph = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.7), blanco);
-        ph.position.set(-78 + ox, 28.7, 8); cordillera.add(ph);
+    // Los monumentos llevan material propio: sus emisivos se
+    // tiñen con el reflector que cambia de color
+    const blancoCruces = blanco.clone();
+    const blancoCristo = blanco.clone();
+    function reflector(x, y, z, mat) {
+        const luz = new THREE.PointLight(0xffffff, 55, 42, 1.6);
+        luz.position.set(x + 7, y, z);   // desde el lado de la ciudad
+        scene.add(luz);
+        REFLEJOS.push({ luz, mat, fase: REFLEJOS.length * 0.45 });
     }
+    // CERRO DE LAS TRES CRUCES (oeste — como en Cali real).
+    // Las tres van EN LÍNEA por la cresta (eje z), no en fila
+    // india una tras otra
+    cerro(-88, 8, 12, 26);
+    for (const oz of [-2.6, 0, 2.6]) {
+        const pv = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.4, 0.4), blancoCruces);
+        pv.position.set(-88, 28, 8 + oz); cordillera.add(pv);
+        // El brazo va en Z: la cruz abre hacia la ciudad (este)
+        const ph = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 1.7), blancoCruces);
+        ph.position.set(-88, 28.7, 8 + oz); cordillera.add(ph);
+    }
+    reflector(-88, 26.5, 8, blancoCruces);
     // CERRO DEL CRISTO REY (suroeste de Cali — más alto)
-    cerro(-64, -46, 16, 30);
+    cerro(-90, -52, 13, 30);
     const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.9, 4, 8),
         new THREE.MeshLambertMaterial({ color: 0xa0a0a0, emissive: 0x3a4149 }));
-    pedestal.position.set(-64, 32.5, -46); cordillera.add(pedestal);
-    const tunica = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, 5.5, 8), blanco);
-    tunica.position.set(-64, 37, -46); cordillera.add(tunica);
-    const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.65, 8, 8), blanco);
-    cabeza.position.set(-64, 40.4, -46); cordillera.add(cabeza);
+    pedestal.position.set(-90, 32.5, -52); cordillera.add(pedestal);
+    const tunica = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, 5.5, 8), blancoCristo);
+    tunica.position.set(-90, 37, -52); cordillera.add(tunica);
+    const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.65, 8, 8), blancoCristo);
+    cabeza.position.set(-90, 40.4, -52); cordillera.add(cabeza);
     for (const sx of [-1, 1]) {   // brazos abiertos
-        const brazo = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.55, 0.55), blanco);
-        brazo.position.set(-64 + sx * 1.7, 38.9, -46);
+        const brazo = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.55, 0.55), blancoCristo);
+        brazo.position.set(-90 + sx * 1.7, 38.9, -52);
         brazo.rotation.z = sx * 0.22;
         cordillera.add(brazo);
     }
+    reflector(-90, 36, -52, blancoCristo);
     scene.add(cordillera);
 
     // Suelo de la periferia: sostiene el río, las casitas y
     // las faldas de la cordillera (el piso industrial acaba antes)
     const sueloExt = new THREE.Mesh(
-        new THREE.PlaneGeometry(190, 135),
+        new THREE.PlaneGeometry(220, 170),
         new THREE.MeshLambertMaterial({ color: 0x18281c }));
     sueloExt.rotation.x = -Math.PI / 2;
     sueloExt.position.y = -0.03;
@@ -585,7 +606,7 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
         farol(x, -43.3); farol(x, 43.3);
     }
     for (let z = -33; z <= 33; z += 14) {
-        farol(67.3, z); farol(-67.3, z);
+        farol(65.9, z); farol(-65.9, z);   // borde interno de la avenida
         if (Math.abs(z) < 34) { farol(-51, z + 5); farol(-53.8, z - 5); }
     }
 
@@ -628,9 +649,10 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     avenida(-62, 41.6, 16, true, 0.016);
     avenida(10, 41.6, 120, true, 0.016);
     puente(-52, -41.6); puente(-52, 41.6);
-    // E/W: reborde del piso junto a las casitas
-    avenida(-66.2, 0, 88, false, 0.021);
-    avenida(66.2, 0, 88, false, 0.021);
+    // E/W: un paso adentro — entre vía (±64.4) y río (±72.8)
+    // queda franja suficiente para las casitas del reborde
+    avenida(-64.4, 0, 88, false, 0.021);
+    avenida(64.4, 0, 88, false, 0.021);
 
     // Árboles urbanos: hileras sobre el borde interno de las
     // avenidas + ribera del brazo oeste — la periferia vive
@@ -695,7 +717,8 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     }
 
     // Tercera profundidad norte/sur: el borde queda más lleno
-    for (const zBorde of [-48.8, 48.8]) {
+    // (±47.2: por dentro del río — la fila ±48.8 caía sobre él)
+    for (const zBorde of [-47.2, 47.2]) {
         for (let x = -59; x <= 59; x += 9.5) {
             const n = 1 + Math.round(Math.abs(Math.sin(x * 4.3 + zBorde)) * 2);   // 1-3
             for (let k = 0; k < n; k++)
@@ -716,7 +739,7 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     }
     // Este y oeste: en el reborde del piso — más adentro y las
     // faldas de los cerros (que llegan a x≈69) se las comerían
-    for (const xBorde of [-70.6, 70.6]) {   // fuera de la avenida x=±66.2
+    for (const xBorde of [-68.5, 68.5]) {   // franja avenida–río: libre de ambas
         for (let z = -38; z <= 33; z += 9.5) {   // sin la fila z=38: libra las esquinas N/S
             const n = 1 + Math.round(Math.abs(Math.sin(z * 4.1 + xBorde)) * 2);
             for (let k = 0; k < n; k++)
@@ -728,7 +751,7 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
     // Barrio oeste: columnas de casitas a ambas orillas del
     // brazo del río en x=-52 — llena el hueco hasta la barda.
     // (sin columna en x=-42.5: es el carril del rol editorial)
-    for (const xCol of [-46.4, -56.0, -59.9, -62.4, -70.6]) {   // -62.4/-70.6 flanquean la avenida x=-66.2
+    for (const xCol of [-46.4, -56.0, -59.9, -68.2]) {   // -68.2 queda entre avenida (-64.4) y río (-72.8)
         for (let z = -38; z <= 38; z += 9.5) {
             const n = 1 + Math.round(Math.abs(Math.sin(z * 4.1 + xCol)) * 2);
             for (let k = 0; k < n; k++)
@@ -5375,6 +5398,13 @@ function animate() {
         }
     }
     if (camaraLibre) controls.update();
+    tickAutos(dt);
+    // Reflectores de los monumentos: rotan por la rueda de color
+    REFLEJOS.forEach(r => {
+        _cRef.setHSL((tGlobal * 0.06 + r.fase) % 1, 0.8, 0.58);
+        r.luz.color.copy(_cRef);
+        r.mat.emissive.copy(_cRef).multiplyScalar(0.5);
+    });
     tickMarcadorDato(dt, tGlobal);
 
     // --- Mundo vivo (corre siempre, incluso en el intro) ---
