@@ -539,8 +539,10 @@ const _cRef = new THREE.Color();
     sueloExt.position.y = -0.03;
     scene.add(sueloExt);
 
-    // El río rodea la planta justo por dentro de la cordillera
-    const matRio = new THREE.MeshLambertMaterial({ color: 0x1e3a6e });
+    // El río rodea la planta justo por dentro de la cordillera —
+    // cian sin iluminar: con la luz nocturna el azul Lambert se
+    // perdía; Basic brilla como agua luminosa
+    const matRio = new THREE.MeshBasicMaterial({ color: 0x0dc4d8 });
     for (const [rx, rz, rw, rl] of [
         [0, -51, 152, 4], [0, 51, 152, 4],
         [72.8, 0, 4, 106], [-72.8, 0, 4, 106],
