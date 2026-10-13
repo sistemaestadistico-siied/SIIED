@@ -2641,7 +2641,8 @@ const semG = {};
 }
 
 // Chute inclinado entre dos puntos del mundo
-function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
+function crearChute(from, to, ancho = 0.5, color = 0xfacc15,
+                    postes = [0.3, 0.7]) {
     const d = to.clone().sub(from);
     const len = Math.hypot(d.x, d.z) || 0.001;
     const m = new THREE.Mesh(new THREE.BoxGeometry(len, 0.09, ancho),
@@ -2652,7 +2653,7 @@ function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
     scene.add(m);
     // Postes de soporte: el chute no flota en el aire
     const matP = new THREE.MeshLambertMaterial({ color: 0x64748b });
-    for (const t of [0.3, 0.7]) {
+    for (const t of postes) {
         const px = from.x + d.x * t, pz = from.z + d.z * t;
         const py = from.y + d.y * t;
         const poste = new THREE.Mesh(
@@ -2662,8 +2663,14 @@ function crearChute(from, to, ancho = 0.5, color = 0xfacc15) {
     }
     return m;
 }
-// Chute norte del taller → banda C (su producto: el censo del organismo)
-crearChute(new THREE.Vector3(-26, 3.1, -4.9), new THREE.Vector3(-26, 1.75, -10.2), 0.8);
+// Chute norte del taller → banda C (su producto: el censo del
+// organismo). Cruza ALTO el carril del delegado (z=-8): tramo casi
+// horizontal sobre la vía y la bajada ya dentro de la banda — y
+// ningún poste pisa el paso del camión
+crearChute(new THREE.Vector3(-26, 3.1, -4.9),
+           new THREE.Vector3(-26, 3.3, -7.2), 0.8, 0xfacc15, [0.5]);
+crearChute(new THREE.Vector3(-26, 3.3, -7.2),
+           new THREE.Vector3(-26, 1.75, -10.2), 0.8, 0xfacc15, [0.7, 0.95]);
 // (el taller se autoabastece: no recibe camiones; aporta por banda y chute)
 // Muelle editorial: del camión a las tres estaciones de servicio
 {
