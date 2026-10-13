@@ -5391,39 +5391,41 @@ new GLTFLoader().load(
 // Santiago de Cali. Cada estación cuenta qué le pasa a ESE dato.
 // Caso presentado en el Foro Nacional del DANE (diciembre).
 const ACTOS_TODOS = [
-    // ======= A: PANEON — 90s: del producto hacia atrás =======
-    // Guion: primero lo que ve la ciudadanía (el muro de TVs), luego el
-    // inventario de indicadores y los demás inventarios; después quién
-    // los alimenta (3 camiones/roles + la torre de administración) y
-    // dónde termina todo (nivel estratégico). Cierra con el taller:
-    // punto de partida de las dos bandas porque censando conjuntos
-    // primarios decide qué organismo y qué dato entran primero.
-    { t0: 0,   t1: 9,   acto: '', texto: 'SIIED', sub: 'Sistema Integrado de Información Estadística Distrital · Alcaldía de Santiago de Cali', pan: true,
+    // ======= A: PANEON — 90s: del producto hacia el origen =======
+    // Sin alegorías: cada beat describe lo que la plataforma hace de
+    // verdad. Producto ciudadano → inventario de indicadores → demás
+    // inventarios → taller (insumo de origen: censo de conjuntos
+    // primarios) → las tres bandas con lo que procesa cada una →
+    // nivel estratégico, con paneo interior de la reunión técnica
+    // DAPD · DADII · DATIC · CDO.
+    { t0: 0,   t1: 8,   acto: '', texto: 'SIIED', sub: 'Sistema Integrado de Información Estadística Distrital · Alcaldía de Santiago de Cali', pan: true,
       dato: 'Seguiremos un dato real de principio a fin: las proyecciones de población del DANE y lo que Cali hace con ellas.',
       cam: [[0, 30, 55], [0, 5, -4]] },
-    { t0: 9,   t1: 18,  acto: 'Paneo', texto: 'Primero, el producto', sub: 'lo que ve la ciudadanía: una pared de pantallas con los gráficos y las cifras del Distrito', pan: true,
+    { t0: 8,   t1: 17,  acto: 'Paneo', texto: 'El producto visible', sub: 'lo que consulta la ciudadanía: indicadores, gráficos y conjuntos abiertos publicados en el portal', pan: true,
       dato: 'Todo lo que produce esta plataforma termina en una pantalla como esta — indicadores, gráficos y conjuntos abiertos para cualquiera.',
       cam: [[57, 5, 19], [62, 3.8, 7]] },   // muro de TVs, plaza este
-    { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'El inventario de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`, pan: true,
+    { t0: 17,  t1: 25,  acto: 'Paneo', texto: 'El inventario de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`, pan: true,
       cam: [[44, 5.5, 12], [51.3, 4, 2.4]] },
-    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'Los demás inventarios', sub: 'operaciones estadísticas (OOEE), conjuntos de datos con DDI y el catálogo de consulta', pan: true,
+    { t0: 25,  t1: 33,  acto: 'Paneo', texto: 'Los demás inventarios', sub: 'operaciones estadísticas (OOEE), conjuntos de datos con metadatos DDI y el catálogo de consulta', pan: true,
       cam: [[-16, 7, 14], [-4, 2.4, 2]] },   // vista amplia: OOEE + ingesta + catálogo
-    { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'Tres camiones y una torre', sub: 'los inventarios se alimentan por tres roles — recolección, delegado y editorial — cada uno con su entrada a la planta', pan: true,
-      dato: 'Tres caminos distintos: recolección es del propio equipo, editorial es autónomo, y el delegado para primero en el punto de validación — la validación pre-aprueba cada movimiento suyo.',
-      cam: [[-6, 9, 16], [24, 2.2, -5]] },
-    { t0: 45,  t1: 54,  acto: 'Paneo', texto: '… y la torre de administración', sub: 'el cuarto actor: no trae datos, los gobierna — extracción, validación, capas, variables y metadatos', pan: true,
-      cam: [[-2, 9, 20], [4.5, 8.8, 11.3]] },
-    { t0: 54,  t1: 63,  acto: 'Paneo', texto: 'Todo termina en el nivel estratégico', sub: 'comité de gestión y sala de decisiones: el dato convertido en política pública', pan: true,
-      cam: [[42, 9, -4], [38, 3.5, -16]] },
-    { t0: 63,  t1: 72,  acto: 'Paneo', texto: 'Hasta el despacho del Alcalde', sub: 'la información estratégica llega a la mesa donde se decide la ciudad', pan: true,
-      dato: 'Un dato que no llega a esta mesa no cumplió su ciclo.',
-      cam: [[45, 8, -14], [52, 4.8, -30]] },
-    { t0: 72,  t1: 81,  acto: 'Paneo', texto: 'El taller: donde arranca todo', sub: `punto de partida de las dos bandas — la de calidad del dato y la de capacidad estadística — censando conjuntos primarios de ${STATS.organismos} organismos`, pan: true,
-      dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero a cada banda.',
+    { t0: 33,  t1: 42,  acto: 'Paneo', texto: 'Taller de datos institucionales', sub: `insumo de origen del sistema: censo de conjuntos primarios de datos de ${STATS.organismos} organismos, con prediagnóstico`, pan: true,
+      dato: 'El censo y el prediagnóstico definen qué conjuntos primarios y qué organismos entran primero a procesarse en las bandas.',
       cam: [[-36, 9, 11], [-25, 4.9, -2.4]] },
-    { t0: 81,  t1: 90,  acto: 'Paneo', texto: 'Una sola plataforma', sub: 'del producto ciudadano a la decisión: producción, calidad, gobierno y difusión del dato distrital', pan: true,
-      dato: 'Ahora bajamos a la plataforma: el rol de recolección llega con las proyecciones del DANE. Fíjese en algo: ningún módulo funciona solo — es producción de datos coordinada de punta a punta.',
-      cam: [[0, 24, 44], [0, 3, -4]] },
+    { t0: 42,  t1: 51,  acto: 'Paneo', texto: 'Banda de generación de datos', sub: 'lo que procesa: operación estadística → conjunto de datos → control de calidad → series → extracción → ficha técnica MSD → difusión', pan: true,
+      cam: [[-12, 7, 9], [30, 2.4, -0.2]] },   // barrido a lo largo de la banda D2
+    { t0: 51,  t1: 60,  acto: 'Paneo', texto: 'Banda de capacidad estadística', sub: 'lo que procesa: evaluación estratégica → satisfacción ciudadana → evaluación táctica → formulario FICED → validación', pan: true,
+      cam: [[-14, 6, -5], [10, 2.5, -14.7]] }, // barrido a lo largo de la banda C
+    { t0: 60,  t1: 69,  acto: 'Paneo', texto: 'Banda de servicios de información', sub: 'lo que procesa: línea editorial (noticias y portada), productos de aprendizaje y agenda de difusión estadística', pan: true,
+      cam: [[-22, 6, 32], [-14, 1.5, 20]] },   // líneas E al sur
+    { t0: 69,  t1: 75,  acto: 'Paneo', texto: 'Todo llega al nivel estratégico', sub: 'la producción de datos y la medición de capacidades terminan en la reunión técnica DAPD · DADII · DATIC · CDO', pan: true,
+      dato: 'En esta mesa se evalúa el ecosistema: qué produjo la banda de datos, qué midió la de capacidad y qué sale por la de servicios.',
+      cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // entra por el vidrio sur
+    { t0: 75,  t1: 81,  acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[30, 5.9, -16.5], [24, 5.5, -16.5]] }, // oeste: vitrina de expedientes ICED
+    { t0: 81,  t1: 87,  acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[30, 5.9, -16.5], [30, 6, -20]] },     // norte: tablero FICED
+    { t0: 87,  t1: 90,  acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[30, 5.9, -16.5], [36, 5.5, -16.5]] }, // este: TVs de monitoreo
     // ======= B: MÓDULOS DE ACCESO — la cámara los SIGUE =======
     { t0: 90,  t1: 106, acto: 'Módulo 01', texto: 'RECOLECCIÓN', sub: 'suministro técnico: carga series y conjuntos con las plantillas normalizadas del equipo, y registra operaciones',
       dato: 'El DANE entrega al Distrito sus proyecciones de población actualizadas. Es el insumo: población total de Cali por año, edad y sexo.',
