@@ -4534,8 +4534,10 @@ def api_documentation(request):
         'version': '1.0.0'
     }
 
-    # Obtener la URL base usando el esquema correcto
-    base_url = "https://indicadores.cali.gov.co"
+    # URL base = mismo origen del request (esquema + host + FORCE_SCRIPT_NAME).
+    # Hardcodear producción hacía que en local los botones "probar" llamaran
+    # a indicadores.cali.gov.co y CORS los bloqueara.
+    base_url = request.build_absolute_uri('/').rstrip('/')
     
     context = {
         'page': 'api_documentation',
