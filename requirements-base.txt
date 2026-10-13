@@ -52,6 +52,12 @@ pydantic_core==2.33.2
 annotated-types==0.7.0
 typing_extensions==4.15.0
 
+# Geodatos — wizard de carga de capas (indicadores/utils_geo.py, views_capas.py)
+# pyshp lee .shp dentro de .zip; pyproj reproyecta .prj no-WGS84. Ambos son
+# puros Python/compilados autónomos: NO requieren GDAL ni librerías de sistema.
+pyshp==2.3.1
+pyproj==3.7.1
+
 # Utilidades generales
 click==8.0.3
 colorama==0.4.4
