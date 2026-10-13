@@ -1,4 +1,4 @@
-"""Módulo Taller de Gestión de Datos — instrumento de levantamiento de información.
+"""Módulo Taller de Gestión de Datos Institucionales — instrumento de levantamiento de información.
 
 Portado del proyecto independiente `formulario/` (taller técnico DAP 2026).
 Reemplaza al viejo taller gamificado (sesiones/quiz/murales), cuyos modelos

@@ -5819,7 +5819,7 @@ def hall_capacidad_estadistica(request):
     organismos = Organismo.objects.filter(activo=True).annotate(
         # Indicadores bajo responsabilidad
         total_indicadores=Count('indicadores_responsables', distinct=True),
-        # Inscripciones al taller de gestión de datos realizadas
+        # Inscripciones al taller de gestión de datos institucionales realizadas
         total_sesiones_taller=Count('inscripciones_taller', distinct=True),
         # Equipos del organismo (a través de suborganismos)
         total_equipos=Count('suborganismos__equipos', distinct=True),
@@ -5889,7 +5889,7 @@ def organismo_detalle(request, codigo):
         organismo_responsable=organismo
     ).select_related('operacion').order_by('-fecha_actualizacion_ficha')[:10]
     
-    # Inscripciones al taller de gestión de datos (instrumento F1/F2/F3)
+    # Inscripciones al taller de gestión de datos institucionales (instrumento F1/F2/F3)
     sesiones = InscripcionTaller.objects.filter(
         organismo=organismo
     ).select_related('suborganismo', 'equipo').annotate(
@@ -6091,7 +6091,7 @@ def organismo_detalle(request, codigo):
 def calcular_indice_madurez_ecosistema(organismo):
     """
     Índice 0-100 de madurez del ecosistema de datos del organismo,
-    calculado sobre los datos del taller de gestión de datos (F1/F2/F3):
+    calculado sobre los datos del taller de gestión de datos institucionales (F1/F2/F3):
       D1: inscripciones completadas (25 pts)
       D2: fuentes de datos caracterizadas (25 pts)
       D3: retos de análisis formulados (25 pts)
@@ -6669,7 +6669,7 @@ def documentacion(request):
                        'páginas 3D, presentación y modelo de datos',
         'admin': 'Personalización del admin de Django para el equipo estadístico',
         'editorial': 'Línea editorial: noticias, eventos y productos académicos',
-        'taller': 'Taller de gestión de datos: wizard del censo, dashboard y metodología',
+        'taller': 'Taller de gestión de datos institucionales: wizard del censo, dashboard y metodología',
         'recoleccion': 'Operación estadística de campo',
         'delegado': 'Módulo delegado por organismo',
         'validacion': 'Control de calidad de los datos',

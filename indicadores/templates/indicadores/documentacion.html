@@ -134,7 +134,7 @@
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 p-5">
                     <h3 class="font-semibold text-sm mb-1"><i class="fas fa-database text-sky-600 mr-2"></i>Base de datos · PostgreSQL</h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">Esquema versionado con {{ stats_doc.migraciones|default_if_none:"más de 100" }} migraciones Django. Núcleo estadístico, catálogo SDMX, ICED y taller de gestión de datos conviven con relaciones explícitas.</p>
+                    <p class="text-xs text-slate-600 leading-relaxed">Esquema versionado con {{ stats_doc.migraciones|default_if_none:"más de 100" }} migraciones Django. Núcleo estadístico, catálogo SDMX, ICED y taller de gestión de datos institucionales conviven con relaciones explícitas.</p>
                 </div>
                 <div class="bg-white rounded-xl border border-slate-200 p-5">
                     <h3 class="font-semibold text-sm mb-1"><i class="fas fa-paint-brush text-sky-600 mr-2"></i>Frontend · HTML + CSS + JS</h3>
@@ -192,7 +192,7 @@
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models.py</code> — el núcleo estadístico: Dominio, Tema, Subtema, Indicador, Gráfico, Dato, Desagregación, Organismo, Menú de dominios, conjuntos de datos y microdatos, noticias, eventos, productos educativos y académicos, satisfacción y calendario de difusión.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models_catalogo.py</code> — metadatos del catálogo de datos: dominios y fuentes de referencia (estándar SDMX).</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models_iced.py</code> — módulo ICED: operaciones, variables y subíndices del índice de capacidades estadísticas.</span></li>
-                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models_taller.py</code> — taller de gestión de datos: organismos, asistentes y sesiones del wizard de censo.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>models_taller.py</code> — taller de gestión de datos institucionales: organismos, asistentes y sesiones del wizard de censo.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>migrations/</code> — {{ stats_doc.migraciones|default:"más de 100" }} migraciones que versionan el esquema PostgreSQL: instalar la plataforma es ejecutar <code>migrate</code>.</span></li>
                     </ul>
                 </div>
@@ -211,7 +211,7 @@
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_editorial.py</code> — línea editorial: noticias, eventos y productos académicos.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_delegado.py</code> — módulo delegado: gestión por organismo.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_satisfaccion.py</code> — módulo de satisfacción: encuestas de experiencia de usuario.</span></li>
-                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_taller.py</code> — taller de gestión de datos: wizard del censo de organismos, dashboard y metodología.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_taller.py</code> — taller de gestión de datos institucionales: wizard del censo de organismos, dashboard y metodología.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_educativos.py</code> — contenidos educativos interactivos: secciones, quizzes y progreso por usuario.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_iced.py</code> — cálculo y visualización del índice ICED.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>views_catalogo.py</code> — catálogo de datos y explorador de conjuntos.</span></li>
@@ -249,7 +249,7 @@
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_admin_unificado.py</code> — wizard unificado de administración: guía al usuario paso a paso (fuente → esquema → datos).</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_parsers.py</code> — lectura de CSV/Excel y normalización de columnas.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_helpers.py</code> — utilidades comunes de los asistentes.</span></li>
-                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_taller.py</code> — wizard del censo de organismos del taller de gestión de datos.</span></li>
+                        <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_taller.py</code> — wizard del censo de organismos del taller de gestión de datos institucionales.</span></li>
                         <li class="flex gap-2"><i class="fas fa-file text-slate-300 mt-1"></i><span><code>wizard_unificado_forms.py</code> · <code>utils_wizard.py</code> — formularios y utilidades del wizard unificado.</span></li>
                     </ul>
                 </div>
@@ -365,7 +365,7 @@
                         <li><strong>Validación</strong> — control de calidad de los datos.</li>
                         <li><strong>Delegado</strong> — gestión por organismo.</li>
                         <li><strong>Satisfacción</strong> — encuestas de experiencia de usuario.</li>
-                        <li><strong>Taller de gestión de datos</strong> — censo y prediagnóstico de organismos (DADII).</li>
+                        <li><strong>Taller de gestión de datos institucionales</strong> — censo y prediagnóstico de organismos (DADII).</li>
                     </ul>
                 </div>
 

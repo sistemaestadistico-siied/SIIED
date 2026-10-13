@@ -275,7 +275,7 @@ urlpatterns = [
     path('admin/satisfaccion/exportar-completas-csv/', views_satisfaccion.exportar_respuestas_completas_csv, name='exportar_respuestas_completas_csv'),
 
     # ================================================================
-    # TALLER DE GESTIÓN DE DATOS DE DATOS (instrumento F1/F2/F3)
+    # TALLER DE GESTIÓN DE DATOS INSTITUCIONALES (instrumento F1/F2/F3)
     # ================================================================
     path('taller/', views_taller.landing_page, name='taller_landing'),
     path('taller/cartel/', views_taller.cartel, name='taller_cartel'),

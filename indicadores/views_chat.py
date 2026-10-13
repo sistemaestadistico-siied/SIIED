@@ -407,7 +407,7 @@ class CerebrasToolsService:
                 "type": "function",
                 "function": {
                     "name": "consultar_ecosistema_datos",
-                    "description": "Consulta información del ecosistema de datos de un organismo levantada en el taller de gestión de datos (fichas F1/F2/F3). Incluye: fuentes de datos caracterizadas, rol del organismo frente a cada fuente, retos de análisis propuestos y valoración de seguridad/privacidad por criticidad. NO revela nombres ni datos personales de los diligenciantes. Usar cuando pregunten por ecosistema de datos, catálogo de datos, fuentes de información, retos de análisis o la estructura de producción de datos de un organismo.",
+                    "description": "Consulta información del ecosistema de datos de un organismo levantada en el taller de gestión de datos institucionales (fichas F1/F2/F3). Incluye: fuentes de datos caracterizadas, rol del organismo frente a cada fuente, retos de análisis propuestos y valoración de seguridad/privacidad por criticidad. NO revela nombres ni datos personales de los diligenciantes. Usar cuando pregunten por ecosistema de datos, catálogo de datos, fuentes de información, retos de análisis o la estructura de producción de datos de un organismo.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -1976,7 +1976,7 @@ class CerebrasToolsService:
 
             inscripciones = InscripcionTaller.objects.filter(organismo=organismo)
             if not inscripciones.exists():
-                return {'mensaje': f'No hay inscripciones al taller de gestión de datos para {organismo.nombre}.'}
+                return {'mensaje': f'No hay inscripciones al taller de gestión de datos institucionales para {organismo.nombre}.'}
 
             fuentes = FuenteDatos.objects.filter(inscripcion__organismo=organismo)
             retos = RetoAnalisis.objects.filter(inscripcion__organismo=organismo)
