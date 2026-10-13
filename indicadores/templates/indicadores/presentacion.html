@@ -2129,20 +2129,85 @@ function crearMaquina(cfg) {
 // EL TALLER: la máquina más grande de la planta. Censo y
 // prediagnóstico; a su lado se genera el grafo 3D del ecosistema.
 const TALLER = crearMaquina({
-    x: -26, z: -2.5, nombre: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES', escala: 1.55,
+    x: -26, z: -2.5, nombre: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES', escala: 1.75,
     modelo: 'censo + prediagnóstico de organismos',
     color: 0x38bdf8, tipo: 'tolva' });
 // Placa DADII: el taller lo diseñó el Departamento de Innovación
 {
     const placa = crearCartel('DADII · DPTO. DE INNOVACIÓN',
         'diseño del taller · Alcaldía de Santiago de Cali', 3.4);
-    placa.position.set(-26, 3.3, -0.1);   // en la cara de la banda, hacia la planta
+    placa.position.set(-26, 3.6, 0.35);   // en la cara de la banda, hacia la planta
     scene.add(placa);
 }
 
 // Puestos de don Daticos de cada sala de juntas (los pone
 // crearPlanta); lo llenan las salas al crearse
 const salas = [];   // {grupo, y, estado, puestos:[[x,z,rot]...]}
+
+// Segundo piso del taller: la sala de juntas del DADII — el
+// equipo técnico se reúne encima de su propia máquina, en un
+// paño de vidrio que se ve desde la planta
+{
+    const piso2 = new THREE.Group();
+    const matJ = new THREE.MeshLambertMaterial({ color: 0x475569 });
+    const losa = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.16, 3.7), matJ);
+    losa.position.y = 0.08; losa.castShadow = true; piso2.add(losa);
+    const techoJ = new THREE.Mesh(new THREE.BoxGeometry(5.8, 0.14, 3.7), matJ);
+    techoJ.position.y = 2.95; techoJ.castShadow = true; piso2.add(techoJ);
+    for (const [px, pz] of [[-2.8, -1.75], [2.8, -1.75], [-2.8, 1.75], [2.8, 1.75]]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.16, 2.85, 0.16), matJ);
+        col.position.set(px, 1.55, pz); piso2.add(col);
+    }
+    // Paños de vidrio en los cuatro lados: la junta se ve desde abajo
+    const vidrio2 = new THREE.MeshLambertMaterial(
+        { color: 0xbfe3f5, transparent: true, opacity: 0.28 });
+    for (const pz of [-1.8, 1.8]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(5.55, 2.5, 0.06), vidrio2);
+        p.position.set(0, 1.55, pz); piso2.add(p);
+    }
+    for (const px of [-2.85, 2.85]) {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.5, 3.4), vidrio2);
+        p.position.set(px, 1.55, 0); piso2.add(p);
+    }
+    // Mesa de juntas con papeles (mismo patrón que las otras salas)
+    const mesa = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.12, 1.15),
+        new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
+    mesa.position.y = 0.82; piso2.add(mesa);
+    for (const px of [-1.15, 1.15]) {
+        const pata = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.66, 0.95), matJ);
+        pata.position.set(px, 0.46, 0); piso2.add(pata);
+    }
+    for (let i = 0; i < 5; i++) {
+        const pap = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.4),
+            new THREE.MeshLambertMaterial({ color: 0xe8e0d0 }));
+        pap.position.set(-1 + i * 0.5, 0.91, (i % 2) * 0.3 - 0.15);
+        piso2.add(pap);
+    }
+    // Pantalla de la sala: el grafo del censo en rotafolio
+    const mon = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.95),
+        new THREE.MeshBasicMaterial({
+            map: texturaPantalla('SALA DE JUNTAS · DADII',
+                                 'censo y prediagnóstico en revisión') }));
+    mon.position.set(0, 1.85, -1.7); piso2.add(mon);
+    pantallaDoble(mon, piso2);
+    // Luz propia de noche
+    const cordon2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, 0.6, 4),
+        new THREE.MeshLambertMaterial({ color: 0x334155 }));
+    cordon2.position.set(0, 2.6, 0); piso2.add(cordon2);
+    const bombi2 = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffe9b0 }));
+    bombi2.position.set(0, 2.28, 0); piso2.add(bombi2);
+    const luzJunta = new THREE.PointLight(0xffe2b0, 0.9, 5.5, 1.6);
+    luzJunta.position.set(0, 2.1, 0); piso2.add(luzJunta);
+    // Encima de la máquina (techo ≈ 6.3): su segundo piso
+    piso2.position.set(-26, 6.34, -2.5);
+    scene.add(piso2);
+    // 5 puestos de junta mirando al centro de la mesa
+    salas.push({ grupo: piso2, y: 0.18, estado: 'supervisar',
+        puestos: [[-1.1, 0.85, 2.23], [1.1, 0.85, -2.23], [0, -0.9, 0],
+                  [-0.8, -0.75, 0.5], [0.8, -0.75, -0.5]] });
+}
 
 // ============ TORRE DEL ADMIN — centro de control tecnológico ============
 // En la esquina superior izquierda del logo SIIED de la explanada:
@@ -2667,7 +2732,7 @@ function crearChute(from, to, ancho = 0.5, color = 0xfacc15,
 // organismo). Cruza ALTO el carril del delegado (z=-8): tramo casi
 // horizontal sobre la vía y la bajada ya dentro de la banda — y
 // ningún poste pisa el paso del camión
-crearChute(new THREE.Vector3(-26, 3.1, -4.9),
+crearChute(new THREE.Vector3(-26, 3.1, -5.2),
            new THREE.Vector3(-26, 3.3, -7.2), 0.8, 0xfacc15, [0.5]);
 crearChute(new THREE.Vector3(-26, 3.3, -7.2),
            new THREE.Vector3(-26, 1.75, -10.2), 0.8, 0xfacc15, [0.7, 0.95]);
