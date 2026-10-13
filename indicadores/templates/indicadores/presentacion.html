@@ -1028,7 +1028,8 @@ function texPisoConcreto() {
 const piso = new THREE.Mesh(
     new THREE.PlaneGeometry(140, 90),
     new THREE.MeshLambertMaterial({ map: texPisoConcreto(),
-                                    color: 0xffffff }));
+                                    color: 0x8e9aa3 }));   // tinte bajo: el blanco
+    // fosforescía menta con la luz fría + el grado teal de noche
 piso.rotation.x = -Math.PI / 2;
 piso.receiveShadow = true;
 scene.add(piso);
