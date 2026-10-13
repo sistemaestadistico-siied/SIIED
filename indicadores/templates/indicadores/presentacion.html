@@ -162,8 +162,18 @@
     }
     .hud-btn:hover { background: rgba(30,58,95,0.9); color: #e0f2fe; }
     #progreso {
-        position: fixed; bottom: 0; left: 0; height: 3px; z-index: 45;
-        background: #7dd3fc; width: 0%; transition: width 0.3s linear;
+        position: fixed; bottom: 0; left: 0; right: 0; height: 16px; z-index: 46;
+        cursor: pointer;
+    }
+    #progreso-fill {
+        position: absolute; bottom: 0; left: 0; height: 3px;
+        background: #7dd3fc; width: 0%; transition: width 0.2s linear;
+        pointer-events: none;
+    }
+    #progreso:hover #progreso-fill { height: 7px; }
+    #progreso .tick {
+        position: absolute; bottom: 0; width: 2px; height: 5px;
+        background: rgba(255,255,255,.4); pointer-events: none;
     }
 
     /* ---------- Créditos finales ---------- */
@@ -204,6 +214,28 @@
         display: none; z-index: 60; pointer-events: none;
     }
     #chip-pausa.visible { display: block; }
+
+    /* ---------- Responsive / táctil ---------- */
+    @media (pointer: coarse) {
+        .hud-btn { min-height: 44px; font-size: 12px; }
+    }
+    @media (max-width: 780px) {
+        #hud {
+            left: 10px; right: 10px; bottom: 24px;
+            flex-wrap: wrap; justify-content: center;
+        }
+        .hud-btn { flex: 1 1 28%; padding: 10px 8px; }
+        #intertitulo { padding-bottom: 134px; }   /* la tarjeta queda sobre el HUD */
+        #intertitulo .tarjeta { max-width: 92vw; padding: 18px 22px; }
+        #intertitulo .texto { font-size: 20px; }
+        #intertitulo .sub, #intertitulo .dato { font-size: 12.5px; }
+        #creditos .tarjeta { max-width: 92vw; max-height: 86vh; overflow-y: auto; padding: 22px; }
+        #creditos .texto { font-size: 20px; }
+        .cred-fila .nom { white-space: normal; font-size: 13px; }
+        #chip-pausa { font-size: 11px; max-width: 92vw; text-align: center; }
+        #progreso { height: 24px; }               /* dedo: zona táctil más generosa */
+        #progreso .tick { height: 7px; }
+    }
 </style>
 
 <script type="importmap">
@@ -217,7 +249,7 @@
 </head>
 <body>
 
-<audio id="musica" src="{% static 'indicadores/audio/ambiente_cali.mp3' %}" preload="auto"></audio>
+<audio id="musica" src="{% static 'indicadores/audio/ambiente_cali.mp3' %}" preload="auto" loop></audio>
 
 <div id="escena"></div>
 <div id="grano"></div>
@@ -274,12 +306,16 @@
 </div>
 
 <div id="hud">
-    <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
-    <button class="hud-btn" id="btn-saltar">SALTAR ⏭</button>
+    <button class="hud-btn" id="btn-ant" title="Módulo anterior [←]">◀ MÓDULO</button>
     <button class="hud-btn" id="btn-pausa">⏸ PAUSAR [ESPACIO]</button>
+    <button class="hud-btn" id="btn-sig" title="Módulo siguiente [→]">MÓDULO ▶</button>
+    <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
+    <button class="hud-btn" id="btn-salir" title="Volver [ESC]">✕ SALIR</button>
 </div>
-<div id="chip-pausa">⏸ PAUSA — cámara libre · la plataforma sigue trabajando</div>
-<div id="progreso"></div>
+<div id="chip-pausa">⏸ PAUSA — cámara libre: orbita con el mouse · ◀ ▶ o la barra navegan el recorrido</div>
+<div id="progreso" title="Clic o arrastre para moverse por el recorrido">
+    <div id="progreso-fill"></div>
+</div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -5030,7 +5066,7 @@ const elActo = document.getElementById('inter-acto');
 const elTexto = document.getElementById('inter-texto');
 const elSub = document.getElementById('inter-sub');
 const elDato = document.getElementById('inter-dato');
-const elProgreso = document.getElementById('progreso');
+const elProgreso = document.getElementById('progreso-fill');
 const elCreditos = document.getElementById('creditos');
 
 let reloj = null;          // arranca con PLAY
@@ -5160,13 +5196,77 @@ document.getElementById('btn-replay').addEventListener('click', () => {
     musica.currentTime = 0;
     musica.play().catch(() => {});
 });
-document.getElementById('btn-saltar').addEventListener('click', () => {
+// ============ NAVEGACIÓN DEL RECORRIDO ============
+// La barra de progreso es clicable (y arrastrable) y ◀ ▶ saltan
+// de módulo en módulo. Funciona también en pausa: la cámara
+// recupera la pose del acto al que se saltó y desde ahí el
+// usuario puede seguir orbitando.
+function salirFinal() {
+    if (!enFinal) return;
+    enFinal = false;
+    expoObjetivo = 1.18;
+    operarios.forEach(o => ponerEstado(o, 'trabajar'));
+    if (sup) ponerEstado(sup, 'caminar');
+}
+function actoDe(t) {
+    const idx = ACTOS.findIndex(a => t >= a.t0 && t < a.t1);
+    return idx === -1 ? ACTOS.length - 1 : idx;
+}
+function irA(t) {
     if (!iniciado) iniciarShow();
-    // adelantar hasta el acto final
-    const saltarA = ACTOS[ACTOS.length - 1].t0;
-    const transcurrido = reloj ? reloj.getElapsedTime() + offsetShow : 0;
-    if (transcurrido < saltarA) offsetShow = saltarA - reloj.getElapsedTime();
-});
+    t = Math.max(0, Math.min(DURACION - 0.01, t));
+    if (pausado) tPausa = t;
+    else offsetShow = t - reloj.getElapsedTime();
+    if (t < ACTOS[ACTOS.length - 1].t0) salirFinal();
+    elCreditos.classList.remove('visible');
+    // Recupera la pose de cámara del acto — incluso pausado o con
+    // cámara libre — y deja el pivote de órbita en el módulo visto
+    if (camaraLibre || pausado) {
+        tickCamara(t);
+        const a = ACTOS[actoDe(t)];
+        if (a.sigue) controls.target.copy(CAMIONES[a.sigue].position);
+        else controls.target.fromArray(a.cam[1]);
+    }
+    actoActual = -1;            // fuerza refresco del intertítulo
+    tickIntertitulos(t);
+    elProgreso.style.width = `${(t / DURACION) * 100}%`;
+}
+function buscarActo(delta) {
+    const t = reloj ? (pausado ? tPausa : reloj.getElapsedTime() + offsetShow) : 0;
+    const i = actoDe(t);
+    // ◀ a más de 2 s dentro del acto vuelve a SU inicio, no al anterior
+    let destino = i + delta;
+    if (delta < 0 && t - ACTOS[i].t0 > 2) destino = i;
+    destino = Math.max(0, Math.min(ACTOS.length - 1, destino));
+    irA(ACTOS[destino].t0 + 0.05);
+}
+function salirShow() {
+    if (window.history.length > 1) window.history.back();
+    else window.location.assign('/');
+}
+document.getElementById('btn-ant').addEventListener('click', () => buscarActo(-1));
+document.getElementById('btn-sig').addEventListener('click', () => buscarActo(1));
+document.getElementById('btn-salir').addEventListener('click', salirShow);
+// Barra de progreso = seek bar: clic o arrastre, con marcas por acto
+{
+    const barra = document.getElementById('progreso');
+    const aX = ev => (ev.clientX - barra.getBoundingClientRect().left) /
+                     barra.getBoundingClientRect().width * DURACION;
+    let arrastrando = false;
+    barra.addEventListener('pointerdown', ev => {
+        arrastrando = true; barra.setPointerCapture(ev.pointerId); irA(aX(ev));
+    });
+    barra.addEventListener('pointermove', ev => { if (arrastrando) irA(aX(ev)); });
+    barra.addEventListener('pointerup', () => { arrastrando = false; });
+    ACTOS.forEach(a => {
+        if (a.t0 <= 0) return;
+        const tick = document.createElement('div');
+        tick.className = 'tick';
+        tick.style.left = `${(a.t0 / DURACION) * 100}%`;
+        tick.title = a.texto || a.acto;
+        barra.appendChild(tick);
+    });
+}
 function toggleLibre() {
     camaraLibre = !camaraLibre;
     controls.enabled = camaraLibre;
@@ -5177,6 +5277,9 @@ document.getElementById('btn-libre').addEventListener('click', toggleLibre);
 document.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'l') toggleLibre();
     if (e.key === ' ') { e.preventDefault(); togglePausa(); }
+    if (e.key === 'ArrowLeft') buscarActo(-1);
+    if (e.key === 'ArrowRight') buscarActo(1);
+    if (e.key === 'Escape' && iniciado) salirShow();
 });
 
 // ============ PAUSA EXPOSITORA ============
@@ -5257,9 +5360,9 @@ function animate() {
 
     const t = reloj ? (pausado ? tPausa : reloj.getElapsedTime() + offsetShow) : tGlobal;
 
-    if (iniciado && !camaraLibre) {
-        tickCamara(t);
-        tickIntertitulos(t);
+    if (iniciado) {
+        if (!camaraLibre) tickCamara(t);   // la cámara libre no mueve el tour
+        tickIntertitulos(t);             // pero el show sigue narrando
         elProgreso.style.width = `${Math.min(100, (t / DURACION) * 100)}%`;
         if (t >= DURACION && !elCreditos.classList.contains('visible')) {
             elCreditos.classList.add('visible');
