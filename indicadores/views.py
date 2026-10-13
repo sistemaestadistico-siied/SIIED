@@ -4245,14 +4245,14 @@ def api_documentation(request):
     api_endpoints = {
         'conjuntos_datos': [
             {
-                'endpoint': '/api/conjunto_datos/list/',
+                'endpoint': '/api/conjuntos-datos/list/',
                 'method': 'GET',
                 'description': 'Lista de conjuntos_datos disponibles',
                 'parameters': [],
-                'example': '/api/conjunto_datos/list/'
+                'example': '/api/conjuntos-datos/list/'
             },
             {
-                'endpoint': '/api/conjunto_datos/rows/',
+                'endpoint': '/api/conjuntos-datos/rows/',
                 'method': 'GET',
                 'description': 'Filas de datos de conjuntos_datos con paginación y filtros',
                 'parameters': [
@@ -4264,17 +4264,17 @@ def api_documentation(request):
                     {'name': 'anio_inicio', 'type': 'int', 'required': False, 'description': 'Año de inicio para filtrar datos'},
                     {'name': 'anio_fin', 'type': 'int', 'required': False, 'description': 'Año de fin para filtrar datos'}
                 ],
-                'example': '/api/conjunto_datos/rows/?file=Poblacion_Santiago_de_Cali_1985_-_2042_7aDvi5e.csv&limit=100&offset=0'
+                'example': '/api/conjuntos-datos/rows/?file=Poblacion_Santiago_de_Cali_1985_-_2042_7aDvi5e.csv&limit=100&offset=0'
             },
             {
-                'endpoint': '/api/conjunto_datos/headers/',
+                'endpoint': '/api/conjuntos-datos/headers/',
                 'method': 'GET',
                 'description': 'Encabezados de columnas del microdato',
                 'parameters': [
                     {'name': 'file', 'type': 'string', 'required': True, 'description': 'Nombre del archivo CSV registrado en conjunto_datos'},
                     {'name': 'encoding', 'type': 'string', 'required': False, 'description': 'Codificación del archivo (por defecto utf-8-sig)'}
                 ],
-                'example': '/api/conjunto_datos/headers/?file=Poblacion_Santiago_de_Cali_1985_-_2042_7aDvi5e.csv'
+                'example': '/api/conjuntos-datos/headers/?file=Poblacion_Santiago_de_Cali_1985_-_2042_7aDvi5e.csv'
             }
         ],
         'dominios_y_navegacion': [

@@ -2894,11 +2894,10 @@ Por ejemplo:
     def call_api_endpoint(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
         """Realiza llamadas a los endpoints de la API con manejo mejorado de errores"""
         try:
-            # Construir URL correcta según la documentación
-            if endpoint.startswith('conjunto_datos/'):
-                url = f"{self.base_url}/api/{endpoint}"
-            else:
-                url = f"{self.base_url}/api/{endpoint}/"
+            # Las rutas reales son /api/conjuntos-datos/... (guiones),
+            # no /api/conjunto_datos/ como quedó en la doc vieja
+            ep = endpoint.replace('conjunto_datos/', 'conjuntos-datos/').rstrip('/')
+            url = f"{self.base_url}/api/{ep}/"
                 
             logger.info(f"Llamando a: {url} con parámetros: {params}")
             
