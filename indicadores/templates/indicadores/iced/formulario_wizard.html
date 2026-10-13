@@ -625,6 +625,35 @@
                         {{ field }}
                     {% endif %}
                     
+                    {% if field.field.otras_respuestas %}
+                    <div class="iced-otras-respuestas" style="
+                        margin-top: 0.5rem;
+                        padding: 0.75rem 1rem;
+                        background: #eef2ff;
+                        border-left: 3px solid #6366f1;
+                        border-radius: 0 0.375rem 0.375rem 0;
+                        font-size: 0.85rem;
+                        color: #3730a3;
+                    ">
+                        <p style="font-weight: 600; margin: 0 0 0.4rem 0;">
+                            Otros equipos de su organismo ya respondieron esta pregunta:
+                        </p>
+                        {% for otra in field.field.otras_respuestas %}
+                        <div style="margin-bottom: 0.5rem;">
+                            <span style="display: inline-block; background: #6366f1; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; margin-right: 0.4rem;">
+                                {{ otra.equipo }}
+                            </span>
+                            {% if otra.quien %}<span style="font-size: 0.75rem; color: #64748b;">({{ otra.quien }})</span>{% endif %}
+                            <ul style="margin: 0.3rem 0 0 0.75rem; list-style: disc;">
+                                {% for campo, valor in otra.campos.items %}
+                                <li>{{ valor|truncatechars:150 }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     {% if field.errors %}
                         <ul class="errorlist">
                             {% for error in field.errors %}

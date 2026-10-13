@@ -694,11 +694,8 @@ _CAMPOS_RESP = ('respuestas_a', 'respuestas_b', 'respuestas_c',
 
 def _codigo_de_campo(field_name):
     """'p15_1_herramientas' → '15.1'; 'p17_suficiencia' → '17'; otro → None."""
-    import re
-    m = re.match(r'^p(\d+)(?:_(\d+))?', field_name)
-    if not m:
-        return None
-    return m.group(1) + ('.' + m.group(2) if m.group(2) else '')
+    from .models_iced import ICEDPreguntaEquipo
+    return ICEDPreguntaEquipo.codigo_de_campo(field_name)
 
 
 def _respuestas_planas(formulario):

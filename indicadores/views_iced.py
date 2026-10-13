@@ -356,6 +356,18 @@ class ICEDWizardView(SessionWizardView):
                 if not ICEDPreguntaEquipo.campo_pertenece_a_equipo(fname, equipo):
                     del form.fields[fname]
 
+            # Anotar las preguntas compartidas con las respuestas que ya
+            # dieron otros equipos del mismo organismo (se muestran en el
+            # template como referencia antes de responder).
+            otras = self._respuestas_otros_equipos()
+            if otras:
+                anotados = set()
+                for fname, fld in form.fields.items():
+                    cod = ICEDPreguntaEquipo.codigo_de_campo(fname)
+                    if cod and cod in otras and cod not in anotados:
+                        fld.otras_respuestas = otras[cod]
+                        anotados.add(cod)
+
         # P23: poblar el select de operaciones estadísticas desde el inventario
         if 'p23_operaciones_estadisticas' in form.fields:
             self._inyectar_opciones_operaciones(form)
@@ -606,6 +618,57 @@ class ICEDWizardView(SessionWizardView):
             if eq is not None:
                 return eq
         return _get_user_equipo(self.request.user)
+
+    def _respuestas_otros_equipos(self):
+        """Respuestas que otros equipos del organismo ya dieron, por pregunta.
+
+        Retorna {codigo: [{'equipo', 'quien', 'campos': {field: valor}}]}.
+        Excluye el formulario actual y el consolidado (equipo=''), que es
+        producto de la conciliación del validador, no de un delegado.
+        """
+        from .models_iced import ICEDPreguntaEquipo
+
+        if hasattr(self, '_otros_cache'):
+            return self._otros_cache
+
+        cache = {}
+        organismo = self._get_organismo()
+        equipo = self._equipo_formulario()
+        fid = self.kwargs.get('formulario_id')
+        periodo = str(timezone.now().year)
+        if fid:
+            periodo = ICEDFormulario.objects.filter(pk=fid).values_list(
+                'periodo', flat=True).first() or periodo
+
+        if organismo:
+            qs = (ICEDFormulario.objects
+                  .filter(organismo=organismo, periodo=periodo)
+                  .exclude(pk=fid)
+                  .exclude(equipo='')
+                  .exclude(equipo=equipo)
+                  .select_related('usuario_diligencia'))
+            for f in qs:
+                plano = {}
+                for attr in ('respuestas_a', 'respuestas_b', 'respuestas_c',
+                             'respuestas_d', 'respuestas_e'):
+                    plano.update(getattr(f, attr) or {})
+                por_codigo = {}
+                for k, v in plano.items():
+                    cod = ICEDPreguntaEquipo.codigo_de_campo(k)
+                    if cod:
+                        por_codigo.setdefault(cod, {})[k] = v
+                usuario = f.usuario_diligencia
+                quien = (usuario.get_full_name() or usuario.username
+                         ) if usuario else ''
+                for cod, campos in por_codigo.items():
+                    cache.setdefault(cod, []).append({
+                        'equipo': f.equipo,
+                        'quien': quien,
+                        'campos': campos,
+                    })
+
+        self._otros_cache = cache
+        return cache
 
     def _get_organismo(self):
         """Obtener el organismo asociado al usuario actual."""

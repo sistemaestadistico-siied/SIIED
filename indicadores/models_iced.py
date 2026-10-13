@@ -496,6 +496,19 @@ class ICEDPreguntaEquipo(models.Model):
             cls.objects.filter(equipo=equipo).values_list('codigo', flat=True)
         )
 
+    @staticmethod
+    def codigo_de_campo(field_name):
+        """'p15_1_herramientas' → '15.1'; 'p17_suficiencia' → '17'; otro → None.
+
+        El segundo grupo numérico (subpregunta) solo cuenta si va seguido de
+        '_' para distinguir 'p15_1_x' (pregunta 15.1) de campos como 'p10_x'.
+        """
+        import re
+        m = re.match(r'^p(\d+)(?:_(\d+))?(?:_|$)', field_name)
+        if not m:
+            return None
+        return m.group(1) + ('.' + m.group(2) if m.group(2) else '')
+
     @classmethod
     def campo_pertenece_a_equipo(cls, field_name, equipo):
         """
@@ -503,10 +516,8 @@ class ICEDPreguntaEquipo(models.Model):
         a una pregunta asignada al equipo. Sin asignaciones para la pregunta
         → pertenece a todos (comportamiento legacy).
         """
-        import re
-        m = re.match(r'^p(\d+)(?:_(\d+))?_', field_name)
-        if not m:
+        codigo = cls.codigo_de_campo(field_name)
+        if codigo is None:
             return True  # campos auxiliares (json internos, display) → siempre
-        codigo = m.group(1) + ('.' + m.group(2) if m.group(2) else '')
         asignados = cls.equipos_de_pregunta(codigo)
         return not asignados or equipo in asignados
