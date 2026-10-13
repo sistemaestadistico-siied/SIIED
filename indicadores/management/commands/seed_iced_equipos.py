@@ -13,9 +13,21 @@ import csv
 
 from django.core.management.base import BaseCommand
 
+from indicadores.forms_iced import ICED_WIZARD_FORMS
 from indicadores.models_iced import ICEDPreguntaEquipo
 
 EQUIPOS = ['ETUAG_PSP', 'ETOBS', 'ETPP', 'ETSGC', 'ETGIE']
+
+
+def _codigos_reales():
+    """Códigos de pregunta que existen como campos pN_* en los forms del wizard."""
+    codigos = set()
+    for _step, form_cls in ICED_WIZARD_FORMS:
+        for fname in form_cls.base_fields:
+            cod = ICEDPreguntaEquipo.codigo_de_campo(fname)
+            if cod:
+                codigos.add(cod)
+    return codigos
 
 
 class Command(BaseCommand):
@@ -66,3 +78,17 @@ class Command(BaseCommand):
             f'Asignaciones: {creadas} nuevas, {saltadas} filas sin código. '
             f'Total por equipo: {por_equipo}'
         ))
+
+        # Advertir códigos del CSV que no mapean a campos pN_* del formulario
+        reales = _codigos_reales()
+        en_bd = set(ICEDPreguntaEquipo.objects.values_list('codigo', flat=True))
+        huerfanos = sorted(
+            en_bd - reales,
+            key=lambda c: tuple(int(x) for x in c.split('.')),
+        )
+        if huerfanos:
+            self.stdout.write(self.style.WARNING(
+                f'Códigos sin campos en el formulario (se ignoran al filtrar): '
+                f'{huerfanos}. Ej.: los datos de contacto viven en '
+                f'personas_contacto_json, visible para todos.'
+            ))
