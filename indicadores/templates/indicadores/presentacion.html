@@ -4768,6 +4768,64 @@ function animarOperario(loro, dt, tGlobal, estado, desfase = 0) {
     }
 }
 
+// ============ DON DATICO VERDE — Acompañante efímero ============
+// La LUT vuelve morado al verde del loro en escena; éste vive en
+// una escena HUD renderizada DESPUÉS del composer (sin grado) y
+// aparece solo mientras un intertítulo habla — verde de verdad.
+// Vuela con el aleteo asimétrico del subtema_detalle_3d: batida
+// seno+armónico, barrido de punta, bob y banqueo.
+const escHUD = new THREE.Scene();
+escHUD.add(new THREE.AmbientLight(0xffffff, 0.85));
+const solHUD = new THREE.DirectionalLight(0xfff4d6, 0.9);
+solHUD.position.set(2, 4, 5);
+escHUD.add(solHUD);
+const hudAncla = new THREE.Group();   // se pega a la cámara cada frame
+escHUD.add(hudAncla);
+const loroHUD = crearDonDatico();
+loroHUD.scale.setScalar(0.24);
+loroHUD.position.set(2.15, -1.0, -4.4);   // a la derecha de la tarjeta
+loroHUD.rotation.y = -0.55;               // de tres cuartos hacia ella
+hudAncla.add(loroHUD);
+hudAncla.visible = false;
+const daticoHUD = { fase: 0, lookT: 0, lookYaw: 0, lookPitch: 0,
+                    lookYawC: 0, lookPitchC: 0 };
+function tickDaticoHUD(dt, t) {
+    hudAncla.visible = elIntertitulo.classList.contains('visible');
+    if (!hudAncla.visible) return;
+    hudAncla.position.copy(camera.position);
+    hudAncla.quaternion.copy(camera.quaternion);
+    const rig = loroHUD.userData.rig;
+    const d = daticoHUD;
+    // Batida de vuelo (del detalle_3d): subida rápida, bajada con poder
+    d.fase += dt * 9;
+    const flap = Math.sin(d.fase) * 0.75 + Math.sin(d.fase * 2) * 0.25;
+    rig.alaDer.rotation.z = flap * 0.85;
+    rig.alaIzq.rotation.z = -flap * 0.85;
+    rig.alaDer.rotation.x = Math.sin(d.fase - 0.4) * 0.15;
+    rig.alaIzq.rotation.x = Math.sin(d.fase - 0.4) * 0.15;
+    // Planeo: bob + vaivén suave + banqueo
+    rig.visual.position.y = Math.sin(d.fase) * 0.07;
+    rig.visual.rotation.z = Math.sin(t * 0.8) * 0.12;
+    rig.visual.rotation.x = Math.sin(t * 0.6) * 0.06;
+    loroHUD.position.x = 2.15 + Math.sin(t * 0.5) * 0.18;
+    loroHUD.position.y = -1.0 + Math.sin(t * 1.4) * 0.1;
+    loroHUD.rotation.y = -0.55 + Math.sin(t * 0.4) * 0.12;
+    // Mirada errática (como en el detalle): cambia cada pocos segundos
+    d.lookT -= dt;
+    if (d.lookT <= 0) {
+        d.lookT = 1.8 + Math.random() * 2.5;
+        d.lookYaw = (Math.random() - 0.5) * 1.2;
+        d.lookPitch = (Math.random() - 0.35) * 0.5;
+    }
+    d.lookYawC += (d.lookYaw - d.lookYawC) * Math.min(1, 2.5 * dt);
+    d.lookPitchC += (d.lookPitch - d.lookPitchC) * Math.min(1, 2.5 * dt);
+    rig.cabeza.rotation.y = d.lookYawC;
+    rig.cabeza.rotation.x = d.lookPitchC;
+    // Las patas se recogen en vuelo
+    rig.pataIzq.rotation.x = -1.2;
+    rig.pataDer.rotation.x = -1.2;
+}
+
 // ============ PLANTA DE OPERARIOS ============
 // Don Datico real: GLB con rig humanoide y clips embebidos.
 // Si el GLB no carga, cae al loro procedural (crearDonDatico).
@@ -4844,7 +4902,10 @@ function crearPlanta() {
         [-14, -6.3, 0.7],     // RECOLECCIÓN → hueco taller/operaciones
         [-20, -5.4, -2.2],    // DELEGADO → cabeza de banda C
         [-26.5, 22.3, -1.5],  // EDITORIAL → al sur del muelle, fuera del carril
-        [-33.8, 8.4, -2.0],   // DELEGADO · 2ª descarga → oeste del taller
+        [-34.4, 5.8, -0.45],  // DELEGADO · 2ª descarga → junto al camión,
+                              // borde sur del muelle (antes quedaba encima
+                              // de la oficina del módulo: parecía un 3er
+                              // operario mal puesto)
     ];
     DOCKS.forEach(([dx, dz, ry], di) => {
         let w;
@@ -5772,6 +5833,15 @@ function animate() {
         (expoObjetivo - renderer.toneMappingExposure) * Math.min(1, dt * 1.4);
     paseGrado.uniforms.tiempo.value = tGlobal;   // grano animado
     composer.render();
+    // Don Datico verde sobre el cuadro: render directo después del
+    // composer → la LUT no lo toca y el loro sale verde de verdad
+    tickDaticoHUD(dt, tGlobal);
+    if (hudAncla.visible) {
+        renderer.autoClear = false;
+        renderer.clearDepth();
+        renderer.render(escHUD, camera);
+        renderer.autoClear = true;
+    }
 }
 animate();
 
