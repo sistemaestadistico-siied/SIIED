@@ -722,8 +722,9 @@ const LEN_AUTO = SEGS_AUTO.reduce((s, x) => s + x.len, 0);
         }
     }
     // Barrio oeste: columnas de casitas a ambas orillas del
-    // brazo del río en x=-52 — llena el hueco hasta la barda
-    for (const xCol of [-42.5, -46.4, -56.0, -59.9, -63.8, -67.7]) {
+    // brazo del río en x=-52 — llena el hueco hasta la barda.
+    // (sin columna en x=-42.5: es el carril del rol editorial)
+    for (const xCol of [-46.4, -56.0, -59.9, -63.8, -67.7]) {
         for (let z = -38; z <= 38; z += 9.5) {
             const n = 1 + Math.round(Math.abs(Math.sin(z * 4.1 + xCol)) * 2);
             for (let k = 0; k < n; k++)
