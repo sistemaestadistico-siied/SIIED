@@ -654,8 +654,10 @@ const _cRef = new THREE.Color();
     avenida(-64.4, 0, 88, false, 0.021);
     avenida(64.4, 0, 88, false, 0.021);
 
-    // Árboles urbanos: hileras sobre el borde interno de las
-    // avenidas + ribera del brazo oeste — la periferia vive
+    // Árboles urbanos: hileras en la acera INTERNA de las
+    // avenidas — el tronco pisa acera (la copa puede asomar al
+    // antejardín) y ninguno queda sobre el asfalto ni contra
+    // los landmarks. La ribera del río sigue como estaba.
     const matTronco = new THREE.MeshLambertMaterial({ color: 0x4a3728 });
     const matCopas = [0x2d5a34, 0x3f6b3a, 0x35654a]
         .map(c => new THREE.MeshLambertMaterial({ color: c }));
@@ -674,14 +676,21 @@ const _cRef = new THREE.Color();
         t.position.set(x, 0, z);
         scene.add(t);
     }
+    const HUECOS_ARB_N = [[-35, -29], [-22.5, -15], [-3, 15], [23, 29]];
+    const HUECOS_ARB_S = [[-32, -25], [-14, -2], [21.5, 32], [44.5, 51.5]];
     for (let x = -64; x <= 64; x += 6.4) {
-        if (Math.abs(x + 52) < 3.4) continue;   // salta el puente
-        arbol(x + Math.sin(x * 1.7) * 0.7, -40, 1.3);
-        arbol(x - Math.sin(x * 1.9) * 0.7, 40, 1.3);
+        // fuera del puente del río y de las avenidas E/W (x≈±64)
+        if (Math.abs(x + 52) < 3.4 || Math.abs(x) > 61) continue;
+        const j1 = Math.sin(x * 1.7) * 0.7, j2 = Math.sin(x * 1.9) * 0.7;
+        if (!HUECOS_ARB_N.some(([a, b]) => x + j1 > a && x + j1 < b))
+            arbol(x + j1, -38.8, 1.3);
+        if (!HUECOS_ARB_S.some(([a, b]) => x - j2 > a && x - j2 < b))
+            arbol(x - j2, 38.8, 1.3);
     }
-    for (let z = -38; z <= 38; z += 6.4) {
-        arbol(-64.6, z + Math.sin(z * 1.3) * 0.6, 1.3);
-        arbol(64.6, z - Math.sin(z * 1.1) * 0.6, 1.3);
+    for (let z = -36; z <= 36; z += 6.4) {
+        arbol(-61.6, z + Math.sin(z * 1.3) * 0.6, 1.3);
+        if (Math.abs(z) < 14) continue;   // este: la pared de TV
+        arbol(61.6, z - Math.sin(z * 1.1) * 0.6, 1.3);
     }
     // Arboleda en la orilla externa de los ríos (el corredor
     // del brazo oeste queda para el barrio)
@@ -915,14 +924,14 @@ const _cRef = new THREE.Color();
                 casita(x, z, ry);
     }
     // Frente a la vía norte (las fachadas miran a la avenida)
-    filaCasitas(-37.9, XS_CUADRA, Math.PI,
+    filaCasitas(-36.6, XS_CUADRA, Math.PI,
         [[-35, -29], [-22.5, -15.5], [-3, 15], [23, 28.5]]);
-    filaCasitas(-33.2, XS_CUADRA, Math.PI,
+    filaCasitas(-32.0, XS_CUADRA, Math.PI,
         [[-35, -29], [-22.5, -15.5], [-3, 15]]);
     // Frente a la vía sur
-    filaCasitas(38.4, XS_CUADRA_S, 0,
+    filaCasitas(36.6, XS_CUADRA_S, 0,
         [[-32, -25], [-14, -2], [21.5, 32], [44.5, 51.5]]);
-    filaCasitas(33.4, XS_CUADRA_S, 0,
+    filaCasitas(32.0, XS_CUADRA_S, 0,
         [[-32, -25], [-14, -2], [10.5, 17.5], [21.5, 32], [44.5, 51.5]]);
 
     // Bóveda de estrellas: cúpula de puntos (fog apagado para
