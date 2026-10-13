@@ -1,0 +1,86 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  .norm-help { color: var(--body-quiet-color,#64748b); font-size: .85rem; }
+  .man-h2 { margin-top: 1.75rem; }
+  .man-box { border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px;
+             padding: 1rem 1.25rem; margin: .75rem 0; background: var(--darkened-bg,#f8fafc); }
+  .warn-box { background: rgba(245,158,11,.12); border: 1px solid #f59e0b;
+              border-radius: 8px; padding: .85rem 1rem; margin: .75rem 0; font-size: .9rem; }
+  .norm-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  .norm-table th,.norm-table td { padding:6px 8px; border:1px solid var(--border-color,#e2e8f0); text-align:left; }
+  .norm-table th { background: var(--darkened-bg,#f1f5f9); }
+  code { background: var(--darkened-bg,#f1f5f9); padding:1px 5px; border-radius:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <h1>Manual — Wizard de Conciliación de Desagregaciones</h1>
+  <p class="norm-help">
+    Herramienta para unificar dominios de desagregación duplicados o retirarlos,
+    sin tocar los datos cargados. Todo corre dentro de una transacción
+    (si algo falla se revierte completo) y queda en <code>audit_conciliacion_log</code>.
+  </p>
+
+  <h2 class="man-h2">Paso 1 — Selección de dominios</h2>
+  <div class="man-box">
+    La tabla lista todos los dominios con su tipo, cuántas desagregaciones tienen,
+    en cuántos indicadores están vinculados, cuántas referencias acumulan
+    (etiquetas en datos + series + FKs + predeterminadas), si tienen capa
+    geográfica y catálogos publicados.
+    <ul style="margin:.5rem 0 0 1.25rem;">
+      <li><strong>Checkbox</strong> = dominio(s) origen.</li>
+      <li><strong>Radio</strong> "Destino" = el dominio que absorbe a los demás.</li>
+      <li>Clic en el nombre abre la <strong>ficha del dominio</strong>
+          (desagregaciones, conteos de referencias, renombrar).</li>
+    </ul>
+  </div>
+
+  <h2 class="man-h2">Conciliar (origen/es → destino)</h2>
+  <div class="man-box">
+    <ol style="margin:0 0 0 1.25rem;">
+      <li><strong>Paso 2 — Equivalencias:</strong> cada desagregación de los
+          orígenes se decide una por una:
+          <em>≡ equivalente</em> a una del destino (redirige todas sus
+          referencias y la elimina), <em>→ mover tal cual</em> (pasa al dominio
+          destino conservando sus datos), o <em>✕ descartar</em> (corta sus
+          referencias y la elimina). Las filas verdes tienen match automático
+          por nombre normalizado.</li>
+      <li><strong>Paso 3 — Vista previa:</strong> resumen de equivalencias,
+          movidas, descartadas y referencias redirigidas/cortadas. Revise aquí
+          antes de aplicar.</li>
+      <li><strong>Aplicar:</strong> redirige referencias, mueve vínculos
+          indicador↔dominio, borra los dominios origen y resincroniza los FKs
+          legacy de las series.</li>
+    </ol>
+  </div>
+  <div class="warn-box">
+    ⚠️ Los tipos deben coincidir: no se puede conciliar un dominio
+    <em>temática</em> hacia uno <em>geográfica</em> — el wizard lo bloquea.
+  </div>
+
+  <h2 class="man-h2">Eliminar un dominio</h2>
+  <div class="man-box">
+    Marque <strong>un solo</strong> dominio y use "Eliminar dominio seleccionado".
+    Se borran el dominio, sus desagregaciones y sus vínculos, pero
+    <strong>los Dato permanecen</strong> (solo pierden esa etiqueta de dimensión).
+    La página de confirmación muestra el impacto (desags, indicadores,
+    referencias, catálogos y subdominios que quedarían huérfanos) y exige
+    marcar la casilla de confirmación.
+  </div>
+
+  <h2 class="man-h2">Ficha de dominio y renombrado</h2>
+  <div class="man-box">
+    Desde el listado, clic en el nombre del dominio: métricas, indicadores que
+    lo usan, tabla completa de sus desagregaciones con conteo de referencias,
+    y formulario de renombrado (avisa si el nombre ya existe en otro dominio
+    — caso típico para conciliar).
+  </div>
+
+  <p><a href="{% url 'normalizacion:wizard_normalizacion' %}">← Volver al wizard</a></p>
+</div>
+{% endblock %}

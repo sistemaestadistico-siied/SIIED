@@ -26,6 +26,7 @@ from .calcular_iced import (
 )
 from .forms_iced import ICED_WIZARD_FORMS
 from .decorators import validador_required
+from . import views_normalizacion as _nz
 
 
 # ============================================================================
@@ -338,6 +339,60 @@ def validacion_decidir_conjunto_datos(request, carga_id):
 def validacion_manual(request):
     """Manual de uso del Panel de Validación."""
     return render(request, 'validacion/manual.html')
+
+
+# ============================================================================
+# CONCILIACIÓN DE DESAGREGACIONES — mismo wizard del admin
+# (views_normalizacion) montado con los estilos del módulo.
+# ============================================================================
+
+def _nz_cfg(request):
+    """El wizard compartido renderiza templates del módulo y resuelve
+    sus URLs internas con los nombres de validación."""
+    request._nz_tmpl = 'validacion/normalizacion/'
+    request._nz_dom_url = 'indicadores:validacion_conciliacion_dominio'
+
+
+@validador_required
+def validacion_conciliacion(request):
+    _nz_cfg(request)
+    return _nz.wizard_normalizacion.__wrapped__(request)
+
+
+@validador_required
+def validacion_conciliacion_manual(request):
+    _nz_cfg(request)
+    return _nz.wizard_manual.__wrapped__(request)
+
+
+@validador_required
+def validacion_conciliacion_equivalencias(request):
+    _nz_cfg(request)
+    return _nz.wizard_equivalencias.__wrapped__(request)
+
+
+@validador_required
+def validacion_conciliacion_preview(request):
+    _nz_cfg(request)
+    return _nz.wizard_preview.__wrapped__(request)
+
+
+@validador_required
+def validacion_conciliacion_aplicar(request):
+    _nz_cfg(request)
+    return _nz.wizard_aplicar.__wrapped__(request)
+
+
+@validador_required
+def validacion_conciliacion_eliminar(request):
+    _nz_cfg(request)
+    return _nz.wizard_eliminar_aplicar.__wrapped__(request)
+
+
+@validador_required
+def validacion_conciliacion_dominio(request, dominio_id):
+    _nz_cfg(request)
+    return _nz.wizard_dominio_detalle.__wrapped__(request, dominio_id)
 
 
 @validador_required

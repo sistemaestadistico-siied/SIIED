@@ -4545,7 +4545,7 @@ def api_documentation(request):
     }
 
     # Obtener la URL base usando el esquema correcto
-    base_url = "http://indicadores.cali.gov.co"
+    base_url = "https://indicadores.cali.gov.co"
     
     context = {
         'page': 'api_documentation',

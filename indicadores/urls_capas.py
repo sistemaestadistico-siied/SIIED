@@ -11,6 +11,7 @@ app_name = 'capas'
 
 urlpatterns = [
     path('', views_capas.wizard_capas, name='wizard_capas'),
+    path('manual/', views_capas.wizard_capas_manual, name='wizard_capas_manual'),
     path('asociar/', views_capas.wizard_capas_asociar, name='wizard_capas_asociar'),
     path('aplicar/', views_capas.wizard_capas_aplicar, name='wizard_capas_aplicar'),
 ]

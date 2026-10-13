@@ -1,0 +1,85 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+<style>
+  .norm-wrap { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+  .norm-help { color: var(--body-quiet-color,#64748b); font-size: .85rem; }
+  .man-h2 { margin-top: 1.75rem; }
+  .man-box { border: 1px solid var(--border-color,#e2e8f0); border-radius: 8px;
+             padding: 1rem 1.25rem; margin: .75rem 0; background: var(--darkened-bg,#f8fafc); }
+  .warn-box { background: rgba(245,158,11,.12); border: 1px solid #f59e0b;
+              border-radius: 8px; padding: .85rem 1rem; margin: .75rem 0; font-size: .9rem; }
+  .norm-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  .norm-table th,.norm-table td { padding:6px 8px; border:1px solid var(--border-color,#e2e8f0); text-align:left; }
+  .norm-table th { background: var(--darkened-bg,#f1f5f9); }
+  code { background: var(--darkened-bg,#f1f5f9); padding:1px 5px; border-radius:4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="norm-wrap">
+  <h1>Manual — Wizard de Carga de Capas Geográficas</h1>
+  <p class="norm-help">
+    Sustituye al flujo "un script por capa": sube un archivo geográfico y
+    el wizard lo parsea, lo conecta a la estructura de geodatos y asocia cada
+    elemento con su desagregación. Todo corre en una transacción (si falla,
+    se revierte) y queda en <code>audit_conciliacion_log</code>.
+  </p>
+
+  <h2 class="man-h2">La estructura de geodatos (3 niveles)</h2>
+  <div class="man-box">
+    <code>NivelGeografico</code> → <code>DominioDesagregacion</code> (tipo
+    <em>geográfica</em>) → <code>Desagregacion</code> ↔ elemento de la
+    <code>CapaGeo</code> del mismo nivel. El nivel manda: la capa y el dominio
+    deben colgar del mismo.
+  </div>
+
+  <h2 class="man-h2">Paso 1 — Subir el archivo</h2>
+  <div class="man-box">
+    Formatos: <strong>GeoJSON</strong>, <strong>KML/KMZ</strong>,
+    <strong>CSV</strong> (columna WKT o lon/lat) y <strong>Shapefile .zip</strong>
+    (con <code>.dbf</code>, y <code>.prj</code> para reproyección). Máx. 80 MB.
+    Coordenadas en WGS84 (EPSG:4326) salvo que el <code>.prj</code> indique otro.
+    Debajo del cargador ve la estructura actual agrupada por nivel y los
+    dominios geográficos sin nivel asignado.
+  </div>
+
+  <h2 class="man-h2">Paso 2 — Campos y destino</h2>
+  <div class="man-box">
+    Elija el <strong>campo de código</strong> y el <strong>campo de nombre</strong>
+    (hay sugerencia automática) y decida para cada pieza: existente o nueva.
+    <ul style="margin:.5rem 0 0 1.25rem;">
+      <li><strong>Nivel geográfico:</strong> existente o nuevo.</li>
+      <li><strong>Capa:</strong> existente (fija el nivel) o nueva con nombre.</li>
+      <li><strong>Dominio geográfico:</strong> existente del mismo nivel
+          (si no tenía nivel, adopta el de la capa) o nuevo.</li>
+    </ul>
+  </div>
+  <div class="warn-box">
+    ⚠️ Coherencia de nivel: una capa existente fuerza su nivel; un dominio
+    existente con otro nivel rechaza la operación antes de tocar datos.
+  </div>
+
+  <h2 class="man-h2">Paso 3 — Asociación elemento → desagregación</h2>
+  <div class="man-box">
+    Tabla con cada elemento del archivo: auto-match por <em>código
+    normalizado</em> (el mismo criterio del renderer de mapas) o por nombre,
+    sin repetir desagregación. Por fila: asociar a una desagregación
+    existente, <strong>crear una nueva</strong> (con el nombre/código del
+    elemento y la capa enlazada) o <strong>omitir</strong>.
+    Los elementos inválidos se saltan; el listado muestra cuántos son y las
+    desagregaciones del dominio que quedaron sin elemento.
+  </div>
+
+  <h2 class="man-h2">Aplicar</h2>
+  <div class="man-box">
+    Upsert de <code>ElementoGeo</code> (nuevos/actualizados/omitidos),
+    asociaciones <code>Desagregacion ↔ capa</code>, creación de desags nuevas
+    y dominio nuevo si corresponde — todo en una sola transacción con
+    resultado resumido en el mensaje final y en el log de auditoría.
+  </div>
+
+  <p><a href="{% url 'capas:wizard_capas' %}">← Volver al wizard</a></p>
+</div>
+{% endblock %}

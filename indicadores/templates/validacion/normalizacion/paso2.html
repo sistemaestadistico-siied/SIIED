@@ -1,0 +1,77 @@
+{% extends "validacion/base_validacion.html" %}
+{% load i18n %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .norm-wrap { max-width: 1300px; margin: 0 auto; }
+  .norm-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  .norm-table th, .norm-table td { padding: 5px 8px; border: 1px solid #e2e8f0; text-align: left; }
+  .norm-table th { background: #f1f5f9; position: sticky; top: 0; }
+  .row-sugerido { background: rgba(16,185,129,.07); }
+  .row-sinmatch { background: rgba(245,158,11,.07); }
+  .norm-btn { padding: 8px 18px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+  .btn-next { background: #059669; color: #fff; }
+  .norm-help { color: #64748b; font-size: .85rem; }
+  .scroll-box { max-height: 65vh; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
+  select { max-width: 240px; }
+</style>
+{% endblock %}
+
+{% block validacion_content %}
+<div class="norm-wrap">
+  <h1 class="text-xl font-bold text-slate-900">Paso 2 — Verificación de equivalencias</h1>
+  <p class="norm-help">
+    Dominio destino: <strong>{{ destino.nombre }}</strong> ({{ destino.tipo }}).
+    Orígenes: {% for o in origenes %}{{ o.nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+    Verifica cada desagregación: equivalencia con una del destino, mover tal cual, o descartar.
+    Los verdes tienen match automático por nombre.
+  </p>
+
+  <form method="post" action="{% url 'indicadores:validacion_conciliacion_preview' %}">
+    {% csrf_token %}
+    <input type="hidden" name="destino" value="{{ destino.id }}">
+    <input type="hidden" name="origen_ids" value="{{ origen_ids }}">
+    <input type="hidden" name="accion" value="aplicar_conciliar">
+
+    <div class="scroll-box">
+    <table class="norm-table">
+      <thead>
+        <tr>
+          <th>Dominio origen</th><th>Desagregación origen</th>
+          <th>Datos</th><th>Series</th><th>FKs</th><th>Pred</th><th>Hijas</th>
+          <th>Decisión</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for f in filas %}
+        <tr class="{% if f.sugerido %}row-sugerido{% else %}row-sinmatch{% endif %}">
+          <td>{{ f.dominio_origen_nombre }}</td>
+          <td>{{ f.desag_nombre }}{% if f.capa_geo %} <span title="tiene capa geo">🗺️</span>{% endif %}</td>
+          <td>{{ f.refs.datos }}</td>
+          <td>{{ f.refs.series }}</td>
+          <td>{{ f.refs.fks }}</td>
+          <td>{{ f.refs.pred }}</td>
+          <td>{{ f.refs.hijas }}</td>
+          <td>
+            <select name="map_{{ f.desag_id }}">
+              {% for td in dst_desags %}
+              <option value="eq_{{ td.id }}" {% if f.sugerido == td.id %}selected{% endif %}>≡ {{ td.nombre }}</option>
+              {% endfor %}
+              <option value="nuevo" {% if not f.sugerido %}selected{% endif %}>→ Mover tal cual</option>
+              <option value="descartar">✕ Descartar (cortar refs)</option>
+            </select>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    <div style="margin:1.5rem 0;display:flex;gap:1rem;">
+      <button type="submit" class="norm-btn btn-next">Vista previa →</button>
+      <a href="{% url 'indicadores:validacion_conciliacion' %}" style="align-self:center;">← Volver</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

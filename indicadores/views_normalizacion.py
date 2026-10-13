@@ -23,6 +23,21 @@ from django.shortcuts import redirect, render
 from .models import DominioDesagregacion, Desagregacion
 
 
+_TMPL_DEF = 'indicadores/normalizacion/'
+_DOM_URL_DEF = 'normalizacion:wizard_normalizacion_dominio'
+
+
+def _td(request):
+    """Directorio de templates del wizard. El módulo de validación monta
+    estas mismas vistas con sus propios templates (atributo _nz_tmpl)."""
+    return getattr(request, '_nz_tmpl', _TMPL_DEF)
+
+
+def _dom_url(request):
+    """URL name del detalle de dominio según el módulo que monta el wizard."""
+    return getattr(request, '_nz_dom_url', _DOM_URL_DEF)
+
+
 def _normaliza(s):
     """Normalización para match automático: sin tildes, minúsculas, espacios
     colapsados, sin puntuación."""
@@ -203,6 +218,13 @@ def _audit(concepto, tipo, dominios_abs, desags_mov, detalle):
         """, [concepto, tipo, dominios_abs, desags_mov, detalle])
 
 
+@staff_member_required
+def wizard_manual(request):
+    """Manual de uso del wizard (misma página para admin y validación:
+    el template viene de _td(request))."""
+    return render(request, _td(request) + 'manual.html')
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # PASO 1: selección de dominios
 # ──────────────────────────────────────────────────────────────────────────
@@ -233,7 +255,7 @@ def wizard_normalizacion(request):
         refs_por_dom = dict(cur.fetchall())
     for d in dominios:
         d['n_refs'] = refs_por_dom.get(d['id'], 0)
-    return render(request, 'indicadores/normalizacion/paso1.html', {'dominios': dominios})
+    return render(request, _td(request) + 'paso1.html', {'dominios': dominios})
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -243,7 +265,7 @@ def wizard_normalizacion(request):
 @staff_member_required
 def wizard_equivalencias(request):
     if request.method != 'POST':
-        return render(request, 'indicadores/normalizacion/paso1.html',
+        return render(request, _td(request) + 'paso1.html',
                       {'error': 'Acceso directo no permitido. Usa el paso 1.',
                        'dominios': []})
     accion = request.POST.get('accion')
@@ -253,17 +275,17 @@ def wizard_equivalencias(request):
         return _preview_eliminar(request, dominio_ids)
     if accion != 'conciliar':
         messages.error(request, 'Acción desconocida.')
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
 
     destino_id = request.POST.get('destino')
     if not destino_id or len(dominio_ids) < 1:
         messages.error(request, 'Selecciona dominio(s) origen y un destino.')
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
     destino_id = int(destino_id)
     origenes = [int(d) for d in dominio_ids if int(d) != destino_id]
     if not origenes:
         messages.error(request, 'Los orígenes no pueden incluir el destino.')
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
 
     dom = DominioDesagregacion.objects.get(pk=destino_id)
     origenes_dom = DominioDesagregacion.objects.filter(pk__in=origenes)
@@ -272,7 +294,7 @@ def wizard_equivalencias(request):
             messages.error(request,
                 f'Tipo incompatible: "{od.nombre}" es {od.tipo} pero "{dom.nombre}" es {dom.tipo}. '
                 'Corrige el tipo antes de conciliar.')
-            return wizard_normalizacion(request)
+            return wizard_normalizacion.__wrapped__(request)
 
     dst_desags = list(Desagregacion.objects.filter(dominio_id=destino_id).order_by('nombre'))
     dst_norm = {_normaliza(d.nombre): d.id for d in dst_desags}
@@ -293,7 +315,7 @@ def wizard_equivalencias(request):
                     'refs': r,
                     'sugerido': dst_norm.get(_normaliza(d.nombre)),
                 })
-    return render(request, 'indicadores/normalizacion/paso2.html', {
+    return render(request, _td(request) + 'paso2.html', {
         'destino': dom, 'origenes': origenes_dom, 'dst_desags': dst_desags,
         'filas': filas, 'origen_ids': ','.join(str(i) for i in origenes),
     })
@@ -306,13 +328,13 @@ def wizard_equivalencias(request):
 @staff_member_required
 def wizard_preview(request):
     if request.method != 'POST':
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
     accion = request.POST.get('accion')
     if accion == 'eliminar_confirmar':
         return _preview_eliminar(request, request.POST.getlist('dominios'),
                                  confirmado=True)
     if accion != 'aplicar_conciliar':
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
     destino_id = int(request.POST['destino'])
     origenes = [int(i) for i in request.POST['origen_ids'].split(',') if i]
 
@@ -349,7 +371,7 @@ def wizard_preview(request):
     with connection.cursor() as cur:
         for od in origenes_dom:
             stats_origen[od.id] = _dominio_stats(cur, od.id)
-    return render(request, 'indicadores/normalizacion/paso3.html', {
+    return render(request, _td(request) + 'paso3.html', {
         'destino': dom, 'origenes': origenes_dom, 'resumen': resumen,
         'detalles': detalles, 'stats_origen': stats_origen,
         'payload': json.dumps({k: v for k, v in request.POST.items()
@@ -365,7 +387,7 @@ def wizard_preview(request):
 @staff_member_required
 def wizard_aplicar(request):
     if request.method != 'POST':
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
     destino_id = int(request.POST['destino'])
     origenes = [int(i) for i in request.POST['origen_ids'].split(',') if i]
     mapping = {int(k[4:]): v for k, v in json.loads(request.POST['payload']).items()
@@ -400,13 +422,13 @@ def wizard_aplicar(request):
                    f"→ dominio {destino_id}; equiv={stats['equiv']} movidas={stats['movidas']} descartadas={stats['descartadas']}")
     except Exception as e:
         messages.error(request, f'Error en conciliación (rollback aplicado): {e}')
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
 
     messages.success(request,
         f'Conciliación aplicada: {stats["dominios"]} dominio(s) absorbidos, '
         f'{stats["equiv"]} equivalencias, {stats["movidas"]} movidas, '
         f'{stats["descartadas"]} descartadas.')
-    return wizard_normalizacion(request)
+    return wizard_normalizacion.__wrapped__(request)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -416,7 +438,7 @@ def wizard_aplicar(request):
 def _preview_eliminar(request, dominio_ids, confirmado=False):
     if len(dominio_ids) != 1:
         messages.error(request, 'La eliminación opera sobre un dominio a la vez.')
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
     dom_id = int(dominio_ids[0])
     dom = DominioDesagregacion.objects.get(pk=dom_id)
     desags = list(Desagregacion.objects.filter(dominio_id=dom_id).order_by('nombre'))
@@ -427,7 +449,7 @@ def _preview_eliminar(request, dominio_ids, confirmado=False):
         # subdominios que lo tienen como padre
         cur.execute("SELECT id, nombre FROM indicadores_dominiodesagregacion WHERE dominio_padre_id=%s", [dom_id])
         subdominios = cur.fetchall()
-    return render(request, 'indicadores/normalizacion/eliminar.html', {
+    return render(request, _td(request) + 'eliminar.html', {
         'dominio': dom, 'desags': desags, 'stats': stats, 'tot': tot,
         'subdominios': subdominios, 'confirmado': confirmado,
     })
@@ -437,7 +459,7 @@ def _preview_eliminar(request, dominio_ids, confirmado=False):
 def wizard_eliminar_aplicar(request):
     if request.method != 'POST' or request.POST.get('confirmar') != 'si':
         messages.error(request, 'Eliminación no confirmada.')
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
     dom_id = int(request.POST['dominio_id'])
     dom = DominioDesagregacion.objects.get(pk=dom_id)
     desag_ids = list(Desagregacion.objects.filter(dominio_id=dom_id).values_list('id', flat=True))
@@ -456,11 +478,11 @@ def wizard_eliminar_aplicar(request):
                    f'Dominio "{nombre}" (id {dom_id}) + {len(desag_ids)} desags eliminados; datos intactos')
     except Exception as e:
         messages.error(request, f'Error en eliminación (rollback aplicado): {e}')
-        return wizard_normalizacion(request)
+        return wizard_normalizacion.__wrapped__(request)
     messages.success(request,
         f'Dominio "{nombre}" y sus {len(desag_ids)} desagregaciones eliminadas. '
         'Los datos permanecen intactos.')
-    return wizard_normalizacion(request)
+    return wizard_normalizacion.__wrapped__(request)
 
 
 # ──────────────────────────────────────────────────────────────────────────
@@ -490,7 +512,7 @@ def wizard_dominio_detalle(request, dominio_id):
                 messages.warning(request,
                     f'Ojo: ya existe otro dominio llamado "{duplicado.nombre}" '
                     f'(id {duplicado.id}, tipo {duplicado.tipo}). Considera conciliarlos.')
-            return redirect('normalizacion:wizard_normalizacion_dominio', dominio_id=dom.id)
+            return redirect(_dom_url(request), dominio_id=dom.id)
 
     desags = list(Desagregacion.objects.filter(dominio_id=dominio_id).order_by('nombre'))
     with connection.cursor() as cur:
@@ -502,7 +524,7 @@ def wizard_dominio_detalle(request, dominio_id):
            for k in ('datos', 'series', 'fks', 'pred', 'hijas')}
     for d in desags:
         d.refs = refs[d.id]
-    return render(request, 'indicadores/normalizacion/dominio.html', {
+    return render(request, _td(request) + 'dominio.html', {
         'dominio': dom, 'desags': desags, 'stats': stats,
         'subdominios': subdominios, 'tot': tot,
         'padre': dom.dominio_padre,

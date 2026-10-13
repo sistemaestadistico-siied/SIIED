@@ -54,6 +54,12 @@ def _save_json(token: str, name: str, data) -> None:
         json.dump(data, f, ensure_ascii=False)
 
 
+@staff_member_required
+def wizard_capas_manual(request):
+    """Manual de uso del wizard de carga de capas geográficas."""
+    return render(request, 'indicadores/capas/manual.html')
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # PASO 1: subir archivo + listado de capas
 # ──────────────────────────────────────────────────────────────────────────

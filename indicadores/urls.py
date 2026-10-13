@@ -380,6 +380,16 @@ urlpatterns = [
     # Manual
     path('validacion/manual/', views_validacion.validacion_manual, name='validacion_manual'),
 
+    # Wizard de conciliación de desagregaciones (compartido con el admin,
+    # con los estilos del módulo)
+    path('validacion/conciliacion/', views_validacion.validacion_conciliacion, name='validacion_conciliacion'),
+    path('validacion/conciliacion/manual/', views_validacion.validacion_conciliacion_manual, name='validacion_conciliacion_manual'),
+    path('validacion/conciliacion/equivalencias/', views_validacion.validacion_conciliacion_equivalencias, name='validacion_conciliacion_equivalencias'),
+    path('validacion/conciliacion/preview/', views_validacion.validacion_conciliacion_preview, name='validacion_conciliacion_preview'),
+    path('validacion/conciliacion/aplicar/', views_validacion.validacion_conciliacion_aplicar, name='validacion_conciliacion_aplicar'),
+    path('validacion/conciliacion/eliminar/', views_validacion.validacion_conciliacion_eliminar, name='validacion_conciliacion_eliminar'),
+    path('validacion/conciliacion/dominio/<int:dominio_id>/', views_validacion.validacion_conciliacion_dominio, name='validacion_conciliacion_dominio'),
+
     # ========================================================================
     # HALL DE CAPACIDAD ESTADÍSTICA
     # ========================================================================

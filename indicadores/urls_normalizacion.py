@@ -12,6 +12,7 @@ app_name = 'normalizacion'
 
 urlpatterns = [
     path('', views_normalizacion.wizard_normalizacion, name='wizard_normalizacion'),
+    path('manual/', views_normalizacion.wizard_manual, name='wizard_normalizacion_manual'),
     path('equivalencias/', views_normalizacion.wizard_equivalencias, name='wizard_normalizacion_equivalencias'),
     path('preview/', views_normalizacion.wizard_preview, name='wizard_normalizacion_preview'),
     path('aplicar/', views_normalizacion.wizard_aplicar, name='wizard_normalizacion_aplicar'),

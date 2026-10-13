@@ -21,7 +21,10 @@
 
 {% block content %}
 <div class="norm-wrap">
-  <h1>Wizard de Normalización de Desagregaciones</h1>
+  <h1>Wizard de Normalización de Desagregaciones
+    <a href="{% url 'normalizacion:wizard_normalizacion_manual' %}"
+       class="norm-help" style="font-size:.85rem;font-weight:400;">(manual de uso)</a>
+  </h1>
   <p class="norm-help">
     Concilia varios dominios en uno solo verificando equivalencias entre desagregaciones,
     o elimina un dominio con sus desagregaciones sin borrar los datos relacionados.
