@@ -4914,11 +4914,11 @@ function tickDaticoHUD(dt, t) {
     hudAncla.quaternion.copy(camera.quaternion);
     const d = daticoHUD;
     // Planeo: bob + vaivén suave + banqueo (del detalle_3d)
-    loroHUD.position.x = 2.15 + Math.sin(t * 0.5) * 0.18;
-    loroHUD.position.y = -1.0 + Math.sin(t * 1.4) * 0.1;
-    loroHUD.rotation.y = -0.55 + Math.sin(t * 0.4) * 0.12;
+    loroHUD.position.x = 1.95 + Math.sin(t * 0.5) * 0.18;
+    loroHUD.position.y = -1.05 + Math.sin(t * 1.4) * 0.1;
+    loroHUD.rotation.y = -1.05 + Math.sin(t * 0.4) * 0.12;   // de tres cuartos hacia la tarjeta
     loroHUD.rotation.z = Math.sin(t * 0.8) * 0.12;
-    loroHUD.rotation.x = Math.sin(t * 0.6) * 0.06;
+    loroHUD.rotation.x = -0.12 + Math.sin(t * 0.6) * 0.06;   // leve picado de vuelo
     if (d.w) {   // el real: el vuelo es su propio clip
         if (d.w.mixer) d.w.mixer.update(dt);
         return;
@@ -5151,16 +5151,16 @@ new GLTFLoader().load(
         clipsGLB = gltf.animations;
         console.log('[siied] clips:', clipsGLB.map((c, i) => `${i}:${c.name}(${c.duration.toFixed(1)}s)`).join(' '));
         // El acompañante del HUD también es el modelo REAL: clon
-        // volando — el clip 3 (flexiones) en el aire lee como
-        // aleteo; reemplaza al procedural de respaldo
+        // volando — el clip 0 (nadar boca abajo) es la pose de
+        // vuelo, no el de flexiones; reemplaza al procedural
         const wHUD = clonarOperario();
-        wHUD.loro.scale.setScalar(0.24);
+        wHUD.loro.scale.setScalar(0.45);   // el GLB es humanoide: a 0.24 era diminuto
         wHUD.loro.position.copy(loroHUD.position);
         wHUD.loro.rotation.copy(loroHUD.rotation);
         hudAncla.remove(loroHUD);
         hudAncla.add(wHUD.loro);
-        const actVuelo = wHUD.acciones[3] || wHUD.acciones[0];
-        if (actVuelo) { actVuelo.timeScale = 1.3; actVuelo.play(); }
+        const actVuelo = wHUD.acciones[0];
+        if (actVuelo) { actVuelo.timeScale = 1.15; actVuelo.play(); }
         loroHUD = wHUD.loro;
         daticoHUD.w = wHUD;
         crearPlanta();
