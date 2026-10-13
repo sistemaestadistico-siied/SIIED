@@ -180,32 +180,21 @@
             </div>
             <div class="card-body">
                 <p class="text-muted mb-4">
-                    Haz clic en tu organismo para generar el código HTML personalizado:
+                    Selecciona tu organismo de la lista para generar el código HTML personalizado:
                 </p>
-                
+
                 {% if organismos %}
-                <div class="row">
+                <select id="selector-organismo" class="form-select form-select-lg"
+                        style="max-width: 640px; border: 2px solid #007bff;"
+                        aria-label="Selecciona tu organismo"
+                        onchange="if (this.value) { window.location.href = '?organismo=' + encodeURIComponent(this.value) + '#seccion-suborganismos'; }">
+                    <option value="">— Selecciona tu organismo —</option>
                     {% for org in organismos %}
-                    <div class="col-md-4 mb-3">
-                        <a href="?organismo={{ org.id }}" class="text-decoration-none">
-                            <div class="card organismo-card h-100 {% if organismo_seleccionado.id == org.id %}selected{% endif %}">
-                                <div class="card-body text-center">
-                                    <i class="bi bi-building" style="font-size: 48px; color: #007bff;"></i>
-                                    <h5 class="mt-3 mb-2">{{ org.nombre }}</h5>
-                                    <p class="text-muted small mb-0">
-                                        <code>{{ org.codigo }}</code>
-                                    </p>
-                                    {% if organismo_seleccionado.id == org.id %}
-                                    <span class="badge mt-2" style="background-color: #06b6d4; color: #000866; font-weight: 600;">
-                                        <i class="bi bi-check-circle"></i> Seleccionado
-                                    </span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </a>
-                    </div>
+                    <option value="{{ org.id }}" {% if organismo_seleccionado.id == org.id %}selected{% endif %}>
+                        {{ org.nombre }}{% if org.codigo %} ({{ org.codigo }}){% endif %}
+                    </option>
                     {% endfor %}
-                </div>
+                </select>
                 {% else %}
                 <div class="alert" style="background-color: #fef3cd; border-left: 4px solid #ffc107; color: #856404;">
                     <i class="bi bi-exclamation-triangle"></i>
