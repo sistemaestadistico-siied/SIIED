@@ -682,6 +682,57 @@
 </section>
 
 
+
+<!-- ═══ R6 · CAPACIDADES ANALÍTICAS REALES ═══ -->
+<section class="slide" data-titulo="Capacidades analíticas">
+  <div class="kicker">Recursos · El portal en producción</div>
+  <h2>Capacidades <span class="n">verificables hoy</span></h2>
+  <p class="sub">Estas no son promesas del roadmap: son las herramientas que el portal ya opera en producción, cada una con su ruta propia dentro del sistema.</p>
+  <div class="duo">
+    <div class="mini-card"><div class="t"><i class="fas fa-chart-line"></i> Visor comparativo de indicadores</div>
+      <p>Cruce libre de <strong>400+ indicadores</strong>: <strong>∞ combinaciones</strong> de comparación, <strong>4+ formatos</strong> de salida, <strong>100% datos oficiales</strong>. <a href="{% url 'indicadores:visor_comparativo' %}" class="chip" style="margin:6px 0 0;"><i class="fas fa-arrow-right"></i> Abrir visor</a></p></div>
+    <div class="mini-card"><div class="t"><i class="fas fa-magnifying-glass-chart"></i> Inventario de operaciones estadísticas</div>
+      <p><strong>100+ operaciones</strong> estadísticas de <strong>14+ organismos</strong>, cada una con su ficha metodológica y enlace al ADDA — consultas ilimitadas sobre la producción distrital. <a href="{% url 'indicadores:inventario_operaciones' %}" class="chip" style="margin:6px 0 0;"><i class="fas fa-arrow-right"></i> Explorar inventario</a></p></div>
+    <div class="mini-card"><div class="t"><i class="fas fa-database"></i> Explorador de conjuntos de datos</div>
+      <p>Navegación de los <strong>conjuntos documentados</strong> del sistema: microdatos, variables y matrices descargables — el acceso directo al sustrato de cada indicador. <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="chip" style="margin:6px 0 0;"><i class="fas fa-arrow-right"></i> Explorar conjuntos</a></p></div>
+    <div class="mini-card"><div class="t"><i class="fas fa-code"></i> API abierta</div>
+      <p>Acceso programático <strong>libre, sin registro ni autenticación</strong>: indicadores, microdatos, estructura temática y capas geográficas en formato estándar. <a href="{% url 'indicadores:api_documentation' %}" class="chip" style="margin:6px 0 0;"><i class="fas fa-arrow-right"></i> Documentación API</a></p></div>
+  </div>
+</section>
+
+<!-- ═══ R7 · MAPA DE NAVEGACIÓN DEL PORTAL ═══ -->
+<section class="slide" data-titulo="Mapa del portal">
+  <div class="kicker">Recursos · Navegación real</div>
+  <h2>El portal, <span class="n">módulo a módulo</span></h2>
+  <p class="sub">Mapa completo de las rutas públicas del SIIED — todo lo que la ciudadanía, la academia y los organismos pueden abrir hoy mismo.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-map"></i> Consulta y visualización</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:dominios' %}" style="color:#007bb5; font-weight:700;">Dominios y temas</a> — navegación jerárquica Dominio → Tema → Subtema → Indicador.</li>
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:dominios_3d' %}" style="color:#007bb5; font-weight:700;">Dominios 3D</a> — exploración inmersiva del inventario.</li>
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:chat' %}" style="color:#007bb5; font-weight:700;">Don Datico</a> — asistente IA: 400+ indicadores, disponible 24/7, tecnología de lenguaje natural.</li>
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:calendario_difusion' %}" style="color:#007bb5; font-weight:700;">Calendario de difusión</a> — publicación programada oficial.</li>
+        </ul></div>
+      <div class="card"><h4><i class="fas fa-newspaper"></i> Contenido</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:noticias_lista' %}" style="color:#007bb5; font-weight:700;">Noticias</a> y <a href="{% url 'indicadores:eventos' %}" style="color:#007bb5; font-weight:700;">eventos</a> — línea editorial del ecosistema.</li>
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:documentacion' %}" style="color:#007bb5; font-weight:700;">Documentación open source</a> — la plataforma explicada archivo por archivo.</li>
+        </ul></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-tachometer-alt"></i> Medición del ecosistema</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:taller_ecosistema' %}" style="color:#007bb5; font-weight:700;">Taller del ecosistema</a> — el censo de conjuntos de datos organismo por organismo.</li>
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:satisfaccion_dashboard' %}" style="color:#007bb5; font-weight:700;">Tablero de satisfacción</a> — la ciudadanía califica la atención estadística.</li>
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:modulo_iced' %}" style="color:#007bb5; font-weight:700;">Módulo ICED</a> — capacidad estadística por organismo.</li>
+          <li><i class="fas fa-check"></i><a href="{% url 'indicadores:hall_capacidad_estadistica' %}" style="color:#007bb5; font-weight:700;">Hall de capacidad estadística</a> — la vitrina de expedientes del Distrito.</li>
+        </ul></div>
+      <div class="glass"><strong>Consistencia:</strong> cada cifra de esta presentación corresponde a un módulo navegable — el sistema se demuestra a sí mismo.</div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ R6 · ADDA ═══ -->
 <section class="slide" data-titulo="ADDA">
   <div class="kicker">Recursos · Archivo Distrital de Datos</div>
@@ -853,7 +904,7 @@
   <button class="nav-btn" id="btnPrev">← Anterior</button>
   <div style="display:flex; align-items:center; gap:16px;">
     <div class="mini" id="mini"></div>
-    <span class="contador" id="contador">1 / 31</span>
+    <span class="contador" id="contador">1 / 33</span>
   </div>
   <button class="nav-btn" id="btnNext">Siguiente →</button>
 </div>
