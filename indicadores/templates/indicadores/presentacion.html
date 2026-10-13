@@ -4914,9 +4914,14 @@ function tickDaticoHUD(dt, t) {
     hudAncla.quaternion.copy(camera.quaternion);
     const d = daticoHUD;
     // Hover: bob + vaivén suave + banqueo — el vuelo lo da el clip
-    // sintetizado; de frente al espectador con leve inclinación
-    loroHUD.position.x = 1.95 + Math.sin(t * 0.5) * 0.18;
-    loroHUD.position.y = -1.05 + Math.sin(t * 1.4) * 0.1;
+    // sintetizado; de frente al espectador con leve inclinación.
+    // En pantalla angosta (móvil) la tarjeta ocupa todo el ancho:
+    // flota ARRIBA del diálogo en vez de a su lado
+    const movil = window.innerWidth < 720;
+    const hx = movil ? 0.85 : 1.95, hy = movil ? 0.75 : -1.05;
+    if (movil) loroHUD.scale.setScalar(0.34); else loroHUD.scale.setScalar(0.45);
+    loroHUD.position.x = hx + Math.sin(t * 0.5) * 0.18;
+    loroHUD.position.y = hy + Math.sin(t * 1.4) * 0.1;
     loroHUD.rotation.y = 0.85 + Math.sin(t * 0.4) * 0.12;   // de frente: antes daba la espalda
     loroHUD.rotation.z = Math.sin(t * 0.8) * 0.12;
     loroHUD.rotation.x = Math.sin(t * 0.6) * 0.05;
