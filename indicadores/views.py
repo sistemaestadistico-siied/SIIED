@@ -3257,11 +3257,8 @@ def api_indicador_metadata(request):
 def api_conjunto_datos_list(request):
     """Lista SOLO los datasets que tienen un registro en la tabla conjunto_datos.
     Se muestra el nombre desde BD (conjunto_datos.nombre) y se valida que el archivo exista
-    en el directorio local `conjunto_datos/` para evitar enlaces rotos.
+    en el storage del FileField (media/microdata/) para evitar enlaces rotos.
     """
-    base_dir = getattr(settings, 'BASE_DIR', '')
-    micro_dir = os.path.join(base_dir, 'conjunto_datos') if base_dir else 'conjunto_datos'
-
     datasets = []
     vistos = set()
     try:
@@ -3275,7 +3272,10 @@ def api_conjunto_datos_list(request):
                 continue
             if fname in vistos:
                 continue
-            fpath = os.path.join(micro_dir, fname)
+            try:
+                fpath = ffield.storage.path(rel_name)
+            except (NotImplementedError, ValueError):
+                continue
             if not os.path.isfile(fpath):
                 # Si no existe físicamente, omitir para no romper el flujo
                 continue
@@ -3309,25 +3309,19 @@ def api_conjunto_datos_rows(request):
     if not file_param:
         return JsonResponse({'error': 'Parámetro "file" es requerido'}, status=400)
 
-    # Evitar path traversal: solo nombre base y directorio conjunto_datos
+    # Evitar path traversal: solo nombre base. Autorización y ubicación salen
+    # del registro de ConjuntoDatos: los CSV viven en media/microdata/
     file_name = os.path.basename(file_param)
-    # Validar que el archivo solicitado pertenece a un registro de conjunto_datos
-    try:
-        permitidos = set(
-            os.path.basename(md.archivo_csv.name)
-            for md in ConjuntoDatos.objects.all()
-            if getattr(md, 'archivo_csv', None) and getattr(md.archivo_csv, 'name', '')
-        )
-    except Exception:
-        permitidos = set()
-    if file_name not in permitidos:
+    md = ConjuntoDatos.objects.filter(
+        archivo_csv__iendswith='/' + file_name).first()
+    if md is None:
         return JsonResponse({'error': 'Archivo no autorizado. Debe estar registrado en conjunto_datos.'}, status=404)
 
-    base_dir = getattr(settings, 'BASE_DIR', '')
-    micro_dir = os.path.join(base_dir, 'conjunto_datos') if base_dir else 'conjunto_datos'
-    csv_path = os.path.join(micro_dir, file_name)
-
-    if not os.path.isfile(csv_path):
+    try:
+        csv_path = md.archivo_csv.path
+    except (NotImplementedError, ValueError):
+        csv_path = ''
+    if not csv_path or not os.path.isfile(csv_path):
         return JsonResponse({'error': 'Archivo no encontrado'}, status=404)
 
     try:
@@ -3497,22 +3491,18 @@ def api_conjunto_datos_headers(request):
         return JsonResponse({'error': 'Parámetro "file" es requerido'}, status=400)
 
     file_name = os.path.basename(file_param)
-    # Validar autorización por conjunto_datos
-    try:
-        permitidos = set(
-            os.path.basename(md.archivo_csv.name)
-            for md in ConjuntoDatos.objects.all()
-            if getattr(md, 'archivo_csv', None) and getattr(md.archivo_csv, 'name', '')
-        )
-    except Exception:
-        permitidos = set()
-    if file_name not in permitidos:
+    # Autorización y ubicación vía el registro de ConjuntoDatos
+    # (los CSV viven en media/microdata/, no en BASE_DIR/conjunto_datos)
+    md = ConjuntoDatos.objects.filter(
+        archivo_csv__iendswith='/' + file_name).first()
+    if md is None:
         return JsonResponse({'error': 'Archivo no autorizado. Debe estar registrado en conjunto_datos.'}, status=404)
 
-    base_dir = getattr(settings, 'BASE_DIR', '')
-    micro_dir = os.path.join(base_dir, 'conjunto_datos') if base_dir else 'conjunto_datos'
-    csv_path = os.path.join(micro_dir, file_name)
-    if not os.path.isfile(csv_path):
+    try:
+        csv_path = md.archivo_csv.path
+    except (NotImplementedError, ValueError):
+        csv_path = ''
+    if not csv_path or not os.path.isfile(csv_path):
         return JsonResponse({'error': 'Archivo no encontrado'}, status=404)
 
     enc = request.GET.get('encoding') or 'utf-8-sig'
