@@ -699,10 +699,15 @@ def _codigo_de_campo(field_name):
 
 
 def _respuestas_planas(formulario):
-    """Une los 5 JSONField de módulo en un solo dict field_key → valor."""
+    """Une los 5 JSONField de módulo en un solo dict field_key → valor.
+
+    Normaliza claves: los borradores del autosave AJAX llegan con prefijo
+    de paso ('entorno-p11_x'); sin normalizar, esas respuestas eran
+    invisibles para la conciliación (_codigo_de_campo devuelve None).
+    """
     r = {}
     for attr in _CAMPOS_RESP:
-        r.update(getattr(formulario, attr) or {})
+        r.update(_normalizar_respuestas(getattr(formulario, attr) or {}))
     return r
 
 
@@ -751,8 +756,19 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
     for codigo, equipo in ICEDPreguntaEquipo.objects.values_list('codigo', 'equipo'):
         asignaciones.setdefault(codigo, set()).add(equipo)
 
+    # Códigos con asignación oficial + códigos que algún equipo respondió
+    # aunque no estén en la matriz (en el wizard, 'sin asignación → la
+    # responde cualquiera'). Sin esto, esas respuestas se perdían en el
+    # consolidado y no aparecían en la validación (ej. P11).
+    codigos_respondidos = {
+        cod
+        for resp in resp_por_equipo.values()
+        for k in resp
+        for cod in [_codigo_de_campo(k)] if cod
+    }
+
     preguntas = []
-    for codigo in sorted(asignaciones, key=_orden):
+    for codigo in sorted(asignaciones.keys() | codigos_respondidos, key=_orden):
         por_equipo = {
             f.equipo: {
                 k: v for k, v in resp_por_equipo[f.equipo].items()
@@ -765,10 +781,13 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
             _json.dumps(resp, sort_keys=True, default=str)
             for resp in por_equipo.values() if resp
         }
+        # Preguntas sin asignación en la matriz: participan los equipos
+        # que de hecho respondieron.
+        respondieron = sorted(e for e, r in por_equipo.items() if r)
         preguntas.append({
             'codigo': codigo,
             'label': label_de(codigo),
-            'asignados': sorted(asignaciones[codigo]),
+            'asignados': sorted(asignaciones.get(codigo) or respondieron),
             'por_equipo': por_equipo,
             'divergente': len(snapshots) > 1,
         })
@@ -790,10 +809,21 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
                 ganador = equipos_resp[0]
             fuente = form_por_equipo[ganador]
             for attr in _CAMPOS_RESP:
-                for k, v in (getattr(fuente, attr) or {}).items():
+                for k, v in _normalizar_respuestas(getattr(fuente, attr) or {}).items():
                     if _codigo_de_campo(k) == p['codigo']:
                         nuevos[attr][k] = v
             conciliadas += 1
+
+        # Campos sin código de pregunta (personas de contacto, campos
+        # display auxiliares): no pasan por elección de equipo; se conserva
+        # el primer valor no vacío encontrado entre los formularios.
+        for f in formularios:
+            for attr in _CAMPOS_RESP:
+                for k, v in _normalizar_respuestas(getattr(f, attr) or {}).items():
+                    if (_codigo_de_campo(k) is None
+                            and v not in (None, '', [], {})
+                            and k not in nuevos[attr]):
+                        nuevos[attr][k] = v
 
         for attr in _CAMPOS_RESP:
             setattr(consolidado, attr, nuevos[attr])
