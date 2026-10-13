@@ -73,6 +73,27 @@
 .slide.cover h1 span { color:#67e8f9; }
 .slide.cover .tagline { color:#b8d9f0; font-size:17px; font-weight:600; margin-top:18px; max-width:760px; line-height:1.6; }
 .duo { display:grid; grid-template-columns:1fr 1fr; gap:16px; flex:1; min-height:0; }
+
+/* ===== Timeline ===== */
+.tl { display:flex; flex-direction:column; gap:0; flex:1; }
+.tl .hit { display:flex; gap:14px; }
+.tl .hit .yr { flex-shrink:0; width:64px; font-weight:900; font-size:15px; color:#67e8f9; text-align:right; padding-top:2px; }
+.tl .hit .bar { flex-shrink:0; width:14px; display:flex; flex-direction:column; align-items:center; }
+.tl .hit .dot { width:11px; height:11px; border-radius:50%; background:#67e8f9; box-shadow:0 0 8px rgba(103,232,249,.8); margin-top:4px; }
+.tl .hit .ln { flex:1; width:2px; background:rgba(124,196,240,.35); }
+.tl .hit:last-child .ln { display:none; }
+.tl .hit .txt { padding-bottom:14px; font-size:12.5px; color:#dbeafe; line-height:1.45; }
+.tl .hit .txt strong { color:#fff; display:block; font-size:13px; margin-bottom:2px; }
+
+/* ===== Listas compactas densas ===== */
+.dlist { list-style:none; }
+.dlist li { font-size:12.5px; color:#2d3748; line-height:1.45; padding:5px 0 5px 24px; position:relative; }
+.dlist li i { position:absolute; left:0; top:8px; color:#007bb5; font-size:11px; }
+.dlist li strong { color:#003a6b; }
+.mini-card { background:rgba(255,255,255,.95); border-radius:12px; padding:13px 16px; box-shadow:0 6px 18px rgba(0,0,0,.2); }
+.mini-card .t { font-size:11px; font-weight:800; text-transform:uppercase; color:#004b87; letter-spacing:.5px; margin-bottom:5px; }
+.mini-card p { font-size:12px; color:#4a5568; line-height:1.45; }
+
 @media (max-width: 900px) { .slide { padding:30px 22px 90px; overflow-y:auto; } .slide-body, .roles, .duo { flex-direction:column; grid-template-columns:1fr; } .mini{display:none;} }
 </style>
 </head>
@@ -93,6 +114,155 @@
       <span class="chip"><i class="fas fa-circle"></i> {{ stats.conjuntos }} conjuntos de datos</span>
       <span class="chip"><i class="fas fa-circle"></i> {{ stats.dominios }} dominios temáticos</span>
     </div>
+  </div>
+</section>
+
+
+<!-- ═══ F1 · QUÉ ES ═══ -->
+<section class="slide" data-titulo="Qué es el SIIED">
+  <div class="kicker">Fundamento · Definición</div>
+  <h2>¿Qué es el <span class="n">SIIED</span>?</h2>
+  <p class="sub">El Sistema Integrado de Información Estadística Distrital de la Alcaldía de Santiago de Cali.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-layer-group"></i> Definición</h4>
+        <p class="lead">Integra <strong>personas, procesos y tecnología</strong> para facilitar el acceso, gestión y análisis de información estadística confiable, oficial y actualizada del Distrito.</p>
+        <p style="margin-top:8px;">Es un sistema ensamblado para apoyar el acceso a datos y a un conjunto de herramientas de planificación y calidad estadística.</p></div>
+      <div class="card"><h4><i class="fas fa-toolbox"></i> Herramientas que ensambla</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i><strong>Catálogo de datos</strong> y explorador de conjuntos.</li>
+          <li><i class="fas fa-check"></i><strong>Metadatos</strong> bajo estándares MSD/SDMX, DDI y Dublin Core.</li>
+          <li><i class="fas fa-check"></i><strong>Inventario estadístico</strong> distrital.</li>
+          <li><i class="fas fa-check"></i><strong>Normas y estándares técnicos</strong> del SEN.</li>
+        </ul></div>
+    </div>
+    <div class="col">
+      <div class="glass" style="font-size:15px; line-height:1.7;"><strong>El SIIED es más que una plataforma tecnológica:</strong> es la expresión de una función pública de coordinación estadística inserta en la estructura de Planeación Distrital.</div>
+      <div class="card"><h4><i class="fas fa-crosshairs"></i> Qué garantiza</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i>Calidad, oportunidad, confiabilidad, accesibilidad e interoperabilidad de la información estadística.</li>
+          <li><i class="fas fa-check"></i>Insumos para planeación, toma de decisiones y seguimiento de políticas públicas, planes, programas y proyectos.</li>
+          <li><i class="fas fa-check"></i>Contribución a la planificación y el desarrollo territorial del Distrito.</li>
+        </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ F2 · OBJETIVOS ═══ -->
+<section class="slide" data-titulo="Objetivos">
+  <div class="kicker">Fundamento · Objetivos</div>
+  <h2>Objetivo <span class="n">general y específicos</span></h2>
+  <p class="sub">Optimizar la gestión, integración, administración y difusión de datos e información estadística oficial del Distrito, garantizando su calidad, oportunidad y accesibilidad a través de procesos estandarizados y tecnología interoperable.</p>
+  <div class="slide-body">
+    <div class="col">
+      <ul class="dlist" style="background:rgba(255,255,255,.97); border-radius:14px; padding:18px 20px;">
+        <li><i class="fas fa-check"></i><strong>Lineamientos y estándares técnicos</strong> para la producción y gobernanza de la información estadística oficial, con cumplimiento normativo nacional e internacional.</li>
+        <li><i class="fas fa-check"></i><strong>Integrar, armonizar y articular</strong> fuentes, registros administrativos y sistemas estadísticos, asegurando interoperabilidad, trazabilidad y actualización continua.</li>
+        <li><i class="fas fa-check"></i><strong>Acceso abierto, confiable y eficiente</strong> mediante plataformas digitales interoperables para entidades públicas, ciudadanía, academia y sector privado.</li>
+        <li><i class="fas fa-check"></i><strong>Insumos estadísticos confiables</strong> para políticas públicas y requerimientos de información de entidades del orden nacional.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <ul class="dlist" style="background:rgba(255,255,255,.97); border-radius:14px; padding:18px 20px;">
+        <li><i class="fas fa-check"></i><strong>Fortalecer la cultura estadística</strong> con capacitación y asesoría técnica al personal administrativo y usuarios.</li>
+        <li><i class="fas fa-check"></i><strong>Actualización, validación y documentación</strong> estandarizada de metadatos para interoperabilidad y comprensión de conjuntos y flujos de datos.</li>
+        <li><i class="fas fa-check"></i><strong>Participación y colaboración interinstitucional</strong> entre productores y usuarios, con coordinación efectiva en el ecosistema y con entidades nacionales.</li>
+        <li><i class="fas fa-check"></i><strong>Armonización</strong> con otras infraestructuras de datos territoriales y sistemas sectoriales para productos estadísticos integrados.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ F3 · CONTEXTO HISTÓRICO ═══ -->
+<section class="slide" data-titulo="Contexto histórico">
+  <div class="kicker">Fundamento · Trayectoria</div>
+  <h2>Cuatro décadas de <span class="n">cultura estadística</span></h2>
+  <p class="sub">El SIIED no nació de la nada: consolida un modelo de gestión de información que el DAP construyó desde 1986.</p>
+  <div class="slide-body">
+    <div class="col" style="flex:1.15;">
+      <div class="tl">
+        <div class="hit"><div class="yr">1986</div><div class="bar"><div class="dot"></div><div class="ln"></div></div><div class="txt"><strong>Cali en Cifras</strong> Nace con el plegable "Cali en Cifras 1985" por los 450 años de la ciudad; desde 1987 se convierte en anuario periódico.</div></div>
+        <div class="hit"><div class="yr">2012</div><div class="bar"><div class="dot"></div><div class="ln"></div></div><div class="txt"><strong>Automatización</strong> El DAP impulsa el Sistema de Indicadores Sociales (SIS) y articula tres ciclos de planificación: PET 2016-2019, PET 2020-2024 y PED 2025-2029.</div></div>
+        <div class="hit"><div class="yr">2016</div><div class="bar"><div class="dot"></div><div class="ln"></div></div><div class="txt"><strong>AMDA + formalización</strong> Archivo Municipal de Datos como referente en metadatos y microdatos; la coordinación se formaliza con el Decreto 0516 y se operacionaliza con el Modelo de Operación por Procesos (MOP), subproceso MEDE01.07.01.</div></div>
+        <div class="hit"><div class="yr">2025</div><div class="bar"><div class="dot"></div><div class="ln"></div></div><div class="txt"><strong>El SIIED entra en operación</strong> Plataforma oficial, unificada y confiable que integra todos los avances previos — Cali referente en gestión de información estadística.</div></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-landmark"></i> El hilo conductor</h4>
+        <p>Todos estos productos, procesos y herramientas fueron desarrollados, gestionados y modernizados por el <strong>Departamento Administrativo de Planeación</strong>, que lidera técnica y estratégicamente la gobernanza estadística distrital.</p>
+        <p style="margin-top:8px;">El SIIED sintetiza <strong>décadas de innovación, coordinación y compromiso institucional</strong> al servicio de la transparencia, la planeación y el desarrollo sostenible.</p></div>
+      <div class="glass"><strong>PET → PED:</strong> la planificación estadística territorial evolucionó de Plan Estadístico Territorial (2016-2024) a Plan Estadístico Distrital (2025-2029), consolidando la capacidad estadística de la Alcaldía.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ F4 · MARCO INSTITUCIONAL ═══ -->
+<section class="slide" data-titulo="Marco institucional">
+  <div class="kicker">Fundamento · Marco normativo</div>
+  <h2>El respaldo <span class="n">legal e institucional</span></h2>
+  <p class="sub">El Sistema Estadístico Distrital responde a competencias misionales del DAP dentro del marco nacional de estadísticas oficiales.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-scale-balanced"></i> Base orgánica</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-gavel"></i><strong>Decreto 411.0.20.0516 de 2016</strong> — estructura de la Administración Central; su art. 79 asigna a la Subdirección de Desarrollo Integral el Modelo de Producción de Información, la regulación del intercambio estadístico y la administración del AMDA.</li>
+          <li><i class="fas fa-gavel"></i><strong>Decreto 4112.010.20.0565 de 2019</strong> — crea el Comité Técnico de Gestión de Información Estadística: gobernanza con todos los organismos de la entidad.</li>
+        </ul></div>
+      <div class="card"><h4><i class="fas fa-city"></i> Gobernanza local</h4>
+        <p>Consejo Superior de Desarrollo Administrativo y mesas sectoriales completan el andamiaje de coordinación.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-flag"></i> Marco nacional</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-gavel"></i><strong>Ley 2335 de 2023</strong> — marco general para planificación, producción, difusión y administración de estadísticas oficiales; crea el SEN, del cual el Distrital es actor gubernamental territorial.</li>
+          <li><i class="fas fa-gavel"></i><strong>Decreto 1499 de 2017</strong> — incorpora gestión y desempeño institucional al MIPG; la Política de Gestión de la Información Estadística hace parte de la dimensión Información y Comunicación.</li>
+          <li><i class="fas fa-gavel"></i><strong>PGIE</strong> (Decreto 454 de 2020) — política para que las entidades generen información estadística y registros de calidad para planeación basada en evidencia, diálogo social y transparencia.</li>
+        </ul></div>
+      <div class="glass"><strong>Decreto 0565 de 2019:</strong> el Comité Técnico es la instancia donde todos los organismos generan espacios de colaboración para producir, mejorar y difundir estadísticas.</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ F5 · COMPONENTES ═══ -->
+<section class="slide" data-titulo="Componentes del SIIED">
+  <div class="kicker">Fundamento · Arquitectura del sistema</div>
+  <h2>Tres <span class="n">componentes</span> del SIIED</h2>
+  <p class="sub">El sistema se organiza funcionalmente en tres componentes que se articulan para garantizar la calidad del dato.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-brain"></i> Componente conceptual</h4>
+        <p>Define la orientación, estructura y relaciones del Sistema. Gira alrededor de tres ejes:</p>
+        <ul class="dlist" style="margin-top:8px;">
+          <li><i class="fas fa-bullhorn"></i><strong>Difusión</strong> de estadísticas oficiales para fomentar su uso público.</li>
+          <li><i class="fas fa-seedling"></i><strong>Fomento</strong> de orientaciones y buenas prácticas en producción y difusión.</li>
+          <li><i class="fas fa-comments"></i><strong>Diálogo</strong> con actores públicos y privados sobre oferta y demanda de información de calidad.</li>
+        </ul></div>
+      <div class="mini-card"><div class="t">Dominios estratégicos</div>
+        <p>Integran la multidimensionalidad del Distrito, alineados con estándares internacionales (INEGI, Eurostat, DANE) y definidos participativamente con el Comité Técnico.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-gears"></i> Gestión de la Información Estadística</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-calendar-check"></i><strong>Planificación estadística</strong> — define, organiza y prioriza las estadísticas necesarias; asegura pertinencia, oportunidad y accesibilidad.</li>
+          <li><i class="fas fa-ruler-combined"></i><strong>Regulación estadística</strong> — normas, lineamientos y buenas prácticas en concordancia con el DANE/SEN, basadas en el modelo GSBPM de la CEPE-ONU.</li>
+          <li><i class="fas fa-award"></i><strong>Calidad estadística</strong> — mecanismos bajo la NTC PE 1000:2020 (verificación metodológica, validación de fuentes, coherencia de datos) + estándar SDMX para intercambio interoperable.</li>
+        </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ F6 · COMPONENTE TECNOLÓGICO ═══ -->
+<section class="slide" data-titulo="Componente tecnológico">
+  <div class="kicker">Fundamento · Tecnología</div>
+  <h2>Componente tecnológico <span class="n">— la infraestructura</span></h2>
+  <p class="sub">Soporta captura, procesamiento, almacenamiento, análisis, difusión y aprovechamiento — garantizando confianza, oportunidad, integridad, trazabilidad y disponibilidad.</p>
+  <div class="lanes">
+    <div class="lane b-d"><div class="tag">Ingesta</div><div><div class="tt">Lineamientos tecnológicos para procesamiento y cargue</div><div class="dd">Mecanismos de recepción desde las dependencias, revisión y control de calidad, estandarización de formatos SEN y recolección periódica de capacidad estadística por organismo.</div></div></div>
+    <div class="lane b-d"><div class="tag">Arquitectura</div><div><div class="tt">Estandarización tecnológica de datos</div><div class="dd">Módulos temáticos y geográficos, estándares nacionales e internacionales de metadatos, intercambio con otros sistemas y escalabilidad sin perder rendimiento.</div></div></div>
+    <div class="lane b-d"><div class="tag">Operación</div><div><div class="tt">Administración, operación y seguridad</div><div class="dd">Monitoreo permanente, perfiles y permisos por rol, respaldos, protección de datos y notificaciones del estado de los procesos.</div></div></div>
+    <div class="lane b-d"><div class="tag">Servicios</div><div><div class="tt">Interoperabilidad, acceso y explotación</div><div class="dd">Consulta pública con visualizaciones y mapas, productos de difusión, diagnóstico de flujos de datos, medición de capacidad, retroalimentación ciudadana y tableros de seguimiento.</div></div></div>
+    <div class="lane b-e"><div class="tag">IA</div><div><div class="tt">Inteligencia artificial y analítica avanzada</div><div class="dd">Asistente conversacional (Don Datico), búsqueda semántica inteligente, detección automática de conjuntos, verificación de inconsistencias, respuestas en audio y análisis de redes del ecosistema.</div></div></div>
   </div>
 </section>
 
@@ -381,6 +551,210 @@
   </div>
 </section>
 
+
+<!-- ═══ R1 · CLASIFICACIÓN ═══ -->
+<section class="slide" data-titulo="Clasificación">
+  <div class="kicker">Recursos · Estructura de la información</div>
+  <h2>Clasificación: <span class="n">4 niveles, 4 dominios</span></h2>
+  <p class="sub">La información se organiza en jerarquía Dominio → Tema → Subtema → Indicador: trazabilidad, comparabilidad, interoperabilidad e identificación rápida de vacíos de producción.</p>
+  <div class="slide-body" style="flex-direction:column; gap:14px;">
+    <div class="flow">
+      <div class="nodo"><i class="fas fa-globe"></i><div class="t">Dominio</div><div class="d">Gran área de interés estadístico</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-folder-open"></i><div class="t">Tema</div><div class="d">Subdivisión específica del dominio</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-folder"></i><div class="t">Subtema</div><div class="d">Dimensión o aspecto particular</div></div>
+      <div class="arr">→</div>
+      <div class="nodo"><i class="fas fa-chart-line"></i><div class="t">Indicador</div><div class="d">Unidad básica: medida cuantitativa o cualitativa</div></div>
+    </div>
+    <div class="duo" style="flex:0;">
+      <div class="mini-card"><div class="t"><i class="fas fa-heart-pulse"></i> Salud, Bienestar Social y Demografía</div><p>Población con enfoque diferencial, educación, salud, seguridad social, condiciones de vida, seguridad alimentaria, deporte, recreación y TIC.</p></div>
+      <div class="mini-card"><div class="t"><i class="fas fa-coins"></i> Economía</div><p>Sistemas productivos, construcción, cuentas distritales, finanzas públicas, precios, turismo, mercado laboral, ecosistema empresarial y comercio exterior.</p></div>
+      <div class="mini-card"><div class="t"><i class="fas fa-mountain-city"></i> Geografía, Medio Ambiente, Planificación y OT</div><p>Ordenamiento territorial, medio ambiente, protección animal, residuos sólidos, vivienda, catastro, riesgo y participación ciudadana.</p></div>
+      <div class="mini-card"><div class="t"><i class="fas fa-dove"></i> Gobierno, Seguridad y Paz</div><p>Gestión institucional, seguridad ciudadana, convivencia, cooperación institucional, paz y Derechos Humanos.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ R2 · CALI EN CIFRAS ═══ -->
+<section class="slide" data-titulo="Cali en Cifras">
+  <div class="kicker">Recursos · Memoria estadística</div>
+  <h2>Cali en Cifras <span class="n">— del anuario a la plataforma</span></h2>
+  <p class="sub">El anuario que nació en 1986 por los 450 años de la ciudad se migró completo al SIIED — de hojas de presentación a series procesables.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-book-open"></i> El anuario histórico</h4>
+        <p>Periódico desde 1987, consolidó <strong>14 capítulos</strong>: Generalidades, Salud y Educación, Justicia y Seguridad, Servicios públicos, Recreación y turismo, Construcción, Tránsito y transporte, Comercio y sociedades, Hacienda pública, Consumo y precios, Comunas y Corregimientos, Estratificación, Cuentas distritales y SISBEN.</p>
+        <p style="margin-top:8px;">Se publicaba en hojas de cálculo orientadas a <em>presentación</em>, no a análisis: múltiples hojas, encabezados institucionales y gráficos — difícil lectura automática.</p></div>
+      <div class="card"><h4><i class="fas fa-right-left"></i> La migración</h4>
+        <p>Se identificó <strong>uno a uno</strong> cada indicador y conjunto de los capítulos y se estructuró como <strong>serie de tiempo procesable</strong>.</p></div>
+    </div>
+    <div class="col">
+      <div class="kpis" style="margin-top:6px;">
+        <div class="kpi cyan"><div class="n">527</div><div class="l">Indicadores migrados con serie histórica</div></div>
+        <div class="kpi gold"><div class="n">121</div><div class="l">Coinciden con la batería base SIIED</div></div>
+        <div class="kpi green"><div class="n">14</div><div class="l">Capítulos del anuario original</div></div>
+      </div>
+      <div class="card"><h4><i class="fas fa-handshake"></i> Ejercicio con delegados</h4>
+        <p>Los 121 indicadores compartidos con la batería base se definieron conjuntamente con los <strong>delegados de los organismos</strong>, responsables de su recolección, procesamiento, consolidación y actualización periódica.</p></div>
+      <div class="glass">Hoy se consultan con visualizaciones y tablas, y se descargan en <strong>CSV</strong> para reutilización.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ R3 · ODS ═══ -->
+<section class="slide" data-titulo="ODS">
+  <div class="kicker">Recursos · Agenda global</div>
+  <h2>Objetivos de Desarrollo <span class="n">Sostenible</span></h2>
+  <p class="sub">Seguimiento anual de los 17 ODS en el marco del reporte que el DANE solicita a las entidades territoriales para calcular el Índice de Capacidad Estadística Territorial (ICET).</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-list-ol"></i> La batería de Cali — 85 indicadores</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i><strong>66</strong> corresponden a los ODS.</li>
+          <li><i class="fas fa-check"></i><strong>8</strong> a requerimientos de la OCDE.</li>
+          <li><i class="fas fa-check"></i><strong>9</strong> al Sistema de Planeación Territorial (SisPT).</li>
+          <li><i class="fas fa-check"></i><strong>1</strong> al DAFP y <strong>1</strong> al Censo Nacional de Población y Vivienda.</li>
+        </ul></div>
+      <div class="mini-card"><div class="t">Origen: CONPES 3918 de 2018</div><p>Acción 2.5: el DANE fortalece capacidades territoriales para el seguimiento de los ODS mediante el cuestionario de disponibilidad de la batería base.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-rotate"></i> Cómo se publica</h4>
+        <p>Las series se mantienen actualizadas a la última vigencia disponible y se clasifican en el SIIED <strong>según el ODS al que contribuyen</strong>: los usuarios consultan por objetivo, verifican continuidad y trazabilidad histórica.</p>
+        <p style="margin-top:8px;">Insumo directo para diagnóstico, seguimiento y evaluación de las políticas públicas del Distrito.</p></div>
+      <div class="glass"><strong>17 objetivos interrelacionados</strong>: pobreza, planeta, paz y prosperidad — la clave del éxito de uno suele involucrar a los demás.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ R4 · ICED + SATISFACCIÓN ═══ -->
+<section class="slide" data-titulo="ICED y satisfacción">
+  <div class="kicker">Procesos estadísticos del DAP</div>
+  <h2>ICED y <span class="n">satisfacción del usuario</span></h2>
+  <p class="sub">Dos mediciones institucionales que retroalimentan el ecosistema: la capacidad de los organismos y la percepción de la ciudadanía.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-gauge"></i> ICED — Índice de Capacidad Estadística Distrital</h4>
+        <p>Mide qué tan preparado está cada organismo para producir, organizar, analizar, publicar y usar información estadística de calidad. Revisa:</p>
+        <ul class="dlist" style="margin-top:6px;">
+          <li><i class="fas fa-check"></i>Condiciones institucionales para gestionar datos.</li>
+          <li><i class="fas fa-check"></i>Recursos humanos y tecnológicos disponibles.</li>
+          <li><i class="fas fa-check"></i>Aplicación de métodos estadísticos adecuados.</li>
+          <li><i class="fas fa-check"></i>Facilidad de consulta y uso por ciudadanía, academia, sector privado y la propia Administración.</li>
+        </ul>
+        <p style="margin-top:8px;"><strong>Adaptación metodológica del ICET del DANE.</strong> Sus resultados definen acciones de fortalecimiento — informes publicados 2024 y 2025.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-face-smile"></i> Satisfacción de usuarios externos</h4>
+        <p>Operación estadística sobre las solicitudes de información respondidas por canales institucionales: <strong>2 preguntas de referencia</strong> (organismo y fecha) + <strong>7 de satisfacción</strong>:</p>
+        <ul class="dlist" style="margin-top:6px;">
+          <li><i class="fas fa-check"></i><strong>Utilidad</strong> — oportunidad de la respuesta; información clara, precisa y fácil de usar.</li>
+          <li><i class="fas fa-check"></i><strong>Relevancia</strong> — corresponde a lo solicitado y a la periodicidad requerida.</li>
+          <li><i class="fas fa-check"></i><strong>Accesibilidad</strong> — facilidad de acceso por el canal usado y formato de entrega.</li>
+          <li><i class="fas fa-check"></i><strong>Pregunta abierta</strong> — causas de valoraciones neutras o insatisfactorias.</li>
+        </ul>
+        <p style="margin-top:8px;">Resultados <strong>trimestrales</strong>: Informe de Seguimiento al Ciudadano + boletín técnico anual. Actualmente en fase piloto en equipos del DAP.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ R5 · HERRAMIENTAS DE CONSULTA ═══ -->
+<section class="slide" data-titulo="Herramientas de consulta">
+  <div class="kicker">Recursos · Herramientas de consulta</div>
+  <h2>Interfaces que <span class="n">interpretan el dato</span></h2>
+  <p class="sub">No almacenan datos: los interpretan, visualizan y entregan adaptados a cada perfil y nivel de conocimiento.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-child-reaching"></i> Niños, niñas y adolescentes</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i><strong>6-11 años:</strong> visualizaciones animadas y explorables — bloques de dato interactivo, gráfico 3D, mapa e infografías; paleta "Aventura de Datos", nivel Explorador, quizzes, puntos e insignias.</li>
+          <li><i class="fas fa-check"></i><strong>Narrativa navegable:</strong> secciones secuenciales (bienvenida → conceptos → exploración → gráficos) con logros y certificados — vinculadas a indicadores reales del SIIED.</li>
+          <li><i class="fas fa-check"></i><strong>Adolescentes:</strong> mayor profundidad — explorador con microdata, mapas georreferenciados y retos de interpretación para trabajos escolares.</li>
+        </ul></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-robot"></i> Don Datico — asistente IA</h4>
+        <p>El loro estadístico oficial: chatbot con IA y búsqueda semántica, <strong>15 herramientas especializadas</strong> — indicadores, microdata, estructura jerárquica, ICED por organismo, productos académicos, documentos de infraestructura, sistemas de información y operaciones estadísticas. Sin tecnicismos: basta preguntar.</p></div>
+      <div class="card"><h4><i class="fas fa-plug"></i> API abierta</h4>
+        <p>Acceso programático <strong>libre y gratuito, sin registro ni autenticación</strong>: indicadores, microdatos, estructura temática y geografía — para aplicaciones ciudadanas, investigación y herramientas externas.</p></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══ R6 · ADDA ═══ -->
+<section class="slide" data-titulo="ADDA">
+  <div class="kicker">Recursos · Archivo Distrital de Datos</div>
+  <h2>ADDA <span class="n">— el catálogo de operaciones estadísticas</span></h2>
+  <p class="sub">Describe las características y atributos de las operaciones estadísticas oficiales de la Alcaldía — el instrumento de referencia para identificar y comprender la producción distrital.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-list-check"></i> Las 8 fases de una operación estadística</h4>
+        <p style="font-size:11px; margin-bottom:6px; color:#718096;">Conforme a la Ley 2335 de 2023</p>
+        <div class="flow" style="flex-wrap:wrap; gap:6px;">
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">1 · Necesidades</div></div>
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">2 · Diseño</div></div>
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">3 · Construcción</div></div>
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">4 · Recolección</div></div>
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">5 · Procesamiento</div></div>
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">6 · Análisis</div></div>
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">7 · Difusión</div></div>
+          <div class="nodo" style="min-width:100px; padding:8px;"><div class="t" style="font-size:10px;">8 · Evaluación</div></div>
+        </div></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-file-lines"></i> Qué documenta cada operación</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i>Organismo y suborganismo responsable.</li>
+          <li><i class="fas fa-check"></i>Área temática y tema específico.</li>
+          <li><i class="fas fa-check"></i>Metodología de recolección empleada.</li>
+          <li><i class="fas fa-check"></i>Acceso directo a microdatos y metadatos asociados.</li>
+        </ul></div>
+      <div class="glass"><strong>Estándares internacionales:</strong> el ADDA documenta bajo <em>DDI</em> (Iniciativa de Documentación de Datos) y <em>Dublin Core</em> — consulta técnica detallada de fuentes y procesos de generación.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ R7 · REGULACIÓN ═══ -->
+<section class="slide" data-titulo="Regulación y metadatos">
+  <div class="kicker">Recursos · Normas y marco técnico</div>
+  <h2>Regulación estadística <span class="n">y metadatos</span></h2>
+  <p class="sub">El conjunto de normas, principios y buenas prácticas que rigen la producción, procesamiento y difusión de las estadísticas de Cali.</p>
+  <div class="slide-body">
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-scale-balanced"></i> Regulación estadística</h4>
+        <ul class="dlist">
+          <li><i class="fas fa-check"></i>Marco: <strong>Ley 2335 de 2023</strong>, PGIE (Decreto 454 de 2020) y Sistema Estadístico Nacional.</li>
+          <li><i class="fas fa-check"></i>Lineamientos del <strong>DANE</strong> y del modelo <strong>GSBPM</strong> de la CEPE-ONU.</li>
+          <li><i class="fas fa-check"></i>Objetivo: calidad, comparabilidad, integridad y transparencia de las estadísticas producidas.</li>
+        </ul></div>
+      <div class="card"><h4><i class="fas fa-table"></i> MARIAE — conjunto de indicadores temáticos</h4>
+        <p>Los datos se clasifican por afinidad temática en los 4 dominios, dando estructura lógica ordenada que permite analizar e identificar relaciones entre indicadores.</p></div>
+    </div>
+    <div class="col">
+      <div class="card"><h4><i class="fas fa-tags"></i> Metadatos</h4>
+        <p>Documentación de los indicadores seleccionados por los organismos, estructurada bajo el estándar internacional <strong>SDMX</strong> (Statistical Data and Metadata Exchange): interoperabilidad, comparabilidad y calidad entre entidades y sistemas.</p></div>
+      <div class="card"><h4><i class="fas fa-display"></i> Visualizadores</h4>
+        <p>Enlaces a herramientas interactivas de los organismos: gráficos, mapas y tableros que facilitan la comprensión del dato y apoyan análisis, planeación y decisiones basadas en evidencia.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ R8 · ASISTENCIAS TÉCNICAS ═══ -->
+<section class="slide" data-titulo="Asistencias técnicas">
+  <div class="kicker">Recursos · Acompañamiento a organismos</div>
+  <h2>Asistencias técnicas <span class="n">— las rutas LADY</span></h2>
+  <p class="sub">Mecanismos de acompañamiento especializado del equipo SIIED a los organismos: orientación, revisión documental, talleres, ejercicios y validaciones — con productos verificables y compromisos.</p>
+  <div class="duo">
+    <div class="mini-card"><div class="t">1 · Documentación de metadatos</div><p>Acompañamiento para identificar, organizar, revisar y estandarizar la información que describe bases de datos, variables e indicadores — fichas técnicas y trazabilidad de elementos metodológicos.</p></div>
+    <div class="mini-card"><div class="t">2 · Operaciones estadísticas y registros administrativos</div><p>Caracterización, clasificación y documentación de fuentes de información con potencial estadístico; diagnósticos técnicos y fortalecimiento de documentos metodológicos.</p></div>
+    <div class="mini-card"><div class="t">3 · Socialización y adopción de lineamientos</div><p>Sesiones de socialización, explicación de instrumentos, resolución de inquietudes y compromisos para que los organismos incorporen los criterios del SIIED.</p></div>
+    <div class="mini-card"><div class="t">4 · Actualización de información en sistemas</div><p>Revisión, validación y preparación de la información que se incorporará a una plataforma; culmina con la entrega formal del paquete validado al administrador del sistema.</p></div>
+    <div class="mini-card"><div class="t">5 · Fortalecimiento de capacidades</div><p>Talleres, sesiones de trabajo y ejercicios prácticos para cerrar brechas de conocimiento en la gestión de información estadística.</p></div>
+    <div class="mini-card"><div class="t">6 · Diseño e implementación de observatorios</div><p>Estructuración documental y revisión técnica para crear o ajustar observatorios de información (tareas 1-12 del procedimiento), con validación y remisión al organismo.</p></div>
+  </div>
+</section>
+
 <!-- ═══ S14 · NIVEL ESTRATÉGICO ═══ -->
 <section class="slide" data-titulo="Nivel estratégico">
   <div class="kicker">El grafo completo</div>
@@ -479,7 +853,7 @@
   <button class="nav-btn" id="btnPrev">← Anterior</button>
   <div style="display:flex; align-items:center; gap:16px;">
     <div class="mini" id="mini"></div>
-    <span class="contador" id="contador">1 / 17</span>
+    <span class="contador" id="contador">1 / 31</span>
   </div>
   <button class="nav-btn" id="btnNext">Siguiente →</button>
 </div>
