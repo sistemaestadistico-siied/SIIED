@@ -5188,8 +5188,8 @@ const ACTOS_TODOS = [
     { t0: 18,  t1: 27,  acto: 'Paneo', texto: 'Los canales de acceso', sub: 'los organismos y el portal alimentan el sistema por tres roles', pan: true,
       dato: 'Tres caminos distintos: recolección es del propio equipo, editorial es autónomo, y el delegado para primero en el punto de validación — la validación pre-aprueba cada movimiento suyo.',
       cam: [[-8, 8, 14], [30, 2.5, -8]] },
-    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'Taller de gestión de datos institucionales', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
-      dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — así arranca la segunda banda, la de capacidad estadística.',
+    { t0: 27,  t1: 36,  acto: 'Paneo', texto: 'Taller de gestión de datos institucionales', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico — y la junta del DADII en su segundo piso`,
+      dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — arriba, en la sala de juntas, el equipo técnico revisa cada diagnóstico.',
       cam: [[-36, 9, 11], [-25, 4.9, -2.4]] },
     { t0: 36,  t1: 45,  acto: 'Paneo', texto: 'La producción del dato', sub: 'ocho módulos, dos controles de calidad — y la torre de administración sobre la explanada', pan: true,
       dato: 'Ahora bajamos a la plataforma: el rol de recolección llega con las proyecciones del DANE. Fíjese en algo: ningún módulo funciona solo — es producción de datos coordinada de punta a punta.',
@@ -5216,9 +5216,11 @@ const ACTOS_TODOS = [
       dato: 'El rol editorial no para en validación y gestiona nueve funciones: noticias, productos académicos y educativos, el catálogo de consulta, los menús de sistemas de consulta, productos de información e infraestructura, el calendario de eventos y el de difusión — y edita los gráficos de los indicadores que procesa el admin.',
       cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi' },
     // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
-    { t0: 140, t1: 154, acto: 'Módulo 04', texto: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
+    { t0: 140, t1: 148, acto: 'Módulo 04', texto: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
       dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — así arranca la segunda banda, la de capacidad estadística.',
       cam: [[-13, 9.5, 7], [-24.5, 5.0, -2.6]] },
+    { t0: 148, t1: 154, acto: 'Sala', texto: 'Equipo técnico DADII', sub: 'el segundo piso del taller: la junta revisa el censo y el prediagnóstico organismo por organismo',
+      cam: [[-19.5, 8.4, 1.6], [-26, 7.3, -2.5]] },
     { t0: 154, t1: 160, acto: 'Sala', texto: 'Equipo técnico', sub: 'la cabina de administración: carga indicadores con el procesador de la torre y configura fichas MSD, dominios, reglas y capas geográficas', pan: true,
       dato: 'Aquí el equipo diseña la operación: llevar la proyección del DANE al nivel subdistrital — 22 comunas y 15 corregimientos. El administrador configura aquí toda la operación.',
       cam: [[-17, 1.5, -0.8], [-15.4, 1.0, 0.55]] },   // escritorios SE
