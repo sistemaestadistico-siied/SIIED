@@ -483,7 +483,8 @@ def _convertir_serie_a_csv(carga):
     try:
         if carga.tiene_datos:
             df_datos = _leer_archivo_datos(carga.archivo_datos_xlsx.path,
-                                           hojas_preferidas=('datos',))
+                                           hojas_preferidas=('datos',),
+                                           con_col_codigo=True)
             buf = BytesIO()
             df_datos.to_csv(buf, index=False, encoding='utf-8', sep=';')
             buf.seek(0)
@@ -722,7 +723,8 @@ def _convertir_conjunto_datos_a_csv(carga):
     try:
         if carga.tiene_conjunto_datos:
             df = _leer_archivo_datos(carga.archivo_microdata_xlsx.path,
-                                     hojas_preferidas=('conjuntos', 'datos'))
+                                     hojas_preferidas=('conjuntos', 'datos'),
+                                     con_col_codigo=True)
             buf = BytesIO()
             df.to_csv(buf, index=False, encoding='utf-8', sep=';')
             buf.seek(0)

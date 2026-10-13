@@ -298,13 +298,20 @@ def cargar_serie_indicador(request):
     return render(request, 'recoleccion/cargar_serie_indicador.html', context)
 
 
-def _leer_archivo_datos(path, hojas_preferidas=None):
+def _leer_archivo_datos(path, hojas_preferidas=None, con_col_codigo=False):
     """Lee un archivo Excel o CSV según su extensión.
 
     hojas_preferidas: nombres de hoja a intentar primero
     (case-insensitive, igualdad o 'contiene'). La plantilla oficial
     de metadatos trae 'Diccionario de datos' en la hoja 0 — los
     callers de metadata deben pedir 'Indicadores'.
+
+    con_col_codigo=True: recorre las hojas en orden de preferencia
+    (exacta, parcial, resto) probando encabezados en las primeras filas,
+    y devuelve la primera hoja que contenga la columna de código de
+    indicador — evita que una coincidencia parcial ('datos' ↔
+    'Diccionario de datos') o una fila de título oculten la columna.
+    Sin coincidencia devuelve la hoja preferida (comportamiento previo).
     """
     if path.lower().endswith('.csv'):
         from .wizard_admin_unificado import _leer_csv_auto_sep
@@ -312,18 +319,27 @@ def _leer_archivo_datos(path, hojas_preferidas=None):
     if not hojas_preferidas:
         return pd.read_excel(path)
     libro = pd.ExcelFile(path)
-    elegida = None
+    orden = []
     nombres = {h.lower(): h for h in libro.sheet_names}
     for pref in hojas_preferidas:
         p = pref.lower()
-        if p in nombres:
-            elegida = nombres[p]
-            break
-        parciales = [h for h in libro.sheet_names if p in h.lower()]
-        if parciales:
-            elegida = parciales[0]
-            break
-    return pd.read_excel(libro, sheet_name=elegida or libro.sheet_names[0])
+        if p in nombres and nombres[p] not in orden:
+            orden.append(nombres[p])
+        for h in libro.sheet_names:
+            if p in h.lower() and h not in orden:
+                orden.append(h)
+    orden += [h for h in libro.sheet_names if h not in orden]
+
+    if con_col_codigo:
+        for hoja in orden:
+            for hdr in (0, 1, 2):
+                try:
+                    df = pd.read_excel(libro, sheet_name=hoja, header=hdr)
+                except Exception:
+                    break
+                if _obtener_col_codigo(df):
+                    return df
+    return pd.read_excel(libro, sheet_name=orden[0] if orden else libro.sheet_names[0])
 
 
 def procesar_serie_indicador(carga):
@@ -331,7 +347,8 @@ def procesar_serie_indicador(carga):
     try:
         # Leer y convertir archivo de datos
         df_datos = _leer_archivo_datos(carga.archivo_datos_xlsx.path,
-                                       hojas_preferidas=('datos',))
+                                       hojas_preferidas=('datos',),
+                                       con_col_codigo=True)
         csv_buffer = BytesIO()
         df_datos.to_csv(csv_buffer, index=False, encoding='utf-8', sep=';')
         csv_buffer.seek(0)
@@ -2590,34 +2607,54 @@ def cargar_masiva_series(request):
     return render(request, 'recoleccion/cargar_masiva_series.html', context)
 
 
-def _leer_archivo_a_df(archivo, hojas_preferidas=None):
+def _leer_archivo_a_df(archivo, hojas_preferidas=None, con_col_codigo=False):
     """Lee un archivo Excel o CSV y retorna un DataFrame.
 
     hojas_preferidas: lista de nombres de hoja a intentar primero
     (case-insensitive, coincidencia por igualdad o 'contiene'). La
     plantilla oficial de metadatos trae 'Diccionario de datos' en la
     hoja 0 — sin preferencia se leería esa hoja en vez de 'Indicadores'.
+
+    con_col_codigo=True: recorre las hojas en orden de preferencia (exacta,
+    parcial, resto) probando las primeras filas como encabezado, y devuelve
+    la primera hoja que contenga la columna de código de indicador. Útil
+    cuando una coincidencia parcial ('datos' ↔ 'Diccionario de datos') o
+    una fila de título dejarían la columna invisible. Si ninguna hoja la
+    tiene, devuelve la lectura de la hoja preferida para que el error de
+    validación posterior siga siendo el mismo.
     """
     if not archivo:
         return None
     extension = archivo.name.lower().split('.')[-1]
     try:
         if extension in ('xlsx', 'xls'):
-            if not hojas_preferidas:
-                return pd.read_excel(archivo.path)
             libro = pd.ExcelFile(archivo.path)
-            elegida = None
+            if not hojas_preferidas:
+                return pd.read_excel(libro, sheet_name=libro.sheet_names[0])
+            # Orden de preferencia: exacta por cada pref, luego parcial,
+            # y al final las demás hojas (orden[0] = la hoja elegida
+            # histórica, preserva el comportamiento previo).
+            orden = []
             nombres = {h.lower(): h for h in libro.sheet_names}
             for pref in hojas_preferidas:
                 p = pref.lower()
-                if p in nombres:
-                    elegida = nombres[p]
-                    break
-                parciales = [h for h in libro.sheet_names if p in h.lower()]
-                if parciales:
-                    elegida = parciales[0]
-                    break
-            return pd.read_excel(libro, sheet_name=elegida or libro.sheet_names[0])
+                if p in nombres and nombres[p] not in orden:
+                    orden.append(nombres[p])
+                for h in libro.sheet_names:
+                    if p in h.lower() and h not in orden:
+                        orden.append(h)
+            orden += [h for h in libro.sheet_names if h not in orden]
+
+            if con_col_codigo:
+                for hoja in orden:
+                    for hdr in (0, 1, 2):
+                        try:
+                            df = pd.read_excel(libro, sheet_name=hoja, header=hdr)
+                        except Exception:
+                            break
+                        if _obtener_col_codigo(df):
+                            return df
+            return pd.read_excel(libro, sheet_name=orden[0] if orden else libro.sheet_names[0])
         elif extension == 'csv':
             mejor_df = None
             mejor_cols = 0
@@ -2640,11 +2677,23 @@ def _leer_archivo_a_df(archivo, hojas_preferidas=None):
 
 
 def _obtener_col_codigo(df):
-    """Busca y retorna el nombre de la columna de código de indicador."""
-    posibles = ['codigo_indicador', 'codigo', 'id_indicador', 'indicador_codigo']
-    for pc in posibles:
-        if pc in df.columns:
-            return pc
+    """Busca y retorna el nombre de la columna de código de indicador.
+
+    Normaliza cada encabezado antes de comparar (sin tildes, sin prefijo
+    numérico MSD tipo '0.2 ', snake_case, alias de plantilla oficial), así
+    'Código del Indicador', 'ID_Indicador_SIIED' o '0.2 Código del
+    Indicador' también se reconocen. Devuelve el nombre real de la columna.
+    """
+    import re
+    from unidecode import unidecode
+    posibles = {'codigo_indicador', 'codigo', 'id_indicador', 'indicador_codigo'}
+    for col in df.columns:
+        c = unidecode(str(col).strip().lower())
+        c = re.sub(r'^\s*\d+(?:\.\d+)*\s*[\.\)\-:]?\s+', '', c)
+        c = re.sub(r'[^a-z0-9]+', '_', c).strip('_')
+        c = _COLUMNAS_METADATA_ALIAS.get(c, c)
+        if c in posibles:
+            return col
     return None
 
 
@@ -2793,7 +2842,8 @@ def _procesar_archivo_masivo(carga_masiva):
     # Leer archivo de datos si aplica
     if tipo in ('datos', 'ambos') and carga_masiva.archivo_maestro_datos:
         df_datos = _leer_archivo_a_df(carga_masiva.archivo_maestro_datos,
-                                      hojas_preferidas=('datos',))
+                                      hojas_preferidas=('datos',),
+                                      con_col_codigo=True)
         if df_datos is None:
             return {'error': 'No se pudo leer el archivo maestro de datos. Verifique el formato.'}
 
@@ -2801,7 +2851,8 @@ def _procesar_archivo_masivo(carga_masiva):
     if tipo in ('metadata', 'ambos') and carga_masiva.archivo_maestro_metadata:
         df_metadata = _leer_archivo_a_df(
             carga_masiva.archivo_maestro_metadata,
-            hojas_preferidas=('indicadores', 'metadata'))
+            hojas_preferidas=('indicadores', 'metadata'),
+            con_col_codigo=True)
         if df_metadata is None:
             return {'error': 'No se pudo leer el archivo maestro de metadata. Verifique el formato.'}
 
