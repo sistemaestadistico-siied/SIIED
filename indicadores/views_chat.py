@@ -3824,9 +3824,11 @@ class ChatService:
                     
                     if final_content:
                         logger.info(f"[MCP_FIX] Respuesta final válida recibida después de {session_state['round']} rondas")
-                        
-                        # Stream de respuesta final
-                        yield from self._stream_final_response(final_content)
+
+                        # Stream de respuesta final — solo si los deltas no
+                        # llegaron ya al usuario (evita la respuesta duplicada)
+                        if not emitted_content:
+                            yield from self._stream_final_response(final_content)
                         
                         # Actualizar historial
                         current_history.append({"role": "assistant", "content": final_content})
