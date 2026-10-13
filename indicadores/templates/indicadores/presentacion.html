@@ -1258,7 +1258,7 @@ for (let n = 0; n < 4; n++) {
     estanteria.add(larg);
 }
 scene.add(estanteria);
-const cartelIND = crearCartel('INVENTARIO DE INDICADORES',
+const cartelIND = crearCartel('CONJUNTOS DE INDICADORES',
     'la colección completa en los tres marcos', 6.4);
 cartelIND.position.set(EST_X0 + (N_COL - 1) * EST_DX / 2, 6.6, EST_Z + 0.6);
 scene.add(cartelIND);
@@ -2834,7 +2834,8 @@ function crearAlmacen(cfg) {
     const pool = [];
     for (let i = 0; i < cfg.cols * cfg.rows; i++)
         pool.push(cajaNueva(0.7, 0.5, 0.66, cfg.tex));
-    const alm = { grupo: g, slots, pool, idx: 0, tVaciado: -1, tex: cfg.tex };
+    const alm = { grupo: g, slots, pool, idx: 0, tVaciado: -1, tex: cfg.tex,
+                  edi: !!cfg.edi };
     almacenes.push(alm);
     return alm;
 }
@@ -2854,12 +2855,15 @@ function tickAlmacenes(dt) {
         if (alm.idx >= alm.slots.length && alm.tVaciado < 0)
             alm.tVaciado = tGlobal;
         if (alm.tVaciado >= 0 && tGlobal - alm.tVaciado > 1.4) {
-            // Las cajas acumuladas vuelan a su destino final: la pared
+            // Las cajas acumuladas vuelan a su destino final:
+            // la pared si son producto publicado, las bandas
+            // editoriales si son ciclo del inventario
             let quedan = false;
             for (let i = 0; i < alm.idx; i++) {
                 const b = alm.pool[i];
                 if (!b.visible) continue;
-                if (!b._aTV) { b._aTV = true; lanzarVueloTV(b, i * 0.07); }
+                if (!b._aTV) { b._aTV = true;
+                    (alm.edi ? lanzarVueloEdi : lanzarVueloTV)(b, i * 0.07); }
                 quedan = true;
             }
             if (!quedan) {
@@ -2869,7 +2873,10 @@ function tickAlmacenes(dt) {
         }
     });
 }
-const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'INVENTARIO DE OPERACIONES ESTADÍSTICAS', modelo: 'inventario distrital · ciclo IOE', tex: texOp });
+// almOP y la estantería de conjuntos no publican en la pared:
+// su ciclo cierra en editorial — el ducto rojo los lleva a la
+// oficina y de ahí entran a las bandas de servicio
+const almOP   = crearAlmacen({ x: -10.5, z: 7.2,  cols: 4, rows: 3, nombre: 'INVENTARIO DE OPERACIONES ESTADÍSTICAS', modelo: 'inventario distrital · ciclo IOE', tex: texOp, edi: true });
 const almCAT  = crearAlmacen({ x: -2,    z: 20.5, cols: 5, rows: 3, nombre: 'CATÁLOGO',   modelo: 'listados de consulta del anuario', tex: texCat });
 const almHALL = crearAlmacen({ x: 27,    z: -10.5, cols: 4, rows: 3, nombre: 'HOJA DE VIDA DE LOS ORGANISMOS', modelo: 'ICED + Ecosistema + Satisfacción del usuario', tex: texICE });
 const Z_SRV = [12, 18, 24];
@@ -3714,16 +3721,38 @@ function lanzarVueloTV(mesh, delay = 0) {
     const tv = TVs[Math.floor(Math.random() * TVs.length)];
     // La caja viaja POR LOS DUCTOS, no por el aire: entra por la
     // boca del tubo más cercano a su estantería, cruza el nodo
-    // del módulo de administración y sale por el ducto ámbar a su TV
-    const dIn = ductos.slice(0, -1).reduce((b, d) =>
+    // del módulo de administración y sale por el ducto ÁMBAR a su
+    // TV (los dos últimos ductos del array son de salida: no son
+    // bocas de entrada)
+    const dIn = ductos.slice(0, 7).reduce((b, d) =>
         mesh.position.distanceToSquared(d.pts0) <
         mesh.position.distanceToSquared(b.pts0) ? d : b);
     const ruta = [mesh.position.clone(),
         ...dIn.pts.slice(1).map(p => new THREE.Vector3(...p)),
-        ...ductos.at(-1).pts.slice(1).map(p => new THREE.Vector3(...p)),
+        ...ductoTV.pts.slice(1).map(p => new THREE.Vector3(...p)),
         tv.mundo.clone()];
     const curva = new THREE.CatmullRomCurve3(ruta);
     vuelosTV.push({ mesh, tv, t: -delay,
+                    dur: Math.max(1.4, curva.getLength() / 34), curva });
+}
+// El inventario cierra su ciclo en editorial, no en la pared: la
+// caja sube por su ducto a la torre, baja por el ducto ROJO a la
+// oficina del módulo editorial y entra a la banda de servicio que
+// le toca (se turnan E1/E2/E3) — aterriza en la cabeza de la línea
+let laneEdi = -1;
+function lanzarVueloEdi(mesh, delay = 0) {
+    laneEdi = (laneEdi + 1) % 3;
+    const l = laneEdi;
+    const dIn = ductos.slice(0, 7).reduce((b, d) =>
+        mesh.position.distanceToSquared(d.pts0) <
+        mesh.position.distanceToSquared(b.pts0) ? d : b);
+    const ruta = [mesh.position.clone(),
+        ...dIn.pts.slice(1).map(p => new THREE.Vector3(...p)),
+        ...ductoEdi.pts.slice(1).map(p => new THREE.Vector3(...p)),
+        new THREE.Vector3(-26, 2.4, 17.6),   // sale de la oficina al muelle
+        new THREE.Vector3(-21, 1.72, Z_SRV[l])];   // cabeza de la banda E
+    const curva = new THREE.CatmullRomCurve3(ruta);
+    vuelosTV.push({ mesh, edi: true, l, t: -delay,
                     dur: Math.max(1.4, curva.getLength() / 34), curva });
 }
 // Autos de la periferia: recorren la avenida con luces — la
@@ -3757,8 +3786,12 @@ function tickVuelosTV(dt) {
         v.mesh.rotation.y += dt * 5;
         if (k >= 1) {
             v.mesh.visible = false;
-            asignarGrafico(v.tv);
-            soltarConfeti(v.tv.mundo.x - 0.4, v.tv.mundo.y, v.tv.mundo.z);
+            if (v.edi) {   // entró a la banda: la estación trabaja
+                disparo(['REDACCIÓN', 'EDICIÓN', 'PROGRAMACIÓN'][v.l]);
+            } else {
+                asignarGrafico(v.tv);
+                soltarConfeti(v.tv.mundo.x - 0.4, v.tv.mundo.y, v.tv.mundo.z);
+            }
             vuelosTV.splice(i, 1);
         }
     }
@@ -3932,6 +3965,10 @@ const ductos = [];
     }
     ductos.push(d);
 });
+// Los dos ductos de salida de la torre: ámbar → pared de
+// televisores (producto publicado), rojo → oficina editorial
+const ductoTV = ductos[7];
+const ductoEdi = ductos[8];
 // Antena del módulo de administración: mástil sobre el borde
 // este del techo (y≈9.4) — la punta ES el nodo de la red
 {
@@ -5584,11 +5621,12 @@ function animate() {
     } else if (faseEstante === 'completo' && tGlobal - tCompleto > 2.2) {
         faseEstante = 'vaciando';
     } else if (faseEstante === 'vaciando') {
-        // Las barras acumuladas también van a la pared de pantallas
+        // Las barras acumuladas van a editorial por el ducto rojo:
+        // entran a las bandas de servicio, no a la pared
         let quedan = false;
         barras.forEach((b, i) => {
             if (!b.visible) return;
-            if (!b._aTV) { b._aTV = true; lanzarVueloTV(b, i * 0.05); }
+            if (!b._aTV) { b._aTV = true; lanzarVueloEdi(b, i * 0.05); }
             quedan = true;
         });
         if (!quedan) {
