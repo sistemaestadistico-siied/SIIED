@@ -65,6 +65,13 @@ class ICEDWizardView(SessionWizardView):
             if not es_propio and not request.user.is_staff:
                 messages.error(request, 'No tiene permiso para acceder a este formulario.')
                 return redirect('indicadores:iced_landing')
+            # El formulario pertenece a un equipo técnico; un delegado con
+            # otro subrol no puede editarlo ('' del usuario = acceso completo)
+            equipo_user = _get_user_equipo(request.user)
+            if (not request.user.is_staff and equipo_user
+                    and formulario.equipo and formulario.equipo != equipo_user):
+                messages.error(request, 'Este formulario pertenece a otro equipo técnico.')
+                return redirect('indicadores:iced_landing')
             if formulario.estado not in self.ESTADOS_EDITABLES:
                 messages.info(request, 'Este formulario ya fue enviado y no puede editarse.')
                 return redirect('indicadores:iced_resultado', formulario_id=formulario.pk)
@@ -340,6 +347,15 @@ class ICEDWizardView(SessionWizardView):
         """Obtener formulario con datos iniciales correctamente cargados."""
         form = super().get_form(step, data, files)
 
+        # Filtrar campos según el equipo técnico del formulario: solo se
+        # muestran las preguntas asignadas a ese equipo ('' = todas).
+        equipo = self._equipo_formulario()
+        if equipo:
+            from .models_iced import ICEDPreguntaEquipo
+            for fname in list(form.fields.keys()):
+                if not ICEDPreguntaEquipo.campo_pertenece_a_equipo(fname, equipo):
+                    del form.fields[fname]
+
         # P23: poblar el select de operaciones estadísticas desde el inventario
         if 'p23_operaciones_estadisticas' in form.fields:
             self._inyectar_opciones_operaciones(form)
@@ -416,6 +432,7 @@ class ICEDWizardView(SessionWizardView):
             formulario, _ = ICEDFormulario.objects.get_or_create(
                 organismo=organismo,
                 periodo=str(timezone.now().year),
+                equipo=_get_user_equipo(self.request.user),
                 defaults={
                     'usuario_diligencia': self.request.user,
                 }
@@ -576,6 +593,20 @@ class ICEDWizardView(SessionWizardView):
                 funciones_estadisticas=bool(p.get('funciones_estadisticas')),
             )
 
+    def _equipo_formulario(self):
+        """Equipo técnico del formulario en edición; si es nuevo, el del usuario.
+
+        '' significa formulario completo/consolidado (muestra todas las
+        preguntas, comportamiento legado).
+        """
+        fid = self.kwargs.get('formulario_id')
+        if fid:
+            eq = ICEDFormulario.objects.filter(pk=fid).values_list(
+                'equipo', flat=True).first()
+            if eq is not None:
+                return eq
+        return _get_user_equipo(self.request.user)
+
     def _get_organismo(self):
         """Obtener el organismo asociado al usuario actual."""
         user = self.request.user
@@ -703,12 +734,17 @@ def iced_guardar_parcial(request):
         # Verificar propiedad (staff puede editar cualquier borrador)
         if not request.user.is_staff and formulario.organismo_id != organismo.id:
             return JsonResponse({'error': 'No tiene permiso sobre este formulario'}, status=403)
+        equipo_user = _get_user_equipo(request.user)
+        if (not request.user.is_staff and equipo_user
+                and formulario.equipo and formulario.equipo != equipo_user):
+            return JsonResponse({'error': 'Este formulario pertenece a otro equipo técnico'}, status=403)
         if formulario.estado not in ('borrador', 'devuelto'):
             return JsonResponse({'error': 'El formulario ya fue enviado y no puede modificarse'}, status=400)
     else:
         formulario, _ = ICEDFormulario.objects.get_or_create(
             organismo=organismo,
             periodo=str(timezone.now().year),
+            equipo=_get_user_equipo(request.user),
             defaults={
                 'usuario_diligencia': request.user,
             }
@@ -747,6 +783,12 @@ def iced_guardar_parcial(request):
         'formulario_id': formulario.pk,
         'mensaje': 'Guardado parcial exitoso'
     })
+
+
+def _get_user_equipo(user):
+    """Equipo técnico FICED del usuario (subrol); '' = formulario completo."""
+    perfil = getattr(user, 'perfil_recolector', None)
+    return (getattr(perfil, 'subrol_ficed', '') or '') if perfil else ''
 
 
 def _get_user_organismo(user):

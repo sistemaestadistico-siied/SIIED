@@ -376,6 +376,7 @@ urlpatterns = [
     path('validacion/iced/<int:formulario_id>/', views_validacion.validacion_revisar_iced, name='validacion_revisar_iced'),
     path('validacion/iced/<int:formulario_id>/calcular/', views_validacion.validacion_calcular_iced, name='validacion_calcular_iced'),
     path('validacion/iced/<int:formulario_id>/decidir/', views_validacion.validacion_decidir_iced, name='validacion_decidir_iced'),
+    path('validacion/iced/conciliar/<int:organismo_id>/<str:periodo>/', views_validacion.validacion_conciliar_iced, name='validacion_conciliar_iced'),
 
     # Manual
     path('validacion/manual/', views_validacion.validacion_manual, name='validacion_manual'),

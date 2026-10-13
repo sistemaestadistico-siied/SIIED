@@ -559,11 +559,18 @@ def validacion_revisar_iced(request, formulario_id):
             })
         respuestas_modulo_display.append((nombre_modulo, items))
 
+    # Formularios hermanos: mismo organismo y período, otros equipos técnicos
+    hermanos = ICEDFormulario.objects.filter(
+        organismo=formulario.organismo,
+        periodo=formulario.periodo,
+    ).exclude(pk=formulario.pk).order_by('equipo')
+
     context = {
         'formulario': formulario,
         'resultado': resultado,
         'organismo': organismo,
         'respuestas_modulo_display': respuestas_modulo_display,
+        'hermanos': hermanos,
     }
     return render(request, 'validacion/revisar_iced.html', context)
 
@@ -675,6 +682,146 @@ def validacion_decidir_iced(request, formulario_id):
 
     messages.add_message(request, level, msg)
     return redirect('indicadores:validacion_dashboard')
+
+
+# ============================================================================
+# CONCILIACIÓN FICED POR EQUIPOS TÉCNICOS
+# ============================================================================
+
+_CAMPOS_RESP = ('respuestas_a', 'respuestas_b', 'respuestas_c',
+                'respuestas_d', 'respuestas_e')
+
+
+def _codigo_de_campo(field_name):
+    """'p15_1_herramientas' → '15.1'; 'p17_suficiencia' → '17'; otro → None."""
+    import re
+    m = re.match(r'^p(\d+)(?:_(\d+))?', field_name)
+    if not m:
+        return None
+    return m.group(1) + ('.' + m.group(2) if m.group(2) else '')
+
+
+def _respuestas_planas(formulario):
+    """Une los 5 JSONField de módulo en un solo dict field_key → valor."""
+    r = {}
+    for attr in _CAMPOS_RESP:
+        r.update(getattr(formulario, attr) or {})
+    return r
+
+
+@validador_required
+def validacion_conciliar_iced(request, organismo_id, periodo):
+    """
+    Concilia las respuestas FICED de un organismo entre sus equipos técnicos.
+
+    Cada equipo responde solo sus preguntas asignadas; las preguntas
+    asignadas a varios equipos reciben respuestas independientes. Aquí el
+    validador compara las respuestas por equipo, elige la canónica para las
+    divergentes y genera/actualiza el formulario consolidado (equipo=''),
+    que es el que pasa por cálculo y decisión.
+    """
+    import json as _json
+    from .models_iced import ICEDPreguntaEquipo
+    from .models import Organismo
+
+    organismo = get_object_or_404(Organismo, pk=organismo_id)
+    formularios = list(
+        ICEDFormulario.objects.filter(organismo=organismo, periodo=periodo)
+        .exclude(equipo='')
+        .select_related('usuario_diligencia')
+        .order_by('equipo')
+    )
+    if not formularios:
+        messages.info(request, 'Este organismo no tiene formularios por equipo.')
+        return redirect('indicadores:validacion_dashboard')
+
+    consolidado = ICEDFormulario.objects.filter(
+        organismo=organismo, periodo=periodo, equipo='').first()
+
+    resp_por_equipo = {f.equipo: _respuestas_planas(f) for f in formularios}
+    form_por_equipo = {f.equipo: f for f in formularios}
+
+    # Labels legibles por código: 'p15_1' → codigo '15.1'
+    def label_de(codigo):
+        key = 'p' + codigo.replace('.', '_')
+        return PREGUNTA_LABELS.get(key, (f'P{codigo}', ''))[0]
+
+    # Agrupar asignaciones por código de pregunta (orden natural 1, 2, 15.1…)
+    def _orden(cod):
+        return tuple(int(p) for p in cod.split('.'))
+
+    asignaciones = {}
+    for codigo, equipo in ICEDPreguntaEquipo.objects.values_list('codigo', 'equipo'):
+        asignaciones.setdefault(codigo, set()).add(equipo)
+
+    preguntas = []
+    for codigo in sorted(asignaciones, key=_orden):
+        por_equipo = {
+            f.equipo: {
+                k: v for k, v in resp_por_equipo[f.equipo].items()
+                if _codigo_de_campo(k) == codigo
+            }
+            for f in formularios
+        }
+        # ¿Las respuestas difieren entre equipos que respondieron?
+        snapshots = {
+            _json.dumps(resp, sort_keys=True, default=str)
+            for resp in por_equipo.values() if resp
+        }
+        preguntas.append({
+            'codigo': codigo,
+            'label': label_de(codigo),
+            'asignados': sorted(asignaciones[codigo]),
+            'por_equipo': por_equipo,
+            'divergente': len(snapshots) > 1,
+        })
+
+    if request.method == 'POST':
+        consolidado, _ = ICEDFormulario.objects.get_or_create(
+            organismo=organismo, periodo=periodo, equipo='',
+            defaults={'usuario_diligencia': request.user},
+        )
+        nuevos = {attr: {} for attr in _CAMPOS_RESP}
+        conciliadas = 0
+        for p in preguntas:
+            equipos_resp = [e for e, r in p['por_equipo'].items() if r]
+            if not equipos_resp:
+                continue
+            ganador = request.POST.get(f"ganador_{p['codigo']}")
+            # Sin elección explícita: único equipo que respondió gana
+            if ganador not in equipos_resp:
+                ganador = equipos_resp[0]
+            fuente = form_por_equipo[ganador]
+            for attr in _CAMPOS_RESP:
+                for k, v in (getattr(fuente, attr) or {}).items():
+                    if _codigo_de_campo(k) == p['codigo']:
+                        nuevos[attr][k] = v
+            conciliadas += 1
+
+        for attr in _CAMPOS_RESP:
+            setattr(consolidado, attr, nuevos[attr])
+        consolidado.estado = 'enviado'
+        consolidado.fecha_envio = timezone.now()
+        consolidado.usuario_diligencia = request.user
+        consolidado.save()
+
+        messages.success(
+            request,
+            f'Consolidado generado con {conciliadas} preguntas de '
+            f'{len(formularios)} equipo(s). Ya puede revisarlo y calcular el ICED.'
+        )
+        return redirect('indicadores:validacion_revisar_iced',
+                        formulario_id=consolidado.pk)
+
+    context = {
+        'organismo': organismo,
+        'periodo': periodo,
+        'formularios': formularios,
+        'consolidado': consolidado,
+        'preguntas': preguntas,
+        'n_divergentes': sum(1 for p in preguntas if p['divergente']),
+    }
+    return render(request, 'validacion/conciliar_iced.html', context)
 
 
 # ============================================================================

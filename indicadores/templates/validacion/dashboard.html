@@ -242,6 +242,11 @@
                     <span class="px-3 py-1 rounded-full text-xs font-medium estado-enviado">
                         {{ f.get_estado_display }}
                     </span>
+                    {% if f.equipo %}
+                    <span class="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded-full font-semibold">
+                        Equipo {{ f.equipo }}
+                    </span>
+                    {% endif %}
                 </div>
                 <p class="text-sm font-semibold text-slate-900">
                     ICED Vigencia {{ f.periodo }}

@@ -1498,10 +1498,16 @@ def delegado_ficed(request):
     from .models_iced import ICEDFormulario
     periodo_actual = str(timezone.now().year)
 
-    # Buscar formulario existente
+    # Un FICED por equipo técnico (subrol_ficed); '' = formulario completo
+    equipo = getattr(
+        getattr(request.user, 'perfil_recolector', None), 'subrol_ficed', ''
+    ) or ''
+
+    # Buscar formulario existente del equipo
     ficed = ICEDFormulario.objects.filter(
         organismo=organismo,
-        periodo=periodo_actual
+        periodo=periodo_actual,
+        equipo=equipo,
     ).first()
 
     if ficed:

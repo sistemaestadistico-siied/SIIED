@@ -1910,6 +1910,24 @@ class PerfilRecolector(models.Model):
         related_name='delegados',
         help_text="Organismo al que pertenece (obligatorio para delegados)"
     )
+
+    # Subrol de equipo técnico FICED: cada delegado responde solo las
+    # preguntas asignadas a su equipo. Vacío = responde todo el formulario.
+    SUBROL_FICED_CHOICES = [
+        ('', 'Todos los equipos (formulario completo)'),
+        ('ETUAG_PSP', 'ETUAG_PSP'),
+        ('ETOBS', 'ETOBS'),
+        ('ETPP', 'ETPP'),
+        ('ETSGC', 'ETSGC'),
+        ('ETGIE', 'ETGIE'),
+    ]
+    subrol_ficed = models.CharField(
+        max_length=15,
+        choices=SUBROL_FICED_CHOICES,
+        blank=True,
+        default='',
+        help_text="Equipo técnico FICED del delegado (vacío = responde todo)"
+    )
     
     class Meta:
         verbose_name = "Perfil de Usuario"

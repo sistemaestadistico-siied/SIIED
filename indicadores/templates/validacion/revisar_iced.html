@@ -29,6 +29,36 @@
                     <dd class="text-slate-800 mt-0.5">{{ formulario.periodo }}</dd>
                 </div>
                 <div>
+                    <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Equipo técnico</dt>
+                    <dd class="mt-0.5">
+                        {% if formulario.equipo %}
+                        <span class="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded-full font-semibold">{{ formulario.equipo }}</span>
+                        {% else %}
+                        <span class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-semibold">Consolidado / Completo</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                {% if hermanos %}
+                <div>
+                    <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Otros equipos del organismo</dt>
+                    <dd class="mt-1 flex flex-wrap gap-1">
+                        {% for h in hermanos %}
+                        <a href="{% url 'indicadores:validacion_revisar_iced' h.pk %}"
+                           class="text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-600 hover:border-indigo-300 hover:text-indigo-700"
+                           title="{{ h.get_estado_display }}">
+                            {{ h.equipo|default:'Consolidado' }}
+                        </a>
+                        {% endfor %}
+                    </dd>
+                </div>
+                <div>
+                    <a href="{% url 'indicadores:validacion_conciliar_iced' formulario.organismo_id formulario.periodo %}"
+                       class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
+                        ⇄ Conciliar respuestas entre equipos
+                    </a>
+                </div>
+                {% endif %}
+                <div>
                     <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Diligenciado por</dt>
                     <dd class="text-slate-800 mt-0.5">{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username|default:"—" }}</dd>
                 </div>

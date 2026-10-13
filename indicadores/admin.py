@@ -2408,8 +2408,8 @@ from .models import PerfilRecolector, CargaSerieIndicador, CargaConjuntoDatos
 
 @admin.register(PerfilRecolector)
 class PerfilRecolectorAdmin(admin.ModelAdmin):
-    list_display = ('user', 'get_nombre_completo', 'rol', 'institucion', 'get_organismo', 'cargo', 'activo', 'fecha_creacion')
-    list_filter = ('activo', 'rol', 'organismo')
+    list_display = ('user', 'get_nombre_completo', 'rol', 'institucion', 'get_organismo', 'subrol_ficed', 'cargo', 'activo', 'fecha_creacion')
+    list_filter = ('activo', 'rol', 'organismo', 'subrol_ficed')
     search_fields = ('user__username', 'user__first_name', 'user__last_name', 'institucion', 'cargo')
     readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
     autocomplete_fields = ['organismo']
@@ -2423,8 +2423,10 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
             'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos'
         }),
         ('Vínculo a Organismo', {
-            'fields': ('organismo',),
-            'description': 'Obligatorio para delegados. Define qué indicadores puede ver y cargar.'
+            'fields': ('organismo', 'subrol_ficed'),
+            'description': 'Obligatorio para delegados. Define qué indicadores puede ver y cargar. '
+                           'subrol_ficed = equipo técnico FICED que responde el delegado '
+                           '(ETUAG_PSP/ETOBS/ETPP/ETSGC/ETGIE; vacío = formulario completo).'
         }),
         ('Información Institucional', {
             'fields': ('institucion', 'cargo', 'telefono')
@@ -3026,8 +3028,18 @@ class CampoCatalogoAdmin(admin.ModelAdmin):
 
 from .models_iced import (
     ICEDFormulario, ICEDRecursoHumano, ICEDPersonaContacto,
-    ICEDMacroProceso, ICEDProceso, ICEDSubproceso, ICEDProcedimiento
+    ICEDMacroProceso, ICEDProceso, ICEDSubproceso, ICEDProcedimiento,
+    ICEDPreguntaEquipo
 )
+
+
+@admin.register(ICEDPreguntaEquipo)
+class ICEDPreguntaEquipoAdmin(admin.ModelAdmin):
+    """Asignación pregunta ↔ equipo técnico del FICED (seed: seed_iced_equipos)."""
+    list_display = ('codigo', 'equipo')
+    list_filter = ('equipo',)
+    search_fields = ('codigo',)
+    ordering = ('codigo', 'equipo')
 
 
 class ICEDRecursoHumanoInline(admin.TabularInline):
@@ -3047,10 +3059,10 @@ class ICEDPersonaContactoInline(admin.TabularInline):
 @admin.register(ICEDFormulario)
 class ICEDFormularioAdmin(admin.ModelAdmin):
     list_display = (
-        'organismo', 'periodo', 'estado', 'puntaje_global_colored',
+        'organismo', 'periodo', 'equipo', 'estado', 'puntaje_global_colored',
         'usuario_diligencia', 'fecha_envio', 'completitud'
     )
-    list_filter = ('estado', 'periodo', 'organismo')
+    list_filter = ('estado', 'periodo', 'equipo', 'organismo')
     search_fields = ('organismo__nombre', 'usuario_diligencia__username', 'observaciones_validador')
     readonly_fields = (
         'puntaje_b', 'puntaje_c', 'puntaje_d', 'puntaje_e', 'puntaje_global',
@@ -3060,7 +3072,7 @@ class ICEDFormularioAdmin(admin.ModelAdmin):
     inlines = [ICEDPersonaContactoInline, ICEDRecursoHumanoInline]
     fieldsets = (
         ('Identificación', {
-            'fields': ('organismo', 'periodo', 'estado', 'usuario_diligencia', 'paso_actual')
+            'fields': ('organismo', 'periodo', 'equipo', 'estado', 'usuario_diligencia', 'paso_actual')
         }),
         ('Respuestas por módulo', {
             'fields': ('respuestas_a', 'respuestas_b', 'respuestas_c', 'respuestas_d', 'respuestas_e'),

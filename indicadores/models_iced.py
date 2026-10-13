@@ -30,6 +30,15 @@ class ICEDFormulario(models.Model):
         ('devuelto', 'Devuelto para corrección'),
     ]
 
+    EQUIPO_CHOICES = [
+        ('', 'Consolidado / Completo'),
+        ('ETUAG_PSP', 'ETUAG_PSP'),
+        ('ETOBS', 'ETOBS'),
+        ('ETPP', 'ETPP'),
+        ('ETSGC', 'ETSGC'),
+        ('ETGIE', 'ETGIE'),
+    ]
+
     organismo = models.ForeignKey(
         'indicadores.Organismo',
         on_delete=models.CASCADE,
@@ -38,6 +47,13 @@ class ICEDFormulario(models.Model):
     periodo = models.CharField(
         max_length=10,
         help_text="Vigencia del formulario, ej: '2026'"
+    )
+    equipo = models.CharField(
+        max_length=15,
+        choices=EQUIPO_CHOICES,
+        blank=True,
+        default='',
+        help_text="Equipo técnico que responde este FICED (vacío = consolidado/completo)"
     )
     estado = models.CharField(
         max_length=15,
@@ -128,13 +144,14 @@ class ICEDFormulario(models.Model):
     )
 
     class Meta:
-        unique_together = ['organismo', 'periodo']
-        ordering = ['-periodo', 'organismo__nombre']
+        unique_together = ['organismo', 'periodo', 'equipo']
+        ordering = ['-periodo', 'organismo__nombre', 'equipo']
         verbose_name = 'Formulario ICED'
         verbose_name_plural = 'Formularios ICED'
 
     def __str__(self):
-        return f"ICED {self.periodo} — {self.organismo.nombre} ({self.get_estado_display()})"
+        eq = f" [{self.equipo}]" if self.equipo else ""
+        return f"ICED {self.periodo} — {self.organismo.nombre}{eq} ({self.get_estado_display()})"
 
     @property
     def nivel_global(self):
@@ -429,3 +446,67 @@ class ICEDProcedimiento(models.Model):
             self.proceso.codigo if self.proceso_id else '?'
         )
         return f"{self.codigo} - {self.nombre} ({padre})"
+
+
+# =============================================================================
+# ASIGNACIÓN PREGUNTA ↔ EQUIPO TÉCNICO (subrol del delegado)
+# =============================================================================
+
+class ICEDPreguntaEquipo(models.Model):
+    """
+    Asigna cada pregunta del FICED a uno o varios equipos técnicos.
+
+    El delegado con subrol_ficed='X' solo responde las preguntas cuyo
+    código tenga un registro con equipo='X'. Preguntas asignadas a varios
+    equipos se responden independientemente por cada equipo y luego se
+    concilian en el módulo de validación.
+
+    `codigo` es el número de pregunta del CSV ("17", "15.1", "24.1"...),
+    que corresponde a los campos del wizard `p{codigo}_*` (p.ej. '15.1' →
+    campos que empiezan por 'p15_1_').
+    """
+    EQUIPO_CHOICES = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin la opción vacía
+
+    codigo = models.CharField(
+        max_length=10,
+        help_text="Número de pregunta: '1', '15.1', '28.2', ..."
+    )
+    equipo = models.CharField(max_length=15, choices=EQUIPO_CHOICES)
+
+    class Meta:
+        unique_together = ['codigo', 'equipo']
+        ordering = ['codigo', 'equipo']
+        verbose_name = 'Asignación Pregunta-Equipo ICED'
+        verbose_name_plural = 'Asignaciones Pregunta-Equipo ICED'
+
+    def __str__(self):
+        return f"P{self.codigo} → {self.equipo}"
+
+    @classmethod
+    def equipos_de_pregunta(cls, codigo):
+        """Equipos asignados a una pregunta; vacío = nadie la tiene asignada."""
+        return set(
+            cls.objects.filter(codigo=str(codigo)).values_list('equipo', flat=True)
+        )
+
+    @classmethod
+    def preguntas_de_equipo(cls, equipo):
+        """Códigos de pregunta asignados a un equipo técnico."""
+        return set(
+            cls.objects.filter(equipo=equipo).values_list('codigo', flat=True)
+        )
+
+    @classmethod
+    def campo_pertenece_a_equipo(cls, field_name, equipo):
+        """
+        True si el campo del wizard ('p15_1_herramientas_tableros') pertenece
+        a una pregunta asignada al equipo. Sin asignaciones para la pregunta
+        → pertenece a todos (comportamiento legacy).
+        """
+        import re
+        m = re.match(r'^p(\d+)(?:_(\d+))?_', field_name)
+        if not m:
+            return True  # campos auxiliares (json internos, display) → siempre
+        codigo = m.group(1) + ('.' + m.group(2) if m.group(2) else '')
+        asignados = cls.equipos_de_pregunta(codigo)
+        return not asignados or equipo in asignados
