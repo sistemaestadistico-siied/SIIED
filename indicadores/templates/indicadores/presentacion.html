@@ -220,15 +220,31 @@
         .hud-btn { min-height: 44px; font-size: 12px; }
     }
     @media (max-width: 780px) {
+        /* Logo: grande deja poco margen superior a la escena */
+        #logo-siied { height: 48px !important; top: 8px !important; left: 10px !important; }
+
+        /* HUD: una sola fila compacta, scroll horizontal si no cabe */
         #hud {
-            left: 10px; right: 10px; bottom: 24px;
-            flex-wrap: wrap; justify-content: center;
+            left: 8px; right: 8px; bottom: 28px;
+            flex-wrap: nowrap; justify-content: flex-start;
+            overflow-x: auto; gap: 6px;
+            scrollbar-width: none; -webkit-overflow-scrolling: touch;
         }
-        .hud-btn { flex: 1 1 28%; padding: 10px 8px; }
-        #intertitulo { padding-bottom: 134px; }   /* la tarjeta queda sobre el HUD */
-        #intertitulo .tarjeta { max-width: 92vw; padding: 18px 22px; }
-        #intertitulo .texto { font-size: 20px; }
-        #intertitulo .sub, #intertitulo .dato { font-size: 12.5px; }
+        #hud::-webkit-scrollbar { display: none; }
+        .hud-btn {
+            flex: 0 0 auto; padding: 9px 10px; font-size: 10px;
+            letter-spacing: 0.5px; white-space: nowrap;
+        }
+        .hud-hint { display: none; }   /* [ESPACIO], [L]… no aplican a táctil */
+
+        /* Tarjeta: compacta, solo lo necesario sobre la barra de botones */
+        #intertitulo { padding-bottom: 76px; }
+        #intertitulo .tarjeta { max-width: 93vw; padding: 14px 18px; }
+        #intertitulo .acto { font-size: 10px; letter-spacing: 3px; margin-bottom: 7px; }
+        #intertitulo .texto { font-size: 16.5px; }
+        #intertitulo .sub { font-size: 11px; margin-top: 8px; }
+        #intertitulo .dato { font-size: 11.5px; margin-top: 9px; padding-top: 8px; }
+
         #creditos .tarjeta { max-width: 92vw; max-height: 86vh; overflow-y: auto; padding: 22px; }
         #creditos .texto { font-size: 20px; }
         .cred-fila .nom { white-space: normal; font-size: 13px; }
@@ -307,9 +323,9 @@
 
 <div id="hud">
     <button class="hud-btn" id="btn-ant" title="Módulo anterior [←]">◀ MÓDULO</button>
-    <button class="hud-btn" id="btn-pausa">⏸ PAUSAR [ESPACIO]</button>
+    <button class="hud-btn" id="btn-pausa">⏸ PAUSAR <span class="hud-hint">[ESPACIO]</span></button>
     <button class="hud-btn" id="btn-sig" title="Módulo siguiente [→]">MÓDULO ▶</button>
-    <button class="hud-btn" id="btn-libre">CÁMARA LIBRE [L]</button>
+    <button class="hud-btn" id="btn-libre">CÁMARA LIBRE <span class="hud-hint">[L]</span></button>
     <button class="hud-btn" id="btn-salir" title="Volver [ESC]">✕ SALIR</button>
 </div>
 <div id="chip-pausa">⏸ PAUSA — cámara libre: orbita con el mouse · ◀ ▶ o la barra navegan el recorrido</div>
@@ -4927,12 +4943,16 @@ function tickDaticoHUD(dt, t) {
         const halfH = Math.tan(camera.fov * Math.PI / 360) * 4.4;   // semi-alto HUD
         hy = Math.min((0.5 - r.top / window.innerHeight) * 2 * halfH + 0.55,
                       halfH - 0.45);
-        hx = 0.4; esc = 0.34;
+        hx = 0.4; esc = 0.30;
     }
     if (loroHUD.scale.x !== esc) loroHUD.scale.setScalar(esc);
     loroHUD.position.x = hx + Math.sin(t * 0.5) * 0.18;
     loroHUD.position.y = hy + Math.sin(t * 1.4) * 0.08;
-    loroHUD.rotation.y = 0.85 + Math.sin(t * 0.4) * 0.12;   // de frente: antes daba la espalda
+    // El GLB ya trae π interno para mirar -z→+z; el offset extra lo dejaba
+    // a ~49° de tres cuartos. En móvil usamos ~0.28 rad (~16°) para que
+    // quede casi de frente; el procedural y escritorio siguen con 0.85.
+    const baseYaw = (d.w && movil) ? 0.28 : 0.85;
+    loroHUD.rotation.y = baseYaw + Math.sin(t * 0.4) * 0.12;
     loroHUD.rotation.z = Math.sin(t * 0.8) * 0.12;
     loroHUD.rotation.x = Math.sin(t * 0.6) * 0.05;
     if (d.w) {   // el real: el vuelo es su propio clip
