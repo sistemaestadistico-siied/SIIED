@@ -146,20 +146,22 @@ class Command(BaseCommand):
                                     'unidad_medida': indicador.unidad_medida or '',
                                 }
                                 
-                                if force:
-                                    # Eliminar embedding existente si existe
-                                    DocumentoVector.objects.filter(
+                                # Savepoint propio: un fallo no contamina el batch
+                                with transaction.atomic():
+                                    if force:
+                                        # Eliminar embedding existente si existe
+                                        DocumentoVector.objects.filter(
+                                            tipo='indicador',
+                                            referencia_id=indicador.id
+                                        ).delete()
+
+                                    DocumentoVector.objects.create(
                                         tipo='indicador',
-                                        referencia_id=indicador.id
-                                    ).delete()
-                                
-                                DocumentoVector.objects.create(
-                                    tipo='indicador',
-                                    referencia_id=indicador.id,
-                                    contenido=contenido,
-                                    embedding=embedding,
-                                    metadata=metadata
-                                )
+                                        referencia_id=indicador.id,
+                                        contenido=contenido,
+                                        embedding=embedding,
+                                        metadata=metadata
+                                    )
                                 
                                 procesados += 1
                                 
