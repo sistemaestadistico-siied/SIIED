@@ -44,11 +44,12 @@
     /* ---------- Intertítulos estilo laboratorio ---------- */
     #intertitulo {
         position: fixed; inset: 0; z-index: 40; pointer-events: none;
-        display: flex; align-items: flex-end; justify-content: center;
-        padding-bottom: 72px;   /* franja baja: la tarjeta no tapa las estaciones */
+        display: flex; align-items: flex-end; justify-content: flex-start;
+        padding: 0 0 64px 40px;   /* abajo-izquierda: el paneo central queda libre */
         opacity: 0; transition: opacity 0.8s ease;
     }
     #intertitulo.visible { opacity: 1; }
+    #intertitulo .tarjeta { max-width: 560px; text-align: left; }
     .tarjeta {
         background: #f8fafc;
         color: #0f172a;
@@ -318,8 +319,8 @@
         .hud-hint { display: none; }   /* [ESPACIO], [L]… no aplican a táctil */
 
         /* Tarjeta: compacta, solo lo necesario sobre la barra de botones */
-        #intertitulo { padding-bottom: 76px; }
-        #intertitulo .tarjeta { max-width: 93vw; padding: 14px 18px; }
+        #intertitulo { justify-content: center; padding: 0 8px 76px; }
+        #intertitulo .tarjeta { max-width: 93vw; padding: 14px 18px; text-align: center; }
         #intertitulo .acto { font-size: 10px; letter-spacing: 3px; margin-bottom: 7px; }
         #intertitulo .texto { font-size: 16.5px; }
         #intertitulo .sub { font-size: 11px; margin-top: 8px; }
@@ -331,6 +332,58 @@
         #chip-pausa { font-size: 11px; max-width: 92vw; text-align: center; }
         #progreso { height: 24px; }               /* dedo: zona táctil más generosa */
         #progreso .tick { height: 7px; }
+    }
+
+    /* ---------- Portrait en teléfono: pedir giro a horizontal ---------- */
+    /* Como en subtema_detalle: la pantalla vertical es la enemiga —
+       el tour se bloquea hasta que el usuario gire. */
+    #girar { display: none; }
+    @media (orientation: portrait) and (max-width: 780px) {
+        #girar {
+            display: flex; position: fixed; inset: 0; z-index: 60;
+            background: #020c1b;
+            flex-direction: column; align-items: center; justify-content: center;
+            gap: 18px; padding: 32px; text-align: center;
+        }
+        #girar .girar-icono {
+            font-size: 60px; color: #38bdf8; line-height: 1;
+            animation: girar-tel 2.6s ease-in-out infinite;
+        }
+        #girar .girar-tit {
+            color: #7dd3fc; font-family: 'JetBrains Mono', monospace;
+            font-size: 15px; font-weight: 700; letter-spacing: 3px;
+        }
+        #girar .girar-txt {
+            color: #94a3b8; font-family: 'Inter', system-ui, sans-serif;
+            font-size: 13.5px; line-height: 1.7; max-width: 330px;
+        }
+    }
+    @keyframes girar-tel {
+        0%, 25%   { transform: rotate(0deg); }
+        55%, 100% { transform: rotate(-90deg); }
+    }
+
+    /* ---------- Landscape en teléfono: diálogo a la izquierda ---------- */
+    /* La tarjeta ocupa el tercio izquierdo y la escena queda libre. */
+    @media (orientation: landscape) and (max-height: 540px) {
+        #logo-siied { height: 44px !important; top: 8px !important; left: 10px !important; }
+        #intertitulo {
+            justify-content: flex-start; align-items: center;
+            padding: 0 0 0 14px;
+        }
+        #intertitulo .tarjeta { max-width: 42vw; padding: 14px 18px; }
+        #intertitulo .acto { font-size: 10px; letter-spacing: 3px; margin-bottom: 7px; }
+        #intertitulo .texto { font-size: 16px; }
+        #intertitulo .sub { font-size: 11px; margin-top: 7px; }
+        #intertitulo .dato { font-size: 11px; margin-top: 8px; padding-top: 7px; }
+        .ficha-btn { padding: 4px 10px; font-size: 10px; margin-top: 9px; }
+        #hud { bottom: 10px; right: 10px; gap: 6px; }
+        .hud-btn { padding: 8px 10px; font-size: 10px; letter-spacing: 0.5px; }
+        .hud-hint { display: none; }
+        #progreso { height: 20px; }
+        #chip-pausa { font-size: 11px; }
+        #ficha-panel { padding: 12px 84px 12px 12px; }
+        #creditos .tarjeta { max-height: 92vh; overflow-y: auto; padding: 18px 24px; }
     }
 </style>
 
@@ -419,6 +472,13 @@
             </a>
         </div>
     </div>
+</div>
+
+<!-- Solo en portrait de teléfono: obliga a girar a horizontal -->
+<div id="girar">
+    <div class="girar-icono">📱</div>
+    <div class="girar-tit">GIRA TU DISPOSITIVO</div>
+    <div class="girar-txt">La maquila se recorre mejor en horizontal — el relato va a la izquierda y la escena queda libre a la derecha.</div>
 </div>
 
 <div id="ficha-panel">
