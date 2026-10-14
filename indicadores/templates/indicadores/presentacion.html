@@ -106,6 +106,68 @@
         color: #d97706;
     }
 
+    /* ---------- Ficha metodológica (2ª profundidad) ---------- */
+    .ficha-btn {
+        pointer-events: auto;
+        margin-top: 14px;
+        background: #eff6ff; color: #1d4ed8;
+        border: 1px solid #93c5fd; border-radius: 8px;
+        padding: 6px 16px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px; letter-spacing: 2px; cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .ficha-btn:hover { background: #dbeafe; color: #1e40af; }
+    #ficha-panel {
+        position: fixed; inset: 0; z-index: 47; pointer-events: none;
+        display: flex; align-items: center; justify-content: flex-end;
+        padding: 24px 96px 24px 24px;   /* deja libre el HUD inferior-der */
+    }
+    #ficha-panel .ficha-doc {
+        width: min(430px, 92vw);
+        background: #f8fafc; color: #0f172a;
+        border: 1px solid #93c5fd; border-left: 4px solid #2563eb;
+        border-radius: 12px; padding: 22px 26px;
+        box-shadow: 0 24px 70px rgba(2,12,27,0.6);
+        font-family: 'Inter', system-ui, sans-serif;
+        transform: translateX(46px); opacity: 0;
+        transition: transform 0.35s ease, opacity 0.35s ease;
+        pointer-events: none;   /* el overlay nunca bloquea: solo la tarjeta visible */
+    }
+    #ficha-panel.visible .ficha-doc { transform: none; opacity: 1; pointer-events: auto; }
+    .ficha-head { display: flex; justify-content: space-between; align-items: center; }
+    .ficha-tag {
+        font-family: 'JetBrains Mono', monospace; font-size: 10px;
+        letter-spacing: 3px; color: #0284c7; text-transform: uppercase;
+    }
+    #btn-ficha-cerrar {
+        background: none; border: 1px solid #cbd5e1; border-radius: 6px;
+        color: #64748b; cursor: pointer; padding: 2px 9px; font-size: 12px;
+    }
+    #btn-ficha-cerrar:hover { color: #0f172a; border-color: #94a3b8; }
+    .ficha-doc h3 {
+        margin: 10px 0 8px; font-size: 17px; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .ficha-doc p { font-size: 13.5px; line-height: 1.65; color: #334155; margin: 0; }
+    .ficha-pie {
+        margin-top: 14px; padding-top: 10px; border-top: 1px dashed #cbd5e1;
+        font-family: 'JetBrains Mono', monospace; font-size: 10px;
+        letter-spacing: 1px; color: #94a3b8;
+    }
+    .hud-btn[disabled] { opacity: 0.35; cursor: default; }
+    .hud-btn[disabled]:hover { background: rgba(15,27,41,0.82); color: #93c5fd; }
+
+    /* ---------- Strip de memoria en el intro ---------- */
+    .memoria-strip {
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; flex-wrap: wrap; margin-top: 18px;
+        font-family: 'JetBrains Mono', monospace; font-size: 11px;
+        color: #94a3b8; letter-spacing: 0.5px;
+    }
+    .memoria-strip b { color: #38bdf8; font-weight: 700; }
+    .memoria-strip i { color: #334155; font-style: normal; }
+
     /* Accesibilidad: sin grano ni parpadeo si el usuario lo pide */
     @media (prefers-reduced-motion: reduce) {
         #grano, #parpadeo-pelicula { display: none; }
@@ -281,6 +343,7 @@
         <div class="texto" id="inter-texto"></div>
         <div class="sub" id="inter-sub"></div>
         <div class="dato" id="inter-dato"></div>
+        <button id="btn-ficha-acto" class="ficha-btn" style="display:none">▤ FICHA METODOLÓGICA <span class="hud-hint">[F]</span></button>
     </div>
 </div>
 
@@ -289,6 +352,12 @@
         <img src="{% static 'indicadores/images/siied-logo.png' %}" alt="SIIED" style="height:88px;margin-bottom:16px;filter:drop-shadow(0 0 14px rgba(255,255,255,.9)) drop-shadow(0 0 5px rgba(255,255,255,.6));">
         <div class="subtitulo">El Sistema Integrado de Información Estadística Distrital</div>
         <div class="subtitulo">Santiago de Cali</div>
+        <div class="memoria-strip">
+            <span><b>1986</b> Cali en Cifras</span><i>→</i>
+            <span><b>2012</b> SIS</span><i>→</i>
+            <span><b>2016</b> Marco normativo</span><i>→</i>
+            <span><b>2025</b> SIIED</span>
+        </div>
         <div style="margin-top:28px">
             <button id="btn-play">▶ INICIAR</button>
         </div>
@@ -318,6 +387,22 @@
             Departamento Administrativo de Desarrollo e Innovación Institucional (DADII) · Alcaldía de Santiago de Cali
         </div>
         <button id="btn-replay">↺ REINICIAR</button>
+        <a href="{% url 'indicadores:presentacion_slides' %}" id="btn-diapositivas"
+           style="display:inline-block;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:#0284c7;text-decoration:none;border:1px solid #93c5fd;border-radius:8px;padding:8px 18px;">
+            ▤ VERSIÓN EN DIAPOSITIVAS — con rigor metodológico
+        </a>
+    </div>
+</div>
+
+<div id="ficha-panel">
+    <div class="ficha-doc">
+        <div class="ficha-head">
+            <span class="ficha-tag">Ficha metodológica</span>
+            <button id="btn-ficha-cerrar" title="Cerrar [F / ESC]">✕</button>
+        </div>
+        <h3 id="ficha-titulo"></h3>
+        <p id="ficha-cuerpo"></p>
+        <div class="ficha-pie">MARCO · LEY 2335 DE 2023 · SISTEMA ESTADÍSTICO NACIONAL</div>
     </div>
 </div>
 
@@ -326,6 +411,7 @@
     <button class="hud-btn" id="btn-pausa">⏸ PAUSAR <span class="hud-hint">[ESPACIO]</span></button>
     <button class="hud-btn" id="btn-sig" title="Módulo siguiente [→]">MÓDULO ▶</button>
     <button class="hud-btn" id="btn-libre">CÁMARA LIBRE <span class="hud-hint">[L]</span></button>
+    <button class="hud-btn" id="btn-ficha" disabled title="Ficha metodológica del acto [F]">▤ FICHA <span class="hud-hint">[F]</span></button>
     <button class="hud-btn" id="btn-salir" title="Volver [ESC]">✕ SALIR</button>
 </div>
 <div id="chip-pausa">⏸ PAUSA — cámara libre: orbita con el mouse · ◀ ▶ o la barra navegan el recorrido</div>
@@ -5381,6 +5467,44 @@ new GLTFLoader().load(
     () => { console.warn('[siied] GLB no cargó — operarios procedurales'); crearPlanta(); }
 );
 
+// ============ MURO DE MEMORIA — el pasillo antes de la fábrica ============
+// Cuatro placas en la explanada sur (z≈26, zona libre entre el logo SIIED
+// y la ventanilla): la historia del dato en Cali ANTES de entrar a la
+// maquila. La cámara la recorre en los actos de apertura (MEMORIA).
+{
+    const memoria = new THREE.Group();
+    memoria.position.set(16, 0, 26);
+    const matMuro = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+    const matBase = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    // zócalo y muro
+    const zocalo = new THREE.Mesh(new THREE.BoxGeometry(20.5, 0.5, 1.2), matBase);
+    zocalo.position.y = 0.25; memoria.add(zocalo);
+    const muro = new THREE.Mesh(new THREE.BoxGeometry(19.6, 3.4, 0.4), matMuro);
+    muro.position.y = 2.1; muro.castShadow = true; memoria.add(muro);
+    // cabezote
+    const cabezote = crearCartel('MEMORIA ESTADÍSTICA DEL DISTRITO', 'el dato en Cali · 1986 → hoy', 9);
+    cabezote.position.set(0, 4.6, 0.22); memoria.add(cabezote);
+    const posteC = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.0, 0.16), matBase);
+    posteC.position.set(0, 3.85, 0); memoria.add(posteC);
+    // 4 placas — cara sur (+z) hacia quien llega
+    const hitos = [
+        ['1986 · CALI EN CIFRAS', 'anuario estadístico · 14 capítulos'],
+        ['2012 · SIS',            'integración automatizada de fuentes'],
+        ['2016 · MARCO NORMATIVO','D. 0516 · Ley 2335/2023 · PGIE'],
+        ['2025 · SIIED',          'la plataforma unificada'],
+    ];
+    hitos.forEach(([t, s], i) => {
+        const placa = crearCartel(t, s, 4.2);
+        placa.position.set(-7.05 + i * 4.7, 2.1, 0.24);
+        memoria.add(placa);
+        // marco de la placa
+        const marco = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1.5, 0.06), matBase);
+        marco.position.set(-7.05 + i * 4.7, 2.1, 0.16);
+        memoria.add(marco);
+    });
+    scene.add(memoria);
+}
+
 // ============ TIMELINE / ACTOS ============
 // cam[0] = posición (o OFFSET del camión si `sigue`), cam[1] = mira.
 //
@@ -5400,31 +5524,41 @@ const ACTOS_TODOS = [
     // que lo controla todo antes de publicar → nivel estratégico.
     { t0: 0,   t1: 8,   acto: '', texto: 'SIIED', sub: 'Sistema Integrado de Información Estadística Distrital · Alcaldía de Santiago de Cali', pan: true,
       dato: 'Seguiremos un dato real de principio a fin: las proyecciones de población del DANE y lo que Cali hace con ellas.',
-      cam: [[0, 30, 55], [0, 5, -4]] },
+      cam: [[0, 30, 55], [0, 5, -4]],
+      ficha: 'El SIIED integra personas, procesos y tecnología para la gestión de la información estadística oficial del Distrito. Lo opera la Subdirección de Desarrollo Integral del DAP dentro del Sistema Estadístico Nacional. Marco: Ley 2335 de 2023 y Decreto 411.0.20.0516 de 2016.' },
     { t0: 8,   t1: 17,  acto: 'Paneo', texto: 'El producto visible', sub: 'lo que consulta la ciudadanía: indicadores, gráficos y conjuntos abiertos publicados en el portal', pan: true,
       dato: 'Todo lo que produce esta plataforma termina en una pantalla como esta — indicadores, gráficos y conjuntos abiertos para cualquiera.',
-      cam: [[57, 5, 19], [62, 3.8, 7]] },   // muro de TVs, plaza este
+      cam: [[57, 5, 19], [62, 3.8, 7]],   // muro de TVs, plaza este
+      ficha: 'El portal publica indicadores con fichas técnicas MSD/SDMX, conjuntos con microdatos descargables, visor comparativo, mapas interactivos y una API abierta sin registro. Don Datico, el asistente con IA, responde consultas en lenguaje natural.' },
     { t0: 17,  t1: 25,  acto: 'Paneo', texto: 'El origen del sistema', sub: `censo de conjuntos primarios de datos de ${STATS.organismos} organismos, con prediagnóstico de riesgos`, pan: true,
       dato: 'Antes de producir hay que saber qué existe: el censo y el prediagnóstico ordenan qué conjuntos primarios y qué organismos entran primero.',
-      cam: [[-36, 9, 11], [-25, 4.9, -2.4]] },
+      cam: [[-36, 9, 11], [-25, 4.9, -2.4]],
+      ficha: 'El censo de conjuntos primarios de datos inventaría las fuentes de los organismos inscritos; el prediagnóstico evalúa riesgos de publicación bajo criterios OCHA y ordena qué organismo entra primero al sistema.' },
     // --- Estanterías: cada inventario, una por una ---
     { t0: 25,  t1: 33,  acto: 'Paneo', texto: 'Estantería de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`, pan: true,
-      cam: [[44, 5.5, 12], [51.3, 4, 2.4]] },
+      cam: [[44, 5.5, 12], [51.3, 4, 2.4]],
+      ficha: 'Clasificación MARIAE: los datos se agrupan por afinidad temática en 4 dominios, en la jerarquía Dominio → Tema → Subtema → Indicador — estructura lógica ordenada que permite analizar relaciones entre indicadores.' },
     { t0: 33,  t1: 41,  acto: 'Paneo', texto: 'Inventario de operaciones estadísticas', sub: 'cada operación con su ficha metodológica y su enlace al ADDA', pan: true,
-      cam: [[-18, 6, 14], [-10.5, 2.4, 7.2]] },   // almacén almOP
+      cam: [[-18, 6, 14], [-10.5, 2.4, 7.2]],   // almacén almOP
+      ficha: 'Cada operación estadística oficial tiene ficha metodológica, diccionario de datos y enlace al ADDA — el catálogo que documenta la producción distrital bajo DDI y Dublin Core.' },
     { t0: 41,  t1: 49,  acto: 'Paneo', texto: 'El catálogo de consulta', sub: 'listados del anuario Cali en Cifras documentados con metadatos DDI', pan: true,
-      cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },    // almacén almCAT
+      cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]],    // almacén almCAT
+      ficha: 'Cali en Cifras, periódico desde 1987, consolidó 14 capítulos — de Generalidades a SISBEN. Sus 527 indicadores migrados son hoy series de tiempo procesables con metadatos DDI.' },
     { t0: 49,  t1: 57,  acto: 'Paneo', texto: 'La hoja de vida de los organismos', sub: 'expediente ICED: ecosistema de datos, satisfacción del usuario y capacidad medida organismo por organismo', pan: true,
-      cam: [[18, 6.5, -4], [29, 3.5, -11]] },     // almacén almHALL
+      cam: [[18, 6.5, -4], [29, 3.5, -11]],     // almacén almHALL
+      ficha: 'El ICED adapta metodológicamente el ICET del DANE: condiciones institucionales, recursos humanos y tecnológicos, aplicación de métodos estadísticos y accesibilidad de la información. Los informes 2024 y 2025 definen acciones de fortalecimiento.' },
     // --- Los 3 roles y su origen: observatorios + Comité ---
     { t0: 57,  t1: 65,  acto: 'Paneo', texto: 'Tres roles lo alimentan', sub: 'los observatorios de los organismos y el Comité de Gestión surten de trabajo a recolección, delegado y editorial', pan: true,
       dato: 'Recolección trae lo del equipo técnico, el delegado lo de cada organismo y editorial lo público — los tres llegan desde los observatorios y el Comité.',
-      cam: [[62, 7, 6], [44, 2, -8]] },    // camiones llegando desde el lado del observatorio
+      cam: [[62, 7, 6], [44, 2, -8]],    // camiones llegando desde el lado del observatorio
+      ficha: 'El Comité de Gestión del ecosistema define lineamientos, dominios y prioridades; los observatorios de los organismos generan la materia prima que surte a recolección, delegado y editorial.' },
     // --- Las 5 bandas: paneo por cada una ---
     { t0: 65,  t1: 73,  acto: 'Paneo', texto: 'Banda de generación de datos', sub: 'lo que procesa: operación estadística → conjunto de datos → control de calidad → series → extracción → ficha técnica MSD → difusión', pan: true,
-      cam: [[-34, 7, 10], [20, 2.4, 4]] },  // barrido de toda la línea D (D1+D2)
+      cam: [[-34, 7, 10], [20, 2.4, 4]],  // barrido de toda la línea D (D1+D2)
+      ficha: 'La cadena sigue el modelo GSBPM de la CEPE-ONU y los lineamientos del DANE: operación estadística → conjunto → control de calidad → series → extracción → ficha técnica MSD → difusión.' },
     { t0: 73,  t1: 81,  acto: 'Paneo', texto: 'Banda de capacidad estadística', sub: 'lo que procesa: evaluación estratégica → satisfacción ciudadana → evaluación táctica → formulario FICED → validación', pan: true,
-      cam: [[-14, 6, -5], [10, 2.5, -14.7]] }, // barrido a lo largo de la banda C
+      cam: [[-14, 6, -5], [10, 2.5, -14.7]], // barrido a lo largo de la banda C
+      ficha: 'Dos mediciones retroalimentan el ecosistema: el FICED mide la capacidad instalada de cada organismo y la encuesta de satisfacción evalúa utilidad, relevancia y accesibilidad (2 preguntas de referencia + 7 de satisfacción).' },
     { t0: 81,  t1: 85,  acto: 'Paneo', texto: 'Línea editorial', sub: 'lo que procesa: noticias, portada y calendario de eventos', pan: true,
       cam: [[-24, 5, 16], [-14, 1.5, 12]] },
     { t0: 85,  t1: 89,  acto: 'Paneo', texto: 'Línea de aprendizaje', sub: 'lo que procesa: productos académicos y educativos para cada público', pan: true,
@@ -5437,7 +5571,8 @@ const ACTOS_TODOS = [
       cam: [[4, 9, 18], [-2, 2.5, 4]] },
     { t0: 100, t1: 108, acto: 'Paneo', texto: 'El módulo de administración lo controla todo', sub: 'nada se publica sin pasar por aquí: fichas MSD, reglas de extracción, validación de cargas y capas geográficas', pan: true,
       dato: 'La administración decide qué sale y qué se devuelve — todo lo que los roles traen queda pre-aprobado hasta que este módulo lo autorice.',
-      cam: [[-2, 9, 20], [4.5, 8.8, 11.3]] },
+      cam: [[-2, 9, 20], [4.5, 8.8, 11.3]],
+      ficha: 'Las cargas de los roles quedan pre-aprobadas hasta que la administración las autorice: aquí se configuran fichas MSD, reglas de extracción, validación de cargas y capas geográficas.' },
     { t0: 108, t1: 114, acto: 'Paneo', texto: 'Todo llega al nivel estratégico', sub: 'la producción de datos y la medición de capacidades terminan en la reunión técnica DAPD · DADII · DATIC · CDO', pan: true,
       dato: 'En esta mesa se evalúa el ecosistema: qué produjo la banda de datos, qué midió la de capacidad y qué sale por las líneas de servicio.',
       cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // entra por el vidrio sur
@@ -5450,17 +5585,21 @@ const ACTOS_TODOS = [
     // ======= B: MÓDULOS DE ACCESO — la cámara los SIGUE =======
     { t0: 130,  t1: 146, acto: 'Módulo 01', texto: 'RECOLECCIÓN', sub: 'suministro técnico: carga series y conjuntos con las plantillas normalizadas del equipo, y registra operaciones',
       dato: 'El DANE entrega al Distrito sus proyecciones de población actualizadas. Es el insumo: población total de Cali por año, edad y sexo.',
-      cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camRec' },
+      cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camRec',
+      ficha: 'El equipo técnico carga series y conjuntos con las plantillas normalizadas del equipo y registra las operaciones estadísticas del inventario distrital.' },
     { t0: 146, t1: 162, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'cada organismo carga sus series y conjuntos desde su portal: cargas parciales e incrementales, a prueba de errores',
       dato: 'Vea la barrera: el rol del delegado se detiene en el punto de validación. Todo lo que un organismo cargue — series, conjuntos, el FICED — queda pre-aprobado antes de tocar la banda. Y no solo trae el dossier: descarga en la banda de calidad, da la vuelta por el oeste y entrega también los indicadores del organismo del otro lado del taller.',
-      cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel' },
+      cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel',
+      ficha: 'Cada organismo carga desde su portal con cargas parciales e incrementales, a prueba de errores; todo queda pre-aprobado en el punto de validación antes de tocar la banda.' },
     { t0: 162, t1: 180, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'la voz pública: noticias, productos, catálogo, menús y calendarios — autónoma: no pasa por recolección ni pide autorización',
       dato: 'El rol editorial no para en validación y gestiona nueve funciones: noticias, productos académicos y educativos, el catálogo de consulta, los menús de sistemas de consulta, productos de información e infraestructura, el calendario de eventos y el de difusión — y edita los gráficos de los indicadores que procesa el admin.',
-      cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi' },
+      cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi',
+      ficha: 'Nueve funciones autónomas: noticias, productos académicos y educativos, catálogo de consulta, menús de consulta, productos de información e infraestructura, calendario de eventos y de difusión, y gráficos de indicadores.' },
     // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
     { t0: 180, t1: 188, acto: 'Módulo 04', texto: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
       dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — así arranca la segunda banda, la de capacidad estadística.',
-      cam: [[-13, 9.5, 7], [-24.5, 5.0, -2.6]] },
+      cam: [[-13, 9.5, 7], [-24.5, 5.0, -2.6]],
+      ficha: 'El taller del DADII realiza el censo de fuentes de datos y el prediagnóstico de riesgos OCHA. Las seis rutas LADY de asistencia técnica acompañan a los organismos: metadatos, operaciones y registros, socialización de lineamientos, actualización en sistemas, fortalecimiento y observatorios.' },
     { t0: 188, t1: 194, acto: 'Sala', texto: 'Equipo técnico DADII', sub: 'el segundo piso del taller: la junta revisa el censo y el prediagnóstico organismo por organismo',
       cam: [[-19.5, 8.4, 1.6], [-26, 7.3, -2.5]] },
     { t0: 194, t1: 200, acto: 'Sala', texto: 'Equipo técnico', sub: 'la cabina de administración: carga indicadores con el procesador de la torre y configura fichas MSD, dominios, reglas y capas geográficas', pan: true,
@@ -5472,58 +5611,70 @@ const ACTOS_TODOS = [
       cam: [[-17, 1.5, -0.8], [-19.2, 0.9, -1.4]] },   // archivador NO
     { t0: 208, t1: 212, acto: 'Torre', texto: 'MÓDULO DE ADMINISTRACIÓN', sub: 'centro de control junto a la explanada: la administración opera desde las consolas, no desde una máquina', pan: true,
       dato: 'Cinco consolas: extracción y cálculo automático de indicadores desde conjuntos, validación de las cargas de recolección, gestor de capas geoestadísticas, gestor de variables y desagregaciones — y Don Datico.',
-      cam: [[-2, 9, 20], [4.5, 8.8, 11.3]] },   // consolas + cartel de la torre en cuadro
+      cam: [[-2, 9, 20], [4.5, 8.8, 11.3]],   // consolas + cartel de la torre en cuadro
+      ficha: 'Cinco consolas: extracción y cálculo automático de indicadores, validación de cargas, gestor de capas geoestadísticas, gestor de variables y desagregaciones, y el asistente Don Datico que el administrador entrena con el contenido publicado.' },
     { t0: 212, t1: 218, acto: 'Sala', texto: 'Equipo técnico SIIED', sub: 'escritorios, monitores y el archivador de fichas cargadas', pan: true,
       dato: 'Sin ficha MSD, sin dominios y sin regla de extracción, ningún rol mueve nada. Y cuando la metodología esté escrita, la cargará editorial: cada módulo hace lo suyo.',
       cam: [[-24, 4, 7], [-17, 1.6, -0.8]] },
     // ======= D: CADENA DE DATOS — estación por estación =======
     { t0: 218, t1: 232, acto: 'Módulo 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'inventario distrital de operaciones (OOEE): cada una con enlace al ADDA y a sus documentos metodológicos',
       dato: 'La operación nació primero en el ADDA, la plataforma de datos abiertos del Distrito. Aquí entra al inventario con su enlace, su ficha metodológica y su diccionario de datos.',
-      cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]] },
+      cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]],
+      ficha: 'El ADDA describe organismo responsable, área temática, metodología de recolección y acceso a microdatos. Una operación recorre las 8 fases de la Ley 2335 de 2023: necesidades → diseño → construcción → recolección → procesamiento → análisis → difusión → evaluación.' },
     { t0: 232, t1: 244, acto: 'Módulo 06', texto: 'INGESTA DE CONJUNTOS', sub: 'microdatos documentados con DDI completo: identificación, universo, cobertura, método y condiciones de uso',
       dato: 'La operación produce UN conjunto de datos: población proyectada por año × edad simple × sexo × comuna/corregimiento. Es la base de todo lo que sigue.',
-      cam: [[-7, 5, 12], [-1, 2.4, 0]] },
+      cam: [[-7, 5, 12], [-1, 2.4, 0]],
+      ficha: 'Microdatos documentados con DDI completo: identificación, universo, cobertura, método de recolección y condiciones de uso — el estándar internacional de archivos de datos.' },
     { t0: 244, t1: 256, acto: 'Módulo 07', texto: 'Catálogo de consulta', sub: 'listados del anuario Cali en Cifras — los gestiona el módulo editorial; ningún rol los trae',
       dato: 'Este conjunto NO pasa por aquí. El catálogo publica tablas de referencia; la población proyectada no es un listado: continúa su camino hacia el estatus de indicador.',
-      cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]] },
+      cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]],
+      ficha: 'El catálogo publica los listados del anuario Cali en Cifras como tablas de referencia documentadas — lo gestiona el módulo editorial, ningún rol los trae.' },
     { t0: 256, t1: 268, acto: 'Módulo 08', texto: 'CONTROL DE CALIDAD Y DESAGREGACIÓN', sub: 'dominios de desagregación declarados, totales verificados y bitácora de cambios',
       dato: 'Se declaran los dominios: sexo, grupo de edad, comuna, corregimiento. La suma de las 22 comunas y 15 corregimientos debe coincidir con el total distrital del DANE. Si no cuadra, no pasa.',
-      cam: [[3.5, 4.5, 11], [6.5, 2.2, -0.2]] },
+      cam: [[3.5, 4.5, 11], [6.5, 2.2, -0.2]],
+      ficha: 'Verificación bajo la NTC PE 1000:2020: validación de fuentes, coherencia de datos y consistencia de totales frente al origen, con dominios de desagregación declarados y bitácora de cambios para trazabilidad.' },
     { t0: 268, t1: 280, acto: 'Módulo 09', texto: 'SERIES DE INDICADORES', sub: 'cada indicador con su metadata: objetivo, método, fórmula y variables',
       dato: 'Del conjunto se derivan indicadores: pirámide poblacional por comuna, población por sexo, estructura por grupos de edad. Cada uno con fórmula explícita sobre el conjunto fuente.',
       cam: [[11, 4.5, 11], [14, 2.2, -0.2]] },
     { t0: 280, t1: 292, acto: 'Módulo 10', texto: 'REPORTES Y AUDITORÍA', sub: 'tablero de monitoreo de la plataforma: indicadores sin datos, series desactualizadas, completitud MSD+SDMX, producción mensual y trazabilidad',
       dato: 'Cuando la pirámide llegue, este tablero debe prenderse en verde: con datos, sin alertas, ficha completa. Si algo falta, aparece aquí antes que afuera.',
-      cam: [[18.5, 4.5, 11], [21.5, 2.2, -0.2]] },
+      cam: [[18.5, 4.5, 11], [21.5, 2.2, -0.2]],
+      ficha: 'El tablero monitorea completitud MSD+SDMX, indicadores sin datos, series desactualizadas, producción mensual y trazabilidad de las cargas — las alertas aparecen aquí antes que afuera.' },
     { t0: 292, t1: 304, acto: 'Módulo 11', texto: 'EXTRACCIÓN', sub: 'del conjunto a las series: el administrador define para cada indicador las columnas fuente, la fórmula y el orden de desagregaciones',
       dato: 'La regla de extracción recorta el conjunto: para la pirámide de la comuna 13, hombres y mujeres por grupo quinquenal, año a año.',
       cam: [[26, 4.5, 11], [29, 2.2, -0.2]] },
     { t0: 304, t1: 316, acto: 'Módulo 12', texto: 'METADATOS · FICHA TÉCNICA', sub: 'ficha técnica del indicador bajo el estándar MSD del DANE, con secciones SDMX: referencias APA y responsable institucional',
       dato: 'Fuente: DANE + operación distrital. Unidad: personas. Periodicidad anual. Desagregaciones: sexo, edad, comuna, corregimiento. Y un responsable de validación con nombre y cargo.',
-      cam: [[33.5, 4.5, 11], [36.5, 2.2, -0.2]] },
+      cam: [[33.5, 4.5, 11], [36.5, 2.2, -0.2]],
+      ficha: 'Ficha técnica bajo el estándar MSD del DANE con secciones SDMX: fuente, unidad de medida, periodicidad, desagregaciones, referencias y responsable institucional de validación.' },
     { t0: 316, t1: 328, acto: 'Módulo 13', texto: 'DIFUSIÓN DEL DATO', sub: 'gráficos, calendario de difusión y API abierta: publicación programada',
       dato: 'La pirámide poblacional de cada comuna queda publicada, con fecha en el calendario y disponible por API para quien la necesite.',
       cam: [[40, 5, 11], [44, 2.4, -0.2]] },
     { t0: 328, t1: 342, acto: 'Módulo 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`,
       dato: 'Los indicadores de población entran al marco Cali en Cifras. Y la plataforma entera gana denominadores: cualquier tasa por habitante del Distrito nace aquí.',
-      cam: [[44, 5.5, 12], [51.3, 4, 2.4]] },
+      cam: [[44, 5.5, 12], [51.3, 4, 2.4]],
+      ficha: 'La batería de seguimiento ODS de Cali suma 85 indicadores: 66 ODS, 8 OCDE, 9 del Sistema de Planeación Territorial, 1 DAFP y 1 del Censo Nacional — origen: CONPES 3918 de 2018, acción 2.5. Las series se clasifican según el ODS al que contribuyen.' },
     // ======= E: LÍNEA DE CAPACIDAD — arrancó en el taller =======
     { t0: 342, t1: 354, acto: 'Módulo 15', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación estratégica inicial: entorno institucional y capacidad de decisión de cada organismo',
       dato: 'Esta banda no empieza aquí: ya venía rodando desde el taller de gestión de datos institucionales — el censo de fuentes y el prediagnóstico pusieron a cada organismo en la fila.',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
     { t0: 354, t1: 366, acto: 'Módulo 16', texto: 'SATISFACCIÓN CIUDADANA', sub: 'la ciudadanía califica la atención estadística de cada organismo: pulso rápido y formulario completo',
-      cam: [[-8, 5, -5], [-8, 2.5, -14.7]] },
+      cam: [[-8, 5, -5], [-8, 2.5, -14.7]],
+      ficha: 'Operación estadística sobre las solicitudes respondidas por canales institucionales: 2 preguntas de referencia + 7 de satisfacción (utilidad, relevancia, accesibilidad) y una abierta. Informe de Seguimiento al Ciudadano trimestral; en fase piloto en equipos del DAP.' },
     { t0: 366, t1: 378, acto: 'Módulo 17', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación táctica y operativa: infraestructura y operación estadística del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
     { t0: 378, t1: 390, acto: 'Módulo 18', texto: 'FICED', sub: 'cinco módulos: identificación → entorno institucional → infraestructura → metodología estadística → accesibilidad y uso',
       dato: 'El ICED es el promedio ponderado de los módulos B a E. Un organismo con metodología estadística débil (módulo D) no llega a esta banda: el sistema lo mide y lo acompaña.',
-      cam: [[8, 5, -5], [8, 2.5, -14.7]] },
+      cam: [[8, 5, -5], [8, 2.5, -14.7]],
+      ficha: 'Formulario ICED en cinco módulos: A identificación, B entorno institucional, C infraestructura, D metodología estadística, E accesibilidad y uso. El ICED pondera B–E; puede diligenciarse por equipos técnicos y conciliarse en un consolidado.' },
     { t0: 390, t1: 402, acto: 'Módulo 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'pre-aprueba todo lo del delegado: el punto de control detiene al rol en la calle y esta sala decide el expediente — series, conjuntos y el FICED — aprobando o devolviendo con observaciones',
       dato: 'La coordinación es contractual: el delegado cargó, el punto de validación lo detuvo y ahora la validación decide. Aprobar devuelve la caja a la banda rumbo a la publicación; devolver la regresa al organismo.',
-      cam: [[16, 5, -5], [16, 2.5, -14.7]] },
+      cam: [[16, 5, -5], [16, 2.5, -14.7]],
+      ficha: 'El validador aprueba, devuelve con observaciones o rechaza — decisión terminal. Cuando el organismo trabaja por equipos técnicos, los formularios parciales se concilian y la decisión se toma sobre el consolidado.' },
     { t0: 402, t1: 414, acto: 'Módulo 20', texto: 'Complejo de capacidad', sub: 'expediente ICED + vitrina de hojas de vida: aquí se decide la capacidad',
       dato: 'La línea de capacidad mide a quien produce el dato, no al dato. Un organismo con baja capacidad estadística produce datos que esta plataforma no puede publicar.',
-      cam: [[18, 6.5, -4], [29, 3.5, -11]] },
+      cam: [[18, 6.5, -4], [29, 3.5, -11]],
+      ficha: 'El expediente del organismo integra el ICED (adaptación del ICET del DANE), el ecosistema de datos y la satisfacción del usuario — la hoja de vida completa de quién produce la estadística.' },
     // ======= F: SALAS DE GOBIERNO — la cámara ENTRA y GIRA =======
     { t0: 414, t1: 420, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el consejo de don Daticos delibera sobre los expedientes ICED', pan: true,
       dato: 'Don Daticos es uno y es todos — y es literal: don Datico es también el asistente del portal, que responde en lenguaje natural sobre indicadores y documentos, y el administrador lo entrena con el contenido publicado.',
@@ -5556,7 +5707,8 @@ const ACTOS_TODOS = [
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
     { t0: 498, t1: 510, acto: 'Módulo 22', texto: 'Línea de aprendizaje', sub: 'productos académicos y educativos para cada público, con gráficos interactivos de los propios indicadores',
       dato: 'El documento metodológico de la operación vive aquí, publicado para cualquiera: otro distrito puede replicar el método, y cualquier estadístico puede refutarlo.',
-      cam: [[-14, 4, 24], [-14, 1.5, 18]] },
+      cam: [[-14, 4, 24], [-14, 1.5, 18]],
+      ficha: 'Productos académicos y educativos para cada público: la documentación metodológica publicada hace la operación reproducible y refutable — transparencia como principio del sistema.' },
     { t0: 510, t1: 522, acto: 'Módulo 23', texto: 'Línea de agenda', sub: 'calendario de difusión estadística y agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
     // ======= H: CIUDADANÍA =======
@@ -5575,14 +5727,34 @@ const ACTOS_TODOS = [
       cam: [[0, 18, 38], [0, 3, -4]], finale: true },
 ];
 
+// ======= 0: MEMORIA — el pasillo antes de la fábrica (30 s) =======
+// Cuatro hitos frente al muro de la explanada sur (z≈26): la línea de
+// tiempo explícita que pediría un público académico, antes de entrar a
+// la maquila. En MODO_CORTO se omite — el corto es solo el paneo.
+const MEMORIA = [
+    { t0: 0,  t1: 9,  acto: 'Memoria', texto: '1986 · CALI EN CIFRAS', sub: 'el anuario estadístico nació para los 450 años de la ciudad — periódico desde 1987', pan: true,
+      ficha: 'El anuario Cali en Cifras consolidó 14 capítulos temáticos — de Generalidades a SISBEN. Sus 527 indicadores migraron al SIIED como series de tiempo procesables.',
+      cam: [[0, 24, 46], [0, 3, -4]] },          // aproximación aérea
+    { t0: 9,  t1: 16, acto: 'Memoria', texto: '2012 · EL SIS', sub: 'el Sistema de Información Estadística automatizó la integración de las fuentes distritales', pan: true,
+      cam: [[26, 4.5, 36], [10, 2.2, 26.2]] },   // placas oeste del muro
+    { t0: 16, t1: 23, acto: 'Memoria', texto: '2016 · MARCO NORMATIVO', sub: 'Decreto 0516 · Ley 2335 de 2023 · PGIE — el Distrito dentro del Sistema Estadístico Nacional', pan: true,
+      ficha: 'Marco normativo del ecosistema: Decreto 411.0.20.0516 de 2016, Ley 2335 de 2023 (Sistema Estadístico Nacional), PGIE (Decreto 454 de 2020) y CONPES 3918 de 2018 para el seguimiento territorial de los ODS.',
+      cam: [[8, 4, 35], [23, 2.2, 26.2]] },      // placas este del muro
+    { t0: 23, t1: 30, acto: 'Memoria', texto: '2025 · EL SIIED', sub: 'todo se consolida en una sola plataforma — esta maquila', pan: true,
+      cam: [[16, 7, 38], [16, 2.6, 26.4]] },     // se aleja del muro hacia la apertura
+];
+
 // MODO CORTO (?corto=1): sólo el paneo (130 s) + final. Para abrir una
 // charla sin consumir los ~10 min; el detalle se muestra después con
 // PAUSA + cámara libre.
 const MODO_CORTO = new URLSearchParams(location.search).has('corto');
+const DESFASE_MEMORIA = 30;   // el show largo arranca tras la memoria
 const ACTOS = MODO_CORTO
     ? [...ACTOS_TODOS.filter(a => a.t1 <= 130),
        { ...ACTOS_TODOS[ACTOS_TODOS.length - 1], t0: 130, t1: 160 }]
-    : ACTOS_TODOS;
+    : [...MEMORIA, ...ACTOS_TODOS.map(a => ({
+        ...a, t0: a.t0 + DESFASE_MEMORIA, t1: a.t1 + DESFASE_MEMORIA,
+      }))];
 const DURACION = ACTOS[ACTOS.length - 1].t1;
 
 const elIntertitulo = document.getElementById('intertitulo');
@@ -5662,6 +5834,12 @@ function tickIntertitulos(t) {
             clearTimeout(timerIntertitulo);
             timerIntertitulo = setTimeout(() => elIntertitulo.classList.remove('visible'), ms);
         }
+        // Ficha metodológica: botón visible solo en actos que la tienen;
+        // si está abierta, ◀▶ actualiza el contenido o la cierra
+        const tieneFicha = !!(a && a.ficha);
+        btnFichaActo.style.display = tieneFicha ? '' : 'none';
+        btnFicha.disabled = !tieneFicha;
+        if (fichaAbierta) tieneFicha ? pintarFicha(a) : cerrarFicha();
         // El marcador del dato viaja al punto de mira del acto
         if (a && a.dato && !a.sigue) {
             marcadorDato.objetivo.fromArray(a.cam[1]); marcadorDato.objetivo.y += 2.6;
@@ -5799,6 +5977,8 @@ function toggleLibre() {
 }
 document.getElementById('btn-libre').addEventListener('click', toggleLibre);
 document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'f') { toggleFicha(); return; }
+    if (e.key === 'Escape' && fichaAbierta) { cerrarFicha(); return; }
     if (e.key.toLowerCase() === 'l') toggleLibre();
     if (e.key === ' ') { e.preventDefault(); togglePausa(); }
     if (e.key === 'ArrowLeft') buscarActo(-1);
@@ -5833,6 +6013,44 @@ function togglePausa() {
     }
 }
 btnPausa.addEventListener('click', togglePausa);
+
+// ============ FICHA METODOLÓGICA ============
+// Segunda profundidad del show: el público ve el recorrido limpio y
+// quien quiera la credencial abre la ficha del acto — desde el botón
+// de la tarjeta, el HUD o la tecla [F]. Abrirla pausa el show: la
+// ficha es para leer con calma.
+const elFichaPanel  = document.getElementById('ficha-panel');
+const elFichaTitulo = document.getElementById('ficha-titulo');
+const elFichaCuerpo = document.getElementById('ficha-cuerpo');
+const btnFichaActo  = document.getElementById('btn-ficha-acto');
+const btnFicha      = document.getElementById('btn-ficha');
+let fichaAbierta = false;
+
+function actoConFicha() {
+    const t = reloj ? (pausado ? tPausa : reloj.getElapsedTime() + offsetShow) : 0;
+    const a = ACTOS[actoDe(t)];
+    return a && a.ficha ? a : null;
+}
+function pintarFicha(a) {
+    elFichaTitulo.textContent = a.ficha_titulo || a.texto || a.acto;
+    elFichaCuerpo.textContent = a.ficha;
+}
+function abrirFicha() {
+    const a = actoConFicha();
+    if (!a) return;
+    pintarFicha(a);
+    elFichaPanel.classList.add('visible');
+    fichaAbierta = true;
+    if (iniciado && !pausado) togglePausa();   // leer con calma = pausa
+}
+function cerrarFicha() {
+    elFichaPanel.classList.remove('visible');
+    fichaAbierta = false;
+}
+function toggleFicha() { fichaAbierta ? cerrarFicha() : abrirFicha(); }
+btnFichaActo.addEventListener('click', toggleFicha);
+btnFicha.addEventListener('click', toggleFicha);
+document.getElementById('btn-ficha-cerrar').addEventListener('click', cerrarFicha);
 
 // ============ MARCADOR DEL DATO PROTAGONISTA ============
 // Un rombo ámbar con halo que flota sobre la estación donde está
