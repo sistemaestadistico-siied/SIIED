@@ -5090,7 +5090,7 @@ const hudAncla = new THREE.Group();   // se pega a la cámara cada frame
 escHUD.add(hudAncla);
 let loroHUD = crearDonDatico();   // respaldo si el GLB no carga
 loroHUD.scale.setScalar(0.24);
-loroHUD.position.set(2.15, -1.0, -4.4);   // a la derecha de la tarjeta
+loroHUD.position.set(2.15, -1.0, -4.4);   // el tick lo recoloca encima de la tarjeta
 loroHUD.rotation.y = -0.55;               // de tres cuartos hacia ella
 hudAncla.add(loroHUD);
 hudAncla.visible = false;
@@ -5104,20 +5104,21 @@ function tickDaticoHUD(dt, t) {
     const d = daticoHUD;
     // Hover: bob + vaivén suave + banqueo — el vuelo lo da el clip
     // sintetizado; de frente al espectador con leve inclinación.
-    // En pantalla angosta (móvil) la tarjeta ocupa todo el ancho y es
-    // un overlay DOM: el Datico 3D siempre queda DETRÁS → hay que
-    // subirlo sobre el borde superior real de la tarjeta, centrado
+    // La tarjeta real es .tarjeta — #intertitulo es un overlay a
+    // pantalla completa (su top es 0). El Datico va ENCIMA del borde
+    // superior de la tarjeta, centrado sobre ella: en escritorio la
+    // tarjeta vive abajo-izquierda y en landscape de teléfono docked
+    // a la izquierda — el loro la corona y no tapa la escena.
     const movil = window.innerWidth < 720;
-    let hx = 1.95, hy = -1.05, esc = 0.45;
-    if (movil) {
-        // La tarjeta real es .tarjeta — #intertitulo es un overlay a
-        // pantalla completa (su top es 0 y el Datico salía hasta arriba)
-        const r = elIntertitulo.querySelector('.tarjeta').getBoundingClientRect();
-        const halfH = Math.tan(camera.fov * Math.PI / 360) * 4.4;   // semi-alto HUD
-        hy = Math.min((0.5 - r.top / window.innerHeight) * 2 * halfH + 0.55,
-                      halfH - 0.45);
-        hx = 0.4; esc = 0.30;
-    }
+    const r = elIntertitulo.querySelector('.tarjeta').getBoundingClientRect();
+    const halfH = Math.tan(camera.fov * Math.PI / 360) * 4.4;   // semi-alto HUD
+    const halfW = halfH * camera.aspect;                      // semi-ancho HUD
+    const hy = Math.min((0.5 - r.top / window.innerHeight) * 2 * halfH + 0.55,
+                        halfH - 0.45);
+    const hx = Math.max(-halfW + 0.55,
+                 Math.min(halfW - 0.55,
+                   ((r.left + r.right) / 2 / window.innerWidth - 0.5) * 2 * halfW));
+    const esc = movil ? 0.30 : (window.innerHeight < 540 ? 0.36 : 0.45);
     if (loroHUD.scale.x !== esc) loroHUD.scale.setScalar(esc);
     loroHUD.position.x = hx + Math.sin(t * 0.5) * 0.18;
     loroHUD.position.y = hy + Math.sin(t * 1.4) * 0.08;
