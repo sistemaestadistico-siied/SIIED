@@ -2730,7 +2730,7 @@ class SuborganismoAdmin(admin.ModelAdmin):
     total_equipos.short_description = 'Equipos'
     
     def total_participantes(self, obj):
-        total = obj.participantes_taller.count()
+        total = obj.inscripciones_taller.count()
         if total > 0:
             return format_html('<span style="font-weight: bold; color: #007bff;">{}</span>', total)
         return '-'
@@ -2767,7 +2767,7 @@ class EquipoOrganismoAdmin(admin.ModelAdmin):
     total_respuestas.short_description = 'Respuestas Satisfacción'
     
     def total_participantes_taller(self, obj):
-        total = obj.participantes_taller.count()
+        total = obj.inscripciones_taller.count()
         if total > 0:
             return format_html('<span style="font-weight: bold; color: #17a2b8;">{}</span>', total)
         return '-'
