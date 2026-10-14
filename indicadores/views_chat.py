@@ -3143,6 +3143,90 @@ class ChatService:
                 logger.error(f"❌ Error en Cerebras API (no 429): {e}")
                 raise
 
+    # ------------------------------------------------------------------
+    # Respuestas estructuradas (JSON Schema)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_structured_json(content):
+        """Extrae el primer objeto JSON de la respuesta del LLM.
+
+        Tolera fences ```json ... ``` y texto alrededor del objeto.
+        Lanza ValueError si no hay JSON parseable.
+        """
+        if not content:
+            raise ValueError('Respuesta vacía del LLM')
+        text = content.strip()
+        if text.startswith('```'):
+            text = re.sub(r'^```(?:json)?\s*', '', text)
+            text = re.sub(r'\s*```\s*$', '', text)
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            match = re.search(r'\{.*\}', text, re.DOTALL)
+            if not match:
+                raise ValueError('El LLM no devolvió un objeto JSON')
+            return json.loads(match.group(0))
+
+    def generate_structured(self, user_prompt, json_schema,
+                            system_prompt=None,
+                            schema_name='structured_response'):
+        """Genera una respuesta estructurada (dict) según un JSON Schema.
+
+        Reusa la misma cadena de proveedores del chat (principal → fallback)
+        sin tools ni streaming. El cliente es OpenAI-compatible con base_url
+        configurable, así que no asume proveedor: intenta
+        response_format=json_schema y, si el endpoint lo rechaza o devuelve
+        JSON inválido, degrada a {'type': 'json_object'} y finalmente a
+        JSON pedido por prompt. Última línea de defensa: el schema viaja
+        también en el prompt, así el modo prompt-only sigue siendo útil.
+
+        Retorna el dict parseado. Lanza ValueError si ningún intento
+        produce JSON válido, RuntimeError si todos los proveedores fallan.
+        """
+        sys_content = (system_prompt or
+                       'Eres un asistente que responde ÚNICAMENTE con un '
+                       'objeto JSON válido. Sin explicaciones, sin markdown.')
+        user_content = (
+            f'{user_prompt}\n\n'
+            'Responde SOLO con un objeto JSON que cumpla este schema:\n'
+            f'{json.dumps(json_schema, ensure_ascii=False)}'
+        )
+        messages = [
+            {'role': 'system', 'content': sys_content},
+            {'role': 'user', 'content': user_content},
+        ]
+
+        # Orden de degradación según lo que el endpoint soporte
+        format_candidates = [
+            {'type': 'json_schema', 'json_schema': {
+                'name': schema_name, 'schema': json_schema}},
+            {'type': 'json_object'},
+            None,  # prompt-only: el schema va inline en el user message
+        ]
+
+        last_error = None
+        for fmt in format_candidates:
+            call_kwargs = dict(self.model_config)
+            if fmt is not None:
+                call_kwargs['response_format'] = fmt
+            try:
+                resp = self._call_llm_with_fallback(
+                    messages, stream=False, **call_kwargs)
+                data = self._parse_structured_json(
+                    resp.choices[0].message.content)
+                if isinstance(data, dict):
+                    return data
+                raise ValueError('El LLM devolvió JSON pero no un objeto')
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    f"⚠️ generate_structured falló con "
+                    f"response_format={fmt.get('type') if fmt else 'none'}: {e}")
+                continue
+        raise ValueError(
+            f'No se obtuvo JSON válido del LLM tras {len(format_candidates)} '
+            f'intentos. Último error: {last_error}')
+
     def _should_use_tools(self, user_message: str) -> bool:
 
         texto = user_message
