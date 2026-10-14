@@ -5907,7 +5907,7 @@ function tickIntertitulos(t) {
     const idx = ACTOS.findIndex(a => t >= a.t0 && t < a.t1);
     if (idx !== actoActual) {
         actoActual = idx;
-        const a = ACTOS[Math.max(0, idx)];
+        const a = idx >= 0 ? ACTOS[idx] : null;   // fuera de rango (hueco o t ≥ DURACION): sin diálogo — antes ACTOS[0] se colaba en los créditos
         if (a && (a.texto || a.dato)) {
             elActo.textContent = a.acto;
             elTexto.textContent = a.texto;
@@ -6250,6 +6250,8 @@ function animate() {
         tickIntertitulos(t);             // pero el show sigue narrando
         elProgreso.style.width = `${Math.min(100, (t / DURACION) * 100)}%`;
         if (t >= DURACION && !elCreditos.classList.contains('visible')) {
+            elIntertitulo.classList.remove('visible');   // ningún diálogo residual sobre los créditos
+            clearTimeout(timerIntertitulo);
             elCreditos.classList.add('visible');
             iniciarCreditos();
         }
