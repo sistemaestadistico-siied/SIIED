@@ -101,17 +101,38 @@ def validacion_dashboard(request):
 
     # Formularios ICED pendientes de validación
     try:
-        iced_pendientes = ICEDFormulario.objects.filter(
-            estado='enviado'
-        ).select_related('organismo', 'usuario_diligencia').order_by('-fecha_envio')
+        iced_pendientes = list(
+            ICEDFormulario.objects.filter(estado='enviado')
+            .select_related('organismo', 'usuario_diligencia')
+            .order_by('organismo__nombre', '-periodo', 'equipo')
+        )
+
+        # Formularios de equipo por (organismo, periodo): si el organismo
+        # trabaja con equipos, el validador debe conciliar antes de decidir.
+        from collections import Counter
+        org_ids = {f.organismo_id for f in iced_pendientes}
+        cnt_equipos = Counter(
+            ICEDFormulario.objects
+            .filter(organismo_id__in=org_ids)
+            .exclude(equipo='')
+            .values_list('organismo_id', 'periodo')
+        )
+        for f in iced_pendientes:
+            f.n_equipos_org = cnt_equipos.get((f.organismo_id, f.periodo), 0)
+
+        # Devueltos que el organismo aún no corrige ni reenvía
+        iced_devueltos = ICEDFormulario.objects.filter(
+            estado='devuelto'
+        ).select_related('organismo', 'usuario_diligencia').order_by('-fecha_actualizacion')[:10]
 
         iced_validados_recientes = ICEDFormulario.objects.filter(
             estado='validado'
         ).select_related('organismo').order_by('-fecha_validacion')[:5]
 
-        iced_count = iced_pendientes.count()
+        iced_count = len(iced_pendientes)
     except Exception:
         iced_pendientes = []
+        iced_devueltos = []
         iced_validados_recientes = []
         iced_count = 0
 
@@ -138,6 +159,7 @@ def validacion_dashboard(request):
         'mis_validaciones_series': mis_validaciones_series,
         'mis_validaciones_conjunto_datos': mis_validaciones_conjunto_datos,
         'iced_pendientes': iced_pendientes,
+        'iced_devueltos': iced_devueltos,
         'iced_validados_recientes': iced_validados_recientes,
         'stats': stats,
     }
@@ -761,7 +783,9 @@ def validacion_decidir_iced(request, formulario_id):
         if not observaciones:
             messages.error(request, 'Debes explicar el motivo del rechazo.')
             return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
-        formulario.estado = 'devuelto'
+        # Rechazo terminal: el formulario queda cerrado y no puede
+        # corregirse ni reenviarse (a diferencia de 'devuelto').
+        formulario.estado = 'rechazado'
         formulario.observaciones_validador = observaciones
         formulario.save(update_fields=['estado', 'observaciones_validador'])
 
@@ -771,7 +795,7 @@ def validacion_decidir_iced(request, formulario_id):
         # Notificar por correo al delegado (no bloquea la decisión si falla)
         try:
             from .notifications import notificar_delegado_iced
-            notificar_delegado_iced(formulario, 'devuelto', observaciones)
+            notificar_delegado_iced(formulario, 'rechazado', observaciones)
         except Exception:
             logger.exception('Error notificando rechazo del ICED %s', formulario.pk)
 

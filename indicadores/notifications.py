@@ -700,7 +700,7 @@ def notificar_validadores_nuevo_iced(formulario):
 
 def notificar_delegado_iced(formulario, accion, observaciones=""):
     """Notifica al delegado la decisión del validador sobre su formulario ICED
-    (accion: 'validado' o 'devuelto')."""
+    (accion: 'validado', 'devuelto' o 'rechazado')."""
     usuario = formulario.usuario_diligencia
     if not usuario or not usuario.email:
         logger.warning(f"[NOTIF] notificar_delegado_iced: formulario {formulario.pk} sin usuario/email")
@@ -727,6 +727,16 @@ def notificar_delegado_iced(formulario, accion, observaciones=""):
         )
         cta_url = f"{_get_site_url()}/iced/"
         cta_texto = "Retomar formulario"
+    elif accion == 'rechazado':
+        estado_texto = "rechazado"
+        color = "#dc2626"
+        resumen = (
+            f"Su formulario ICED {formulario.periodo} fue rechazado por el equipo técnico del SIIED. "
+            "Esta decisión es definitiva: el formulario queda cerrado y no puede "
+            "corregirse ni reenviarse. Ante dudas, contacte al equipo SIIED."
+        )
+        cta_url = f"{_get_site_url()}/iced/"
+        cta_texto = "Consultar estado del formulario"
     else:
         logger.info(f"[NOTIF] notificar_delegado_iced: acción '{accion}' no notificable")
         return False

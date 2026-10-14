@@ -28,6 +28,7 @@ class ICEDFormulario(models.Model):
         ('enviado', 'Enviado'),
         ('validado', 'Validado'),
         ('devuelto', 'Devuelto para corrección'),
+        ('rechazado', 'Rechazado'),
     ]
 
     EQUIPO_CHOICES = [

@@ -106,6 +106,7 @@
     .iced-estado.enviado { background: #dbeafe; color: #1e40af; }
     .iced-estado.validado { background: #d1fae5; color: #065f46; }
     .iced-estado.devuelto { background: #fee2e2; color: #991b1b; }
+    .iced-estado.rechazado { background: #450a0a; color: #fecaca; }
 
     .iced-btn {
         padding: 0.7rem 1.5rem;
@@ -239,10 +240,12 @@
                 <div style="font-size: 0.8rem; color: var(--iced-muted); margin-top: 0.35rem;">
                     Actualizado {{ f.fecha_actualizacion|naturaltime }}
                 </div>
-                {% if f.estado == 'devuelto' and f.observaciones_validador %}
+                {% if f.observaciones_validador %}
+                {% if f.estado == 'devuelto' or f.estado == 'rechazado' %}
                 <div style="margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 0.375rem; font-size: 0.8rem; color: #78350f; white-space: pre-line;">
                     <strong>Observaciones del validador:</strong> {{ f.observaciones_validador }}
                 </div>
+                {% endif %}
                 {% endif %}
             </div>
             <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">

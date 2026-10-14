@@ -73,7 +73,11 @@ class ICEDWizardView(SessionWizardView):
                 messages.error(request, 'Este formulario pertenece a otro equipo técnico.')
                 return redirect('indicadores:iced_landing')
             if formulario.estado not in self.ESTADOS_EDITABLES:
-                messages.info(request, 'Este formulario ya fue enviado y no puede editarse.')
+                messages.info(
+                    request,
+                    f'Este formulario está en estado '
+                    f'"{formulario.get_estado_display()}" y no puede editarse.'
+                )
                 return redirect('indicadores:iced_resultado', formulario_id=formulario.pk)
         return super().dispatch(request, *args, **kwargs)
 
@@ -438,7 +442,11 @@ class ICEDWizardView(SessionWizardView):
                 messages.error(self.request, 'No tiene permiso para modificar este formulario.')
                 return redirect('indicadores:iced_landing')
             if formulario.estado not in self.ESTADOS_EDITABLES:
-                messages.error(self.request, 'Este formulario ya fue enviado y no puede modificarse.')
+                messages.error(
+                    self.request,
+                    f'Este formulario está en estado '
+                    f'"{formulario.get_estado_display()}" y no puede modificarse.'
+                )
                 return redirect('indicadores:iced_resultado', formulario_id=formulario.pk)
         else:
             formulario, _ = ICEDFormulario.objects.get_or_create(
@@ -802,7 +810,10 @@ def iced_guardar_parcial(request):
                 and formulario.equipo and formulario.equipo != equipo_user):
             return JsonResponse({'error': 'Este formulario pertenece a otro equipo técnico'}, status=403)
         if formulario.estado not in ('borrador', 'devuelto'):
-            return JsonResponse({'error': 'El formulario ya fue enviado y no puede modificarse'}, status=400)
+            return JsonResponse({
+                'error': f'El formulario está en estado '
+                         f'"{formulario.get_estado_display()}" y no puede modificarse'
+            }, status=400)
     else:
         formulario, _ = ICEDFormulario.objects.get_or_create(
             organismo=organismo,

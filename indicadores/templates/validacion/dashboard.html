@@ -247,6 +247,12 @@
                         Equipo {{ f.equipo }}
                     </span>
                     {% endif %}
+                    {% if f.n_equipos_org > 1 %}
+                    <span class="text-xs bg-violet-100 text-violet-700 px-3 py-1 rounded-full font-semibold"
+                          title="Este organismo envió {{ f.n_equipos_org }} formularios por equipo técnico; concilíelos antes de aprobar el consolidado">
+                        {{ f.n_equipos_org }} equipos
+                    </span>
+                    {% endif %}
                 </div>
                 <p class="text-sm font-semibold text-slate-900">
                     ICED Vigencia {{ f.periodo }}
@@ -256,14 +262,22 @@
                     por {{ f.usuario_diligencia.get_full_name|default:f.usuario_diligencia.username|default:"—" }}
                 </p>
             </div>
-            <a href="{% url 'indicadores:validacion_revisar_iced' f.pk %}"
-               class="shrink-0 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap">
-                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                </svg>
-                Revisar ICED
-            </a>
+            <div class="shrink-0 flex flex-col gap-2">
+                <a href="{% url 'indicadores:validacion_revisar_iced' f.pk %}"
+                   class="bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    Revisar ICED
+                </a>
+                {% if f.n_equipos_org > 1 %}
+                <a href="{% url 'indicadores:validacion_conciliar_iced' f.organismo_id f.periodo %}"
+                   class="text-center text-xs font-semibold text-violet-600 hover:text-violet-800 border border-violet-200 hover:border-violet-400 rounded-xl px-4 py-2 transition-colors">
+                    ⇄ Conciliar equipos
+                </a>
+                {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -278,6 +292,39 @@
     </div>
     {% endif %}
 </div>
+
+<!-- ICED devueltos que el organismo aún no corrige ni reenvía -->
+{% if iced_devueltos %}
+<div class="bg-white rounded-xl shadow-sm border border-amber-200 overflow-hidden">
+    <div class="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 flex justify-between items-center">
+        <h2 class="font-serif font-bold text-white text-lg">🔄 ICED devueltos — esperando corrección del organismo</h2>
+        <span class="text-sm text-amber-100">{{ iced_devueltos|length }}</span>
+    </div>
+    <div class="divide-y divide-slate-100">
+        {% for f in iced_devueltos %}
+        <div class="px-8 py-4 flex items-center justify-between gap-4 hover:bg-amber-50/40 transition-colors">
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                    <span class="text-sm font-semibold text-slate-800">{{ f.organismo.nombre|truncatewords:4 }}</span>
+                    {% if f.equipo %}
+                    <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-semibold">{{ f.equipo }}</span>
+                    {% endif %}
+                    <span class="text-xs text-slate-400">ICED {{ f.periodo }}</span>
+                </div>
+                {% if f.observaciones_validador %}
+                <p class="text-xs text-slate-500 truncate">{{ f.observaciones_validador }}</p>
+                {% endif %}
+            </div>
+            <div class="shrink-0 flex items-center gap-3">
+                <span class="text-xs text-slate-400">{{ f.fecha_actualizacion|naturaltime }}</span>
+                <a href="{% url 'indicadores:validacion_revisar_iced' f.pk %}"
+                   class="text-xs font-semibold text-amber-700 hover:text-amber-900">Ver →</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
 
 <!-- Mis validaciones recientes -->
 {% if mis_validaciones_series or mis_validaciones_conjunto_datos %}
