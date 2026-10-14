@@ -245,6 +245,30 @@ def procesar_importacion_indicadores(df, eliminar_existentes=False, actualizar_e
                         if dominios:
                             indicador.dominios_desagregacion_geografica.set(dominios)
                 
+                # Subtemas adicionales (opcional): nombres o IDs separados
+                # por ';' o ','. El indicador queda clasificado también bajo
+                # esos subtemas, aunque sean de otro dominio.
+                if 'subtemas_adicionales' in row and pd.notna(row['subtemas_adicionales']):
+                    adic_str = str(row['subtemas_adicionales']).strip()
+                    if adic_str:
+                        adicionales = []
+                        for valor in adic_str.replace(';', ',').split(','):
+                            valor = valor.strip()
+                            if not valor:
+                                continue
+                            try:
+                                st = MenuSubtema.objects.get(id=int(valor))
+                            except (ValueError, MenuSubtema.DoesNotExist):
+                                st = MenuSubtema.objects.filter(
+                                    nombre__iexact=valor).first()
+                            if st and st.id != indicador.subtema_id:
+                                adicionales.append(st)
+                        if adicionales:
+                            indicador.subtemas_adicionales.add(*adicionales)
+                            resultado['log'].append(
+                                f'   ↳ Fila {index+2}: +{len(adicionales)} '
+                                f'subtema(s) adicional(es) en "{nombre}"')
+                
             except Exception as e:
                 resultado['errores'] += 1
                 resultado['log'].append(f'❌ Fila {index+2}: Error - {str(e)}')

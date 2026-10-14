@@ -1045,10 +1045,13 @@ class CatalogoConsultaEnlazarIndicadoresForm(forms.Form):
 
 
 def models_q_dominio(catalogo):
-    """Q para filtrar indicadores del dominio del catálogo o del dominio CEC."""
-    from django.db.models import Q
+    """Q para filtrar indicadores del dominio del catálogo o del dominio CEC.
+
+    Un indicador puede colgar del dominio por su subtema principal (FK)
+    o por subtemas adicionales (M2M) — se unen ambas vías.
+    """
     cec = MenuDominio.objects.filter(slug__iexact='CEC').first()
-    q = Q(subtema__tema__dominio=catalogo.dominio)
+    q = Indicador.q_por_dominio(catalogo.dominio)
     if cec:
-        q |= Q(subtema__tema__dominio=cec)
+        q |= Indicador.q_por_dominio(cec)
     return q

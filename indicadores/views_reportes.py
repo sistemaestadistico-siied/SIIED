@@ -112,7 +112,8 @@ def reportes_dashboard(request):
     # =========================================================================
     dominios_stats = []
     dominios = MenuDominio.objects.prefetch_related(
-        'temas__subtemas__indicadores'
+        'temas__subtemas__indicadores',
+        'temas__subtemas__indicadores_adicionales'
     ).order_by('orden', 'nombre')
     
     for dominio in dominios:
@@ -121,10 +122,11 @@ def reportes_dashboard(request):
             subtemas_stats = []
             for subtema in tema.subtemas.all().order_by('orden', 'nombre'):
                 # Indicadores del subtema con anotación de fechas
+                # (subtema principal FK + subtemas adicionales M2M)
                 indicadores_subtema = Indicador.objects.filter(
-                    subtema=subtema,
+                    Indicador.q_por_subtema(subtema),
                     activo=True
-                ).annotate(
+                ).distinct().annotate(
                     fecha_min=Min('datos__fecha_dato'),
                     fecha_max=Max('datos__fecha_dato'),
                     total_datos_count=Count('datos')

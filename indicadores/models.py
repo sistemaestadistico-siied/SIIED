@@ -68,6 +68,18 @@ class MenuSubtema(models.Model):
     def __str__(self):
         return self.nombre
 
+    def indicadores_todos(self, activo=True):
+        """Indicadores del subtema: por FK principal + M2M adicionales.
+
+        Un indicador puede pertenecer a varios subtemas (subtema principal
+        + subtemas_adicionales); este helper devuelve la unión sin duplicados.
+        """
+        qs = Indicador.objects.filter(
+            Indicador.q_por_subtema(self)).distinct()
+        if activo is not None:
+            qs = qs.filter(activo=activo)
+        return qs
+
     def get_absolute_url(self):
         if self.url:
             return self.url
@@ -538,8 +550,25 @@ class Indicador(models.Model):
                   "No aparece en la ficha técnica pública."
     )
 
-    # Relaciones
-    subtema = models.ForeignKey(MenuSubtema, on_delete=models.CASCADE, related_name='indicadores')
+    # Relaciones de taxonomía
+    # 'subtema' es el subtema PRINCIPAL: define la ruta canónica
+    # (dominio › tema › subtema) usada en breadcrumbs, URLs y fichas.
+    subtema = models.ForeignKey(MenuSubtema, on_delete=models.CASCADE,
+        related_name='indicadores',
+        verbose_name="Subtema principal",
+        help_text="Clasificación canónica del indicador (dominio › tema › subtema).")
+    # Subtemas ADICIONALES: un indicador puede pertenecer a varios
+    # subtemas, incluso de dominios distintos. Las enumeraciones por
+    # subtema/tema/dominio deben unir ambas relaciones — usar los
+    # helpers q_por_subtema / q_por_tema / q_por_dominio o
+    # MenuSubtema.indicadores_todos().
+    subtemas_adicionales = models.ManyToManyField(
+        MenuSubtema, blank=True,
+        related_name='indicadores_adicionales',
+        verbose_name="Subtemas adicionales",
+        help_text="Otros subtemas (de cualquier dominio) bajo los que "
+                  "también se clasifica este indicador."
+    )
     operacion = models.ForeignKey(OperacionEstadistica, on_delete=models.CASCADE,
                                 related_name='indicadores', blank=True, null=True,
                                 verbose_name="2.9 Nombre de la Operación Estadística")

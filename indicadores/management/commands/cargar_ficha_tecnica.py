@@ -73,7 +73,7 @@ class Command(BaseCommand):
                     continue
                 
                 # Obtener los indicadores activos de ese subtema
-                indicadores_subtema = Indicador.objects.filter(subtema=subtema, activo=True)
+                indicadores_subtema = subtema.indicadores_todos()  # principal FK + adicionales M2M
                 
                 if indicadores_subtema.count() == 0:
                     indicadores_no_encontrados.append(f'{codigo_indicador} (sin indicadores activos)')

@@ -70,6 +70,7 @@ class Command(BaseCommand):
             writer.writerow([
                 'id', 'codigo_indicador', 'nombre', 'sigla', 'grupo_indicador',
                 'dominio', 'tema', 'subtema', 'slug_subtema',
+                'subtemas_adicionales',
                 'dominios_tematicos', 'dominios_geograficos',
                 'alcance_tematico', 'cobertura_geografica',
                 'unidad_medida', 'frecuencia_difusion', 'fuente_datos',
@@ -79,6 +80,7 @@ class Command(BaseCommand):
             for ind in Indicador.objects.select_related(
                 'subtema__tema__dominio', 'organismo_responsable'
             ).prefetch_related(
+                'subtemas_adicionales',
                 'dominios_desagregacion_tematica',
                 'dominios_desagregacion_geografica'
             ).order_by('subtema__tema__dominio__nombre', 'subtema__tema__nombre', 'subtema__nombre', 'nombre'):
@@ -100,6 +102,7 @@ class Command(BaseCommand):
                     ind.subtema.tema.nombre if ind.subtema else '',
                     ind.subtema.nombre if ind.subtema else '',
                     ind.subtema.slug if ind.subtema else '',
+                    '; '.join(s.nombre for s in ind.subtemas_adicionales.all()),
                     dominios_t,
                     dominios_g,
                     ind.alcance_tematico or '',
@@ -185,6 +188,7 @@ class Command(BaseCommand):
         for ind in Indicador.objects.select_related(
             'subtema__tema__dominio', 'organismo_responsable'
         ).prefetch_related(
+            'subtemas_adicionales',
             'dominios_desagregacion_tematica',
             'dominios_desagregacion_geografica'
         ).order_by('subtema__tema__dominio__nombre', 'subtema__tema__nombre', 'subtema__nombre', 'nombre'):
@@ -202,6 +206,8 @@ class Command(BaseCommand):
                 'tema': ind.subtema.tema.nombre if ind.subtema else '',
                 'subtema': ind.subtema.nombre if ind.subtema else '',
                 'slug_subtema': ind.subtema.slug if ind.subtema else '',
+                'subtemas_adicionales': '; '.join(
+                    s.nombre for s in ind.subtemas_adicionales.all()),
                 'dominios_tematicos': dominios_t,
                 'dominios_geograficos': dominios_g,
                 'alcance_tematico': ind.alcance_tematico or '',

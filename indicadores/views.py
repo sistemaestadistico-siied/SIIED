@@ -718,8 +718,9 @@ def subtema_detalle(request, dominio_slug, tema_slug, subtema_slug):
     subtema = get_object_or_404(MenuSubtema, slug__iexact=subtema_slug, tema=tema, activo=True)
     
     # Obtener todos los indicadores activos del subtema ordenados por campo orden
-    # Usamos la relación definida en el modelo Indicador donde subtema es una ForeignKey a MenuSubtema
-    indicadores = Indicador.objects.filter(subtema=subtema, activo=True).order_by('orden', 'nombre')
+    # indicadores_todos() une el subtema principal (FK) con los
+    # subtemas adicionales (M2M): el indicador aparece en todos.
+    indicadores = subtema.indicadores_todos().order_by('orden', 'nombre')
     
     return render(request, 'indicadores/subtema_detalle.html', {
         'page': 'dominios',
@@ -745,8 +746,9 @@ def subtema_detalle_2(request, tema_slug, subtema_slug):
     subtema = get_object_or_404(MenuSubtema, slug__iexact=subtema_slug, tema=tema, activo=True)
     
     # Obtener todos los indicadores activos del subtema ordenados por campo orden
-    # Usamos la relación definida en el modelo Indicador donde subtema es una ForeignKey a MenuSubtema
-    indicadores = Indicador.objects.filter(subtema=subtema, activo=True).order_by('orden', 'nombre')
+    # indicadores_todos() une el subtema principal (FK) con los
+    # subtemas adicionales (M2M): el indicador aparece en todos.
+    indicadores = subtema.indicadores_todos().order_by('orden', 'nombre')
     
     return render(request, 'indicadores/subtema_detalle.html', {
         'page': 'dominios',
@@ -773,7 +775,8 @@ def subtema_detalle_3d(request, dominio_slug, tema_slug, subtema_slug):
     subtema = get_object_or_404(MenuSubtema, slug__iexact=subtema_slug, tema=tema, activo=True)
     
     # Obtener todos los indicadores activos del subtema ordenados por campo orden
-    indicadores = Indicador.objects.filter(subtema=subtema, activo=True).order_by('orden', 'nombre')
+    # (principal FK + adicionales M2M — ver MenuSubtema.indicadores_todos)
+    indicadores = subtema.indicadores_todos().order_by('orden', 'nombre')
     
     return render(request, 'indicadores/subtema_detalle_3d.html', {
         'page': 'dominios',
@@ -4731,13 +4734,20 @@ def api_conjunto_datos_datasets_hierarchical(request):
             'conjunto_datos__indicadores'
         )
         
-        # Aplicar filtros jerárquicos
+        # Aplicar filtros jerárquicos (subtema principal + adicionales M2M)
         if subtema_id:
-            indicadores = indicadores.filter(subtema_id=subtema_id)
+            indicadores = indicadores.filter(
+                Q(subtema_id=subtema_id) | Q(subtemas_adicionales__id=subtema_id)
+            ).distinct()
         elif tema_id:
-            indicadores = indicadores.filter(subtema__tema_id=tema_id)
+            indicadores = indicadores.filter(
+                Q(subtema__tema_id=tema_id) | Q(subtemas_adicionales__tema_id=tema_id)
+            ).distinct()
         elif dominio_id:
-            indicadores = indicadores.filter(subtema__tema__dominio_id=dominio_id)
+            indicadores = indicadores.filter(
+                Q(subtema__tema__dominio_id=dominio_id) |
+                Q(subtemas_adicionales__tema__dominio_id=dominio_id)
+            ).distinct()
         
         # Construir la estructura jerárquica
         dominios = {}

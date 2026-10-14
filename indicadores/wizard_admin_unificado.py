@@ -1501,6 +1501,8 @@ class WizardAdminUnificado(SessionWizardView):
                         conjunto_datos=conjunto_datos,
                         activo=True
                     )
+                    indicador.subtemas_adicionales.set(
+                        paso_5_data.get('subtemas_adicionales') or [])
                 else:
                     if 'indicador_existente' not in paso_5_data:
                         raise ValueError("No se seleccionó un indicador existente. Por favor, completa el paso de configuración del indicador.")
@@ -1510,6 +1512,11 @@ class WizardAdminUnificado(SessionWizardView):
                     # Actualizar relación con conjunto_datos
                     indicador.conjunto_datos = conjunto_datos
                     indicador.save()
+                    # .add() y no .set(): no pisar clasificaciones del
+                    # indicador existente que el usuario no vio en el paso
+                    adic = paso_5_data.get('subtemas_adicionales')
+                    if adic:
+                        indicador.subtemas_adicionales.add(*adic)
                 
                 # 3. Asignar dominios de desagregación seleccionados en el wizard
                 #    SIEMPRE aplicar .set() — selección vacía limpia dominios anteriores.
@@ -1625,10 +1632,16 @@ class WizardAdminUnificado(SessionWizardView):
                         subtema=paso_3_data['subtema'],
                         activo=True
                     )
+                    indicador.subtemas_adicionales.set(
+                        paso_3_data.get('subtemas_adicionales') or [])
                 else:
                     if 'indicador_existente' not in paso_3_data:
                         raise ValueError("No se seleccionó un indicador existente. Por favor, completa el paso de configuración del indicador.")
                     indicador = paso_3_data['indicador_existente']
+                    # .add() y no .set(): no pisar clasificaciones previas
+                    adic = paso_3_data.get('subtemas_adicionales')
+                    if adic:
+                        indicador.subtemas_adicionales.add(*adic)
                     
                     # Si se debe eliminar datos existentes
                     if paso_7_data.get('eliminar_datos_existentes'):
@@ -2121,6 +2134,8 @@ class WizardAdminUnificado(SessionWizardView):
                         conjunto_datos=conjunto_datos,
                         activo=True
                     )
+                    indicador.subtemas_adicionales.set(
+                        paso_5_data.get('subtemas_adicionales') or [])
                 else:
                     if 'indicador_existente' not in paso_5_data:
                         raise ValueError("No se seleccionó un indicador existente. Por favor, completa el paso de configuración del indicador.")
@@ -2128,6 +2143,10 @@ class WizardAdminUnificado(SessionWizardView):
                     indicador.datos.all().delete()
                     indicador.conjunto_datos = conjunto_datos
                     indicador.save()
+                    # .add() y no .set(): no pisar clasificaciones previas
+                    adic = paso_5_data.get('subtemas_adicionales')
+                    if adic:
+                        indicador.subtemas_adicionales.add(*adic)
                 
                 # 3. Asignar dominios de desagregación seleccionados en el wizard
                 #    SIEMPRE aplicar .set() — selección vacía limpia dominios anteriores.

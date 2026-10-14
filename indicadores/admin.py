@@ -854,12 +854,16 @@ class IndicadorAdmin(admin.ModelAdmin):
     search_fields = ('nombre', 'codigo_indicador', 'sigla', 'subtema__nombre', 'subtema__tema__nombre', 'subtema__tema__dominio__nombre')
     list_editable = ('orden',)
     inlines = [DatoInline]
-    
+    filter_horizontal = ('subtemas_adicionales',)
+
     fieldsets = (
         ('0. Identificación del Indicador', {
             'fields': ('nombre', 'codigo_indicador', 'sigla', 'grupo_indicador',
-                      'subtema', 'activo', 'orden'),
-            'description': 'Campos 0.1–0.4 del estándar MSD + configuración interna de clasificación.'
+                      'subtema', 'subtemas_adicionales', 'activo', 'orden'),
+            'description': 'Campos 0.1–0.4 del estándar MSD + clasificación: '
+                          'el subtema principal define la ruta canónica; los '
+                          'subtemas adicionales permiten que el indicador '
+                          'pertenezca a otros subtemas de cualquier dominio.'
         }),
         ('1. Contacto Institucional (MSD)', {
             'fields': ('organismo_responsable', 'entidad_responsable_legado', 'suborganismo',

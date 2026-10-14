@@ -200,7 +200,15 @@ class FormConfigIndicadorSerie(forms.Form):
         queryset=MenuSubtema.objects.all(),
         required=False,
         label="Subtema",
-        help_text="Selecciona el subtema al que pertenece"
+        help_text="Subtema principal (ruta canónica dominio › tema › subtema)"
+    )
+
+    subtemas_adicionales = forms.ModelMultipleChoiceField(
+        queryset=MenuSubtema.objects.all(),
+        required=False,
+        label="Subtemas adicionales",
+        help_text="Otros subtemas (de cualquier dominio) bajo los que "
+                  "también se clasifica el indicador"
     )
     
     # Si asociar existente
@@ -440,7 +448,16 @@ class FormConfigIndicador(forms.Form):
     subtema = forms.ModelChoiceField(
         queryset=MenuSubtema.objects.all(),
         required=False,
-        label="Subtema"
+        label="Subtema",
+        help_text="Subtema principal (ruta canónica dominio › tema › subtema)"
+    )
+
+    subtemas_adicionales = forms.ModelMultipleChoiceField(
+        queryset=MenuSubtema.objects.all(),
+        required=False,
+        label="Subtemas adicionales",
+        help_text="Otros subtemas (de cualquier dominio) bajo los que "
+                  "también se clasifica el indicador"
     )
     
     # Si asociar existente

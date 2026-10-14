@@ -296,8 +296,11 @@ class Command(BaseCommand):
                     pass
 
             # 2) Buscar por nombre exacto (case-insensitive) dentro del mismo subtema
+            #    (subtema principal FK + subtemas adicionales M2M — no duplicar
+            #    un indicador que ya cuelga del subtema por la vía adicional)
+            q_sub = Indicador.q_por_subtema(subtema)
             try:
-                obj = Indicador.objects.get(nombre__iexact=nombre, subtema=subtema)
+                obj = Indicador.objects.get(q_sub, nombre__iexact=nombre)
                 cache['indicadores'][cache_key] = obj
                 stats['indicadores_existentes'] += 1
                 self.stdout.write(
@@ -309,8 +312,8 @@ class Command(BaseCommand):
 
             # 3) Buscar por contenido del nombre en el subtema
             if len(nombre) >= 5:
-                candidatos = list(Indicador.objects.filter(subtema=subtema, nombre__icontains=nombre))
-                for i in Indicador.objects.filter(subtema=subtema, nombre__isnull=False):
+                candidatos = list(Indicador.objects.filter(q_sub, nombre__icontains=nombre).distinct())
+                for i in Indicador.objects.filter(q_sub, nombre__isnull=False).distinct():
                     if i.nombre.lower() in nombre.lower() or nombre.lower() in i.nombre.lower():
                         if i not in candidatos:
                             candidatos.append(i)

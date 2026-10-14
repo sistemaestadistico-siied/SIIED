@@ -826,10 +826,8 @@ class CerebrasToolsService:
                             # Si se solicita información de indicadores
                             if nivel == 'completa' and arguments.get('incluir_indicadores', False):
                                 # Solo contamos los indicadores activos
-                                subtema_data["total_indicadores"] = Indicador.objects.filter(
-                                    subtema=subtema,
-                                    activo=True
-                                ).count()
+                                # (subtema principal FK + adicionales M2M)
+                                subtema_data["total_indicadores"] = subtema.indicadores_todos().count()
                                 
                             tema_data["subtemas"].append(subtema_data)
                         
@@ -1009,11 +1007,13 @@ class CerebrasToolsService:
                     Q(nombre__icontains=consulta) |
                     Q(descripcion_indicador__icontains=consulta) |
                     Q(subtema__nombre__icontains=consulta) |
-                    Q(subtema__tema__nombre__icontains=consulta)
+                    Q(subtemas_adicionales__nombre__icontains=consulta) |
+                    Q(subtema__tema__nombre__icontains=consulta) |
+                    Q(subtemas_adicionales__tema__nombre__icontains=consulta)
                 )
                 indicadores = Indicador.objects.filter(text_filter, activo=True).select_related(
                     'subtema__tema__dominio'
-                )[:limite]
+                ).distinct()[:limite]
             else:
                 indicadores = Indicador.objects.filter(
                     id__in=indicador_ids, 
@@ -1266,10 +1266,16 @@ class CerebrasToolsService:
             if dominios or temas:
                 pre_query = Indicador.objects.filter(activo=True)
                 if dominios:
-                    pre_query = pre_query.filter(subtema__tema__dominio_id__in=dominios)
+                    pre_query = pre_query.filter(
+                        Q(subtema__tema__dominio_id__in=dominios) |
+                        Q(subtemas_adicionales__tema__dominio_id__in=dominios)
+                    )
                 if temas:
-                    pre_query = pre_query.filter(subtema__tema_id__in=temas)
-                filtered_ids = list(pre_query.values_list('id', flat=True))
+                    pre_query = pre_query.filter(
+                        Q(subtema__tema_id__in=temas) |
+                        Q(subtemas_adicionales__tema_id__in=temas)
+                    )
+                filtered_ids = list(pre_query.values_list('id', flat=True).distinct())
                 logger.info(f"Pre-filtro SQL: {len(filtered_ids)} indicadores en dominio/tema especificado")
             
             # Ejecutar búsqueda semántica para obtener candidatos iniciales
@@ -1336,17 +1342,28 @@ class CerebrasToolsService:
                     Q(descripcion_indicador__icontains=consulta) |
                     Q(objetivo__icontains=consulta) |
                     Q(subtema__nombre__icontains=consulta) |
+                    Q(subtemas_adicionales__nombre__icontains=consulta) |
                     Q(subtema__tema__nombre__icontains=consulta) |
-                    Q(subtema__tema__dominio__nombre__icontains=consulta)
+                    Q(subtemas_adicionales__tema__nombre__icontains=consulta) |
+                    Q(subtema__tema__dominio__nombre__icontains=consulta) |
+                    Q(subtemas_adicionales__tema__dominio__nombre__icontains=consulta)
                 )
                 query = query.filter(text_filter)
 
             # Aplicar filtros jerárquicos y geográficos
+            # (subtema principal + adicionales M2M → distinct por el join)
             if dominios:
-                query = query.filter(subtema__tema__dominio_id__in=dominios)
+                query = query.filter(
+                    Q(subtema__tema__dominio_id__in=dominios) |
+                    Q(subtemas_adicionales__tema__dominio_id__in=dominios)
+                )
 
             if temas:
-                query = query.filter(subtema__tema_id__in=temas)
+                query = query.filter(
+                    Q(subtema__tema_id__in=temas) |
+                    Q(subtemas_adicionales__tema_id__in=temas)
+                )
+            query = query.distinct()
 
             if con_datos_geograficos:
                 query = query.exclude(dominios_desagregacion_geografica__isnull=True)
@@ -5294,9 +5311,13 @@ class ChatService:
                         Q(entidad_recopiladora__icontains=term) |
                         Q(unidad_medida__icontains=term) |
                         # Búsqueda en relaciones jerárquicas
+                        # (subtema principal + subtemas adicionales M2M)
                         Q(subtema__nombre__icontains=term) |
+                        Q(subtemas_adicionales__nombre__icontains=term) |
                         Q(subtema__tema__nombre__icontains=term) |
+                        Q(subtemas_adicionales__tema__nombre__icontains=term) |
                         Q(subtema__tema__dominio__nombre__icontains=term) |
+                        Q(subtemas_adicionales__tema__dominio__nombre__icontains=term) |
                         Q(operacion__nombre__icontains=term) |
                         Q(operacion__descripcion__icontains=term)
                     )
@@ -5310,7 +5331,7 @@ class ChatService:
             # Consulta base con select_related para optimización
             indicadores_query = Indicador.objects.filter(q_objects).select_related(
                 'subtema__tema__dominio'
-            )
+            ).distinct()
             
             # Log de la consulta SQL generada
             logger.debug(f"[SEARCH_INDICADORES] SQL generada: {str(indicadores_query.query)}")
@@ -5351,20 +5372,24 @@ class ChatService:
                     )
                     
                     # Peso para relaciones jerárquicas
+                    # (principal pesa más que los subtemas adicionales)
                     subtema_match = Case(
                         When(subtema__nombre__icontains=term, then=Value(4.0)),
+                        When(subtemas_adicionales__nombre__icontains=term, then=Value(3.0)),
                         default=Value(0.0),
                         output_field=FloatField()
                     )
                     
                     tema_match = Case(
                         When(subtema__tema__nombre__icontains=term, then=Value(3.0)),
+                        When(subtemas_adicionales__tema__nombre__icontains=term, then=Value(2.0)),
                         default=Value(0.0),
                         output_field=FloatField()
                     )
                     
                     dominio_match = Case(
                         When(subtema__tema__dominio__nombre__icontains=term, then=Value(2.0)),
+                        When(subtemas_adicionales__tema__dominio__nombre__icontains=term, then=Value(1.5)),
                         default=Value(0.0),
                         output_field=FloatField()
                     )
@@ -5410,7 +5435,7 @@ class ChatService:
                     'subtema__nombre', 'subtema__tema__nombre', 
                     'subtema__tema__dominio__nombre', 'ruta_completa',
                     'fecha_actualizacion', 'dominios_desagregacion_geografica'
-                )
+                ).distinct()
                 
                 # Aplicar ordenamiento
                 if 'relevance' in [f.name for f in Indicador._meta.get_fields()]:
