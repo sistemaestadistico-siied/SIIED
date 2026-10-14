@@ -117,6 +117,23 @@
             </div>
         </div>
 
+        {% if formulario.equipo %}
+        <!-- Formulario parcial de equipo: el ICED oficial se decide sobre el consolidado -->
+        <div class="bg-amber-50 rounded-3xl shadow-sm border border-amber-300 p-5">
+            <h2 class="font-semibold text-amber-900 mb-2 text-sm">⚠ Formulario parcial — equipo {{ formulario.equipo }}</h2>
+            <p class="text-xs text-amber-800 leading-relaxed mb-3">
+                Este formulario contiene solo las preguntas asignadas a este equipo
+                técnico: los puntajes mostrados son <strong>parciales</strong> y no
+                representan el ICED del organismo. La aprobación se toma sobre el
+                <strong>consolidado</strong> generado al conciliar las respuestas
+                de todos los equipos.
+            </p>
+            <a href="{% url 'indicadores:validacion_conciliar_iced' formulario.organismo_id formulario.periodo %}"
+               class="inline-block w-full text-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm">
+                ⇄ Conciliar respuestas entre equipos
+            </a>
+        </div>
+        {% else %}
         <!-- Calcular y guardar -->
         {% if formulario.estado == 'enviado' %}
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
@@ -191,6 +208,7 @@
                 {% if formulario.observaciones_validador %}
                 <p class="text-xs text-emerald-700 mt-2">
                     <strong>Observaciones:</strong> {{ formulario.observaciones_validador }}
+        {% endif %}
                 </p>
                 {% endif %}
             </div>

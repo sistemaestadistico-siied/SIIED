@@ -5827,10 +5827,12 @@ def hall_capacidad_estadistica(request):
     for organismo in organismos:
         organismo.indice_madurez_ecosistema = calcular_indice_madurez_ecosistema(organismo)
         
-        # FICED del organismo (más reciente, validado o enviado)
+        # FICED del organismo (más reciente, validado o enviado).
+        # Solo consolidados: los formularios por equipo son parciales.
         from .models_iced import ICEDFormulario
         organismo.ficed = ICEDFormulario.objects.filter(
             organismo=organismo,
+            equipo='',
             estado__in=['validado', 'enviado']
         ).order_by('-periodo').first()
         
@@ -5911,10 +5913,12 @@ def organismo_detalle(request, codigo):
     # Calcular índice de madurez del ecosistema
     indice_madurez = calcular_indice_madurez_ecosistema(organismo)
     
-    # FICED: Formulario de Capacidad Estadística Distrital
+    # FICED: Formulario de Capacidad Estadística Distrital.
+    # Solo consolidados: los formularios por equipo son parciales.
     from .models_iced import ICEDFormulario
     ficed_qs = ICEDFormulario.objects.filter(
         organismo=organismo,
+        equipo='',
         estado__in=['validado', 'enviado'],
     ).order_by('-periodo')
     ficed_historico = list(ficed_qs.all())
@@ -6318,8 +6322,10 @@ def modulo_iced(request):
 
     organismos_con_iced = []
     for organismo in organismos:
+        # Solo consolidados: los formularios por equipo son parciales.
         ficed = ICEDFormulario.objects.filter(
             organismo=organismo,
+            equipo='',
             estado__in=['validado', 'enviado']
         ).order_by('-periodo').first()
 

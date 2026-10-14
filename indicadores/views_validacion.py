@@ -656,6 +656,18 @@ def validacion_calcular_iced(request, formulario_id):
         return redirect('indicadores:validacion_dashboard')
 
     formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
+    # Los formularios por equipo son parciales: el ICED oficial se
+    # calcula sobre el consolidado generado por la conciliación.
+    if formulario.equipo:
+        messages.warning(
+            request,
+            f'Este formulario solo cubre las preguntas del equipo '
+            f'{formulario.equipo}; el ICED se calcula sobre el consolidado. '
+            f'Concilie primero las respuestas de los equipos.'
+        )
+        return redirect('indicadores:validacion_conciliar_iced',
+                        organismo_id=formulario.organismo_id,
+                        periodo=formulario.periodo)
     if formulario.estado not in ('enviado', 'validado'):
         messages.error(request, 'Solo se pueden calcular puntajes de formularios enviados.')
         return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
@@ -678,6 +690,19 @@ def validacion_decidir_iced(request, formulario_id):
     formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
     accion = request.POST.get('accion')
     observaciones = request.POST.get('observaciones', '').strip()
+
+    # Los formularios por equipo son parciales: aprobarlos publicaría un
+    # ICED incompleto. La decisión se toma sobre el consolidado.
+    if formulario.equipo:
+        messages.warning(
+            request,
+            f'Este formulario solo cubre las preguntas del equipo '
+            f'{formulario.equipo}; la decisión se toma sobre el consolidado. '
+            f'Concilie primero las respuestas de los equipos.'
+        )
+        return redirect('indicadores:validacion_conciliar_iced',
+                        organismo_id=formulario.organismo_id,
+                        periodo=formulario.periodo)
 
     # Solo se puede decidir sobre formularios en estado 'enviado':
     # evita aprobar borradores o re-decidir formularios ya resueltos.

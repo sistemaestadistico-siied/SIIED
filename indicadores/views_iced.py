@@ -892,7 +892,7 @@ def iced_exportar_csv(request):
 
     # Determinar acceso: validador ve todo, delegado solo su organismo
     user = request.user
-    queryset = ICEDFormulario.objects.filter(estado='validado')
+    queryset = ICEDFormulario.objects.filter(estado='validado', equipo='')
 
     if periodo:
         queryset = queryset.filter(periodo=periodo)
