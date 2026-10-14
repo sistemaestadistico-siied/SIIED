@@ -9,16 +9,22 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Q, Count
+from django.db import transaction
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST
 
+import io
+import json
 import logging
 import os
+import re
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 from .models import (
     PerfilRecolector, CargaSerieIndicador, CargaConjuntoDatos,
-    Indicador, ConjuntoDatos, Grafico
+    Indicador, ConjuntoDatos, Grafico, DocumentoVector, RegistroCambio
 )
 from .models_iced import ICEDFormulario, ICEDPreguntaEquipo
 from .calcular_iced import (
@@ -1018,3 +1024,364 @@ def crear_grafico_simplificado_validacion(request, indicador_id):
     }
     
     return render(request, 'validacion/crear_grafico_simplificado.html', context)
+
+
+# ============================================================================
+# WIZARD: NORMALIZACIÓN DE IDENTIDAD DE INDICADORES
+#
+# Identidad = código indicador + conciliación de duplicados:
+#   - consulta 1:1 del id interno (pk) y ruta taxonómica,
+#   - export xlsx: dominio › tema › subtema › nombre | código | id,
+#   - actualización de código individual y masiva (csv/xlsx: id + codigo),
+#   - conciliación A+B → se conserva uno, el otro se elimina y TODAS sus
+#     relaciones (datos, gráficos, cargas, procesos, regla, enlaces M2M) se
+#     reasignan; metadatos se eligen campo a campo.
+# ============================================================================
+
+# Campos escalariales que el usuario puede tomar del indicador eliminado.
+# Los M2M propios (subtemas/dominios de desagregación) siempre hacen unión.
+CAMPOS_CONCILIABLES = [
+    ('nombre', 'Nombre'),
+    ('codigo_indicador', 'Código'),
+    ('sigla', 'Sigla'),
+    ('grupo_indicador', 'Grupo de indicador'),
+    ('descripcion_indicador', 'Descripción'),
+    ('objetivo', 'Objetivo'),
+    ('metodo_medicion', 'Método de medición'),
+    ('formula_ficha', 'Fórmula de ficha'),
+    ('variables', 'Variables'),
+    ('unidad_medida', 'Unidad de medida'),
+    ('fuente_datos', 'Fuente de datos'),
+    ('notas', 'Notas'),
+    ('nomenclaturas_clasificaciones', 'Nomenclaturas / clasificaciones'),
+    ('poblacion_objetivo', 'Población objetivo'),
+    ('alcance_tematico', 'Alcance temático'),
+    ('cobertura_geografica', 'Cobertura geográfica'),
+    ('periodo_referencia', 'Periodo de referencia'),
+    ('periodo_base', 'Periodo base'),
+    ('serie_historica_disponible', 'Serie histórica disponible'),
+    ('frecuencia_difusion', 'Frecuencia de difusión'),
+    ('medios_difusion', 'Medios de difusión'),
+    ('comentarios_adicionales', 'Comentarios adicionales'),
+    ('referencias', 'Referencias'),
+    ('equipo_responsable', 'Equipo responsable'),
+    ('organismo_responsable', 'Organismo responsable'),
+    ('suborganismo', 'Suborganismo'),
+    ('operacion', 'Operación estadística'),
+    ('conjunto_datos', 'Conjunto de datos'),
+    ('catalogo_consulta', 'Catálogo de consulta enlazado'),
+    ('subtema', 'Subtema principal'),
+    ('mostrar_mapa', 'Mostrar mapa'),
+    ('activo', 'Activo'),
+]
+
+
+def _ind_ruta(ind):
+    """'Dominio › Tema › Subtema' de la clasificación principal."""
+    st = ind.subtema
+    if st and st.tema and st.tema.dominio:
+        return f"{st.tema.dominio.nombre} › {st.tema.nombre} › {st.nombre}"
+    return '—'
+
+
+def _ind_json(ind):
+    return {
+        'id': ind.id,
+        'codigo': ind.codigo_indicador or '',
+        'nombre': ind.nombre,
+        'ruta': _ind_ruta(ind),
+        'adicionales': [
+            f"{s.tema.dominio.nombre} › {s.tema.nombre} › {s.nombre}"
+            for s in ind.subtemas_adicionales.select_related('tema__dominio')
+            if s.tema and s.tema.dominio
+        ],
+        'n_datos': ind.datos.count(),
+        'n_graficos': ind.graficos.count(),
+        'activo': ind.activo,
+    }
+
+
+def _val_campo(ind, campo):
+    """Representación corta de un campo para la tabla de comparación."""
+    v = getattr(ind, campo)
+    if v is None:
+        return ''
+    field = Indicador._meta.get_field(campo)
+    if field.many_to_one:           # FK → su str()
+        return str(v)
+    s = re.sub(r'<[^>]+>', ' ', str(v))   # CKEditor → texto plano
+    s = ' '.join(s.split())
+    return s[:200] + ('…' if len(s) > 200 else '')
+
+
+@validador_required
+def validacion_normalizacion(request):
+    """Página del wizard de normalización de identidad."""
+    return render(request, 'validacion/normalizacion_identidad.html')
+
+
+@validador_required
+def norm_buscar_indicador(request):
+    """GET ?q= — consulta 1:1 de id interno, código y ruta del indicador."""
+    q = (request.GET.get('q') or '').strip()
+    if len(q) < 2:
+        return JsonResponse({'resultados': []})
+    qs = Indicador.objects.select_related(
+        'subtema__tema__dominio'
+    ).prefetch_related('subtemas_adicionales__tema__dominio')
+    filtro = Q(nombre__icontains=q) | Q(codigo_indicador__icontains=q) | Q(sigla__icontains=q)
+    if q.isdigit():
+        filtro |= Q(id=int(q))
+    qs = qs.filter(filtro).order_by('nombre')[:20]
+    return JsonResponse({'resultados': [_ind_json(i) for i in qs]})
+
+
+@validador_required
+def norm_exportar_identidad(request):
+    """GET — xlsx con la relación completa dominio-tema-subtema-nombre-código-id."""
+    rows = []
+    qs = Indicador.objects.select_related(
+        'subtema__tema__dominio'
+    ).prefetch_related('subtemas_adicionales').order_by(
+        'subtema__tema__dominio__nombre', 'subtema__tema__nombre',
+        'subtema__nombre', 'nombre'
+    )
+    for ind in qs:
+        st = ind.subtema
+        rows.append({
+            'dominio': st.tema.dominio.nombre if st and st.tema and st.tema.dominio else '',
+            'tema': st.tema.nombre if st and st.tema else '',
+            'subtema': st.nombre if st else '',
+            'nombre': ind.nombre,
+            'codigo_indicador': ind.codigo_indicador or '',
+            'id': ind.id,
+            'subtemas_adicionales': '; '.join(
+                s.nombre for s in ind.subtemas_adicionales.all()),
+        })
+    df = pd.DataFrame(rows, columns=[
+        'dominio', 'tema', 'subtema', 'nombre',
+        'codigo_indicador', 'id', 'subtemas_adicionales',
+    ])
+    bio = io.BytesIO()
+    with pd.ExcelWriter(bio) as writer:
+        df.to_excel(writer, index=False, sheet_name='indicadores')
+    resp = HttpResponse(
+        bio.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    resp['Content-Disposition'] = 'attachment; filename="identidad_indicadores.xlsx"'
+    return resp
+
+
+@validador_required
+@require_POST
+def norm_actualizar_codigo(request):
+    """POST {id, codigo} — cambia el código de un indicador (1:1)."""
+    try:
+        data = json.loads(request.body or '{}')
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+    ind = get_object_or_404(Indicador, pk=data.get('id'))
+    nuevo = (data.get('codigo') or '').strip()
+    if nuevo:
+        dup = Indicador.objects.filter(
+            codigo_indicador=nuevo).exclude(pk=ind.pk).first()
+        if dup:
+            return JsonResponse({
+                'ok': False,
+                'error': f'Código "{nuevo}" ya usado por [{dup.id}] {dup.nombre}'
+            }, status=409)
+    anterior = ind.codigo_indicador
+    ind.codigo_indicador = nuevo or None
+    ind.save(update_fields=['codigo_indicador'])
+    return JsonResponse({'ok': True, 'id': ind.id,
+                         'anterior': anterior or '', 'nuevo': nuevo})
+
+
+@validador_required
+@require_POST
+def norm_importar_codigos(request):
+    """POST archivo csv/xlsx con columnas id + codigo — actualización masiva."""
+    archivo = request.FILES.get('archivo')
+    if not archivo:
+        return JsonResponse({'ok': False, 'error': 'No se envió archivo'}, status=400)
+    try:
+        if archivo.name.lower().endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(archivo, dtype=str)
+        else:
+            df = pd.read_csv(archivo, sep=None, engine='python', dtype=str)
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': f'No se pudo leer el archivo: {e}'},
+                            status=400)
+    cols = {c.strip().lower(): c for c in df.columns}
+    col_id = next((cols[c] for c in
+                   ('id', 'pk', 'indicador_id', 'id_indicador') if c in cols), None)
+    col_cod = next((cols[c] for c in
+                    ('codigo', 'codigo_indicador', 'nuevo_codigo', 'codigo_nuevo')
+                    if c in cols), None)
+    if not col_id or not col_cod:
+        return JsonResponse({
+            'ok': False,
+            'error': f'Se requieren columnas id + codigo. '
+                     f'Encontradas: {", ".join(df.columns)}'
+        }, status=400)
+    actualizados, errores = 0, []
+    for i, row in df.iterrows():
+        pid = str(row[col_id] or '').strip()
+        cod = str(row[col_cod] or '').strip()
+        # pandas puede leer la columna id como float: "123.0" → "123"
+        if pid.endswith('.0'):
+            pid = pid[:-2]
+        if not pid or pid.lower() in ('nan', 'none'):
+            continue
+        ind = Indicador.objects.filter(pk=pid).first()
+        if not ind:
+            errores.append(f'Fila {i + 2}: no existe indicador id={pid}')
+            continue
+        if cod and cod.lower() not in ('nan', 'none'):
+            dup = Indicador.objects.filter(
+                codigo_indicador=cod).exclude(pk=ind.pk).first()
+            if dup:
+                errores.append(
+                    f'Fila {i + 2}: código "{cod}" ya en [{dup.id}] {dup.nombre}')
+                continue
+            ind.codigo_indicador = cod
+        else:
+            ind.codigo_indicador = None
+        ind.save(update_fields=['codigo_indicador'])
+        actualizados += 1
+    return JsonResponse({
+        'ok': True, 'actualizados': actualizados,
+        'errores': errores[:50], 'n_errores': len(errores),
+    })
+
+
+def _conteo_relaciones(ind):
+    """Conteos de relaciones que se reasignarán al conciliar."""
+    return {
+        'datos': ind.datos.count(),
+        'graficos': ind.graficos.count(),
+        'procesos': ind.procesos_extraccion.count(),
+        'cargas_series': ind.cargas_series.count(),
+        'regla_extraccion': 1 if getattr(ind, 'regla_extraccion', None) else 0,
+        'subtemas_adicionales': ind.subtemas_adicionales.count(),
+        'dominios_desag': (ind.dominios_desagregacion_tematica.count() +
+                           ind.dominios_desagregacion_geografica.count()),
+    }
+
+
+@validador_required
+def norm_conciliar_comparar(request):
+    """GET ?a=&b= — comparación campo a campo de los dos indicadores."""
+    a_id, b_id = request.GET.get('a'), request.GET.get('b')
+    if not a_id or not b_id or str(a_id) == str(b_id):
+        return JsonResponse({'ok': False, 'error': 'Selecciona dos indicadores distintos'},
+                            status=400)
+    qs = Indicador.objects.select_related('subtema__tema__dominio')
+    a = get_object_or_404(qs, pk=a_id)
+    b = get_object_or_404(qs, pk=b_id)
+    campos = [
+        {'campo': f, 'label': l, 'a': _val_campo(a, f), 'b': _val_campo(b, f)}
+        for f, l in CAMPOS_CONCILIABLES
+    ]
+    return JsonResponse({
+        'ok': True,
+        'a': _ind_json(a), 'b': _ind_json(b),
+        'campos': campos,
+        'rels': {'a': _conteo_relaciones(a), 'b': _conteo_relaciones(b)},
+    })
+
+
+@validador_required
+@require_POST
+def norm_conciliar_aplicar(request):
+    """POST {conservar, eliminar, campos:{campo:'a'|'b'}, otro_subtema_adicional}.
+
+    El indicador 'conservar' queda con los metadatos elegidos; el 'eliminar'
+    desaparece y TODAS sus relaciones se reasignan al conservado.
+    """
+    try:
+        data = json.loads(request.body or '{}')
+    except ValueError:
+        return JsonResponse({'ok': False, 'error': 'JSON inválido'}, status=400)
+    cid, eid = data.get('conservar'), data.get('eliminar')
+    if not cid or not eid or str(cid) == str(eid):
+        return JsonResponse({'ok': False, 'error': 'Ids inválidos o iguales'}, status=400)
+    campos = data.get('campos') or {}
+    otro_adicional = bool(data.get('otro_subtema_adicional', True))
+
+    with transaction.atomic():
+        conservado = Indicador.objects.select_for_update().get(pk=cid)
+        eliminado = Indicador.objects.select_for_update().get(pk=eid)
+        st_cons, st_elim = conservado.subtema, eliminado.subtema
+        nombre_elim, pk_elim = eliminado.nombre, eliminado.pk
+
+        # 1. Metadatos: campo a campo, gana el lado elegido
+        for campo, _label in CAMPOS_CONCILIABLES:
+            if campos.get(campo) == 'b':
+                setattr(conservado, campo, getattr(eliminado, campo))
+        conservado.save()
+
+        # 2. Subtemas: unión de adicionales + principal no elegido pasa
+        #    a adicional (clasificación sin pérdida, si el usuario lo pide)
+        adics = list(eliminado.subtemas_adicionales.all())
+        if otro_adicional:
+            for st in (st_cons, st_elim):
+                if st and st.pk != conservado.subtema_id and st not in adics:
+                    adics.append(st)
+        if adics:
+            conservado.subtemas_adicionales.add(*adics)
+        if conservado.subtema_id:
+            conservado.subtemas_adicionales.remove(conservado.subtema)
+
+        # 3. M2M propias restantes: unión (dominios de desagregación)
+        conservado.dominios_desagregacion_tematica.add(
+            *eliminado.dominios_desagregacion_tematica.all())
+        conservado.dominios_desagregacion_geografica.add(
+            *eliminado.dominios_desagregacion_geografica.all())
+
+        # 4. Relaciones reversas por reflexión — ninguna queda huérfana:
+        #    FK (datos, gráficos, procesos, cargas, registros),
+        #    O2O (regla_extraccion), M2M ajenas (derivados, afectados, ...)
+        for rel in Indicador._meta.get_fields():
+            if not (rel.auto_created and not rel.concrete):
+                continue
+            acc = rel.get_accessor_name()
+            if not acc:
+                continue
+            if rel.many_to_many:
+                for obj in getattr(eliminado, acc).all():
+                    getattr(obj, rel.field.name).add(conservado)
+            elif rel.one_to_one:
+                inst = getattr(eliminado, acc, None)
+                if inst is not None and getattr(conservado, acc, None) is None:
+                    setattr(inst, rel.field.name, conservado)
+                    inst.save(update_fields=[rel.field.name])
+            else:
+                getattr(eliminado, acc).update(**{rel.field.name: conservado})
+
+        # 5. Embeddings del eliminado (los del conservado se regeneran)
+        DocumentoVector.objects.filter(
+            tipo='indicador', referencia_id=pk_elim).delete()
+
+        # 6. Trazabilidad
+        tomados = sorted(c for c, v in campos.items() if v == 'b')
+        RegistroCambio.objects.create(
+            indicador=conservado,
+            usuario=request.user if request.user.is_authenticated else None,
+            tipo_evento='cambio_metadatos',
+            diff_json={
+                'conciliacion': {
+                    'eliminado_id': pk_elim, 'eliminado_nombre': nombre_elim,
+                    'campos_del_eliminado': tomados,
+                }
+            },
+        )
+
+        # 7. Eliminar el duplicado (sus relaciones ya están reasignadas)
+        eliminado.delete()
+
+    return JsonResponse({
+        'ok': True, 'id': conservado.id, 'nombre': conservado.nombre,
+        'mensaje': f'[{pk_elim}] "{nombre_elim}" fusionado en [{conservado.id}] '
+                   f'"{conservado.nombre}"',
+    })

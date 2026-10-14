@@ -80,6 +80,15 @@
                       {% endif %}">
                 Manual
             </a>
+            <a href="{% url 'indicadores:validacion_normalizacion_identidad' %}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                      {% if 'normalizacion_identidad' in request.resolver_match.url_name or 'norm_' in request.resolver_match.url_name %}
+                          bg-emerald-500 text-white shadow-sm
+                      {% else %}
+                          text-slate-600 hover:bg-slate-200
+                      {% endif %}">
+                Identidad
+            </a>
         </nav>
         {% endif %}
     </div>

@@ -1,0 +1,316 @@
+{% extends "validacion/base_validacion.html" %}
+{% block title %}Normalización de Identidad — Panel de Validación{% endblock %}
+{% block validacion_content %}
+
+<div class="container mx-auto px-6 pb-12">
+    <!-- Hero -->
+    <div class="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-2xl mb-8 p-6">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-lg flex items-center justify-center">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-serif font-bold text-slate-900">Normalización de Identidad</h1>
+                <p class="text-slate-600 text-sm">Códigos de indicadores y conciliación de duplicados</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-1 mb-6 border-b border-slate-200">
+        <button onclick="normTab('codigos')" id="tab-codigos"
+            class="norm-tab px-5 py-3 text-sm font-medium rounded-t-lg border-b-2 border-indigo-500 text-indigo-700 bg-indigo-50">
+            Identidad de códigos
+        </button>
+        <button onclick="normTab('conciliar')" id="tab-conciliar"
+            class="norm-tab px-5 py-3 text-sm font-medium rounded-t-lg border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+            Conciliación de indicadores
+        </button>
+    </div>
+
+    <!-- ================= TAB: CÓDIGOS ================= -->
+    <div id="panel-codigos">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Exportar -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h3 class="font-semibold text-slate-800 mb-2">📥 Relación completa</h3>
+                <p class="text-xs text-slate-500 mb-4">
+                    Un solo Excel: dominio › tema › subtema › nombre, código actual e id interno de cada indicador.
+                </p>
+                <a href="{% url 'indicadores:norm_exportar_identidad' %}"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                    Descargar identidad (.xlsx)
+                </a>
+            </div>
+            <!-- Importar -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h3 class="font-semibold text-slate-800 mb-2">📤 Actualización masiva</h3>
+                <p class="text-xs text-slate-500 mb-3">
+                    CSV o XLSX con columnas <code class="bg-slate-100 px-1 rounded">id</code> +
+                    <code class="bg-slate-100 px-1 rounded">codigo</code>. El código vacío lo limpia.
+                </p>
+                <form id="form-import" enctype="multipart/form-data" class="flex items-center gap-2">
+                    {% csrf_token %}
+                    <input type="file" name="archivo" accept=".csv,.xlsx,.xls" required
+                           class="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                    <button type="submit"
+                            class="px-4 py-2 bg-slate-700 text-white text-sm font-medium rounded-lg hover:bg-slate-800 whitespace-nowrap">
+                        Importar
+                    </button>
+                </form>
+                <div id="import-result" class="mt-3 text-xs"></div>
+            </div>
+            <!-- Ayuda -->
+            <div class="bg-amber-50 rounded-xl border border-amber-200 p-5">
+                <h3 class="font-semibold text-amber-800 mb-2">Flujo sugerido</h3>
+                <ol class="text-xs text-amber-800 space-y-1 list-decimal list-inside">
+                    <li>Descarga el Excel de identidad.</li>
+                    <li>Edita la columna <code>codigo_indicador</code>.</li>
+                    <li>Reimporta el archivo (las columnas extra se ignoran).</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Búsqueda 1:1 -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h3 class="font-semibold text-slate-800 mb-3">🔍 Consulta y edición individual</h3>
+            <input type="text" id="buscar-q" placeholder="Buscar por nombre, código, sigla o id interno…"
+                   class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4">
+            <div id="buscar-result" class="overflow-x-auto">
+                <p class="text-sm text-slate-400">Escribe al menos 2 caracteres…</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB: CONCILIAR ================= -->
+    <div id="panel-conciliar" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Picker A -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h3 class="font-semibold text-slate-800 mb-1">
+                    <span class="inline-block w-6 h-6 text-center leading-6 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">A</span>
+                    Indicador que se conserva
+                </h3>
+                <p class="text-xs text-slate-500 mb-3">Sobrevive. Recibe todas las relaciones.</p>
+                <input type="text" class="conc-search w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" data-lado="a"
+                       placeholder="Buscar por nombre, código o id…">
+                <div id="conc-lista-a" class="mt-2 max-h-40 overflow-y-auto text-sm"></div>
+                <div id="conc-sel-a" class="mt-3"></div>
+            </div>
+            <!-- Picker B -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <h3 class="font-semibold text-slate-800 mb-1">
+                    <span class="inline-block w-6 h-6 text-center leading-6 rounded-full bg-red-100 text-red-700 text-xs font-bold">B</span>
+                    Indicador que se elimina
+                </h3>
+                <p class="text-xs text-slate-500 mb-3">Desaparece; puedes rescatar sus metadatos campo a campo.</p>
+                <input type="text" class="conc-search w-full px-3 py-2 border border-slate-300 rounded-lg text-sm" data-lado="b"
+                       placeholder="Buscar por nombre, código o id…">
+                <div id="conc-lista-b" class="mt-2 max-h-40 overflow-y-auto text-sm"></div>
+                <div id="conc-sel-b" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="text-center mb-6">
+            <button id="btn-comparar" onclick="comparar()" disabled
+                    class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                Comparar indicadores
+            </button>
+        </div>
+
+        <div id="conc-tabla"></div>
+    </div>
+</div>
+
+<script>
+const URLS = {
+    buscar:    "{% url 'indicadores:norm_buscar_indicador' %}",
+    actualizar:"{% url 'indicadores:norm_actualizar_codigo' %}",
+    importar:  "{% url 'indicadores:norm_importar_codigos' %}",
+    comparar:  "{% url 'indicadores:norm_conciliar_comparar' %}",
+    aplicar:   "{% url 'indicadores:norm_conciliar_aplicar' %}",
+};
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+const sel = { a: null, b: null };
+
+function normTab(t) {
+    ['codigos', 'conciliar'].forEach(x => {
+        document.getElementById('panel-' + x).classList.toggle('hidden', x !== t);
+        const tab = document.getElementById('tab-' + x);
+        const on = x === t;
+        tab.classList.toggle('border-indigo-500', on);
+        tab.classList.toggle('text-indigo-700', on);
+        tab.classList.toggle('bg-indigo-50', on);
+        tab.classList.toggle('border-transparent', !on);
+        tab.classList.toggle('text-slate-500', !on);
+    });
+}
+
+function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g,
+        c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- Búsqueda 1:1 ---------- */
+let buscarTimer;
+document.getElementById('buscar-q').addEventListener('input', e => {
+    clearTimeout(buscarTimer);
+    buscarTimer = setTimeout(async () => {
+        const q = e.target.value.trim();
+        const box = document.getElementById('buscar-result');
+        if (q.length < 2) { box.innerHTML = '<p class="text-sm text-slate-400">Escribe al menos 2 caracteres…</p>'; return; }
+        const r = await fetch(URLS.buscar + '?q=' + encodeURIComponent(q));
+        const d = await r.json();
+        if (!d.resultados.length) { box.innerHTML = '<p class="text-sm text-slate-400">Sin resultados.</p>'; return; }
+        box.innerHTML = `<table class="w-full text-sm">
+            <thead><tr class="text-left text-xs text-slate-500 border-b">
+                <th class="py-2 pr-3">ID</th><th class="pr-3">Indicador</th><th class="pr-3">Ruta</th>
+                <th class="pr-3">Datos</th><th class="pr-3" style="width:180px">Código</th><th></th></tr></thead>
+            <tbody>` + d.resultados.map(i => `<tr class="border-b border-slate-100 hover:bg-slate-50">
+                <td class="py-2 pr-3 font-mono text-indigo-700 font-semibold">${i.id}</td>
+                <td class="pr-3">${esc(i.nombre)}${i.activo ? '' : ' <span class="text-xs text-red-500">(inactivo)</span>'}
+                    ${i.adicionales.length ? `<div class="text-xs text-slate-400">+ ${i.adicionales.map(esc).join(' · ')}</div>` : ''}</td>
+                <td class="pr-3 text-xs text-slate-500">${esc(i.ruta)}</td>
+                <td class="pr-3 text-xs text-slate-500">${i.n_datos} datos · ${i.n_graficos} gráf.</td>
+                <td class="pr-3"><input type="text" value="${esc(i.codigo)}" id="cod-${i.id}"
+                        class="w-full px-2 py-1 border border-slate-300 rounded text-xs font-mono"></td>
+                <td><button onclick="guardarCodigo(${i.id})"
+                        class="px-3 py-1 bg-slate-700 text-white text-xs rounded-lg hover:bg-slate-800">Guardar</button>
+                    <span id="msg-${i.id}" class="text-xs ml-1"></span></td>
+            </tr>`).join('') + '</tbody></table>';
+    }, 300);
+});
+
+async function guardarCodigo(id) {
+    const msg = document.getElementById('msg-' + id);
+    const r = await fetch(URLS.actualizar, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ id: id, codigo: document.getElementById('cod-' + id).value })
+    });
+    const d = await r.json();
+    msg.textContent = d.ok ? '✓' : ('✗ ' + d.error);
+    msg.className = 'text-xs ml-1 ' + (d.ok ? 'text-emerald-600' : 'text-red-600');
+}
+
+/* ---------- Importar ---------- */
+document.getElementById('form-import').addEventListener('submit', async e => {
+    e.preventDefault();
+    const box = document.getElementById('import-result');
+    box.innerHTML = '<span class="text-slate-500">Procesando…</span>';
+    const r = await fetch(URLS.importar, { method: 'POST',
+        headers: { 'X-CSRFToken': CSRF }, body: new FormData(e.target) });
+    const d = await r.json();
+    if (!d.ok) { box.innerHTML = `<span class="text-red-600">${esc(d.error)}</span>`; return; }
+    box.innerHTML = `<span class="text-emerald-700 font-medium">✓ ${d.actualizados} actualizados</span>` +
+        (d.n_errores ? `<ul class="mt-1 text-red-600 list-disc list-inside">${d.errores.map(e => `<li>${esc(e)}</li>`).join('')}</ul>` : '');
+});
+
+/* ---------- Conciliación ---------- */
+document.querySelectorAll('.conc-search').forEach(inp => {
+    let t;
+    inp.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(async () => {
+            const lado = inp.dataset.lado, q = inp.value.trim();
+            const box = document.getElementById('conc-lista-' + lado);
+            if (q.length < 2) { box.innerHTML = ''; return; }
+            const d = await (await fetch(URLS.buscar + '?q=' + encodeURIComponent(q))).json();
+            box.innerHTML = d.resultados.map(i =>
+                `<button type="button" onclick="elegir('${lado}', ${i.id}, '${esc(i.nombre).replace(/'/g, '')}', '${esc(i.ruta).replace(/'/g, '')}')"
+                    class="block w-full text-left px-3 py-2 rounded-lg hover:bg-indigo-50 border border-transparent hover:border-indigo-200 mb-1">
+                    <span class="font-mono text-xs text-indigo-600">[${i.id}]</span> ${esc(i.nombre)}
+                    <div class="text-xs text-slate-400">${esc(i.ruta)}</div>
+                </button>`).join('');
+        }, 300);
+    });
+});
+
+function elegir(lado, id, nombre, ruta) {
+    sel[lado] = { id, nombre };
+    document.getElementById('conc-sel-' + lado).innerHTML =
+        `<div class="flex items-center justify-between p-3 rounded-lg border-2 ${lado === 'a' ? 'border-emerald-300 bg-emerald-50' : 'border-red-300 bg-red-50'}">
+            <div><span class="font-mono text-xs">[${id}]</span> <strong>${esc(nombre)}</strong>
+                <div class="text-xs text-slate-500">${esc(ruta)}</div></div>
+            <button onclick="limpiar('${lado}')" class="text-slate-400 hover:text-red-600 text-lg px-2">×</button>
+        </div>`;
+    document.getElementById('conc-lista-' + lado).innerHTML = '';
+    document.getElementById('btn-comparar').disabled = !(sel.a && sel.b);
+}
+
+function limpiar(lado) {
+    sel[lado] = null;
+    document.getElementById('conc-sel-' + lado).innerHTML = '';
+    document.getElementById('btn-comparar').disabled = true;
+}
+
+async function comparar() {
+    const box = document.getElementById('conc-tabla');
+    box.innerHTML = '<p class="text-center text-slate-500 py-8">Comparando…</p>';
+    const d = await (await fetch(URLS.comparar + `?a=${sel.a.id}&b=${sel.b.id}`)).json();
+    if (!d.ok) { box.innerHTML = `<p class="text-red-600">${esc(d.error)}</p>`; return; }
+
+    const chip = r => `<div class="flex flex-wrap gap-1 text-xs">${Object.entries(r).map(([k, v]) =>
+        `<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${k}: <b>${v}</b></span>`).join('')}</div>`;
+
+    box.innerHTML = `
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="grid grid-cols-[1fr_1.2fr_1.2fr] text-xs font-semibold text-slate-500 bg-slate-50 border-b px-4 py-3">
+            <div>Campo</div>
+            <div class="text-emerald-700">A — conserva [${d.a.id}] ${esc(d.a.nombre)} ${chip(d.rels.a)}</div>
+            <div class="text-red-700">B — elimina [${d.b.id}] ${esc(d.b.nombre)} ${chip(d.rels.b)}</div>
+        </div>
+        <div class="divide-y divide-slate-100">` + d.campos.map(c => `
+            <div class="grid grid-cols-[1fr_1.2fr_1.2fr] px-4 py-2 text-sm ${c.a === c.b ? 'opacity-60' : ''}">
+                <div class="text-slate-600 font-medium text-xs flex items-center">${c.label}</div>
+                <label class="flex items-start gap-2 pr-3 cursor-pointer">
+                    <input type="radio" name="f_${c.campo}" value="a" checked class="mt-1 accent-emerald-600">
+                    <span class="text-xs break-words">${esc(c.a) || '<i class="text-slate-300">vacío</i>'}</span>
+                </label>
+                <label class="flex items-start gap-2 pr-3 cursor-pointer">
+                    <input type="radio" name="f_${c.campo}" value="b" class="mt-1 accent-red-600">
+                    <span class="text-xs break-words">${esc(c.b) || '<i class="text-slate-300">vacío</i>'}</span>
+                </label>
+            </div>`).join('') + `
+        </div>
+        <div class="px-4 py-4 bg-slate-50 border-t flex flex-wrap items-center justify-between gap-3">
+            <label class="flex items-center gap-2 text-xs text-slate-600">
+                <input type="checkbox" id="otro-st" checked class="accent-indigo-600">
+                El subtema principal no elegido queda como <b>subtema adicional</b>
+            </label>
+            <button onclick="aplicarConciliacion()"
+                    class="px-6 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                ⚠ Conciliar: eliminar B [${d.b.id}]
+            </button>
+        </div>
+    </div>`;
+    box.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function aplicarConciliacion() {
+    const campos = {};
+    document.querySelectorAll('#conc-tabla input[type=radio]:checked').forEach(r => {
+        campos[r.name.slice(2)] = r.value;
+    });
+    if (!confirm(`Se eliminará el indicador B [${sel.b.id}] y todas sus relaciones pasarán a A [${sel.a.id}].\nEsta acción NO se puede deshacer. ¿Continuar?`)) return;
+    const r = await fetch(URLS.aplicar, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({
+            conservar: sel.a.id, eliminar: sel.b.id, campos: campos,
+            otro_subtema_adicional: document.getElementById('otro-st').checked
+        })
+    });
+    const d = await r.json();
+    if (d.ok) {
+        document.getElementById('conc-tabla').innerHTML =
+            `<div class="p-6 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-800 font-medium">✓ ${esc(d.mensaje)}</div>`;
+        limpiar('a'); limpiar('b');
+    } else {
+        alert('Error: ' + (d.error || 'desconocido'));
+    }
+}
+</script>
+{% endblock %}

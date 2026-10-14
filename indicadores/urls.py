@@ -393,6 +393,15 @@ urlpatterns = [
     path('validacion/conciliacion/eliminar/', views_validacion.validacion_conciliacion_eliminar, name='validacion_conciliacion_eliminar'),
     path('validacion/conciliacion/dominio/<int:dominio_id>/', views_validacion.validacion_conciliacion_dominio, name='validacion_conciliacion_dominio'),
 
+    # Wizard de normalización de identidad de indicadores (códigos + conciliación)
+    path('validacion/normalizacion-identidad/', views_validacion.validacion_normalizacion, name='validacion_normalizacion_identidad'),
+    path('validacion/normalizacion-identidad/buscar/', views_validacion.norm_buscar_indicador, name='norm_buscar_indicador'),
+    path('validacion/normalizacion-identidad/exportar/', views_validacion.norm_exportar_identidad, name='norm_exportar_identidad'),
+    path('validacion/normalizacion-identidad/actualizar-codigo/', views_validacion.norm_actualizar_codigo, name='norm_actualizar_codigo'),
+    path('validacion/normalizacion-identidad/importar/', views_validacion.norm_importar_codigos, name='norm_importar_codigos'),
+    path('validacion/normalizacion-identidad/conciliar/comparar/', views_validacion.norm_conciliar_comparar, name='norm_conciliar_comparar'),
+    path('validacion/normalizacion-identidad/conciliar/aplicar/', views_validacion.norm_conciliar_aplicar, name='norm_conciliar_aplicar'),
+
     # ========================================================================
     # HALL DE CAPACIDAD ESTADÍSTICA
     # ========================================================================
