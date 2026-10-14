@@ -72,7 +72,7 @@
 .slide.cover { align-items:center; justify-content:center; text-align:center; }
 .slide.cover h1 { color:#fff; font-size:60px; font-weight:900; letter-spacing:2px; line-height:1.05; text-shadow:0 4px 30px rgba(0,0,0,.4); }
 .slide.cover h1 span { color:#67e8f9; }
-.slide.cover .tagline { color:#b8d9f0; font-size:17px; font-weight:600; margin-top:18px; max-width:760px; line-height:1.6; }
+.slide.cover .tagline { color:#b8d9f0; font-size:17px; font-weight:600; margin:18px auto 0; max-width:760px; line-height:1.6; }
 .duo { display:grid; grid-template-columns:1fr 1fr; gap:16px; flex:1; min-height:0; }
 
 /* ===== Timeline ===== */
@@ -109,7 +109,9 @@
     <div style="display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:26px;">
       <img src="{% static 'indicadores/images/alcaldia-logo.png' %}" alt="Alcaldía de Santiago de Cali" style="height:54px; width:auto; object-fit:contain;">
       <div style="width:1px; height:44px; background:rgba(184,217,240,.45);"></div>
-      <img src="{% static 'indicadores/images/logo_sin_fondo.png' %}" alt="SIIED" style="height:56px; width:auto; object-fit:contain;">
+      <div style="background:rgba(255,255,255,.96); padding:7px 14px; border-radius:12px; display:flex; align-items:center; box-shadow:0 4px 18px rgba(0,0,0,.25);">
+        <img src="{% static 'indicadores/images/siied-logo.png' %}" alt="SIIED" style="height:44px; width:auto; object-fit:contain;">
+      </div>
     </div>
     <div class="kicker" style="margin-bottom:20px;">Departamento Administrativo de Planeación · Santiago de Cali</div>
     <h1>SIIED<br><span>Sistema Integrado de Información Estadística Distrital</span></h1>
@@ -938,7 +940,9 @@
     <div style="display:flex; align-items:center; justify-content:center; gap:16px; margin-top:22px;">
       <img src="{% static 'indicadores/images/alcaldia-logo.png' %}" alt="Alcaldía de Santiago de Cali" style="height:44px; width:auto; object-fit:contain;">
       <div style="width:1px; height:34px; background:rgba(184,217,240,.45);"></div>
-      <img src="{% static 'indicadores/images/logo_sin_fondo.png' %}" alt="SIIED" style="height:46px; width:auto; object-fit:contain;">
+      <div style="background:rgba(255,255,255,.96); padding:5px 12px; border-radius:10px; display:flex; align-items:center; box-shadow:0 4px 14px rgba(0,0,0,.25);">
+        <img src="{% static 'indicadores/images/siied-logo.png' %}" alt="SIIED" style="height:34px; width:auto; object-fit:contain;">
+      </div>
     </div>
     <p class="tagline" style="margin:14px auto 0; text-align:center;">SIIED · Subdirección de Desarrollo Integral · Departamento Administrativo de Planeación<br>Alcaldía de Santiago de Cali · sistemaestadistico@cali.gov.co</p>
   </div>
