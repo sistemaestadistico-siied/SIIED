@@ -114,26 +114,19 @@
         </div>
         <div class="card-body">
             {% if organismos %}
-            <div class="row">
+            <p class="text-muted mb-3">
+                Selecciona el organismo de la lista para ver sus subdirecciones u oficinas:
+            </p>
+            <select id="selector-organismo" class="form-select form-select-lg"
+                    aria-label="Selecciona el organismo"
+                    onchange="if (this.value) { window.location.href = '?organismo=' + encodeURIComponent(this.value) + '#seccion-suborganismos'; }">
+                <option value="">— Selecciona el organismo —</option>
                 {% for org in organismos %}
-                <div class="col-md-4 col-lg-3 mb-3">
-                    <a href="?organismo={{ org.id }}" class="text-decoration-none">
-                        <div class="card organismo-card h-100 {% if organismo_seleccionado.id == org.id %}selected{% endif %}">
-                            <div class="card-body text-center">
-                                <i class="bi bi-building" style="font-size: 36px; color: #000866;"></i>
-                                <h6 class="mt-2 mb-1 text-dark">{{ org.nombre }}</h6>
-                                <p class="text-muted small mb-0"><code>{{ org.codigo }}</code></p>
-                                {% if organismo_seleccionado.id == org.id %}
-                                <span class="badge mt-2" style="background-color: #06b6d4; color: #000866;">
-                                    <i class="bi bi-check-circle"></i> Seleccionado
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </a>
-                </div>
+                <option value="{{ org.id }}" {% if organismo_seleccionado.id == org.id %}selected{% endif %}>
+                    {{ org.nombre }} ({{ org.codigo }})
+                </option>
                 {% endfor %}
-            </div>
+            </select>
             {% else %}
             <div class="alert alert-warning">
                 <i class="bi bi-exclamation-triangle"></i> No hay organismos activos.
@@ -145,7 +138,7 @@
     {% if organismo_seleccionado %}
 
     <!-- PASO 2: Selector de Suborganismo -->
-    <div class="card shadow-sm mb-4">
+    <div id="seccion-suborganismos" class="card shadow-sm mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Paso 2 — Selecciona la Subdirección / Oficina</h5>
             <a href="?" class="btn btn-outline-secondary btn-sm">
