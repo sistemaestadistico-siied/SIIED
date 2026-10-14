@@ -5263,10 +5263,10 @@ function tickDaticoHUD(dt, t) {
     if (loroHUD.scale.x !== esc) loroHUD.scale.setScalar(esc);
     loroHUD.position.x = hx + Math.sin(t * 0.5) * 0.18;
     loroHUD.position.y = hy + Math.sin(t * 1.4) * 0.08;
-    // Corona la tarjeta → mira al espectador. El giro anterior fue en
-    // sentido contrario: faltaba ~cuarto de vuelta (+π/2). GLB: su frente
-    // queda ~π (el π interno + π de más); procedural: ~1.92.
-    const baseYaw = d.w ? 3.0 : 1.92;
+    // Corona la tarjeta → mira al espectador. Ajuste iterado: el
+    // cuarto de vuelta extra quedó largo — retrocedido un octavo.
+    // GLB ~2.21 · procedural ~1.14.
+    const baseYaw = d.w ? 2.21 : 1.14;
     loroHUD.rotation.y = baseYaw + Math.sin(t * 0.4) * 0.12;
     loroHUD.rotation.z = Math.sin(t * 0.8) * 0.12;
     loroHUD.rotation.x = Math.sin(t * 0.6) * 0.05;
