@@ -36,6 +36,9 @@ from indicadores.forms_editorial import (
     CatalogoConsultaForm, CatalogoConsultaEnlazarIndicadoresForm
 )
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 # ============================================================================
 # AUTENTICACIÓN
@@ -626,6 +629,83 @@ def noticia_crear(request):
         'enlaces_formset': enlaces_formset
     }
     return render(request, 'editorial/noticia_form.html', context)
+
+
+@editor_required
+@require_http_methods(['POST'])
+def noticia_generar_ia(request):
+    """Genera los campos de una noticia a partir de un prompt libre (LLM).
+
+    No persiste nada: devuelve el JSON de campos para que el formulario
+    se precargue y el editor revise/ajuste antes de guardar.
+    """
+    from .llm_structured import NOTICIA_SCHEMA, NOTICIA_SYSTEM_PROMPT
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Cuerpo JSON inválido.'}, status=400)
+
+    prompt = (payload.get('prompt') or '').strip()
+    if len(prompt) < 10:
+        return JsonResponse(
+            {'error': 'Describe la noticia con al menos una frase.'},
+            status=400)
+    if len(prompt) > 4000:
+        return JsonResponse(
+            {'error': 'La descripción es demasiado larga (máx. 4000 caracteres).'},
+            status=400)
+
+    # Importación perezosa: views_chat arrastra dependencias pesadas
+    from .views_chat import ChatService
+    try:
+        data = ChatService(request=request).generate_structured(
+            prompt, NOTICIA_SCHEMA,
+            system_prompt=NOTICIA_SYSTEM_PROMPT,
+            schema_name='noticia_banner')
+    except Exception as e:
+        logger.error(f'Error generando noticia con IA: {e}')
+        return JsonResponse(
+            {'error': 'El asistente no pudo generar la noticia. '
+                      'Inténtalo de nuevo en unos segundos.'},
+            status=502)
+
+    try:
+        orden = int(data.get('orden'))
+    except (TypeError, ValueError):
+        orden = 5
+
+    # Sanitizar a los campos que el formulario espera
+    noticia = {
+        'titulo': str(data.get('titulo') or '')[:255],
+        'subtitulo': str(data.get('subtitulo') or '')[:255],
+        'descripcion': str(data.get('descripcion') or ''),
+        'enlace_principal': str(data.get('enlace_principal') or ''),
+        'texto_enlace_principal':
+            str(data.get('texto_enlace_principal') or 'Leer más')[:100],
+        'imagen_url': str(data.get('imagen_url') or ''),
+        'sugerencia_imagen': str(data.get('sugerencia_imagen') or ''),
+        'orden': max(0, min(10, orden)),
+        'estadisticas': [
+            {
+                'titulo': str(est.get('titulo') or '')[:100],
+                'valor': str(est.get('valor') or '')[:50],
+                'descripcion': str(est.get('descripcion') or '')[:255],
+            }
+            for est in (data.get('estadisticas') or [])[:4]
+            if isinstance(est, dict)
+        ],
+        'enlaces': [
+            {
+                'titulo': str(enl.get('titulo') or '')[:100],
+                'url': str(enl.get('url') or ''),
+                'descripcion': str(enl.get('descripcion') or '')[:255],
+            }
+            for enl in (data.get('enlaces') or [])[:4]
+            if isinstance(enl, dict)
+        ],
+    }
+    return JsonResponse({'ok': True, 'noticia': noticia})
 
 
 @editor_required

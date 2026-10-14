@@ -12,6 +12,31 @@
     <p class="mt-1 text-slate-500">Gestiona el contenido, estadísticas y enlaces de la noticia</p>
 </div>
 
+{% if not noticia %}
+<!-- Asistente IA: describe la noticia y la IA redacta todos los campos -->
+<div class="mb-6 bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 rounded-2xl p-5">
+    <h2 class="text-lg font-bold text-indigo-900 flex items-center gap-2 mb-1">
+        <i class="fas fa-wand-magic-sparkles text-indigo-500"></i> Generar con IA
+    </h2>
+    <p class="text-sm text-indigo-700 mb-3">
+        Describe la noticia en lenguaje natural (qué pasó, cifras, fuentes, fechas, enlaces)
+        y la IA redactará <strong>todos los campos</strong> del formulario.
+        <strong>Revisa antes de guardar</strong> — nada se publica sin tu revisión.
+    </p>
+    <textarea id="ia-prompt" rows="3"
+        class="w-full px-4 py-3 bg-white border-2 border-indigo-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 transition-all"
+        placeholder="Ej: El DANE publicó el informe de pobreza monetaria 2025: bajó a 33% y 1.2 millones de personas salieron de pobreza. Enlace al informe en dane.gov.co..."></textarea>
+    <div class="flex items-center gap-3 mt-3">
+        <button type="button" id="ia-generar"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium shadow-sm hover:bg-indigo-700 transition-all disabled:opacity-50">
+            <i class="fas fa-sparkles"></i> Generar borrador
+        </button>
+        <span id="ia-status" class="text-sm text-indigo-600"></span>
+    </div>
+    <div id="ia-sugerencia" class="hidden mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800"></div>
+</div>
+{% endif %}
+
 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
     <form method="post" enctype="multipart/form-data" class="space-y-8">
         {% csrf_token %}
@@ -86,7 +111,7 @@
             <p class="text-sm text-slate-500 mb-4">Datos numéricos que resaltan el impacto de la noticia.</p>
 
             {{ estadisticas_formset.management_form }}
-            <div class="space-y-4">
+            <div class="space-y-4" id="estadisticas-rows">
                 {% for fs in estadisticas_formset %}
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl items-end">
                     <div class="md:col-span-2">
@@ -123,7 +148,7 @@
             <p class="text-sm text-slate-500 mb-4">Enlaces a documentos, descargas o páginas relacionadas.</p>
 
             {{ enlaces_formset.management_form }}
-            <div class="space-y-4">
+            <div class="space-y-4" id="enlaces-rows">
                 {% for fs in enlaces_formset %}
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl items-end">
                     <div class="md:col-span-2">
@@ -163,4 +188,111 @@
         </div>
     </form>
 </div>
+
+{% if not noticia %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('ia-generar');
+    const promptEl = document.getElementById('ia-prompt');
+    const statusEl = document.getElementById('ia-status');
+    const sugEl = document.getElementById('ia-sugerencia');
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    function setVal(name, val) {
+        const el = document.querySelector('[name="' + name + '"]');
+        if (el && val !== undefined && val !== null) el.value = val;
+    }
+
+    // Garantiza N filas en el formset (clona la última y reindexa) y las llena
+    function fillFormset(prefix, items) {
+        if (!items || !items.length) return;
+        const container = document.getElementById(prefix + '-rows');
+        const totalInput = document.getElementById('id_' + prefix + '-TOTAL_FORMS');
+        if (!container || !totalInput || !container.children.length) return;
+
+        const idxRe = new RegExp(prefix + '-\\d+-');
+        while (container.children.length < items.length) {
+            const idx = container.children.length;
+            const clone = container.lastElementChild.cloneNode(true);
+            clone.querySelectorAll('[name]').forEach(el => {
+                el.name = el.name.replace(idxRe, prefix + '-' + idx + '-');
+                if (el.id) el.id = el.id.replace(idxRe, prefix + '-' + idx + '-');
+                if (el.type === 'checkbox' || el.type === 'radio') {
+                    el.checked = false;
+                } else {
+                    el.value = '';
+                }
+            });
+            clone.querySelectorAll('label[for]').forEach(l => {
+                l.htmlFor = l.htmlFor.replace(idxRe, prefix + '-' + idx + '-');
+            });
+            container.appendChild(clone);
+        }
+        totalInput.value = container.children.length;
+
+        items.forEach((item, i) => {
+            Object.keys(item).forEach(k => {
+                const el = document.querySelector(
+                    '[name="' + prefix + '-' + i + '-' + k + '"]');
+                if (el) el.value = item[k];
+            });
+            const ordenEl = document.querySelector(
+                '[name="' + prefix + '-' + i + '-orden"]');
+            if (ordenEl && !ordenEl.value) ordenEl.value = i + 1;
+        });
+    }
+
+    btn.addEventListener('click', function () {
+        const prompt = (promptEl.value || '').trim();
+        if (prompt.length < 10) {
+            statusEl.textContent = 'Describe la noticia con al menos una frase.';
+            statusEl.className = 'text-sm text-red-600';
+            return;
+        }
+        btn.disabled = true;
+        statusEl.textContent = 'Generando borrador con la IA…';
+        statusEl.className = 'text-sm text-indigo-600';
+        sugEl.classList.add('hidden');
+
+        fetch('{% url "indicadores:editorial_noticia_generar_ia" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf
+            },
+            body: JSON.stringify({ prompt: prompt })
+        })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok || !data.ok) {
+                throw new Error(data.error || 'Error generando la noticia.');
+            }
+            const n = data.noticia;
+            setVal('titulo', n.titulo);
+            setVal('subtitulo', n.subtitulo);
+            setVal('descripcion', n.descripcion);
+            setVal('enlace_principal', n.enlace_principal);
+            setVal('texto_enlace_principal', n.texto_enlace_principal);
+            setVal('imagen_url', n.imagen_url);
+            if (n.orden !== undefined && n.orden !== null) setVal('orden', n.orden);
+            fillFormset('estadisticas', n.estadisticas);
+            fillFormset('enlaces', n.enlaces);
+
+            if (n.sugerencia_imagen) {
+                sugEl.innerHTML = '<strong><i class="fas fa-image"></i> Imagen sugerida para el carrusel:</strong> '
+                    + n.sugerencia_imagen;
+                sugEl.classList.remove('hidden');
+            }
+            statusEl.textContent = 'Borrador generado — revisa los campos y guarda.';
+            statusEl.className = 'text-sm text-emerald-600 font-medium';
+        })
+        .catch(err => {
+            statusEl.textContent = err.message;
+            statusEl.className = 'text-sm text-red-600';
+        })
+        .finally(() => { btn.disabled = false; });
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

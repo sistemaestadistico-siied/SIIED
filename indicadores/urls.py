@@ -466,6 +466,7 @@ urlpatterns = [
     # Noticias
     path('editorial/noticias/', views_editorial.noticias_listado, name='editorial_noticias'),
     path('editorial/noticias/crear/', views_editorial.noticia_crear, name='editorial_noticia_crear'),
+    path('editorial/noticias/generar-ia/', views_editorial.noticia_generar_ia, name='editorial_noticia_generar_ia'),
     path('editorial/noticias/<int:pk>/editar/', views_editorial.noticia_editar, name='editorial_noticia_editar'),
     path('editorial/noticias/<int:pk>/eliminar/', views_editorial.noticia_eliminar, name='editorial_noticia_eliminar'),
     path('editorial/noticias/<int:pk>/preview/', views_editorial.noticia_preview, name='editorial_noticia_preview'),
