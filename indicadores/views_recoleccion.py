@@ -738,7 +738,7 @@ def descargar_metadata_indicador(request, indicador_id=None):
         for ind in indicadores:
             data.append({
                 'Grupo_indicador': ind.grupo_indicador or '',
-                'ID_Indicador_SIIED': ind.codigo_indicador,
+                'Codigo_Indicador': ind.codigo_indicador,
                 'Dominio': ind.subtema.tema.dominio.nombre if ind.subtema else '',
                 'Tema': ind.subtema.tema.nombre if ind.subtema else '',
                 'Subtema': ind.subtema.nombre if ind.subtema else '',
@@ -2608,7 +2608,13 @@ def cargar_masiva_series(request):
 
 
 def _leer_archivo_a_df(archivo, hojas_preferidas=None, con_col_codigo=False):
-    """Lee un archivo Excel o CSV y retorna un DataFrame.
+    """Lee un archivo Excel o CSV y retorna (DataFrame, error|None).
+
+    Lee el contenido con archivo.read() en un BytesIO en vez de
+    archivo.path — .path no existe en uploads en memoria ni en storages
+    sin filesystem, y además rompe si el archivo desapareció del disco.
+    En fallo devuelve (None, razón) para que el mensaje al usuario
+    muestre la causa real en vez de 'verifique el formato' a ciegas.
 
     hojas_preferidas: lista de nombres de hoja a intentar primero
     (case-insensitive, coincidencia por igualdad o 'contiene'). La
@@ -2624,13 +2630,24 @@ def _leer_archivo_a_df(archivo, hojas_preferidas=None, con_col_codigo=False):
     validación posterior siga siendo el mismo.
     """
     if not archivo:
-        return None
-    extension = archivo.name.lower().split('.')[-1]
+        return None, 'no se recibió ningún archivo'
+    extension = (archivo.name or '').lower().split('.')[-1]
+    if extension not in ('xlsx', 'xls', 'csv'):
+        return None, (f'extensión ".{extension}" no soportada; '
+                      'use .xlsx, .xls o .csv')
+    try:
+        archivo.seek(0)
+    except Exception:
+        pass
+    try:
+        contenido = BytesIO(archivo.read())
+    except Exception as e:
+        return None, f'no se pudo acceder al contenido del archivo ({e})'
     try:
         if extension in ('xlsx', 'xls'):
-            libro = pd.ExcelFile(archivo.path)
+            libro = pd.ExcelFile(contenido)
             if not hojas_preferidas:
-                return pd.read_excel(libro, sheet_name=libro.sheet_names[0])
+                return pd.read_excel(libro, sheet_name=libro.sheet_names[0]), None
             # Orden de preferencia: exacta por cada pref, luego parcial,
             # y al final las demás hojas (orden[0] = la hoja elegida
             # histórica, preserva el comportamiento previo).
@@ -2653,27 +2670,31 @@ def _leer_archivo_a_df(archivo, hojas_preferidas=None, con_col_codigo=False):
                         except Exception:
                             break
                         if _obtener_col_codigo(df):
-                            return df
-            return pd.read_excel(libro, sheet_name=orden[0] if orden else libro.sheet_names[0])
+                            return df, None
+            return (pd.read_excel(libro, sheet_name=orden[0] if orden else libro.sheet_names[0]),
+                    None)
         elif extension == 'csv':
             mejor_df = None
             mejor_cols = 0
             for encoding in ('utf-8', 'utf-8-sig', 'latin-1', 'iso-8859-1'):
                 for sep in (';', ',', '\t'):
                     try:
-                        df = pd.read_csv(archivo.path, encoding=encoding, sep=sep)
+                        contenido.seek(0)
+                        df = pd.read_csv(contenido, encoding=encoding, sep=sep)
                         if len(df.columns) > mejor_cols:
                             mejor_df = df
                             mejor_cols = len(df.columns)
                     except (UnicodeDecodeError, pd.errors.ParserError):
                         continue
                 if mejor_df is not None and mejor_cols > 1:
-                    return mejor_df
-            return mejor_df
+                    return mejor_df, None
+            return mejor_df, None
         else:
-            return None
-    except Exception:
-        return None
+            return None, f'extensión ".{extension}" no soportada'
+    except Exception as e:
+        # causa real (motor faltante, archivo dañado, hoja ausente…)
+        # — antes se tragaba en silencio
+        return None, f'{type(e).__name__}: {e}'
 
 
 def _obtener_col_codigo(df):
@@ -2841,20 +2862,22 @@ def _procesar_archivo_masivo(carga_masiva):
 
     # Leer archivo de datos si aplica
     if tipo in ('datos', 'ambos') and carga_masiva.archivo_maestro_datos:
-        df_datos = _leer_archivo_a_df(carga_masiva.archivo_maestro_datos,
-                                      hojas_preferidas=('datos',),
-                                      con_col_codigo=True)
+        df_datos, err_datos = _leer_archivo_a_df(
+            carga_masiva.archivo_maestro_datos,
+            hojas_preferidas=('datos',),
+            con_col_codigo=True)
         if df_datos is None:
-            return {'error': 'No se pudo leer el archivo maestro de datos. Verifique el formato.'}
-
+            return {'error': 'No se pudo leer el archivo maestro de datos. '
+                             f'({err_datos})'}
     # Leer archivo de metadata si aplica
     if tipo in ('metadata', 'ambos') and carga_masiva.archivo_maestro_metadata:
-        df_metadata = _leer_archivo_a_df(
+        df_metadata, err_meta = _leer_archivo_a_df(
             carga_masiva.archivo_maestro_metadata,
             hojas_preferidas=('indicadores', 'metadata'),
             con_col_codigo=True)
         if df_metadata is None:
-            return {'error': 'No se pudo leer el archivo maestro de metadata. Verifique el formato.'}
+            return {'error': 'No se pudo leer el archivo maestro de metadata. '
+                             f'({err_meta})'}
 
     # Validar columnas de código
     col_codigo_datos = None
