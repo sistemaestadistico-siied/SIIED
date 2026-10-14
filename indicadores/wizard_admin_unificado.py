@@ -624,6 +624,9 @@ class WizardAdminUnificado(SessionWizardView):
             context['catalogo_dominios'] = DominioDesagregacion.objects.annotate(
                 num_desagregaciones=Count('desagregaciones')
             ).order_by('tipo', '-en_catalogo', 'nombre')
+            # Para el aviso "solicita conciliación si ves dominios repetidos"
+            context['n_dominios_pendientes'] = DominioDesagregacion.objects.filter(
+                en_catalogo=False).count()
             
             tipo_flujo = self.storage.extra_data.get('tipo_flujo')
             carga_serie_id = self.storage.extra_data.get('carga_serie_id')

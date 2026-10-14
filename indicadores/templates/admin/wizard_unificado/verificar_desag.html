@@ -50,6 +50,15 @@
         <p style="font-size:0.8rem; color:var(--body-quiet-color, #64748b);">No hay dominios registrados aún.</p>
         {% endfor %}
       </div>
+      {% if n_dominios_pendientes %}
+      <div style="margin-top:0.6rem; padding:0.6rem 0.75rem; background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.35); border-radius:0.5rem; font-size:0.78rem; color:#92400e;">
+        <i class="fas fa-exclamation-triangle"></i>
+        Hay <strong>{{ n_dominios_pendientes }}</strong> dominio(s) marcados como <strong>pendientes</strong> (creados por cargas, aún no oficiales).
+        Si ves muchos dominios repetidos, solicita a un <strong>validador</strong> que los concilie en
+        <a href="{% url 'normalizacion:wizard_normalizacion' %}" target="_blank" style="color:#b45309; font-weight:600; text-decoration:underline;">Conciliación de desagregaciones</a>
+        — si tienes rol de staff puedes hacerlo tú mismo.
+      </div>
+      {% endif %}
     </details>
   </div>
 

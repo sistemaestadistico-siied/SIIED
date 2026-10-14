@@ -2603,6 +2603,10 @@ def cargar_masiva_series(request):
         'form': form,
         'dominios_geo_info': dominios_geo_info,
         'dominios_tem_info': dominios_tem_info,
+        # Dominios creados por cargas aún no admitidos al catálogo — alimenta
+        # el aviso "solicita conciliación si ves dominios repetidos".
+        'n_dominios_pendientes': DominioDesagregacion.objects.filter(
+            en_catalogo=False).count(),
     }
     return render(request, 'recoleccion/cargar_masiva_series.html', context)
 
