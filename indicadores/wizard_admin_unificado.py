@@ -2679,8 +2679,8 @@ class WizardAdminUnificado(SessionWizardView):
                         changed = True
 
                     # FKs por nombre — paridad con _actualizar_metadata_indicador_masiva
-                    from unidecode import unidecode
-                    from .models import Organismo, Suborganismo, OperacionEstadistica
+                    from .models import (Organismo, Suborganismo,
+                                         OperacionEstadistica, normalizar_ascii)
 
                     def _buscar_por_nombre(qs, nombre):
                         nombre = str(nombre or '').strip()
@@ -2688,9 +2688,9 @@ class WizardAdminUnificado(SessionWizardView):
                             return None
                         obj = qs.filter(nombre__iexact=nombre).first()
                         if not obj:
-                            norm = unidecode(nombre.lower())
+                            norm = normalizar_ascii(nombre.lower())
                             obj = next((o for o in qs
-                                        if unidecode(o.nombre.lower().strip()) == norm), None)
+                                        if normalizar_ascii(o.nombre.lower().strip()) == norm), None)
                         if not obj:
                             obj = qs.filter(nombre__icontains=nombre).first()
                         return obj

@@ -2706,10 +2706,10 @@ def _obtener_col_codigo(df):
     Indicador' también se reconocen. Devuelve el nombre real de la columna.
     """
     import re
-    from unidecode import unidecode
+    from .models import normalizar_ascii
     posibles = {'codigo_indicador', 'codigo', 'id_indicador', 'indicador_codigo'}
     for col in df.columns:
-        c = unidecode(str(col).strip().lower())
+        c = normalizar_ascii(str(col).strip().lower())
         c = re.sub(r'^\s*\d+(?:\.\d+)*\s*[\.\)\-:]?\s+', '', c)
         c = re.sub(r'[^a-z0-9]+', '_', c).strip('_')
         c = _COLUMNAS_METADATA_ALIAS.get(c, c)
@@ -2835,11 +2835,11 @@ def _normalizar_columnas_metadata(columns):
     Devuelve la lista de nombres canónicos para df.columns.
     """
     import re
-    from unidecode import unidecode
+    from .models import normalizar_ascii
 
     normalizadas = []
     for col in columns:
-        c = unidecode(str(col).strip().lower())
+        c = normalizar_ascii(str(col).strip().lower())
         # Quitar prefijo numérico de sección MSD: "2.5 Formula" -> "formula"
         c = re.sub(r'^\s*\d+(?:\.\d+)*\s*[\.\)\-:]?\s+', '', c)
         # snake_case
@@ -3132,10 +3132,10 @@ def _actualizar_metadata_indicador_masiva(indicador, fila):
     # ------------------------------------------------------------------
     # Organismo / Suborganismo: coincidencia semántica por nombre
     # ------------------------------------------------------------------
-    from unidecode import unidecode
+    from .models import normalizar_ascii
 
     def _normalizar_nombre(n):
-        return unidecode(str(n).lower().strip())
+        return normalizar_ascii(str(n).lower().strip())
 
     # Entidad/Institución → Organismo
     nombre_organismo = None

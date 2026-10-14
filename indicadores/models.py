@@ -279,19 +279,31 @@ class Desagregacion(models.Model):
         verbose_name_plural = "Desagregaciones"
 
 
+def normalizar_ascii(texto):
+    """Pliega tildes y diacríticos a ASCII vía NFKD (stdlib).
+
+    Reemplazo local de 'unidecode': suficiente para texto en español
+    y sin dependencia externa — unidecode no está instalada en el
+    venv de producción.
+    """
+    import unicodedata
+    return ''.join(
+        c for c in unicodedata.normalize('NFKD', str(texto))
+        if not unicodedata.combining(c))
+
+
 def resolver_organismo_por_nombre(nombre):
     """Resuelve un Organismo activo a partir de un nombre de texto libre.
 
     Estrategia: coincidencia exacta (iexact) → normalizada (sin tildes,
     minúsculas) → contenido parcial. Devuelve None si no hay match.
     """
-    from unidecode import unidecode
     texto = (nombre or '').strip()
     if not texto:
         return None
     qs = Organismo.objects.filter(activo=True)
     organismo = qs.filter(nombre__iexact=texto).first()
-    norm = lambda s: unidecode(str(s).lower().strip())
+    norm = lambda s: normalizar_ascii(s).lower().strip()
     if not organismo:
         objetivo = norm(texto)
         for org in qs:
