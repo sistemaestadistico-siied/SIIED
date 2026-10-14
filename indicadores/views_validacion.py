@@ -3,6 +3,7 @@ Panel de Validación para Estadísticos del SIIED.
 Espejo del módulo de reportes pero orientado a aprobar/rechazar cargas de delegados.
 """
 
+from django import forms
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
@@ -19,7 +20,7 @@ from .models import (
     PerfilRecolector, CargaSerieIndicador, CargaConjuntoDatos,
     Indicador, ConjuntoDatos, Grafico
 )
-from .models_iced import ICEDFormulario
+from .models_iced import ICEDFormulario, ICEDPreguntaEquipo
 from .calcular_iced import (
     calcular_iced, aplicar_puntajes, _normalizar_respuestas,
     PREGUNTA_LABELS, INDICADOR_LABELS, ESTRUCTURA_ICED, INDICADOR_PREGUNTA,
@@ -467,6 +468,27 @@ def _leer_preview_completo(archivo_field, max_rows=50):
 # REVISIÓN DE FORMULARIOS ICED
 # ============================================================================
 
+def _vacio(valor):
+    """Una respuesta guardada que no aporta información."""
+    return valor is None or valor == '' or valor == [] or valor == {}
+
+
+def _campo_captura_dato(field):
+    """
+    True si el campo del formulario del wizard captura un dato real.
+    Excluye textos informativos (intro/header: readonly o disabled) y
+    los HiddenInput pelados sin attrs (separadores/secciones como
+    p21_hw_header). iced_widget() y los campos JSON llevan attrs
+    (data-iced-widget, data-config, class iced-json-field) → capturan.
+    """
+    attrs = getattr(field.widget, 'attrs', {}) or {}
+    if 'readonly' in attrs or 'disabled' in attrs:
+        return False
+    if isinstance(field.widget, forms.HiddenInput):
+        return bool(attrs)
+    return True
+
+
 @validador_required
 def validacion_revisar_iced(request, formulario_id):
     """
@@ -570,18 +592,34 @@ def validacion_revisar_iced(request, formulario_id):
             if paso_campo.get(step_key) != letra:
                 continue
             items = []
-            for name in form_cls.base_fields:
-                if name in respuestas:
+            faltantes = []
+            for name, fld in form_cls.base_fields.items():
+                if name in respuestas and not _vacio(respuestas[name]):
                     usados.add(name)
                     items.append({
                         'label': pregunta_labels.get(name) or form_labels.get(name, name),
                         'field_key': name,
                         'respuesta': respuestas[name],
                     })
-            if items:
+                    continue
+                # Campos sin respuesta útil: solo los que capturan dato
+                # (no intros/headers/displays) y, para formularios de
+                # equipo, solo los asignados a ese equipo.
+                usados.add(name)
+                if not _campo_captura_dato(fld):
+                    continue
+                if formulario.equipo and not ICEDPreguntaEquipo.campo_pertenece_a_equipo(name, formulario.equipo):
+                    continue
+                faltantes.append({
+                    'label': pregunta_labels.get(name) or form_labels.get(name, name),
+                    'field_key': name,
+                    'condicional': any(s in name for s in ('especificar', 'otro', 'motivo')),
+                })
+            if items or faltantes:
                 pasos.append({
                     'label': ICED_STEP_LABELS.get(step_key, step_key),
                     'items': items,
+                    'faltantes': faltantes,
                 })
         # Campos no mapeados a ningún form: auxiliares generados por
         # widgets (displays, contactos) o respuestas huérfanas.
@@ -591,7 +629,7 @@ def validacion_revisar_iced(request, formulario_id):
             'respuesta': v,
         } for k, v in respuestas.items() if k not in usados]
         if resto:
-            pasos.append({'label': 'Otros campos del módulo', 'items': resto})
+            pasos.append({'label': 'Otros campos del módulo', 'items': resto, 'faltantes': []})
         total = sum(len(p['items']) for p in pasos)
         respuestas_modulo_display.append((nombre_modulo, pasos, total))
 

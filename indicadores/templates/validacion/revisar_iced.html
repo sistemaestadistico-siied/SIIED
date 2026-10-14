@@ -261,6 +261,24 @@
                                 </div>
                                 {% endfor %}
                             </div>
+                            {% if paso.faltantes %}
+                            <details class="mt-2">
+                                <summary class="text-[11px] font-semibold text-red-600 cursor-pointer select-none hover:text-red-700">
+                                    ⚠ {{ paso.faltantes|length }} campo{{ paso.faltantes|length|pluralize }} sin responder
+                                </summary>
+                                <div class="mt-2 space-y-1.5">
+                                    {% for f in paso.faltantes %}
+                                    <div class="flex items-baseline gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-1.5">
+                                        <span class="text-[11px] text-red-800 font-medium flex-1">{{ f.label }}</span>
+                                        {% if f.condicional %}
+                                        <span class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold" title="Campo condicional: solo aplica según otra respuesta">condicional</span>
+                                        {% endif %}
+                                        <span class="text-[10px] text-red-400 font-mono">{{ f.field_key }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </details>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
