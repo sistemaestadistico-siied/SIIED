@@ -5193,8 +5193,52 @@ hudAncla.add(loroHUD);
 hudAncla.visible = false;
 const daticoHUD = { fase: 0, lookT: 0, lookYaw: 0, lookPitch: 0,
                     lookYawC: 0, lookPitchC: 0, w: null };
+// Pareja de bailarines: flanquean la tarjeta DOM de créditos —
+// verdes de verdad porque viven en escHUD (render sin grado)
+const anclaFiesta = new THREE.Group();
+escHUD.add(anclaFiesta);
+anclaFiesta.visible = false;
+const fiestas = [];
+function crearFiesta() {
+    [[-2.55, -1.45, -4.4, 0.3], [2.55, -1.45, -4.4, -0.3]]
+        .forEach(([x, y, z, ry], i) => {
+            if (modeloGLB) {
+                const c = SkeletonUtils.clone(modeloGLB);
+                c.traverse(o => {
+                    if (o.isMesh || o.isSkinnedMesh) o.frustumCulled = false;
+                });
+                c.rotation.y = Math.PI;   // el GLB mira -z → de frente
+                const v = new THREE.Group(); v.add(c);
+                const mx = new THREE.AnimationMixer(c);
+                mx.clipAction(clipPerreo(
+                    clipsGLB[3] || clipsGLB[0], 'perreo-' + i)).play();
+                v.scale.setScalar(0.5);
+                v.position.set(x, y, z);
+                v.rotation.y = ry;   // leve ángulo hacia el centro
+                anclaFiesta.add(v);
+                fiestas.push({ mixer: mx });
+            } else {
+                const o = crearDonDatico();
+                o.scale.setScalar(0.5);
+                o.position.set(x, y, z);
+                o.rotation.y = ry;
+                anclaFiesta.add(o);
+                fiestas.push({ loro: o, fase: i * 2.1 });
+            }
+        });
+}
 function tickDaticoHUD(dt, t) {
     hudAncla.visible = elIntertitulo.classList.contains('visible');
+    // Fiesta de créditos: bailan mientras sale la tarjeta centrada
+    anclaFiesta.visible = elCreditos.classList.contains('visible');
+    if (anclaFiesta.visible) {
+        anclaFiesta.position.copy(camera.position);
+        anclaFiesta.quaternion.copy(camera.quaternion);
+        fiestas.forEach(f => {
+            if (f.mixer) f.mixer.update(dt);
+            else animarOperario(f.loro, dt, tGlobal, 'bailar', f.fase);
+        });
+    }
     if (!hudAncla.visible) return;
     hudAncla.position.copy(camera.position);
     hudAncla.quaternion.copy(camera.quaternion);
@@ -5287,13 +5331,17 @@ function clonarOperario() {
     vehiculo.add(c);
     const mixer = new THREE.AnimationMixer(vehiculo);
     const acciones = clipsGLB.map(cl => mixer.clipAction(cl));
-    return { loro: vehiculo, mixer, acciones, accion: null, estado: null };
+    const clipBase = clipsGLB[3] || clipsGLB[0];
+    return { loro: vehiculo, mixer, acciones, accion: null, estado: null,
+             accPerreo: clipBase ? mixer.clipAction(clipPerreo(clipBase)) : null };
 }
 
 function ponerEstado(w, estado) {
     w.estado = estado;
+    if (estado === 'bailar') w.yawBase = w.loro.rotation.y;
     if (!w.acciones || !w.acciones.length) return;
-    const prox = w.acciones[MAPA_CLIPS[estado] ?? 0];
+    const prox = (estado === 'bailar' && w.accPerreo) ? w.accPerreo
+        : w.acciones[MAPA_CLIPS[estado] ?? 0];
     if (w.accion === prox) return;
     prox.timeScale = 1;
     prox.reset().fadeIn(0.35).play();
@@ -5465,6 +5513,88 @@ function clipVuelo(clip, pose, veces, perfil, nombre) {
         extra, sintetizarAlas(pose.huesosAla, clip.duration, veces, perfil)));
 }
 
+// ============ PERREO SINTETIZADO (clip para el rig GLB) ============
+// El baile del finale: rebote de cadera al dembow (2 dips por loop),
+// bombeo pélvico a doble tiempo, contrapeso de columna, sentadilla
+// rítmica y brazos doblados marcando. Convención de ejes locales
+// tipo Mixamo: x = flexión adelante/atrás, y = torsión, z = inclinación.
+const DUR_PERREO = 1.16;   // 2 golpes de dembow (~103 bpm)
+const HUESOS_PERREO = new Set([
+    'Hip', 'Waist', 'Spine01', 'Spine02', 'NeckTwist02', 'Head',
+    'L_Thigh', 'R_Thigh', 'L_Calf', 'R_Calf', 'L_Foot', 'R_Foot',
+    'L_Clavicle', 'R_Clavicle', 'L_Upperarm', 'R_Upperarm',
+    'L_Forearm', 'R_Forearm', 'L_Hand', 'R_Hand']);
+function clipPerreo(clipBase, nombre = 'perreo') {
+    const t0 = clipBase.duration * T_POSE_VUELO;
+    const D = DUR_PERREO, N = 48;
+    // [eje, amp, ciclos, fase=0, sesgo=0] → ang = sesgo + amp·sin(2π·c·u + fase·2π)
+    const SPEC = {
+        Hip:      [['x', .18, 4], ['z', .10, 2]],
+        Waist:    [['y', .14, 2]],
+        Spine01:  [['x', -.10, 4]],
+        Spine02:  [['x', -.06, 4]],
+        NeckTwist02: [['x', .05, 2, .5]],
+        Head:     [['x', .06, 2, .5]],
+        L_Thigh:  [['x', .14, 2, 0, .28]],
+        R_Thigh:  [['x', .14, 2, 0, .28]],
+        L_Calf:   [['x', .12, 2, 0, .32]],
+        R_Calf:   [['x', .12, 2, 0, .32]],
+        L_Foot:   [['x', .10, 2, 0, -.18]],
+        R_Foot:   [['x', .10, 2, 0, -.18]],
+        L_Clavicle: [['z', .05, 2, 0, .10]],
+        R_Clavicle: [['z', .05, 2, .5, -.10]],
+        L_Upperarm: [['x', .10, 2, 0, .30], ['z', .08, 2, .25, .50]],
+        R_Upperarm: [['x', .10, 2, .5, .30], ['z', .08, 2, .75, -.50]],
+        L_Forearm: [['x', .08, 4, 0, .80]],
+        R_Forearm: [['x', .08, 4, .5, .80]],
+        L_Hand:   [['x', .06, 2, 0, .25]],
+        R_Hand:   [['x', .06, 2, .5, .25]],
+    };
+    const EJES = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
+    const _qa = new THREE.Quaternion(), _qd = new THREE.Quaternion(),
+          _ax = new THREE.Vector3();
+    const tracks = [];
+    for (const [hueso, terminos] of Object.entries(SPEC)) {
+        const trk0 = clipBase.tracks.find(t => t.name === hueso + '.quaternion');
+        const base = trk0 ? new THREE.Quaternion().fromArray(
+            Array.from(trk0.createInterpolant().evaluate(t0))) : new THREE.Quaternion();
+        const ts = [], vs = [];
+        for (let k = 0; k <= N; k++) {
+            const u = k / N;
+            _qd.set(0, 0, 0, 1);
+            for (const [eje, amp, cyc, fas = 0, ses = 0] of terminos) {
+                const ang = ses + amp * Math.sin(2 * Math.PI * cyc * u + fas * 2 * Math.PI);
+                _qa.setFromAxisAngle(_ax.set(...EJES[eje]), ang);
+                _qd.multiply(_qa);
+            }
+            _qd.multiply(base);
+            ts.push(u * D); vs.push(_qd.x, _qd.y, _qd.z, _qd.w);
+        }
+        tracks.push(new THREE.QuaternionKeyframeTrack(hueso + '.quaternion', ts, vs));
+    }
+    // Hip.position: rebote del dembow — 2 dips filados por loop + sway
+    const trkP = clipBase.tracks.find(t => t.name === 'Hip.position');
+    const p0 = trkP ? new THREE.Vector3().fromArray(
+        Array.from(trkP.createInterpolant().evaluate(t0))) : new THREE.Vector3();
+    const ts = [], vs = [];
+    for (let k = 0; k <= N; k++) {
+        const u = k / N;
+        const reb = Math.pow(Math.abs(Math.sin(Math.PI * 2 * u)), 0.6);
+        const sway = Math.sin(Math.PI * 4 * u + Math.PI / 2);
+        ts.push(u * D);
+        vs.push(p0.x + 0.05 * sway, p0.y - 0.12 * reb, p0.z);
+    }
+    tracks.push(new THREE.VectorKeyframeTrack('Hip.position', ts, vs));
+    // el resto del cuerpo queda congelado en la pose base del clip
+    const cuerpo = pistasCuerpo(clipBase).filter(trk => {
+        const n = _nombreHueso(trk);
+        if (n === 'Hip' && trk.name.endsWith('position')) return false;
+        if (HUESOS_PERREO.has(n) && trk.name.endsWith('quaternion')) return false;
+        return true;
+    });
+    return new THREE.AnimationClip(nombre, D, cuerpo.concat(tracks));
+}
+
 function crearPlanta() {
     maquinas.forEach((m, i) => {
         if (m.userData.tipo === 'sala') return;   // sus miembros van por `salas`
@@ -5615,6 +5745,8 @@ function crearPlanta() {
     ponerEstado(sup, 'caminar');
     // Mensajeros del nivel estratégico: un don Datico por ruta
     crearMensajeros();
+    // Bailarines de la fiesta de créditos
+    crearFiesta();
 }
 
 new GLTFLoader().load(
@@ -6627,12 +6759,11 @@ function animate() {
     operarios.forEach(o => {
         if (o.mixer) o.mixer.update(dt);
         else animarOperario(o.loro, dt, tGlobal, o.estado, o.desfase);
-        // Finale: giran y saltan SOBRE su plataforma (clip idle +
-        // celebración procedural — las flexiones se leían como "volar")
+        // Finale: el clip perreo (GLB) o la salsa procedural hacen
+        // el baile — afuera solo queda un vaivén de conjunto
         if (o.estado === 'bailar') {
-            o.loro.rotation.y += dt * 2.4;
-            const yBase = o.yBase ?? o.loro.position.y;
-            o.loro.position.y = yBase + Math.abs(Math.sin(tGlobal * 5 + o.desfase)) * 0.18;
+            o.loro.rotation.y = (o.yawBase ?? o.loro.rotation.y)
+                + Math.sin(tGlobal * 2.2 + o.desfase) * 0.3;
         } else if (o.yBase !== undefined &&
                    Math.abs(o.loro.position.y - o.yBase) > 0.02) {
             o.loro.position.y += (o.yBase - o.loro.position.y) * 0.06;
@@ -6667,7 +6798,9 @@ function animate() {
                                   - sup.loro.position.x) * 0.1;
             sup.loro.position.z += (-3 - sup.loro.position.z) * 0.05;
             sup.loro.position.y += (1.67 - sup.loro.position.y) * 0.05;
-            sup.loro.rotation.y += dt * 2.4;
+            if (sup.estado === 'bailar')
+                sup.loro.rotation.y = (sup.yawBase ?? sup.loro.rotation.y)
+                    + Math.sin(tGlobal * 2.2) * 0.3;
             sup.loro.rotation.z += (0 - sup.loro.rotation.z) * 0.08;
             if (!sup.mixer) animarOperario(sup.loro, dt, tGlobal, sup.estado, 0);
         }
@@ -6681,7 +6814,7 @@ function animate() {
     // Don Datico verde sobre el cuadro: render directo después del
     // composer → la LUT no lo toca y el loro sale verde de verdad
     tickDaticoHUD(dt, tGlobal);
-    if (hudAncla.visible) {
+    if (hudAncla.visible || anclaFiesta.visible) {
         renderer.autoClear = false;
         renderer.clearDepth();
         renderer.render(escHUD, camera);
