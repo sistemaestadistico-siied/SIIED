@@ -5208,7 +5208,8 @@ function crearFiesta() {
                 c.traverse(o => {
                     if (o.isMesh || o.isSkinnedMesh) o.frustumCulled = false;
                 });
-                c.rotation.y = Math.PI;   // el GLB mira -z → de frente
+                c.rotation.y = 2.21;   // mismo yaw afinado del datico
+                                       // que corona los diálogos
                 const v = new THREE.Group(); v.add(c);
                 const mx = new THREE.AnimationMixer(c);
                 mx.clipAction(clipPerreo(
@@ -5222,7 +5223,7 @@ function crearFiesta() {
                 const o = crearDonDatico();
                 o.scale.setScalar(0.5);
                 o.position.set(x, y, z);
-                o.rotation.y = ry;
+                o.rotation.y = 1.14 + ry;   // mismo yaw afinado del HUD
                 anclaFiesta.add(o);
                 fiestas.push({ loro: o, fase: i * 2.1 });
             }
