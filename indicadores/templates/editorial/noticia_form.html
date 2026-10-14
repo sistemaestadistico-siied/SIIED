@@ -80,6 +80,11 @@
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2" for="{{ form.imagen_url.id_for_label }}">{{ form.imagen_url.label }}</label>
                     {{ form.imagen_url }}
+                    <p class="mt-1 text-xs text-slate-500">
+                        Slot en el home: <strong>banner 16:9</strong> sobre la tarjeta de la noticia.
+                        Recomendado: <strong>1600×900 px</strong>, JPG/WebP &lt; 300 KB, sujeto
+                        <strong>centrado</strong> (se recorta con object-cover), sin texto incrustado.
+                    </p>
                     {% if form.imagen_url.errors %}<p class="mt-1 text-sm text-red-600">{{ form.imagen_url.errors.0 }}</p>{% endif %}
                 </div>
 

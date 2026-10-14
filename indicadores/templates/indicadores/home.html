@@ -108,6 +108,10 @@
         color: #ffffff;
     }
     
+    /* Banners: altura acotada en móvil para no devorar el viewport */
+    .banner-slide-min { min-height: 420px; }
+    @media (min-width: 1024px) { .banner-slide-min { min-height: 600px; } }
+
     /* Transición suave de altura para el slider de noticias */
     .noticias-swiper .swiper-wrapper {
         transition: height 0.4s ease;
@@ -337,7 +341,7 @@
 
             <!-- Slide 1: Visor Comparativo de Indicadores -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-r from-slate-800 via-slate-700 to-slate-900 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Patrón de fondo tecnológico -->
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%2306b6d4\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M0 0h80v80H0z\"/%3E%3Cpath d=\"M20 20h40v40H20z\" fill=\"none\" stroke=\"%2306b6d4\" stroke-width=\"1\"/%3E%3Ccircle cx=\"40\" cy=\"40\" r=\"15\" fill=\"none\" stroke=\"%2306b6d4\" stroke-width=\"1\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -447,7 +451,7 @@
 
             <!-- Slide 2: Inventario de Operaciones Estadísticas -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Patrón de fondo animado -->
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -556,7 +560,7 @@
 
             <!-- Slide 3: API Abierta -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Patrón de fondo -->
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -665,7 +669,7 @@
 
             <!-- Slide 4: Asistente de IA - Don Datico -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-sky-500 via-sky-600 to-sky-700 overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-r from-sky-500 via-sky-600 to-sky-700 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Patrón de fondo sutil -->
                     <div class="absolute inset-0 opacity-5">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%230ea5e9\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M30 0l30 30-30 30L0 30z\" fill=\"none\" stroke=\"%230ea5e9\" stroke-width=\"1\"/%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"15\" fill=\"none\" stroke=\"%230ea5e9\" stroke-width=\"1\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -781,7 +785,7 @@
 
             <!-- Slide 5: Explorador de Conjunto de datos -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900 overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-r from-indigo-50 via-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Patrón de fondo sutil -->
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%233b82f6\" fill-opacity=\"0.05\"%3E%3Cpath d=\"M30 0l30 30-30 30L0 30z\" fill=\"none\" stroke=\"%233b82f6\" stroke-width=\"1\"/%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"10\" fill=\"none\" stroke=\"%233b82f6\" stroke-width=\"1\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -962,7 +966,7 @@
 
             <!-- Slide 7: Taller de Gestión de Datos Institucionales -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-900 overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-900 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Patrón de fondo ecosistema -->
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"100\" height=\"100\" viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23a855f7\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M0 0h100v100H0z\"/%3E%3Ccircle cx=\"25\" cy=\"25\" r=\"15\" fill=\"none\" stroke=\"%23a855f7\" stroke-width=\"1\"/%3E%3Ccircle cx=\"75\" cy=\"25\" r=\"15\" fill=\"none\" stroke=\"%23a855f7\" stroke-width=\"1\"/%3E%3Ccircle cx=\"50\" cy=\"75\" r=\"15\" fill=\"none\" stroke=\"%23a855f7\" stroke-width=\"1\"/%3E%3Cpath d=\"M25 25 L75 25 M25 25 L50 75 M75 25 L50 75\" stroke=\"%23a855f7\" stroke-width=\"1\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -1076,7 +1080,7 @@
 
             <!-- Slide 8: Medición de Satisfacción -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-blue-800 via-blue-700 to-cyan-800 overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-r from-blue-800 via-blue-700 to-cyan-800 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Patrón de fondo satisfacción -->
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%2306b6d4\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M0 0h80v80H0z\"/%3E%3Cpath d=\"M20 40 Q40 20 60 40 Q40 60 20 40\" fill=\"none\" stroke=\"%2306b6d4\" stroke-width=\"1\"/%3E%3Ccircle cx=\"40\" cy=\"40\" r=\"5\" fill=\"%2306b6d4\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -1186,7 +1190,7 @@
 
             <!-- Slide 9: Módulo ICED -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-br from-[#1e3a5f] via-[#2a4a73] to-[#2d7d46] overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-br from-[#1e3a5f] via-[#2a4a73] to-[#2d7d46] overflow-hidden h-full flex items-center banner-slide-min">
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" stroke=\"%23ffffff\" stroke-width=\"0.4\" opacity=\"0.25\"%3E%3Cpath d=\"M0 40h80M40 0v80\"/%3E%3Ccircle cx=\"40\" cy=\"40\" r=\"3\"/%3E%3C/g%3E%3C/svg%3E');"></div>
                     </div>
@@ -1273,7 +1277,7 @@
 
             <!-- Slide 10: Hoja de Vida Estadística de Organismos -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-br from-[#0f1e32] via-[#14283c] to-[#1e6b3a] overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-br from-[#0f1e32] via-[#14283c] to-[#1e6b3a] overflow-hidden h-full flex items-center banner-slide-min">
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" stroke=\"%23ffffff\" stroke-width=\"0.4\" opacity=\"0.25\"%3E%3Cpath d=\"M0 40h80M40 0v80\"/%3E%3Ccircle cx=\"40\" cy=\"40\" r=\"3\"/%3E%3C/g%3E%3C/svg%3E');"></div>
                     </div>
@@ -1356,7 +1360,7 @@
 
             <!-- Slide 11: Calendario de Difusión Estadística -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-br from-[#3d1f1f] via-[#5a2e2e] to-[#7a3e1e] overflow-hidden h-full flex items-center" style="min-height: 600px;">
+                <div class="relative bg-gradient-to-br from-[#3d1f1f] via-[#5a2e2e] to-[#7a3e1e] overflow-hidden h-full flex items-center banner-slide-min">
                     <div class="absolute inset-0 opacity-10">
                         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"80\" height=\"80\" viewBox=\"0 0 80 80\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" stroke=\"%23ffffff\" stroke-width=\"0.4\" opacity=\"0.25\"%3E%3Cpath d=\"M0 40h80M40 0v80\"/%3E%3Ccircle cx=\"40\" cy=\"40\" r=\"3\"/%3E%3C/g%3E%3C/svg%3E');"></div>
                     </div>
@@ -1480,7 +1484,7 @@
                 <div class="swiper-wrapper">
                     
                     <!-- Slide 1: Población -->
-                    <div class="swiper-slide relative min-h-[500px] sm:min-h-[550px] md:h-96">
+                    <div class="swiper-slide relative min-h-[420px] sm:min-h-[480px] md:h-96">
                         <img src="{% static 'indicadores/slider1.jpg' %}" alt="Población Cali" class="absolute inset-0 w-full h-full object-cover">
                         <div class="absolute inset-0 bg-gradient-to-br from-primary-900/70 to-primary-600/50"></div>
                         
@@ -1524,7 +1528,7 @@
                     </div>
                     
                     <!-- Slide 2: Educación y Bienestar -->
-                    <div class="swiper-slide relative min-h-[500px] sm:min-h-[550px] md:h-96">
+                    <div class="swiper-slide relative min-h-[420px] sm:min-h-[480px] md:h-96">
                         <img src="{% static 'indicadores/slider2.jpg' %}" alt="Educación Cali" class="absolute inset-0 w-full h-full object-cover">
                         <div class="absolute inset-0 bg-gradient-to-br from-green-900/70 to-green-600/50"></div>
                         
@@ -1568,7 +1572,7 @@
                     </div>
                     
                     <!-- Slide 3: Economía y Trabajo -->
-                    <div class="swiper-slide relative min-h-[500px] sm:min-h-[550px] md:h-96">
+                    <div class="swiper-slide relative min-h-[420px] sm:min-h-[480px] md:h-96">
                         <img src="{% static 'indicadores/slider3.jpg' %}" alt="Economía Cali" class="absolute inset-0 w-full h-full object-cover">
                         <div class="absolute inset-0 bg-gradient-to-br from-purple-900/70 to-purple-600/50"></div>
                         
@@ -1612,7 +1616,7 @@
                     </div>
                     
                     <!-- Slide 4: Seguridad y Convivencia -->
-                    <div class="swiper-slide relative min-h-[500px] sm:min-h-[550px] md:h-96">
+                    <div class="swiper-slide relative min-h-[420px] sm:min-h-[480px] md:h-96">
                         <img src="{% static 'indicadores/slider4.jpg' %}" alt="Seguridad Cali" class="absolute inset-0 w-full h-full object-cover">
                         <div class="absolute inset-0 bg-gradient-to-br from-red-900/70 to-red-600/50"></div>
                         
@@ -1701,13 +1705,15 @@
                         <!-- Sección de noticias -->
                         <div class="lg:col-span-2 space-y-6">
                             <!-- Noticia dinámica -->
-                            <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-xl">
+                            <div class="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
+                                {% if noticia.imagen_url %}
+                                <div class="w-full aspect-video bg-slate-100">
+                                    <img src="{{ noticia.imagen_url }}" alt="{{ noticia.titulo }}" class="w-full h-full object-cover" loading="lazy">
+                                </div>
+                                {% endif %}
+                                <div class="p-6">
                                 <div class="flex items-start space-x-4">
-                                    {% if noticia.imagen_url %}
-                                    <div class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden">
-                                        <img src="{{ noticia.imagen_url }}" alt="{{ noticia.titulo }}" class="w-full h-full object-cover">
-                                    </div>
-                                    {% else %}
+                                    {% if not noticia.imagen_url %}
                                     <div class="flex-shrink-0 w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
                                         <i class="fas fa-chart-bar text-sky-600 text-xl"></i>
                                     </div>
@@ -1747,6 +1753,7 @@
                                         {% endif %}
                                     </div>
                                 </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -1767,9 +1774,9 @@
                             </div>
                             {% endif %}
                             
-                            <!-- Estadísticas destacadas -->
+                            <!-- Estadísticas destacadas (en móvil ya van inline en la tarjeta) -->
                             {% if noticia.estadisticas.all %}
-                            <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
+                            <div class="hidden md:block bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
                                 <h4 class="text-lg font-bold text-gray-800 mb-4 text-center">Datos Destacados</h4>
                                 <div class="space-y-4">
                                     {% for estadistica in noticia.estadisticas.all|slice:":2" %}
@@ -1787,7 +1794,7 @@
                             
                             <!-- Enlaces relacionados -->
                             {% if noticia.enlaces.all %}
-                            <div class="space-y-3">
+                            <div class="hidden lg:block space-y-3">
                                 {% for enlace in noticia.enlaces.all %}
                                 <a href="{{ enlace.url }}" 
                                    target="_blank"
@@ -1799,7 +1806,7 @@
                             </div>
                             {% else %}
                             <!-- Enlaces por defecto si no hay enlaces específicos -->
-                            <div class="space-y-3">
+                            <div class="hidden lg:block space-y-3">
                                 <a href="{% url 'indicadores:inventario_operaciones' %}" 
                                    class="flex items-center space-x-3 text-gray-600 hover:text-gray-800 transition-colors duration-200 p-3 rounded-lg hover:bg-white/50">
                                     <i class="fas fa-clipboard-list text-sm"></i>

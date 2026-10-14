@@ -45,9 +45,10 @@ NOTICIA_SCHEMA = {
         'sugerencia_imagen': {
             'type': 'string',
             'description': 'Descripción de la imagen ideal para el carrusel '
-                           'del home: panorámica/horizontal, composición con '
-                           'zona libre a la izquierda para el texto overlay, '
-                           'tema y paleta sugeridos',
+                           'del home: horizontal 16:9 que se muestra como '
+                           'banner sobre la tarjeta de la noticia — sujeto '
+                           'centrado (se recorta con object-cover), sin texto '
+                           'incrustado, tema y paleta sugeridos',
         },
         'orden': {
             'type': 'integer',
@@ -102,8 +103,8 @@ NOTICIA_SYSTEM_PROMPT = (
     'relacionados plausibles SOLO si el operador los dio o son internos '
     'obvios del portal (no inventes URLs externas; si dudas, deja el array '
     'vacío). Para la imagen piensa en el slot del carrusel del home: '
-    'imagen horizontal panorámica, peso liviano, y composición que deje '
-    'espacio libre para el texto superpuesto. Nunca inventes cifras que el '
+    'banner horizontal 16:9 sobre la tarjeta — peso liviano, sujeto '
+    'centrado, sin texto incrustado. Nunca inventes cifras que el '
     'operador no mencionó: si no hay datos concretos, deja "estadisticas" '
     'vacío antes que fabricar números.'
 )
