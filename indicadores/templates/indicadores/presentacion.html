@@ -254,6 +254,24 @@
         display: flex; justify-content: space-between; align-items: baseline;
         gap: 20px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 7px;
     }
+    /* Créditos de cine: un nombre a la vez, centrado en la tarjeta */
+    #cred-uno {
+        min-height: 130px; margin: 22px 0 20px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 12px; text-align: center;
+        opacity: 0; transform: translateY(16px);
+        transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    #cred-uno.on { opacity: 1; transform: none; }
+    #cred-uno .cred-rol {
+        font-family: 'JetBrains Mono', monospace; font-size: 11px;
+        letter-spacing: 2.5px; text-transform: uppercase; color: #0284c7;
+        max-width: 560px; line-height: 1.8;
+    }
+    #cred-uno .cred-nom { font-size: 24px; font-weight: 800; color: #0f172a; }
+    #cred-final { display: none; opacity: 0; transition: opacity 1.2s ease; }
+    #cred-final.visible { display: block; }
+    #cred-final.on { opacity: 1; }
     .cred-fila .rol {
         font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
         letter-spacing: 1.5px; text-transform: uppercase; color: #0284c7;
@@ -367,30 +385,39 @@
 
 <div id="creditos">
     <div class="tarjeta">
-        <img src="{% static 'indicadores/images/siied-logo.png' %}" alt="SIIED" style="height:100px;margin-bottom:14px;filter:drop-shadow(0 0 16px rgba(255,255,255,.95)) drop-shadow(0 0 6px rgba(255,255,255,.6));">
         <div class="acto">CRÉDITOS</div>
         <div class="texto">La plataforma de datos<br>de Santiago de Cali</div>
-        <div class="equipo">
+        <!-- Escenario: una persona a la vez, como rótulo de cine -->
+        <div id="cred-uno">
+            <div class="cred-rol" id="cred-rol"></div>
+            <div class="cred-nom" id="cred-nom"></div>
+        </div>
+        <!-- La lista sirve de fuente de datos para la secuencia (oculta) -->
+        <div class="equipo" id="cred-equipo" style="display:none">
             <div class="cred-fila"><span class="rol">Dirección · Departamento Administrativo de Planeación</span><span class="nom">Vanessa Fernanda López Rojas</span></div>
             <div class="cred-fila"><span class="rol">Subdirección de Desarrollo Integral</span><span class="nom">Alejandra María Mejía Rua</span></div>
             <div class="cred-fila"><span class="rol">Dirección del equipo técnico y diseño del sistema</span><span class="nom">Carlos Andrés Torres Ricaurte</span></div>
             <div class="cred-fila"><span class="rol">Diseño y evaluación de experiencia de usuario · gestión de recursos</span><span class="nom">María Eugenia Peláez Caporali</span></div>
-            <div class="cred-fila"><span class="rol">FICED · modelo de datos</span><span class="nom">Jenifer Gallego Gonzales</span></div>
+            <div class="cred-fila"><span class="rol">FICED · modelo de datos · testing</span><span class="nom">Jenifer Gallego Gonzales</span></div>
             <div class="cred-fila"><span class="rol">Línea editorial · diseño y evaluación de experiencia de usuario</span><span class="nom">Lady Maritza Otálora Sevilla</span></div>
             <div class="cred-fila"><span class="rol">Módulo de satisfacción · diseño y evaluación de experiencia de usuario</span><span class="nom">Diana Marcela Bahos</span></div>
-            <div class="cred-fila"><span class="rol">Operación · gestión administrativa</span><span class="nom">Sebastián Castro Santana</span></div>
-            <div class="cred-fila"><span class="rol">Diseño, desarrollo y programación</span><span class="nom">Andrés Felipe Miranda Gómez</span></div>
+            <div class="cred-fila"><span class="rol">Operación · gestión administrativa · testing</span><span class="nom">Sebastián Castro Santana</span></div>
             <div class="cred-fila"><span class="rol">Taller de gestión de datos institucionales · DADII</span><span class="nom">Francisco Millan</span></div>
+            <div class="cred-fila"><span class="rol">Diseño, desarrollo y programación</span><span class="nom">Andrés Felipe Miranda Gómez</span></div>
         </div>
-        <div class="cred-inst">
-            Subdirección de Desarrollo Integral · Departamento Administrativo de Planeación Distrital<br>
-            Departamento Administrativo de Desarrollo e Innovación Institucional (DADII) · Alcaldía de Santiago de Cali
+        <!-- Cierre: tras el último nombre aparece el logo SIIED -->
+        <div id="cred-final">
+            <img src="{% static 'indicadores/images/siied-logo.png' %}" alt="SIIED" style="height:100px;margin:6px 0 14px;filter:drop-shadow(0 0 16px rgba(255,255,255,.95)) drop-shadow(0 0 6px rgba(255,255,255,.6));">
+            <div class="cred-inst">
+                Subdirección de Desarrollo Integral · Departamento Administrativo de Planeación Distrital<br>
+                Departamento Administrativo de Desarrollo e Innovación Institucional (DADII) · Alcaldía de Santiago de Cali
+            </div>
+            <button id="btn-replay">↺ REINICIAR</button>
+            <a href="{% url 'indicadores:presentacion_slides' %}" id="btn-diapositivas"
+               style="display:inline-block;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:#0284c7;text-decoration:none;border:1px solid #93c5fd;border-radius:8px;padding:8px 18px;">
+                ▤ VERSIÓN EN DIAPOSITIVAS — con rigor metodológico
+            </a>
         </div>
-        <button id="btn-replay">↺ REINICIAR</button>
-        <a href="{% url 'indicadores:presentacion_slides' %}" id="btn-diapositivas"
-           style="display:inline-block;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:#0284c7;text-decoration:none;border:1px solid #93c5fd;border-radius:8px;padding:8px 18px;">
-            ▤ VERSIÓN EN DIAPOSITIVAS — con rigor metodológico
-        </a>
     </div>
 </div>
 
@@ -5897,7 +5924,61 @@ document.getElementById('btn-replay').addEventListener('click', () => {
     const musica = document.getElementById('musica');
     musica.currentTime = 0;
     musica.play().catch(() => {});
+    resetCreditos();
 });
+
+// ============ CRÉDITOS DE CINE — un nombre a la vez ============
+// La lista oculta #cred-equipo es la fuente; cada persona aparece
+// sola en #cred-uno (rol + nombre), y tras la última — Andrés —
+// entra el logo SIIED con la institución y los botones.
+const filasCredito = [...document.querySelectorAll('#cred-equipo .cred-fila')]
+    .map(f => ({ rol: f.querySelector('.rol').textContent,
+                nom: f.querySelector('.nom').textContent }));
+const elCredUno   = document.getElementById('cred-uno');
+const elCredRol   = document.getElementById('cred-rol');
+const elCredNom   = document.getElementById('cred-nom');
+const elCredFinal = document.getElementById('cred-final');
+let credIdx = -1, credTimer = null, credTerminado = false;
+
+function iniciarCreditos() {
+    credIdx = -1; credTerminado = false;
+    elCredUno.style.display = '';
+    elCredUno.classList.remove('on');
+    elCredFinal.classList.remove('visible', 'on');
+    pasoCredito();
+}
+function pasoCredito() {
+    credIdx++;
+    if (credIdx >= filasCredito.length) { terminarCreditos(); return; }
+    elCredRol.textContent = filasCredito[credIdx].rol;
+    elCredNom.textContent = filasCredito[credIdx].nom;
+    elCredUno.classList.add('on');
+    credTimer = setTimeout(() => {
+        elCredUno.classList.remove('on');
+        credTimer = setTimeout(pasoCredito, 550);
+    }, 2500);
+}
+function terminarCreditos() {
+    credTerminado = true;
+    clearTimeout(credTimer);
+    elCredUno.classList.remove('on');
+    elCredUno.style.display = 'none';
+    elCredFinal.classList.add('visible');
+    requestAnimationFrame(() => elCredFinal.classList.add('on'));
+}
+function resetCreditos() {
+    clearTimeout(credTimer);
+    credIdx = -1; credTerminado = false;
+    elCredUno.classList.remove('on');
+    elCredUno.style.display = '';
+    elCredFinal.classList.remove('visible', 'on');
+}
+// Clic en la tarjeta (fuera de botones/enlaces) salta directo al cierre
+elCreditos.addEventListener('click', (e) => {
+    if (e.target.closest('button, a')) return;
+    if (!credTerminado) terminarCreditos();
+});
+
 // ============ NAVEGACIÓN DEL RECORRIDO ============
 // La barra de progreso es clicable (y arrastrable) y ◀ ▶ saltan
 // de módulo en módulo. Funciona también en pausa: la cámara
@@ -5921,6 +6002,7 @@ function irA(t) {
     else offsetShow = t - reloj.getElapsedTime();
     if (t < ACTOS[ACTOS.length - 1].t0) salirFinal();
     elCreditos.classList.remove('visible');
+    resetCreditos();
     // Recupera la pose de cámara del acto — incluso pausado o con
     // cámara libre — y deja el pivote de órbita en el módulo visto
     if (camaraLibre || pausado) {
@@ -6108,6 +6190,7 @@ function animate() {
         elProgreso.style.width = `${Math.min(100, (t / DURACION) * 100)}%`;
         if (t >= DURACION && !elCreditos.classList.contains('visible')) {
             elCreditos.classList.add('visible');
+            iniciarCreditos();
         }
     }
     if (camaraLibre) controls.update();
