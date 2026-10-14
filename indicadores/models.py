@@ -569,6 +569,27 @@ class Indicador(models.Model):
         help_text="Otros subtemas (de cualquier dominio) bajo los que "
                   "también se clasifica este indicador."
     )
+
+    @staticmethod
+    def q_por_subtema(subtema):
+        """Q que une subtema principal + adicionales (acepta instancia o pk)."""
+        pk = getattr(subtema, 'pk', subtema)
+        return models.Q(subtema_id=pk) | models.Q(subtemas_adicionales__id=pk)
+
+    @staticmethod
+    def q_por_tema(tema):
+        """Q que une tema por vía principal + adicionales (acepta instancia o pk)."""
+        pk = getattr(tema, 'pk', tema)
+        return models.Q(subtema__tema_id=pk) | models.Q(
+            subtemas_adicionales__tema_id=pk)
+
+    @staticmethod
+    def q_por_dominio(dominio):
+        """Q que une dominio por vía principal + adicionales (acepta instancia o pk)."""
+        pk = getattr(dominio, 'pk', dominio)
+        return models.Q(subtema__tema__dominio_id=pk) | models.Q(
+            subtemas_adicionales__tema__dominio_id=pk)
+
     operacion = models.ForeignKey(OperacionEstadistica, on_delete=models.CASCADE,
                                 related_name='indicadores', blank=True, null=True,
                                 verbose_name="2.9 Nombre de la Operación Estadística")
