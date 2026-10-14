@@ -2843,7 +2843,7 @@ const camEdi = crearCamion({ x: 34,   z: -11.5, color: 0xef4444,
 // comité y descarga en el muelle de líneas E, subiendo por
 // el perímetro oeste (x=-42) hasta su muelle y módulo.
 // VÍAS PROPIAS: z=-11.5/z=-22/x=-42.
-camRec.userData.ruta = { pts: [[56.8, -4.5], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
+camRec.userData.ruta = { pts: [[58.3, -3.6], [-14, -4.5]], i: 1, dir: 1, espera: 0 };
 camDel.userData.ruta = { pts: [[52, -8], [13.4, -8], [8.6, -8], [-21, -8],
     [-39.5, -8], [-39.5, 7], [-35, 7]],
     i: 1, dir: 1, espera: 0, esperaMid: 0,
@@ -4364,18 +4364,26 @@ ledNodo.position.set(8.2, 14.65, 11); scene.add(ledNodo);
 // caja en la cama y al irse vuelve a llenarse sola.
 const pilasInsumo = [];
 const SLOT_PILA = i => [                      // 2×2 por nivel, 2 niveles
-    (i % 2 - 0.5) * 0.6, 0.38 + Math.floor(i / 4) * 0.55,
-    (Math.floor(i / 2) % 2 - 0.5) * 0.6];
+    (i % 2 - 0.5) * 0.72, 0.42 + Math.floor(i / 4) * 0.66,
+    (Math.floor(i / 2) % 2 - 0.5) * 0.72];
 function crearPilaInsumo(px, pz, cam, dock, tex) {
-    const pallet = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.09, 1.5),
+    const pallet = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.09, 1.9),
         new THREE.MeshLambertMaterial({ color: 0x8d6e63 }));
     pallet.position.set(px, 0.05, pz);
     pallet.castShadow = true;
     scene.add(pallet);
-    pilasInsumo.push({ x: px, z: pz, cam, dock, tex,
-                       cajas: [], tGen: 1.2, tCarga: 0, volando: [] });
+    const p = { x: px, z: pz, cam, dock, tex,
+                cajas: [], tGen: 1.2, tCarga: 0, volando: [] };
+    for (let i = 0; i < 4; i++) {        // nace con mercancía
+        const m = cajaUnitaria(tex);     // sembrada, no vacía
+        m.scale.setScalar(0.62);
+        const [lx, ly, lz] = SLOT_PILA(i);
+        m.position.set(px + lx, ly, pz + lz);
+        p.cajas.push(m);
+    }
+    pilasInsumo.push(p);
 }
-crearPilaInsumo(59.4, -6.0,  camRec, [56.8, -4.5],  texCrudo);   // observatorio
+crearPilaInsumo(59.6, -5.6,  camRec, [58.3, -3.6],  texCrudo);   // observatorio
 crearPilaInsumo(55.9, -9.45, camDel, [52, -8],      texDeleg);   // comité → dossier
 crearPilaInsumo(55.6, -24.2, camEdi, [58.5, -25.5], texOp);      // despacho
 crearPilaInsumo(60.4, -12.4, camEdi, [62.5, -14],   texCjto);    // comité
@@ -4397,9 +4405,9 @@ function tickPilas(dt) {
             p.tCarga = 0.25;      // listo para cargar en cuanto atraca
             p.tGen -= dt;
             if (p.tGen <= 0 && p.cajas.length < 8) {
-                p.tGen = 3.4 + Math.random() * 1.6;
+                p.tGen = 2.8 + Math.random() * 1.2;
                 const m = cajaUnitaria(p.tex);
-                m.scale.setScalar(0.5);
+                m.scale.setScalar(0.62);
                 const [lx, ly, lz] = SLOT_PILA(p.cajas.length);
                 m.position.set(p.x + lx, ly, p.z + lz);
                 p.cajas.push(m);
