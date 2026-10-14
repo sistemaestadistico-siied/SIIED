@@ -191,7 +191,7 @@
                     <option value="">— Selecciona tu organismo —</option>
                     {% for org in organismos %}
                     <option value="{{ org.id }}" {% if organismo_seleccionado.id == org.id %}selected{% endif %}>
-                        {{ org.nombre }}{% if org.codigo %} ({{ org.codigo }}){% endif %}
+                        {{ org.nombre }}
                     </option>
                     {% endfor %}
                 </select>
