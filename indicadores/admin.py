@@ -148,7 +148,33 @@ class MenuDominioAdmin(admin.ModelAdmin):
 
 admin.site.register(MenuDominio, MenuDominioAdmin)
 admin.site.register(MenuTema)
-admin.site.register(MenuSubtema)
+
+
+class IndicadoresAdicionalesInline(admin.TabularInline):
+    """Indicadores que cuelgan de este subtema como clasificación
+    ADICIONAL (los del subtema principal están en la lista normal)."""
+    model = Indicador.subtemas_adicionales.through
+    fk_name = 'menusubtema'
+    autocomplete_fields = ('indicador',)
+    extra = 1
+    verbose_name = 'Indicador con este subtema adicional'
+    verbose_name_plural = 'Indicadores adicionales (pertenecen también a otros subtemas)'
+
+
+class MenuSubtemaAdmin(admin.ModelAdmin):
+    # search_fields requerido por el autocomplete de los inlines M2M
+    search_fields = ('nombre', 'tema__nombre', 'tema__dominio__nombre')
+    list_display = ('nombre', 'tema', 'dominio', 'activo', 'orden')
+    list_filter = ('tema__dominio', 'tema', 'activo')
+    inlines = [IndicadoresAdicionalesInline]
+
+    def dominio(self, obj):
+        return obj.tema.dominio if obj.tema else None
+    dominio.short_description = 'Dominio'
+    dominio.admin_order_field = 'tema__dominio__nombre'
+
+
+admin.site.register(MenuSubtema, MenuSubtemaAdmin)
 
 @admin.register(OperacionEstadistica)
 class OperacionEstadisticaAdmin(admin.ModelAdmin):
@@ -846,6 +872,21 @@ class IndicadorAdminForm(forms.ModelForm):
                 self.fields['conjunto_datos'].help_text = help_text
 
 
+class SubtemasAdicionalesInline(admin.TabularInline):
+    """Subtemas ADICIONALES del indicador (pueden ser de cualquier
+    dominio). El subtema principal sigue en el campo FK de arriba."""
+    model = Indicador.subtemas_adicionales.through
+    fk_name = 'indicador'
+    autocomplete_fields = ('menusubtema',)
+    extra = 1
+    verbose_name = 'Subtema adicional'
+    verbose_name_plural = 'Subtemas adicionales (el indicador también aparece bajo estos)'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'menusubtema__tema__dominio')
+
+
 class IndicadorAdmin(admin.ModelAdmin):
     form = IndicadorAdminForm
     change_form_template = 'admin/indicadores/indicador/change_form.html'
@@ -853,17 +894,16 @@ class IndicadorAdmin(admin.ModelAdmin):
     list_filter = ('activo', 'subtema__tema__dominio', 'subtema__tema', 'subtema')
     search_fields = ('nombre', 'codigo_indicador', 'sigla', 'subtema__nombre', 'subtema__tema__nombre', 'subtema__tema__dominio__nombre')
     list_editable = ('orden',)
-    inlines = [DatoInline]
-    filter_horizontal = ('subtemas_adicionales',)
+    inlines = [DatoInline, SubtemasAdicionalesInline]
 
     fieldsets = (
         ('0. Identificación del Indicador', {
             'fields': ('nombre', 'codigo_indicador', 'sigla', 'grupo_indicador',
-                      'subtema', 'subtemas_adicionales', 'activo', 'orden'),
+                      'subtema', 'activo', 'orden'),
             'description': 'Campos 0.1–0.4 del estándar MSD + clasificación: '
                           'el subtema principal define la ruta canónica; los '
-                          'subtemas adicionales permiten que el indicador '
-                          'pertenezca a otros subtemas de cualquier dominio.'
+                          'subtemas adicionales se gestionan en el inline de '
+                          'abajo (cualquier dominio).'
         }),
         ('1. Contacto Institucional (MSD)', {
             'fields': ('organismo_responsable', 'entidad_responsable_legado', 'suborganismo',
