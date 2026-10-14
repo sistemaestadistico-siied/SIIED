@@ -4758,12 +4758,13 @@ let comiteGrafo = null;
 // reportes a la reunión técnica y decisiones al despacho.
 const mensajeros = [];
 const RUTAS_MENSAJERO = [
-    // techo del módulo REPORTES → borde oeste de la mesa del consejo
-    { ori: [21.5, 4.75, -0.2],  dst: [28.8, 5.2, -16.5], espera: 6,  demora: 2 },
-    // techo de la junta del hall (capa estratégica) → mesa del gabinete
-    { ori: [30, 7.55, -16.5],   dst: [52, 4.05, -30],    espera: 14, demora: 8 },
-    // junto al comité de gestión → mesa del gabinete
-    { ori: [52, 4.85, -14],     dst: [52, 4.05, -30],    espera: 14, demora: 15 },
+    // del módulo REPORTES (a pie de sala) → borde oeste de la mesa
+    // del consejo: entra a la reunión técnica como un miembro más
+    { ori: [21.5, 4.45, -0.2],  dst: [28.8, 5.25, -16.5], espera: 6,  demora: 2 },
+    // borde este de la mesa del consejo (capa estratégica) → gabinete
+    { ori: [31.0, 5.25, -16.5], dst: [52, 4.05, -30],     espera: 14, demora: 8 },
+    // borde de la mesa de plenaria del comité → gabinete
+    { ori: [52, 1.0, -15.0],    dst: [52, 4.05, -30],     espera: 14, demora: 15 },
 ];
 const _dirM = new THREE.Vector3();
 function crearMensajeros() {
