@@ -66,6 +66,24 @@
     <em>temática</em> hacia uno <em>geográfica</em> — el wizard lo bloquea.
   </div>
 
+  <h2 class="man-h2">Catalogar dominios pendientes</h2>
+  <div class="man-box">
+    Los dominios creados por las cargas nacen <strong>pendientes</strong>
+    (badge ámbar en el listado): funcionan con normalidad pero
+    <strong>no son oficiales</strong> — el catálogo está cerrado y solo
+    usted decide si cada pendiente entra.
+    <ul style="margin:.5rem 0 0 1.25rem;">
+      <li><strong>Catalogar seleccionados:</strong> admite al catálogo
+          dominios genuinos que faltaban (ej. un "Grupo étnico" nuevo).</li>
+      <li><strong>Conciliar:</strong> si el pendiente duplica a uno oficial
+          (ej. <em>Genero</em> → <em>Sexo</em>), concilielo hacia el oficial
+          en vez de catalogarlo.</li>
+      <li><strong>Eliminar:</strong> si fue un error de carga sin referencias.</li>
+    </ul>
+    La admisión queda registrada en <code>audit_conciliacion_log</code>
+    con el usuario que la decidió.
+  </div>
+
   <h2 class="man-h2">Eliminar un dominio</h2>
   <div class="man-box">
     Marque <strong>un solo</strong> dominio y use "Eliminar dominio seleccionado".
