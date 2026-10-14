@@ -28,6 +28,8 @@
       <li><a href="#crear-grafico" class="hover:text-emerald-900 hover:underline">7b. Crear gráfico simplificado</a></li>
       <li><a href="#historial" class="hover:text-emerald-900 hover:underline">7c. Historial de validaciones</a></li>
       <li><a href="#workspace" class="hover:text-emerald-900 hover:underline">8. Workspace unificado</a></li>
+      <li><a href="#conciliacion" class="hover:text-emerald-900 hover:underline">9. Conciliación de dominios de desagregación</a></li>
+      <li><a href="#identidad" class="hover:text-emerald-900 hover:underline">10. Normalización de identidad de indicadores</a></li>
     </ul>
   </div>
 
@@ -283,7 +285,65 @@
         <li>Desde el Workspace puedes saltar a Validación, Recolección, Reportes o el Portal de Delegado sin cerrar sesión.</li>
       </ul>
     </div>
+  </secSECCIÓN 9 -->
+  <section id="conciliacion" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">9</span>
+      Conciliación de dominios de desagregación
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>El menú <strong>"Conciliación"</strong> abre un wizard para fusionar dominios de desagregación <strong>duplicados</strong>: el mismo concepto (ej. <em>Sexo</em>) que quedó registrado varias veces con nombres o desagregaciones distintos (<em>Sexo</em>, <em>SEXO</em>, <em>Genero</em>) por cargas de diferentes recolectores.</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li><strong>Paso 1 — Selección:</strong> el listado muestra cada dominio con su tipo, número de desagregaciones, indicadores que lo usan y referencias en datos/gráficos. Marca los dominios que son el mismo concepto.</li>
+        <li><strong>Paso 2 — Equivalencias:</strong> eliges el dominio <strong>destino</strong> y mapeas cada desagregación de los dominios absorbidos a su equivalente en el destino (ej. <em>"Hombre"</em> → <em>"Hombres"</em>).</li>
+        <li><strong>Aplicar:</strong> todas las referencias (datos, series de gráficos, relaciones de indicadores) se redirigen al dominio destino con deduplicación, y los dominios absorbidos se eliminan.</li>
+      </ol>
+      <p>También ofrece el modo <strong>Eliminar</strong> para borrar dominios sin referencias que sobran.</p>
+      <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3">
+        <p class="text-amber-800 font-semibold">Importante:</p>
+        <p class="text-amber-700">La conciliación es <strong>irreversible</strong>: los dominios absorbidos desaparecen. Verifica que las equivalencias sean semánticamente correctas — una equivalencia errada mezcla datos de desagregaciones distintas. Cada operación queda registrada en el log de auditoría.</p>
+      </div>
+    </div>
   </section>
+
+  <!-- SECCIÓN 10 -->
+  <section id="identidad" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">10</span>
+      Normalización de identidad de indicadores
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>El menú <strong>"Identidad"</strong> abre un wizard con dos herramientas para corregir la identidad de los indicadores cuando hubo errores de creación en recolección o delegación.</p>
+
+      <h3 class="font-semibold text-slate-800 pt-2">Pestaña 1 — Identidad de códigos</h3>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Relación completa (xlsx):</strong> descarga un solo Excel con la ruta <code>dominio › tema › subtema</code>, nombre del indicador, código actual e id interno de todos los indicadores.</li>
+        <li><strong>Consulta individual:</strong> busca por nombre, código, sigla o id interno; el resultado muestra la ruta taxonómica y permite <strong>editar el código inline</strong> (el sistema rechaza códigos duplicados).</li>
+        <li><strong>Actualización masiva:</strong> edita la columna <code>codigo_indicador</code> del Excel descargado y reimpórtalo (CSV o XLSX con columnas <code>id</code> + <code>codigo</code>). Al terminar verás el conteo de actualizados y los errores por fila.</li>
+      </ul>
+
+      <h3 class="font-semibold text-slate-800 pt-3">Pestaña 2 — Conciliación de indicadores</h3>
+      <p>Cuando el mismo indicador fue creado dos veces (ej. un recolector lo creó bajo un subtema y otro bajo otro), esta herramienta los fusiona en uno:</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Selecciona el indicador <strong>A (se conserva)</strong> y el <strong>B (se elimina)</strong> buscando por nombre, código o id.</li>
+        <li>En <strong>"Comparar"</strong> verás una tabla campo a campo con los metadatos de ambos y el conteo de relaciones de cada uno (datos, gráficos, procesos, cargas).</li>
+        <li>Elige <strong>por cada campo</strong> cuál valor conserva (radio A o B).</li>
+        <li>El subtema principal que no elijas queda como <strong>subtema adicional</strong> — el indicador sigue apareciendo en ambas rutas del menú.</li>
+        <li>Al aplicar: todos los datos, gráficos, procesos, cargas y relaciones de B pasan a A, los embeddings de B se borran, B se elimina y la operación queda auditada en el registro de cambios.</li>
+      </ol>
+      <div class="bg-red-50 border border-red-200 rounded-3xl p-3">
+        <p class="text-red-800 font-semibold">Esta acción NO se puede deshacer:</p>
+        <p class="text-red-700">El indicador B se elimina definitivamente. Antes de aplicar, verifica la ruta taxonómica y el conteo de relaciones de ambos, y confirma que realmente son el mismo indicador.</p>
+      </div>
+
+      <div class="bg-slate-100 border border-slate-300 rounded-3xl p-3">
+        <p class="text-slate-700 font-semibold">¿Por qué existe esta herramienta?</p>
+        <p class="text-slate-600 text-xs">Los errores que corrige (códigos mal asignados, indicadores duplicados, dominios repetidos) no son fallos del usuario individual: son <strong>errores estructurales</strong> que los módulos de recolección y delegado permiten cometer porque crean entidades sin verificar unicidad ni catálogo. Validación es la última puerta antes de publicar — por eso la remediación vive aquí. A mediano plazo, la prevención upstream (deduplicación al crear, códigos autogenerados, catálogos cerrados) debería volver innecesarias estas herramientas.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- tion>
 
   <!-- Contacto -->
   <div class="bg-slate-50 border border-slate-200 rounded-3xl p-5 text-sm text-slate-700">
