@@ -10,10 +10,15 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-.deck { position: fixed; inset: 0; background: linear-gradient(135deg,#001a33 0%,#003a6b 55%,#00578f 100%); font-family:'Montserrat',sans-serif; display:flex; align-items:center; justify-content:center; }
-.slide { display:none; width:100%; height:100%; padding:48px 60px 84px; overflow:hidden; animation:fadeIn .35s ease; }
+.deck { position: fixed; inset: 0; background: linear-gradient(135deg,#001a33 0%,#003a6b 55%,#00578f 100%); font-family:'Montserrat',sans-serif; overflow:hidden; }
+/* Escenario fijo 1600×900: JS lo escala con --s para que la
+   diapositiva entera encaje a CUALQUIER zoom/tamaño de escritorio
+   — nada se trunca y el espacio se aprovecha (crece en pantallas
+   grandes). En móvil (media query abajo) vuelve a ser fluido. */
+.slide { display:none; position:absolute; left:50%; top:50%; width:1600px; height:900px; padding:52px 72px 96px; overflow:hidden; transform:translate(-50%,-50%) scale(var(--s,1)); animation:fadeIn .35s ease; }
 .slide.activa { display:flex; flex-direction:column; }
-@keyframes fadeIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+/* 'translate' es propiedad aparte: no pisa el transform del scale */
+@keyframes fadeIn { from { opacity:0; translate:0 14px; } to { opacity:1; translate:0 0; } }
 .kicker { font-size:12px; font-weight:800; letter-spacing:2.5px; text-transform:uppercase; color:#7cc4f0; margin-bottom:10px; }
 .kicker.band-d{color:#7cc4f0;} .kicker.band-c{color:#ffd166;} .kicker.band-e{color:#6fce8f;} .kicker.ctl{color:#ef92c4;}
 .slide h2 { color:#fff; font-size:32px; font-weight:900; line-height:1.15; margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px; }
@@ -57,7 +62,7 @@
 .glass strong { color:#fff; }
 .chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25); color:#e0f2fe; font-size:11.5px; font-weight:700; margin:3px 4px 3px 0; }
 .chip i { color:#67e8f9; font-size:10px; }
-.nav-ui { position:fixed; bottom:0; left:0; right:0; z-index:300; display:flex; align-items:center; justify-content:space-between; padding:14px 26px; pointer-events:none; }
+.nav-ui { position:fixed; bottom:0; left:0; right:0; z-index:300; display:flex; align-items:center; justify-content:space-between; padding:14px 26px; padding-bottom:calc(14px + env(safe-area-inset-bottom)); pointer-events:none; }
 .nav-ui > * { pointer-events:auto; }
 .nav-btn { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3); color:#fff; font-family:inherit; font-weight:800; font-size:12px; padding:9px 18px; border-radius:999px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all .2s; }
 .nav-btn:hover { background:rgba(255,255,255,.28); }
@@ -95,7 +100,24 @@
 .mini-card .t { font-size:11px; font-weight:800; text-transform:uppercase; color:#004b87; letter-spacing:.5px; margin-bottom:5px; }
 .mini-card p { font-size:12px; color:#4a5568; line-height:1.45; }
 
-@media (max-width: 900px) { .slide { padding:30px 22px 90px; overflow-y:auto; } .slide-body, .roles, .duo { flex-direction:column; grid-template-columns:1fr; } .mini{display:none;} }
+/* Móvil/ventanas angostas: layout fluido apilado con scroll interno
+   real — flex:none para que el contenido defina su altura y nada
+   inferior quede truncado tras la barra de navegación. */
+@media (max-width: 900px) {
+  .slide { position:static; width:100%; height:100%; transform:none;
+           padding:64px 18px calc(96px + env(safe-area-inset-bottom));
+           overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .slide-body, .roles, .duo { flex-direction:column; grid-template-columns:1fr; flex:none !important; }
+  .slide h2 { font-size:24px; }
+  .slide .sub { font-size:13.5px; margin-bottom:14px; }
+  .slide.cover h1 { font-size:34px; }
+  .slide.cover .tagline { font-size:14px; }
+  .bigquote { font-size:19px; }
+  .kpi .n { font-size:28px; }
+  .flow .nodo { min-width:0; flex:1 1 100%; }
+  .flow .arr { transform:rotate(90deg); }
+  .mini{display:none;}
+}
 </style>
 </head>
 <body>
@@ -964,6 +986,20 @@
     const slides = Array.from(document.querySelectorAll('.slide'));
     const total = slides.length;
     let cur = 0;
+
+    // ---- Escenario de diseño 1600×900 escalado al viewport ----
+    // El zoom del navegador reduce innerWidth/innerHeight y dispara
+    // resize, así que cualquier zoom reajusta la escala: la
+    // diapositiva entera siempre encaja, letterbox centrado.
+    const REF_W = 1600, REF_H = 900;
+    function escalar() {
+        const s = Math.min(window.innerWidth / REF_W,
+                           window.innerHeight / REF_H);
+        document.documentElement.style.setProperty('--s', s.toFixed(4));
+    }
+    window.addEventListener('resize', escalar);
+    window.addEventListener('orientationchange', escalar);
+    escalar();
 
     const mini = document.getElementById('mini');
     slides.forEach((s, i) => {
