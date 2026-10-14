@@ -24,7 +24,7 @@ from .calcular_iced import (
     calcular_iced, aplicar_puntajes, _normalizar_respuestas,
     PREGUNTA_LABELS, INDICADOR_LABELS, ESTRUCTURA_ICED, INDICADOR_PREGUNTA,
 )
-from .forms_iced import ICED_WIZARD_FORMS
+from .forms_iced import ICED_WIZARD_FORMS, ICED_STEP_LABELS
 from .decorators import validador_required
 from . import views_normalizacion as _nz
 
@@ -540,24 +540,60 @@ def validacion_revisar_iced(request, formulario_id):
             if fld.label:
                 form_labels.setdefault(name, str(fld.label))
 
-    # Construir estructura de respuestas por módulo con labels legibles
+    # Construir estructura de respuestas agrupada por PASO del wizard
+    # (orden real del cuestionario). Cada módulo contiene subsecciones
+    # por paso — C se divide en C1/C2/C3 y D en D1/D2/D3/D4 — y dentro
+    # de cada paso los campos siguen el orden de declaración del form,
+    # no orden alfabético.
+    paso_campo = {
+        'identificacion': 'a', 'entorno': 'b',
+        'infraestructura_c1': 'c', 'infraestructura_c2': 'c',
+        'infraestructura_c3': 'c',
+        'metodologia_d1': 'd', 'metodologia_d2': 'd',
+        'metodologia_d3': 'd', 'metodologia_d4': 'd',
+        'accesibilidad': 'e',
+    }
+    respuestas_por_letra = {'a': resp_a, 'b': resp_b, 'c': resp_c, 'd': resp_d, 'e': resp_e}
+
     respuestas_modulo_display = []
-    for nombre_modulo, respuestas in [
-        ('Módulo A — Identificación', resp_a),
-        ('Módulo B — Entorno Institucional', resp_b),
-        ('Módulo C — Infraestructura', resp_c),
-        ('Módulo D — Metodología', resp_d),
-        ('Módulo E — Accesibilidad', resp_e),
+    for letra, nombre_modulo in [
+        ('a', 'Módulo A — Identificación'),
+        ('b', 'Módulo B — Entorno Institucional'),
+        ('c', 'Módulo C — Infraestructura'),
+        ('d', 'Módulo D — Metodología'),
+        ('e', 'Módulo E — Accesibilidad'),
     ]:
-        items = []
-        for field_key, valor in sorted(respuestas.items()):
-            label = pregunta_labels.get(field_key) or form_labels.get(field_key, field_key)
-            items.append({
-                'label': label,
-                'field_key': field_key,
-                'respuesta': valor,
-            })
-        respuestas_modulo_display.append((nombre_modulo, items))
+        respuestas = respuestas_por_letra[letra]
+        usados = set()
+        pasos = []
+        for step_key, form_cls in ICED_WIZARD_FORMS:
+            if paso_campo.get(step_key) != letra:
+                continue
+            items = []
+            for name in form_cls.base_fields:
+                if name in respuestas:
+                    usados.add(name)
+                    items.append({
+                        'label': pregunta_labels.get(name) or form_labels.get(name, name),
+                        'field_key': name,
+                        'respuesta': respuestas[name],
+                    })
+            if items:
+                pasos.append({
+                    'label': ICED_STEP_LABELS.get(step_key, step_key),
+                    'items': items,
+                })
+        # Campos no mapeados a ningún form: auxiliares generados por
+        # widgets (displays, contactos) o respuestas huérfanas.
+        resto = [{
+            'label': pregunta_labels.get(k) or form_labels.get(k, k),
+            'field_key': k,
+            'respuesta': v,
+        } for k, v in respuestas.items() if k not in usados]
+        if resto:
+            pasos.append({'label': 'Otros campos del módulo', 'items': resto})
+        total = sum(len(p['items']) for p in pasos)
+        respuestas_modulo_display.append((nombre_modulo, pasos, total))
 
     # Formularios hermanos: mismo organismo y período, otros equipos técnicos
     hermanos = ICEDFormulario.objects.filter(
