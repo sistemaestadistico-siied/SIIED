@@ -2477,10 +2477,10 @@ ESTACIONES_CAL.forEach(m => m.tipo === 'sala' ? crearSalaJunta(m) : crearMaquina
 // metodológico real: Operación → Conjunto → Calidad → Series →
 // Auditoría → Extracción → Ficha MSD → Difusión.
 const ESTACIONES_DAT = [
-    { x: -8.5, nombre: 'OPERACIONES ESTADÍSTICAS', modelo: 'inventario OOEE · enlace ADDA · documentos metodológicos', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
+    { x: -8.5, nombre: 'OPERACIONES ESTADÍSTICAS', modelo: 'inventario distrital · enlace ADDA · documentos metodológicos', color: 0x2563eb, tipo: 'tolva', z: -0.2 },
     { x: -1, nombre: 'CONJUNTOS DE DATOS', modelo: 'metadatos DDI completos', color: 0x1d4ed8, tipo: 'prensa', z: -0.2 },
     { x: 6.5,  z: -0.2, nombre: 'CONTROL DE CALIDAD Y DESAGREGACIÓN', modelo: 'dominios verificados · bitácora de cambios', color: 0xf59e0b, tipo: 'sala' },
-    { x: 14,   z: -0.2, nombre: 'SERIES DE INDICADORES', modelo: 'metadata completa por indicador', color: 0x10b981, tipo: 'turbina' },
+    { x: 14,   z: -0.2, nombre: 'SERIES DE INDICADORES', modelo: 'metadatos completos por indicador', color: 0x10b981, tipo: 'turbina' },
     { x: 21.5, z: -0.2, nombre: 'REPORTES Y AUDITORÍA', modelo: 'monitoreo · trazabilidad · producción', color: 0xf59e0b, tipo: 'sala' },
     { x: 29, nombre: 'EXTRACCIÓN AUTOMÁTICA', modelo: 'regla de extracción → dato publicable', color: 0x0ea5e9, tipo: 'turbina', z: -0.2 },
     { x: 36.5, nombre: 'METADATOS · FICHA TÉCNICA', modelo: 'MSD (DANE) + SDMX · completitud medida', color: 0x6366f1, tipo: 'prensa', sello: 'MSD', z: -0.2 },
@@ -5644,7 +5644,7 @@ const ACTOS_TODOS = [
       dato: 'Sin ficha MSD, sin dominios y sin regla de extracción, ningún rol mueve nada. Y cuando la metodología esté escrita, la cargará editorial: cada módulo hace lo suyo.',
       cam: [[-24, 4, 7], [-17, 1.6, -0.8]] },
     // ======= D: CADENA DE DATOS — estación por estación =======
-    { t0: 218, t1: 232, acto: 'Módulo 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'inventario distrital de operaciones (OOEE): cada una con enlace al ADDA y a sus documentos metodológicos',
+    { t0: 218, t1: 232, acto: 'Módulo 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'inventario distrital de operaciones: cada una con enlace al ADDA (Archivo Distrital de Datos) y a sus documentos metodológicos',
       dato: 'La operación nació primero en el ADDA, la plataforma de datos abiertos del Distrito. Aquí entra al inventario con su enlace, su ficha metodológica y su diccionario de datos.',
       cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]],
       ficha: 'El ADDA describe organismo responsable, área temática, metodología de recolección y acceso a microdatos. Una operación recorre las 8 fases de la Ley 2335 de 2023: necesidades → diseño → construcción → recolección → procesamiento → análisis → difusión → evaluación.' },
@@ -5660,7 +5660,7 @@ const ACTOS_TODOS = [
       dato: 'Se declaran los dominios: sexo, grupo de edad, comuna, corregimiento. La suma de las 22 comunas y 15 corregimientos debe coincidir con el total distrital del DANE. Si no cuadra, no pasa.',
       cam: [[3.5, 4.5, 11], [6.5, 2.2, -0.2]],
       ficha: 'Verificación bajo la NTC PE 1000:2020: validación de fuentes, coherencia de datos y consistencia de totales frente al origen, con dominios de desagregación declarados y bitácora de cambios para trazabilidad.' },
-    { t0: 268, t1: 280, acto: 'Módulo 09', texto: 'SERIES DE INDICADORES', sub: 'cada indicador con su metadata: objetivo, método, fórmula y variables',
+    { t0: 268, t1: 280, acto: 'Módulo 09', texto: 'SERIES DE INDICADORES', sub: 'cada indicador con sus metadatos: objetivo, método, fórmula y variables',
       dato: 'Del conjunto se derivan indicadores: pirámide poblacional por comuna, población por sexo, estructura por grupos de edad. Cada uno con fórmula explícita sobre el conjunto fuente.',
       cam: [[11, 4.5, 11], [14, 2.2, -0.2]] },
     { t0: 280, t1: 292, acto: 'Módulo 10', texto: 'REPORTES Y AUDITORÍA', sub: 'tablero de monitoreo de la plataforma: indicadores sin datos, series desactualizadas, completitud MSD+SDMX, producción mensual y trazabilidad',
