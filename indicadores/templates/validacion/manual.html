@@ -299,6 +299,13 @@
         <li><strong>Aplicar:</strong> todas las referencias (datos, series de gráficos, relaciones de indicadores) se redirigen al dominio destino con deduplicación, y los dominios absorbidos se eliminan.</li>
       </ol>
       <p>También ofrece el modo <strong>Eliminar</strong> para borrar dominios sin referencias que sobran.</p>
+      <p><strong>Catálogo oficial:</strong> los dominios marcados <span class="px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700">pendiente</span> fueron creados por cargas y aún no son oficiales. Como validador decides sobre cada uno:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Catalogar:</strong> si es un concepto genuino que faltaba — se admite al catálogo y queda disponible para futuras cargas.</li>
+        <li><strong>Conciliar:</strong> si duplica un dominio oficial (ej. <em>Genero</em> vs <em>Sexo</em>) — se absorbe en el oficial con equivalencias.</li>
+        <li><strong>Eliminar:</strong> si fue un error de carga sin referencias.</li>
+      </ul>
+      <p class="text-xs text-slate-500">Así el catálogo queda "cerrado" (solo dominios oficiales para asociar) pero <strong>extensible por decisión</strong>: nadie crea dominios oficiales sin pasar por validación.</p>
       <div class="bg-amber-50 border border-amber-200 rounded-3xl p-3">
         <p class="text-amber-800 font-semibold">Importante:</p>
         <p class="text-amber-700">La conciliación es <strong>irreversible</strong>: los dominios absorbidos desaparecen. Verifica que las equivalencias sean semánticamente correctas — una equivalencia errada mezcla datos de desagregaciones distintas. Cada operación queda registrada en el log de auditoría.</p>

@@ -51,14 +51,29 @@ class NivelGeograficoAdmin(admin.ModelAdmin):
 
 
 class DominioDesagregacionAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'tipo', 'nivel_geografico', 'dominio_padre', 'tipo_agregacion_total', 'count_desagregaciones')
-    list_filter = ('tipo', 'nivel_geografico', 'tipo_agregacion_total')
+    list_display = ('nombre', 'tipo', 'en_catalogo', 'nivel_geografico', 'dominio_padre', 'tipo_agregacion_total', 'count_desagregaciones')
+    list_filter = ('tipo', 'en_catalogo', 'nivel_geografico', 'tipo_agregacion_total')
     search_fields = ('nombre',)
     autocomplete_fields = ('nivel_geografico', 'dominio_padre')
+    actions = ('admitir_al_catalogo',)
+
+    @admin.action(description='Admitir dominios seleccionados al catálogo oficial')
+    def admitir_al_catalogo(self, request, queryset):
+        n = queryset.filter(en_catalogo=False).update(en_catalogo=True)
+        self.message_user(request, f'{n} dominio(s) admitidos al catálogo.')
 
     fieldsets = (
         ('Información Básica', {
             'fields': ('nombre', 'tipo', 'nivel_geografico')
+        }),
+        ('Catálogo', {
+            'fields': ('en_catalogo',),
+            'description': (
+                'Los dominios del catálogo oficial son los que se ofrecen para '
+                '"asociar" en el wizard de cargas. Los creados por cargas nacen '
+                'como pendientes (sin marcar) hasta que el validador decide '
+                'admitirlos o conciliarlos con uno existente.'
+            )
         }),
         ('Jerarquía', {
             'fields': ('dominio_padre',),

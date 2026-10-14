@@ -50,7 +50,8 @@
         <tr>
           <td><input class="sel-dom" type="checkbox" name="dominios" value="{{ d.id }}"></td>
           <td>{{ d.id }}</td>
-          <td><a href="{% url 'indicadores:validacion_conciliacion_dominio' d.id %}" title="Ver desagregaciones / renombrar">{{ d.nombre }}</a></td>
+          <td><a href="{% url 'indicadores:validacion_conciliacion_dominio' d.id %}" title="Ver desagregaciones / renombrar">{{ d.nombre }}</a>
+            {% if not d.en_catalogo %}<span class="norm-badge" style="background:rgba(245,158,11,.18);color:#b45309;" title="Creado por una carga — pendiente de decisión: catalogar, conciliar o eliminar">pendiente</span>{% endif %}</td>
           <td><span class="norm-badge badge-{{ d.tipo }}">{{ d.tipo }}</span></td>
           <td>{{ d.n_desags }}</td>
           <td>{{ d.n_indicadores }}</td>
@@ -68,13 +69,17 @@
       <button type="submit" name="accion" value="conciliar" class="norm-btn btn-conciliar">
         Conciliar seleccionados → destino marcado
       </button>
+      <button type="submit" name="accion" value="catalogar" class="norm-btn" style="background:#d97706;color:#fff;"
+              onclick="return confirm('¿Admitir los dominios seleccionados al catálogo oficial?')">
+        Catalogar seleccionados
+      </button>
       <button type="submit" name="accion" value="eliminar" class="norm-btn btn-eliminar"
               onclick="return confirm('¿Eliminar el dominio seleccionado con sus desagregaciones? Los datos permanecen.')">
         Eliminar dominio seleccionado (sin borrar datos)
       </button>
       <span class="norm-help">
         Para conciliar: marca ≥1 origen (checkbox) + 1 destino (radio).
-        Para eliminar: marca solo 1 dominio.
+        Para catalogar o eliminar: marca los dominios (solo aplica a "pendientes").
       </span>
     </div>
   </form>

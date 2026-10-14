@@ -3691,7 +3691,7 @@ def descargar_catalogo_dominios(request):
 
     dominios = (
         DominioDesagregacion.objects
-        .order_by('tipo', 'nombre')
+        .order_by('tipo', '-en_catalogo', 'nombre')
         .prefetch_related('desagregaciones')
     )
 
@@ -3700,16 +3700,17 @@ def descargar_catalogo_dominios(request):
     response['Content-Disposition'] = f'attachment; filename="catalogo_dominios_{timestamp}.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(['Tipo', 'Dominio', 'Desagregación'])
+    writer.writerow(['Tipo', 'Dominio', 'Desagregación', 'Estado'])
 
     for dominio in dominios:
         tipo = dominio.get_tipo_display()
+        estado = 'catálogo' if dominio.en_catalogo else 'pendiente'
         desagregaciones = list(dominio.desagregaciones.all())
         if desagregaciones:
             for desagregacion in desagregaciones:
-                writer.writerow([tipo, dominio.nombre, desagregacion.nombre])
+                writer.writerow([tipo, dominio.nombre, desagregacion.nombre, estado])
         else:
-            writer.writerow([tipo, dominio.nombre, ''])
+            writer.writerow([tipo, dominio.nombre, '', estado])
 
     return response
 

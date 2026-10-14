@@ -619,9 +619,11 @@ class WizardAdminUnificado(SessionWizardView):
             from django.db.models import Count
             
             # Catálogo de dominios existentes para referencia del usuario
+            # (oficiales primero dentro de cada tipo; los pendientes se marcan
+            # en el template para que la decisión asociar/crear sea informada)
             context['catalogo_dominios'] = DominioDesagregacion.objects.annotate(
                 num_desagregaciones=Count('desagregaciones')
-            ).order_by('tipo', 'nombre')
+            ).order_by('tipo', '-en_catalogo', 'nombre')
             
             tipo_flujo = self.storage.extra_data.get('tipo_flujo')
             carga_serie_id = self.storage.extra_data.get('carga_serie_id')

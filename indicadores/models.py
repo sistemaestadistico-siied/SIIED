@@ -249,6 +249,18 @@ class DominioDesagregacion(models.Model):
         )
     )
 
+    # Catálogo cerrado pero extensible: los dominios existentes al migrar
+    # forman el catálogo oficial. Todo dominio creado por una carga (wizard,
+    # CSV, capas) nace como PENDIENTE (en_catalogo=False) hasta que el
+    # validador decide admitirlo al catálogo o conciliarlo con uno existente.
+    en_catalogo = models.BooleanField(
+        default=False,
+        verbose_name="En catálogo oficial",
+        help_text="Los dominios del catálogo son los que se ofrecen para "
+                  "'asociar' en el wizard. Los pendientes esperan la decisión "
+                  "del validador (catalogar / conciliar / eliminar)."
+    )
+
     def __str__(self):
         return self.nombre
 

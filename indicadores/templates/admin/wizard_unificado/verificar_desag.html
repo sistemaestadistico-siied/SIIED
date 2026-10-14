@@ -38,8 +38,9 @@
           </p>
           <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
             {% for dom in grupo.list %}
-            <span style="display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.5rem; background:var(--darkened-bg, #e2e8f0); border-radius:9999px; font-size:0.75rem; color:var(--body-fg, #334155);">
+            <span style="display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.5rem; background:var(--darkened-bg, #e2e8f0); border-radius:9999px; font-size:0.75rem; color:var(--body-fg, #334155);{% if not dom.en_catalogo %} border:1px dashed #d97706;{% endif %}"{% if not dom.en_catalogo %} title="Pendiente: creado por una carga, aún no admitido al catálogo oficial"{% endif %}>
               {{ dom.nombre }}
+              {% if not dom.en_catalogo %}<span style="color:#b45309; font-size:0.6rem; font-weight:700;">pendiente</span>{% endif %}
               <span style="background:var(--border-color, #cbd5e1); color:var(--body-fg, #1e293b); padding:0.05rem 0.35rem; border-radius:9999px; font-size:0.65rem; font-weight:600;">{{ dom.num_desagregaciones }}</span>
             </span>
             {% endfor %}

@@ -233,7 +233,7 @@ def wizard_manual(request):
 def wizard_normalizacion(request):
     with connection.cursor() as cur:
         cur.execute("""
-            SELECT d.id, d.nombre, d.tipo,
+            SELECT d.id, d.nombre, d.tipo, d.en_catalogo,
               (SELECT count(*) FROM indicadores_desagregacion x WHERE x.dominio_id=d.id) AS n_desags,
               (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_tematica m WHERE m.dominiodesagregacion_id=d.id)
             + (SELECT count(*) FROM indicadores_indicador_dominios_desagregacion_geografica m WHERE m.dominiodesagregacion_id=d.id) AS n_indicadores,
@@ -270,6 +270,21 @@ def wizard_equivalencias(request):
                        'dominios': []})
     accion = request.POST.get('accion')
     dominio_ids = request.POST.getlist('dominios')
+
+    if accion == 'catalogar':
+        # Admitir dominios pendientes al catálogo oficial.
+        if not dominio_ids:
+            messages.error(request, 'Selecciona al menos un dominio pendiente.')
+            return wizard_normalizacion.__wrapped__(request)
+        n = DominioDesagregacion.objects.filter(
+            pk__in=dominio_ids, en_catalogo=False).update(en_catalogo=True)
+        if n:
+            _audit(','.join(dominio_ids), 'catalogar', 0, 0,
+                   f'{n} dominio(s) admitido(s) al catálogo oficial '
+                   f'por {request.user.username}')
+        messages.success(
+            request, f'{n} dominio(s) admitidos al catálogo oficial.')
+        return wizard_normalizacion.__wrapped__(request)
 
     if accion == 'eliminar':
         return _preview_eliminar(request, dominio_ids)
