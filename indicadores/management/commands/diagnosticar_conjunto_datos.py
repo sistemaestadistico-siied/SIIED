@@ -80,7 +80,7 @@ class Command(BaseCommand):
         # Diagnosticar el conjunto_datos
         self.diagnosticar_conjunto_datos(conjunto_datos, indicador, regla)
     
-    def diagnosticar_conjunto_datos(self, ConjuntoDatos, indicador, regla):
+    def diagnosticar_conjunto_datos(self, conjunto_datos, indicador, regla):
         """Diagnostica la correspondencia entre conjunto_datos y desagregaciones"""
         if not conjunto_datos.archivo_csv:
             self.stdout.write(
