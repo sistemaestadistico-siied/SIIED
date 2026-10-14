@@ -5140,19 +5140,19 @@ function animarOperario(loro, dt, tGlobal, estado, desfase = 0) {
         // Salsa caleña de verdad: caderas al compás (vaivén en
         // yaw + desplazamiento), pasos con levante visible de
         // pata y alas abiertas barriendo el aire
-        const beat = t * 4.2;
+        const beat = t * 2.6;   // compás de baile, no frenesí
         const s = Math.sin(beat);
-        rig.visual.position.x = s * 0.22;
-        rig.visual.position.y = Math.abs(Math.sin(beat * 0.5)) * 0.06;
+        rig.visual.position.x = s * 0.18;
+        rig.visual.position.y = Math.abs(Math.sin(beat * 0.5)) * 0.05;
         rig.visual.rotation.y = s * 0.3;          // las caderas giran
         rig.visual.rotation.z = s * 0.1;
         // Pasos: cada pata levanta alterna — se ve el vaivén
-        rig.pataIzq.rotation.x = s * 0.85;
-        rig.pataDer.rotation.x = -s * 0.85;
-        rig.pataIzq.position.y = 0.15 + Math.max(0, s) * 0.12;
-        rig.pataDer.position.y = 0.15 + Math.max(0, -s) * 0.12;
-        // Alas abiertas bailando: aleteo grande + apertura lateral
-        const pump = Math.abs(s) * 1.1 + 0.4;
+        rig.pataIzq.rotation.x = s * 0.55;
+        rig.pataDer.rotation.x = -s * 0.55;
+        rig.pataIzq.position.y = 0.15 + Math.max(0, s) * 0.10;
+        rig.pataDer.position.y = 0.15 + Math.max(0, -s) * 0.10;
+        // Alas abiertas bailando: aleteo amplio + apertura lateral
+        const pump = Math.abs(s) * 0.7 + 0.3;
         rig.alaDer.rotation.z = pump;
         rig.alaIzq.rotation.z = -pump;
         rig.alaDer.rotation.y = s * 0.5;
@@ -5212,7 +5212,7 @@ function crearFiesta() {
                 const v = new THREE.Group(); v.add(c);
                 const mx = new THREE.AnimationMixer(c);
                 mx.clipAction(clipPerreo(
-                    clipsGLB[3] || clipsGLB[0], 'perreo-' + i)).play();
+                    clipsGLB[1] || clipsGLB[0], 'perreo-' + i)).play();
                 v.scale.setScalar(0.5);
                 v.position.set(x, y, z);
                 v.rotation.y = ry;   // leve ángulo hacia el centro
@@ -5332,9 +5332,11 @@ function clonarOperario() {
     vehiculo.add(c);
     const mixer = new THREE.AnimationMixer(vehiculo);
     const acciones = clipsGLB.map(cl => mixer.clipAction(cl));
-    const clipBase = clipsGLB[3] || clipsGLB[0];
+    // el perreo parte de la pose ERGUIDA (clip 1, el del resto de
+    // estados) — con la de flexiones bailaba tumbado, un picoteo
+    const clipBaile = clipsGLB[1] || clipsGLB[0];
     return { loro: vehiculo, mixer, acciones, accion: null, estado: null,
-             accPerreo: clipBase ? mixer.clipAction(clipPerreo(clipBase)) : null };
+             accPerreo: clipBaile ? mixer.clipAction(clipPerreo(clipBaile)) : null };
 }
 
 function ponerEstado(w, estado) {
@@ -5515,41 +5517,40 @@ function clipVuelo(clip, pose, veces, perfil, nombre) {
 }
 
 // ============ PERREO SINTETIZADO (clip para el rig GLB) ============
-// El baile del finale: rebote de cadera al dembow (2 dips por loop),
-// bombeo pélvico a doble tiempo, contrapeso de columna, sentadilla
-// rítmica y brazos doblados marcando. Convención de ejes locales
-// tipo Mixamo: x = flexión adelante/atrás, y = torsión, z = inclinación.
-const DUR_PERREO = 1.16;   // 2 golpes de dembow (~103 bpm)
+// El baile del finale ERGUIDO: torsión de cadera al dembow (Waist/Hip
+// en y), rebote suave de posición (4 dips por loop), columna en
+// contra-fase, rodillas marcando y brazos doblados. Base = clip
+// erguido (idle); la de flexiones lo tumbaba → picoteo de gallina.
+// Convención ejes locales: x = flexión, y = torsión, z = inclinación.
+const DUR_PERREO = 2.32;   // 4 golpes de dembow (~103 bpm)
 const HUESOS_PERREO = new Set([
     'Hip', 'Waist', 'Spine01', 'Spine02', 'NeckTwist02', 'Head',
-    'L_Thigh', 'R_Thigh', 'L_Calf', 'R_Calf', 'L_Foot', 'R_Foot',
-    'L_Clavicle', 'R_Clavicle', 'L_Upperarm', 'R_Upperarm',
-    'L_Forearm', 'R_Forearm', 'L_Hand', 'R_Hand']);
+    'L_Thigh', 'R_Thigh', 'L_Calf', 'R_Calf',
+    'L_Upperarm', 'R_Upperarm', 'L_Forearm', 'R_Forearm',
+    'L_Hand', 'R_Hand']);
 function clipPerreo(clipBase, nombre = 'perreo') {
     const t0 = clipBase.duration * T_POSE_VUELO;
-    const D = DUR_PERREO, N = 48;
+    const D = DUR_PERREO, N = 64;
     // [eje, amp, ciclos, fase=0, sesgo=0] → ang = sesgo + amp·sin(2π·c·u + fase·2π)
+    // Erguido: el baile lo lleva la TORSIÓN de cadera (Waist/Hip en y/z),
+    // no la flexión en x — esa lo tumbaba y el cuello picoteaba.
     const SPEC = {
-        Hip:      [['x', .18, 4], ['z', .10, 2]],
-        Waist:    [['y', .14, 2]],
-        Spine01:  [['x', -.10, 4]],
-        Spine02:  [['x', -.06, 4]],
-        NeckTwist02: [['x', .05, 2, .5]],
-        Head:     [['x', .06, 2, .5]],
-        L_Thigh:  [['x', .14, 2, 0, .28]],
-        R_Thigh:  [['x', .14, 2, 0, .28]],
-        L_Calf:   [['x', .12, 2, 0, .32]],
-        R_Calf:   [['x', .12, 2, 0, .32]],
-        L_Foot:   [['x', .10, 2, 0, -.18]],
-        R_Foot:   [['x', .10, 2, 0, -.18]],
-        L_Clavicle: [['z', .05, 2, 0, .10]],
-        R_Clavicle: [['z', .05, 2, .5, -.10]],
-        L_Upperarm: [['x', .10, 2, 0, .30], ['z', .08, 2, .25, .50]],
-        R_Upperarm: [['x', .10, 2, .5, .30], ['z', .08, 2, .75, -.50]],
-        L_Forearm: [['x', .08, 4, 0, .80]],
-        R_Forearm: [['x', .08, 4, .5, .80]],
-        L_Hand:   [['x', .06, 2, 0, .25]],
-        R_Hand:   [['x', .06, 2, .5, .25]],
+        Hip:      [['z', .09, 2], ['y', .08, 4]],
+        Waist:    [['y', .20, 4]],
+        Spine01:  [['y', -.10, 4]],
+        Spine02:  [['y', -.05, 4]],
+        NeckTwist02: [['x', .03, 2]],
+        Head:     [['x', .03, 2, .5]],
+        L_Thigh:  [['x', .08, 4, 0, .08]],
+        R_Thigh:  [['x', .08, 4, 0, .08]],
+        L_Calf:   [['x', .06, 4, 0, .08]],
+        R_Calf:   [['x', .06, 4, 0, .08]],
+        L_Upperarm: [['x', .07, 4, 0, .15], ['z', .06, 4, .25, .45]],
+        R_Upperarm: [['x', .07, 4, .5, .15], ['z', .06, 4, .75, -.45]],
+        L_Forearm: [['x', .05, 4, 0, .70]],
+        R_Forearm: [['x', .05, 4, .5, .70]],
+        L_Hand:   [['x', .04, 2, 0, .20]],
+        R_Hand:   [['x', .04, 2, .5, .20]],
     };
     const EJES = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
     const _qa = new THREE.Quaternion(), _qd = new THREE.Quaternion(),
@@ -5573,17 +5574,17 @@ function clipPerreo(clipBase, nombre = 'perreo') {
         }
         tracks.push(new THREE.QuaternionKeyframeTrack(hueso + '.quaternion', ts, vs));
     }
-    // Hip.position: rebote del dembow — 2 dips filados por loop + sway
+    // Hip.position: rebote del dembow — 4 dips suaves por loop + sway
     const trkP = clipBase.tracks.find(t => t.name === 'Hip.position');
     const p0 = trkP ? new THREE.Vector3().fromArray(
         Array.from(trkP.createInterpolant().evaluate(t0))) : new THREE.Vector3();
     const ts = [], vs = [];
     for (let k = 0; k <= N; k++) {
         const u = k / N;
-        const reb = Math.pow(Math.abs(Math.sin(Math.PI * 2 * u)), 0.6);
+        const reb = Math.pow(Math.abs(Math.sin(Math.PI * 4 * u)), 0.8);
         const sway = Math.sin(Math.PI * 4 * u + Math.PI / 2);
         ts.push(u * D);
-        vs.push(p0.x + 0.05 * sway, p0.y - 0.12 * reb, p0.z);
+        vs.push(p0.x + 0.04 * sway, p0.y - 0.10 * reb, p0.z);
     }
     tracks.push(new THREE.VectorKeyframeTrack('Hip.position', ts, vs));
     // el resto del cuerpo queda congelado en la pose base del clip
