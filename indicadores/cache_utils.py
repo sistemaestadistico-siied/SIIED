@@ -6,7 +6,7 @@ import hashlib
 import json
 from django.core.cache import cache
 from django.conf import settings
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, m2m_changed
 from django.dispatch import receiver
 from functools import wraps
 import logging
@@ -133,8 +133,8 @@ def invalidate_subtema_cache(subtema_id):
     """
     Invalida caché relacionado con un subtema específico.
     """
+    cache.delete(f"indicadores_subtema_{subtema_id}")
     logger.info(f"Cache invalidation requested for subtema {subtema_id}")
-    # Implementación similar a invalidate_indicator_cache
 
 
 class CacheMetrics:
@@ -170,10 +170,11 @@ def get_cached_indicadores_by_subtema(subtema_id):
     # Importar aquí para evitar circular imports
     from .models import Indicador
     
+    # Indicadores del subtema: principal (FK) + adicionales (M2M)
     indicadores = list(Indicador.objects.filter(
-        subtema_id=subtema_id, 
+        Indicador.q_por_subtema(subtema_id),
         activo=True
-    ).order_by('orden', 'nombre').values(
+    ).distinct().order_by('orden', 'nombre').values(
         'id', 'nombre', 'unidad_medida', 'orden'
     ))
     
@@ -252,6 +253,27 @@ def invalidate_indicador_cache(sender, instance, **kwargs):
     invalidate_indicator_cache(instance.id)
     if instance.subtema_id:
         invalidate_subtema_cache(instance.subtema_id)
+    # Subtemas adicionales (M2M): su listado cacheado también cambia
+    if instance.pk:
+        for st_id in instance.subtemas_adicionales.values_list('id', flat=True):
+            invalidate_subtema_cache(st_id)
+
+
+@receiver(m2m_changed, sender='indicadores.Indicador_subtemas_adicionales')
+def invalidate_subtemas_adicionales_cache(sender, instance, action, pk_set, reverse, **kwargs):
+    """Invalida el caché de subtemas cuando cambian las clasificaciones
+    adicionales de un indicador (post_save no cubre cambios M2M)."""
+    if action not in ('post_add', 'post_remove', 'post_clear'):
+        return
+    if reverse:
+        # instance es el MenuSubtema al que se le (des)vincularon indicadores
+        invalidate_subtema_cache(instance.pk)
+    elif pk_set:
+        # instance es el Indicador: invalidar cada subtema afectado
+        for pk in pk_set:
+            invalidate_subtema_cache(pk)
+    # post_clear forward: pk_set viene vacío — no sabemos los subtemas
+    # previos; el listado viejo expira por CACHE_TIMEOUT_QUERY.
 
 
 @receiver(post_save, sender='indicadores.Grafico')

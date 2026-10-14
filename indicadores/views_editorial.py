@@ -1503,43 +1503,16 @@ def api_buscar_graficos(request):
         indicadores = Indicador.objects.filter(
             id__in=todos_ids,
             activo=True
-        ).select_related('subtema__tema__dominio').prefetch_related('graficos')
+        ).select_related('subtema__tema__dominio').prefetch_related(
+            'graficos', 'subtemas_adicionales__tema__dominio'
+        )
 
         # 5. Organizar jerarquia: dominio -> tema -> subtema -> indicador -> graficos
+        #    Un indicador con subtemas adicionales aparece en CADA rama.
         jerarquia = {}
         total_graficos = 0
 
         for ind in indicadores:
-            if not ind.subtema or not ind.subtema.tema or not ind.subtema.tema.dominio:
-                continue
-            dominio = ind.subtema.tema.dominio
-            tema = ind.subtema.tema
-            subtema = ind.subtema
-
-            d_key = dominio.slug
-            if d_key not in jerarquia:
-                jerarquia[d_key] = {
-                    'nombre': dominio.nombre,
-                    'slug': dominio.slug,
-                    'temas': {}
-                }
-
-            t_key = tema.slug
-            if t_key not in jerarquia[d_key]['temas']:
-                jerarquia[d_key]['temas'][t_key] = {
-                    'nombre': tema.nombre,
-                    'slug': tema.slug,
-                    'subtemas': {}
-                }
-
-            s_key = subtema.slug
-            if s_key not in jerarquia[d_key]['temas'][t_key]['subtemas']:
-                jerarquia[d_key]['temas'][t_key]['subtemas'][s_key] = {
-                    'nombre': subtema.nombre,
-                    'slug': subtema.slug,
-                    'indicadores': {}
-                }
-
             graficos_list = []
             for g in ind.graficos.filter(activo=True):
                 graficos_list.append({
@@ -1553,7 +1526,43 @@ def api_buscar_graficos(request):
                 })
                 total_graficos += 1
 
-            if graficos_list:
+            if not graficos_list:
+                continue
+
+            # Subtemas del indicador: principal (FK) + adicionales (M2M)
+            subtemas_ind = ([ind.subtema] if ind.subtema else []) + \
+                list(ind.subtemas_adicionales.all())
+
+            for subtema in subtemas_ind:
+                if not subtema.tema or not subtema.tema.dominio:
+                    continue
+                dominio = subtema.tema.dominio
+                tema = subtema.tema
+
+                d_key = dominio.slug
+                if d_key not in jerarquia:
+                    jerarquia[d_key] = {
+                        'nombre': dominio.nombre,
+                        'slug': dominio.slug,
+                        'temas': {}
+                    }
+
+                t_key = tema.slug
+                if t_key not in jerarquia[d_key]['temas']:
+                    jerarquia[d_key]['temas'][t_key] = {
+                        'nombre': tema.nombre,
+                        'slug': tema.slug,
+                        'subtemas': {}
+                    }
+
+                s_key = subtema.slug
+                if s_key not in jerarquia[d_key]['temas'][t_key]['subtemas']:
+                    jerarquia[d_key]['temas'][t_key]['subtemas'][s_key] = {
+                        'nombre': subtema.nombre,
+                        'slug': subtema.slug,
+                        'indicadores': {}
+                    }
+
                 jerarquia[d_key]['temas'][t_key]['subtemas'][s_key]['indicadores'][ind.id] = {
                     'id': ind.id,
                     'nombre': ind.nombre,

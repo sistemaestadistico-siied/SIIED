@@ -61,8 +61,10 @@ class Command(BaseCommand):
             self.stdout.write(f'Preloading cache for indicator {indicador.id}: {indicador.nombre}')
             
             try:
-                # Preload basic indicator data
+                # Preload basic indicator data (subtema principal + adicionales)
                 get_cached_indicadores_by_subtema(indicador.subtema_id)
+                for st_id in indicador.subtemas_adicionales.values_list('id', flat=True):
+                    get_cached_indicadores_by_subtema(st_id)
                 get_cached_desagregaciones(indicador.id)
                 
                 # Preload API endpoints with common parameters

@@ -133,6 +133,14 @@ class Command(BaseCommand):
                                     contenido_parts.append(f"Tema: {indicador.subtema.tema.nombre}")
                                     if hasattr(indicador.subtema.tema, 'dominio') and indicador.subtema.tema.dominio:
                                         contenido_parts.append(f"Dominio: {indicador.subtema.tema.dominio.nombre}")
+                            # Subtemas adicionales (M2M): el indicador también es
+                            # encontrable por sus otras clasificaciones
+                            for st in indicador.subtemas_adicionales.select_related('tema__dominio'):
+                                contenido_parts.append(f"Subtema adicional: {st.nombre}")
+                                if st.tema:
+                                    contenido_parts.append(f"Tema: {st.tema.nombre}")
+                                    if st.tema.dominio:
+                                        contenido_parts.append(f"Dominio: {st.tema.dominio.nombre}")
                             
                             contenido = " | ".join(contenido_parts)
                             

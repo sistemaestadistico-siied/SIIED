@@ -4574,11 +4574,14 @@ def conjunto_datos_detalle(request, indicador_id):
 def conjuntos_datos_explorer(request):
     """Vista standalone del explorador de conjunto_datos"""
     # Obtener estructura jerárquica de dominios con conjunto_datos disponible
+    # (indicadores por subtema principal + subtemas adicionales M2M)
     dominios = MenuDominio.objects.filter(
+        Q(temas__subtemas__indicadores__conjunto_datos__isnull=False) |
+        Q(temas__subtemas__indicadores_adicionales__conjunto_datos__isnull=False),
         activo=True,
-        temas__subtemas__indicadores__conjunto_datos__isnull=False
     ).distinct().prefetch_related(
-        'temas__subtemas__indicadores__conjunto_datos'
+        'temas__subtemas__indicadores__conjunto_datos',
+        'temas__subtemas__indicadores_adicionales__conjunto_datos',
     ).order_by('orden', 'nombre')
     
     context = {

@@ -73,6 +73,17 @@
         {{ wizard.form.subtema }}
         {{ wizard.form.subtema.errors }}
       </div>
+
+      <div class="form-group">
+        <label for="{{ wizard.form.subtemas_adicionales.id_for_label }}">
+          {{ wizard.form.subtemas_adicionales.label }}
+        </label>
+        {{ wizard.form.subtemas_adicionales }}
+        {% if wizard.form.subtemas_adicionales.help_text %}
+        <span class="helptext">{{ wizard.form.subtemas_adicionales.help_text }}</span>
+        {% endif %}
+        {{ wizard.form.subtemas_adicionales.errors }}
+      </div>
     </div>
 
     <!-- Asociar Existente -->
