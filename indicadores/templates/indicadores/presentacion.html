@@ -3182,9 +3182,8 @@ for (let i = 0; i < 5; i++) famCal.push(nuevaFamilia(cajaUnitaria(texDeleg)));
 // Crudo: camión RECOLECCIÓN (muelle junto a OP) → tolva de OPERACIONES
 const famRec = [];
 for (let i = 0; i < 3; i++) famRec.push(nuevaFamilia(cajaUnitaria(texFuente)));
-// Reportes de auditoría → mesa del consejo (datos para decidir)
-const famRep = [];
-for (let i = 0; i < 2; i++) famRep.push(nuevaFamilia(cajaUnitaria(texOp)));
+// (los reportes a la reunión técnica ya no son cajas: van en
+//  mensajeros don Datico — ver RUTAS_MENSAJERO junto al despacho)
 // Taller → almacén OP (pequeñas)
 const famD1 = [];
 for (let i = 0; i < 5; i++) famD1.push(nuevaFamilia(cajaUnitaria(texFuente)));
@@ -3303,7 +3302,6 @@ function resetFamilias() {
     famD1.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 2.6; f.mesh.visible = false; });
     famDel2.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 4.4; f.mesh.visible = false; });
     famD2.forEach((f, i) => { f.estado = 'espera'; f.tEspera = i * 3.8; f.mesh.visible = false; f.extra = {}; });
-    famRep.forEach((f, i) => { f.estado = 'espera'; f.tEspera = 4 + i * 7; f.mesh.visible = false; });
     famSrv.forEach((arr, l) => arr.forEach((f, i) => {
         f.estado = 'espera'; f.tEspera = i * 3.1 + l * 0.8; f.mesh.visible = false;
     }));
@@ -3379,24 +3377,6 @@ function tickFamRec(f, dt) {
         f.mesh.visible = false;
         f.estado = 'espera'; f.tEspera = 1.6 + Math.random() * 2;
         disparo('OPERACIONES ESTADÍSTICAS');
-    }
-}
-function respawnRep(f) {
-    f.mesh.scale.setScalar(0.42);
-    f.mesh.rotation.set(0, 0, 0);
-    ponerTex(f, texOp);
-    // Del techo del MÓDULO DE REPORTES (x21.5) a la mesa del
-    // consejo — antes salía de x11.5, posición vieja que hoy
-    // corresponde a administración
-    lanzarCaida(f, new THREE.Vector3(21.5, 4.7, -0.2),
-                   new THREE.Vector3(30, 5.9, -16.5), 1.7, 4.5);
-}
-function tickFamRep(f, dt) {
-    if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnRep(f); return; }
-    tickCaida(f, dt);
-    if (f.estado === 'ride') {   // el reporte aterriza en la mesa
-        f.mesh.visible = false;
-        f.estado = 'espera'; f.tEspera = 5 + Math.random() * 4;
     }
 }
 function tickFamD1(f, dt) {
@@ -3650,6 +3630,7 @@ function crearKiosco(cfg) {
 // ============ GRAFO 3D DEL ECOSISTEMA ============
 // El producto estrella del taller: un grafo que interrelaciona
 // organismos, fuentes, conjuntos y variables. Holograma rotatorio.
+let grafoRMax = 0;
 const grafo = new THREE.Group();
 {
     const nodoGeom = new THREE.SphereGeometry(0.16, 10, 10);
@@ -3674,9 +3655,21 @@ const grafo = new THREE.Group();
     grafo.add(new THREE.LineSegments(
         new THREE.BufferGeometry().setFromPoints(pts),
         new THREE.LineBasicMaterial({ color: 0x67e8f9, transparent: true, opacity: 0.4 })));
-    // El grafo vive DENTRO de la sala de juntas del HALL, sobre
-    // la mesa del consejo: ahí se analiza el ecosistema
-    grafo.scale.setScalar(0.5);   // cabe holgado dentro de la sala
+    // Normaliza: los nodos son aleatorios y su centroide no cae
+    // en el origen — se recentra el contenido para que la esfera
+    // quede simétrica y la altura sobre la mesa sea determinista
+    // (un nodo bajo + el balanceo holográfico pinchaban la mesa)
+    const bbG = new THREE.Box3().setFromObject(grafo);
+    const cG = bbG.getCenter(new THREE.Vector3());
+    grafo.children.forEach(ch => {
+        if (ch.isLineSegments) ch.geometry.translate(-cG.x, -cG.y, -cG.z);
+        else ch.position.sub(cG);
+    });
+    grafoRMax = new THREE.Box3().setFromObject(grafo)
+        .getSize(new THREE.Vector3()).length() / 2;
+    // Vive DENTRO de la junta del hall, sobre la mesa del consejo:
+    // cabe entre el tope de la mesa (~5.14) y el techo (7.5)
+    grafo.scale.setScalar(0.7 / grafoRMax);
     grafo.position.set(30, 6.05, -16.5);
     scene.add(grafo);
 }
@@ -4606,8 +4599,10 @@ let comiteGrafo = null;
                   [-3, 1.6, Math.PI], [-1, 1.6, Math.PI], [1, 1.6, Math.PI], [3, 1.6, Math.PI]] });
     // Grafo del ecosistema (clon del de la capa estratégica)
     const grafoC = grafo.clone();
-    grafoC.scale.setScalar(0.4);
-    grafoC.position.set(0, 2.6, 0);
+    // esfera ya recentrada: tamaño y altura deterministas — cabe
+    // entre la mesa de plenaria (top ~0.78) y el techo (4.4)
+    grafoC.scale.setScalar(0.75 / grafoRMax);
+    grafoC.position.set(0, 2.0, 0);
     com.add(grafoC);
     com.userData = { grafoC };
     // TVs con gráficos en la pared norte
@@ -4757,31 +4752,123 @@ let comiteGrafo = null;
     scene.add(cartelD);
 }
 
-// Reportes de decisión: vuelan de cada sala de juntas al despacho
-const ORG_DEC = [
-    new THREE.Vector3(30, 7.4, -16.5),   // capa estratégica
-    new THREE.Vector3(52, 4.8, -14),     // comité de gestión
+// ============ MENSAJEROS DON DATICO ============
+// Los flujos del nivel estratégico ya no son cajas en el aire:
+// un don Datico mensajero recorre cada ruta ida y vuelta —
+// reportes a la reunión técnica y decisiones al despacho.
+const mensajeros = [];
+const RUTAS_MENSAJERO = [
+    // techo del módulo REPORTES → borde oeste de la mesa del consejo
+    { ori: [21.5, 4.75, -0.2],  dst: [28.8, 5.2, -16.5], espera: 6,  demora: 2 },
+    // techo de la junta del hall (capa estratégica) → mesa del gabinete
+    { ori: [30, 7.55, -16.5],   dst: [52, 4.05, -30],    espera: 14, demora: 8 },
+    // junto al comité de gestión → mesa del gabinete
+    { ori: [52, 4.85, -14],     dst: [52, 4.05, -30],    espera: 14, demora: 15 },
 ];
-const texDec = texturaPaquete('DEC', '#b91c1c');
-const famDec = [];
-for (let i = 0; i < 2; i++) famDec.push(nuevaFamilia(cajaUnitaria(texDec)));
-let fuenteDec = 0;
-function respawnDec(f) {
-    const src = ORG_DEC[fuenteDec++ % ORG_DEC.length];
-    f.mesh.scale.setScalar(0.42);
-    f.mesh.rotation.set(0, 0, 0);
-    ponerTex(f, texDec);
-    lanzarCaida(f, src, new THREE.Vector3(52, 4.2, -30), 1.6, 4.0);
+const _dirM = new THREE.Vector3();
+function crearMensajeros() {
+    RUTAS_MENSAJERO.forEach(cfg => {
+        const m = {
+            ori: new THREE.Vector3(...cfg.ori),
+            dst: new THREE.Vector3(...cfg.dst),
+            espera0: cfg.espera, espera: cfg.espera,
+            estado: 'espera', t: -cfg.demora, fase: Math.random() * 9,
+        };
+        m.dur = Math.max(2.2, Math.min(4.5, m.ori.distanceTo(m.dst) / 7));
+        if (modeloGLB) {
+            const w = clonarOperario();
+            w.loro.scale.setScalar(0.95);
+            w.loro.position.copy(m.ori);
+            scene.add(w.loro);
+            const bindV = {};
+            w.loro.children[0].traverse(o => {
+                if (HUESOS_ALA_VUELO.test(o.name))
+                    bindV[o.name] = o.quaternion.clone();
+            });
+            const clipBase = clipsGLB[3] || clipsGLB[0];
+            const pose = calcularPoseVuelo(
+                w.loro.children[0], clipBase, bindV, CABECEO_HOVER * 0.55);
+            w.accVuelo = w.mixer.clipAction(clipVuelo(
+                clipBase, pose, 5, PERFIL_VUELO.crucero, 'ruta'));
+            m.w = w; m.loro = w.loro; m.mixer = w.mixer;
+            ponerEstado(w, 'supervisar');
+        } else {
+            const o = crearDonDatico();
+            o.position.copy(m.ori);
+            scene.add(o);
+            m.loro = o;
+        }
+        _dirM.subVectors(m.dst, m.ori);
+        m.loro.rotation.y = Math.atan2(_dirM.x, _dirM.z);   // mira su ruta
+        mensajeros.push(m);
+    });
 }
-function tickFamDec(f, dt) {
-    if (f.estado === 'espera') { f.tEspera -= dt; if (f.tEspera <= 0) respawnDec(f); return; }
-    tickCaida(f, dt);
-    if (f.estado === 'ride') {   // aterriza en la mesa del gabinete
-        f.mesh.visible = false;
-        f.estado = 'espera'; f.tEspera = 6 + Math.random() * 5;
-    }
+function tickMensajeros(dt) {
+    mensajeros.forEach(m => {
+        if (m.mixer) m.mixer.update(dt);
+        m.t += dt;
+        // Posado (en origen o entregando): alas plegadas / clip idle
+        if (m.estado === 'espera' || m.estado === 'entrega') {
+            if (!m.w) {
+                const rig = m.loro.userData.rig;
+                const b = Math.sin(tGlobal * 3 + m.fase) * 0.05;
+                rig.alaDer.rotation.z = 0.18 + b;
+                rig.alaIzq.rotation.z = -0.18 - b;
+                rig.pataIzq.rotation.x = 0; rig.pataDer.rotation.x = 0;
+                rig.visual.position.y = b * 0.4;
+            }
+            const limite = m.estado === 'espera' ? m.espera : 2.2;
+            if (m.t >= limite) {
+                m.estado = m.estado === 'espera' ? 'ida' : 'regreso';
+                m.t = 0;
+                if (m.w) {
+                    m.w.accVuelo.reset().fadeIn(0.3).play();
+                    if (m.w.accion) m.w.accion.fadeOut(0.3);
+                }
+            }
+            return;
+        }
+        // En vuelo: arco con banqueo hacia el rumbo
+        const A = m.estado === 'ida' ? m.ori : m.dst;
+        const B = m.estado === 'ida' ? m.dst : m.ori;
+        const k = Math.min(1, m.t / m.dur);
+        m.loro.position.lerpVectors(A, B, k);
+        m.loro.position.y += Math.sin(k * Math.PI) * 2.2;
+        _dirM.subVectors(B, A);
+        const yawObj = Math.atan2(_dirM.x, _dirM.z);
+        let dy = yawObj - m.loro.rotation.y;
+        dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+        m.loro.rotation.y += dy * Math.min(1, 4 * dt);
+        m.loro.rotation.z = -dy * 1.3;                       // banqueo
+        if (!m.w) {
+            const rig = m.loro.userData.rig;
+            m.fase += dt * 9;
+            const flap = Math.sin(m.fase) * 0.75 + Math.sin(m.fase * 2) * 0.25;
+            rig.alaDer.rotation.z = flap * 0.85;
+            rig.alaIzq.rotation.z = -flap * 0.85;
+            rig.visual.position.y = Math.sin(m.fase) * 0.07;
+            rig.pataIzq.rotation.x = -1.2;
+            rig.pataDer.rotation.x = -1.2;
+        }
+        if (k >= 1) {
+            m.loro.rotation.z = 0;
+            if (m.estado === 'ida') {
+                m.estado = 'entrega';
+            } else {
+                m.estado = 'espera';
+                m.espera = m.espera0 + Math.random() * 5;
+            }
+            m.t = 0;
+            if (m.w) {
+                m.w.accVuelo.fadeOut(0.35);
+                m.w.accion = null;   // fuerza el fade-in del idle
+                ponerEstado(m.w, 'supervisar');
+            }
+            _dirM.subVectors(B, A).negate();   // ya mira el tramo de vuelta
+            m.loro.rotation.y = Math.atan2(_dirM.x, _dirM.z);
+        }
+    });
 }
-famDec.forEach((f, i) => { f.estado = 'espera'; f.tEspera = 8 + i * 9; f.mesh.visible = false; });
 
 // ============ RIEL + CARRO DEL SUPERVISOR ============
 // Monorriel sobre el pasillo: un carro colgante transporta al
@@ -5526,6 +5613,8 @@ function crearPlanta() {
     carroSup.position.set(0, 0, -3);
     scene.add(carroSup);
     ponerEstado(sup, 'caminar');
+    // Mensajeros del nivel estratégico: un don Datico por ruta
+    crearMensajeros();
 }
 
 new GLTFLoader().load(
@@ -6284,7 +6373,6 @@ function animate() {
     // ---- Cajas: todos los flujos vivos ----
     famCal.forEach(f => tickFamCal(f, dt));
     famRec.forEach(f => tickFamRec(f, dt));
-    famRep.forEach(f => tickFamRep(f, dt));
     famD1.forEach(f => tickFamD1(f, dt));
     famDel2.forEach(f => tickFamDel2(f, dt));
     famD2.forEach(f => tickFamD2(f, dt));
@@ -6420,7 +6508,7 @@ function animate() {
         t.obs.rotation.y = t.base + Math.sin(tGlobal * 0.35 + t.f) * 0.3;
     });
     if (comiteGrafo) comiteGrafo.rotation.y = -tGlobal * 0.4;
-    famDec.forEach(f => tickFamDec(f, dt));
+    tickMensajeros(dt);
 
     // ---- Grafo del ecosistema: rotación holográfica permanente ----
     grafo.rotation.y = tGlobal * 0.3;
