@@ -5130,11 +5130,10 @@ function tickDaticoHUD(dt, t) {
     if (loroHUD.scale.x !== esc) loroHUD.scale.setScalar(esc);
     loroHUD.position.x = hx + Math.sin(t * 0.5) * 0.18;
     loroHUD.position.y = hy + Math.sin(t * 1.4) * 0.08;
-    // El GLB ya trae π interno para mirar -z→+z; el offset 0.85 lo dejaba
-    // a ~49° de tres cuartos. En móvil lo giramos ~0.57 rad MÁS en el
-    // mismo sentido (→1.42) para que quede mirando al frente; el
-    // procedural y escritorio siguen con 0.85.
-    const baseYaw = (d.w && movil) ? 1.42 : 0.85;
+    // Ahora corona la tarjeta → mira al espectador, no hacia ella.
+    // GLB: 1.42 rad es el frente medido (el π interno + offset). El
+    // procedural mira +z a yaw 0: 0.35 le deja un guiño hacia la escena.
+    const baseYaw = d.w ? 1.42 : 0.35;
     loroHUD.rotation.y = baseYaw + Math.sin(t * 0.4) * 0.12;
     loroHUD.rotation.z = Math.sin(t * 0.8) * 0.12;
     loroHUD.rotation.x = Math.sin(t * 0.6) * 0.05;
