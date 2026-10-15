@@ -157,7 +157,8 @@ def _organismo_del_usuario(request):
 def _contexto_fuentes(request):
     """
     Fuentes reales que el LLM puede usar en la spec: conjuntos de datos
-    (con codigos de variables exactos) e indicadores activos.
+    (con codigos de variables exactos), cuadros del catalogo de consulta
+    e indicadores activos (con forma: serie / registro / corte).
 
     Para no-staff con organismo, los conjuntos se acotan a los del
     organismo; los indicadores son catalogo general del SIIED.
@@ -226,10 +227,39 @@ def _contexto_fuentes(request):
         .filter(activo=True).order_by('orden')[:10]
     ]
 
-    indicadores = list(
-        Indicador.objects.filter(activo=True, datos__isnull=False)
-        .distinct().order_by('nombre')[:40]
-        .values('id', 'nombre', 'unidad_medida'))
+    # Indicadores con forma de sus datos: cuantos anios cubre la serie
+    # y cuantas filas tiene — una "foto" de un solo anio con muchas
+    # filas suele ser un registro de entidades, no una serie agregable.
+    from django.db.models import Count
+    stats_dato = {
+        r['indicador_id']: r for r in
+        Dato.objects.filter(indicador__activo=True)
+        .values('indicador_id')
+        .annotate(anios=Count('fecha_dato__year', distinct=True),
+                  filas=Count('id'))
+    }
+    indicadores = []
+    for ind in (Indicador.objects
+                .filter(activo=True, datos__isnull=False)
+                .distinct().order_by('nombre')[:40]
+                .values('id', 'nombre', 'unidad_medida')):
+        s = stats_dato.get(ind['id']) or {}
+        anios = s.get('anios') or 0
+        filas = s.get('filas') or 0
+        if anios >= 2:
+            forma = 'serie'  # mediciones en varios anios
+        elif filas > 30:
+            forma = 'registro'  # foto de entidades, no agregable
+        else:
+            forma = 'corte'  # pocos datos de un solo anio
+        indicadores.append({
+            'id': ind['id'],
+            'nombre': ind['nombre'],
+            'unidad_medida': ind['unidad_medida'],
+            'forma': forma,
+            'anios': anios,
+            'filas': filas,
+        })
 
     return {
         'organismo': org.nombre if org else None,
