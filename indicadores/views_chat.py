@@ -3141,7 +3141,7 @@ class ChatService:
         # reasoning_effort: los modelos Gemini 3 piensan en nivel alto por
         # defecto (varios minutos por llamada). Configurable; ignorar si el
         # proveedor no lo soporta dejando el valor vacío en BD/config.
-        reasoning_effort = get_config('LLM_REASONING_EFFORT', 'low')
+        reasoning_effort = get_config('LLM_REASONING_EFFORT', 'high')
         if reasoning_effort:
             kwargs.setdefault('reasoning_effort', reasoning_effort)
 
@@ -3365,7 +3365,7 @@ class ChatService:
         # Más "thinking" suele dar specs más consistentes. Ignorado si el
         # proveedor no lo soporta (dejar vacío en BD/config para no enviar).
         effort = (reasoning_effort if reasoning_effort is not None
-                  else get_config('LLM_STRUCTURED_REASONING_EFFORT', ''))
+                  else get_config('LLM_STRUCTURED_REASONING_EFFORT', 'high'))
 
         logger.info(
             f"[STRUCTURED] Iniciando '{schema_name}' "
