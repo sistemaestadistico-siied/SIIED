@@ -1424,6 +1424,11 @@ class ICEDModuloD2Form(forms.Form):
         help_text="Agregue una fila por cada lineamiento de la Alcaldía que implementa. Puede agregar hasta 10 lineamientos."
     )
 
+    def _err(self, field, message):
+        """add_error tolerante a campos eliminados por el filtro de equipos."""
+        if field in self.fields:
+            self.add_error(field, message)
+
     def clean(self):
         """Validaciones condicionales del módulo D2 (P26-P30).
 
@@ -1433,89 +1438,93 @@ class ICEDModuloD2Form(forms.Form):
         """
         cleaned = super().clean()
 
+        # El wizard puede haber eliminado campos por equipo (get_form);
+        # _err valida solo los que siguen presentes para evitar
+        # ValueError 'has no field named ...'.
+
         # --- P26: estructura de análisis ---
         p26 = cleaned.get('p26_estructura_analisis') or []
         if not p26:
-            self.add_error('p26_estructura_analisis',
+            self._err('p26_estructura_analisis',
                            'Debe seleccionar al menos una opción.')
         else:
             if ({'no_aplica', 'no_realiza'} & set(p26)) and len(p26) > 1:
-                self.add_error(
+                self._err(
                     'p26_estructura_analisis',
                     'Las opciones "No aplica" / "No se realiza consolidación" '
                     'no pueden combinarse con otras opciones.'
                 )
             if 'otro' in p26 and not (cleaned.get('p26_otro_especificar') or '').strip():
-                self.add_error('p26_otro_especificar', 'Especifique la otra forma de análisis.')
+                self._err('p26_otro_especificar', 'Especifique la otra forma de análisis.')
 
         # --- P27→P28: cadena de articulación ---
         p27 = cleaned.get('p27_articulacion')
         if p27 in ('1', '2', '3'):
             p28 = cleaned.get('p28_como_articulan') or []
             if not p28:
-                self.add_error('p28_como_articulan',
+                self._err('p28_como_articulan',
                                'Debe seleccionar al menos una opción.')
             else:
                 if ({'no_es_necesario', 'no_articulan'} & set(p28)) and len(p28) > 1:
-                    self.add_error(
+                    self._err(
                         'p28_como_articulan',
                         '"No es necesario" / "No se articulan" no pueden '
                         'combinarse con otras opciones.'
                     )
                 if 'reuniones' in p28 and not cleaned.get('p28_1_frecuencia_reuniones'):
-                    self.add_error('p28_1_frecuencia_reuniones',
+                    self._err('p28_1_frecuencia_reuniones',
                                    'Indique la frecuencia de las reuniones.')
                 if 'metodologia' in p28 and not cleaned.get('p28_2_modelos_estadisticos'):
-                    self.add_error('p28_2_modelos_estadisticos',
+                    self._err('p28_2_modelos_estadisticos',
                                    'Indique el modelo estadístico o econométrico utilizado.')
                 if 'otro' in p28 and not (cleaned.get('p28_otro_especificar') or '').strip():
-                    self.add_error('p28_otro_especificar', 'Especifique la otra herramienta.')
+                    self._err('p28_otro_especificar', 'Especifique la otra herramienta.')
 
             p28_2 = cleaned.get('p28_2_modelos_estadisticos') or []
             if 'otro' in p28_2 and not (cleaned.get('p28_2_especificar') or '').strip():
-                self.add_error('p28_2_especificar', 'Especifique el otro modelo.')
+                self._err('p28_2_especificar', 'Especifique el otro modelo.')
 
         # --- P29: cadena de políticas públicas ---
         p29 = cleaned.get('p29_rol_politicas')
         if p29 == '4' and not (cleaned.get('p29_otro_especificar') or '').strip():
-            self.add_error('p29_otro_especificar', 'Especifique el otro rol.')
+            self._err('p29_otro_especificar', 'Especifique el otro rol.')
 
         if p29 == '1':
             # P29.1 metodología (obligatoria + especificar si 'otro')
             if not cleaned.get('p29_1_metodologia'):
-                self.add_error('p29_1_metodologia',
+                self._err('p29_1_metodologia',
                                'Indique la metodología de seguimiento utilizada.')
             elif 'otro' in cleaned.get('p29_1_metodologia', []) \
                     and not (cleaned.get('p29_1_especificar') or '').strip():
-                self.add_error('p29_1_especificar', 'Especifique la otra metodología.')
+                self._err('p29_1_especificar', 'Especifique la otra metodología.')
 
             # P29.2 frecuencia (obligatoria)
             if not cleaned.get('p29_2_frecuencia'):
-                self.add_error('p29_2_frecuencia',
+                self._err('p29_2_frecuencia',
                                'Indique la frecuencia del seguimiento.')
 
             # P29.3 medios de divulgación (obligatoria + especificar si 'otro')
             if not cleaned.get('p29_3_medios_divulgacion'):
-                self.add_error('p29_3_medios_divulgacion',
+                self._err('p29_3_medios_divulgacion',
                                'Indique los medios de divulgación.')
             elif 'otro' in cleaned.get('p29_3_medios_divulgacion', []) \
                     and not (cleaned.get('p29_3_especificar') or '').strip():
-                self.add_error('p29_3_especificar', 'Especifique el otro medio.')
+                self._err('p29_3_especificar', 'Especifique el otro medio.')
 
             # P29.4 acciones (obligatoria + especificar si 'otro' + 'ninguna' exclusiva)
             p29_4 = cleaned.get('p29_4_acciones') or []
             if not p29_4:
-                self.add_error('p29_4_acciones',
+                self._err('p29_4_acciones',
                                'Indique las acciones realizadas o "No desarrolla ninguna".')
             else:
                 if 'ninguna' in p29_4 and len(p29_4) > 1:
-                    self.add_error(
+                    self._err(
                         'p29_4_acciones',
                         '"No desarrolla ninguna de las anteriores" no puede '
                         'combinarse con otras opciones.'
                     )
                 if 'otro' in p29_4 and not (cleaned.get('p29_4_especificar') or '').strip():
-                    self.add_error('p29_4_especificar', 'Especifique la otra acción.')
+                    self._err('p29_4_especificar', 'Especifique la otra acción.')
 
         # --- P30: lineamientos metodológicos (JSON checkbox-tabla) ---
         p30_raw = cleaned.get('p30_lineamientos_metodologicos')
@@ -1530,11 +1539,11 @@ class ICEDModuloD2Form(forms.Form):
             if isinstance(row, dict) and row.get('seleccion')
         ]
         if not seleccionados:
-            self.add_error('p30_lineamientos_metodologicos',
+            self._err('p30_lineamientos_metodologicos',
                            'Debe seleccionar al menos un lineamiento o "No implementa ningún lineamiento".')
         else:
             if 'ninguno' in seleccionados and len(seleccionados) > 1:
-                self.add_error(
+                self._err(
                     'p30_lineamientos_metodologicos',
                     '"No implementa ningún lineamiento" no puede combinarse con otras opciones.'
                 )
@@ -1543,7 +1552,7 @@ class ICEDModuloD2Form(forms.Form):
                 if cod in seleccionados:
                     row = p30_data.get(cod) or {}
                     if not (row.get('cual') or '').strip():
-                        self.add_error(
+                        self._err(
                             'p30_lineamientos_metodologicos',
                             f'Debe especificar cuál(es) en la opción '
                             f'"{"Referentes internacionales" if cod == "internacionales" else "Otros lineamientos"}".'
@@ -1560,7 +1569,7 @@ class ICEDModuloD2Form(forms.Form):
                     if isinstance(f, dict) and (f.get('codigo_mop') or '').strip()
                 ]
                 if not filas_validas:
-                    self.add_error(
+                    self._err(
                         'p30_tabla_alcaldia',
                         'Seleccionó "Lineamientos de la Alcaldía de Santiago de Cali": '
                         'agregue al menos un lineamiento en la tabla.'
@@ -2035,6 +2044,11 @@ class ICEDModuloEForm(forms.Form):
     def clean_p41_2_matriz_satisfaccion(self):
         return _validar_urls_json(self.cleaned_data.get('p41_2_matriz_satisfaccion'))
 
+    def _err(self, field, message):
+        """add_error tolerante a campos eliminados por el filtro de equipos."""
+        if field in self.fields:
+            self.add_error(field, message)
+
     def clean(self):
         cleaned = super().clean()
         # P41 solo aplica si el organismo difunde (P38 sin 'ninguna').
@@ -2051,7 +2065,7 @@ class ICEDModuloEForm(forms.Form):
             if ninguna is True or (isinstance(ninguna, dict) and ninguna.get('seleccion')):
                 difunde = False
         if difunde and not cleaned.get('p41_indaga_satisfaccion'):
-            self.add_error('p41_indaga_satisfaccion', 'Este campo es obligatorio.')
+            self._err('p41_indaga_satisfaccion', 'Este campo es obligatorio.')
         return cleaned
 
 
