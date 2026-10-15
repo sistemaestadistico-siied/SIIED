@@ -441,9 +441,50 @@ def _resolver_tile_indicador(tile):
         except (TypeError, ValueError):
             pass
 
-    datos = list(qs.prefetch_related('desagregaciones_tematicas')[:5000])
+    datos = list(qs.prefetch_related('desagregaciones_tematicas',
+                                     'desagregaciones_geograficas')[:5000])
     if not datos:
         return {'error': 'El indicador no tiene datos cargados'}
+
+    es_anio = dimension in ('anio', 'año', '') or tile['tipo'] == 'kpi'
+    if es_anio:
+        # Preferir la fila "total": sin desagregaciones o con todas las
+        # desagregaciones en etiqueta 'Total' — evita doble conteo al
+        # sumar totales + componentes (ej. Total + Cabecera + Centros).
+        def _solo_totales(d):
+            desags = (list(d.desagregaciones_tematicas.all())
+                      + list(d.desagregaciones_geograficas.all()))
+            if not desags:
+                return True
+            return all('total' in dt.nombre.lower() for dt in desags)
+        totales = [d for d in datos if _solo_totales(d)]
+        if totales:
+            datos = totales
+        else:
+            # ¿Registro por entidad? Cuando cada fila es un CAMPO de un
+            # registro (teléfono, código, camas…), las magnitudes por
+            # "desagregación" son incompatibles: teléfonos ~1e9 junto a
+            # conteos ~1e2. Si las sumas por nombre dentro del mismo año
+            # difieren en más de 100×, no hay una medición agregable.
+            sumas_campo = {}
+            for d in datos:
+                if d.valor_dato is None:
+                    continue
+                anio_d = d.fecha_dato.year if d.fecha_dato else None
+                for dt in d.desagregaciones_tematicas.all():
+                    k = (anio_d, dt.nombre)
+                    sumas_campo[k] = sumas_campo.get(k, 0.0) + float(d.valor_dato)
+            por_anio = {}
+            for (anio_d, _), v in sumas_campo.items():
+                por_anio.setdefault(anio_d, []).append(v)
+            for sums in por_anio.values():
+                pos = [s for s in sums if s > 0]
+                if len(pos) > 1 and max(pos) / min(pos) > 100:
+                    return {'error': (
+                        'Este indicador contiene registros por entidad '
+                        '(cada fila es un campo de un registro, no una '
+                        'medición agregable); no se puede resumir en una '
+                        'cifra ni en una serie.')}
 
     agrupado = {}
     for d in datos:
