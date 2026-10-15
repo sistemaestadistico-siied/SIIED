@@ -133,6 +133,12 @@
         border-color: #0284c7;
         box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
     }
+    /* Don Datico morado: replica del tinte de su versión 3D
+       (loro verde → violeta) como imagen de la oferta open source */
+    .datico-opensource {
+        filter: hue-rotate(100deg) saturate(1.15) brightness(1.05)
+                drop-shadow(0 8px 24px rgba(147, 51, 234, 0.45));
+    }
 
     /* Transición suave de altura para el slider de noticias */
     .noticias-swiper .swiper-wrapper {
@@ -392,7 +398,7 @@
                                     <p class="text-lg text-green-50 leading-relaxed">
                                         Describe el tablero que necesitas en lenguaje natural y
                                         <span class="font-semibold text-white">Don Datico lo construye</span>
-                                        con indicadores y microdatos reales del SIIED: gráficos, mapas, KPIs y tablas.
+                                        con indicadores y conjuntos de datos reales del SIIED: gráficos, mapas, KPIs y tablas.
                                     </p>
 
                                     <!-- Características técnicas -->
@@ -411,7 +417,7 @@
                                         </div>
                                         <div class="flex items-center space-x-2">
                                             <div class="w-2 h-2 bg-amber-300 rounded-full animate-pulse"></div>
-                                            <span class="font-medium">Microdatos SIIED</span>
+                                            <span class="font-medium">Conjuntos de datos</span>
                                         </div>
                                     </div>
                                 </div>
@@ -449,7 +455,7 @@
                                         <div class="text-center">
                                             <div class="text-2xl font-bold text-white mb-1">20+</div>
                                             <div class="text-lime-200 font-medium text-xs">Conjuntos de</div>
-                                            <div class="text-lime-300 text-xs">Microdatos</div>
+                                            <div class="text-lime-300 text-xs">datos</div>
                                         </div>
                                         <div class="text-center">
                                             <div class="text-2xl font-bold text-white mb-1">∞</div>
@@ -1089,68 +1095,75 @@
                 </div>
             </div>
 
-            <!-- Slide 6b: Documentación Open Source -->
+            <!-- Slide 6b: SIIED Open Source — oferta de software libre (enlaza a la documentación) -->
             <div class="swiper-slide h-auto">
-                <div class="relative bg-gradient-to-r from-orange-900 via-amber-800 to-yellow-700 overflow-hidden h-full flex items-center banner-slide-min">
+                <div class="relative bg-gradient-to-br from-sky-900 via-sky-800 to-slate-900 overflow-hidden h-full flex items-center banner-slide-min">
                     <!-- Elementos decorativos flotantes -->
-                    <div class="absolute top-8 right-12 w-20 h-20 bg-amber-400/10 rounded-lg rotate-12 animate-pulse"></div>
-                    <div class="absolute bottom-8 left-16 w-16 h-16 bg-orange-300/15 rounded-full animate-bounce"></div>
-                    <div class="absolute top-1/3 right-1/4 w-12 h-12 bg-yellow-300/20 rounded-lg rotate-45 animate-ping"></div>
+                    <div class="absolute top-8 right-12 w-20 h-20 bg-sky-400/10 rounded-lg rotate-12 animate-pulse"></div>
+                    <div class="absolute bottom-8 left-16 w-16 h-16 bg-emerald-400/15 rounded-full animate-bounce"></div>
+                    <div class="absolute top-1/3 right-1/4 w-12 h-12 bg-violet-400/20 rounded-lg rotate-45 animate-ping"></div>
 
                     <div class="relative container mx-auto px-6 lg:px-12 py-12">
                         <div class="grid lg:grid-cols-2 gap-8 items-center">
-                            <!-- Logo y contenido principal -->
+                            <!-- Logo (mismo del explorador de conjuntos) y contenido -->
                             <div class="space-y-6">
                                 <div class="flex justify-center lg:justify-start">
-                                    <div class="w-64 h-24 flex items-center justify-center bg-white/5 backdrop-blur-sm rounded-2xl border border-amber-400/20 shadow-lg">
-                                        <img src="{% static 'indicadores/images/logo_sin_fondo.png' %}"
-                                             alt="Documentación SIIED"
-                                             class="max-w-full max-h-full object-contain">
+                                    <div class="w-40 h-40 relative">
+                                        <img src="{% static 'indicadores/images/gato claro.png' %}"
+                                             class="w-full h-full object-contain"
+                                             alt="SIIED Open Source">
                                     </div>
                                 </div>
 
                                 <div class="space-y-4">
                                     <h2 class="text-3xl lg:text-4xl font-bold text-white leading-tight">
-                                        Documentación
-                                        <span class="block text-amber-300">Código Abierto</span>
+                                        SIIED
+                                        <span class="block text-violet-300">Open Source</span>
                                     </h2>
 
-                                    <p class="text-lg text-amber-50 leading-relaxed">
-                                        Documentación técnica completa de la plataforma opensource del SIIED:
-                                        <span class="font-semibold text-white">instalación, arquitectura, módulos</span>
-                                        y guías de uso para replicar y contribuir.
+                                    <p class="text-lg text-sky-50 leading-relaxed">
+                                        La plataforma es
+                                        <span class="font-semibold text-white">software de código abierto</span>:
+                                        réplica el sistema completo, adapta sus módulos y contribuye
+                                        al ecosistema estadístico de tu ciudad.
                                     </p>
 
-                                    <!-- Características técnicas -->
-                                    <div class="grid grid-cols-2 gap-3 text-amber-50 text-sm">
+                                    <!-- Características de la oferta -->
+                                    <div class="grid grid-cols-2 gap-3 text-sky-50 text-sm">
                                         <div class="flex items-center space-x-2">
-                                            <div class="w-2 h-2 bg-amber-300 rounded-full animate-pulse"></div>
-                                            <span class="font-medium">Guías completas</span>
+                                            <div class="w-2 h-2 bg-violet-300 rounded-full animate-pulse"></div>
+                                            <span class="font-medium">Código 100% abierto</span>
                                         </div>
                                         <div class="flex items-center space-x-2">
-                                            <div class="w-2 h-2 bg-orange-300 rounded-full animate-pulse"></div>
-                                            <span class="font-medium">Arquitectura del sistema</span>
+                                            <div class="w-2 h-2 bg-emerald-300 rounded-full animate-pulse"></div>
+                                            <span class="font-medium">Réplica para tu ciudad</span>
                                         </div>
                                         <div class="flex items-center space-x-2">
-                                            <div class="w-2 h-2 bg-amber-300 rounded-full animate-pulse"></div>
-                                            <span class="font-medium">API documentada</span>
+                                            <div class="w-2 h-2 bg-violet-300 rounded-full animate-pulse"></div>
+                                            <span class="font-medium">Contribución comunitaria</span>
                                         </div>
                                         <div class="flex items-center space-x-2">
-                                            <div class="w-2 h-2 bg-orange-300 rounded-full animate-pulse"></div>
-                                            <span class="font-medium">100% open source</span>
+                                            <div class="w-2 h-2 bg-emerald-300 rounded-full animate-pulse"></div>
+                                            <span class="font-medium">Documentación técnica</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Panel de acción -->
+                            <!-- Don Datico morado + acción -->
                             <div class="space-y-6">
                                 <div class="flex justify-center">
+                                    <img src="{% static 'indicadores/images/don datico.png' %}"
+                                         alt="Don Datico — SIIED Open Source"
+                                         class="datico-opensource w-32 h-32 object-contain">
+                                </div>
+
+                                <div class="flex justify-center">
                                     <div class="relative group">
-                                        <div class="absolute -inset-1 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300 animate-pulse"></div>
+                                        <div class="absolute -inset-1 bg-gradient-to-r from-violet-400 to-sky-500 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300 animate-pulse"></div>
                                         <a href="https://indicadores.cali.gov.co/documentacion/"
                                            target="_blank" rel="noopener"
-                                           class="relative inline-flex items-center px-8 py-4 bg-amber-600 text-white font-bold text-lg rounded-2xl hover:bg-amber-500 transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 hover:scale-105">
+                                           class="relative inline-flex items-center px-8 py-4 bg-violet-600 text-white font-bold text-lg rounded-2xl hover:bg-violet-500 transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 hover:scale-105">
                                             <i class="fas fa-book-open mr-3 text-xl"></i>
                                             <span>Ver documentación</span>
                                             <i class="fas fa-external-link-alt ml-3 text-base group-hover:translate-x-1 transition-transform duration-300"></i>
@@ -1158,29 +1171,29 @@
                                     </div>
                                 </div>
 
-                                <!-- Panel de capacidades -->
-                                <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-amber-400/20">
-                                    <h3 class="text-xl font-bold text-amber-300 mb-4 text-center">Contenido</h3>
+                                <!-- Panel de la oferta -->
+                                <div class="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-violet-400/20">
+                                    <h3 class="text-xl font-bold text-violet-300 mb-4 text-center">La oferta incluye</h3>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div class="text-center">
-                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-download"></i></div>
-                                            <div class="text-amber-200 font-medium text-xs">Instalación</div>
-                                            <div class="text-amber-300 text-xs">paso a paso</div>
+                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-code-branch"></i></div>
+                                            <div class="text-violet-200 font-medium text-xs">Código fuente</div>
+                                            <div class="text-violet-300 text-xs">completo</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-sitemap"></i></div>
-                                            <div class="text-amber-200 font-medium text-xs">Arquitectura</div>
-                                            <div class="text-amber-300 text-xs">de módulos</div>
+                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-city"></i></div>
+                                            <div class="text-violet-200 font-medium text-xs">Réplica</div>
+                                            <div class="text-violet-300 text-xs">municipal</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-code"></i></div>
-                                            <div class="text-amber-200 font-medium text-xs">API y modelos</div>
-                                            <div class="text-amber-300 text-xs">documentados</div>
+                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-robot"></i></div>
+                                            <div class="text-violet-200 font-medium text-xs">Herramientas IA</div>
+                                            <div class="text-violet-300 text-xs">integradas</div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-users"></i></div>
-                                            <div class="text-amber-200 font-medium text-xs">Contribución</div>
-                                            <div class="text-amber-300 text-xs">abierta</div>
+                                            <div class="text-2xl font-bold text-white mb-1"><i class="fas fa-book-open"></i></div>
+                                            <div class="text-violet-200 font-medium text-xs">Documentación</div>
+                                            <div class="text-violet-300 text-xs">técnica</div>
                                         </div>
                                     </div>
                                 </div>
