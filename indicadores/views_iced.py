@@ -65,11 +65,12 @@ class ICEDWizardView(SessionWizardView):
             if not es_propio and not request.user.is_staff:
                 messages.error(request, 'No tiene permiso para acceder a este formulario.')
                 return redirect('indicadores:iced_landing')
-            # El formulario pertenece a un equipo técnico; un delegado con
-            # otro subrol no puede editarlo ('' del usuario = acceso completo)
+            # El formulario pertenece a un equipo técnico: solo ese equipo
+            # puede editarlo (equipo='' = consolidado/completo, que tampoco
+            # es editable por delegados de equipos).
             equipo_user = _get_user_equipo(request.user)
-            if (not request.user.is_staff and equipo_user
-                    and formulario.equipo and formulario.equipo != equipo_user):
+            if (not request.user.is_staff
+                    and formulario.equipo != equipo_user):
                 messages.error(request, 'Este formulario pertenece a otro equipo técnico.')
                 return redirect('indicadores:iced_landing')
             if formulario.estado not in self.ESTADOS_EDITABLES:
@@ -439,11 +440,17 @@ class ICEDWizardView(SessionWizardView):
         formulario_id = self.kwargs.get('formulario_id')
         if formulario_id:
             formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
-            # Verificación de seguridad: propiedad (organismo del USUARIO) y estado editable
+            # Verificación de seguridad: propiedad (organismo del USUARIO),
+            # equipo técnico y estado editable
             organismo_usuario = _get_user_organismo(self.request.user)
             es_propio = organismo_usuario and formulario.organismo_id == organismo_usuario.id
             if not es_propio and not self.request.user.is_staff:
                 messages.error(self.request, 'No tiene permiso para modificar este formulario.')
+                return redirect('indicadores:iced_landing')
+            equipo_user = _get_user_equipo(self.request.user)
+            if (not self.request.user.is_staff
+                    and formulario.equipo != equipo_user):
+                messages.error(self.request, 'Este formulario pertenece a otro equipo técnico.')
                 return redirect('indicadores:iced_landing')
             if formulario.estado not in self.ESTADOS_EDITABLES:
                 messages.error(
@@ -720,11 +727,17 @@ def iced_landing(request):
     from .models import Organismo
 
     organismo = _get_user_organismo(request.user)
+    equipo_user = _get_user_equipo(request.user)
     formularios = []
     if organismo:
         formularios = ICEDFormulario.objects.filter(
             organismo=organismo
-        ).order_by('-periodo')
+        )
+        # Cada delegado solo ve los formularios de su equipo técnico;
+        # staff con organismo asignado los ve todos.
+        if not request.user.is_staff:
+            formularios = formularios.filter(equipo=equipo_user)
+        formularios = formularios.order_by('-periodo')
 
     # Para staff: mostrar todos
     if request.user.is_staff and not organismo:
@@ -810,8 +823,8 @@ def iced_guardar_parcial(request):
         if not request.user.is_staff and formulario.organismo_id != organismo.id:
             return JsonResponse({'error': 'No tiene permiso sobre este formulario'}, status=403)
         equipo_user = _get_user_equipo(request.user)
-        if (not request.user.is_staff and equipo_user
-                and formulario.equipo and formulario.equipo != equipo_user):
+        if (not request.user.is_staff
+                and formulario.equipo != equipo_user):
             return JsonResponse({'error': 'Este formulario pertenece a otro equipo técnico'}, status=403)
         if formulario.estado not in ('borrador', 'devuelto'):
             return JsonResponse({
@@ -914,14 +927,19 @@ def iced_chat(request):
 
     # Formulario actual en diligenciamiento (si se identifica)
     formulario = None
+    equipo_user = _get_user_equipo(request.user)
     fid = data.get('formulario_id')
     if fid:
-        formulario = ICEDFormulario.objects.filter(
-            pk=fid, organismo=organismo).first()
+        qs = ICEDFormulario.objects.filter(pk=fid, organismo=organismo)
+        if not request.user.is_staff:
+            qs = qs.filter(equipo=equipo_user)
+        formulario = qs.first()
     if not formulario:
-        formulario = ICEDFormulario.objects.filter(
-            organismo=organismo, periodo=periodo_actual,
-            estado='borrador').order_by('-fecha_actualizacion').first()
+        qs = ICEDFormulario.objects.filter(
+            organismo=organismo, periodo=periodo_actual, estado='borrador')
+        if not request.user.is_staff:
+            qs = qs.filter(equipo=equipo_user)
+        formulario = qs.order_by('-fecha_actualizacion').first()
 
     # Respuestas guardadas del formulario actual
     resp_actual = ''
