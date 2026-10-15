@@ -544,7 +544,37 @@ def _resolver_spec(spec):
         if url:
             res['fuente_url'] = url
         resueltos.append({**tile, 'id': f'tile-{i}', **res})
+    _ajustar_tamanos(resueltos)
     return resueltos
+
+
+def _ajustar_tamanos(resueltos):
+    """Ancho automático de tiles según lo que realmente resolvieron.
+
+    La spec del LLM trae 'tamano' pero no siempre acierta: con los datos
+    ya resueltos sabemos si el gráfico necesita aire. Solo se amplía,
+    nunca se reduce lo que el LLM pidió amplio.
+    """
+    for r in resueltos:
+        if r.get('tamano') == 'amplio' or r.get('error'):
+            continue
+        if r.get('tipo') == 'texto':
+            r['tamano'] = 'amplio'
+            continue
+        # Los mapas necesitan todo el ancho para la malla de comunas
+        if (r.get('viz') or {}).get('tipo') == 'mapa':
+            r['tamano'] = 'amplio'
+            continue
+        p = r.get('plotly') or {}
+        if 'kpi' in p:
+            continue  # los KPI se ven bien a media columna
+        data = p.get('data') or []
+        puntos = max((len(tr.get('x') or tr.get('labels') or [])
+                      for tr in data), default=0)
+        filas = len((p.get('tabla') or {}).get('filas') or [])
+        # Serie con ≥8 puntos, multi-serie o tabla larga → ancho completo
+        if puntos >= 8 or len(data) > 2 or filas > 15:
+            r['tamano'] = 'amplio'
 
 
 def _sanitizar_spec(data):

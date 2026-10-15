@@ -209,7 +209,7 @@
                 </div>
             </div>
             ${tile.insight ? `<div class="tile-insight">${esc(tile.insight)}</div>` : ''}
-            <div class="tile-body" style="min-height:${esMovil() ? 200 : 260}px;"></div>`;
+            <div class="tile-body" style="min-height:${esMovil() ? 200 : (tile.tamano === 'amplio' ? 320 : 260)}px;"></div>`;
         return card;
     }
 
@@ -263,7 +263,7 @@
         // --- Mapa coroplético (endpoints geo existentes) ---
         if (tile.viz && tile.viz.tipo === 'mapa') {
             const plotDiv = document.createElement('div');
-            plotDiv.style.cssText = `width:100%;height:${esMovil() ? 200 : 260}px;`;
+            plotDiv.style.cssText = `width:100%;height:${esMovil() ? 220 : 320}px;`;
             body.appendChild(plotDiv);
             renderMapa(tile.viz, plotDiv);
             card.querySelector('.tile-png').addEventListener('click',
@@ -274,7 +274,7 @@
         // --- Gráfico Plotly ---
         if (tile.plotly && tile.plotly.data) {
             const plotDiv = document.createElement('div');
-            plotDiv.style.cssText = `width:100%;height:${esMovil() ? 200 : 260}px;`;
+            plotDiv.style.cssText = `width:100%;height:${esMovil() ? 200 : (tile.tamano === 'amplio' ? 320 : 260)}px;`;
             body.appendChild(plotDiv);
             loadPlotly().then(() => {
                 const layout = Object.assign({autosize: true}, tile.plotly.layout || {});
