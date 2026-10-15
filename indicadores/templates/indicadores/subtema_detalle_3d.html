@@ -548,6 +548,49 @@ function normalizarSeries3D(grafico) {
     });
 }
 
+// ======== QUIZ LLM DE DON DATICO ========
+// Al ganar el juego, Don Datico vuela hacia la cámara y propone 3
+// preguntas de selección múltiple generadas en vivo por el LLM.
+// (scope del módulo: cargarMetadatosIndicador hace prefetch al abrir
+// el gráfico de un indicador, antes de que empiece el juego 3D)
+const quizCache = {};   // indicadorId -> 'loading' | data
+
+function escQuiz(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+}
+
+function pintarResumenKids(resumen) {
+    if (!resumen || document.getElementById('resumen-kids')) return;
+    const div = document.createElement('div');
+    div.id = 'resumen-kids';
+    div.className = 'p-4 bg-amber-50 rounded border border-amber-200 mb-2';
+    div.innerHTML = '<strong>🦜 Don Datico explica:</strong> ';
+    div.appendChild(document.createTextNode(resumen));
+    // Hermano (no hijo): metadatosContainer.innerHTML se reescribe
+    // cuando llega el fetch de metadatos técnicos
+    metadatosContainer.parentNode.insertBefore(div, metadatosContainer);
+}
+
+function fetchQuiz(indicadorId) {
+    return fetch(`{% url 'indicadores:api_quiz_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`))
+        .then(r => r.json());
+}
+
+function prefetchQuizIndicador(indicadorId) {
+    if (!indicadorId || quizCache[indicadorId]) return;
+    quizCache[indicadorId] = 'loading';
+    fetchQuiz(indicadorId).then(data => {
+        if (data && !data.error && Array.isArray(data.preguntas)) {
+            quizCache[indicadorId] = data;
+            pintarResumenKids(data.resumen_meta);
+        } else {
+            delete quizCache[indicadorId];
+        }
+    }).catch(() => { delete quizCache[indicadorId]; });
+}
+
 // 🎮 Función principal para iniciar la experiencia 3D
 function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
 
@@ -3278,47 +3321,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         }
     }
     
-    // ======== QUIZ LLM DE DON DATICO ========
-    // Al ganar el juego, Don Datico vuela hacia la cámara y propone 3
-    // preguntas de selección múltiple generadas en vivo por el LLM.
-    const quizCache = {};   // indicadorId -> 'loading' | data
+    // Overlay del quiz (estado por sesión de juego)
     let quizOverlay = null;
-
-    function escQuiz(s) {
-        const d = document.createElement('div');
-        d.textContent = s == null ? '' : String(s);
-        return d.innerHTML;
-    }
-
-    function pintarResumenKids(resumen) {
-        if (!resumen || document.getElementById('resumen-kids')) return;
-        const div = document.createElement('div');
-        div.id = 'resumen-kids';
-        div.className = 'p-4 bg-amber-50 rounded border border-amber-200 mb-2';
-        div.innerHTML = '<strong>🦜 Don Datico explica:</strong> ';
-        div.appendChild(document.createTextNode(resumen));
-        // Hermano (no hijo): metadatosContainer.innerHTML se reescribe
-        // cuando llega el fetch de metadatos técnicos
-        metadatosContainer.parentNode.insertBefore(div, metadatosContainer);
-    }
-
-    function fetchQuiz(indicadorId) {
-        return fetch(`{% url 'indicadores:api_quiz_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`))
-            .then(r => r.json());
-    }
-
-    function prefetchQuizIndicador(indicadorId) {
-        if (!indicadorId || quizCache[indicadorId]) return;
-        quizCache[indicadorId] = 'loading';
-        fetchQuiz(indicadorId).then(data => {
-            if (data && !data.error && Array.isArray(data.preguntas)) {
-                quizCache[indicadorId] = data;
-                pintarResumenKids(data.resumen_meta);
-            } else {
-                delete quizCache[indicadorId];
-            }
-        }).catch(() => { delete quizCache[indicadorId]; });
-    }
 
     function donDaticoSaluda() {
         // Don Datico vuela hasta frente a la cámara para "hablar"
