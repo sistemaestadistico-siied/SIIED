@@ -5157,7 +5157,12 @@ def chat_message(request):
                     elif 'error' in chunk:
                         yield f"data: {json.dumps({'type': 'error', 'error': chunk['error']})}\n\n"
                         return
-                    
+
+                    # Keepalive/estado durante stalls del proveedor LLM:
+                    # mantiene el socket vivo y da feedback de progreso
+                    elif chunk.get('type') == 'status':
+                        yield f"data: {json.dumps({'type': 'status', 'message': chunk.get('message', '')})}\n\n"
+
                     # Verificar si está completo
                     elif chunk.get('is_complete'):
                         # Si el chunk contiene el historial actualizado, guardarlo

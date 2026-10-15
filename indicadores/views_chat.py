@@ -7,11 +7,13 @@ import logging
 import os
 import re
 import subprocess
+import queue
 import tempfile
 import threading
 import time
 import uuid
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, date
 from types import SimpleNamespace
 from typing import Dict, List, Optional, Any, Generator
@@ -3244,8 +3246,17 @@ class ChatService:
                 call_kwargs['response_format'] = fmt
             t_attempt = time.monotonic()
             try:
-                resp = self._call_llm_with_fallback(
-                    messages, stream=False, **call_kwargs)
+                # Deadline duro vía hilo: el timeout de httpx no corta
+                # respuestas que llegan "goteando" (bytes lentos pero
+                # continuos), así que se acota la espera del resultado.
+                ex = ThreadPoolExecutor(max_workers=1)
+                try:
+                    fut = ex.submit(
+                        self._call_llm_with_fallback,
+                        messages, stream=False, **call_kwargs)
+                    resp = fut.result(timeout=max(5.0, remaining - 1.0))
+                finally:
+                    ex.shutdown(wait=False)
                 raw = resp.choices[0].message.content
                 data = self._parse_structured_json(raw)
                 if isinstance(data, dict):
@@ -3998,34 +4009,44 @@ class ChatService:
             
             # Intentar obtener respuesta final del modelo sin herramientas si ya hay datos
             if session_state.get('response_ready') and self.client:
-                logger.info("[MCP_FIX] Forzando respuesta final del modelo sin herramientas adicionales")
-                try:
-                    final_messages = self._build_optimized_messages(current_history, session_state)
-                    response = self._call_llm_with_fallback(
-                        messages=final_messages,
-                        model=self.model_config["model"],
-                        tool_choice="none",
-                        max_tokens=self.model_config["max_tokens"],
-                        temperature=self.model_config["temperature"],
-                        top_p=self.model_config["top_p"],
-                        stream=True
-                    )
-                    final_content, _tc, emitted_final = yield from \
-                        self._consume_llm_stream(response)
-                    if final_content:
-                        logger.info("[MCP_FIX] Respuesta final obtenida sin herramientas")
-                        if not emitted_final:
-                            yield from self._stream_final_response(final_content)
-                        current_history.append({"role": "assistant", "content": final_content})
-                        yield {
-                            'content': '',
-                            'is_complete': True,
-                            'updated_history': current_history
-                        }
-                        return
-                    logger.warning("[MCP_FIX] Respuesta final sin herramientas vacía")
-                except Exception as e:
-                    logger.error(f"[MCP_FIX] Error solicitando respuesta final sin herramientas: {e}", exc_info=True)
+                elapsed_total = (timezone.now() - session_state['start_time']).total_seconds()
+                if elapsed_total > TOOL_TIMEOUT:
+                    logger.warning(
+                        f"[MCP_FIX] Sin presupuesto para respuesta final "
+                        f"({elapsed_total:.0f}s > {TOOL_TIMEOUT}s) - "
+                        f"respondiendo con datos ya obtenidos")
+                else:
+                    yield {'type': 'status',
+                           'message': '✍️ Redactando respuesta…'}
+                    logger.info("[MCP_FIX] Forzando respuesta final del modelo sin herramientas adicionales")
+                    try:
+                        final_messages = self._build_optimized_messages(
+                            current_history, session_state)
+                        response = self._call_llm_with_fallback(
+                            messages=final_messages,
+                            model=self.model_config["model"],
+                            tool_choice="none",
+                            max_tokens=self.model_config["max_tokens"],
+                            temperature=self.model_config["temperature"],
+                            top_p=self.model_config["top_p"],
+                            stream=True
+                        )
+                        final_content, _tc, emitted_final = yield from \
+                            self._consume_llm_stream(response)
+                        if final_content:
+                            logger.info("[MCP_FIX] Respuesta final obtenida sin herramientas")
+                            if not emitted_final:
+                                yield from self._stream_final_response(final_content)
+                            current_history.append({"role": "assistant", "content": final_content})
+                            yield {
+                                'content': '',
+                                'is_complete': True,
+                                'updated_history': current_history
+                            }
+                            return
+                        logger.warning("[MCP_FIX] Respuesta final sin herramientas vacía")
+                    except Exception as e:
+                        logger.error(f"[MCP_FIX] Error solicitando respuesta final sin herramientas: {e}", exc_info=True)
 
             # FALLBACK cuando no hay respuesta válida
             logger.info(f"[MCP_FIX] Generando fallback. Estado: {session_state}")
@@ -4085,9 +4106,45 @@ class ChatService:
         # Agregar historial reciente
         max_history = get_config('MAX_HISTORY_MESSAGES', 8)
         recent_history = history[-max_history:] if len(history) > max_history else history
-        messages.extend(recent_history)
+        messages.extend(self._flatten_tool_exchange(recent_history))
         
         return messages
+
+    def _flatten_tool_exchange(self, history: list) -> list:
+        """Convierte el intercambio assistant.tool_calls + role:tool a texto
+        plano. Endpoints OpenAI-compat de Gemini rechazan el reenvío de
+        functionCall parts sin thought_signature (HTTP 400); serializar el
+        intercambio como texto conserva los resultados como contexto y es
+        compatible con todos los proveedores."""
+        flat = []
+        flattened = 0
+        for m in history:
+            if not isinstance(m, dict):
+                flat.append(m)
+                continue
+            if m.get('role') == 'tool':
+                flat.append({
+                    'role': 'user',
+                    'content': f"[Resultado de herramienta]\n{m.get('content', '')}"
+                })
+                flattened += 1
+            elif m.get('role') == 'assistant' and m.get('tool_calls'):
+                calls = []
+                for tc in m['tool_calls']:
+                    fn = tc.get('function', {}) if isinstance(tc, dict) else {}
+                    calls.append(f"{fn.get('name', '?')}({fn.get('arguments', '')})")
+                text = m.get('content') or ''
+                if calls:
+                    text += f"\n\n[Funciones ejecutadas: {', '.join(calls)}]"
+                flat.append({'role': 'assistant', 'content': text.strip()})
+                flattened += 1
+            else:
+                flat.append(m)
+        if flattened:
+            logger.info(
+                f"[MCP_FIX] {flattened} mensajes de tool-call aplanados a "
+                f"texto para compatibilidad con el endpoint")
+        return flat
 
 
     def _serialize_tool_call(self, tool_call) -> dict:
@@ -4456,31 +4513,53 @@ class ChatService:
         n_tool_deltas = 0
         t_stream = time.monotonic()
 
+        KEEPALIVE_S = float(get_config('LLM_STREAM_KEEPALIVE_SECONDS', 25.0))
+
         def _iter_logged(source):
-            """Envuelve el iterador del SDK para medir llegada de chunks y
-            detectar stalls/cierres externos sin alterar el consumo."""
+            """Lee el stream del SDK en un hilo aparte para poder emitir
+            keepalives 'status' mientras el proveedor no envía chunks (el
+            endpoint puede tardar minutos; sin bytes el proxy/navegador corta).
+            """
             nonlocal n_chunks
+            q = queue.Queue()
+            _DONE = object()
+
+            def _reader():
+                try:
+                    for c in source:
+                        q.put(('chunk', c))
+                except Exception as e:
+                    q.put(('error', e))
+                finally:
+                    q.put(('done', _DONE))
+
+            threading.Thread(target=_reader, daemon=True).start()
+
             try:
                 while True:
-                    t_next = time.monotonic()
                     try:
-                        chunk = next(source)
-                    except StopIteration:
+                        kind, item = q.get(timeout=KEEPALIVE_S)
+                    except queue.Empty:
+                        logger.warning(
+                            f"[LLM_STREAM] sin chunks por {KEEPALIVE_S:.0f}s "
+                            f"(recibidos={n_chunks}, "
+                            f"t={time.monotonic() - t_stream:.1f}s) - keepalive")
+                        yield {'type': 'status',
+                               'message': '⏳ El asistente sigue procesando…'}
+                        continue
+                    if kind == 'done':
                         logger.info(
                             f"[LLM_STREAM] stream agotado: {n_chunks} chunks "
                             f"en {time.monotonic() - t_stream:.2f}s")
                         return
+                    if kind == 'error':
+                        raise item
                     n_chunks += 1
                     if n_chunks == 1:
                         logger.info(
                             f"[LLM_STREAM] primer chunk del proveedor en "
                             f"{time.monotonic() - t_stream:.2f}s")
-                    dt = time.monotonic() - t_next
-                    if dt > 5.0:
-                        logger.warning(
-                            f"[LLM_STREAM] espera de {dt:.1f}s para chunk "
-                            f"#{n_chunks}")
-                    yield chunk
+                    yield item
             except GeneratorExit:
                 logger.warning(
                     f"[LLM_STREAM] stream cerrado externamente tras "
@@ -4495,6 +4574,11 @@ class ChatService:
                 raise
 
         for chunk in _iter_logged(iter(stream)):
+            # Keepalives inyectados por _iter_logged durante stalls del
+            # proveedor: se propagan tal cual hacia el frontend.
+            if isinstance(chunk, dict) and chunk.get('type') == 'status':
+                yield chunk
+                continue
             try:
                 choices = getattr(chunk, 'choices', None) or []
                 choice = choices[0] if choices else None

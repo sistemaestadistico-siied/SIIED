@@ -2831,6 +2831,10 @@ class ChatPage {
                                 console.log(`🎯 Stream finalizado. Total chunks: ${parsed.total_chunks}`);
                                 processingComplete = true;
                                 break;
+
+                            case 'status':
+                                this.updateToolsIndicator(messageElement, parsed.message);
+                                break;
                                 
                             default:
                                 // Manejo de eventos legacy para compatibilidad
@@ -2967,7 +2971,16 @@ class ChatPage {
         
         contentWrapper.insertBefore(toolsIndicator, contentWrapper.firstChild);
     }
-    
+
+    updateToolsIndicator(messageElement, text) {
+        if (!text) return;
+        const contentWrapper = messageElement.querySelector('.message-content-wrapper');
+        if (!contentWrapper) return;
+        this.showToolsIndicator(messageElement);
+        const span = contentWrapper.querySelector('.tools-indicator-content span');
+        if (span) span.textContent = text;
+    }
+
     hideToolsIndicator(messageElement) {
         const toolsIndicator = messageElement.querySelector('.tools-indicator');
         if (toolsIndicator) {
