@@ -5652,21 +5652,53 @@ def _limpiar_texto_tts(text):
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
+
+def _prosodia_para_voz(text):
+    """Ajustes de pronunciación para que el TTS suene más natural:
+    números con unidades, rangos de años, siglas, decimales y pausas."""
+    # Separador de miles estilo es: '3.000' -> '3000' (se lee 'tres mil')
+    prev = None
+    while prev != text:
+        prev = text
+        text = re.sub(r'(\d)\.(\d{3})(?=\D|$)', r'\1\2', text)
+    # Decimal con punto -> 'punto': '45.6' -> '45 punto 6'
+    text = re.sub(r'(\d)\.(\d)(?!\d{2})', r'\1 punto \2', text)
+    # % -> 'por ciento'
+    text = re.sub(r'(\d[\d.,]*)\s*%', r'\1 por ciento', text)
+    # Rango de años '2020-2024' -> '2020 a 2024'
+    text = re.sub(r'\b(\d{4})\s*[-–—]\s*(\d{4})\b', r'\1 a \2', text)
+    # Guiones entre frases -> coma (pausa corta natural)
+    text = re.sub(r'\s+[-–—]+\s+', ', ', text)
+    # Abreviaturas y unidades frecuentes en indicadores
+    text = re.sub(r'\betc\.?\b', 'etcétera', text, flags=re.I)
+    text = re.sub(r'\bN[°º]\.?\s*', 'número ', text)
+    text = re.sub(r'(\d)\s*km²', r'\1 kilómetros cuadrados', text)
+    text = re.sub(r'(\d)\s*m²', r'\1 metros cuadrados', text)
+    text = re.sub(r'(\d)\s*°C', r'\1 grados centígrados', text)
+    text = text.replace('&', ' y ')
+    return re.sub(r'\s+', ' ', text).strip()
+
 def get_tts_instance(preferred_model=None):
     """
     Obtiene o crea una instancia singleton de TTS con lazy loading.
     Esto evita cargar el modelo en memoria hasta que sea necesario.
-    
+
     Args:
-        preferred_model (str, optional): Nombre del modelo preferido
-        
+        preferred_model (str, optional): Nombre del modelo preferido.
+            Si no se pasa, se lee la config 'TTS_MODEL' (ej. para usar
+            'tts_models/multilingual/multi-dataset/xtts_v2', más natural
+            pero mucho más pesado en CPU y requiere TTS_SPEAKER_WAV).
+
     Returns:
         TTS: Instancia del modelo TTS o None si falla
     """
     global _tts_instance, _tts_model_name
-    
+
     if not COQUI_TTS_AVAILABLE:
         return None
+
+    if preferred_model is None:
+        preferred_model = get_config('TTS_MODEL')
     
     with _tts_lock:
         # Si ya existe una instancia con el mismo modelo, reutilizarla
@@ -5751,6 +5783,7 @@ def text_to_speech(request):
     # Sanitizar antes de cachear/sintetizar: el texto llega con markdown,
     # URLs, tablas o emojis que no tienen sentido narrados.
     text = _limpiar_texto_tts(text)
+    text = _prosodia_para_voz(text)
 
     # Validar texto
     if not text or len(text.strip()) == 0:
@@ -5779,7 +5812,8 @@ def text_to_speech(request):
 
     if tts_instance:
         try:
-            response = _generate_audio_coqui_tts(tts_instance, text, lang, accent)
+            response = _generate_audio_coqui_tts(
+                tts_instance, text, lang, accent, _tts_model_name)
         except Exception as e:
             print(f"Error con Coqui TTS: {e}")
             print("Intentando con pico2wave...")
@@ -5793,7 +5827,8 @@ def text_to_speech(request):
         cache.set(cache_key, response.content, timeout=7 * 24 * 3600)
     return response
 
-def _generate_audio_coqui_tts(tts, text, lang, accent="latino"):
+def _generate_audio_coqui_tts(tts, text, lang, accent="latino",
+                              model_name=None):
     """
     Genera audio usando una instancia existente de Coqui TTS.
     El modelo ya está cargado (lazy loading), solo genera el audio.
@@ -5815,6 +5850,23 @@ def _generate_audio_coqui_tts(tts, text, lang, accent="latino"):
         # La velocidad se manipula en el frontend usando Web Audio API
         print(f"🎵 Generando audio con acento: {accent}")
 
+        # Modelos multilingües (xtts_v2, your_tts) exigen 'language'
+        # y un speaker: TTS_SPEAKER_WAV (ruta a wav de referencia para
+        # clonar voz) o el primer speaker disponible del modelo.
+        extra = {}
+        if model_name and any(
+                k in model_name for k in ('xtts', 'your_tts', 'multilingual')):
+            extra['language'] = lang if lang in (
+                'es', 'en', 'fr', 'de', 'it', 'pt') else 'es'
+            wav = get_config('TTS_SPEAKER_WAV')
+            if wav:
+                if not os.path.isabs(wav):
+                    wav = os.path.join(str(settings.BASE_DIR), wav)
+                if os.path.exists(wav):
+                    extra['speaker_wav'] = wav
+            elif getattr(tts, 'speakers', None):
+                extra['speaker'] = tts.speakers[0]
+
         # Generar audio usando el modelo precargado. El lock serializa
         # la síntesis: el cliente ahora pide chunks en paralelo y Coqui
         # no es thread-safe.
@@ -5823,6 +5875,7 @@ def _generate_audio_coqui_tts(tts, text, lang, accent="latino"):
                 text=text,
                 file_path=audio_buffer,
                 split_sentences=True,  # Mejor calidad para textos largos
+                **extra
             )
 
         audio_data = audio_buffer.getvalue()

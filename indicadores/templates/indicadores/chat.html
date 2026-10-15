@@ -2198,7 +2198,9 @@ class TTSManager {
                 src.playbackRate.value = this.playbackSpeed;
                 src.connect(chain.input);
                 src.start(when);
-                when += buf.duration / this.playbackSpeed;
+                // Pausa breve entre chunks: respiración natural,
+                // evita el encadenado robótico palabra-contra-palabra
+                when += buf.duration / this.playbackSpeed + 0.09;
                 if (i === buffers.length - 1) {
                     src.onended = () => {
                         this.updateButtonState(messageButton, 'idle');
@@ -2273,8 +2275,9 @@ class TTSManager {
     }
 
     splitChunks(text, maxLen = 380) {
-        // Divide en oraciones y las agrupa sin pasar maxLen
-        const sents = text.match(/[^.!?;:\n]+[.!?;:\n]+|[^.!?;:\n]+$/g) || [text];
+        // Divide en oraciones (y comas como borde preferente, ya que
+        // los números llegan normalizados sin '.' ni ',' internos)
+        const sents = text.match(/[^.!?;:\n,]+[.!?;:\n,]+|[^.!?;:\n,]+$/g) || [text];
         const chunks = [];
         let cur = '';
         for (const s of sents) {
@@ -2414,21 +2417,36 @@ class TTSManager {
         );
     }
 
-    // Normalización final común: URLs, emails, emojis y puntuación.
-    // Conserva separadores numéricos (3.000, 45.6%) sin romperlos.
+    // Normalización final común: URLs, emails, emojis, puntuación y
+    // números preparados para pronunciación natural.
     normalizarTextoVoz(text) {
-        return String(text)
+        text = String(text)
             .replace(/(?:https?:\/\/|www\.)\S+/gi, ' un enlace ')
             .replace(/\S+@\S+\.\S+/g, ' correo ')
             .replace(/\p{Extended_Pictographic}\uFE0F?/gu, ' ')
-            .replace(/\s+/g, ' ')
+            .replace(/\s+/g, ' ');
+        // Separador de miles '3.000' -> '3000' (se lee 'tres mil')
+        let prev;
+        do {
+            prev = text;
+            text = text.replace(/(\d)\.(\d{3})(?=\D|$)/g, '$1$2');
+        } while (text !== prev);
+        // Decimal con punto -> 'punto': '45.6' -> '45 punto 6'
+        text = text
+            .replace(/(\d)\.(\d)(?!\d{2})/g, '$1 punto $2')
+            .replace(/(\d[\d.,]*)\s*%/g, '$1 por ciento')
+            .replace(/\b(\d{4})\s*[-–—]\s*(\d{4})\b/g, '$1 a $2')
+            .replace(/\s+[-–—]+\s+/g, ', ')
+            .replace(/\betc\.?\b/gi, 'etcétera')
+            .replace(/&/g, ' y ')
             .replace(/([,.;:!?])(?=\S)/g, (m, p, off, s) => {
-                const prev = s[off - 1] || '', next = s[off + 1] || '';
-                if (/\d/.test(prev) && /\d/.test(next)) return m;
+                const ant = s[off - 1] || '', sig = s[off + 1] || '';
+                if (/\d/.test(ant) && /\d/.test(sig)) return m;
                 return p + ' ';
             })
             .replace(/\s+/g, ' ')
             .trim();
+        return text;
     }
 }
 
