@@ -649,6 +649,47 @@ class CerebrasToolsService:
             }
         ]
 
+    def _enlaces_viz_indicador(self, indicador) -> Dict[str, dict]:
+        """URLs públicas del SIIED donde consultar el indicador y sus fuentes."""
+        enlaces = {}
+        try:
+            sub = indicador.subtema
+            if sub and sub.tema and sub.tema.dominio:
+                d, t = sub.tema.dominio, sub.tema
+                enlaces['subtema'] = {
+                    'url': reverse('indicadores:subtema_detalle',
+                                   args=[d.slug, t.slug, sub.slug]),
+                    'label': f'Ficha del indicador: {sub.nombre}',
+                }
+                enlaces['tema'] = {
+                    'url': reverse('indicadores:tema_detalle',
+                                   args=[d.slug, t.slug]),
+                    'label': f'Tema: {t.nombre}',
+                }
+                enlaces['dominio'] = {
+                    'url': reverse('indicadores:dominio_detalle',
+                                   args=[d.slug]),
+                    'label': f'Dominio: {d.nombre}',
+                }
+        except Exception:
+            pass
+        try:
+            enlaces['conjunto_datos'] = {
+                'url': reverse('indicadores:conjunto_datos_detalle',
+                               args=[indicador.id]),
+                'label': 'Conjunto de datos del indicador',
+            }
+            cc_id = getattr(indicador, 'catalogo_consulta_id', None)
+            if cc_id:
+                enlaces['catalogo_consulta'] = {
+                    'url': reverse('indicadores:catalogo_consulta_detalle',
+                                   args=[cc_id]),
+                    'label': 'Cuadro del catálogo de consulta',
+                }
+        except Exception:
+            pass
+        return enlaces
+
     def _handle_mostrar_visualizacion(self, arguments: dict) -> Dict[str, Any]:
         """Adjunta una visualización (gráfico o mapa) al mensaje del chat.
 
@@ -682,6 +723,7 @@ class CerebrasToolsService:
                         "gráficos configurados. Puedes intentar tipo='mapa' "
                         "si tiene datos geográficos."),
                 }
+            enlaces = self._enlaces_viz_indicador(indicador)
             for g in graficos:
                 viz = {
                     'tipo': 'grafico',
@@ -689,6 +731,7 @@ class CerebrasToolsService:
                     'indicador_id': indicador.id,
                     'titulo': g.titulo or g.nombre,
                     'indicador': indicador.nombre,
+                    'enlaces': enlaces,
                 }
                 self._pending_visualizaciones.append(viz)
                 adjuntadas.append(viz)
@@ -698,6 +741,7 @@ class CerebrasToolsService:
                 'indicador_id': indicador.id,
                 'titulo': f'Distribución geográfica — {indicador.nombre}',
                 'indicador': indicador.nombre,
+                'enlaces': self._enlaces_viz_indicador(indicador),
             }
             self._pending_visualizaciones.append(viz)
             adjuntadas.append(viz)

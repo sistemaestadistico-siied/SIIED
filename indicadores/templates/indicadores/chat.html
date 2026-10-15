@@ -3481,6 +3481,15 @@ async renderVisualizaciones(vizData, messageId) {
         const card = document.createElement('div');
         card.className = 'chat-viz-card bg-white border border-teal-200 rounded-xl overflow-hidden shadow-sm';
         const icono = viz.tipo === 'mapa' ? 'fa-map-marked-alt' : 'fa-chart-line';
+        // Enlaces a los sitios de consulta del SIIED (ficha, conjunto, catálogo)
+        const enlacesHtml = (viz.enlaces && Object.keys(viz.enlaces).length)
+            ? `<div class="flex flex-wrap gap-x-3 gap-y-1 px-3 py-1.5 bg-white border-b border-teal-100 text-[11px]">`
+              + Object.values(viz.enlaces).map(l =>
+                  `<a href="${l.url}" target="_blank" rel="noopener"
+                      class="text-teal-700 hover:underline whitespace-nowrap"
+                      title="${String(l.label).replace(/</g,'&lt;')}"><i class="fas fa-external-link-alt mr-1"></i>${String(l.label).replace(/</g,'&lt;')}</a>`).join('')
+              + '</div>'
+            : '';
         card.innerHTML = `
             <div class="flex items-center justify-between gap-2 px-3 py-2 bg-teal-50 border-b border-teal-100">
                 <span class="text-xs font-semibold text-teal-800 truncate">
@@ -3495,6 +3504,7 @@ async renderVisualizaciones(vizData, messageId) {
                     </button>
                 </div>
             </div>
+            ${enlacesHtml}
             <div class="viz-filtros-panel hidden px-3 py-2 bg-slate-50 border-b border-teal-100 text-xs space-y-2"></div>
             <div class="viz-plot" style="width:100%;height:${esMovil ? 200 : 400}px;"></div>`;
         container.appendChild(card);
