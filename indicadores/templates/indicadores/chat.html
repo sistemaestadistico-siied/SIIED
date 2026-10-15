@@ -2735,6 +2735,7 @@ class ChatPage {
             const decoder = new TextDecoder('utf-8');
             let buffer = '';
             let relevantData = null;
+            let vizData = null;
             let processingComplete = false;
             
             console.log('🚀 Iniciando lectura del stream...');
@@ -2826,6 +2827,11 @@ class ChatPage {
                                 relevantData = parsed.data;
                                 console.log('📊 Datos relevantes recibidos');
                                 break;
+
+                            case 'visualizaciones':
+                                vizData = parsed.data;
+                                console.log(`📈 ${vizData?.length || 0} visualizacion(es) adjuntada(s)`);
+                                break;
                                 
                             case 'done':
                                 console.log(`🎯 Stream finalizado. Total chunks: ${parsed.total_chunks}`);
@@ -2863,6 +2869,11 @@ class ChatPage {
             // Mostrar datos relevantes si los hay
             if (relevantData) {
                 this.showRelevantData(relevantData, messageId);
+            }
+
+            // Renderizar visualizaciones adjuntadas (tool mostrar_visualizacion)
+            if (vizData && vizData.length) {
+                this.renderVisualizaciones(vizData, messageId);
             }
             
             console.log(`📊 Stats: ${chunkCount} chunks, ${fullContent.length} caracteres, Tools: ${toolResultsReceived}`);
@@ -3414,6 +3425,192 @@ showRelevantData(relevantData, messageId) {
     }
     
     this.scrollToBottom();
+}
+
+// ======================================================================
+// VISUALIZACIONES (tool mostrar_visualizacion) — gráficos/mapas Plotly
+// renderizados con la misma tecnología de subtema_detalle.html.
+// Móvil (pantalla vertical): altura reducida + descarga PNG destacada.
+// ======================================================================
+
+loadPlotly() {
+    if (window.Plotly) return Promise.resolve();
+    if (this._plotlyPromise) return this._plotlyPromise;
+    this._plotlyPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.plot.ly/plotly-2.32.0.min.js';
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('No se pudo cargar Plotly'));
+        document.head.appendChild(s);
+    });
+    return this._plotlyPromise;
+}
+
+async renderVisualizaciones(vizData, messageId) {
+    const messageElement = document.getElementById(messageId);
+    if (!messageElement || !Array.isArray(vizData) || !vizData.length) return;
+    const contentWrapper = messageElement.querySelector('.message-content-wrapper');
+    if (!contentWrapper) return;
+
+    try {
+        await this.loadPlotly();
+    } catch (e) {
+        console.warn('[VIZ] Plotly no disponible:', e);
+        return;
+    }
+
+    const esMovil = window.matchMedia('(max-width: 640px)').matches ||
+                    (window.matchMedia('(orientation: portrait)').matches &&
+                     window.innerWidth < 768);
+
+    const container = document.createElement('div');
+    container.className = 'chat-viz-container mt-3 space-y-3 fade-in';
+    contentWrapper.appendChild(container);
+
+    for (const viz of vizData) {
+        const card = document.createElement('div');
+        card.className = 'chat-viz-card bg-white border border-teal-200 rounded-xl overflow-hidden shadow-sm';
+        const icono = viz.tipo === 'mapa' ? 'fa-map-marked-alt' : 'fa-chart-line';
+        card.innerHTML = `
+            <div class="flex items-center justify-between gap-2 px-3 py-2 bg-teal-50 border-b border-teal-100">
+                <span class="text-xs font-semibold text-teal-800 truncate">
+                    <i class="fas ${icono}"></i> ${viz.titulo || 'Visualización'}
+                </span>
+                <button type="button" class="viz-png-btn flex-shrink-0 text-xs px-2.5 py-1.5 ${esMovil ? 'bg-teal-600 text-white' : 'bg-white text-teal-700 border border-teal-300'} rounded-lg hover:bg-teal-700 hover:text-white transition-all" title="Descargar como imagen PNG">
+                    <i class="fas fa-download"></i> PNG
+                </button>
+            </div>
+            <div class="viz-plot" style="width:100%;height:${esMovil ? 200 : 300}px;"></div>`;
+        container.appendChild(card);
+
+        const plotDiv = card.querySelector('.viz-plot');
+        try {
+            if (viz.tipo === 'mapa') {
+                await this._renderMapaChat(viz, plotDiv, esMovil);
+            } else {
+                await this._renderGraficoChat(viz, plotDiv, esMovil);
+            }
+        } catch (e) {
+            console.warn('[VIZ] No se pudo renderizar:', e);
+            plotDiv.innerHTML =
+                '<p class="text-xs text-slate-500 p-3">Esta visualización no está disponible por ahora.</p>';
+        }
+
+        card.querySelector('.viz-png-btn').addEventListener('click', () => {
+            Plotly.toImage(plotDiv, { format: 'png', width: 1200, height: 700, scale: 2 })
+                .then(url => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = (viz.titulo || 'visualizacion') + '.png';
+                    a.click();
+                })
+                .catch(e => console.warn('[VIZ] PNG export falló:', e));
+        });
+    }
+
+    this.scrollToBottom();
+}
+
+async _renderGraficoChat(viz, plotDiv, esMovil) {
+    const url = `{% url 'indicadores:api_get_grafico' 0 %}`.replace('/0/', `/${viz.grafico_id}/`);
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    const layout = Object.assign({}, data.layout || {}, {
+        autosize: true,
+        margin: esMovil
+            ? { t: 24, b: 70, l: 44, r: 12 }
+            : { t: 32, b: 45, l: 55, r: 25 },
+    });
+    if (esMovil) {
+        // Leyenda horizontal abajo: en pantallas verticales la lateral
+        // se come medio gráfico
+        layout.legend = Object.assign({}, layout.legend || {},
+            { orientation: 'h', y: -0.32, x: 0 });
+        layout.hovermode = 'x unified';
+    }
+
+    Plotly.newPlot(plotDiv, data.series || [], layout, {
+        responsive: true,
+        displaylogo: false,
+        displayModeBar: !esMovil,
+        scrollZoom: false,
+    });
+}
+
+async _renderMapaChat(viz, plotDiv, esMovil) {
+    const urlValores = `{% url 'indicadores:api_test_valores_geo' 0 %}`.replace('/0/', `/${viz.indicador_id}/`);
+    const urlGeo = `{% url 'indicadores:api_geojson_indicador' 0 %}`.replace('/0/', `/${viz.indicador_id}/`);
+
+    const [datosGeo, geojson] = await Promise.all([
+        fetch(urlValores).then(r => r.json()),
+        fetch(urlGeo).then(r => r.json()),
+    ]);
+
+    if (!geojson.features || !geojson.features.length) {
+        throw new Error('Sin geometrías');
+    }
+    if (!datosGeo.valores || !datosGeo.valores.length) {
+        throw new Error('Sin datos geográficos');
+    }
+
+    // Mismo mapeo que subtema_detalle: feature.id desde properties.codigo
+    geojson.features.forEach(f => {
+        if (!f.id && f.properties && f.properties.codigo) {
+            f.id = f.properties.codigo;
+        }
+    });
+
+    const locations = [], z = [], text = [];
+    geojson.features.forEach(feature => {
+        const codigo = feature.properties.codigo;
+        const nombreElemento = feature.properties.nombre;
+        const capaId = feature.properties.capa_id;
+        let item = datosGeo.valores.find(v => v.codigo === codigo);
+        if (!item && capaId) {
+            item = datosGeo.valores.find(v => v.capa_id === capaId);
+        }
+        const valor = item ? item.valor : null;
+        if (valor !== null && valor !== undefined) {
+            locations.push(codigo);
+            z.push(valor);
+            const capa = item.nombre_capa || 'Sin datos';
+            text.push(`${capa}: ${valor.toLocaleString('es-CO')}<br>${nombreElemento}`);
+        }
+    });
+
+    if (!locations.length) throw new Error('Sin coincidencias datos-geometrías');
+
+    const trace = [{
+        type: 'choropleth',
+        locationmode: 'geojson-id',
+        geojson: geojson,
+        locations: locations,
+        z: z,
+        text: text,
+        colorscale: [
+            [0, '#FF0000'], [0.25, '#FF8C00'], [0.5, '#FFD700'],
+            [0.75, '#32CD32'], [1, '#0000FF']
+        ],
+        showscale: true,
+        colorbar: { title: 'Valor', thickness: 12, len: 0.7 },
+        hovertemplate: '<b>%{text}</b><br>Valor: %{z}<extra></extra>',
+        marker: { line: { color: 'white', width: 2 } }
+    }];
+
+    const layout = {
+        autosize: true,
+        margin: { t: 5, b: 5, l: 5, r: 5 },
+        geo: { fitbounds: 'locations', visible: false },
+    };
+
+    Plotly.newPlot(plotDiv, trace, layout, {
+        responsive: true,
+        displaylogo: false,
+        displayModeBar: !esMovil,
+        scrollZoom: !esMovil,
+    });
 }
 
     

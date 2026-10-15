@@ -124,6 +124,10 @@ class CerebrasToolsService:
             self.base_url = base_url or get_config('TOOLS_FALLBACK_BASE_URL', 'http://127.0.0.1:8000')
         self.client = None
         self.logger = logging.getLogger('indicadores.tools')
+        # Descriptores de visualizaciones adjuntadas por la tool
+        # mostrar_visualizacion durante el stream actual. La vista
+        # chat_message los emite como evento SSE 'visualizaciones'.
+        self._pending_visualizaciones = []
         # Usar OpenAI SDK con endpoint de Cerebras
         self.client = OpenAI(
             api_key=api_key,
@@ -619,8 +623,92 @@ class CerebrasToolsService:
                         "required": ["conjunto_id"]
                     }
                 }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "mostrar_visualizacion",
+                    "description": "Adjunta un gráfico interactivo o un mapa coroplético de un indicador a tu respuesta en el chat. Usa esta herramienta cuando el usuario pida VER un gráfico, mapa, tendencia visual, distribución geográfica o imagen de un indicador ya identificado. IMPORTANTE: esta herramienta NO devuelve datos — solo adjunta la visualización renderizada en el chat; tú sigues redactando la explicación con el contexto que tengas. Requiere el indicador_id obtenido de buscar_indicadores o consultar_indicador.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "indicador_id": {
+                                "type": "integer",
+                                "description": "ID del indicador cuya visualización se adjunta"
+                            },
+                            "tipo": {
+                                "type": "string",
+                                "enum": ["grafico", "mapa"],
+                                "default": "grafico",
+                                "description": "'grafico' para series/tendencias del indicador; 'mapa' para distribución geográfica coroplética"
+                            }
+                        },
+                        "required": ["indicador_id"]
+                    }
+                }
             }
         ]
+
+    def _handle_mostrar_visualizacion(self, arguments: dict) -> Dict[str, Any]:
+        """Adjunta una visualización (gráfico o mapa) al mensaje del chat.
+
+        NO devuelve datos al LLM — solo stashea el descriptor para que la
+        vista lo emita como evento SSE 'visualizaciones' y el frontend lo
+        renderice con Plotly. Respuesta deliberadamente mínima (tokens).
+        """
+        from .models import Indicador, Grafico
+
+        try:
+            indicador_id = int(arguments.get('indicador_id'))
+        except (TypeError, ValueError):
+            return {"error": "indicador_id inválido"}
+
+        tipo = arguments.get('tipo', 'grafico')
+        indicador = Indicador.objects.filter(
+            id=indicador_id, activo=True).first()
+        if not indicador:
+            return {"error": f"Indicador {indicador_id} no existe o está inactivo"}
+
+        adjuntadas = []
+        if tipo == 'grafico':
+            graficos = list(
+                Grafico.objects.filter(indicador=indicador, activo=True)
+                .order_by('id')[:3])
+            if not graficos:
+                return {
+                    "ok": False,
+                    "mensaje": (
+                        f"El indicador '{indicador.nombre}' no tiene "
+                        "gráficos configurados. Puedes intentar tipo='mapa' "
+                        "si tiene datos geográficos."),
+                }
+            for g in graficos:
+                viz = {
+                    'tipo': 'grafico',
+                    'grafico_id': g.id,
+                    'titulo': g.titulo or g.nombre,
+                    'indicador': indicador.nombre,
+                }
+                self._pending_visualizaciones.append(viz)
+                adjuntadas.append(viz)
+        else:  # mapa
+            viz = {
+                'tipo': 'mapa',
+                'indicador_id': indicador.id,
+                'titulo': f'Distribución geográfica — {indicador.nombre}',
+                'indicador': indicador.nombre,
+            }
+            self._pending_visualizaciones.append(viz)
+            adjuntadas.append(viz)
+
+        return {
+            "ok": True,
+            "mensaje": (
+                f"Visualización de '{indicador.nombre}' adjuntada al chat. "
+                "El usuario la verá renderizada bajo tu respuesta; "
+                "explícala con el contexto disponible."),
+            "visualizaciones_adjuntas": len(adjuntadas),
+        }
 
     def _handle_buscar_indicadores_semantico(self, arguments: dict) -> Dict[str, Any]:
         """Maneja la búsqueda semántica de indicadores"""
@@ -743,6 +831,7 @@ class CerebrasToolsService:
                 'consultar_satisfaccion': self._handle_consultar_satisfaccion,
                 'buscar_catalogo_consulta': self._handle_buscar_catalogo_consulta,
                 'consultar_catalogo_consulta': self._handle_consultar_catalogo_consulta,
+                'mostrar_visualizacion': self._handle_mostrar_visualizacion,
             }
             
             handler = handlers.get(function_name)

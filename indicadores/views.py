@@ -5194,6 +5194,13 @@ def chat_message(request):
             except Exception as e:
                 logger.error(f"Error actualizando historial de conversación: {e}")
             
+            # Visualizaciones adjuntadas por la tool mostrar_visualizacion
+            # (descriptores ligeros: el frontend resuelve los datos pesados
+            # vía api_get_grafico / api_geojson_indicador / api_test_valores_geo)
+            _pending_viz = getattr(chat_service, '_pending_visualizaciones', None) or []
+            if _pending_viz:
+                yield f"data: {json.dumps({'type': 'visualizaciones', 'data': _pending_viz}, ensure_ascii=False)}\n\n"
+
             # Evento de finalización
             yield f"data: {json.dumps({'type': 'complete', 'final_length': len(assistant_response),'tool_used': tool_used})}\n\n"
             
