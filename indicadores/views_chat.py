@@ -3459,7 +3459,13 @@ class ChatService:
                 continue
             
             current_role = msg['role']
-            
+
+            # Solo user/assistant van al proveedor: los turnos 'tool'
+            # (sin tool_call_id) rompen la API y comen la ventana de
+            # historial — la conversación "olvida" turnos reales
+            if current_role not in ('user', 'assistant'):
+                continue
+
             # CRÍTICO: Evitar roles consecutivos iguales (inválido en OpenAI)
             # Si el rol es el mismo que el anterior, omitir este mensaje
             if last_role == current_role:

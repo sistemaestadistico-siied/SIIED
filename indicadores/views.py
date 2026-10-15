@@ -5181,8 +5181,14 @@ def chat_message(request):
             # Actualizar el historial de conversación en la sesión
             try:
                 if updated_history is not None:
-                    # Si tenemos un historial actualizado, usarlo
-                    request.session['conversation'] = updated_history
+                    # Persistir solo turnos user/assistant: los 'tool'
+                    # (resultados de herramientas) son ruido de sesión y
+                    # no se reenvían al proveedor en la próxima consulta
+                    request.session['conversation'] = [
+                        m for m in updated_history
+                        if isinstance(m, dict)
+                        and m.get('role') in ('user', 'assistant')
+                    ]
                 else:
                     # Si no, actualizar manualmente con la respuesta
                     if assistant_response:
