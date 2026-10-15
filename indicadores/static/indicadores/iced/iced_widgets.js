@@ -1315,6 +1315,15 @@
                     : [];
                 const procesoTieneSubprocesos = subprocesosDisponibles.length > 0;
                 const subprocesoNoAplica = tieneProceso && !procesoTieneSubprocesos;
+                // Procedimientos que cuelgan directo del proceso (sin
+                // subproceso). Un proceso puede tener AMBOS: subprocesos
+                // y procedimientos directos — la opcion centinela permite
+                // elegirlos aunque el proceso tenga subprocesos.
+                const SIN_SUBPROCESO = 'SIN_SUBPROCESO';
+                const procedimientosDirectos = tieneProceso
+                    ? (datosMOP.procedimientos_directos[fila.proceso_id] || [])
+                    : [];
+                const esDirecto = fila.subproceso_id === SIN_SUBPROCESO;
 
                 const grpSub = el('div', { style: 'display: flex; flex-direction: column; gap: 0.35rem; grid-column: 1 / -1;' });
                 grpSub.appendChild(el('label', { style: 'font-size: 0.85rem; font-weight: 500;' }, [
@@ -1332,6 +1341,13 @@
                     if (fila.subproceso_id === sp.id) opt.selected = true;
                     selSubproceso.appendChild(opt);
                 });
+                // Opcion centinela: el proceso tiene procedimientos directos
+                // ademas de subprocesos — sin esta entrada serian inalcanzables.
+                if (procedimientosDirectos.length > 0) {
+                    const opt = el('option', {value: SIN_SUBPROCESO}, ['— Sin subproceso (procedimiento directo del proceso)']);
+                    if (esDirecto) opt.selected = true;
+                    selSubproceso.appendChild(opt);
+                }
                 selSubproceso.addEventListener('change', () => {
                     console.log(`[MOP] === Subproceso cambiado en fila ${i}, valor: "${selSubproceso.value}"`);
                     filas[i].subproceso_id = selSubproceso.value;
@@ -1362,12 +1378,14 @@
                 // Sección de procedimientos:
                 // - con subproceso: procedimientos del subproceso elegido
                 // - sin subprocesos en el proceso: procedimientos directos del proceso
-                const fuenteProcedimientos = procesoTieneSubprocesos
-                    ? (fila.subproceso_id ? datosMOP.procedimientos[fila.subproceso_id] : null)
-                    : (tieneProceso ? (datosMOP.procedimientos_directos[fila.proceso_id] || null) : null);
-                const mostrarProcedimientos = procesoTieneSubprocesos
-                    ? !!fila.subproceso_id
-                    : tieneProceso;
+                const fuenteProcedimientos = esDirecto
+                    ? procedimientosDirectos
+                    : (procesoTieneSubprocesos
+                        ? (fila.subproceso_id ? datosMOP.procedimientos[fila.subproceso_id] : null)
+                        : (tieneProceso ? (procedimientosDirectos.length ? procedimientosDirectos : null) : null));
+                const mostrarProcedimientos = esDirecto
+                    ? true
+                    : (procesoTieneSubprocesos ? !!fila.subproceso_id : tieneProceso);
 
                 if (mostrarProcedimientos) {
                     if (fuenteProcedimientos && fuenteProcedimientos.length > 0) {
