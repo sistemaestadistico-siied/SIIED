@@ -267,7 +267,17 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             body: JSON.stringify({ prompt: prompt })
         })
-        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(r => r.text().then(txt => {
+            let data = {};
+            try { data = JSON.parse(txt); }
+            catch (e) {
+                // El proxy/gateway puede responder una página HTML de timeout
+                // en lugar del JSON del backend.
+                throw new Error('La generación tardó demasiado y el servidor '
+                    + 'intermedio cortó la conexión. Inténtalo de nuevo.');
+            }
+            return { ok: r.ok, data };
+        }))
         .then(({ ok, data }) => {
             if (!ok || !data.ok) {
                 throw new Error(data.error || 'Error generando la noticia.');

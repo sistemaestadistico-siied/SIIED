@@ -3169,7 +3169,8 @@ class ChatService:
 
     def generate_structured(self, user_prompt, json_schema,
                             system_prompt=None,
-                            schema_name='structured_response'):
+                            schema_name='structured_response',
+                            max_seconds=None):
         """Genera una respuesta estructurada (dict) según un JSON Schema.
 
         Reusa la misma cadena de proveedores del chat (principal → fallback)
@@ -3179,6 +3180,12 @@ class ChatService:
         JSON inválido, degrada a {'type': 'json_object'} y finalmente a
         JSON pedido por prompt. Última línea de defensa: el schema viaja
         también en el prompt, así el modo prompt-only sigue siendo útil.
+
+        max_seconds limita el tiempo TOTAL de la operación (todos los
+        intentos). Los reverse proxies suelen cortar requests largos (~60s):
+        sin presupuesto, varios intentos x (primario + fallback) pueden
+        tardar minutos y el cliente solo recibe la página de error del
+        gateway. El timeout de cada llamada se acota al tiempo restante.
 
         Retorna el dict parseado. Lanza ValueError si ningún intento
         produce JSON válido, RuntimeError si todos los proveedores fallan.
@@ -3204,9 +3211,21 @@ class ChatService:
             None,  # prompt-only: el schema va inline en el user message
         ]
 
+        max_seconds = float(max_seconds or get_config(
+            'LLM_STRUCTURED_MAX_SECONDS', 55.0))
+        deadline = time.monotonic() + max_seconds
+
         last_error = None
         for fmt in format_candidates:
+            remaining = deadline - time.monotonic()
+            if remaining < 8.0:
+                logger.warning(
+                    f"⏱️ generate_structured: presupuesto agotado "
+                    f"({max_seconds:.0f}s) antes del intento "
+                    f"{fmt.get('type') if fmt else 'prompt-only'}")
+                break
             call_kwargs = dict(self.model_config)
+            call_kwargs['timeout'] = max(5.0, remaining - 2.0)
             if fmt is not None:
                 call_kwargs['response_format'] = fmt
             try:

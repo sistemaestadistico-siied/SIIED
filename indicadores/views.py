@@ -5053,37 +5053,44 @@ def chat_message(request):
             def is_cancelled():
                 return is_request_cancelled(user_key, request_id)
             
+            # IMPORTANTE: WSGI solo envía los headers cuando se produce el
+            # primer byte del body. Emitir un heartbeat inmediato fija el
+            # TTFB en ~0; si el primer evento espera a init+búsqueda y el
+            # proxy corta por timeout, el backend genera todo sobre un socket
+            # muerto (logs OK pero el frontend nunca recibe nada).
+            yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+
             if is_cancelled():
                 yield f"data: {json.dumps({'status': 'cancelled'})}\n\n"
                 return
-            
+
             conversation_history = request.session.get('conversation', [])
             max_history = get_config('MAX_HISTORY_MESSAGES', 8)
             conversation_history = [
                 msg for msg in conversation_history[-max_history:]
-                if (isinstance(msg, dict) and 
-                    msg.get('content') and 
+                if (isinstance(msg, dict) and
+                    msg.get('content') and
                     msg.get('role') in ['user', 'assistant'])
             ]
-            
+
             # Crear nueva instancia con request para URLs dinámicas
             chat_service = ChatService(request=request)
-            
+
+            # Detectar si necesita tools (heurística barata, sin latencia LLM)
+            uses_tools = chat_service._should_use_tools(user_message)
+
+            # ENVIAR EVENTO DE INICIO (antes de la búsqueda, que puede tardar)
+            yield f"data: {json.dumps({'type': 'start', 'uses_tools': uses_tools})}\n\n"
+
             relevant_data = {}
             try:
                 relevant_data = chat_service.search_relevant_data(user_message)
             except Exception as e:
                 logger.warning(f"Error buscando datos relevantes: {e}")
-            
-            # Detectar si necesita tools
-            uses_tools = chat_service._should_use_tools(user_message)
-            
+
             chunk_count = 0
             tool_used = False
             updated_history = None
-            
-            # ENVIAR EVENTO DE INICIO
-            yield f"data: {json.dumps({'type': 'start', 'uses_tools': uses_tools})}\n\n"
             
             # Obtener el generador de respuesta y capturar el historial actualizado
             response_generator = chat_service.generate_response_stream(
