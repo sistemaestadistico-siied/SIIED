@@ -3540,3 +3540,50 @@ from .models_catalogo import (  # noqa: E402,F401
     FuenteDatos, FuenteOrigen, VariableFuente, EvaluacionSeguridad,
     BaseCatalogo, CampoCatalogo,
 )
+
+
+# ======================================================================
+# LABORATORIO DE DATOS DE DON DATICO — Tableros de control generados por IA
+# ======================================================================
+class Tablero(models.Model):
+    """
+    Tablero de control creado con asistencia de Don Datico.
+
+    Solo persiste el *spec* (descripción declarativa de tiles generada por
+    el LLM con respuestas estructuradas). Los datos NO se guardan: al
+    renderizar el tablero cada tile se resuelve en vivo contra
+    ConjuntoDatos.archivo_csv / Dato del indicador, así el tablero siempre
+    refleja la información más reciente disponible.
+    """
+    ESTADO_CHOICES = [
+        ('borrador', 'Borrador'),
+        ('publicado', 'Publicado'),
+    ]
+
+    titulo = models.CharField(max_length=300)
+    descripcion = models.TextField(blank=True, default='')
+    consulta_original = models.TextField(
+        blank=True, default='',
+        help_text='Peticion en lenguaje natural que genero el tablero')
+    spec = models.JSONField(
+        default=dict,
+        help_text='Spec declarativa del tablero: lista de tiles con fuente, '
+                  'dimension, medida, agregacion y filtros')
+    organismo = models.ForeignKey(
+        'Organismo', on_delete=models.SET_NULL, blank=True, null=True,
+        related_name='tableros')
+    autor = models.ForeignKey(
+        User, on_delete=models.SET_NULL, blank=True, null=True,
+        related_name='tableros')
+    estado = models.CharField(
+        max_length=20, choices=ESTADO_CHOICES, default='borrador')
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-fecha_actualizacion']
+        verbose_name = 'Tablero'
+        verbose_name_plural = 'Tableros (Laboratorio Don Datico)'
+
+    def __str__(self):
+        return self.titulo

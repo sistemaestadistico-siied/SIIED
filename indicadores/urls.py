@@ -11,6 +11,7 @@ from . import views_delegado
 from . import views_validacion
 from . import views_iced
 from . import views_educativos
+from . import views_laboratorio
 from . import views_editorial
 from . import views_taller
 from . import views_catalogo
@@ -529,5 +530,12 @@ urlpatterns = [
     path('editorial/catalogo-consulta/', views_editorial.catalogo_consulta_listado, name='editorial_catalogo_consulta'),
     path('editorial/catalogo-consulta/crear/', views_editorial.catalogo_consulta_crear, name='editorial_catalogo_consulta_crear'),
     path('editorial/catalogo-consulta/<int:pk>/editar/', views_editorial.catalogo_consulta_editar, name='editorial_catalogo_consulta_editar'),
+
+    # Laboratorio de Datos de Don Datico — tableros generados por IA
+    path('laboratorio/', views_laboratorio.laboratorio_home, name='laboratorio_home'),
+    path('laboratorio/generar/', views_laboratorio.laboratorio_generar, name='laboratorio_generar'),
+    path('laboratorio/guardar/', views_laboratorio.laboratorio_guardar, name='laboratorio_guardar'),
+    path('laboratorio/tableros/', views_laboratorio.laboratorio_listar, name='laboratorio_listar'),
+    path('laboratorio/tablero/<int:tablero_id>/', views_laboratorio.laboratorio_ver, name='laboratorio_ver'),
     path('editorial/catalogo-consulta/<int:pk>/eliminar/', views_editorial.catalogo_consulta_eliminar, name='editorial_catalogo_consulta_eliminar'),
 ]

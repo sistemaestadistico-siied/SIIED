@@ -1,0 +1,409 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Laboratorio de Datos — Don Datico{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+    .lab-layout { display: grid; grid-template-columns: 360px 1fr; gap: 1.25rem; align-items: start; }
+    .lab-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .lab-tile-kpi { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height: 180px; }
+    .lab-tile-kpi .kpi-valor { font-size: 2.6rem; font-weight: 800; color: #0f766e; line-height: 1.1; }
+    .lab-tile-kpi .kpi-unidad { font-size: .8rem; color: #64748b; margin-top: .35rem; }
+    .lab-tabla { width: 100%; font-size: .8rem; border-collapse: collapse; }
+    .lab-tabla th { text-align:left; padding:.45rem .6rem; background:#f0fdfa; color:#115e59; font-weight:600; border-bottom:1px solid #99f6e4; }
+    .lab-tabla td { padding:.4rem .6rem; border-bottom:1px solid #e2e8f0; color:#334155; }
+    .msg-bubble { max-width: 92%; border-radius: 14px; padding: .6rem .8rem; font-size: .82rem; line-height: 1.45; }
+    @media (max-width: 1023px) {
+        .lab-layout { grid-template-columns: 1fr; }
+        .lab-tiles { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="text-2xl font-serif font-bold text-slate-900">
+                <i class="fas fa-flask text-teal-600"></i> Laboratorio de Datos
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Describe el tablero que necesitas y Don Datico lo arma con datos reales del SIIED{% if fuentes_ctx.organismo %} de {{ fuentes_ctx.organismo }}{% endif %}.
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'indicadores:laboratorio_listar' %}"
+               class="text-sm px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50">
+                <i class="fas fa-th-large"></i> Mis tableros
+            </a>
+            <button id="btn-guardar" disabled
+                    class="text-sm px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                <i class="fas fa-save"></i> Guardar tablero
+            </button>
+        </div>
+    </div>
+
+    <div class="lab-layout">
+        <!-- ================= CHAT LATERAL ================= -->
+        <aside class="bg-white rounded-2xl shadow-sm border border-teal-200 overflow-hidden flex flex-col" style="height: 78vh; position: sticky; top: 1rem;">
+            <div class="px-4 py-3 bg-gradient-to-r from-teal-600 to-teal-700">
+                {% include "indicadores/_dondatico_badge.html" with titulo="Don Datico · Analista" subtitulo="Tableros con datos reales" avatar_size="w-10 h-10" %}
+            </div>
+            <div id="lab-chat" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50">
+                <div class="flex justify-start">
+                    <div class="msg-bubble bg-white border border-slate-200 text-slate-700">
+                        ¡Hola! Soy tu analista de datos. Descríbeme el tablero que necesitas
+                        y lo genero con las fuentes del SIIED.<br>
+                        <span class="text-slate-400 text-xs">Ej: "tablero de educación con matrícula por año, por sector y un mapa por comuna"</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-3 border-t border-slate-200 bg-white">
+                <textarea id="lab-consulta" rows="2"
+                          class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                          placeholder="¿Qué quieres ver en el tablero?"></textarea>
+                <button id="btn-generar"
+                        class="mt-2 w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2.5 rounded-lg text-sm transition disabled:opacity-50">
+                    <i class="fas fa-wand-magic-sparkles"></i> Generar / ajustar tablero
+                </button>
+                <p class="text-[10px] text-slate-400 mt-1.5 text-center">
+                    Si ya hay un tablero, la nueva consulta lo ajusta conservando lo que sirva.
+                </p>
+            </div>
+        </aside>
+
+        <!-- ================= CANVAS ================= -->
+        <section>
+            <div id="lab-explicacion" class="hidden mb-3 p-3 bg-teal-50 border border-teal-200 rounded-xl text-sm text-teal-900"></div>
+            <div id="lab-advertencias" class="hidden mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800"></div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 min-h-[300px]">
+                <div class="flex items-baseline justify-between mb-3">
+                    <h2 id="lab-titulo" class="text-lg font-bold text-slate-800">Canvas del tablero</h2>
+                    <span id="lab-desc" class="text-xs text-slate-400"></span>
+                </div>
+                <div id="lab-vacio" class="text-center py-16 text-slate-400">
+                    <i class="fas fa-chart-pie text-4xl mb-3"></i>
+                    <p class="text-sm">El tablero aparecerá aquí.<br>Empieza describiendo lo que quieres analizar en el chat.</p>
+                </div>
+                <div id="lab-tiles" class="lab-tiles"></div>
+            </div>
+        </section>
+    </div>
+</div>
+
+{{ fuentes_ctx|json_script:"fuentes-ctx" }}
+{% if tiles_resueltos %}{{ tiles_resueltos|json_script:"tiles-guardados" }}{% endif %}
+{% if tablero %}
+{{ tablero.id|json_script:"tablero-id" }}
+{{ tablero.titulo|json_script:"tablero-titulo" }}
+{{ tablero.descripcion|json_script:"tablero-desc" }}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    const FUENTES = JSON.parse(document.getElementById('fuentes-ctx').textContent);
+    const TILES_GUARDADOS = document.getElementById('tiles-guardados')
+        ? JSON.parse(document.getElementById('tiles-guardados').textContent) : null;
+    const TABLERO_ID = document.getElementById('tablero-id')
+        ? JSON.parse(document.getElementById('tablero-id').textContent) : null;
+
+    const URL_GENERAR = '{% url "indicadores:laboratorio_generar" %}';
+    const URL_GUARDAR = '{% url "indicadores:laboratorio_guardar" %}';
+    const URL_GRAFICO_GEO = '{% url "indicadores:api_test_valores_geo" 0 %}';
+    const URL_GEOJSON = '{% url "indicadores:api_geojson_indicador" 0 %}';
+
+    const $chat = document.getElementById('lab-chat');
+    const $consulta = document.getElementById('lab-consulta');
+    const $btnGen = document.getElementById('btn-generar');
+    const $btnSave = document.getElementById('btn-guardar');
+    const $tiles = document.getElementById('lab-tiles');
+    const $vacio = document.getElementById('lab-vacio');
+
+    let specActual = null;
+    let plotlyPromise = null;
+
+    const esMovil = () => window.matchMedia('(max-width: 640px)').matches;
+
+    // ---------- utilidades ----------
+    function csrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    }
+
+    function burbuja(texto, propio) {
+        const wrap = document.createElement('div');
+        wrap.className = 'flex ' + (propio ? 'justify-end' : 'justify-start');
+        wrap.innerHTML = `<div class="msg-bubble ${propio
+            ? 'bg-teal-600 text-white'
+            : 'bg-white border border-slate-200 text-slate-700'}">${texto}</div>`;
+        $chat.appendChild(wrap);
+        $chat.scrollTop = $chat.scrollHeight;
+        return wrap;
+    }
+
+    function loadPlotly() {
+        if (window.Plotly) return Promise.resolve();
+        if (plotlyPromise) return plotlyPromise;
+        plotlyPromise = new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.plot.ly/plotly-2.32.0.min.js';
+            s.onload = res; s.onerror = rej;
+            document.head.appendChild(s);
+        });
+        return plotlyPromise;
+    }
+
+    function descargarPNG(div, nombre) {
+        Plotly.toImage(div, {format: 'png', width: 1200, height: 700, scale: 2})
+            .then(url => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (nombre || 'tile') + '.png';
+                a.click();
+            });
+    }
+
+    // ---------- render de tiles ----------
+    function tarjetaTile(tile) {
+        const card = document.createElement('div');
+        card.className = 'lab-tile bg-slate-50 border border-slate-200 rounded-xl overflow-hidden';
+        card.innerHTML = `
+            <div class="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-200">
+                <span class="text-xs font-semibold text-slate-700 truncate">${tile.titulo || 'Tile'}</span>
+                <button type="button" class="tile-png text-xs px-2 py-1 text-teal-700 border border-teal-300 rounded hover:bg-teal-600 hover:text-white transition" title="Descargar PNG">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
+            <div class="tile-body" style="min-height:${esMovil() ? 200 : 260}px;"></div>`;
+        return card;
+    }
+
+    function renderTile(tile) {
+        const card = tarjetaTile(tile);
+        const body = card.querySelector('.tile-body');
+
+        if (tile.error) {
+            body.innerHTML = `<p class="text-xs text-red-600 p-4"><i class="fas fa-exclamation-triangle"></i> ${tile.error}</p>`;
+            card.querySelector('.tile-png').disabled = true;
+            card.querySelector('.tile-png').classList.add('opacity-40');
+            return card;
+        }
+
+        // --- KPI: número grande, sin Plotly ---
+        if (tile.plotly && tile.plotly.kpi) {
+            const k = tile.plotly.kpi;
+            body.className += ' lab-tile-kpi';
+            body.innerHTML = `
+                <div class="kpi-valor">${Number(k.valor).toLocaleString('es-CO', {maximumFractionDigits: 2})}</div>
+                <div class="kpi-unidad">${k.unidad || ''}</div>
+                ${k.nota ? `<div class="text-[10px] text-slate-400 mt-1">${k.nota}</div>` : ''}`;
+            card.querySelector('.tile-png').disabled = true;
+            card.querySelector('.tile-png').classList.add('opacity-40');
+            return card;
+        }
+
+        // --- Tabla HTML ---
+        if (tile.plotly && tile.plotly.tabla) {
+            const t = tile.plotly.tabla;
+            const filas = t.filas.map(f =>
+                `<tr><td>${f[0]}</td><td class="text-right font-medium">${Number(f[1]).toLocaleString('es-CO', {maximumFractionDigits: 2})}</td></tr>`).join('');
+            body.innerHTML = `<div class="p-2 overflow-auto" style="max-height:${esMovil() ? 220 : 280}px;">
+                <table class="lab-tabla"><thead><tr>
+                    <th>${t.headers[0]}</th><th class="text-right">${t.headers[1]}</th>
+                </tr></thead><tbody>${filas}</tbody></table></div>`;
+            card.querySelector('.tile-png').disabled = true;
+            card.querySelector('.tile-png').classList.add('opacity-40');
+            return card;
+        }
+
+        // --- Mapa coroplético (endpoints geo existentes) ---
+        if (tile.viz && tile.viz.tipo === 'mapa') {
+            const plotDiv = document.createElement('div');
+            plotDiv.style.cssText = `width:100%;height:${esMovil() ? 200 : 260}px;`;
+            body.appendChild(plotDiv);
+            renderMapa(tile.viz, plotDiv);
+            card.querySelector('.tile-png').addEventListener('click',
+                () => descargarPNG(plotDiv, tile.titulo));
+            return card;
+        }
+
+        // --- Gráfico Plotly ---
+        if (tile.plotly && tile.plotly.data) {
+            const plotDiv = document.createElement('div');
+            plotDiv.style.cssText = `width:100%;height:${esMovil() ? 200 : 260}px;`;
+            body.appendChild(plotDiv);
+            loadPlotly().then(() => {
+                const layout = Object.assign({autosize: true}, tile.plotly.layout || {});
+                if (esMovil()) {
+                    layout.margin = {t: 10, b: 60, l: 44, r: 10};
+                }
+                Plotly.newPlot(plotDiv, tile.plotly.data, layout, {
+                    responsive: true, displaylogo: false,
+                    displayModeBar: !esMovil(), scrollZoom: false,
+                });
+            });
+            card.querySelector('.tile-png').addEventListener('click',
+                () => descargarPNG(plotDiv, tile.titulo));
+            return card;
+        }
+
+        body.innerHTML = '<p class="text-xs text-slate-400 p-4">Tile sin contenido.</p>';
+        return card;
+    }
+
+    async function renderMapa(viz, plotDiv) {
+        await loadPlotly();
+        const urlValores = URL_GRAFICO_GEO.replace('/0/', `/${viz.indicador_id}/`);
+        const urlGeo = URL_GEOJSON.replace('/0/', `/${viz.indicador_id}/`);
+        const [datosGeo, geojson] = await Promise.all([
+            fetch(urlValores).then(r => r.json()),
+            fetch(urlGeo).then(r => r.json()),
+        ]);
+        if (!geojson.features || !geojson.features.length) throw new Error('Sin geometrías');
+        if (!datosGeo.valores || !datosGeo.valores.length) throw new Error('Sin datos geográficos');
+
+        geojson.features.forEach(f => {
+            if (!f.id && f.properties && f.properties.codigo) f.id = f.properties.codigo;
+        });
+        const locations = [], z = [], text = [];
+        geojson.features.forEach(feature => {
+            const codigo = feature.properties.codigo;
+            const capaId = feature.properties.capa_id;
+            let item = datosGeo.valores.find(v => v.codigo === codigo);
+            if (!item && capaId) item = datosGeo.valores.find(v => v.capa_id === capaId);
+            const valor = item ? item.valor : null;
+            if (valor !== null && valor !== undefined) {
+                locations.push(codigo);
+                z.push(valor);
+                const capa = item.nombre_capa || 'Sin datos';
+                text.push(`${capa}: ${valor.toLocaleString('es-CO')}<br>${feature.properties.nombre}`);
+            }
+        });
+        if (!locations.length) throw new Error('Sin coincidencias datos-geometrías');
+
+        Plotly.newPlot(plotDiv, [{
+            type: 'choropleth', locationmode: 'geojson-id', geojson: geojson,
+            locations: locations, z: z, text: text,
+            colorscale: [[0,'#FF0000'],[0.25,'#FF8C00'],[0.5,'#FFD700'],[0.75,'#32CD32'],[1,'#0000FF']],
+            showscale: true, colorbar: {title: 'Valor', thickness: 12, len: 0.7},
+            hovertemplate: '<b>%{text}</b><br>Valor: %{z}<extra></extra>',
+            marker: {line: {color: 'white', width: 2}},
+        }], {
+            autosize: true,
+            margin: {t: 5, b: 5, l: 5, r: 5},
+            geo: {fitbounds: 'locations', visible: false},
+        }, {responsive: true, displaylogo: false, displayModeBar: false, scrollZoom: !esMovil()});
+    }
+
+    // ---------- render del tablero completo ----------
+    function renderTablero(data) {
+        specActual = data.tablero || specActual;
+        $vacio.classList.add('hidden');
+        $tiles.innerHTML = '';
+
+        document.getElementById('lab-titulo').textContent =
+            (data.tablero && data.tablero.titulo) || 'Tablero';
+        document.getElementById('lab-desc').textContent =
+            (data.tablero && data.tablero.descripcion) || '';
+
+        (data.tiles || []).forEach(t => $tiles.appendChild(renderTile(t)));
+
+        const $exp = document.getElementById('lab-explicacion');
+        if (data.explicacion) {
+            $exp.innerHTML = `<strong><i class="fas fa-comment-dots"></i> Don Datico:</strong> ${data.explicacion}`;
+            $exp.classList.remove('hidden');
+        } else { $exp.classList.add('hidden'); }
+
+        const $adv = document.getElementById('lab-advertencias');
+        if (data.advertencias && data.advertencias.length) {
+            $adv.innerHTML = '<strong><i class="fas fa-exclamation-circle"></i> Revisar:</strong><ul class="list-disc list-inside mt-1">' +
+                data.advertencias.map(a => `<li>${a}</li>`).join('') + '</ul>';
+            $adv.classList.remove('hidden');
+        } else { $adv.classList.add('hidden'); }
+
+        $btnSave.disabled = false;
+    }
+
+    // ---------- llamadas al backend ----------
+    async function generar() {
+        const consulta = $consulta.value.trim();
+        if (consulta.length < 5) return;
+        $consulta.value = '';
+        burbuja(consulta.replace(/</g, '&lt;'), true);
+        const espera = burbuja('<i class="fas fa-circle-notch fa-spin"></i> Analizando fuentes y armando el tablero…', false);
+        $btnGen.disabled = true;
+
+        try {
+            const resp = await fetch(URL_GENERAR, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf()},
+                body: JSON.stringify({consulta, spec_actual: specActual}),
+            });
+            const data = await resp.json();
+            espera.remove();
+            if (data.ok) {
+                burbuja('Listo — generé el tablero. Puedes pedirme ajustes ("cambia el pie a barras", "agrega un KPI", "filtra solo 2024").', false);
+                renderTablero(data);
+            } else {
+                burbuja(`<i class="fas fa-exclamation-triangle text-amber-500"></i> ${data.error || 'No pude generar el tablero.'}${data.explicacion ? '<br>' + data.explicacion : ''}`, false);
+            }
+        } catch (e) {
+            espera.remove();
+            burbuja('Error de conexión generando el tablero.', false);
+        } finally {
+            $btnGen.disabled = false;
+        }
+    }
+
+    async function guardar() {
+        if (!specActual) return;
+        $btnSave.disabled = true;
+        try {
+            const resp = await fetch(URL_GUARDAR, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf()},
+                body: JSON.stringify({
+                    spec: specActual,
+                    consulta: TABLERO_ID ? '' : 'generado en laboratorio',
+                    tablero_id: TABLERO_ID,
+                }),
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                burbuja('Tablero guardado. Lo encuentras en "Mis tableros" — al abrirlo se recalcula con los datos vigentes.', false);
+            } else {
+                burbuja(`No pude guardar: ${data.error || 'error desconocido'}`, false);
+            }
+        } finally {
+            $btnSave.disabled = false;
+        }
+    }
+
+    $btnGen.addEventListener('click', generar);
+    $btnSave.addEventListener('click', guardar);
+    $consulta.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generar(); }
+    });
+
+    // ---------- tablero guardado: render inicial ----------
+    if (TILES_GUARDADOS && TILES_GUARDADOS.length) {
+        const tituloEl = document.getElementById('tablero-titulo');
+        const descEl = document.getElementById('tablero-desc');
+        renderTablero({
+            tablero: {
+                titulo: tituloEl ? JSON.parse(tituloEl.textContent) : 'Tablero',
+                descripcion: descEl ? JSON.parse(descEl.textContent) : '',
+            },
+            tiles: TILES_GUARDADOS,
+        });
+    }
+})();
+</script>
+{% endblock %}

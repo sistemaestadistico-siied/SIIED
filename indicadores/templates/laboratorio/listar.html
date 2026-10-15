@@ -1,0 +1,51 @@
+{% extends 'indicadores/base.html' %}
+{% block title %}Mis Tableros — Laboratorio Don Datico{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-6">
+    <div class="flex items-center justify-between mb-5">
+        <div>
+            <h1 class="text-2xl font-serif font-bold text-slate-900">
+                <i class="fas fa-th-large text-teal-600"></i> Mis tableros
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Tableros generados en el Laboratorio de Datos. Al abrirlos se recalculan con los datos vigentes.
+            </p>
+        </div>
+        <a href="{% url 'indicadores:laboratorio_home' %}"
+           class="text-sm px-3 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+            <i class="fas fa-flask"></i> Nuevo tablero
+        </a>
+    </div>
+
+    {% if tableros %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for t in tableros %}
+        <a href="{% url 'indicadores:laboratorio_ver' t.id %}"
+           class="block bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-teal-400 hover:shadow-md transition">
+            <div class="flex items-start justify-between gap-2">
+                <h3 class="font-semibold text-slate-800">{{ t.titulo }}</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded-full {% if t.estado == 'publicado' %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %}">
+                    {{ t.get_estado_display }}
+                </span>
+            </div>
+            {% if t.descripcion %}
+            <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ t.descripcion }}</p>
+            {% endif %}
+            <div class="flex items-center gap-3 mt-3 text-[11px] text-slate-400">
+                <span><i class="fas fa-th"></i> {{ t.spec.tiles|length }} tile(s)</span>
+                <span><i class="fas fa-user"></i> {{ t.autor.username|default:'—' }}</span>
+                {% if t.organismo %}<span><i class="fas fa-building"></i> {{ t.organismo.nombre }}</span>{% endif %}
+                <span><i class="fas fa-clock"></i> {{ t.fecha_actualizacion|date:"d/m/Y H:i" }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
+        <i class="fas fa-flask text-4xl mb-3"></i>
+        <p class="text-sm">Aún no tienes tableros. Entra al laboratorio y descríbele a Don Datico qué quieres ver.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
