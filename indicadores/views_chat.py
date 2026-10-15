@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import queue
+import socket
 import tempfile
 import threading
 import time
@@ -87,6 +88,26 @@ except Exception:  # pragma: no cover - entorno sin pyproj
     Transformer = None
 
 logger = logging.getLogger(__name__)
+
+
+# --- IPv4 forzado para llamadas salientes del LLM ---
+# En hosts sin ruta IPv6 funcional (curl -6 agota timeout), httpx resuelve
+# primero los registros AAAA y espera ~40s de timeout por dirección antes
+# de caer a IPv4, con lo que create() tardaba 44-360s. Filtrar a AF_INET
+# reduce la latencia a la de curl -4 (~0.1-5s). Reversible vía
+# LLM_FORCE_IPV4=False en ConfiguracionSistema/CHAT_CONFIG.
+if get_config('LLM_FORCE_IPV4', True):
+    _orig_getaddrinfo = socket.getaddrinfo
+
+    def _getaddrinfo_ipv4(host, port, family=0, type=0, proto=0, flags=0):
+        res = _orig_getaddrinfo(host, port, family, type, proto, flags)
+        if family == socket.AF_INET6:
+            return res
+        ipv4 = [r for r in res if r[0] == socket.AF_INET]
+        return ipv4 or res
+
+    socket.getaddrinfo = _getaddrinfo_ipv4
+    logger.info('[NET] getaddrinfo filtrado a IPv4 (LLM_FORCE_IPV4=on)')
 
 
 class CerebrasToolsService:

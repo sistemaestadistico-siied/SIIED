@@ -47,6 +47,11 @@ CHAT_CONFIG = {
     # Nivel de razonamiento del modelo (Gemini 3: minimal|low|medium|high).
     # Sin este parámetro el default puede pensar varios minutos por llamada.
     'LLM_REASONING_EFFORT': 'low',
+    # Forzar IPv4 en getaddrinfo: en servidores con AAAA pero sin ruta IPv6
+    # (curl -6 timeout, -4 ok) httpx espera ~40s por dirección v6 antes de
+    # caer a IPv4. True elimina esos stalls; desactivar solo si el host
+    # tiene IPv6 funcional.
+    'LLM_FORCE_IPV4': True,
     'CEREBRAS_MAX_TOKENS': 14200,  # Máximo de tokens Principal
     'CEREBRAS_TEMPERATURE': 0.15,  # Temperatura Principal
     'CEREBRAS_TOP_P': 0.92,  # Top P Principal
