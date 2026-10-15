@@ -12,6 +12,10 @@
     <p class="mt-1 text-slate-500">{{ producto.titulo }}</p>
 </div>
 
+{% if es_educativo %}
+{% include "editorial/_dondatico_panel.html" with modo="producto" badge_titulo="Deriva educativa" badge_subtitulo="Adapta el producto académico de origen para niños o adolescentes." %}
+{% endif %}
+
 {{ form.media }}
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-4xl">

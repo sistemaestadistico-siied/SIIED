@@ -14,6 +14,10 @@
     </p>
 </div>
 
+{% if es_educativo %}
+{% include "editorial/_dondatico_panel.html" with modo="seccion" badge_titulo="Adapta una sección" badge_subtitulo="Convierte una sección del académico de origen en un bloque interactivo gamificado." %}
+{% endif %}
+
 {{ form.media }}
 
 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-4xl">

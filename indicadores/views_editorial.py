@@ -317,6 +317,8 @@ def producto_editar(request, slug):
         'es_educativo': es_educativo,
         'form': form,
     }
+    if es_educativo:
+        context['dondatico_ctx'] = _dondatico_educativo_ctx(producto)
     return render(request, 'editorial/producto_editar.html', context)
 
 
@@ -373,6 +375,9 @@ def seccion_guardar(request, slug, seccion_id=None):
         'es_educativo': es_educativo,
         'form': form,
     }
+    if es_educativo:
+        context['dondatico_ctx'] = _dondatico_educativo_ctx(
+            producto, seccion=seccion)
     return render(request, 'editorial/seccion_form.html', context)
 
 
@@ -418,6 +423,233 @@ def seccion_mover(request, slug, seccion_id, direccion):
     otra.save(update_fields=['numero_orden'])
     return redirect(
         'indicadores:editorial_producto_secciones', slug=producto.slug)
+
+
+def _dondatico_educativo_ctx(producto, seccion=None):
+    """Contexto JSON para el panel Don Datico de productos educativos.
+
+    Resume el ProductoAcademico de origen (titulo, resumen, secciones e
+    indicadores) mas la seccion en edición, para que el LLM adapte el
+    contenido al público (infantil/adolescente) sin inventar datos.
+    """
+    from django.utils.html import strip_tags
+    from django.utils.text import Truncator
+
+    ctx = {
+        'publico': producto.publico,
+        'producto': {
+            'titulo': producto.titulo,
+            'slug': producto.slug,
+            'resumen_actual': producto.resumen_infantil,
+        },
+        'origen': None,
+    }
+
+    origen = producto.producto_origen
+    if origen is not None:
+        ctx['origen'] = {
+            'titulo': origen.titulo,
+            'resumen': Truncator(origen.resumen or '').chars(800),
+            'area_tematica': origen.area_tematica,
+            'palabras_clave': origen.palabras_clave,
+            'indicadores': [
+                ind.nombre
+                for ind in origen.indicadores_derivados.all()[:15]
+            ],
+            'secciones': [
+                {
+                    'orden': s.numero_orden,
+                    'tipo_seccion': s.get_tipo_seccion_display(),
+                    'titulo': s.titulo,
+                    'extracto': Truncator(
+                        strip_tags(s.contenido or '')).chars(400),
+                }
+                for s in origen.secciones.all().order_by(
+                    'numero_orden', 'subnumero')[:12]
+            ],
+        }
+
+    if seccion is not None:
+        ctx['seccion_actual'] = {
+            'titulo': seccion.titulo,
+            'tipo_bloque': seccion.tipo_bloque,
+            'extracto': Truncator(
+                strip_tags(seccion.contenido or '')).chars(400),
+        }
+    return ctx
+
+
+@editor_required
+@require_http_methods(['POST'])
+def editorial_dondatico_ia(request):
+    """Don Datico — asistencia estructurada para derivas educativas.
+
+    Recibe {modo, prompt, contexto} donde modo es 'producto' o 'seccion'.
+    Devuelve los campos llenables del formulario MÁS prompts_recursos:
+    recomendaciones para recursos (imágenes, video, infografía) que el
+    LLM no puede generar — la UI las muestra en un área reservada, no
+    en campos del form.
+    """
+    from .llm_structured import (
+        PRODUCTO_EDUCATIVO_SCHEMA, PRODUCTO_EDUCATIVO_SYSTEM_PROMPT,
+        SECCION_EDUCATIVA_SCHEMA, SECCION_EDUCATIVA_SYSTEM_PROMPT,
+    )
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Cuerpo JSON inválido.'}, status=400)
+
+    modo = payload.get('modo')
+    prompt = (payload.get('prompt') or '').strip()
+    contexto = payload.get('contexto') or {}
+
+    if modo not in ('producto', 'seccion'):
+        return JsonResponse({'error': 'Modo inválido.'}, status=400)
+    if len(prompt) < 5:
+        return JsonResponse(
+            {'error': 'Describe brevemente qué necesitas adaptar.'},
+            status=400)
+    if len(prompt) > 4000:
+        return JsonResponse(
+            {'error': 'La descripción es demasiado larga '
+                      '(máx. 4000 caracteres).'},
+            status=400)
+
+    publico = contexto.get('publico') or 'infantil'
+    origen = contexto.get('origen') or {}
+    secciones_txt = ''
+    if origen.get('secciones'):
+        lineas = [
+            f"  {s.get('orden')}. [{s.get('tipo_seccion')}] "
+            f"{s.get('titulo')}: {s.get('extracto', '')[:200]}"
+            for s in origen['secciones']
+        ]
+        secciones_txt = '\n'.join(lineas)
+
+    if modo == 'producto':
+        prompt_llm = (
+            f"PÚBLICO OBJETIVO: {publico} "
+            f"({'niños 6-11 años' if publico == 'infantil' else 'adolescentes 12-17 años'})\n\n"
+            f"PRODUCTO ACADÉMICO DE ORIGEN:\n"
+            f"Título: {origen.get('titulo', '(sin origen vinculado)')}\n"
+            f"Resumen: {origen.get('resumen', '')}\n"
+            f"Área temática: {origen.get('area_tematica', '')}\n"
+            f"Palabras clave: {origen.get('palabras_clave', '')}\n"
+            f"Indicadores: {', '.join(origen.get('indicadores') or [])}\n"
+            f"Secciones del origen:\n{secciones_txt or '— ninguna —'}\n\n"
+            f"ESTADO ACTUAL DEL EDUCATIVO:\n"
+            f"Título: {(contexto.get('producto') or {}).get('titulo', '')}\n"
+            f"Resumen actual: {(contexto.get('producto') or {}).get('resumen_actual', '')}\n\n"
+            f"INSTRUCCIÓN DEL EDITOR:\n{prompt}"
+        )
+        schema, sys_prompt = (
+            PRODUCTO_EDUCATIVO_SCHEMA, PRODUCTO_EDUCATIVO_SYSTEM_PROMPT)
+        schema_name = 'producto_educativo'
+    else:
+        sec = contexto.get('seccion_actual') or {}
+        prompt_llm = (
+            f"PÚBLICO OBJETIVO: {publico} "
+            f"({'niños 6-11 años' if publico == 'infantil' else 'adolescentes 12-17 años'})\n\n"
+            f"PRODUCTO ACADÉMICO DE ORIGEN: {origen.get('titulo', '')}\n"
+            f"Secciones del origen (para elegir fuente de adaptación):\n"
+            f"{secciones_txt or '— ninguna —'}\n\n"
+            f"SECCIÓN EDUCATIVA EN EDICIÓN: "
+            f"{sec.get('titulo') or '(nueva)'} "
+            f"[bloque: {sec.get('tipo_bloque', '—')}]\n"
+            f"Contenido actual: {sec.get('extracto', '')}\n\n"
+            f"INSTRUCCIÓN DEL EDITOR:\n{prompt}"
+        )
+        schema, sys_prompt = (
+            SECCION_EDUCATIVA_SCHEMA, SECCION_EDUCATIVA_SYSTEM_PROMPT)
+        schema_name = 'seccion_educativa'
+
+    from .views_chat import ChatService
+    logger.info(
+        f'[IA] editorial_dondatico_ia modo={modo} '
+        f'{len(prompt_llm)} chars')
+    t_start = time.monotonic()
+    try:
+        data = ChatService(request=request).generate_structured(
+            prompt_llm, schema,
+            system_prompt=sys_prompt,
+            schema_name=schema_name)
+        logger.info(
+            f'[IA] editorial_dondatico_ia OK en '
+            f'{time.monotonic() - t_start:.1f}s')
+    except Exception as e:
+        logger.error(
+            f'[IA] editorial_dondatico_ia falló en '
+            f'{time.monotonic() - t_start:.1f}s '
+            f'({type(e).__name__}: {e})')
+        return JsonResponse(
+            {'error': 'Don Datico no pudo proponer la adaptación. '
+                      'Inténtalo de nuevo en unos segundos.'},
+            status=502)
+
+    def _recursos(items):
+        out = []
+        for it in (items or [])[:12]:
+            if not isinstance(it, dict):
+                continue
+            tipo = str(it.get('tipo') or '').strip()
+            titulo = str(it.get('titulo') or '').strip()
+            p = str(it.get('prompt') or '').strip()
+            if tipo and p:
+                out.append({'tipo': tipo, 'titulo': titulo, 'prompt': p})
+        return out
+
+    if modo == 'producto':
+        resultado = {
+            'titulo': str(data.get('titulo') or '').strip()[:500],
+            'slug': str(data.get('slug') or '').strip()[:200],
+            'resumen_infantil': str(
+                data.get('resumen_infantil') or '').strip(),
+            'palabras_clave': str(
+                data.get('palabras_clave') or '').strip()[:255],
+            'mensaje_bienvenida': str(
+                data.get('mensaje_bienvenida') or '').strip(),
+            'paleta_colores': data.get('paleta_colores')
+                if data.get('paleta_colores') in ('aventura', 'lab')
+                else '',
+            'nivel_gamificacion': data.get('nivel_gamificacion')
+                if data.get('nivel_gamificacion') in (
+                    'explorador', 'aventurero', 'cientifico') else '',
+            'puntos_totales': int(data.get('puntos_totales') or 0)
+                if str(data.get('puntos_totales') or '').isdigit() else 0,
+            'prompts_recursos': _recursos(data.get('prompts_recursos')),
+            'explicacion': str(data.get('explicacion') or '').strip(),
+            'advertencias': [
+                str(a).strip()
+                for a in (data.get('advertencias') or []) if str(a).strip()
+            ],
+        }
+    else:
+        tipo = str(data.get('tipo_bloque') or '').strip()
+        tipos_validos = {
+            'narrativa_guiada', 'texto_adaptado', 'dato_interactivo',
+            'grafico_3d_gamificado', 'grafico_interactivo', 'quiz_recompensa',
+            'actividad_arrastrar', 'laboratorio_datos', 'mapa_exploracion',
+            'video_educativo', 'infografia_animada', 'galeria_imagenes',
+            'reto_final',
+        }
+        resultado = {
+            'titulo': str(data.get('titulo') or '').strip()[:300],
+            'icono_emoji': str(data.get('icono_emoji') or '').strip()[:4],
+            'tipo_bloque': tipo if tipo in tipos_validos else '',
+            'contenido': str(data.get('contenido') or ''),
+            'configuracion_bloque': data.get('configuracion_bloque')
+                if isinstance(data.get('configuracion_bloque'), dict)
+                else {},
+            'prompts_recursos': _recursos(data.get('prompts_recursos')),
+            'explicacion': str(data.get('explicacion') or '').strip(),
+            'advertencias': [
+                str(a).strip()
+                for a in (data.get('advertencias') or []) if str(a).strip()
+            ],
+        }
+
+    return JsonResponse({'ok': True, 'modo': modo, 'data': resultado})
 
 
 @editor_required

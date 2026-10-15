@@ -455,6 +455,7 @@ urlpatterns = [
     path('editorial/productos/<slug:slug>/secciones/<int:seccion_id>/eliminar/', views_editorial.seccion_eliminar, name='editorial_seccion_eliminar'),
     path('editorial/productos/<slug:slug>/secciones/<int:seccion_id>/mover/<str:direccion>/', views_editorial.seccion_mover, name='editorial_seccion_mover'),
     path('editorial/secciones/<int:seccion_id>/grafico/', views_editorial.editorial_seccion_grafico, name='editorial_seccion_grafico'),
+    path('editorial/ia/dondatico/', views_editorial.editorial_dondatico_ia, name='editorial_dondatico_ia'),
     
     # Eventos
     path('editorial/eventos/', views_editorial.eventos_listado, name='editorial_eventos'),
