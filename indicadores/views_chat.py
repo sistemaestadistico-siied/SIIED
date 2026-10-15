@@ -90,6 +90,19 @@ except Exception:  # pragma: no cover - entorno sin pyproj
 logger = logging.getLogger(__name__)
 
 
+def _asegurar_enlace_consulta(texto: str) -> str:
+    """Si la respuesta menciona 'Consulta y Tableros' sin enlace
+    markdown, convierte la primera mención en link a /laboratorio/.
+
+    El prompt ya lo pide pero el LLM a veces nombra el módulo sin
+    pasar la URL; esta post-capa lo garantiza de forma determinista.
+    """
+    if not texto or '/laboratorio/' in texto:
+        return texto
+    return re.sub(r'(?<!\[)Consulta y Tableros(?!\])',
+                  '[Consulta y Tableros](/laboratorio/)', texto, count=1)
+
+
 # --- IPv4 forzado para llamadas salientes del LLM ---
 # En hosts sin ruta IPv6 funcional (curl -6 agota timeout), httpx resuelve
 # primero los registros AAAA y espera ~40s de timeout por dirección antes
@@ -2876,8 +2889,8 @@ class CerebrasToolsService:
             # intentar corregir el formato básico
             if "```" in response_content and "\n```" not in response_content:
                 response_content = response_content.replace("```", "\n```\n")
-                
-            return response_content
+
+            return _asegurar_enlace_consulta(response_content)
             
         except Exception as e:
             logger.error(f"Error procesando múltiples herramientas: {e}")
@@ -3659,7 +3672,7 @@ class ChatService:
                         })
                         clean_history.append({
                             'role': 'assistant',
-                            'content': full_response
+                            'content': _asegurar_enlace_consulta(full_response)
                         })
                         
                         # Devolver el historial actualizado como parte del último chunk
@@ -4188,7 +4201,7 @@ class ChatService:
                             yield from self._stream_final_response(final_content)
                         
                         # Actualizar historial
-                        current_history.append({"role": "assistant", "content": final_content})
+                        current_history.append({"role": "assistant", "content": _asegurar_enlace_consulta(final_content)})
                         
                         session_state['response_ready'] = True
                         yield {
@@ -4231,7 +4244,7 @@ class ChatService:
                             logger.info("[MCP_FIX] Respuesta final obtenida sin herramientas")
                             if not emitted_final:
                                 yield from self._stream_final_response(final_content)
-                            current_history.append({"role": "assistant", "content": final_content})
+                            current_history.append({"role": "assistant", "content": _asegurar_enlace_consulta(final_content)})
                             yield {
                                 'content': '',
                                 'is_complete': True,
@@ -4254,7 +4267,7 @@ class ChatService:
             
             yield from self._stream_final_response(fallback_response)
             
-            current_history.append({"role": "assistant", "content": fallback_response})
+            current_history.append({"role": "assistant", "content": _asegurar_enlace_consulta(fallback_response)})
             yield {
                 'content': '',
                 'is_complete': True,
@@ -4702,7 +4715,7 @@ class ChatService:
             return
 
         yield {
-            'content': content,
+            'content': _asegurar_enlace_consulta(content),
             'is_complete': False,
             'source': 'assistant',
             'format': 'markdown'
@@ -5007,7 +5020,7 @@ class ChatService:
                     if full_response:
                         updated_history = clean_history + [
                             {'role': 'user', 'content': user_message},
-                            {'role': 'assistant', 'content': full_response}
+                            {'role': 'assistant', 'content': _asegurar_enlace_consulta(full_response)}
                         ]
                         yield {'is_complete': True, 'updated_history': updated_history}
                         
@@ -5243,7 +5256,7 @@ class ChatService:
                 if full_response:
                     updated_history.append({
                         'role': 'assistant',
-                        'content': full_response
+                        'content': _asegurar_enlace_consulta(full_response)
                     })
                 
                 # Devolver el historial actualizado como parte del último chunk
