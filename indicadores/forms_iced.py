@@ -9,6 +9,7 @@ Referencia completa: docs/ficed_blueprint_completo.yaml
 """
 
 import json
+import re
 
 from django import forms
 from django.core.validators import URLValidator, validate_email
@@ -139,10 +140,226 @@ def _error_fecha_mmaaaa(fecha):
 
 
 # =============================================================================
+# VALIDACIÓN ESTRICTA DE FORMATOS (Fase 1 FICED)
+# =============================================================================
+# El delegado no debe poder guardar valores con formato imposible (correos
+# sin @, teléfonos con letras, URLs sin dominio, fechas que no son fechas).
+# Reglas por tipo para campos escalares + inferencia por nombre de clave
+# para las celdas de los widgets dinámicos (JSON).
+
+_MAX_CELDA_JSON = 500     # caracteres máximos por celda de widget
+_MAX_FILAS_JSON = 50      # tope de filas por widget dinámico
+_MAX_TEXTO = 3000         # textos largos (descripciones, observaciones)
+_MAX_TEXTO_CORTO = 300    # campos "especifique" / respuestas cortas
+
+
+def _es_email(valor):
+    try:
+        validate_email(valor.strip())
+        return True
+    except forms.ValidationError:
+        return False
+
+
+def _es_url_valida(valor):
+    try:
+        URLValidator()(valor.strip())
+        return True
+    except forms.ValidationError:
+        return False
+
+
+def _err_fecha_iso(valor):
+    """AAAA-MM-DD — los widgets tipo 'fecha' usan input type=date."""
+    import datetime as _dt
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', valor.strip()):
+        return "La fecha debe tener formato AAAA-MM-DD"
+    try:
+        _dt.date.fromisoformat(valor.strip())
+    except ValueError:
+        return "La fecha no existe"
+    return None
+
+
+def _err_aaaa(valor):
+    if not re.fullmatch(r'(19|20)\d{2}', valor.strip()):
+        return "El año debe tener formato AAAA (ej: 2024)"
+    return None
+
+
+def _err_urls_multi(valor):
+    """URLs separadas por coma."""
+    malas = [p.strip() for p in valor.split(',')
+             if p.strip() and not _es_url_valida(p.strip())]
+    if malas:
+        return ("Formato de URL inválido: " + ', '.join(malas[:3]) +
+                ". Use el formato https://ejemplo.com/ruta")
+    return None
+
+
+def _err_codigos_bp(valor):
+    if not re.fullmatch(
+            r'[\w\-]+(\s*[,;]\s*[\w\-]+)*', valor.strip()):
+        return ("Códigos BP separados por coma "
+                "(ej: 2023100012345, 2024100067890)")
+    return None
+
+
+def _err_entero(valor):
+    v = valor.strip()
+    if not re.fullmatch(r'\d{1,3}', v):
+        return "Debe ser un número entero"
+    if not (0 <= int(v) <= 80):
+        return "Debe estar entre 0 y 80"
+    return None
+
+
+def _err_nombre_persona(valor):
+    v = valor.strip()
+    if len(v) < 3:
+        return "Muy corto para ser un nombre"
+    if not re.fullmatch(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' \.\-]+", v):
+        return "Solo letras, espacios y guiones"
+    return None
+
+
+_REGLAS = {
+    'email': lambda v: None if _es_email(v)
+        else "Correo electrónico no tiene un formato válido",
+    'telefono': _error_telefono,
+    'mmaaaa': _error_fecha_mmaaaa,
+    'fecha': _err_fecha_iso,
+    'aaaa': _err_aaaa,
+    'url_multi': _err_urls_multi,
+    'codigos_bp': _err_codigos_bp,
+    'nombre': _err_nombre_persona,
+    'entero': _err_entero,
+    'texto_corto': lambda v: (
+        f"Máximo {_MAX_TEXTO_CORTO} caracteres"
+        if len(v) > _MAX_TEXTO_CORTO else None),
+    'texto': lambda v: (
+        f"Máximo {_MAX_TEXTO} caracteres"
+        if len(v) > _MAX_TEXTO else None),
+}
+
+# Inferencia por nombre de clave/campo (orden importa: específico primero)
+_CLAVES_TIPO = [
+    (re.compile(r'correo|email', re.I), 'email'),
+    (re.compile(r'telefono|celular', re.I), 'telefono'),
+    (re.compile(r'url|link|enlace|sitio_web|pagina_web', re.I), 'url_multi'),
+    (re.compile(r'inicio_participacion|mmaaaa', re.I), 'mmaaaa'),
+    (re.compile(r'anios?_experiencia', re.I), 'entero'),
+    (re.compile(r'fecha', re.I), 'fecha'),
+    (re.compile(r'\banio|\bano\b|vigencia', re.I), 'aaaa'),
+    (re.compile(r'nombre_completo', re.I), 'nombre'),
+]
+
+# Reglas explícitas para campos escalares (texto plano del wizard)
+REGLAS_CAMPOS_FICED = {
+    'p25_proyectos_bp': 'codigos_bp',
+}
+
+
+def _tipo_por_clave(clave):
+    for rx, tipo in _CLAVES_TIPO:
+        if rx.search(clave):
+            return tipo
+    return None
+
+
+def _tipo_por_nombre_campo(name):
+    for rx, tipo in _CLAVES_TIPO:
+        if rx.search(name):
+            return tipo
+    if '_especificar' in name or name.endswith('_otro'):
+        return 'texto_corto'
+    return 'texto'
+
+
+def _validar_filas_json(valor, etiqueta='Fila'):
+    """Recorre el JSON de los widgets dinámicos y valida cada celda de
+    texto según el tipo inferido por el nombre de la clave. Devuelve la
+    lista de errores encontrados (vacía = OK)."""
+    try:
+        data = json.loads(valor) if isinstance(valor, str) else valor
+    except (ValueError, TypeError):
+        return []
+    errores = []
+    n_filas = 0
+
+    def check_cell(clave, v, ctx):
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            v = str(v)
+        if not isinstance(v, str) or not v.strip():
+            return
+        tipo = _tipo_por_clave(clave)
+        if tipo:
+            err = _REGLAS[tipo](v.strip())
+            if err:
+                errores.append(f"{ctx}, '{clave}': {err}")
+                return
+        if len(v) > _MAX_CELDA_JSON:
+            errores.append(
+                f"{ctx}, '{clave}': máximo {_MAX_CELDA_JSON} caracteres")
+
+    def walk(obj, ctx):
+        nonlocal n_filas
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if isinstance(v, str):
+                    check_cell(k, v, ctx)
+                elif isinstance(v, dict):
+                    walk(v, ctx)
+                elif isinstance(v, list):
+                    for item in v:
+                        if isinstance(item, str):
+                            check_cell(k, item, ctx)
+                        elif isinstance(item, (dict, list)):
+                            walk(item, ctx)
+        elif isinstance(obj, list):
+            for item in obj:
+                if isinstance(item, dict):
+                    n_filas += 1
+                    walk(item, f'Fila #{n_filas}')
+                elif isinstance(item, str):
+                    check_cell('', item, ctx)
+
+    walk(data, etiqueta)
+    if n_filas > _MAX_FILAS_JSON:
+        errores.append(f'Máximo {_MAX_FILAS_JSON} filas por tabla')
+    return errores
+
+
+class ICEDBaseForm(forms.Form):
+    """Base de los pasos del wizard FICED: validación estricta de formatos
+    sobre campos escalares y sobre las celdas JSON de los widgets
+    dinámicos (checkbox-tabla, tabla-simple/compleja, matriz, personas,
+    rrhh). Los clean_* específicos y los clean() condicionales de cada
+    módulo siguen aplicando encima de esta capa."""
+
+    def clean(self):
+        cleaned = super().clean()
+        for name, valor in list(cleaned.items()):
+            if name not in self.fields or valor in (None, '', [], {}):
+                continue
+            if isinstance(valor, str) and valor[:1] in '[{':
+                for err in _validar_filas_json(valor, name)[:6]:
+                    self.add_error(name, err)
+                continue
+            if isinstance(valor, str) and valor.strip():
+                tipo = (REGLAS_CAMPOS_FICED.get(name)
+                        or _tipo_por_nombre_campo(name))
+                err = _REGLAS[tipo](valor.strip())
+                if err:
+                    self.add_error(name, err)
+        return cleaned
+
+
+# =============================================================================
 # MÓDULO A: IDENTIFICACIÓN — Form con múltiples personas de contacto
 # =============================================================================
 
-class ICEDModuloAForm(forms.Form):
+class ICEDModuloAForm(ICEDBaseForm):
     """
     Módulo A: Identificación del organismo y personas de contacto.
     Las personas se almacenan como JSON en `personas_contacto_json`.
@@ -259,7 +476,7 @@ P12_CHOICES = [
 ]
 
 
-class ICEDModuloBForm(forms.Form):
+class ICEDModuloBForm(ICEDBaseForm):
     """Módulo B: Entorno Institucional (P6-P12)."""
     step_name = 'entorno'
 
@@ -277,6 +494,7 @@ class ICEDModuloBForm(forms.Form):
         )
     )
     p6_descripcion = forms.CharField(
+        max_length=3000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea', 'rows': 3,
@@ -377,6 +595,7 @@ class ICEDModuloBForm(forms.Form):
         label="10. ¿Participa el organismo en actividades de fortalecimiento de capacidades y competencias, como cursos y talleres de sensibilización, que mejoren la gestión y producción de información estadística?"
     )
     p10_motivo_no = forms.CharField(
+        max_length=2000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea',
@@ -435,6 +654,7 @@ class ICEDModuloBForm(forms.Form):
         label="12. ¿El organismo cuenta con mecanismos para asegurar la trazabilidad y continuidad en los procesos de generación, procesamiento, reporte o difusión de información estadística?"
     )
     p12_descripcion_mecanismo = forms.CharField(
+        max_length=2000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea',
@@ -482,7 +702,7 @@ P22_CHOICES = [
 ]
 
 
-class ICEDModuloC1Form(forms.Form):
+class ICEDModuloC1Form(ICEDBaseForm):
     """Módulo C1: Infraestructura - Herramientas (P13-P17)."""
     step_name = 'infraestructura_c1'
 
@@ -609,7 +829,7 @@ class ICEDModuloC1Form(forms.Form):
 # MÓDULO C2: INFRAESTRUCTURA - RECURSO HUMANO (P18-P20)
 # =============================================================================
 
-class ICEDModuloC2Form(forms.Form):
+class ICEDModuloC2Form(ICEDBaseForm):
     """Módulo C2: Infraestructura - Recurso Humano (P18-P20)."""
     step_name = 'infraestructura_c2'
 
@@ -720,7 +940,7 @@ class ICEDModuloC2Form(forms.Form):
 # MÓDULO C3: INFRAESTRUCTURA - RECURSOS FINANCIEROS (P21-P22)
 # =============================================================================
 
-class ICEDModuloC3Form(forms.Form):
+class ICEDModuloC3Form(ICEDBaseForm):
     """Módulo C3: Infraestructura - Recursos Financieros (P21-P22)."""
     step_name = 'infraestructura_c3'
 
@@ -744,22 +964,30 @@ class ICEDModuloC3Form(forms.Form):
         label="Del presupuesto ANUAL — Hardware"
     )
     p21_hw_servidores = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Adquisición de servidores para almacenamiento y procesamiento de datos estadísticos"
     )
     p21_hw_computadoras = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Computadoras de alto rendimiento para análisis estadístico avanzado"
     )
     p21_hw_moviles = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Dispositivos móviles (tabletas, smartphones) para recolección de datos en campo"
     )
     p21_hw_almacenamiento = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Sistemas de almacenamiento externos (discos duros, sistemas en la nube)"
     )
@@ -771,27 +999,37 @@ class ICEDModuloC3Form(forms.Form):
         label="Del presupuesto ANUAL — Software"
     )
     p21_sw_estadistico = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Software estadístico especializado (e.g., SPSS, R, STATA, Python)"
     )
     p21_sw_bd = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Licencias de bases de datos y herramientas para la gestión de datos (SQL, Oracle)"
     )
     p21_sw_encuestas = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Sistemas de gestión de encuestas (CAPI, CATI, CAWI) para recolección de datos"
     )
     p21_sw_visualizacion = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Software de visualización de datos (e.g., Tableau, Power BI)"
     )
     p21_sw_seguridad = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Sistemas de protección de datos y ciberseguridad para garantizar la seguridad de la información"
     )
@@ -803,22 +1041,30 @@ class ICEDModuloC3Form(forms.Form):
         label="Del presupuesto ANUAL — Personal y capacitación"
     )
     p21_per_contratacion = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Contratación de expertos en análisis de datos (estadísticos, científicos de datos)"
     )
     p21_per_capacitacion = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Capacitación del personal en uso de herramientas estadísticas y tecnológicas"
     )
     p21_per_consultorias = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Consultorías externas para el desarrollo de metodologías estadísticas"
     )
     p21_per_mantenimiento = forms.DecimalField(
-        required=False, min_value=0, max_value=100,
+        min_value=0,
+        max_value=100,
+        required=False,
         widget=forms.NumberInput(attrs={'class': 'iced-input iced-percentage-input', 'step': '0.1', 'placeholder': '% Ej: 25.5', 'style': 'min-width: 120px;'}),
         label="Mantenimiento técnico de los sistemas y herramientas tecnológicas"
     )
@@ -918,7 +1164,7 @@ P32_CHOICES = [
 ]
 
 
-class ICEDModuloD1Form(forms.Form):
+class ICEDModuloD1Form(ICEDBaseForm):
     """Módulo D1: Metodología Estadística - Operaciones Estadísticas (P23-P25)."""
     step_name = 'metodologia_d1'
 
@@ -1087,6 +1333,7 @@ class ICEDModuloD1Form(forms.Form):
         label="25. ¿Cuáles mecanismos se utilizan en el organismo para la detección de necesidades misionales o estadísticas?"
     )
     p25_proyectos_bp_link = forms.CharField(
+        max_length=500,
         required=False,
         initial='🔗 Consulte los BP asociados aquí: https://www.cali.gov.co/planeacion/publicaciones/115111/programas_proyectos_ejecucion_dapm/',
         widget=forms.TextInput(attrs={
@@ -1122,7 +1369,7 @@ class ICEDModuloD1Form(forms.Form):
 # MÓDULO D2: METODOLOGÍA ESTADÍSTICA - DISEÑO Y FORMULACIÓN DE INDICADORES (P26-P30)
 # =============================================================================
 
-class ICEDModuloD2Form(forms.Form):
+class ICEDModuloD2Form(ICEDBaseForm):
     """Módulo D2: Metodología Estadística - Diseño y Formulación de Indicadores (P26-P30)."""
     step_name = 'metodologia_d2'
 
@@ -1582,7 +1829,7 @@ class ICEDModuloD2Form(forms.Form):
 # MÓDULO D3: METODOLOGÍA ESTADÍSTICA - ANALÍTICA DE DATOS (P31-P32)
 # =============================================================================
 
-class ICEDModuloD3Form(forms.Form):
+class ICEDModuloD3Form(ICEDBaseForm):
     """Módulo D3: Metodología Estadística - Analítica de Datos (P31-P32)."""
     step_name = 'metodologia_d3'
 
@@ -1593,6 +1840,7 @@ class ICEDModuloD3Form(forms.Form):
         label="31. ¿Qué tipo de analítica y modelos utiliza su organismo para optimizar los procesos de recolección, análisis y toma de decisiones?"
     )
     p31_descripcion_productos = forms.CharField(
+        max_length=2000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea iced-conditional',
@@ -1630,6 +1878,7 @@ class ICEDModuloD3Form(forms.Form):
         label="32. ¿Actualmente conoce o hace uso de las herramientas de analítica avanzada con las que cuenta la entidad por medio de DATIC?"
     )
     p32_caso_uso = forms.CharField(
+        max_length=2000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea iced-conditional', 'rows': 3,
@@ -1692,7 +1941,7 @@ P34_TEMA_AREA = (
 )
 
 
-class ICEDModuloD4Form(forms.Form):
+class ICEDModuloD4Form(ICEDBaseForm):
     """Módulo D4: Metodología Estadística - Observatorios (P33-P35)."""
     step_name = 'metodologia_d4'
 
@@ -1836,7 +2085,7 @@ class ICEDModuloD4Form(forms.Form):
 # de documentación (IC-01); pendiente confirmación metodológica.
 # =============================================================================
 
-class ICEDModuloEForm(forms.Form):
+class ICEDModuloEForm(ICEDBaseForm):
     """Módulo E: Accesibilidad y Uso de la Información Estadística (P36-P42)."""
     step_name = 'accesibilidad'
 
@@ -2024,6 +2273,7 @@ class ICEDModuloEForm(forms.Form):
 
     # P42: Observaciones generales
     p42_observaciones = forms.CharField(
+        max_length=4000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea', 'rows': 5,
@@ -2073,7 +2323,7 @@ class ICEDModuloEForm(forms.Form):
 # DEFINICIÓN DE PASOS DEL WIZARD
 # =============================================================================
 
-class ICEDRevisionForm(forms.Form):
+class ICEDRevisionForm(ICEDBaseForm):
     """Paso final: revisión del resumen de respuestas y confirmación de envío."""
     step_name = 'revision'
 
