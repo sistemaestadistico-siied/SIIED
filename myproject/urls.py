@@ -43,6 +43,7 @@ urlpatterns = [
     path('admin/wizard/dashboard/', views_recoleccion.wizard_dashboard, name='wizard_dashboard'),
     path('admin/wizard/', views_recoleccion.wizard_admin_unificado, name='wizard_admin_unificado'),
     path('admin/wizard/diagnostico-ajax/', views_recoleccion.wizard_diagnostico_ajax, name='wizard_diagnostico_ajax'),
+    path('admin/wizard/regla-ia/', views_recoleccion.wizard_regla_ia, name='wizard_regla_ia'),
     path('admin/wizard/solicitar-correccion/<int:carga_id>/', views_recoleccion.wizard_solicitar_correccion, name='wizard_solicitar_correccion'),
 
     # Reiniciar servicios (Admin) - Antes del admin para evitar conflictos

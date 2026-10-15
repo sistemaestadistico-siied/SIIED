@@ -4832,3 +4832,117 @@ def metadata_generar_ia(request):
         metadata[campo] = str(valor).strip()
 
     return JsonResponse({'ok': True, 'metadata': metadata})
+
+
+@staff_member_required
+@require_POST
+def wizard_regla_ia(request):
+    """Don Datico — asistencia estructurada para la regla de extracción
+    cartesiana del wizard admin (paso regla_extraccion).
+
+    Recibe {prompt, contexto} donde contexto es el JSON que el wizard
+    inyectó en la página (indicador, dominios+desagregaciones, columnas y
+    muestra de filas del CSV). Devuelve la regla propuesta para que el
+    operador la revise; nada se persiste aquí.
+    """
+    from .llm_structured import REGLA_SCHEMA, REGLA_SYSTEM_PROMPT
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Cuerpo JSON inválido.'}, status=400)
+
+    prompt = (payload.get('prompt') or '').strip()
+    contexto = payload.get('contexto') or {}
+    if len(prompt) < 10:
+        return JsonResponse(
+            {'error': 'Describe qué quieres calcular con al menos una frase.'},
+            status=400)
+    if len(prompt) > 4000:
+        return JsonResponse(
+            {'error': 'La descripción es demasiado larga (máx. 4000 caracteres).'},
+            status=400)
+
+    # --- Construir prompt enriquecido con el contexto del wizard ---
+    indicador = contexto.get('indicador') or {}
+    doms_g = contexto.get('dominios_geograficos') or []
+    doms_t = contexto.get('dominios_tematicos') or []
+    columnas = contexto.get('columnas') or []
+    muestra = contexto.get('muestra') or []
+
+    def _fmt_doms(doms):
+        partes = []
+        for d in doms:
+            desags = ', '.join(d.get('desagregaciones') or []) or '(sin datos)'
+            partes.append(
+                f"- {d.get('nombre')} "
+                f"(total={d.get('tipo_agregacion_total', 'suma')}): {desags}")
+        return '\n'.join(partes) or '— ninguno —'
+
+    muestra_txt = ''
+    if muestra:
+        filas = '\n'.join(
+            ' | '.join(str(c)[:40] for c in fila)
+            for fila in muestra[:8])
+        muestra_txt = (
+            '\n\nMUESTRA DE FILAS DEL ARCHIVO (primeras filas, valores '
+            'reales):\n' + filas)
+
+    prompt_llm = (
+        f"INDICADOR A EXTRAER: {indicador.get('nombre', '')} "
+        f"(sigla: {indicador.get('sigla', '')}, "
+        f"código: {indicador.get('codigo', '')})\n\n"
+        f"DOMINIOS GEOGRÁFICOS DEL INDICADOR (sus desagregaciones se leen "
+        f"de los VALORES de columnas):\n{_fmt_doms(doms_g)}\n\n"
+        f"DOMINIOS TEMÁTICOS DEL INDICADOR (sus desagregaciones se buscan "
+        f"en headers en formato ancho, o en columnas de dimensión en "
+        f"formato largo):\n{_fmt_doms(doms_t)}\n\n"
+        f"HEADERS DEL ARCHIVO ({len(columnas)} columnas):\n"
+        f"{', '.join(str(c) for c in columnas)}{muestra_txt}\n\n"
+        f"DESCRIPCIÓN DEL OPERADOR (qué quiere calcular):\n{prompt}"
+    )
+
+    from .views_chat import ChatService
+    logger.info(
+        f'[IA] wizard_regla_ia inicio: {len(prompt_llm)} chars de prompt')
+    t_start = time.monotonic()
+    try:
+        data = ChatService(request=request).generate_structured(
+            prompt_llm, REGLA_SCHEMA,
+            system_prompt=REGLA_SYSTEM_PROMPT,
+            schema_name='regla_extraccion')
+        logger.info(
+            f'[IA] wizard_regla_ia OK en '
+            f'{time.monotonic() - t_start:.1f}s')
+    except Exception as e:
+        logger.error(
+            f'[IA] wizard_regla_ia falló en '
+            f'{time.monotonic() - t_start:.1f}s '
+            f'({type(e).__name__}: {e})')
+        return JsonResponse(
+            {'error': 'Don Datico no pudo proponer la regla. '
+                      'Inténtalo de nuevo en unos segundos.'},
+            status=502)
+
+    # Sanitizar la respuesta a los tipos que el formulario espera
+    regla = {
+        'columna_fecha': str(data.get('columna_fecha') or '').strip(),
+        'columnas_fuente': [
+            str(c).strip()
+            for c in (data.get('columnas_fuente') or []) if str(c).strip()
+        ],
+        'formula': str(data.get('formula') or '').strip(),
+        'filtros': data.get('filtros') if isinstance(
+            data.get('filtros'), dict) else {},
+        'orden_desagregaciones': [
+            str(d).strip()
+            for d in (data.get('orden_desagregaciones') or [])
+            if str(d).strip()
+        ],
+        'explicacion': str(data.get('explicacion') or '').strip(),
+        'advertencias': [
+            str(a).strip()
+            for a in (data.get('advertencias') or []) if str(a).strip()
+        ],
+    }
+    return JsonResponse({'ok': True, 'regla': regla})

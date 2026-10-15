@@ -506,6 +506,95 @@ class WizardAdminUnificado(SessionWizardView):
             )
         return ok
 
+    def _dondatico_regla_context(self, context):
+        """Construye el dict de contexto que el panel Don Datico envía al
+        endpoint wizard_regla_ia: indicador, dominios con desagregaciones,
+        columnas y muestra de filas del conjunto de datos."""
+        import pandas as pd
+
+        ctx = {}
+
+        # Indicador (paso config_indicador: existente o nuevo)
+        paso_5 = self.get_cleaned_data_for_step(self.PASO_CONFIG_INDICADOR) or {}
+        ind = paso_5.get('indicador_existente')
+        if ind is not None:
+            ctx['indicador'] = {
+                'nombre': ind.nombre,
+                'sigla': ind.sigla or '',
+                'codigo': ind.codigo_indicador or '',
+            }
+        else:
+            ctx['indicador'] = {
+                'nombre': paso_5.get('nombre', '') or '',
+                'sigla': paso_5.get('sigla', '') or '',
+                'codigo': paso_5.get('codigo_indicador', '') or '',
+            }
+
+        # Dominios seleccionados (paso verificar_desag)
+        paso_6 = self.get_cleaned_data_for_step(self.PASO_VERIFICAR_DESAG) or {}
+
+        def _dominio_info(dom):
+            try:
+                desags = list(
+                    dom.desagregaciones.values_list('nombre', flat=True))[:30]
+            except Exception:
+                desags = []
+            return {
+                'nombre': dom.nombre,
+                'tipo_agregacion_total': getattr(
+                    dom, 'tipo_agregacion_total', 'suma'),
+                'desagregaciones': desags,
+            }
+
+        ctx['dominios_geograficos'] = [
+            _dominio_info(d)
+            for d in (paso_6.get('dominios_desagregacion_geografica') or [])
+        ]
+        ctx['dominios_tematicos'] = [
+            _dominio_info(d)
+            for d in (paso_6.get('dominios_desagregacion_tematica') or [])
+        ]
+
+        # Columnas detectadas en el preview
+        ctx['columnas'] = list(
+            self.storage.extra_data.get('columnas_disponibles', []))
+
+        # Muestra de filas del conjunto de datos (para que el LLM vea
+        # valores reales y detecte formato ancho/largo)
+        ctx['muestra'] = []
+        carga = context.get('carga_conjunto_datos')
+        if carga is None:
+            carga_id = self.storage.extra_data.get('carga_conjunto_datos_id')
+            if carga_id:
+                try:
+                    carga = CargaConjuntoDatos.objects.get(id=carga_id)
+                except CargaConjuntoDatos.DoesNotExist:
+                    carga = None
+        if carga is not None:
+            try:
+                path = None
+                if getattr(carga, 'archivo_microdata_csv', None) and \
+                        carga.archivo_microdata_csv:
+                    path = carga.archivo_microdata_csv.path
+                elif getattr(carga, 'archivo_microdata_xlsx', None) and \
+                        carga.archivo_microdata_xlsx:
+                    path = carga.archivo_microdata_xlsx.path
+                if path:
+                    if path.endswith(('.xlsx', '.xls')):
+                        df = pd.read_excel(path, nrows=8)
+                    else:
+                        df = _leer_csv_auto_sep(path).head(8)
+                    if not ctx['columnas']:
+                        ctx['columnas'] = list(df.columns)
+                    ctx['muestra'] = [
+                        [str(c)[:60] for c in fila]
+                        for fila in df.astype(str).values.tolist()
+                    ]
+            except Exception:
+                pass
+
+        return ctx
+
     def get_context_data(self, form, **kwargs):
         """Agrega contexto adicional a los templates"""
         context = super().get_context_data(form=form, **kwargs)
@@ -975,12 +1064,14 @@ class WizardAdminUnificado(SessionWizardView):
             columnas = self.storage.extra_data.get('columnas_disponibles', [])
             context['columnas_disponibles'] = columnas
             context['carga_conjunto_datos_id'] = self.storage.extra_data.get('carga_conjunto_datos_id')
+            context['dondatico_ctx'] = self._dondatico_regla_context(context)
 
         # Contexto para Paso 8C: Regla de Extracción (flujo C)
         elif self.steps.current == self.PASO_REGLA_EXTRACCION_C:
             columnas = self.storage.extra_data.get('columnas_disponibles', [])
             context['columnas_disponibles'] = columnas
             context['carga_conjunto_datos_id'] = self.storage.extra_data.get('carga_conjunto_datos_id')
+            context['dondatico_ctx'] = self._dondatico_regla_context(context)
         
         # Contexto para Paso 8A: Diagnóstico
         elif self.steps.current == self.PASO_DIAGNOSTICO:

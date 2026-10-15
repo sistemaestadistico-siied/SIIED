@@ -1,5 +1,5 @@
 {% extends "admin/wizard_unificado/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 
 {% block wizard_content %}
 <div class="wizard-form">
@@ -44,6 +44,36 @@
       </div>
     </div>
     
+    <!-- Asistente Don Datico: propone la regla a partir de una descripción -->
+    <div class="form-section" style="background: linear-gradient(90deg, rgba(20,184,166,0.06), rgba(6,182,212,0.06)); border: 1px solid rgba(20,184,166,0.35); border-radius: 10px; padding: 1.25rem 1.5rem;">
+      <div style="display:flex; align-items:center; gap:0.9rem; margin-bottom:0.75rem;">
+        <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico"
+             style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #14b8a6; background:#f0fdfa; flex-shrink:0;">
+        <div>
+          <strong style="color:#0f766e; font-size:1rem;">Don Datico</strong>
+          <span style="margin-left:0.4rem; font-size:0.75rem; font-weight:600; color:#0f766e; background:rgba(20,184,166,0.12); border:1px solid rgba(20,184,166,0.3); border-radius:999px; padding:0.15rem 0.6rem;">Asistente de extracción</span>
+          <div style="font-size:0.78rem; color:#0f766e; opacity:0.8; margin-top:0.15rem;">Asistente oficial del SIIED</div>
+        </div>
+      </div>
+      <p style="font-size:0.85rem; color:#115e59; margin:0 0 0.75rem 0;">
+        Describe en lenguaje natural <strong>qué quieres calcular</strong> (qué significa el indicador,
+        qué columnas representan numerador/denominador, a qué filas aplica) y Don Datico propondrá
+        la regla completa leyendo la matriz de datos. <strong>Revisa antes de continuar</strong> —
+        el diagnóstico confirma si la regla extrae lo esperado.
+      </p>
+      <textarea id="ia-prompt" rows="3"
+        style="width:100%; padding:0.65rem 0.9rem; border:1.5px solid rgba(20,184,166,0.4); border-radius:8px; font-size:0.88rem; color:#334155; resize:vertical; box-sizing:border-box;"
+        placeholder="Ej: Quiero la tasa de mortalidad infantil por mil nacidos vivos. Las columnas H_0_4... son defunciones por sexo y edad; la columna Nacimientos es el denominador..."></textarea>
+      <div style="display:flex; align-items:center; gap:0.75rem; margin-top:0.75rem;">
+        <button type="button" id="ia-generar"
+                style="background:#0d9488; color:#fff; border:none; padding:0.6rem 1.2rem; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.88rem;">
+          <i class="fas fa-wand-magic-sparkles"></i> Proponer regla con Don Datico
+        </button>
+        <span id="ia-status" style="font-size:0.85rem; color:#0f766e;"></span>
+      </div>
+      <div id="ia-resultado" style="display:none; margin-top:1rem;"></div>
+    </div>
+
     <!-- Configuración de la regla -->
     <div class="form-section">
       <h4>
@@ -276,6 +306,89 @@ document.addEventListener('DOMContentLoaded', function() {
             resultado.style.display = 'block';
         });
     });
+
+    // --- Don Datico: propuesta de regla de extracción ---
+    const btnIA = document.getElementById('ia-generar');
+    const promptIA = document.getElementById('ia-prompt');
+    const statusIA = document.getElementById('ia-status');
+    const resultadoIA = document.getElementById('ia-resultado');
+    const ctxEl = document.getElementById('dondatico-ctx');
+    const ctxIA = ctxEl ? JSON.parse(ctxEl.textContent) : {};
+
+    function setField(suffix, value) {
+        const el = document.querySelector('[name$="' + suffix + '"]');
+        if (el) el.value = value;
+    }
+
+    if (btnIA && promptIA && statusIA) {
+        btnIA.addEventListener('click', function () {
+            const prompt = (promptIA.value || '').trim();
+            if (prompt.length < 10) {
+                statusIA.textContent = 'Describe qué quieres calcular con al menos una frase.';
+                statusIA.style.color = '#dc2626';
+                return;
+            }
+            btnIA.disabled = true;
+            statusIA.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Don Datico está analizando la matriz…';
+            statusIA.style.color = '#0f766e';
+            resultadoIA.style.display = 'none';
+
+            const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            fetch("{% url 'wizard_regla_ia' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfInput ? csrfInput.value : ''
+                },
+                body: JSON.stringify({ prompt: prompt, contexto: ctxIA })
+            })
+            .then(r => r.text().then(txt => {
+                let data = {};
+                try { data = JSON.parse(txt); }
+                catch (e) {
+                    throw new Error('Don Datico tardó demasiado y el servidor intermedio cortó la conexión. Inténtalo de nuevo.');
+                }
+                return { ok: r.ok, data };
+            }))
+            .then(({ ok, data }) => {
+                if (!ok || !data.ok) {
+                    throw new Error(data.error || 'Error proponiendo la regla.');
+                }
+                const r = data.regla || {};
+                setField('columna_fecha', r.columna_fecha || '');
+                setField('columnas_fuente', (r.columnas_fuente || []).join(', '));
+                setField('formula', r.formula || '');
+                const filtros = r.filtros || {};
+                setField('filtros_json',
+                    Object.keys(filtros).length ? JSON.stringify(filtros, null, 2) : '');
+                setField('orden_desagregaciones',
+                    (r.orden_desagregaciones || []).join(', '));
+
+                let html = '<div style="background:rgba(16,185,129,0.08); border-left:4px solid #10b981; padding:0.9rem 1.1rem; border-radius:6px;">';
+                if (r.explicacion) {
+                    html += '<div style="font-size:0.88rem; color:#065f46;"><strong><i class="fas fa-lightbulb"></i> Explicación:</strong> ' + r.explicacion + '</div>';
+                }
+                if (r.advertencias && r.advertencias.length) {
+                    html += '<div style="margin-top:0.6rem; font-size:0.85rem; color:#92400e;"><strong><i class="fas fa-triangle-exclamation"></i> Advertencias:</strong><ul style="margin:0.3rem 0 0 1.2rem;">';
+                    r.advertencias.forEach(a => { html += '<li>' + a + '</li>'; });
+                    html += '</ul></div>';
+                }
+                html += '<div style="margin-top:0.6rem; font-size:0.82rem; color:#0f766e;">Campos completados abajo — verifícalos y usa <strong>Diagnosticar regla</strong> antes de continuar.</div></div>';
+                resultadoIA.innerHTML = html;
+                resultadoIA.style.display = 'block';
+
+                statusIA.textContent = 'Regla propuesta — revisa los campos y diagnostica.';
+                statusIA.style.color = '#059669';
+            })
+            .catch(err => {
+                statusIA.textContent = err.message;
+                statusIA.style.color = '#dc2626';
+            })
+            .finally(() => { btnIA.disabled = false; });
+        });
+    }
 });
 </script>
+
+{{ dondatico_ctx|json_script:"dondatico-ctx" }}
 {% endblock %}
