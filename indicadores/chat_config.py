@@ -40,7 +40,10 @@ CHAT_CONFIG = {
     # thought_signature al reenviar tool_calls (ya manejado en views_chat).
     'CEREBRAS_API_KEY': '***REMOVED***',  # API Key Principal
     'CEREBRAS_BASE_URL': 'https://generativelanguage.googleapis.com/v1beta/openai/',  # URL base de la API Principal
-    'CEREBRAS_MODEL': 'gemini-3.8-flash',  # Modelo Principal
+    # gemini-3.8-flash tiene cuota free de solo 5 RPM / 20 RPD (se agota en
+    # pocas consultas con tools -> 429/503/cuelgues). Los flash-lite tienen
+    # 15 RPM / 500 RPD. Override posible vía ConfiguracionSistema en BD.
+    'CEREBRAS_MODEL': 'gemini-3.5-flash-lite',  # Modelo Principal
     # Nivel de razonamiento del modelo (Gemini 3: minimal|low|medium|high).
     # Sin este parámetro el default puede pensar varios minutos por llamada.
     'LLM_REASONING_EFFORT': 'low',
