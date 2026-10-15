@@ -940,6 +940,13 @@
         max-width: 90%;
     }
 
+    /* Mensajes con visualizaciones: usar todo el ancho del chat,
+       la burbuja no debe encoger al texto */
+    .message.assistant-message.has-viz {
+        width: 100%;
+        max-width: 100%;
+    }
+
     .message-avatar {
         width: 40px;
         height: 40px;
@@ -3451,6 +3458,9 @@ async renderVisualizaciones(vizData, messageId) {
     if (!messageElement || !Array.isArray(vizData) || !vizData.length) return;
     const contentWrapper = messageElement.querySelector('.message-content-wrapper');
     if (!contentWrapper) return;
+    // La burbuja encoge al contenido (align-self:flex-start); con viz
+    // forzamos el ancho completo del chat
+    messageElement.classList.add('has-viz');
 
     try {
         await this.loadPlotly();
@@ -3480,7 +3490,7 @@ async renderVisualizaciones(vizData, messageId) {
                     <i class="fas fa-download"></i> PNG
                 </button>
             </div>
-            <div class="viz-plot" style="width:100%;height:${esMovil ? 200 : 300}px;"></div>`;
+            <div class="viz-plot" style="width:100%;height:${esMovil ? 200 : 400}px;"></div>`;
         container.appendChild(card);
 
         const plotDiv = card.querySelector('.viz-plot');
