@@ -8,6 +8,13 @@
 <style>
     .lab-layout { display: grid; grid-template-columns: 360px 1fr; gap: 1.25rem; align-items: start; }
     .lab-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .lab-tile-amplio { grid-column: 1 / -1; }
+    .lab-tile-texto { padding-bottom: .5rem; }
+    .lab-prosa { font-size: .9rem; line-height: 1.65; color: #334155; }
+    .lab-prosa p + p { margin-top: .55rem; }
+    .tile-insight { font-size: .74rem; color: #475569; font-style: italic; padding: .45rem .75rem .2rem; line-height: 1.45; }
+    .tile-fuente { font-size: .68rem; color: #0d9488; white-space: nowrap; }
+    .tile-fuente:hover { text-decoration: underline; }
     .lab-tile-kpi { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height: 180px; }
     .lab-tile-kpi .kpi-valor { font-size: 2.6rem; font-weight: 800; color: #0f766e; line-height: 1.1; }
     .lab-tile-kpi .kpi-unidad { font-size: .8rem; color: #64748b; margin-top: .35rem; }
@@ -88,7 +95,9 @@
                     <i class="fas fa-chart-pie text-4xl mb-3"></i>
                     <p class="text-sm">El tablero aparecerá aquí.<br>Empieza describiendo lo que quieres analizar en el chat.</p>
                 </div>
+                <div id="lab-contexto" class="hidden mb-3 p-3 bg-violet-50 border border-violet-200 rounded-xl text-sm text-violet-900"></div>
                 <div id="lab-tiles" class="lab-tiles"></div>
+                <div id="lab-analisis" class="hidden mt-3 p-4 bg-violet-50 border border-violet-200 rounded-xl text-sm text-violet-900"></div>
             </div>
         </section>
     </div>
@@ -100,6 +109,8 @@
 {{ tablero.id|json_script:"tablero-id" }}
 {{ tablero.titulo|json_script:"tablero-titulo" }}
 {{ tablero.descripcion|json_script:"tablero-desc" }}
+{{ tablero.spec.contexto|json_script:"tablero-contexto" }}
+{{ tablero.spec.analisis|json_script:"tablero-analisis" }}
 {% endif %}
 {% endblock %}
 
@@ -171,16 +182,28 @@
     }
 
     // ---------- render de tiles ----------
+    const esc = s => String(s == null ? '' : s).replace(/</g, '&lt;');
+    const prosa = s => `<p>${esc(s).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
+
     function tarjetaTile(tile) {
         const card = document.createElement('div');
         card.className = 'lab-tile bg-slate-50 border border-slate-200 rounded-xl overflow-hidden';
+        if (tile.tamano === 'amplio' || tile.tipo === 'texto')
+            card.classList.add('lab-tile-amplio');
+        const fuente = tile.fuente_url
+            ? `<a href="${tile.fuente_url}" target="_blank" rel="noopener" class="tile-fuente" title="Consultar la fuente en el SIIED"><i class="fas fa-link"></i> fuente</a>`
+            : '';
         card.innerHTML = `
             <div class="flex items-center justify-between gap-2 px-3 py-2 bg-white border-b border-slate-200">
-                <span class="text-xs font-semibold text-slate-700 truncate">${tile.titulo || 'Tile'}</span>
-                <button type="button" class="tile-png text-xs px-2 py-1 text-teal-700 border border-teal-300 rounded hover:bg-teal-600 hover:text-white transition" title="Descargar PNG">
-                    <i class="fas fa-download"></i>
-                </button>
+                <span class="text-xs font-semibold text-slate-700 truncate">${esc(tile.titulo) || 'Tile'}</span>
+                <div class="flex items-center gap-2 shrink-0">
+                    ${fuente}
+                    <button type="button" class="tile-png text-xs px-2 py-1 text-teal-700 border border-teal-300 rounded hover:bg-teal-600 hover:text-white transition" title="Descargar PNG">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
             </div>
+            ${tile.insight ? `<div class="tile-insight">${esc(tile.insight)}</div>` : ''}
             <div class="tile-body" style="min-height:${esMovil() ? 200 : 260}px;"></div>`;
         return card;
     }
@@ -188,6 +211,15 @@
     function renderTile(tile) {
         const card = tarjetaTile(tile);
         const body = card.querySelector('.tile-body');
+
+        // --- Tile de prosa: contexto/nota, sin gráfico ni PNG ---
+        if (tile.tipo === 'texto') {
+            card.classList.add('lab-tile-texto');
+            body.style.minHeight = 'auto';
+            body.innerHTML = `<div class="lab-prosa px-4 py-3">${prosa(tile.texto)}</div>`;
+            card.querySelector('.tile-png').style.display = 'none';
+            return card;
+        }
 
         if (tile.error) {
             body.innerHTML = `<p class="text-xs text-red-600 p-4"><i class="fas fa-exclamation-triangle"></i> ${tile.error}</p>`;
@@ -313,7 +345,21 @@
         document.getElementById('lab-desc').textContent =
             (data.tablero && data.tablero.descripcion) || '';
 
+        const $ctx = document.getElementById('lab-contexto');
+        if (data.tablero && data.tablero.contexto) {
+            $ctx.innerHTML = '<strong><i class="fas fa-align-left"></i> Contexto:</strong>'
+                + `<div class="lab-prosa mt-1">${prosa(data.tablero.contexto)}</div>`;
+            $ctx.classList.remove('hidden');
+        } else { $ctx.classList.add('hidden'); }
+
         (data.tiles || []).forEach(t => $tiles.appendChild(renderTile(t)));
+
+        const $ana = document.getElementById('lab-analisis');
+        if (data.tablero && data.tablero.analisis) {
+            $ana.innerHTML = '<strong><i class="fas fa-lightbulb"></i> Análisis de Don Datico:</strong>'
+                + `<div class="lab-prosa mt-1">${prosa(data.tablero.analisis)}</div>`;
+            $ana.classList.remove('hidden');
+        } else { $ana.classList.add('hidden'); }
 
         const $exp = document.getElementById('lab-explicacion');
         if (data.explicacion) {
@@ -396,10 +442,14 @@
     if (TILES_GUARDADOS && TILES_GUARDADOS.length) {
         const tituloEl = document.getElementById('tablero-titulo');
         const descEl = document.getElementById('tablero-desc');
+        const ctxEl = document.getElementById('tablero-contexto');
+        const anaEl = document.getElementById('tablero-analisis');
         renderTablero({
             tablero: {
                 titulo: tituloEl ? JSON.parse(tituloEl.textContent) : 'Tablero',
                 descripcion: descEl ? JSON.parse(descEl.textContent) : '',
+                contexto: ctxEl ? JSON.parse(ctxEl.textContent) : '',
+                analisis: anaEl ? JSON.parse(anaEl.textContent) : '',
             },
             tiles: TILES_GUARDADOS,
         });

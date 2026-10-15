@@ -23,10 +23,16 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 
+from django.urls import reverse
+
 from .chat_config import get_config
-from .llm_structured import TABLERO_SCHEMA, TABLERO_SYSTEM_PROMPT
+from .llm_structured import (
+    TABLERO_ANALISIS_PROMPT, TABLERO_ANALISIS_SCHEMA,
+    TABLERO_SCHEMA, TABLERO_SYSTEM_PROMPT,
+)
 from .models import (
-    ConjuntoDatos, Dato, Indicador, Tablero, VariableConjuntoDatos,
+    CatalogoConsulta, ConjuntoDatos, Dato, Indicador, Tablero,
+    VariableConjuntoDatos,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,8 +41,8 @@ AGREGACIONES = {
     'suma': 'sum', 'promedio': 'mean', 'conteo': 'count',
     'max': 'max', 'min': 'min',
 }
-TIPOS_TILE = {'line', 'bar', 'pie', 'kpi', 'tabla', 'mapa'}
-MAX_TILES = 6
+TIPOS_TILE = {'line', 'bar', 'pie', 'kpi', 'tabla', 'mapa', 'texto'}
+MAX_TILES = 8
 MAX_FILAS_CSV = 200_000
 MAX_CONSULTA = 3000
 
@@ -109,6 +115,19 @@ def _contexto_fuentes(request):
         if len(conjuntos) >= 15:
             break
 
+    # Cuadros del catalogo de consulta: tablas oficiales listas para
+    # graficar (columnas + filas ya cargadas, sin CSV)
+    catalogos = [
+        {
+            'id': cc.id,
+            'nombre': cc.nombre,
+            'descripcion': (cc.descripcion or '')[:200],
+            'columnas': list(cc.columnas or [])[:15],
+        }
+        for cc in CatalogoConsulta.objects
+        .filter(activo=True).order_by('orden')[:10]
+    ]
+
     indicadores = list(
         Indicador.objects.filter(activo=True)
         .order_by('nombre')[:40]
@@ -118,6 +137,7 @@ def _contexto_fuentes(request):
         'organismo': org.nombre if org else None,
         'conjuntos_datos': conjuntos,
         'indicadores': indicadores,
+        'catalogo_consulta': catalogos,
     }
 
 
@@ -189,20 +209,42 @@ def _resolver_tile_conjunto(tile):
         logger.warning('Laboratorio: error leyendo CSV %s: %s', cd.id, e)
         return {'error': 'No se pudo leer el archivo de datos'}
 
+    return _resolver_df(df, tile, cd.nombre)
+
+
+def _resolver_tile_catalogo(tile):
+    """Resuelve contra un cuadro del catálogo de consulta (filas JSON)."""
+    cc = CatalogoConsulta.objects.filter(
+        id=tile['fuente_id'], activo=True).first()
+    if not cc:
+        return {'error': 'Cuadro del catalogo de consulta no encontrado'}
+    if not cc.filas:
+        return {'error': f"El cuadro '{cc.nombre}' no tiene filas cargadas"}
+    df = pd.DataFrame(cc.filas)
+    return _resolver_df(df, tile, cc.nombre)
+
+
+def _resolver_df(df, tile, fuente_nombre):
+    """Agrega un DataFrame ya cargado según dimension/medida del tile."""
+    dimension = (tile.get('dimension') or '').strip()
+    medida = (tile.get('medida') or '').strip()
+    filtros = tile.get('filtros') or {}
+    agg = tile.get('agregacion', 'suma')
+    limite = max(1, min(int(tile.get('limite') or 10), 50))
+
     df.columns = [str(c).strip() for c in df.columns]
 
-    # La metadata puede tener codigos que el CSV real no tiene:
-    # validar contra el archivo antes de indexar el DataFrame
+    # Validar contra columnas reales antes de indexar el DataFrame
     if medida and medida not in df.columns:
-        return {'error': f"La columna '{medida}' no esta en el CSV "
-                         f"de '{cd.nombre}'"}
+        return {'error': f"La columna '{medida}' no esta en "
+                         f"'{fuente_nombre}'"}
     if dimension and dimension not in df.columns:
-        return {'error': f"La columna '{dimension}' no esta en el CSV "
-                         f"de '{cd.nombre}'"}
+        return {'error': f"La columna '{dimension}' no esta en "
+                         f"'{fuente_nombre}'"}
     for col in filtros:
         if col not in df.columns:
             return {'error': f"La columna de filtro '{col}' no esta "
-                             f"en el CSV de '{cd.nombre}'"}
+                             f"en '{fuente_nombre}'"}
 
     # Filtros columna -> valor literal (comparacion como string)
     for col, val in filtros.items():
@@ -230,7 +272,7 @@ def _resolver_tile_conjunto(tile):
     if not dimension:
         return {'error': 'Este tipo de tile requiere una dimension'}
     if dimension not in df.columns:
-        return {'error': f"La columna '{dimension}' no esta en el CSV"}
+        return {'error': f"La columna '{dimension}' no esta en la fuente"}
 
     if medida and medida in df.columns:
         grupos = (df.groupby(dimension, dropna=False)[medida]
@@ -351,9 +393,33 @@ def _resolver_tile_indicador(tile):
 
 
 def _resolver_tile(tile):
-    if tile.get('fuente_tipo') == 'conjunto_datos':
+    if tile.get('tipo') == 'texto':
+        # Bloque de prosa: nada que resolver, el cuerpo ya viene en la spec
+        return {'texto': tile.get('texto') or ''}
+    fuente_tipo = tile.get('fuente_tipo')
+    if fuente_tipo == 'conjunto_datos':
         return _resolver_tile_conjunto(tile)
+    if fuente_tipo == 'catalogo_consulta':
+        return _resolver_tile_catalogo(tile)
     return _resolver_tile_indicador(tile)
+
+
+def _url_fuente_tile(tile):
+    """URL pública donde el usuario puede consultar la fuente del tile."""
+    fid = tile.get('fuente_id')
+    try:
+        if tile.get('fuente_tipo') == 'indicador' and fid:
+            # La ficha de conjuntos del indicador muestra sus datos
+            return reverse('indicadores:conjunto_datos_detalle',
+                           args=[fid])
+        if tile.get('fuente_tipo') == 'conjunto_datos' and fid:
+            return reverse('indicadores:conjuntos_datos_explorer')
+        if tile.get('fuente_tipo') == 'catalogo_consulta' and fid:
+            return reverse('indicadores:catalogo_consulta_detalle',
+                           args=[fid])
+    except Exception:
+        pass
+    return None
 
 
 def _resolver_spec(spec):
@@ -365,6 +431,9 @@ def _resolver_spec(spec):
         except Exception as e:
             logger.exception('Laboratorio: error resolviendo tile')
             res = {'error': str(e)[:200]}
+        url = _url_fuente_tile(tile)
+        if url:
+            res['fuente_url'] = url
         resueltos.append({**tile, 'id': f'tile-{i}', **res})
     return resueltos
 
@@ -376,19 +445,33 @@ def _sanitizar_spec(data):
         'descripcion': str(data.get('descripcion') or '')[:500],
         'tiles': [],
     }
+    spec['contexto'] = str(data.get('contexto') or '')[:2000]
     for t in (data.get('tiles') or [])[:MAX_TILES]:
         if not isinstance(t, dict):
+            continue
+        comunes = {
+            'tipo': t.get('tipo') if t.get('tipo') in TIPOS_TILE else 'bar',
+            'titulo': str(t.get('titulo') or 'Tile')[:80],
+            'insight': str(t.get('insight') or '')[:600],
+            'tamano': (t.get('tamano')
+                       if t.get('tamano') in ('mitad', 'amplio')
+                       else 'mitad'),
+        }
+        if comunes['tipo'] == 'texto':
+            # Los tiles de prosa no requieren fuente ni agregacion
+            comunes['texto'] = str(t.get('texto') or '')[:2000]
+            spec['tiles'].append(comunes)
             continue
         fuente_tipo = t.get('fuente_tipo')
         try:
             fuente_id = int(t.get('fuente_id'))
         except (TypeError, ValueError):
             continue
-        if fuente_tipo not in ('conjunto_datos', 'indicador'):
+        if fuente_tipo not in ('conjunto_datos', 'indicador',
+                               'catalogo_consulta'):
             continue
         spec['tiles'].append({
-            'tipo': t.get('tipo') if t.get('tipo') in TIPOS_TILE else 'bar',
-            'titulo': str(t.get('titulo') or 'Tile')[:80],
+            **comunes,
             'fuente_tipo': fuente_tipo,
             'fuente_id': fuente_id,
             'dimension': str(t.get('dimension') or '')[:100],
@@ -400,6 +483,69 @@ def _sanitizar_spec(data):
             'limite': t.get('limite') or 10,
         })
     return spec
+
+
+def _segunda_pasada_analisis(request, spec, resueltos):
+    """Pasada 2: prosa post-datos — analisis del tablero + insight por tile.
+
+    Solo ve el resumen de lo ya resuelto (nunca los datos crudos) y solo
+    devuelve lectura. Falla silenciosa: si el LLM no responde, el tablero
+    queda con los insights de la primera pasada.
+    """
+    resumen = []
+    for i, r in enumerate(resueltos):
+        item = {'indice': i, 'titulo': r.get('titulo'), 'tipo': r.get('tipo')}
+        p = r.get('plotly') or {}
+        if 'kpi' in p:
+            item['datos'] = {
+                'valor': p['kpi'].get('valor'),
+                'unidad': p['kpi'].get('unidad'),
+                'nota': p['kpi'].get('nota'),
+            }
+        elif 'tabla' in p:
+            item['datos'] = {
+                'headers': p['tabla'].get('headers'),
+                'filas': (p['tabla'].get('filas') or [])[:8],
+            }
+        elif p.get('data'):
+            d0 = p['data'][0] or {}
+            item['datos'] = {
+                'x': (d0.get('x') or [])[:12],
+                'y': (d0.get('y') or [])[:12],
+            }
+        elif r.get('viz'):
+            item['datos'] = {'viz': r['viz'].get('tipo')}
+        elif r.get('error'):
+            item['datos'] = {'error': r['error']}
+        elif r.get('tipo') == 'texto':
+            item['datos'] = {'texto': (r.get('texto') or '')[:300]}
+        resumen.append(item)
+
+    if not resumen:
+        return {}
+
+    prompt = (
+        'TABLERO: ' + (spec.get('titulo') or '') + ' — '
+        + (spec.get('descripcion') or '') + '\n\n'
+        'RESUMEN DE DATOS RESUELTOS (por tile, en orden):\n'
+        + json.dumps(resumen, ensure_ascii=False)[:8000])
+
+    from .views_chat import ChatService
+    try:
+        data = ChatService(request=request).generate_structured(
+            prompt,
+            TABLERO_ANALISIS_SCHEMA,
+            system_prompt=TABLERO_ANALISIS_PROMPT,
+            schema_name='tablero_analisis',
+            max_seconds=40,
+            reasoning_effort=get_config(
+                'LLM_TABLERO_REASONING_EFFORT', 'high'),
+        )
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        logger.warning('Laboratorio: segunda pasada de analisis fallo',
+                       exc_info=True)
+        return {}
 
 
 # ----------------------------------------------------------------------
@@ -474,6 +620,22 @@ def laboratorio_generar(request):
 
     spec = _sanitizar_spec(data)
     resueltos = _resolver_spec(spec)
+
+    # Pasada 2: analisis en prosa con cifras reales (no fatal si falla).
+    # Se funde en la spec para que persista al guardar el tablero.
+    analisis = _segunda_pasada_analisis(request, spec, resueltos)
+    if analisis:
+        spec['analisis'] = str(analisis.get('analisis') or '')[:2000]
+        insights = analisis.get('insights')
+        if isinstance(insights, list):
+            for i, ins in enumerate(insights):
+                if not isinstance(ins, str) or not ins.strip():
+                    continue
+                ins = ins.strip()[:600]
+                if i < len(spec['tiles']):
+                    spec['tiles'][i]['insight'] = ins
+                if i < len(resueltos):
+                    resueltos[i]['insight'] = ins
 
     return JsonResponse({
         'ok': True,

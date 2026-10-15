@@ -674,19 +674,24 @@ TABLERO_SCHEMA = {
         },
         'tiles': {
             'type': 'array',
-            'description': 'Cuadros/graficos del tablero (1-6 tiles)',
+            'description': (
+                'Cuadros/graficos/texto del tablero (1-8 tiles, '
+                'mezclando visualizaciones y bloques de prosa)'),
             'items': {
                 'type': 'object',
                 'properties': {
                     'tipo': {
                         'type': 'string',
-                        'enum': ['line', 'bar', 'pie', 'kpi', 'tabla', 'mapa'],
+                        'enum': ['line', 'bar', 'pie', 'kpi', 'tabla',
+                                 'mapa', 'texto'],
                         'description': (
                             'line/bar: evolucion o comparacion. pie: '
                             'composicion por categoria. kpi: cifra unica '
                             'destacada. tabla: top N filas agregadas. '
                             'mapa: distribucion geografica (solo fuente '
-                            'indicador)'),
+                            'indicador). texto: bloque de prosa '
+                            '(contexto, nota metodologica, lectura) — '
+                            'no requiere fuente'),
                     },
                     'titulo': {
                         'type': 'string',
@@ -694,12 +699,21 @@ TABLERO_SCHEMA = {
                     },
                     'fuente_tipo': {
                         'type': 'string',
-                        'enum': ['conjunto_datos', 'indicador'],
-                        'description': 'Origen de datos del tile',
+                        'enum': ['conjunto_datos', 'indicador',
+                                 'catalogo_consulta'],
+                        'description': (
+                            'Origen de datos del tile. catalogo_consulta '
+                            'usa los cuadros/tablas del catalogo de '
+                            'consulta del SIIED (fuente_id = id del '
+                            'cuadro; dimension y medida = nombres de '
+                            'columna del cuadro). Para tipo texto puede '
+                            'omitirse.'),
                     },
                     'fuente_id': {
                         'type': 'integer',
-                        'description': 'ID del ConjuntoDatos o del Indicador',
+                        'description': (
+                            'ID del ConjuntoDatos, del Indicador o del '
+                            'cuadro del catalogo de consulta'),
                     },
                     'dimension': {
                         'type': 'string',
@@ -732,10 +746,40 @@ TABLERO_SCHEMA = {
                         'type': 'integer',
                         'description': 'Maximo de categorias/filas (default 10)',
                     },
+                    'insight': {
+                        'type': 'string',
+                        'description': (
+                            'Lectura breve del tile en prosa: que muestra '
+                            'y por que importa (1-2 oraciones, sin cifras '
+                            'inventadas)'),
+                    },
+                    'texto': {
+                        'type': 'string',
+                        'description': (
+                            'Cuerpo en prosa del tile tipo texto '
+                            '(parrafos; markdown simple permitido). '
+                            'Obligatorio si tipo="texto".'),
+                    },
+                    'tamano': {
+                        'type': 'string',
+                        'enum': ['mitad', 'amplio'],
+                        'description': (
+                            'Espacio que ocupa el tile. amplio = ancho '
+                            'completo (mapas, series largas, texto); '
+                            'mitad = media columna (default). Usa amplio '
+                            'con criterio para ritmo visual.'),
+                    },
                 },
-                'required': ['tipo', 'titulo', 'fuente_tipo', 'fuente_id'],
+                'required': ['tipo', 'titulo'],
                 'additionalProperties': False,
             },
+        },
+        'contexto': {
+            'type': 'string',
+            'description': (
+                'Encuadre inicial del tablero en prosa: que se esta '
+                'midiendo, por que importa y como leerlo (2-4 oraciones). '
+                'Aparece arriba de los tiles.'),
         },
         'explicacion': {
             'type': 'string',
@@ -764,23 +808,81 @@ TABLERO_SYSTEM_PROMPT = (
     'sistema resuelve cada tile contra las fuentes reales.\n\n'
     'REGLAS DE ORO:\n'
     '- SOLO puedes usar fuentes que aparecen en el CONTEXTO: conjunto_datos '
-    'con sus variables (codigo_variable exacto) e indicadores con su id. '
-    'NUNCA inventes ids, nombres de columna ni fuentes.\n'
+    'con sus variables (codigo_variable exacto), indicadores con su id y '
+    'catalogo_consulta con sus cuadros (columnas exactas). NUNCA inventes '
+    'ids, nombres de columna ni fuentes.\n'
     '- dimension y medida deben ser codigos de variables EXACTOS del '
-    'conjunto elegido. Para fuente indicador usa dimension="anio" y '
-    'medida="" (los valores vienen del sistema).\n'
+    'conjunto elegido; para catalogo_consulta son los nombres de columna '
+    'del cuadro. Para fuente indicador usa dimension="anio" y medida="" '
+    '(los valores vienen del sistema).\n'
     '- tipo="mapa" SOLO con fuente_tipo="indicador".\n'
-    '- Maximo 6 tiles. Mezcla tipos para un tablero util: al menos un kpi '
-    'o tabla ayuda.\n'
+    '- tipo="texto" no lleva fuente ni medida: llena "texto" con la prosa '
+    '(contexto, nota metodologica, lectura del usuario).\n'
+    '- Maximo 8 tiles. Mezcla tipos para un tablero util: al menos un kpi '
+    'o tabla ayuda. Un tile de texto al inicio o entre secciones da '
+    'contexto — el tablero no debe ser solo graficos.\n'
+    '- insight: cada tile de datos lleva una lectura breve de lo que '
+    'aporta (sin cifras inventadas; el analisis con numeros se escribe '
+    'despues de resolver los datos).\n'
+    '- tamano="amplio" para lo que necesite aire (mapas, series largas, '
+    'tablas anchas, texto); el resto "mitad".\n'
     '- Si la consulta no puede resolverse con las fuentes disponibles, '
     'devuelve tiles vacios y explica en advertencias que falta.\n'
     '- filtros: solo sobre columnas que existen; valores literales como '
     'aparecen en la columna (ej: anio "2024" como string).\n'
     '- agregacion por defecto "suma"; usa "promedio" para tasas/promedios '
     'y "conteo" cuando no haya medida numerica clara.\n\n'
-    'DISENO DEL TABLERO: titulo que describa la historia, tiles ordenados '
-    'de lo general (kpi/serie) a lo detallado (tabla/desagregaciones), '
-    'explicacion clara de que muestra cada cosa.\n\n'
+    'DISENO DEL TABLERO: titulo que describa la historia; "contexto" '
+    'abre el tablero explicando que se mide y por que importa; tiles '
+    'ordenados de lo general (kpi/serie) a lo detallado '
+    '(tabla/desagregaciones); explicacion clara de que muestra cada '
+    'cosa.\n\n'
     'advertencias: filtros supuestos, columnas ambiguas elegidas por '
     'parecido, limites aplicados.'
+)
+
+
+# ----------------------------------------------------------------------
+# Segunda pasada: análisis en prosa sobre los datos ya resueltos
+# ----------------------------------------------------------------------
+
+TABLERO_ANALISIS_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'analisis': {
+            'type': 'string',
+            'description': (
+                'Analisis del tablero en prosa (2-5 oraciones): '
+                'hallazgos, tendencias y comparaciones usando '
+                'SOLO las cifras del resumen proporcionado'),
+        },
+        'insights': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': (
+                'Lectura de cada tile en el MISMO orden que la lista '
+                'de tiles recibida (una oracion con el dato clave real; '
+                'string vacio si el tile no aporta lectura)'),
+        },
+    },
+    'required': ['analisis'],
+    'additionalProperties': False,
+}
+
+TABLERO_ANALISIS_PROMPT = (
+    'Eres DON DATICO, analista de datos senior del SIIED. Ya generaste un '
+    'tablero y el sistema resolvio sus tiles contra datos reales. Ahora '
+    'recibes un RESUMEN de esos datos (titulo, tipo y cifras agregadas de '
+    'cada tile).\n\n'
+    'TU TAREA: escribir el ANALISIS del tablero en prosa clara y directa, '
+    'como analista que ya vio los numeros: hallazgo principal, tendencia o '
+    'comparacion destacada, y una lectura honesta de limitaciones si el '
+    'dato es debil.\n\n'
+    'REGLAS:\n'
+    '- SOLO cifras que aparecen en el resumen. NUNCA inventes numeros, '
+    'porcentajes ni anos.\n'
+    '- insights: una lectura corta por tile, en el mismo orden recibido. '
+    'Con el dato clave real si el resumen lo trae; "" si no hay lectura '
+    'util (ej: tile de texto).\n'
+    '- Tono ejecutivo pero cercano; sin relleno ni generalidades.'
 )
