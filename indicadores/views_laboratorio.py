@@ -77,6 +77,21 @@ def _contexto_fuentes(request):
             .filter(conjunto_datos=cd).order_by('orden')[:30])
         if not variables:
             continue
+        # La metadata puede registrar columnas que el CSV no trae
+        # (ej: codigos V8/V9 cuando el archivo solo tiene V1,V2).
+        # Solo se ofrecen al LLM columnas que existen de verdad.
+        try:
+            with cd.archivo_csv.open('rb') as f:
+                headers = {str(c).strip()
+                           for c in pd.read_csv(f, nrows=0).columns}
+        except Exception:
+            continue
+        variables = [
+            v for v in variables
+            if v.codigo_variable.strip() in headers
+        ]
+        if not variables:
+            continue
         conjuntos.append({
             'id': cd.id,
             'nombre': cd.nombre,
@@ -175,10 +190,22 @@ def _resolver_tile_conjunto(tile):
 
     df.columns = [str(c).strip() for c in df.columns]
 
+    # La metadata puede tener codigos que el CSV real no tiene:
+    # validar contra el archivo antes de indexar el DataFrame
+    if medida and medida not in df.columns:
+        return {'error': f"La columna '{medida}' no esta en el CSV "
+                         f"de '{cd.nombre}'"}
+    if dimension and dimension not in df.columns:
+        return {'error': f"La columna '{dimension}' no esta en el CSV "
+                         f"de '{cd.nombre}'"}
+    for col in filtros:
+        if col not in df.columns:
+            return {'error': f"La columna de filtro '{col}' no esta "
+                             f"en el CSV de '{cd.nombre}'"}
+
     # Filtros columna -> valor literal (comparacion como string)
     for col, val in filtros.items():
-        if col in df.columns:
-            df = df[df[col].astype(str).str.strip() == str(val).strip()]
+        df = df[df[col].astype(str).str.strip() == str(val).strip()]
 
     if df.empty:
         return {'error': 'Sin datos despues de aplicar los filtros'}
