@@ -3187,7 +3187,8 @@ class ChatService:
         except Exception as e:
             logger.warning(f"Tools no disponibles: {e}")
 
-    def _call_llm_with_fallback(self, messages, stream=False, **kwargs):
+    def _call_llm_with_fallback(self, messages, stream=False,
+                                force_fallback=False, **kwargs):
         """
         Llama al LLM principal; si falla, usa el proveedor fallback configurado.
         Maneja errores 429 (rate limit) y otros errores de API.
@@ -3206,8 +3207,10 @@ class ChatService:
 
         # Intentar con Cerebras primero (salvo circuit breaker activo)
         try:
-            if self.primary_llm_down():
-                raise _PrimaryLLMCooldown("LLM principal en cooldown")
+            if force_fallback or self.primary_llm_down():
+                raise _PrimaryLLMCooldown(
+                    "Fallback forzado (stream previo falló)"
+                    if force_fallback else "LLM principal en cooldown")
             if stream:
                 t_llm = time.monotonic()
                 response = self.client.chat.completions.create(
@@ -4081,28 +4084,24 @@ class ChatService:
                 
                 try:
                     # stream=True: deltas progresivos al usuario; tool_calls se
-                    # acumulan en _consume_llm_stream
+                    # acumulan en _consume_llm_stream. Si el stream muere a
+                    # mitad o completa vacío, el helper reintenta contra
+                    # el proveedor fallback.
                     t_llm_call = time.monotonic()
-                    response = self._call_llm_with_fallback(
-                        messages=messages,
-                        model=get_config('CEREBRAS_MODEL', 'gpt-oss-120b'),
-                        tools=tools,
-                        tool_choice="auto",
-                        parallel_tool_calls=True,
-                        max_tokens=get_config('CEREBRAS_TOOL_ROUND_MAX_TOKENS', 2500),
-                        temperature=0.2,
-                        top_p=0.9,
-                        stream=True
-                    )
+                    final_content, stream_tool_calls, emitted_content = yield from \
+                        self._stream_llm_con_fallback(messages, {
+                            'model': get_config('CEREBRAS_MODEL', 'gpt-oss-120b'),
+                            'tools': tools,
+                            'tool_choice': 'auto',
+                            'parallel_tool_calls': True,
+                            'max_tokens': get_config('CEREBRAS_TOOL_ROUND_MAX_TOKENS', 2500),
+                            'temperature': 0.2,
+                            'top_p': 0.9,
+                        })
                 except Exception as e:
-                    logger.error(f"[MCP_FIX] Error Cerebras API (sin fallback disponible): {e}")
+                    logger.error(f"[MCP_FIX] Error LLM (principal y fallback): {e}")
                     yield {'content': 'Error de conexión. No hay servicio de respaldo disponible.', 'is_complete': False}
                     break
-
-                # Consumir el stream: emite deltas de contenido progresivamente
-                # y retorna (content, tool_calls, emitted_content)
-                final_content, stream_tool_calls, emitted_content = yield from \
-                    self._consume_llm_stream(response)
                 message = SimpleNamespace(
                     content=final_content, tool_calls=stream_tool_calls)
 
@@ -4229,17 +4228,14 @@ class ChatService:
                     try:
                         final_messages = self._build_optimized_messages(
                             current_history, session_state)
-                        response = self._call_llm_with_fallback(
-                            messages=final_messages,
-                            model=self.model_config["model"],
-                            tool_choice="none",
-                            max_tokens=self.model_config["max_tokens"],
-                            temperature=self.model_config["temperature"],
-                            top_p=self.model_config["top_p"],
-                            stream=True
-                        )
                         final_content, _tc, emitted_final = yield from \
-                            self._consume_llm_stream(response)
+                            self._stream_llm_con_fallback(final_messages, {
+                                'model': self.model_config["model"],
+                                'tool_choice': 'none',
+                                'max_tokens': self.model_config["max_tokens"],
+                                'temperature': self.model_config["temperature"],
+                                'top_p': self.model_config["top_p"],
+                            })
                         if final_content:
                             logger.info("[MCP_FIX] Respuesta final obtenida sin herramientas")
                             if not emitted_final:
@@ -4906,6 +4902,55 @@ class ChatService:
             f"en {time.monotonic() - t_stream:.2f}s")
         return content, tool_calls, emitted
 
+    def _stream_llm_con_fallback(self, messages, call_kwargs):
+        """Crea un stream LLM y lo consume emitiendo los chunks.
+
+        Si el stream muere a mitad de iteración —o completa sin
+        contenido ni tool_calls— SIN haber emitido texto al usuario,
+        reintenta una vez contra el proveedor fallback. Cubre el hueco
+        de _call_llm_with_fallback, que solo evalúa errores del
+        create(): con stream=True el fallo llega al iterar.
+
+        Retorna (content, tool_calls, emitted) vía yield from.
+        """
+        for intento in range(2):
+            response = self._call_llm_with_fallback(
+                messages=messages, stream=True,
+                force_fallback=intento > 0, **call_kwargs)
+            emitted_parcial = ''
+            gen = self._consume_llm_stream(response)
+            try:
+                while True:
+                    try:
+                        item = next(gen)
+                    except StopIteration as si:
+                        result = si.value
+                        break
+                    if isinstance(item, dict) and item.get('content'):
+                        emitted_parcial += item['content']
+                    yield item
+            except Exception as e:
+                if (intento == 0 and not self.using_fallback
+                        and not emitted_parcial):
+                    logger.warning(
+                        f"[LLM_STREAM] stream del proveedor principal "
+                        f"murió ({type(e).__name__}: {e}) — "
+                        f"reintentando con fallback")
+                    yield {'type': 'status',
+                           'message': '⏳ Reintentando con el servicio alterno…'}
+                    continue
+                raise
+
+            content, tool_calls, emitted = result or ('', None, '')
+            if (intento == 0 and not self.using_fallback
+                    and not content and not tool_calls):
+                logger.warning(
+                    "[LLM_STREAM] stream completó sin contenido ni "
+                    "tool_calls — reintentando con fallback")
+                yield {'type': 'status',
+                       'message': '⏳ Reintentando con el servicio alterno…'}
+                continue
+            return result
 
     def _generate_fallback_response_with_data(
         self,
