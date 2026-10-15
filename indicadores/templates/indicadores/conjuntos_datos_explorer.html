@@ -345,14 +345,12 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/rxjs@7.8.1/dist/bundles/rxjs.umd.min.js"></script>
 
-<!-- Univer UMD Bundle (todo en uno) -->
-<script src="https://unpkg.com/@univerjs/umd@0.1.16/lib/univer.full.umd.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/@univerjs/umd@0.1.16/lib/univer.css">
-
-<script src="https://unpkg.com/@univerjs/presets@0.1.16/lib/umd/index.js"></script>
-<script src="https://unpkg.com/@univerjs/preset-sheets-core@0.1.16/lib/umd/index.js"></script>
-<script src="https://unpkg.com/@univerjs/preset-sheets-core@0.1.16/lib/umd/locales/en-US.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-sheets-core@0.1.16/lib/index.css" />
+<!-- Univer UMD 0.7.0 — el meta-paquete @univerjs/umd ya no existe y
+     el layout lib/umd/ de presets solo aparece desde 0.5.x -->
+<script src="https://unpkg.com/@univerjs/presets@0.7.0/lib/umd/index.js"></script>
+<script src="https://unpkg.com/@univerjs/preset-sheets-core@0.7.0/lib/umd/index.js"></script>
+<script src="https://unpkg.com/@univerjs/preset-sheets-core@0.7.0/lib/umd/locales/en-US.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@univerjs/preset-sheets-core@0.7.0/lib/index.css" />
         
     <!-- Custom styles for Univer -->
     <style>
@@ -4306,21 +4304,27 @@ if (typeof module !== 'undefined' && module.exports) {
     });
     
     try {
-        // Use specific version to avoid caching issues
-        const scriptUrl = 'https://unpkg.com/@univerjs/umd@0.1.16/lib/univer.full.umd.js';
-        const styleUrl = 'https://unpkg.com/@univerjs/umd@0.1.16/lib/univer.css';
-        
-        // Load stylesheet
+        // Los <script> del <head> ya cargan los bundles; si falta
+        // algun global se reintentan en orden (presets -> sheets-core
+        // -> locale). @univerjs/umd no existe desde 0.2.x.
+        const urls = [
+            'https://unpkg.com/@univerjs/presets@0.7.0/lib/umd/index.js',
+            'https://unpkg.com/@univerjs/preset-sheets-core@0.7.0/lib/umd/index.js',
+            'https://unpkg.com/@univerjs/preset-sheets-core@0.7.0/lib/umd/locales/en-US.js',
+        ];
+        const styleUrl = 'https://unpkg.com/@univerjs/preset-sheets-core@0.7.0/lib/index.css';
+
         if (!document.querySelector(`link[href="${styleUrl}"]`)) {
             await loadStylesheet(styleUrl);
         }
-        
-        // Load script only if not already loaded
-        if (!window.UniverPresets) {
-            await loadScript(scriptUrl);
-            await waitForUniver();
+
+        if (!window.UniverPresets || !window.UniverCore
+                || !window.UniverPresetSheetsCore
+                || !window.UniverPresetSheetsCoreEnUS) {
+            for (const u of urls) await loadScript(u);
         }
-        
+        await waitForUniver();
+
         window.univerLoaded = true;
         console.log('Univer loaded successfully. Available:', {
             UniverPresets: !!window.UniverPresets,
