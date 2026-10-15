@@ -784,6 +784,8 @@
 .ficed-msg-bot{background:#fff;border:1px solid #e2e8f0;align-self:flex-start;color:#1e293b}
 .ficed-msg-user{background:#000866;color:#fff;align-self:flex-end}
 .ficed-msg-bot.typing{opacity:.55;font-style:italic}
+.ficed-msg-bot code{background:#eef1f7;border:1px solid #d8dee9;border-radius:4px;
+    padding:0 4px;font-family:Consolas,Monaco,monospace;font-size:.78rem;color:#000866}
 </style>
 {% endblock %}
 
@@ -1127,10 +1129,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     closeBtn.addEventListener('click', () => { panel.style.display = 'none'; });
 
+    function mdToHtml(texto) {
+        // Escapar HTML primero (anti-XSS), luego markdown básico
+        const esc = texto
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return esc
+            .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+            .replace(/^- /gm, '• ');
+    }
+
     function addMsg(texto, quien) {
         const d = document.createElement('div');
         d.className = quien === 'user' ? 'ficed-msg-user' : 'ficed-msg-bot';
-        d.textContent = texto;
+        if (quien === 'user') {
+            d.textContent = texto;
+        } else {
+            d.innerHTML = mdToHtml(texto);
+        }
         msgs.appendChild(d);
         msgs.scrollTop = msgs.scrollHeight;
         return d;
