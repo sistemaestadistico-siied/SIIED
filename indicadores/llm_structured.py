@@ -886,3 +886,79 @@ TABLERO_ANALISIS_PROMPT = (
     'util (ej: tile de texto).\n'
     '- Tono ejecutivo pero cercano; sin relleno ni generalidades.'
 )
+
+
+# ----------------------------------------------------------------------
+# Quiz del libro 3D — Don Datico pregunta al ganar el juego (11-14 años)
+# ----------------------------------------------------------------------
+
+QUIZ_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'resumen_meta': {
+            'type': 'string',
+            'description': 'Explicación sencilla para niños de qué mide '
+                           'el indicador, usando su metadata real',
+        },
+        'preguntas': {
+            'type': 'array',
+            'minItems': 3,
+            'maxItems': 3,
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'pregunta': {'type': 'string'},
+                    'correcta': {
+                        'type': 'string',
+                        'description': 'La respuesta verdadera, tomada de '
+                                       'la metadata o la muestra de datos',
+                    },
+                    'falsas': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'minItems': 3,
+                        'maxItems': 3,
+                        'description': 'Exactamente 3 opciones incorrectas '
+                                       'pero plausibles',
+                    },
+                },
+                'required': ['pregunta', 'correcta', 'falsas'],
+                'additionalProperties': False,
+            },
+        },
+        'felicitacion': {
+            'type': 'string',
+            'description': 'Texto de celebración si acierta las 3',
+        },
+        'animo': {
+            'type': 'string',
+            'description': 'Texto motivador para volver a intentarlo',
+        },
+    },
+    'required': ['resumen_meta', 'preguntas', 'felicitacion', 'animo'],
+    'additionalProperties': False,
+}
+
+QUIZ_PROMPT = (
+    'Eres DON DATICO, el loro estadístico del SIIED de Santiago de Cali. '
+    'Un niño de 11 a 14 años acaba de GANAR un juego educativo en 3D sobre '
+    'un indicador estadístico y tú llegas volando a felicitarlo con un '
+    'mini-quiz de premio: 3 preguntas de selección múltiple sobre ESE '
+    'indicador, usando la metadata y la muestra de datos recibida.\n\n'
+    'REGLAS:\n'
+    '- Lenguaje sencillo y alegre para niños; nada de tecnicismos.\n'
+    '- Cada pregunta tiene: "pregunta", "correcta" (la respuesta '
+    'verdadera, tomada de la metadata o la muestra) y "falsas" '
+    '(exactamente 3 opciones incorrectas pero plausibles).\n'
+    '- Las falsas deben ser del mismo tipo que la correcta (si es un año, '
+    'las falsas son años; si es un valor, valores cercanos pero '
+    'distintos; si es un concepto, conceptos parecidos). NUNCA pongas '
+    'como falsa algo que también sea verdadero.\n'
+    '- resumen_meta: 2-3 frases que expliquen qué mide el indicador como '
+    'si se lo contaras a un chico de 12 años; incluye un dato real de la '
+    'muestra si ayuda a entender.\n'
+    '- felicitacion: 1-2 frases de celebración en personaje (humor de '
+    'loro permitido: "¡eso sí es picotear el conocimiento!").\n'
+    '- animo: 1-2 frases motivadoras para volver a intentarlo.\n'
+    '- NUNCA inventes cifras que no estén en la información entregada.'
+)

@@ -3180,6 +3180,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                         splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
                         setTimeout(() => {
                             splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
+                            iniciarQuizIndicador();
                         }, 5000);
                     }, 3500);
                 }
@@ -3262,6 +3263,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
                         splashScreen.style.transform = 'translate(-50%, -50%) scale(1)';
                         setTimeout(() => {
                             splashScreen.style.transform = 'translate(-50%, -50%) scale(0)';
+                            iniciarQuizIndicador();
                         }, 5000);
                     }, 3500);
                 }
@@ -3276,6 +3278,195 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         }
     }
     
+    // ======== QUIZ LLM DE DON DATICO ========
+    // Al ganar el juego, Don Datico vuela hacia la cámara y propone 3
+    // preguntas de selección múltiple generadas en vivo por el LLM.
+    const quizCache = {};   // indicadorId -> 'loading' | data
+    let quizOverlay = null;
+
+    function escQuiz(s) {
+        const d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
+
+    function pintarResumenKids(resumen) {
+        if (!resumen || document.getElementById('resumen-kids')) return;
+        const div = document.createElement('div');
+        div.id = 'resumen-kids';
+        div.className = 'p-4 bg-amber-50 rounded border border-amber-200 mb-2';
+        div.innerHTML = '<strong>🦜 Don Datico explica:</strong> ';
+        div.appendChild(document.createTextNode(resumen));
+        // Hermano (no hijo): metadatosContainer.innerHTML se reescribe
+        // cuando llega el fetch de metadatos técnicos
+        metadatosContainer.parentNode.insertBefore(div, metadatosContainer);
+    }
+
+    function fetchQuiz(indicadorId) {
+        return fetch(`{% url 'indicadores:api_quiz_indicador' 0 %}`.replace('/0/', `/${indicadorId}/`))
+            .then(r => r.json());
+    }
+
+    function prefetchQuizIndicador(indicadorId) {
+        if (!indicadorId || quizCache[indicadorId]) return;
+        quizCache[indicadorId] = 'loading';
+        fetchQuiz(indicadorId).then(data => {
+            if (data && !data.error && Array.isArray(data.preguntas)) {
+                quizCache[indicadorId] = data;
+                pintarResumenKids(data.resumen_meta);
+            } else {
+                delete quizCache[indicadorId];
+            }
+        }).catch(() => { delete quizCache[indicadorId]; });
+    }
+
+    function donDaticoSaluda() {
+        // Don Datico vuela hasta frente a la cámara para "hablar"
+        try {
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            const objetivo = camera.position.clone().add(dir.multiplyScalar(9));
+            objetivo.y = Math.max(3, objetivo.y);
+            const inicio = donDatico.position.clone();
+            let t = 0;
+            const iv = setInterval(() => {
+                t += 0.03;
+                donDatico.position.lerpVectors(inicio, objetivo, Math.min(1, t));
+                donDatico.lookAt(camera.position.x, donDatico.position.y, camera.position.z);
+                if (t >= 1) clearInterval(iv);
+            }, 16);
+            daticoAnim.baileManual = true;
+            daticoAnim.bailando = true;
+        } catch (e) { console.warn('donDaticoSaluda', e); }
+    }
+
+    const QUIZ_IMG = `{% static 'indicadores/images/don datico.png' %}`;
+    const QUIZ_BTN = `padding:10px 18px;border-radius:12px;border:none;font-family:inherit;font-size:1em;font-weight:bold;cursor:pointer;margin:4px;`;
+
+    function quizCardBase() {
+        if (quizOverlay) quizOverlay.remove();
+        quizOverlay = document.createElement('div');
+        quizOverlay.style.cssText = `
+            position: fixed; inset: 0; z-index: 999999;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.55); padding: 16px;`;
+        const card = document.createElement('div');
+        card.style.cssText = `
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            border: 5px solid #FFD700; border-radius: 20px; color: #fff;
+            width: 100%; max-width: ${esMobil ? '92vw' : '560px'};
+            max-height: 85vh; overflow-y: auto; padding: 20px;
+            font-family: 'Comic Sans MS', cursive; text-align: center;
+            box-shadow: 0 15px 50px rgba(0,0,0,.5);`;
+        quizOverlay.appendChild(card);
+        (esMobil && canvasWrapper ? canvasWrapper : document.body).appendChild(quizOverlay);
+        return card;
+    }
+
+    function mostrarQuizCargando() {
+        const card = quizCardBase();
+        card.innerHTML = `
+            <img src="${QUIZ_IMG}" style="width:80px;height:80px;border-radius:50%;background:#fff;object-fit:cover;">
+            <div style="font-size:1.4em;font-weight:bold;margin:10px 0;">🦜 Don Datico viene volando…</div>
+            <div style="font-size:.95em;opacity:.9;">Está preparando 3 preguntas sobre lo que acabas de jugar</div>`;
+    }
+
+    function mostrarQuizError() {
+        const card = quizCardBase();
+        card.innerHTML = `
+            <div style="font-size:2em;">😵</div>
+            <div style="font-size:1.2em;font-weight:bold;margin:10px 0;">El quiz no llegó</div>
+            <div style="font-size:.9em;margin-bottom:14px;">Don Datico se distrajo con un chontaduro. ¿Intentamos otra vez?</div>
+            <button id="quiz-retry" style="${QUIZ_BTN}background:#2e7d32;color:#fff;">🔄 Intentar de nuevo</button>
+            <button id="quiz-close" style="${QUIZ_BTN}background:#fff;color:#333;">Cerrar</button>`;
+        card.querySelector('#quiz-retry').onclick = () => {
+            const id = indicadorActual && indicadorActual.dataset.indicadorId;
+            if (id) delete quizCache[id];
+            iniciarQuizIndicador();
+        };
+        card.querySelector('#quiz-close').onclick = cerrarQuiz;
+    }
+
+    function cerrarQuiz() {
+        if (quizOverlay) { quizOverlay.remove(); quizOverlay = null; }
+        daticoAnim.baileManual = false;
+        daticoAnim.bailando = false;
+    }
+
+    function iniciarQuizIndicador() {
+        const indicadorId = indicadorActual && indicadorActual.dataset
+            ? indicadorActual.dataset.indicadorId : null;
+        if (!indicadorId) return;
+        donDaticoSaluda();
+        const cached = quizCache[indicadorId];
+        if (cached && cached !== 'loading') {
+            mostrarQuizDialog(cached, indicadorId);
+            return;
+        }
+        mostrarQuizCargando();
+        fetchQuiz(indicadorId).then(data => {
+            if (data && !data.error && Array.isArray(data.preguntas)) {
+                quizCache[indicadorId] = data;
+                pintarResumenKids(data.resumen_meta);
+                mostrarQuizDialog(data, indicadorId);
+            } else {
+                mostrarQuizError();
+            }
+        }).catch(mostrarQuizError);
+    }
+
+    function mostrarQuizDialog(data, indicadorId) {
+        const card = quizCardBase();
+        const preguntas = data.preguntas.slice(0, 3);
+        let idx = 0, aciertos = 0;
+
+        const pintar = () => {
+            if (idx >= preguntas.length) {
+                const todo = aciertos === preguntas.length;
+                card.innerHTML = `
+                    <img src="${QUIZ_IMG}" style="width:90px;height:90px;border-radius:50%;background:#fff;object-fit:cover;">
+                    <div style="font-size:1.5em;font-weight:bold;margin:10px 0;">${todo ? '🏆' : '💪'} ${escQuiz(todo ? data.felicitacion : data.animo)}</div>
+                    <div style="font-size:1em;margin-bottom:14px;">Aciertos: ${aciertos}/${preguntas.length}</div>
+                    <button id="quiz-otra" style="${QUIZ_BTN}background:#2e7d32;color:#fff;">🔄 Otra ronda</button>
+                    <button id="quiz-cerrar" style="${QUIZ_BTN}background:#fff;color:#333;">✔ Listo</button>`;
+                card.querySelector('#quiz-otra').onclick = () => {
+                    delete quizCache[indicadorId];
+                    iniciarQuizIndicador();
+                };
+                card.querySelector('#quiz-cerrar').onclick = cerrarQuiz;
+                return;
+            }
+            const p = preguntas[idx];
+            const ops = [{ t: p.correcta, ok: true }]
+                .concat(p.falsas.slice(0, 3).map(f => ({ t: f, ok: false })))
+                .sort(() => Math.random() - 0.5);
+            card.innerHTML = `
+                <img src="${QUIZ_IMG}" style="width:60px;height:60px;border-radius:50%;background:#fff;object-fit:cover;">
+                <div style="font-size:.8em;letter-spacing:2px;margin-top:6px;">PREGUNTA ${idx + 1} DE ${preguntas.length}</div>
+                <div style="font-size:1.15em;font-weight:bold;margin:8px 0 12px;">${escQuiz(p.pregunta)}</div>
+                <div id="quiz-ops"></div>`;
+            const opsDiv = card.querySelector('#quiz-ops');
+            ops.forEach(o => {
+                const b = document.createElement('button');
+                b.textContent = o.t;
+                b.style.cssText = `display:block;width:100%;margin:7px 0;padding:10px;border-radius:12px;border:3px solid rgba(255,255,255,.6);background:rgba(255,255,255,.15);color:#fff;font-family:inherit;font-size:.95em;cursor:pointer;`;
+                b.onclick = () => {
+                    if (o.ok) { aciertos++; b.style.background = '#2e7d32'; }
+                    else {
+                        b.style.background = '#c62828';
+                        opsDiv.querySelectorAll('button').forEach(x => {
+                            if (x.textContent === p.correcta) x.style.background = '#2e7d32';
+                        });
+                    }
+                    opsDiv.querySelectorAll('button').forEach(x => x.disabled = true);
+                    setTimeout(() => { idx++; pintar(); }, 900);
+                };
+                opsDiv.appendChild(b);
+            });
+        };
+        pintar();
+    }
+
     // Instrucciones de juego (solo en desktop)
     if (!esMobil) {
         const instrucciones = document.createElement('div');
@@ -3846,6 +4037,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     // --- Cargar metadatos (idéntico al flujo original: petición a tu API) ---
     function cargarMetadatosIndicador(indicadorId) {
         metadatosContainer.innerHTML = `<div class="text-sm text-gray-500">Cargando metadatos...</div>`;
+        prefetchQuizIndicador(indicadorId);
         fetch(`{% url 'indicadores:get_indicadores_simple' %}?indicador_id=${indicadorId}`)
             .then(r => r.ok ? r.json() : Promise.reject(r))
             .then(data => {

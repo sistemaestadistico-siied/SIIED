@@ -15,6 +15,7 @@ Flujo:
 import json
 import logging
 import os
+import re
 
 import pandas as pd
 from django.contrib.auth.decorators import login_required
@@ -27,6 +28,7 @@ from django.urls import reverse
 
 from .chat_config import get_config
 from .llm_structured import (
+    QUIZ_PROMPT, QUIZ_SCHEMA,
     TABLERO_ANALISIS_PROMPT, TABLERO_ANALISIS_SCHEMA,
     TABLERO_SCHEMA, TABLERO_SYSTEM_PROMPT,
 )
@@ -36,6 +38,102 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@require_http_methods(["GET"])
+def api_quiz_indicador(request, indicador_id):
+    """Mini-quiz del libro 3D: 3 preguntas (1 real + 3 falsas) + resumen kids.
+
+    Se genera con el LLM en cada llamada para que cada partida tenga
+    preguntas distintas. El modelo solo recibe metadata limpia y una
+    muestra breve de datos reales; nada mas.
+    """
+    ind = get_object_or_404(Indicador, pk=indicador_id, activo=True)
+
+    def _limpia(texto, limite=400):
+        if not texto:
+            return ''
+        plano = re.sub(r'<[^>]+>', ' ', str(texto))
+        plano = re.sub(r'\s+', ' ', plano).strip()
+        return plano[:limite]
+
+    meta_lineas = [
+        f'Nombre: {ind.nombre}',
+        f'Unidad de medida: {ind.unidad_medida or "no especificada"}',
+        f'Fuente: {ind.fuente_datos or "no especificada"}',
+    ]
+    sub = getattr(ind, 'subtema', None)
+    if sub and getattr(sub, 'tema', None):
+        meta_lineas.append(f'Tema: {sub.tema.nombre}')
+        if getattr(sub.tema, 'dominio', None):
+            meta_lineas.append(f'Dominio: {sub.tema.dominio.nombre}')
+    for campo, etiqueta in (
+        ('objetivo', 'Objetivo'),
+        ('descripcion_indicador', 'Descripción'),
+        ('metodo_medicion', 'Método de medición'),
+    ):
+        txt = _limpia(getattr(ind, campo, ''))
+        if txt:
+            meta_lineas.append(f'{etiqueta}: {txt}')
+
+    datos = (ind.datos.order_by('-fecha_dato')
+             .prefetch_related('desagregaciones_geograficas',
+                               'desagregaciones_tematicas')[:20])
+    muestra = []
+    for d in datos:
+        partes = [d.fecha_dato.strftime('%Y-%m-%d'),
+                  f'valor={d.valor_dato}']
+        geo = ', '.join(x.nombre for x in d.desagregaciones_geograficas.all())
+        tem = ', '.join(x.nombre for x in d.desagregaciones_tematicas.all())
+        if geo:
+            partes.append(f'zona: {geo}')
+        if tem:
+            partes.append(f'categoría: {tem}')
+        muestra.append(' | '.join(partes))
+
+    prompt = (
+        'INDICADOR:\n' + '\n'.join(meta_lineas) +
+        '\n\nMUESTRA DE DATOS REALES (más recientes):\n' +
+        ('\n'.join(muestra) if muestra else '(sin datos numéricos)') +
+        '\n\nGenera el quiz completo siguiendo el schema.'
+    )
+
+    try:
+        from .views_chat import ChatService
+        data = ChatService(request=request).generate_structured(
+            prompt,
+            QUIZ_SCHEMA,
+            system_prompt=QUIZ_PROMPT,
+            schema_name='quiz_indicador',
+            max_seconds=45,
+        )
+    except Exception as exc:
+        logger.warning(
+            f'[QUIZ] LLM falló para indicador {indicador_id}: {exc}')
+        return JsonResponse(
+            {'error': 'No se pudo generar el quiz, inténtalo de nuevo.'},
+            status=502)
+
+    preguntas = data.get('preguntas') or []
+    validas = [
+        p for p in preguntas
+        if isinstance(p, dict)
+        and p.get('pregunta') and p.get('correcta')
+        and isinstance(p.get('falsas'), list) and len(p['falsas']) >= 3
+    ]
+    if len(validas) < 3:
+        return JsonResponse(
+            {'error': 'El quiz llegó incompleto, inténtalo de nuevo.'},
+            status=502)
+
+    return JsonResponse({
+        'indicador_id': ind.id,
+        'indicador_nombre': ind.nombre,
+        'resumen_meta': data.get('resumen_meta') or '',
+        'preguntas': validas[:3],
+        'felicitacion': data.get('felicitacion') or '¡Excelente trabajo!',
+        'animo': data.get('animo') or '¡Casi! Inténtalo otra vez.',
+    })
 
 AGREGACIONES = {
     'suma': 'sum', 'promedio': 'mean', 'conteo': 'count',

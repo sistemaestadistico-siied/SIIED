@@ -138,6 +138,7 @@ urlpatterns = [
     # Busqueda semántica
     path('api/buscar/', views.buscar_semantico, name='buscar_semantico'),
     path('api/buscar_indicadores/', views.api_buscar_indicadores, name='api_buscar_indicadores'),
+    path('api/quiz-indicador/<int:indicador_id>/', views_laboratorio.api_quiz_indicador, name='api_quiz_indicador'),
     path('api/indicador-metadata/', views.api_indicador_metadata, name='api_indicador_metadata'),
     path('api/grafico-seccion/', views.api_get_grafico_seccion, name='api_get_grafico_seccion'),
 
