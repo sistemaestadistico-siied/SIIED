@@ -2998,7 +2998,16 @@ class ChatService:
             timeout=get_config('OLLAMA_CLIENT_TIMEOUT_SECONDS', 120.0)
         )
         self.using_fallback = False
-        
+
+        # Compatibilidad por proveedor: el endpoint OpenAI-compat de Google
+        # (generativelanguage.googleapis.com) exige thought_signature en los
+        # functionCall reenviados; otros proveedores pueden rechazar campos
+        # extra en el historial.
+        self._primary_is_gemini = 'googleapis' in str(get_config(
+            'CEREBRAS_BASE_URL', ''))
+        self._fallback_is_gemini = 'googleapis' in str(get_config(
+            'OLLAMA_BASE_URL', ''))
+
         # Inicializar tools
         self.tools_enabled = False
         try:
@@ -3013,6 +3022,18 @@ class ChatService:
         Llama al LLM principal; si falla, usa el proveedor fallback configurado.
         Maneja errores 429 (rate limit) y otros errores de API.
         """
+        # Adaptar tool_calls del historial según proveedor (Gemini exige
+        # thought_signature; otros endpoints pueden rechazar extra_content)
+        primary_messages = self._adapt_tool_call_history(
+            messages, self._primary_is_gemini)
+
+        # reasoning_effort: los modelos Gemini 3 piensan en nivel alto por
+        # defecto (varios minutos por llamada). Configurable; ignorar si el
+        # proveedor no lo soporta dejando el valor vacío en BD/config.
+        reasoning_effort = get_config('LLM_REASONING_EFFORT', 'low')
+        if reasoning_effort:
+            kwargs.setdefault('reasoning_effort', reasoning_effort)
+
         # Intentar con Cerebras primero (salvo circuit breaker activo)
         try:
             if self.primary_llm_down():
@@ -3020,7 +3041,7 @@ class ChatService:
             if stream:
                 t_llm = time.monotonic()
                 response = self.client.chat.completions.create(
-                    messages=messages,
+                    messages=primary_messages,
                     stream=True,
                     **kwargs
                 )
@@ -3031,7 +3052,7 @@ class ChatService:
             else:
                 t_llm = time.monotonic()
                 response = self.client.chat.completions.create(
-                    messages=messages,
+                    messages=primary_messages,
                     stream=False,
                     **kwargs
                 )
@@ -3112,24 +3133,26 @@ class ChatService:
                 max_context = get_config('OLLAMA_MAX_CONTEXT_TOKENS', 2000)
                 truncate_count = get_config('OLLAMA_TRUNCATE_MESSAGES_COUNT', 4)
                 
+                fallback_messages = self._adapt_tool_call_history(
+                    messages, self._fallback_is_gemini)
                 if approx_tokens > max_context:
                     logger.warning(f"⚠️ Contexto muy grande ({approx_tokens} tokens), truncando mensajes...")
                     # Mantener solo: system + últimos 3 mensajes (user/assistant/tool)
-                    system_msgs = [m for m in messages if m.get('role') == 'system']
-                    other_msgs = [m for m in messages if m.get('role') != 'system']
-                    messages = system_msgs + other_msgs[-truncate_count:]
+                    system_msgs = [m for m in fallback_messages if m.get('role') == 'system']
+                    other_msgs = [m for m in fallback_messages if m.get('role') != 'system']
+                    fallback_messages = system_msgs + other_msgs[-truncate_count:]
                     
                     # Recalcular tokens después de truncar
-                    new_total_chars = sum(len(str(m.get('content', ''))) for m in messages)
+                    new_total_chars = sum(len(str(m.get('content', ''))) for m in fallback_messages)
                     new_approx_tokens = new_total_chars // 4
-                    logger.info(f"📊 Contexto reducido a {len(messages)} mensajes (~{new_approx_tokens} tokens)")
-                
+                    logger.info(f"📊 Contexto reducido a {len(fallback_messages)} mensajes (~{new_approx_tokens} tokens)")
+
                 try:
                     logger.info(f"🚀 Enviando petición a fallback (stream={stream})...")
-                    
+
                     if stream:
                         response = self.fallback_client.chat.completions.create(
-                            messages=messages,
+                            messages=fallback_messages,
                             stream=True,
                             **fallback_kwargs
                         )
@@ -3137,7 +3160,7 @@ class ChatService:
                         return response
                     else:
                         response = self.fallback_client.chat.completions.create(
-                            messages=messages,
+                            messages=fallback_messages,
                             stream=False,
                             **fallback_kwargs
                         )
@@ -4100,51 +4123,60 @@ class ChatService:
                 tools_used=len(session_state['tools_used']),
                 has_data=session_state['has_meaningful_data']
             )
-        
+
         messages.append({"role": "system", "content": system_context})
-        
+
         # Agregar historial reciente
         max_history = get_config('MAX_HISTORY_MESSAGES', 8)
         recent_history = history[-max_history:] if len(history) > max_history else history
-        messages.extend(self._flatten_tool_exchange(recent_history))
-        
+        messages.extend(recent_history)
+
         return messages
 
-    def _flatten_tool_exchange(self, history: list) -> list:
-        """Convierte el intercambio assistant.tool_calls + role:tool a texto
-        plano. Endpoints OpenAI-compat de Gemini rechazan el reenvío de
-        functionCall parts sin thought_signature (HTTP 400); serializar el
-        intercambio como texto conserva los resultados como contexto y es
-        compatible con todos los proveedores."""
-        flat = []
-        flattened = 0
-        for m in history:
-            if not isinstance(m, dict):
-                flat.append(m)
+    def _adapt_tool_call_history(self, messages: list, is_gemini: bool) -> list:
+        """Adapta los tool_calls del historial al proveedor destino.
+
+        Gemini (capa OpenAI-compat de generativelanguage.googleapis.com)
+        exige extra_content.google.thought_signature en cada functionCall
+        del turno actual; se reenvía la firma real capturada del stream o
+        'skip_thought_signature_validator' (escape documentado por Google).
+        Para otros proveedores se elimina extra_content por si rechazan
+        campos no estándar en tool_calls.
+        """
+        if not any(
+            isinstance(m, dict) and m.get('tool_calls') for m in messages
+        ):
+            return messages
+        adapted = []
+        changed = 0
+        for m in messages:
+            if not (isinstance(m, dict) and m.get('tool_calls')):
+                adapted.append(m)
                 continue
-            if m.get('role') == 'tool':
-                flat.append({
-                    'role': 'user',
-                    'content': f"[Resultado de herramienta]\n{m.get('content', '')}"
-                })
-                flattened += 1
-            elif m.get('role') == 'assistant' and m.get('tool_calls'):
-                calls = []
-                for tc in m['tool_calls']:
-                    fn = tc.get('function', {}) if isinstance(tc, dict) else {}
-                    calls.append(f"{fn.get('name', '?')}({fn.get('arguments', '')})")
-                text = m.get('content') or ''
-                if calls:
-                    text += f"\n\n[Funciones ejecutadas: {', '.join(calls)}]"
-                flat.append({'role': 'assistant', 'content': text.strip()})
-                flattened += 1
-            else:
-                flat.append(m)
-        if flattened:
+            m = dict(m)
+            new_tcs = []
+            for tc in m['tool_calls']:
+                if not isinstance(tc, dict):
+                    new_tcs.append(tc)
+                    continue
+                tc = dict(tc)
+                if is_gemini:
+                    if not tc.get('extra_content'):
+                        tc['extra_content'] = {'google': {
+                            'thought_signature':
+                                'skip_thought_signature_validator'}}
+                        changed += 1
+                elif tc.pop('extra_content', None) is not None:
+                    changed += 1
+                new_tcs.append(tc)
+            m['tool_calls'] = new_tcs
+            adapted.append(m)
+        if changed:
             logger.info(
-                f"[MCP_FIX] {flattened} mensajes de tool-call aplanados a "
-                f"texto para compatibilidad con el endpoint")
-        return flat
+                f"[PROVIDER] tool_calls adaptados para "
+                f"{'Gemini' if is_gemini else 'endpoint estándar'}: "
+                f"{changed} firmas")
+        return adapted
 
 
     def _serialize_tool_call(self, tool_call) -> dict:
@@ -4180,14 +4212,19 @@ class ChatService:
 
             session_state['tools_used'].add(signature)
 
-            assistant_tool_calls.append({
+            tc_entry = {
                 "id": data['id'],
                 "type": "function",
                 "function": {
                     "name": data['name'],
                     "arguments": json.dumps(data['assistant_arguments'], ensure_ascii=False)
                 }
-            })
+            }
+            # Gemini devuelve la thought_signature en extra_content; hay que
+            # conservarla para reenviarla en el historial del próximo turno.
+            if data.get('extra_content'):
+                tc_entry['extra_content'] = data['extra_content']
+            assistant_tool_calls.append(tc_entry)
 
             tools_to_execute.append({
                 'namespace': self._build_tool_call_namespace(data),
@@ -4292,12 +4329,18 @@ class ChatService:
             if assistant_arguments is None:
                 assistant_arguments = {}
 
+            extra_content = (
+                tool_call.get('extra_content')
+                if isinstance(tool_call, dict)
+                else getattr(tool_call, 'extra_content', None))
+
             return {
                 'id': call_id,
                 'name': name,
                 'raw_arguments': raw_arguments,
                 'assistant_arguments': assistant_arguments,
-                'signature_arguments': normalized_arguments if normalized_arguments is not None else {}
+                'signature_arguments': normalized_arguments if normalized_arguments is not None else {},
+                'extra_content': extra_content
             }
         except Exception as e:
             logger.error(f"[MCP_FIX] No se pudo normalizar tool call: {e}")
@@ -4593,11 +4636,30 @@ class ChatService:
             # Deltas de tool calls
             for tc in getattr(delta, 'tool_calls', None) or []:
                 n_tool_deltas += 1
-                idx = getattr(tc, 'index', 0) or 0
+                idx = getattr(tc, 'index', None)
+                if idx is None:
+                    # El endpoint Gemini-compat entrega cada tool_call
+                    # completo en un chunk y omite 'index': asignar la
+                    # siguiente posición para no colapsar llamadas
+                    # paralelas en una sola.
+                    idx = len(tool_calls_acc)
                 acc = tool_calls_acc.setdefault(
-                    idx, {'id': None, 'name': None, 'arguments': ''})
+                    idx, {'id': None, 'name': None, 'arguments': '',
+                          'extra_content': None})
                 if getattr(tc, 'id', None):
                     acc['id'] = tc.id
+                # La thought_signature llega en extra_content del tool_call
+                # delta (Gemini 3); se conserva para el próximo turno.
+                extra = getattr(tc, 'extra_content', None)
+                if extra is not None:
+                    try:
+                        acc['extra_content'] = (
+                            extra if isinstance(extra, dict)
+                            else extra.model_dump()
+                            if hasattr(extra, 'model_dump')
+                            else dict(extra))
+                    except Exception:
+                        acc['extra_content'] = None
                 fn = getattr(tc, 'function', None)
                 if fn:
                     if getattr(fn, 'name', None):
@@ -4647,6 +4709,7 @@ class ChatService:
                 SimpleNamespace(
                     id=acc['id'] or str(uuid.uuid4()),
                     type='function',
+                    extra_content=acc.get('extra_content'),
                     function=SimpleNamespace(
                         name=acc['name'], arguments=acc['arguments'])
                 )

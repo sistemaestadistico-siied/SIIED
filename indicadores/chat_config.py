@@ -35,16 +35,22 @@ CHAT_CONFIG = {
     'MIN_SIMILARITY_THRESHOLD': 0.25,  # Umbral mínimo de similitud
     
     # Configuración de Modelos IA
-    # API Principal (Cerebras, OpenAI, etc.)
+    # API Principal — Google AI Studio vía capa OpenAI-compatible
+    # (generativelanguage.googleapis.com/v1beta/openai/). Gemini 3 exige
+    # thought_signature al reenviar tool_calls (ya manejado en views_chat).
     'CEREBRAS_API_KEY': '***REMOVED***',  # API Key Principal
     'CEREBRAS_BASE_URL': 'https://generativelanguage.googleapis.com/v1beta/openai/',  # URL base de la API Principal
     'CEREBRAS_MODEL': 'gemini-3.8-flash',  # Modelo Principal
+    # Nivel de razonamiento del modelo (Gemini 3: minimal|low|medium|high).
+    # Sin este parámetro el default puede pensar varios minutos por llamada.
+    'LLM_REASONING_EFFORT': 'low',
     'CEREBRAS_MAX_TOKENS': 14200,  # Máximo de tokens Principal
     'CEREBRAS_TEMPERATURE': 0.15,  # Temperatura Principal
     'CEREBRAS_TOP_P': 0.92,  # Top P Principal
 
-    # API Respaldo (Ollama, LocalAI, etc.)
-    'OLLAMA_API_KEY': '***REMOVED***',  # API Key Respaldo (opcional para local)
+    # API Respaldo — las claves se llaman OLLAMA_* pero el endpoint
+    # configurado es Cerebras real (api.cerebras.ai).
+    'OLLAMA_API_KEY': '***REMOVED***',  # API Key Respaldo
     'OLLAMA_BASE_URL': 'https://api.cerebras.ai/v1',  # URL base Respaldo
     'OLLAMA_MODEL': 'gpt-oss-120b',  # Modelo Respaldo
     'OLLAMA_MAX_TOKENS': 14200,  # Máximo de tokens Respaldo
