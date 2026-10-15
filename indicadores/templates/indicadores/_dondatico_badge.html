@@ -11,8 +11,13 @@ Variables opcionales:
 {% endcomment %}
 {% load static %}
 <div class="flex items-center gap-3">
+    {% if logo %}
+    <img src="{% static 'indicadores/images/logo_consulta_tableros.png' %}" alt="Consulta y Tableros — Don Datico"
+         class="h-12 w-auto object-contain bg-white/90 rounded-xl px-1.5 py-1 ring-2 ring-teal-400/60 shrink-0">
+    {% else %}
     <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico"
          class="{% if avatar == 'sm' %}w-9 h-9{% elif avatar == 'lg' %}w-16 h-16{% else %}w-12 h-12{% endif %} rounded-full object-cover ring-2 ring-teal-400/60 bg-teal-50 shrink-0">
+    {% endif %}
     <div class="min-w-0">
         <p class="font-bold text-teal-900 leading-tight">
             Don Datico
