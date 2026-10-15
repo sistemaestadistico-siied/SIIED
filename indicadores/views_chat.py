@@ -3316,7 +3316,8 @@ class ChatService:
     def generate_structured(self, user_prompt, json_schema,
                             system_prompt=None,
                             schema_name='structured_response',
-                            max_seconds=None):
+                            max_seconds=None,
+                            reasoning_effort=None):
         """Genera una respuesta estructurada (dict) según un JSON Schema.
 
         Reusa la misma cadena de proveedores del chat (principal → fallback)
@@ -3361,6 +3362,11 @@ class ChatService:
             'LLM_STRUCTURED_MAX_SECONDS', 55.0))
         deadline = time.monotonic() + max_seconds
 
+        # Más "thinking" suele dar specs más consistentes. Ignorado si el
+        # proveedor no lo soporta (dejar vacío en BD/config para no enviar).
+        effort = (reasoning_effort if reasoning_effort is not None
+                  else get_config('LLM_STRUCTURED_REASONING_EFFORT', ''))
+
         logger.info(
             f"[STRUCTURED] Iniciando '{schema_name}' "
             f"(prompt={len(user_prompt)} chars, presupuesto={max_seconds:.0f}s)")
@@ -3376,6 +3382,8 @@ class ChatService:
                 break
             call_kwargs = dict(self.model_config)
             call_kwargs['timeout'] = max(5.0, remaining - 2.0)
+            if effort:
+                call_kwargs.setdefault('reasoning_effort', effort)
             if fmt is not None:
                 call_kwargs['response_format'] = fmt
             t_attempt = time.monotonic()

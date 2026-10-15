@@ -23,6 +23,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_http_methods
 
+from .chat_config import get_config
 from .llm_structured import TABLERO_SCHEMA, TABLERO_SYSTEM_PROMPT
 from .models import (
     ConjuntoDatos, Dato, Indicador, Tablero, VariableConjuntoDatos,
@@ -454,6 +455,8 @@ def laboratorio_generar(request):
             TABLERO_SCHEMA,
             system_prompt=TABLERO_SYSTEM_PROMPT,
             schema_name='tablero_dondatico',
+            reasoning_effort=get_config(
+                'LLM_TABLERO_REASONING_EFFORT', 'high'),
         )
     except Exception as e:
         logger.exception('Laboratorio: error en generate_structured')
