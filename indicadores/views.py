@@ -5197,7 +5197,13 @@ def chat_message(request):
             # Visualizaciones adjuntadas por la tool mostrar_visualizacion
             # (descriptores ligeros: el frontend resuelve los datos pesados
             # vía api_get_grafico / api_geojson_indicador / api_test_valores_geo)
-            _pending_viz = getattr(chat_service, '_pending_visualizaciones', None) or []
+            # Los tool calls los ejecuta tools_service (CerebrasToolsService):
+            # ahi vive _pending_visualizaciones, no en chat_service.
+            _tools_svc = getattr(chat_service, 'tools_service', None)
+            _pending_viz = (
+                getattr(_tools_svc, '_pending_visualizaciones', None)
+                or getattr(chat_service, '_pending_visualizaciones', None)
+                or [])
             if _pending_viz:
                 yield f"data: {json.dumps({'type': 'visualizaciones', 'data': _pending_viz}, ensure_ascii=False)}\n\n"
 
