@@ -14,6 +14,7 @@ Flujo:
 """
 import json
 import logging
+import os
 
 import pandas as pd
 from django.contrib.auth.decorators import login_required
@@ -66,10 +67,16 @@ def _contexto_fuentes(request):
         conjuntos_qs = conjuntos_qs.filter(organismo_productor=org)
 
     conjuntos = []
-    for cd in conjuntos_qs.order_by('-fecha_carga')[:15]:
+    for cd in conjuntos_qs.order_by('-fecha_carga'):
+        # Sin archivo en disco el tile no resuelve; sin variables el
+        # LLM no conoce columnas validas — no ofrecerlos como fuente
+        if not os.path.exists(cd.archivo_csv.path):
+            continue
         variables = list(
             VariableConjuntoDatos.objects
             .filter(conjunto_datos=cd).order_by('orden')[:30])
+        if not variables:
+            continue
         conjuntos.append({
             'id': cd.id,
             'nombre': cd.nombre,
@@ -83,6 +90,8 @@ def _contexto_fuentes(request):
                 for v in variables
             ],
         })
+        if len(conjuntos) >= 15:
+            break
 
     indicadores = list(
         Indicador.objects.filter(activo=True)
@@ -153,9 +162,13 @@ def _resolver_tile_conjunto(tile):
             return {'error': f"Columna de filtro '{col}' no existe"}
 
     try:
-        with cd.archivo_csv.open('r', encoding='utf-8',
-                                 errors='replace') as f:
-            df = pd.read_csv(f, low_memory=False, nrows=MAX_FILAS_CSV)
+        with cd.archivo_csv.open('rb') as f:
+            df = pd.read_csv(f, low_memory=False, nrows=MAX_FILAS_CSV,
+                             encoding='utf-8', encoding_errors='replace')
+    except FileNotFoundError:
+        logger.warning('Laboratorio: CSV no existe en disco, conjunto %s', cd.id)
+        return {'error': 'El archivo de datos no está en el servidor '
+                         '(conjunto subido sin archivo)'}
     except Exception as e:
         logger.warning('Laboratorio: error leyendo CSV %s: %s', cd.id, e)
         return {'error': 'No se pudo leer el archivo de datos'}
