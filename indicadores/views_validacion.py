@@ -517,6 +517,12 @@ def _campo_captura_dato(field):
     return True
 
 
+# Dimension puntuable alimentada por cada modulo del cuestionario ICED
+# (A solo identifica; B->1 Entorno, C->2 Infraestructura,
+#  D->3 Metodologia, E->4 Accesibilidad)
+DIM_POR_MODULO = {'b': '1', 'c': '2', 'd': '3', 'e': '4'}
+
+
 @validador_required
 def validacion_revisar_iced(request, formulario_id):
     """
@@ -539,6 +545,9 @@ def validacion_revisar_iced(request, formulario_id):
     # Enriquecer el detalle con indicadores individuales y respuestas reales
     detalle = resultado.get('detalle', {})
     indicadores = resultado.get('indicadores', {})
+    # Tracking de respuestas compartidas: un mismo campo puede alimentar
+    # indicadores de varias dimensiones (ej. P23 -> 3.1.x y 4.1.4)
+    ocurrencias = {}
     for dim_key, dim in detalle.items():
         for sub_key, sub in dim.get('subdimensiones', {}).items():
             sub_estructura = ESTRUCTURA_ICED.get(dim_key, {}).get('subdimensiones', {}).get(sub_key, {})
@@ -562,6 +571,7 @@ def validacion_revisar_iced(request, formulario_id):
                 if not pregunta_info:
                     continue
                 preg_id, field_key, modulo = pregunta_info
+                ocurrencias.setdefault(field_key, []).append((dim_key, ind_key))
                 if field_key in seen_fields:
                     continue
                 seen_fields.add(field_key)
@@ -573,10 +583,33 @@ def validacion_revisar_iced(request, formulario_id):
                     'score': score,
                     'respuesta': respuesta,
                     'field_key': field_key,
+                    'modulo': modulo,
                 }
 
             sub['indicadores_detalle'] = indicadores_detalle
             sub['preguntas_detalle'] = preguntas_detalle
+
+    # Anotar preguntas compartidas: una respuesta puede puntuar indicadores
+    # de varias dimensiones; el validador la vera donde corresponda con la
+    # nota de procedencia, en vez de una duplicacion silenciosa.
+    for dim_key, dim in detalle.items():
+        for sub in dim.get('subdimensiones', {}).values():
+            for preg in sub.get('preguntas_detalle', {}).values():
+                usos = ocurrencias.get(preg['field_key'], [])
+                inds_misma = [i for d, i in usos if d == dim_key]
+                dims_otras = sorted({d for d, i in usos if d != dim_key})
+                notas = []
+                if len(inds_misma) > 1:
+                    notas.append('alimenta los indicadores '
+                                 + ', '.join(inds_misma))
+                if dims_otras:
+                    notas.append('tambien puntua en la dimension '
+                                 + ' y '.join(dims_otras))
+                if preg.get('modulo') and DIM_POR_MODULO.get(
+                        preg['modulo']) != dim_key:
+                    notas.append('se diligencia en el modulo '
+                                 + preg['modulo'].upper())
+                preg['compartida'] = ' · '.join(notas)
 
     organismo = formulario.organismo
 
@@ -659,7 +692,10 @@ def validacion_revisar_iced(request, formulario_id):
         if resto:
             pasos.append({'label': 'Otros campos del módulo', 'items': resto, 'faltantes': []})
         total = sum(len(p['items']) for p in pasos)
-        respuestas_modulo_display.append((nombre_modulo, pasos, total))
+        # Preview del puntaje de la dimension alimentada por este modulo
+        dim_preview = detalle.get(DIM_POR_MODULO.get(letra))
+        respuestas_modulo_display.append(
+            (nombre_modulo, pasos, total, dim_preview))
 
     # Formularios hermanos: mismo organismo y período, otros equipos técnicos
     hermanos = ICEDFormulario.objects.filter(
