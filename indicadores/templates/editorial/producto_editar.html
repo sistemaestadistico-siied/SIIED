@@ -1,59 +1,135 @@
 {% extends "editorial/base_editorial.html" %}
 
-{% block title %}Editar Producto — Editorial{% endblock %}
+{% block title %}Editar: {{ producto.titulo }} — Editorial{% endblock %}
 
 {% block editorial_content %}
 
 <div class="mb-8">
     <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
-        <i class="fas fa-edit text-indigo-500"></i> Editar Producto
+        <i class="fas fa-edit text-indigo-500"></i>
+        {% if es_educativo %}Editar Producto Educativo{% else %}Editar Producto Académico{% endif %}
     </h1>
     <p class="mt-1 text-slate-500">{{ producto.titulo }}</p>
 </div>
 
-<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-3xl">
-    <!-- Info del producto -->
-    <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
-        <div class="flex items-start gap-3">
-            <i class="fas fa-info-circle text-indigo-500 mt-0.5"></i>
-            <div class="text-sm text-indigo-800">
-                <p class="font-semibold">Edición limitada desde el módulo editorial</p>
-                <p class="mt-1">Para edición avanzada (secciones, indicadores, gráficos), usa el
-                    {% if es_educativo %}
-                    <a href="{% url 'admin:indicadores_productoeducativo_change' producto.id %}" class="underline font-medium" target="_blank">Django Admin <i class="fas fa-external-link-alt text-xs"></i></a>
-                    {% else %}
-                    <a href="{% url 'admin:indicadores_productoacademico_change' producto.id %}" class="underline font-medium" target="_blank">Django Admin <i class="fas fa-external-link-alt text-xs"></i></a>
-                    {% endif %}.</p>
+{{ form.media }}
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-4xl">
+
+    {% if form.non_field_errors %}
+    <div class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% for field in form %}
+
+            {# Encabezados de grupo según el campo (un solo loop para ambos modelos) #}
+            {% if field.name == 'titulo' %}
+            <div class="{% if not forloop.first %}mt-8 pt-6 border-t border-slate-200{% endif %} mb-5">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-id-card text-indigo-400"></i> Identificación
+                </h2>
             </div>
+            {% endif %}
+
+            {% if field.name == 'resumen' %}
+            <div class="mt-8 pt-6 border-t border-slate-200 mb-5">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-book-open text-indigo-400"></i> Contenido bibliográfico
+                </h2>
+            </div>
+            {% endif %}
+
+            {% if field.name == 'organismo' and not es_educativo %}
+            <div class="mt-8 pt-6 border-t border-slate-200 mb-5">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-building text-indigo-400"></i> Organización y modo producto estadístico
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">El modo INEGI muestra el producto público con tabs (Presentación, Resultados, Documentación).</p>
+            </div>
+            {% endif %}
+
+            {% if field.name == 'conjunto_datos_principal' %}
+            <div class="mt-8 pt-6 border-t border-slate-200 mb-5">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-link text-indigo-400"></i> Vinculaciones de datos
+                </h2>
+            </div>
+            {% endif %}
+
+            {% if field.name == 'producto_origen' %}
+            <div class="mt-8 pt-6 border-t border-slate-200 mb-5">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-graduation-cap text-indigo-400"></i> Deriva y público
+                </h2>
+            </div>
+            {% endif %}
+
+            {% if field.name == 'imagen_portada' %}
+            <div class="mt-8 pt-6 border-t border-slate-200 mb-5">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-palette text-indigo-400"></i> Identidad visual
+                </h2>
+            </div>
+            {% endif %}
+
+            {% if field.name == 'personaje_guia' %}
+            <div class="mt-8 pt-6 border-t border-slate-200 mb-5">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-puzzle-piece text-indigo-400"></i> Personaje y gamificación
+                </h2>
+            </div>
+            {% endif %}
+
+            {# Campo #}
+            <div class="mb-5">
+                {% if field.field.widget.input_type == 'checkbox' %}
+                <label class="flex items-center gap-3 cursor-pointer">
+                    {{ field }}
+                    <span class="text-sm font-medium text-slate-700">{{ field.label }}</span>
+                </label>
+                {% else %}
+                <label for="{{ field.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                    {{ field.label }}
+                    {% if field.field.required %}<span class="text-rose-500">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% endif %}
+                {% if field.help_text %}
+                <p class="mt-1 text-xs text-slate-400">{{ field.help_text }}</p>
+                {% endif %}
+                {% for error in field.errors %}
+                <p class="mt-1 text-xs text-rose-500">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+        {% endfor %}
+
+        <div class="mt-8 pt-6 border-t border-slate-200 flex flex-wrap items-center gap-3">
+            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-sm">
+                <i class="fas fa-save"></i> Guardar producto
+            </button>
+            <a href="{% url 'indicadores:editorial_producto_secciones' producto.slug %}" class="inline-flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                <i class="fas fa-list-ul"></i> Gestionar secciones
+            </a>
+            {% if es_educativo %}
+            <a href="{% url 'indicadores:producto_educativo' producto.slug %}" target="_blank" class="inline-flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                <i class="fas fa-eye"></i> Ver público
+            </a>
+            {% else %}
+            <a href="{% url 'indicadores:producto_academico' producto.slug %}" target="_blank" class="inline-flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                <i class="fas fa-eye"></i> Ver público
+            </a>
+            {% endif %}
+            <a href="{% url 'indicadores:editorial_productos' %}" class="ml-auto text-sm text-slate-500 hover:text-slate-800 transition-colors">
+                <i class="fas fa-arrow-left"></i> Volver al listado
+            </a>
         </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm">
-        <div><span class="text-slate-500">Estado:</span> <span class="font-medium">{{ producto.get_estado_display|default:producto.estado }}</span></div>
-        <div><span class="text-slate-500">Autor:</span> <span class="font-medium">{{ producto.autor|default:"—" }}</span></div>
-        <div><span class="text-slate-500">Slug:</span> <code class="bg-slate-100 px-2 py-0.5 rounded text-xs">{{ producto.slug }}</code></div>
-        <div><span class="text-slate-500">Actualizado:</span> <span class="font-medium">{{ producto.updated_at|date:"d/m/Y H:i" }}</span></div>
-    </div>
-
-    <div class="flex flex-wrap gap-3">
-        <a href="{% url 'indicadores:editorial_producto_secciones' producto.slug %}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all shadow-sm">
-            <i class="fas fa-list"></i> Gestionar Secciones
-        </a>
-        {% if es_educativo %}
-        <a href="{% url 'indicadores:producto_educativo' producto.slug %}" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-            <i class="fas fa-eye"></i> Ver Público
-        </a>
-        <a href="{% url 'admin:indicadores_productoeducativo_change' producto.id %}" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-            <i class="fas fa-cog"></i> Edición Avanzada
-        </a>
-        {% else %}
-        <a href="{% url 'indicadores:producto_academico' producto.slug %}" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-            <i class="fas fa-eye"></i> Ver Público
-        </a>
-        <a href="{% url 'admin:indicadores_productoacademico_change' producto.id %}" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
-            <i class="fas fa-cog"></i> Edición Avanzada
-        </a>
-        {% endif %}
-    </div>
+    </form>
 </div>
+
 {% endblock %}

@@ -10,13 +10,15 @@ from indicadores.forms_iced import _error_telefono
 from indicadores.models import (
     Evento, NoticiaBanner, EstadisticaNoticia, EnlaceNoticia,
     CalendarioDifusion, ProductoAcademico, ProductoEducativo,
+    SeccionPaper, SeccionEducativa, ImagenSeccion, ArchivoSeccion,
     CategoriaInformacion, SistemaInformacion,
     CategoriaProyecto, ProyectoInformacion,
     AreaInfraestructura, CategoriaInfraestructura,
     SubcategoriaInfraestructura, GrupoDocumento,
     DocumentoInfraestructura,
     Grafico, GraficoSerie, Desagregacion,
-    CatalogoConsulta, Indicador, MenuDominio
+    CatalogoConsulta, Indicador, MenuDominio,
+    ConjuntoDatos, Organismo, OperacionEstadistica, MenuSubtema,
 )
 
 
@@ -1055,3 +1057,236 @@ def models_q_dominio(catalogo):
     if cec:
         q |= Indicador.q_por_dominio(cec)
     return q
+
+
+# ============================================================================
+# PRODUCTOS ACADÉMICOS — EDICIÓN COMPLETA
+# ============================================================================
+
+class ProductoAcademicoForm(forms.ModelForm):
+    """Edición completa de un ProductoAcademico desde editorial.
+
+    Cubre metadatos bibliográficos, modo producto estadístico (INEGI),
+    vinculaciones (organismo, operación, conjunto de datos, indicadores)
+    y estado de publicación.
+    """
+
+    class Meta:
+        model = ProductoAcademico
+        fields = [
+            'titulo', 'slug', 'autor', 'institucion', 'estado',
+            'fecha_publicacion',
+            'resumen', 'palabras_clave', 'area_tematica',
+            'organismo', 'operacion', 'es_producto_estadistico',
+            'cobertura_geografica', 'periodo_referencia',
+            'logo', 'diseno_conceptual',
+            'conjunto_datos_principal', 'indicadores_derivados',
+            'temas_relacionados',
+        ]
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Título completo del paper'}),
+            'slug': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'slug-del-producto'}),
+            'autor': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Autor principal'}),
+            'institucion': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Institución o dependencia'}),
+            'estado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'fecha_publicacion': forms.DateInput(attrs={'class': WIDGET_CLASSES, 'type': 'date'}),
+            'resumen': forms.Textarea(attrs={'class': WIDGET_CLASSES, 'rows': 4, 'placeholder': 'Resumen / abstract del paper'}),
+            'palabras_clave': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'palabra1, palabra2, ...'}),
+            'area_tematica': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Ej: Demografía computacional · Estadística aplicada'}),
+            'organismo': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'operacion': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'es_producto_estadistico': forms.CheckboxInput(attrs={'class': CHECKBOX_CLASSES}),
+            'cobertura_geografica': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Ej: Distrito de Santiago de Cali'}),
+            'periodo_referencia': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Ej: 15 de febrero – 15 de marzo de 2024'}),
+            'logo': forms.ClearableFileInput(attrs={'class': WIDGET_CLASSES}),
+            'conjunto_datos_principal': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'indicadores_derivados': forms.SelectMultiple(attrs={'class': WIDGET_CLASSES, 'size': 6}),
+            'temas_relacionados': forms.SelectMultiple(attrs={'class': WIDGET_CLASSES, 'size': 6}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # diseno_conceptual es CKEditor5Field: el widget lo provee el campo
+        self.fields['diseno_conceptual'].required = False
+        self.fields['indicadores_derivados'].queryset = (
+            Indicador.objects.filter(activo=True).order_by('nombre'))
+        self.fields['indicadores_derivados'].required = False
+        self.fields['temas_relacionados'].required = False
+
+
+class ProductoEducativoForm(forms.ModelForm):
+    """Edición completa de un ProductoEducativo (deriva gamificada
+    infantil/adolescente de un ProductoAcademico)."""
+
+    class Meta:
+        model = ProductoEducativo
+        fields = [
+            'titulo', 'slug', 'autor', 'estado', 'fecha_publicacion',
+            'producto_origen', 'publico',
+            'resumen_infantil', 'palabras_clave',
+            'organismo', 'temas_relacionados',
+            'imagen_portada',
+            'personaje_guia', 'mensaje_bienvenida',
+            'paleta_colores', 'nivel_gamificacion',
+            'tiene_recompensas', 'puntos_totales',
+        ]
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Título adaptado al público'}),
+            'slug': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'slug-del-producto'}),
+            'autor': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Autor / adaptador'}),
+            'estado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'fecha_publicacion': forms.DateInput(attrs={'class': WIDGET_CLASSES, 'type': 'date'}),
+            'producto_origen': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'publico': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'resumen_infantil': forms.Textarea(attrs={'class': WIDGET_CLASSES, 'rows': 4, 'placeholder': 'Resumen en lenguaje simple y atractivo'}),
+            'palabras_clave': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'palabra1, palabra2, ...'}),
+            'organismo': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'temas_relacionados': forms.SelectMultiple(attrs={'class': WIDGET_CLASSES, 'size': 6}),
+            'imagen_portada': forms.ClearableFileInput(attrs={'class': WIDGET_CLASSES}),
+            'personaje_guia': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'mensaje_bienvenida': forms.Textarea(attrs={'class': WIDGET_CLASSES, 'rows': 3, 'placeholder': 'Mensaje de bienvenida del personaje guía'}),
+            'paleta_colores': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'nivel_gamificacion': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'tiene_recompensas': forms.CheckboxInput(attrs={'class': CHECKBOX_CLASSES}),
+            'puntos_totales': forms.NumberInput(attrs={'class': WIDGET_CLASSES, 'min': 0}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['temas_relacionados'].required = False
+        self.fields['producto_origen'].queryset = (
+            ProductoAcademico.objects.all().order_by('titulo'))
+        self.fields['producto_origen'].required = False
+
+
+# ============================================================================
+# SECCIONES — PRODUCTO ACADÉMICO (SeccionPaper)
+# ============================================================================
+
+class SeccionPaperForm(forms.ModelForm):
+    """Crear/editar una sección de ProductoAcademico con todos los
+    campos condicionales por tipo_bloque (el template los muestra/oculta
+    con JS según la selección)."""
+
+    class Meta:
+        model = SeccionPaper
+        fields = [
+            'tipo_seccion', 'numero_orden', 'subnumero', 'titulo',
+            'tipo_bloque', 'contenido',
+            'indicador_vinculado', 'configuracion_grafico',
+            'conjunto_datos_vinculado', 'documento_vinculado',
+            'sistema_vinculado', 'publicaciones_relacionadas',
+            'indicadores_preseleccionados',
+            'video_url', 'acordeon_items',
+        ]
+        widgets = {
+            'tipo_seccion': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'numero_orden': forms.NumberInput(attrs={'class': WIDGET_CLASSES, 'min': 0}),
+            'subnumero': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Ej: 2.1, 4.2'}),
+            'titulo': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Título de la sección o subsección'}),
+            'tipo_bloque': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'indicador_vinculado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'configuracion_grafico': forms.Textarea(attrs={'class': WIDGET_CLASSES, 'rows': 3, 'placeholder': '{"tipo": "barras|lineas|piramide", "anio_default": 2025}'}),
+            'conjunto_datos_vinculado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'documento_vinculado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'sistema_vinculado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'publicaciones_relacionadas': forms.SelectMultiple(attrs={'class': WIDGET_CLASSES, 'size': 5}),
+            'indicadores_preseleccionados': forms.SelectMultiple(attrs={'class': WIDGET_CLASSES, 'size': 5}),
+            'video_url': forms.URLInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'https://youtube.com/watch?v=...'}),
+            'acordeon_items': forms.Textarea(attrs={'class': WIDGET_CLASSES, 'rows': 4, 'placeholder': '[{"titulo": "Pregunta", "contenido": "Respuesta"}]'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        producto = kwargs.pop('producto', None)
+        super().__init__(*args, **kwargs)
+        self.fields['contenido'].required = False
+        self.fields['subnumero'].required = False
+        self.fields['configuracion_grafico'].required = False
+        self.fields['acordeon_items'].required = False
+        self.fields['indicador_vinculado'].queryset = (
+            Indicador.objects.filter(activo=True).order_by('nombre'))
+        self.fields['indicadores_preseleccionados'].queryset = (
+            Indicador.objects.filter(activo=True).order_by('nombre'))
+        self.fields['publicaciones_relacionadas'].queryset = (
+            ProductoAcademico.objects.all().order_by('titulo'))
+        # Orden sugerido: siguiente número libre del producto
+        if producto is not None and not self.instance.pk:
+            ultimo = producto.secciones.order_by('-numero_orden').first()
+            self.fields['numero_orden'].initial = (
+                ultimo.numero_orden + 1 if ultimo else 1)
+
+    def clean_configuracion_grafico(self):
+        data = self.cleaned_data.get('configuracion_grafico')
+        if data in (None, ''):
+            return None
+        if isinstance(data, str):
+            try:
+                return json.loads(data)
+            except json.JSONDecodeError:
+                raise forms.ValidationError(
+                    'La configuración del gráfico debe ser JSON válido.')
+        return data
+
+    def clean_acordeon_items(self):
+        data = self.cleaned_data.get('acordeon_items')
+        if data in (None, ''):
+            return None
+        if isinstance(data, str):
+            try:
+                return json.loads(data)
+            except json.JSONDecodeError:
+                raise forms.ValidationError(
+                    'Los items del acordeón deben ser JSON válido '
+                    '(lista de {"titulo": ..., "contenido": ...}).')
+        return data
+
+
+# ============================================================================
+# SECCIONES — PRODUCTO EDUCATIVO (SeccionEducativa)
+# ============================================================================
+
+class SeccionEducativaForm(forms.ModelForm):
+    """Crear/editar una sección de ProductoEducativo con sus bloques
+    interactivos gamificados."""
+
+    class Meta:
+        model = SeccionEducativa
+        fields = [
+            'numero_orden', 'titulo', 'icono_emoji',
+            'tipo_bloque', 'contenido', 'configuracion_bloque',
+            'indicador_vinculado', 'conjunto_datos_vinculado',
+        ]
+        widgets = {
+            'numero_orden': forms.NumberInput(attrs={'class': WIDGET_CLASSES, 'min': 0}),
+            'titulo': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Título de la sección'}),
+            'icono_emoji': forms.TextInput(attrs={'class': WIDGET_CLASSES, 'placeholder': 'Ej: 🎯, 🌟, 🎨'}),
+            'tipo_bloque': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'configuracion_bloque': forms.Textarea(attrs={'class': WIDGET_CLASSES, 'rows': 4, 'placeholder': '{"pregunta": "...", "opciones": [...], "respuesta_correcta": 0}'}),
+            'indicador_vinculado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+            'conjunto_datos_vinculado': forms.Select(attrs={'class': WIDGET_CLASSES}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        producto = kwargs.pop('producto', None)
+        super().__init__(*args, **kwargs)
+        self.fields['contenido'].required = False
+        self.fields['icono_emoji'].required = False
+        self.fields['configuracion_bloque'].required = False
+        self.fields['indicador_vinculado'].queryset = (
+            Indicador.objects.filter(activo=True).order_by('nombre'))
+        if producto is not None and not self.instance.pk:
+            ultimo = producto.secciones.order_by('-numero_orden').first()
+            self.fields['numero_orden'].initial = (
+                ultimo.numero_orden + 1 if ultimo else 1)
+
+    def clean_configuracion_bloque(self):
+        data = self.cleaned_data.get('configuracion_bloque')
+        if data in (None, ''):
+            return None
+        if isinstance(data, str):
+            try:
+                return json.loads(data)
+            except json.JSONDecodeError:
+                raise forms.ValidationError(
+                    'La configuración del bloque debe ser JSON válido.')
+        return data

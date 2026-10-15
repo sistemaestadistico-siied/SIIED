@@ -34,7 +34,9 @@ from indicadores.forms_editorial import (
     SubcategoriaInfraestructuraForm, GrupoDocumentoForm,
     GraficoForm, GraficoSerieFormSet,
     SectionGraficoConfigForm,
-    CatalogoConsultaForm, CatalogoConsultaEnlazarIndicadoresForm
+    CatalogoConsultaForm, CatalogoConsultaEnlazarIndicadoresForm,
+    ProductoAcademicoForm, ProductoEducativoForm,
+    SeccionPaperForm, SeccionEducativaForm,
 )
 
 import logging
@@ -284,21 +286,138 @@ def productos_wizard(request):
 
 @editor_required
 def producto_editar(request, slug):
-    """Editar un producto académico existente"""
+    """Edición completa de un producto académico o educativo.
+
+    Cubre todos los campos del modelo: metadatos bibliográficos, modo
+    producto estadístico (INEGI), vinculaciones y gamificación educativa.
+    """
     # Intentar ProductoAcademico primero, luego ProductoEducativo
     producto = ProductoAcademico.objects.filter(slug=slug).first()
     es_educativo = False
     if not producto:
         producto = get_object_or_404(ProductoEducativo, slug=slug)
         es_educativo = True
-    
-    # TODO: Implementar formulario de edición
+
+    FormClass = ProductoEducativoForm if es_educativo else ProductoAcademicoForm
+
+    if request.method == 'POST':
+        form = FormClass(request.POST, request.FILES, instance=producto)
+        if form.is_valid():
+            producto = form.save()
+            messages.success(request, f'Producto "{producto.titulo}" guardado.')
+            return redirect(
+                'indicadores:editorial_producto_editar', slug=producto.slug)
+        messages.error(
+            request, 'Hay errores en el formulario. Revisa los campos.')
+    else:
+        form = FormClass(instance=producto)
+
     context = {
         'producto': producto,
         'es_educativo': es_educativo,
+        'form': form,
     }
-    
     return render(request, 'editorial/producto_editar.html', context)
+
+
+# ============================================================================
+# SECCIONES DE PRODUCTO (CRUD)
+# ============================================================================
+
+def _resolver_producto(slug):
+    """Devuelve (producto, es_educativo) buscando en ambos modelos."""
+    producto = ProductoAcademico.objects.filter(slug=slug).first()
+    if producto is not None:
+        return producto, False
+    return get_object_or_404(ProductoEducativo, slug=slug), True
+
+
+@editor_required
+def seccion_guardar(request, slug, seccion_id=None):
+    """Crear o editar una sección de producto (académico o educativo).
+
+    Una sola vista para ambos modelos: SeccionPaper si el producto es
+    académico, SeccionEducativa si es educativo.
+    """
+    producto, es_educativo = _resolver_producto(slug)
+    SeccionModel = SeccionEducativa if es_educativo else SeccionPaper
+    SeccionForm = SeccionEducativaForm if es_educativo else SeccionPaperForm
+
+    seccion = None
+    if seccion_id is not None:
+        seccion = get_object_or_404(
+            SeccionModel, id=seccion_id, producto=producto)
+
+    if request.method == 'POST':
+        form = SeccionForm(
+            request.POST, instance=seccion, producto=producto)
+        if form.is_valid():
+            seccion = form.save(commit=False)
+            seccion.producto = producto
+            seccion.save()
+            form.save_m2m()
+            messages.success(
+                request,
+                f'Sección "{seccion.titulo or seccion.id}" guardada.')
+            return redirect(
+                'indicadores:editorial_producto_secciones',
+                slug=producto.slug)
+        messages.error(
+            request, 'Hay errores en el formulario. Revisa los campos.')
+    else:
+        form = SeccionForm(instance=seccion, producto=producto)
+
+    context = {
+        'producto': producto,
+        'seccion': seccion,
+        'es_educativo': es_educativo,
+        'form': form,
+    }
+    return render(request, 'editorial/seccion_form.html', context)
+
+
+@editor_required
+@require_http_methods(['POST'])
+def seccion_eliminar(request, slug, seccion_id):
+    """Eliminar una sección de producto (académico o educativo)."""
+    producto, es_educativo = _resolver_producto(slug)
+    SeccionModel = SeccionEducativa if es_educativo else SeccionPaper
+    seccion = get_object_or_404(
+        SeccionModel, id=seccion_id, producto=producto)
+    titulo = seccion.titulo or seccion.id
+    seccion.delete()
+    messages.success(request, f'Sección "{titulo}" eliminada.')
+    return redirect(
+        'indicadores:editorial_producto_secciones', slug=producto.slug)
+
+
+@editor_required
+@require_http_methods(['POST'])
+def seccion_mover(request, slug, seccion_id, direccion):
+    """Subir/bajar una sección intercambiando numero_orden con la
+    sección adyacente. direccion ∈ {'up', 'down'}."""
+    producto, es_educativo = _resolver_producto(slug)
+    SeccionModel = SeccionEducativa if es_educativo else SeccionPaper
+    seccion = get_object_or_404(
+        SeccionModel, id=seccion_id, producto=producto)
+
+    qs = producto.secciones.order_by('numero_orden', 'subnumero')
+    ordenadas = list(qs)
+    idx = ordenadas.index(seccion)
+    if direccion == 'up' and idx > 0:
+        otra = ordenadas[idx - 1]
+    elif direccion == 'down' and idx < len(ordenadas) - 1:
+        otra = ordenadas[idx + 1]
+    else:
+        return redirect(
+            'indicadores:editorial_producto_secciones', slug=producto.slug)
+
+    seccion.numero_orden, otra.numero_orden = (
+        otra.numero_orden, seccion.numero_orden)
+    seccion.save(update_fields=['numero_orden'])
+    otra.save(update_fields=['numero_orden'])
+    return redirect(
+        'indicadores:editorial_producto_secciones', slug=producto.slug)
 
 
 @editor_required

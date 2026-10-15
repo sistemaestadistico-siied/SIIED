@@ -1,0 +1,200 @@
+{% extends "editorial/base_editorial.html" %}
+
+{% block title %}{% if seccion %}Editar{% else %}Nueva{% endif %} sección — {{ producto.titulo }}{% endblock %}
+
+{% block editorial_content %}
+
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-3">
+        <i class="fas fa-layer-group text-indigo-500"></i>
+        {% if seccion %}Editar sección{% else %}Nueva sección{% endif %}
+    </h1>
+    <p class="mt-1 text-slate-500">{{ producto.titulo }}
+        {% if es_educativo %}<span class="text-xs text-violet-500 font-semibold">· producto educativo</span>{% endif %}
+    </p>
+</div>
+
+{{ form.media }}
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 max-w-4xl">
+
+    {% if form.non_field_errors %}
+    <div class="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    {% if seccion and seccion.tipo_bloque == 'grafico_indicador' and not es_educativo %}
+    <div class="mb-6 p-4 bg-violet-50 border border-violet-200 rounded-xl text-sm text-violet-800 flex items-center justify-between gap-4">
+        <span><i class="fas fa-chart-line"></i> Este bloque tiene un <strong>editor visual de gráfico</strong> dedicado (series, desagregaciones, tipo).</span>
+        <a href="{% url 'indicadores:editorial_seccion_grafico' seccion.id %}" class="flex-shrink-0 px-4 py-2 bg-violet-600 text-white rounded-lg font-medium hover:bg-violet-700 transition-all">
+            Abrir editor de gráfico
+        </a>
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+            <div>
+                <label for="{{ form.numero_orden.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Número de orden</label>
+                {{ form.numero_orden }}
+                {% for e in form.numero_orden.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+            </div>
+            {% if form.tipo_seccion %}
+            <div>
+                <label for="{{ form.tipo_seccion.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Tipo de sección</label>
+                {{ form.tipo_seccion }}
+                {% for e in form.tipo_seccion.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+            </div>
+            {% endif %}
+            {% if form.subnumero %}
+            <div>
+                <label for="{{ form.subnumero.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Sub-número</label>
+                {{ form.subnumero }}
+                {% for e in form.subnumero.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+            </div>
+            {% endif %}
+            {% if form.icono_emoji %}
+            <div>
+                <label for="{{ form.icono_emoji.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Ícono emoji</label>
+                {{ form.icono_emoji }}
+                {% for e in form.icono_emoji.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-5">
+            <label for="{{ form.titulo.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Título</label>
+            {{ form.titulo }}
+            {% for e in form.titulo.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+
+        <div class="mb-5">
+            <label for="{{ form.tipo_bloque.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">
+                <i class="fas fa-cube text-indigo-400"></i> Tipo de bloque
+            </label>
+            {{ form.tipo_bloque }}
+            {% for e in form.tipo_bloque.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+            <p class="mt-1 text-xs text-slate-400">Los campos de configuración de abajo se muestran según el tipo elegido.</p>
+        </div>
+
+        <div class="mb-6">
+            <label for="{{ form.contenido.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Contenido</label>
+            {{ form.contenido }}
+            {% for e in form.contenido.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+
+        {# --- Campos condicionales por tipo de bloque (SeccionPaper) --- #}
+        {% if form.indicador_vinculado %}
+        <div class="bloque-condicional mb-5" data-bloques="grafico_indicador mapa_indicador tabla_datos_indicador ficha_indicador resultado_destacado dato_interactivo grafico_interactivo grafico_3d_gamificado mapa_exploracion laboratorio_datos">
+            <label for="{{ form.indicador_vinculado.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Indicador vinculado</label>
+            {{ form.indicador_vinculado }}
+            {% for e in form.indicador_vinculado.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.configuracion_grafico %}
+        <div class="bloque-condicional mb-5" data-bloques="grafico_indicador mapa_indicador">
+            <label for="{{ form.configuracion_grafico.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Configuración del gráfico (JSON)</label>
+            {{ form.configuracion_grafico }}
+            {% for e in form.configuracion_grafico.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.configuracion_bloque %}
+        <div class="bloque-condicional mb-5" data-bloques="narrativa_guiada dato_interactivo grafico_3d_gamificado grafico_interactivo quiz_recompensa actividad_arrastrar laboratorio_datos mapa_exploracion video_educativo infografia_animada reto_final">
+            <label for="{{ form.configuracion_bloque.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Configuración del bloque (JSON)</label>
+            {{ form.configuracion_bloque }}
+            {% for e in form.configuracion_bloque.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+            <p class="mt-1 text-xs text-slate-400">Ej. quiz: {"pregunta": "...", "opciones": ["A","B"], "respuesta_correcta": 0}</p>
+        </div>
+        {% endif %}
+
+        {% if form.conjunto_datos_vinculado %}
+        <div class="bloque-condicional mb-5" data-bloques="tabla_microdata tabla_dinamica_microdata laboratorio_datos mapa_exploracion">
+            <label for="{{ form.conjunto_datos_vinculado.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Conjunto de datos vinculado</label>
+            {{ form.conjunto_datos_vinculado }}
+            {% for e in form.conjunto_datos_vinculado.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.documento_vinculado %}
+        <div class="bloque-condicional mb-5" data-bloques="documento_infraestructura">
+            <label for="{{ form.documento_vinculado.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Documento de infraestructura</label>
+            {{ form.documento_vinculado }}
+            {% for e in form.documento_vinculado.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.sistema_vinculado %}
+        <div class="bloque-condicional mb-5" data-bloques="sistema_informacion">
+            <label for="{{ form.sistema_vinculado.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Sistema de información</label>
+            {{ form.sistema_vinculado }}
+            {% for e in form.sistema_vinculado.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.publicaciones_relacionadas %}
+        <div class="bloque-condicional mb-5" data-bloques="publicacion_relacionada">
+            <label for="{{ form.publicaciones_relacionadas.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Publicaciones relacionadas</label>
+            {{ form.publicaciones_relacionadas }}
+            {% for e in form.publicaciones_relacionadas.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.indicadores_preseleccionados %}
+        <div class="bloque-condicional mb-5" data-bloques="visor_comparativo">
+            <label for="{{ form.indicadores_preseleccionados.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Indicadores del visor comparativo</label>
+            {{ form.indicadores_preseleccionados }}
+            {% for e in form.indicadores_preseleccionados.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.video_url %}
+        <div class="bloque-condicional mb-5" data-bloques="video_embed">
+            <label for="{{ form.video_url.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">URL del video</label>
+            {{ form.video_url }}
+            {% for e in form.video_url.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        {% if form.acordeon_items %}
+        <div class="bloque-condicional mb-5" data-bloques="acordeon">
+            <label for="{{ form.acordeon_items.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Items del acordeón (JSON)</label>
+            {{ form.acordeon_items }}
+            {% for e in form.acordeon_items.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="mt-8 pt-6 border-t border-slate-200 flex flex-wrap items-center gap-3">
+            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-all shadow-sm">
+                <i class="fas fa-save"></i> Guardar sección
+            </button>
+            <a href="{% url 'indicadores:editorial_producto_secciones' producto.slug %}" class="inline-flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-all">
+                <i class="fas fa-arrow-left"></i> Volver a secciones
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Muestra/oculta campos según el tipo de bloque seleccionado.
+document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById('{{ form.tipo_bloque.id_for_label }}');
+    const condicionales = document.querySelectorAll('.bloque-condicional');
+    if (!select) return;
+    function actualizar() {
+        const tipo = select.value;
+        condicionales.forEach(function (el) {
+            const bloques = (el.dataset.bloques || '').split(' ');
+            el.style.display = bloques.includes(tipo) ? '' : 'none';
+        });
+    }
+    select.addEventListener('change', actualizar);
+    actualizar();
+});
+</script>
+
+{% endblock %}
