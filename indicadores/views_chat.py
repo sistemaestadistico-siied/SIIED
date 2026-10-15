@@ -3016,17 +3016,27 @@ class ChatService:
             if self.primary_llm_down():
                 raise _PrimaryLLMCooldown("LLM principal en cooldown")
             if stream:
-                return self.client.chat.completions.create(
+                t_llm = time.monotonic()
+                response = self.client.chat.completions.create(
                     messages=messages,
                     stream=True,
                     **kwargs
                 )
+                logger.info(
+                    f"[LLM_STREAM] create() retornó stream en "
+                    f"{time.monotonic() - t_llm:.2f}s")
+                return response
             else:
-                return self.client.chat.completions.create(
+                t_llm = time.monotonic()
+                response = self.client.chat.completions.create(
                     messages=messages,
                     stream=False,
                     **kwargs
                 )
+                logger.info(
+                    f"[LLM_CALL] respuesta completa en "
+                    f"{time.monotonic() - t_llm:.2f}s")
+                return response
         except Exception as e:
             error_str = str(e)
             en_cooldown = isinstance(e, _PrimaryLLMCooldown)
@@ -3854,6 +3864,7 @@ class ChatService:
                 try:
                     # stream=True: deltas progresivos al usuario; tool_calls se
                     # acumulan en _consume_llm_stream
+                    t_llm_call = time.monotonic()
                     response = self._call_llm_with_fallback(
                         messages=messages,
                         model=get_config('CEREBRAS_MODEL', 'gpt-oss-120b'),
@@ -3869,29 +3880,37 @@ class ChatService:
                     logger.error(f"[MCP_FIX] Error Cerebras API (sin fallback disponible): {e}")
                     yield {'content': 'Error de conexión. No hay servicio de respaldo disponible.', 'is_complete': False}
                     break
-                
+
                 # Consumir el stream: emite deltas de contenido progresivamente
                 # y retorna (content, tool_calls, emitted_content)
                 final_content, stream_tool_calls, emitted_content = yield from \
                     self._consume_llm_stream(response)
                 message = SimpleNamespace(
                     content=final_content, tool_calls=stream_tool_calls)
-                
+
                 # Log para debugging: verificar si hay tool_calls
                 provider = self.fallback_config.get('base_url', 'fallback').replace('https://', '').replace('http://', '').split('/')[0] if self.using_fallback else "Cerebras"
                 has_tool_calls = hasattr(message, 'tool_calls') and message.tool_calls
-                logger.info(f"[MCP_FIX] Respuesta de {provider}: tool_calls={has_tool_calls}, content_length={len(final_content)}")
+                logger.info(
+                    f"[MCP_FIX] Respuesta de {provider}: "
+                    f"tool_calls={has_tool_calls}, "
+                    f"content_length={len(final_content)}, "
+                    f"ronda en {time.monotonic() - t_llm_call:.2f}s")
                 
                 # Verificar si el modelo solicita herramientas
                 if has_tool_calls:
                     logger.info(f"[MCP_FIX] Modelo solicita {len(message.tool_calls)} herramientas - PROCESANDO INTERNAMENTE")
-                    
+
+                    t_tools = time.monotonic()
                     tools_executed = yield from self._process_tool_calls(
                         message.tool_calls,
                         current_history,
                         session_state,
                         assistant_content=message.content or ""
                     )
+                    logger.info(
+                        f"[MCP_FIX] {tools_executed} tools ejecutadas en "
+                        f"{time.monotonic() - t_tools:.2f}s")
                     
                     if tools_executed == 0:
                         logger.info("[MCP_FIX] No hay nuevas herramientas pendientes")
@@ -4433,8 +4452,49 @@ class ChatService:
         emitted = ''
         hold_buffer = ''    # contenido retenido por si es JSON inline
         HOLD_LIMIT = 300    # chars antes de asumir que no es payload
+        n_chunks = 0
+        n_tool_deltas = 0
+        t_stream = time.monotonic()
 
-        for chunk in stream:
+        def _iter_logged(source):
+            """Envuelve el iterador del SDK para medir llegada de chunks y
+            detectar stalls/cierres externos sin alterar el consumo."""
+            nonlocal n_chunks
+            try:
+                while True:
+                    t_next = time.monotonic()
+                    try:
+                        chunk = next(source)
+                    except StopIteration:
+                        logger.info(
+                            f"[LLM_STREAM] stream agotado: {n_chunks} chunks "
+                            f"en {time.monotonic() - t_stream:.2f}s")
+                        return
+                    n_chunks += 1
+                    if n_chunks == 1:
+                        logger.info(
+                            f"[LLM_STREAM] primer chunk del proveedor en "
+                            f"{time.monotonic() - t_stream:.2f}s")
+                    dt = time.monotonic() - t_next
+                    if dt > 5.0:
+                        logger.warning(
+                            f"[LLM_STREAM] espera de {dt:.1f}s para chunk "
+                            f"#{n_chunks}")
+                    yield chunk
+            except GeneratorExit:
+                logger.warning(
+                    f"[LLM_STREAM] stream cerrado externamente tras "
+                    f"{n_chunks} chunks en "
+                    f"{time.monotonic() - t_stream:.2f}s (socket/proxy muerto)")
+                raise
+            except Exception as e:
+                logger.error(
+                    f"[LLM_STREAM] error iterando stream tras {n_chunks} "
+                    f"chunks en {time.monotonic() - t_stream:.2f}s "
+                    f"({type(e).__name__}: {e})", exc_info=True)
+                raise
+
+        for chunk in _iter_logged(iter(stream)):
             try:
                 choices = getattr(chunk, 'choices', None) or []
                 choice = choices[0] if choices else None
@@ -4448,6 +4508,7 @@ class ChatService:
 
             # Deltas de tool calls
             for tc in getattr(delta, 'tool_calls', None) or []:
+                n_tool_deltas += 1
                 idx = getattr(tc, 'index', 0) or 0
                 acc = tool_calls_acc.setdefault(
                     idx, {'id': None, 'name': None, 'arguments': ''})
@@ -4507,6 +4568,11 @@ class ChatService:
                 )
                 for _idx, acc in sorted(tool_calls_acc.items())
             ]
+        logger.info(
+            f"[LLM_STREAM] consumo OK: {n_chunks} chunks, "
+            f"{n_tool_deltas} tool_deltas, content={len(content)} chars, "
+            f"emitted={len(emitted)} chars, "
+            f"en {time.monotonic() - t_stream:.2f}s")
         return content, tool_calls, emitted
 
 
