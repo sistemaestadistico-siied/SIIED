@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 import json
+import time
 from indicadores.decorators import editor_required
 from indicadores.models import (
     ProductoAcademico, ProductoEducativo, SeccionPaper, SeccionEducativa,
@@ -658,17 +659,27 @@ def noticia_generar_ia(request):
 
     # Importación perezosa: views_chat arrastra dependencias pesadas
     from .views_chat import ChatService
+    logger.info(
+        f'[IA] noticia_generar_ia inicio: {len(prompt)} chars de prompt')
+    t_start = time.monotonic()
     try:
         data = ChatService(request=request).generate_structured(
             prompt, NOTICIA_SCHEMA,
             system_prompt=NOTICIA_SYSTEM_PROMPT,
             schema_name='noticia_banner')
+        logger.info(
+            f'[IA] noticia_generar_ia OK en '
+            f'{time.monotonic() - t_start:.1f}s')
     except Exception as e:
-        logger.error(f'Error generando noticia con IA: {e}')
+        logger.error(
+            f'[IA] noticia_generar_ia falló en '
+            f'{time.monotonic() - t_start:.1f}s '
+            f'({type(e).__name__}: {e})')
         return JsonResponse(
             {'error': 'El asistente no pudo generar la noticia. '
                       'Inténtalo de nuevo en unos segundos.'},
             status=502)
+
 
     try:
         orden = int(data.get('orden'))

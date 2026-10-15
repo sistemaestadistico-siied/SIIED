@@ -5048,17 +5048,24 @@ def chat_message(request):
     def optimized_event_stream():
         """Stream de eventos con formato SSE consistente"""
         assistant_response = ""
-        
+        t0 = time.monotonic()
+        chunk_count = 0
+        content_chunks = 0
+
+        def _elapsed():
+            return time.monotonic() - t0
+
         try:
             def is_cancelled():
                 return is_request_cancelled(user_key, request_id)
-            
+
             # IMPORTANTE: WSGI solo envía los headers cuando se produce el
             # primer byte del body. Emitir un heartbeat inmediato fija el
             # TTFB en ~0; si el primer evento espera a init+búsqueda y el
             # proxy corta por timeout, el backend genera todo sobre un socket
             # muerto (logs OK pero el frontend nunca recibe nada).
             yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+            logger.info(f"[CHAT_STREAM] TTFB emitido en {_elapsed():.2f}s (req={request_id})")
 
             if is_cancelled():
                 yield f"data: {json.dumps({'status': 'cancelled'})}\n\n"
@@ -5074,21 +5081,27 @@ def chat_message(request):
             ]
 
             # Crear nueva instancia con request para URLs dinámicas
+            t_init = time.monotonic()
             chat_service = ChatService(request=request)
+            logger.info(f"[CHAT_STREAM] ChatService init: {time.monotonic() - t_init:.2f}s")
 
             # Detectar si necesita tools (heurística barata, sin latencia LLM)
             uses_tools = chat_service._should_use_tools(user_message)
 
             # ENVIAR EVENTO DE INICIO (antes de la búsqueda, que puede tardar)
             yield f"data: {json.dumps({'type': 'start', 'uses_tools': uses_tools})}\n\n"
+            logger.info(f"[CHAT_STREAM] start uses_tools={uses_tools} en {_elapsed():.2f}s")
 
             relevant_data = {}
             try:
+                t_search = time.monotonic()
                 relevant_data = chat_service.search_relevant_data(user_message)
+                logger.info(
+                    f"[CHAT_STREAM] búsqueda: {time.monotonic() - t_search:.2f}s, "
+                    f"tipo={type(relevant_data).__name__}")
             except Exception as e:
-                logger.warning(f"Error buscando datos relevantes: {e}")
+                logger.warning(f"[CHAT_STREAM] búsqueda falló en {_elapsed():.2f}s: {e}")
 
-            chunk_count = 0
             tool_used = False
             updated_history = None
             
@@ -5100,19 +5113,26 @@ def chat_message(request):
             )
             
             # Procesar los chunks de respuesta
+            logger.info(f"[CHAT_STREAM] Iterando generador en {_elapsed():.2f}s")
             for chunk in response_generator:
                 if chunk_count % 5 == 0 and is_cancelled():
+                    logger.info(f"[CHAT_STREAM] cancelado tras {chunk_count} chunks en {_elapsed():.2f}s")
                     yield f"data: {json.dumps({'type': 'cancelled'})}\n\n"
                     return
-                
+
                 chunk_count += 1
-                
+
                 if isinstance(chunk, dict):
                     # Manejar contenido normal
                     if 'content' in chunk and chunk['content']:
                         content = chunk['content']
                         assistant_response += content
-                        
+                        content_chunks += 1
+                        if content_chunks == 1:
+                            logger.info(f"[CHAT_STREAM] primer contenido en {_elapsed():.2f}s")
+                        elif content_chunks % 25 == 0:
+                            logger.info(f"[CHAT_STREAM] {content_chunks} chunks en {_elapsed():.2f}s")
+
                         # Enviar contenido al frontend
                         yield f"data: {json.dumps({'type': 'content', 'content': content,'source': chunk.get('source', 'unknown')})}\n\n"
                     
@@ -5172,11 +5192,23 @@ def chat_message(request):
             # Evento de finalización
             yield f"data: {json.dumps({'type': 'complete', 'final_length': len(assistant_response),'tool_used': tool_used})}\n\n"
             
+        except GeneratorExit:
+            # El socket lo cerró el cliente o el proxy (timeout/cancelación):
+            # WSGI cierra el generador y los yields posteriores no llegan a
+            # nadie. Si este log aparece, el problema es la conexión, no el LLM.
+            logger.warning(
+                f"[CHAT_STREAM] Socket cerrado por cliente/proxy en "
+                f"{_elapsed():.2f}s tras {chunk_count} chunks "
+                f"({content_chunks} de contenido)")
+            raise
         except Exception as e:
-            logger.error(f"Error en event stream: {e}", exc_info=True)
+            logger.error(f"[CHAT_STREAM] Error en event stream en {_elapsed():.2f}s: {e}", exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'error': 'Error procesando solicitud'})}\n\n"
-        
+
         finally:
+            logger.info(
+                f"[CHAT_STREAM] Fin: {_elapsed():.2f}s, {chunk_count} chunks, "
+                f"{content_chunks} de contenido, {len(assistant_response)} chars")
             # Limpiar request activo de forma atómica
             unregister_request_atomic(user_key, request_id)
             

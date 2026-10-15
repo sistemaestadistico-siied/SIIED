@@ -3215,6 +3215,10 @@ class ChatService:
             'LLM_STRUCTURED_MAX_SECONDS', 55.0))
         deadline = time.monotonic() + max_seconds
 
+        logger.info(
+            f"[STRUCTURED] Iniciando '{schema_name}' "
+            f"(prompt={len(user_prompt)} chars, presupuesto={max_seconds:.0f}s)")
+
         last_error = None
         for fmt in format_candidates:
             remaining = deadline - time.monotonic()
@@ -3228,19 +3232,28 @@ class ChatService:
             call_kwargs['timeout'] = max(5.0, remaining - 2.0)
             if fmt is not None:
                 call_kwargs['response_format'] = fmt
+            t_attempt = time.monotonic()
             try:
                 resp = self._call_llm_with_fallback(
                     messages, stream=False, **call_kwargs)
-                data = self._parse_structured_json(
-                    resp.choices[0].message.content)
+                raw = resp.choices[0].message.content
+                data = self._parse_structured_json(raw)
                 if isinstance(data, dict):
+                    logger.info(
+                        f"[STRUCTURED] '{schema_name}' OK en "
+                        f"{time.monotonic() - t_attempt:.1f}s "
+                        f"(fmt={fmt.get('type') if fmt else 'prompt-only'}, "
+                        f"fallback={self.using_fallback}, "
+                        f"raw={len(raw or '')} chars)")
                     return data
                 raise ValueError('El LLM devolvió JSON pero no un objeto')
             except Exception as e:
                 last_error = e
                 logger.warning(
-                    f"⚠️ generate_structured falló con "
-                    f"response_format={fmt.get('type') if fmt else 'none'}: {e}")
+                    f"⚠️ [STRUCTURED] intento "
+                    f"fmt={fmt.get('type') if fmt else 'prompt-only'} "
+                    f"falló en {time.monotonic() - t_attempt:.1f}s "
+                    f"({type(e).__name__}: {e})")
                 continue
         raise ValueError(
             f'No se obtuvo JSON válido del LLM tras {len(format_candidates)} '
