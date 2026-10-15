@@ -4,6 +4,9 @@
 
 {% block title %}FICED — {{ current_step_label }} — SIIED{% endblock %}
 
+{# El delegado solo ve el mini-chat del módulo FICED; se oculta el global #}
+{% block floating_chat %}{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'indicadores/iced/iced_widgets.css' %}">
 <style>

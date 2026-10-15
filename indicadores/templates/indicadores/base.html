@@ -157,11 +157,13 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-50">
+    {% block floating_chat %}
     <div class="floating-chat">
         <a href="{% url 'indicadores:chat' %}" title="Chatea con Don Datico">
             <img src="{% static 'indicadores/images/don datico.png' %}" alt="Chat con Don Datico">
         </a>
     </div>
+    {% endblock %}
     <!-- Header con diseño moderno -->
     <header class="bg-white text-white shadow-xl relative z-[100]">
         <div class="md:h-20 bg-gov-100 w-full items-center">
