@@ -1,6 +1,7 @@
 from django.urls import path, include, register_converter
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth.decorators import login_required
 
 from . import views
 from . import views_monitoring
@@ -431,8 +432,8 @@ urlpatterns = [
     # ========================================================================
     path('iced/', views_iced.iced_landing, name='iced_landing'),
     path('iced/equipo/', views_iced.iced_equipo, name='iced_equipo'),
-    path('iced/formulario/', views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS), name='iced_formulario_nuevo'),
-    path('iced/formulario/<int:formulario_id>/', views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS), name='iced_formulario_retomar'),
+    path('iced/formulario/', login_required(views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS)), name='iced_formulario_nuevo'),
+    path('iced/formulario/<int:formulario_id>/', login_required(views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS)), name='iced_formulario_retomar'),
     path('iced/confirmacion/<int:formulario_id>/', views_iced.iced_confirmacion, name='iced_confirmacion'),
     path('iced/resultado/<int:formulario_id>/', views_iced.iced_resultado, name='iced_resultado'),
     path('iced/guardar-parcial/', views_iced.iced_guardar_parcial, name='iced_guardar_parcial'),
