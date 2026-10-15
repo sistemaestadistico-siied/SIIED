@@ -356,10 +356,6 @@
     </div>
 </div>
 
-<!-- Tabs de categorías de herramientas -->
-<div class="container mx-auto px-4 mb-6">
-    <div id="banners-categorias" class="flex flex-wrap justify-center gap-2"></div>
-</div>
 
 <div class="relative overflow-hidden rounded-2xl">
     <!-- Slider Container -->
@@ -1686,7 +1682,12 @@
         <div class="banners-button-prev absolute top-1/2 -left-4 transform -translate-y-1/2 z-10 w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center text-sky-600 hover:bg-white hover:text-sky-700 transition-all duration-200 cursor-pointer">
             <i class="fas fa-chevron-left"></i>
         </div>
-        <div class="banners-pagination flex justify-center gap-3 mt-8 pb-4"></div>
+        <!-- Tabs de categorías + bullets juntos debajo del carrusel
+             (en móvil ambos quedan visibles y sirven para navegar) -->
+        <div class="container mx-auto px-4 mt-6">
+            <div id="banners-categorias" class="flex flex-wrap justify-center gap-2"></div>
+        </div>
+        <div class="banners-pagination flex justify-center gap-3 mt-4 pb-4"></div>
     </div>
 </div>
 
