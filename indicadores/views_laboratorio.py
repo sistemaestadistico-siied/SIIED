@@ -129,8 +129,8 @@ def _contexto_fuentes(request):
     ]
 
     indicadores = list(
-        Indicador.objects.filter(activo=True)
-        .order_by('nombre')[:40]
+        Indicador.objects.filter(activo=True, datos__isnull=False)
+        .distinct().order_by('nombre')[:40]
         .values('id', 'nombre', 'unidad_medida'))
 
     return {

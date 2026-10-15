@@ -200,7 +200,7 @@ class CerebrasToolsService:
                 "type": "function",
                 "function": {
                     "name": "buscar_indicadores",
-                    "description": "Busca indicadores por nombre, tema o palabras clave. Usa esta herramienta cuando el usuario pregunte por datos estadísticos específicos, indicadores de cualquier tema (educación, salud, economía, seguridad, etc.), o cuando mencione términos como 'cuántos', 'cuál es el valor', 'estadísticas de', 'datos de', 'indicadores de'. Devuelve indicadores activos con sus metadatos básicos.",
+                    "description": "Busca indicadores por nombre, tema o palabras clave. Usa esta herramienta cuando el usuario pregunte por datos estadísticos específicos, indicadores de cualquier tema (educación, salud, economía, seguridad, etc.), o cuando mencione términos como 'cuántos', 'cuál es el valor', 'estadísticas de', 'datos de', 'indicadores de'. Devuelve únicamente indicadores activos CON DATOS cargados y sus metadatos básicos — un indicador sin datos no aparece en los resultados.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -801,8 +801,9 @@ class CerebrasToolsService:
             # Obtener los indicadores completos
             indicadores = Indicador.objects.filter(
                 id__in=indicador_ids,
-                activo=True
-            ).select_related('subtema__tema__dominio')
+                activo=True,
+                datos__isnull=False
+            ).select_related('subtema__tema__dominio').distinct()
             
             # Mapear para mantener el orden de relevancia
             indicadores_map = {ind.id: ind for ind in indicadores}
@@ -1168,14 +1169,15 @@ class CerebrasToolsService:
                     Q(subtema__tema__nombre__icontains=consulta) |
                     Q(subtemas_adicionales__tema__nombre__icontains=consulta)
                 )
-                indicadores = Indicador.objects.filter(text_filter, activo=True).select_related(
+                indicadores = Indicador.objects.filter(text_filter, activo=True, datos__isnull=False).select_related(
                     'subtema__tema__dominio'
                 ).distinct()[:limite]
             else:
                 indicadores = Indicador.objects.filter(
-                    id__in=indicador_ids, 
-                    activo=True
-                ).select_related('subtema__tema__dominio')[:limite]
+                    id__in=indicador_ids,
+                    activo=True,
+                    datos__isnull=False
+                ).select_related('subtema__tema__dominio').distinct()[:limite]
             
             # Formatear resultados
             resultados = []
@@ -1421,7 +1423,7 @@ class CerebrasToolsService:
             # para limitar la búsqueda vectorial solo a esos indicadores
             filtered_ids = None
             if dominios or temas:
-                pre_query = Indicador.objects.filter(activo=True)
+                pre_query = Indicador.objects.filter(activo=True, datos__isnull=False)
                 if dominios:
                     pre_query = pre_query.filter(
                         Q(subtema__tema__dominio_id__in=dominios) |
@@ -1487,7 +1489,7 @@ class CerebrasToolsService:
                             }
 
             # Construir query base sobre los candidatos (o sobre todos si no hay semánticos)
-            query = Indicador.objects.filter(activo=True).select_related('subtema__tema__dominio')
+            query = Indicador.objects.filter(activo=True, datos__isnull=False).select_related('subtema__tema__dominio').distinct()
             fallback_text_search = False
 
             if semantic_ids_order:
@@ -1773,8 +1775,8 @@ class CerebrasToolsService:
         try:
             # Obtener indicadores
             indicadores = Indicador.objects.filter(
-                id__in=indicadores_ids, activo=True
-            ).select_related('subtema__tema__dominio')
+                id__in=indicadores_ids, activo=True, datos__isnull=False
+            ).select_related('subtema__tema__dominio').distinct()
             
             if not indicadores.exists():
                 return {"error": "No se encontraron indicadores válidos para comparar"}
@@ -5424,7 +5426,7 @@ class ChatService:
             # Metadatos de indicadores en una sola consulta (evita N+1)
             ref_ids = [d.referencia_id for d in documentos if d.tipo == 'indicador']
             indicadores_map = {
-                ind.id: ind for ind in Indicador.objects.filter(id__in=ref_ids)
+                ind.id: ind for ind in Indicador.objects.filter(id__in=ref_ids, datos__isnull=False).distinct()
             } if ref_ids else {}
 
             for doc in documentos:
@@ -5827,7 +5829,7 @@ class ChatService:
                 logger.info("[SEARCH_INDICADORES] Sin términos de búsqueda, devolviendo todos los indicadores activos")
             
             # Consulta base con select_related para optimización
-            indicadores_query = Indicador.objects.filter(q_objects).select_related(
+            indicadores_query = Indicador.objects.filter(q_objects, datos__isnull=False).select_related(
                 'subtema__tema__dominio'
             ).distinct()
             
