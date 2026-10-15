@@ -686,6 +686,7 @@ class CerebrasToolsService:
                 viz = {
                     'tipo': 'grafico',
                     'grafico_id': g.id,
+                    'indicador_id': indicador.id,
                     'titulo': g.titulo or g.nombre,
                     'indicador': indicador.nombre,
                 }

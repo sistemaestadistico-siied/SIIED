@@ -3486,10 +3486,16 @@ async renderVisualizaciones(vizData, messageId) {
                 <span class="text-xs font-semibold text-teal-800 truncate">
                     <i class="fas ${icono}"></i> ${viz.titulo || 'Visualización'}
                 </span>
-                <button type="button" class="viz-png-btn flex-shrink-0 text-xs px-2.5 py-1.5 ${esMovil ? 'bg-teal-600 text-white' : 'bg-white text-teal-700 border border-teal-300'} rounded-lg hover:bg-teal-700 hover:text-white transition-all" title="Descargar como imagen PNG">
-                    <i class="fas fa-download"></i> PNG
-                </button>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <button type="button" class="viz-filtros-btn text-xs px-2.5 py-1.5 bg-white text-teal-700 border border-teal-300 rounded-lg hover:bg-teal-700 hover:text-white transition-all" title="Filtros de año y desagregaciones">
+                        <i class="fas fa-filter"></i> Filtros
+                    </button>
+                    <button type="button" class="viz-png-btn text-xs px-2.5 py-1.5 ${esMovil ? 'bg-teal-600 text-white' : 'bg-white text-teal-700 border border-teal-300'} rounded-lg hover:bg-teal-700 hover:text-white transition-all" title="Descargar como imagen PNG">
+                        <i class="fas fa-download"></i> PNG
+                    </button>
+                </div>
             </div>
+            <div class="viz-filtros-panel hidden px-3 py-2 bg-slate-50 border-b border-teal-100 text-xs space-y-2"></div>
             <div class="viz-plot" style="width:100%;height:${esMovil ? 200 : 400}px;"></div>`;
         container.appendChild(card);
 
@@ -3504,6 +3510,15 @@ async renderVisualizaciones(vizData, messageId) {
             console.warn('[VIZ] No se pudo renderizar:', e);
             plotDiv.innerHTML =
                 '<p class="text-xs text-slate-500 p-3">Esta visualización no está disponible por ahora.</p>';
+        }
+
+        // Controles de filtros (años + desagregaciones por dominio),
+        // mismos endpoints/parametros que subtema_detalle
+        if (viz.indicador_id) {
+            this._wireFiltrosViz(card, viz, plotDiv, esMovil);
+        } else {
+            const fb = card.querySelector('.viz-filtros-btn');
+            if (fb) fb.style.display = 'none';
         }
 
         card.querySelector('.viz-png-btn').addEventListener('click', () => {
@@ -3521,12 +3536,15 @@ async renderVisualizaciones(vizData, messageId) {
     this.scrollToBottom();
 }
 
-async _renderGraficoChat(viz, plotDiv, esMovil) {
-    const url = `{% url 'indicadores:api_get_grafico' 0 %}`.replace('/0/', `/${viz.grafico_id}/`);
+async _renderGraficoChat(viz, plotDiv, esMovil, qs = '') {
+    const url = `{% url 'indicadores:api_get_grafico' 0 %}`.replace('/0/', `/${viz.grafico_id}/`) + qs;
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
+    this._plotGraficoChat(plotDiv, data, esMovil);
+}
 
+_plotGraficoChat(plotDiv, data, esMovil) {
     const layout = Object.assign({}, data.layout || {}, {
         autosize: true,
         margin: esMovil
@@ -3541,7 +3559,7 @@ async _renderGraficoChat(viz, plotDiv, esMovil) {
         layout.hovermode = 'x unified';
     }
 
-    Plotly.newPlot(plotDiv, data.series || [], layout, {
+    Plotly.react(plotDiv, data.series || [], layout, {
         responsive: true,
         displaylogo: false,
         displayModeBar: !esMovil,
@@ -3549,14 +3567,24 @@ async _renderGraficoChat(viz, plotDiv, esMovil) {
     });
 }
 
-async _renderMapaChat(viz, plotDiv, esMovil) {
-    const urlValores = `{% url 'indicadores:api_test_valores_geo' 0 %}`.replace('/0/', `/${viz.indicador_id}/`);
-    const urlGeo = `{% url 'indicadores:api_geojson_indicador' 0 %}`.replace('/0/', `/${viz.indicador_id}/`);
+async _renderMapaChat(viz, plotDiv, esMovil, qs = '') {
+    const urlValores = `{% url 'indicadores:api_test_valores_geo' 0 %}`.replace('/0/', `/${viz.indicador_id}/`) + qs;
 
-    const [datosGeo, geojson] = await Promise.all([
-        fetch(urlValores).then(r => r.json()),
-        fetch(urlGeo).then(r => r.json()),
-    ]);
+    // El geojson es estatico por indicador: se cachea en el descriptor
+    // para que los refetches de filtros solo pidan los valores
+    if (!viz._geojson) {
+        const urlGeo = `{% url 'indicadores:api_geojson_indicador' 0 %}`.replace('/0/', `/${viz.indicador_id}/`);
+        viz._geojson = await fetch(urlGeo).then(r => r.json());
+        // Mismo mapeo que subtema_detalle: feature.id desde properties.codigo
+        (viz._geojson.features || []).forEach(f => {
+            if (!f.id && f.properties && f.properties.codigo) {
+                f.id = f.properties.codigo;
+            }
+        });
+    }
+
+    const datosGeo = await fetch(urlValores).then(r => r.json());
+    const geojson = viz._geojson;
 
     if (!geojson.features || !geojson.features.length) {
         throw new Error('Sin geometrías');
@@ -3564,13 +3592,6 @@ async _renderMapaChat(viz, plotDiv, esMovil) {
     if (!datosGeo.valores || !datosGeo.valores.length) {
         throw new Error('Sin datos geográficos');
     }
-
-    // Mismo mapeo que subtema_detalle: feature.id desde properties.codigo
-    geojson.features.forEach(f => {
-        if (!f.id && f.properties && f.properties.codigo) {
-            f.id = f.properties.codigo;
-        }
-    });
 
     const locations = [], z = [], text = [];
     geojson.features.forEach(feature => {
@@ -3615,12 +3636,224 @@ async _renderMapaChat(viz, plotDiv, esMovil) {
         geo: { fitbounds: 'locations', visible: false },
     };
 
-    Plotly.newPlot(plotDiv, trace, layout, {
+    Plotly.react(plotDiv, trace, layout, {
         responsive: true,
         displaylogo: false,
         displayModeBar: !esMovil,
         scrollZoom: !esMovil,
     });
+}
+
+// ---- Filtros por card (misma arquitectura que subtema_detalle) ----
+
+_wireFiltrosViz(card, viz, plotDiv, esMovil) {
+    const btn = card.querySelector('.viz-filtros-btn');
+    const panel = card.querySelector('.viz-filtros-panel');
+    if (!btn || !panel) return;
+    const selectsMap = {};
+    let cargado = false;
+
+    btn.addEventListener('click', async () => {
+        if (!panel.classList.contains('hidden')) {
+            panel.classList.add('hidden');
+            return;
+        }
+        panel.classList.remove('hidden');
+        if (cargado) return;
+        cargado = true;
+        panel.innerHTML =
+            '<p class="text-slate-500 py-1"><i class="fas fa-spinner fa-spin"></i> Cargando filtros…</p>';
+        try {
+            const url = `{% url 'indicadores:api_get_desagregaciones' 0 %}`
+                .replace('/0/', `/${viz.indicador_id}/`);
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const info = await resp.json();
+            this._construirPanelFiltros(panel, viz, info, selectsMap, plotDiv, esMovil);
+        } catch (e) {
+            console.warn('[VIZ] filtros no disponibles:', e);
+            panel.innerHTML =
+                '<p class="text-slate-500 py-1">No hay filtros disponibles para esta visualización.</p>';
+        }
+    });
+}
+
+_construirPanelFiltros(panel, viz, info, selectsMap, plotDiv, esMovil) {
+    panel.innerHTML = '';
+    const rango = info.rango_anios || {};
+    const minD = rango.min_disponible;
+    const maxD = rango.max_disponible;
+
+    // --- control(es) de año ---
+    const anosWrap = document.createElement('div');
+    anosWrap.className = 'flex flex-wrap items-center gap-2';
+    let inpIni = null, inpFin = null, inpAnio = null;
+    if (viz.tipo === 'mapa') {
+        // El coroplético agrega por territorio de UN solo año
+        anosWrap.innerHTML = '<label class="font-medium text-slate-600">Año:</label>';
+        inpAnio = document.createElement('input');
+        inpAnio.type = 'number';
+        inpAnio.className = 'w-20 p-1 border border-slate-300 rounded';
+        if (minD) inpAnio.min = minD;
+        if (maxD) inpAnio.max = maxD;
+        inpAnio.value = maxD || '';
+        anosWrap.appendChild(inpAnio);
+    } else {
+        anosWrap.innerHTML = '<label class="font-medium text-slate-600">Años:</label>';
+        inpIni = document.createElement('input');
+        inpIni.type = 'number';
+        inpIni.placeholder = 'Desde';
+        inpFin = document.createElement('input');
+        inpFin.type = 'number';
+        inpFin.placeholder = 'Hasta';
+        [inpIni, inpFin].forEach(i => {
+            i.className = 'w-20 p-1 border border-slate-300 rounded';
+            if (minD) i.min = minD;
+            if (maxD) i.max = maxD;
+        });
+        if (rango.min) inpIni.value = rango.min;
+        if (rango.max) inpFin.value = rango.max;
+        anosWrap.appendChild(inpIni);
+        anosWrap.appendChild(document.createTextNode('–'));
+        anosWrap.appendChild(inpFin);
+    }
+    panel.appendChild(anosWrap);
+
+    // --- un <select multiple> por dominio (cascada dominio_padre) ---
+    // Para el mapa solo tienen sentido dominios temáticos: el coroplético
+    // ya agrega POR territorio geográfico
+    let dominios = info.dominios || [];
+    if (viz.tipo === 'mapa') {
+        dominios = dominios.filter(d => d.tipo !== 'geografica');
+    }
+    const domWrap = document.createElement('div');
+    domWrap.className = 'grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto';
+    panel.appendChild(domWrap);
+    this._renderFiltrosDominiosChat(domWrap, dominios, selectsMap);
+
+    // --- botones ---
+    const btns = document.createElement('div');
+    btns.className = 'flex gap-2 pt-1';
+    const bAplicar = document.createElement('button');
+    bAplicar.type = 'button';
+    bAplicar.className = 'px-3 py-1 bg-teal-600 text-white rounded hover:bg-teal-700';
+    bAplicar.textContent = 'Aplicar';
+    const bLimpiar = document.createElement('button');
+    bLimpiar.type = 'button';
+    bLimpiar.className = 'px-3 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300';
+    bLimpiar.textContent = 'Restablecer';
+    btns.appendChild(bAplicar);
+    btns.appendChild(bLimpiar);
+    panel.appendChild(btns);
+
+    const ctl = { inpIni, inpFin, inpAnio, selectsMap };
+    bAplicar.addEventListener('click', () =>
+        this._aplicarFiltrosViz(viz, plotDiv, esMovil, ctl));
+    bLimpiar.addEventListener('click', () => {
+        // Restablecer = selecciones predeterminadas + rango por defecto
+        this._renderFiltrosDominiosChat(domWrap, dominios, selectsMap);
+        if (inpAnio) inpAnio.value = maxD || '';
+        if (inpIni) inpIni.value = rango.min || '';
+        if (inpFin) inpFin.value = rango.max || '';
+        this._aplicarFiltrosViz(viz, plotDiv, esMovil, ctl);
+    });
+}
+
+async _aplicarFiltrosViz(viz, plotDiv, esMovil, ctl) {
+    const params = new URLSearchParams();
+    const { geo, tem } = this._recolectarDominiosChat(ctl.selectsMap);
+    try {
+        if (viz.tipo === 'mapa') {
+            if (ctl.inpAnio && ctl.inpAnio.value) {
+                params.set('anio', ctl.inpAnio.value);
+            }
+            tem.forEach(id => params.append('desagregaciones_tematicas', id));
+            const qs = params.toString() ? '?' + params.toString() : '';
+            await this._renderMapaChat(viz, plotDiv, esMovil, qs);
+        } else {
+            if (ctl.inpIni && ctl.inpIni.value) {
+                params.set('ano_inicio', ctl.inpIni.value);
+            }
+            if (ctl.inpFin && ctl.inpFin.value) {
+                params.set('ano_fin', ctl.inpFin.value);
+            }
+            geo.forEach(id => params.append('desagregaciones_geograficas', id));
+            tem.forEach(id => params.append('desagregaciones_tematicas', id));
+            const qs = params.toString() ? '?' + params.toString() : '';
+            await this._renderGraficoChat(viz, plotDiv, esMovil, qs);
+        }
+    } catch (e) {
+        console.warn('[VIZ] refetch con filtros falló:', e);
+        plotDiv.innerHTML =
+            '<p class="text-xs text-slate-500 p-3">Sin datos para los filtros seleccionados.</p>';
+    }
+}
+
+// Renderiza un <select multiple> por dominio (portado de subtema_detalle)
+_renderFiltrosDominiosChat(container, dominios, selectsMap, onChange) {
+    container.innerHTML = '';
+    Object.keys(selectsMap).forEach(k => delete selectsMap[k]);
+    if (!dominios || !dominios.length) return false;
+
+    dominios.forEach(dom => {
+        const wrap = document.createElement('div');
+        if (dom.dominio_padre) wrap.className = 'pl-2 border-l-2 border-teal-200';
+        const label = document.createElement('label');
+        label.className = 'block font-medium text-slate-600 mb-0.5';
+        label.textContent = dom.nombre;
+        wrap.appendChild(label);
+        const sel = document.createElement('select');
+        sel.multiple = true;
+        sel.size = 3;
+        sel.dataset.dominioId = dom.id;
+        sel.dataset.dominioTipo = dom.tipo;
+        sel.dataset.dominioPadre = dom.dominio_padre || '';
+        sel.className = 'w-full p-1 border border-slate-300 rounded bg-white';
+        (dom.desagregaciones || []).forEach(d => {
+            const o = document.createElement('option');
+            o.value = d.id;
+            o.textContent = d.nombre;
+            o.dataset.padre = d.desagregacion_padre || '';
+            o.selected = d.predeterminada || false;
+            sel.appendChild(o);
+        });
+        sel.addEventListener('change', () => {
+            this._actualizarCascadaDominiosChat(selectsMap);
+            if (onChange) onChange();
+        });
+        wrap.appendChild(sel);
+        container.appendChild(wrap);
+        selectsMap[dom.id] = sel;
+    });
+    this._actualizarCascadaDominiosChat(selectsMap);
+    return true;
+}
+
+// Cascada: en dominios hijos deshabilita opciones cuyo padre no está elegido
+_actualizarCascadaDominiosChat(selectsMap) {
+    Object.values(selectsMap).forEach(sel => {
+        const padreId = sel.dataset.dominioPadre;
+        if (!padreId || !selectsMap[padreId]) return;
+        const padresSel = new Set(
+            Array.from(selectsMap[padreId].selectedOptions).map(o => o.value));
+        Array.from(sel.options).forEach(o => {
+            if (!o.dataset.padre) return;
+            const habilitar = padresSel.size === 0 || padresSel.has(o.dataset.padre);
+            o.disabled = !habilitar;
+            if (!habilitar && o.selected) o.selected = false;
+        });
+    });
+}
+
+// Divide la selección por dominio en ids geográficos vs temáticos
+_recolectarDominiosChat(selectsMap) {
+    const geo = [], tem = [];
+    Object.values(selectsMap).forEach(sel => {
+        const ids = Array.from(sel.selectedOptions).map(o => o.value);
+        if (sel.dataset.dominioTipo === 'geografica') geo.push(...ids);
+        else tem.push(...ids);
+    });
+    return { geo, tem };
 }
 
     

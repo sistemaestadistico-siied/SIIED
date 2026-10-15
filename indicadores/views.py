@@ -1940,16 +1940,24 @@ def valores_geo(request, indicador_id):
 def test_valores_geo(request, indicador_id):
     """Test endpoint with corrected Total exclusion logic"""
     
-    # Get parameters
-    selected_year = int(request.GET.get('anio', 2020))  # Default to 2020 instead of 2013
-    tem_ids = request.GET.getlist('desagregaciones_tematicas')
-    tem_ids_effective = [int(x) for x in tem_ids] if tem_ids else None  # No default filters
-    
     # Get indicator
     try:
         indicador = Indicador.objects.get(id=indicador_id)
     except Indicador.DoesNotExist:
         return JsonResponse({'error': 'Indicador no encontrado'}, status=404)
+
+    # Get parameters
+    anio_param = request.GET.get('anio')
+    if anio_param and anio_param.isdigit():
+        selected_year = int(anio_param)
+    else:
+        # Sin parametro: usar el ultimo año con datos del indicador
+        # (los cards del chat renderizan sin filtro inicial)
+        ultimo = Dato.objects.filter(indicador=indicador).aggregate(
+            m=Max('fecha_dato__year'))['m']
+        selected_year = ultimo or 2020
+    tem_ids = request.GET.getlist('desagregaciones_tematicas')
+    tem_ids_effective = [int(x) for x in tem_ids] if tem_ids else None  # No default filters
     
     # Base data - EXCLUDE Total geographic from the start
     datos_base = Dato.objects.filter(
