@@ -75,7 +75,7 @@ urlpatterns = [
     path('api/educativos/completar-seccion/<int:seccion_id>/', views_educativos.api_completar_seccion, name='api_completar_seccion_educativa'),
     path('api/educativos/responder-quiz/<int:seccion_id>/', views_educativos.api_responder_quiz, name='api_responder_quiz_educativo'),
     path('api/educativos/progreso/<slug:producto_slug>/', views_educativos.api_progreso_usuario, name='api_progreso_educativo'),
-    # Visualizador de Microdatos (eliminado)
+    # Visualizador de conjuntos de datos (eliminado)
     path('api/conjuntos-datos/list/', views.api_conjunto_datos_list, name='api_conjunto_datos_list'),
     path('api/conjuntos-datos/rows/', views.api_conjunto_datos_rows, name='api_conjunto_datos_rows'),
     path('api/conjuntos-datos/headers/', views.api_conjunto_datos_headers, name='api_conjunto_datos_headers'),

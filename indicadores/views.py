@@ -4270,7 +4270,7 @@ def api_documentation(request):
             {
                 'endpoint': '/api/conjuntos-datos/headers/',
                 'method': 'GET',
-                'description': 'Encabezados de columnas del microdato',
+                'description': 'Encabezados de columnas del conjunto de datos',
                 'parameters': [
                     {'name': 'file', 'type': 'string', 'required': True, 'description': 'Nombre del archivo CSV registrado en conjunto_datos'},
                     {'name': 'encoding', 'type': 'string', 'required': False, 'description': 'Codificación del archivo (por defecto utf-8-sig)'}

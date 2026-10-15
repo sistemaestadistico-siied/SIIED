@@ -357,8 +357,8 @@ class CerebrasToolsService:
             {
                 "type": "function",
                 "function": {
-                    "name": "explorar_microdatos",
-                    "description": "Lista los conjuntos de conjuntos_datos disponibles en el SIIED (encuestas/registros con datos a nivel de registro individual). Usar cuando el usuario pregunte qué conjuntos_datos o conjuntos de datos existen, o para encontrar el ID de un conjunto antes de usar obtener_matriz_conjunto_datos/listar_variables_conjunto_datos.",
+                    "name": "explorar_conjuntos_datos",
+                    "description": "Lista los conjuntos de datos disponibles en el SIIED (encuestas/registros con datos a nivel de registro individual). Usar cuando el usuario pregunte qué conjuntos de datos existen, o para encontrar el ID de un conjunto antes de usar obtener_matriz_conjunto_datos/listar_variables_conjunto_datos.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -366,7 +366,7 @@ class CerebrasToolsService:
                                 "type": "string",
                                 "enum": ["listar", "explorar"],
                                 "default": "listar",
-                                "description": "'listar' devuelve los conjuntos de conjuntos_datos activos; 'explorar' detalla un conjunto por nombre"
+                                "description": "'listar' devuelve los conjuntos de datos activos; 'explorar' detalla un conjunto por nombre"
                             },
                             "conjunto_datos": {
                                 "type": "string",
@@ -863,7 +863,7 @@ class CerebrasToolsService:
                 'consultar_indicador': self._handle_consultar_indicador,
                 'explorar_estructura': self._handle_explorar_estructura,
                 'analizar_comparativo': self._handle_analizar_comparativo,
-                'explorar_microdatos': self._handle_explorar_microdatos,
+                'explorar_conjuntos_datos': self._handle_explorar_conjuntos_datos,
                 'obtener_matriz_indicador': self._handle_obtener_matriz_indicador,
                 'obtener_matriz_conjunto_datos': self._handle_obtener_matriz_conjunto_datos,
                 'listar_variables_conjunto_datos': self._handle_listar_variables_conjunto_datos,
@@ -1813,8 +1813,8 @@ class CerebrasToolsService:
             self.logger.error(f"Error en análisis comparativo: {e}")
             return {"error": f"Error en análisis: {str(e)}"}
 
-    def _handle_explorar_microdatos(self, arguments: dict) -> dict:
-        """Explora conjuntos de conjuntos_datos"""
+    def _handle_explorar_conjuntos_datos(self, arguments: dict) -> dict:
+        """Explora conjuntos de datos"""
         accion = arguments.get('accion', 'listar')
         
         try:
@@ -1885,7 +1885,7 @@ class CerebrasToolsService:
                     'total_subtemas': MenuSubtema.objects.filter(activo=True).count(),
                     'total_indicadores': Indicador.objects.filter(activo=True).count(),
                     'total_operaciones': OperacionEstadistica.objects.filter(activo=True).count(),
-                    'total_microdatos': ConjuntoDatos.objects.count()
+                    'total_conjuntos_datos': ConjuntoDatos.objects.count()
                 }
                 
                 return {
@@ -3932,7 +3932,7 @@ class ChatService:
             '"name": "buscar_indicadores"',
             '"name": "consultar_indicador"',
             '"name": "analizar_comparativo"',
-            '"name": "explorar_microdatos"',
+            '"name": "explorar_conjuntos_datos"',
             '"name": "consultar_iced"',
             '"name": "consultar_ecosistema_datos"',
             '"name": "consultar_producto_academico"',
@@ -4679,7 +4679,7 @@ class ChatService:
             'consultar_iced', 'consultar_ecosistema_datos', 'consultar_producto_academico',
             'buscar_documentos_infraestructura', 'consultar_sistemas_informacion',
             'consultar_operaciones_estadisticas', 'consultar_satisfaccion',
-            'explorar_estructura', 'explorar_microdatos',
+            'explorar_estructura', 'explorar_conjuntos_datos',
         }
         if tool_names_used & self_contained_tools and session_state.get('has_meaningful_data'):
             return False
@@ -6253,7 +6253,7 @@ class ChatService:
         
         return sugerencias
 
-    def _search_microdatos(self, query: str, analysis: dict, limit: int = 10, offset: int = 0) -> dict:
+    def _search_conjuntos_datos(self, query: str, analysis: dict, limit: int = 10, offset: int = 0) -> dict:
         """Búsqueda avanzada de conjuntos_datos con mejoras de rendimiento y relevancia"""
         try:
             # Filtrar términos de búsqueda cortos
@@ -6295,7 +6295,7 @@ class ChatService:
                 q_objects &= Q(fecha_carga__isnull=False)
                 
             # Consulta base con select_related para optimización
-            microdatos_query = ConjuntoDatos.objects.filter(q_objects).select_related(
+            conjuntos_datos_qs = ConjuntoDatos.objects.filter(q_objects).select_related(
                 'operacion'
             )
             
@@ -6303,7 +6303,7 @@ class ChatService:
             order_by = ['-fecha_carga']
             if search_terms:
                 # Priorizar coincidencias en el nombre y descripción
-                microdatos_query = microdatos_query.annotate(
+                conjuntos_datos_qs = conjuntos_datos_qs.annotate(
                     relevancia=Case(
                         When(nombre__icontains=search_terms[0], then=Value(2)),
                         When(descripcion__icontains=search_terms[0], then=Value(1)),
@@ -6314,7 +6314,7 @@ class ChatService:
                 order_by = ['-relevancia', '-fecha_carga']
             
             # Anotar con información adicional
-            conjuntos_datos = microdatos_query.annotate(
+            conjuntos_datos = conjuntos_datos_qs.annotate(
                 operacion_nombre=Coalesce('operacion__nombre', Value('Sin operación asociada')),
                 operacion_codigo=Coalesce('operacion__codigo', Value(''))
             ).values(
@@ -6338,7 +6338,7 @@ class ChatService:
                 'total': total,
                 'limit': limit,
                 'offset': offset,
-                'sugerencias': self._generar_sugerencias_microdatos(search_terms) if not resultados else []
+                'sugerencias': self._generar_sugerencias_conjuntos_datos(search_terms) if not resultados else []
             }
                 
         except Exception as e:
@@ -6347,10 +6347,10 @@ class ChatService:
                 'resultados': [],
                 'total': 0,
                 'error': str(e),
-                'sugerencias': ["Ocurrió un error al buscar conjuntos_datos. Por favor, inténtalo de nuevo."]
+                'sugerencias': ["Ocurrió un error al buscar conjuntos de datos. Por favor, inténtalo de nuevo."]
             }
 
-    def _generar_sugerencias_microdatos(self, search_terms):
+    def _generar_sugerencias_conjuntos_datos(self, search_terms):
         """Genera sugerencias de búsqueda específicas para conjuntos_datos"""
         
         sugerencias = []
@@ -6365,8 +6365,8 @@ class ChatService:
                 operaciones_populares = OperacionEstadistica.objects.filter(
                     activo=True
                 ).annotate(
-                    num_microdatos=Count('conjunto_datos')
-                ).order_by('-num_microdatos')[:3]
+                    num_conjuntos_datos=Count('conjunto_datos')
+                ).order_by('-num_conjuntos_datos')[:3]
                 
                 if operaciones_populares:
                     sugerencias.append("Operaciones populares: " + 

@@ -139,7 +139,7 @@ METODOLOGÍA DE TRABAJO (Metodología General):
    - buscar_indicadores por nombre, tema o palabras clave
    - consultar_indicador con filtros temporales (año_inicio/año_fin)
    - Si pide comparaciones: analizar_comparativo con los IDs encontrados
-   - Si pide conjuntos_datos: explorar_microdatos / listar_variables_conjunto_datos
+   - Si pide conjuntos de datos: explorar_conjuntos_datos / listar_variables_conjunto_datos
 
 3. **RESPONDE CON CLARIDAD**:
    - Si hay datos: preséntalo con contexto, interpretación y visualización (tablas, listas)
@@ -271,9 +271,9 @@ HERRAMIENTAS DISPONIBLES PARA EL MODELO LLM, NO OFRECER AL USUARIO:
 3. consultar_indicador: Ficha técnica completa y datos históricos de un indicador
 4. analizar_comparativo: Comparación entre varios indicadores
 5. obtener_matriz_indicador: Matriz de datos brutos para análisis por IA
-6. explorar_microdatos: Conjuntos de conjuntos_datos disponibles
-7. obtener_matriz_conjunto_datos: Muestra de conjunto_datos para análisis estadístico
-8. listar_variables_conjunto_datos: Variables disponibles en un conjunto de conjunto_datos
+6. explorar_conjuntos_datos: Conjuntos de datos disponibles
+7. obtener_matriz_conjunto_datos: Muestra de un conjunto de datos para análisis estadístico
+8. listar_variables_conjunto_datos: Variables disponibles en un conjunto de datos
 
 **Módulos extendidos de la plataforma:**
 9. consultar_iced: Índice de Capacidad Estadística y de Datos (puntajes por organismo, dimensiones, ranking)

@@ -611,7 +611,7 @@ def notificar_usuario_carga_procesada(carga):
         logger.info(f"[NOTIF] Estado '{estado}' no requiere notificación de procesamiento")
         return False
 
-    tipo = "Serie de datos" if es_serie else "Microdatos"
+    tipo = "Serie de datos" if es_serie else "Conjunto de datos"
     indicador_nombre = carga.indicador.nombre if es_serie and carga.indicador else (
         carga.conjunto_datos.nombre if not es_serie and carga.conjunto_datos else "Sin nombre"
     )

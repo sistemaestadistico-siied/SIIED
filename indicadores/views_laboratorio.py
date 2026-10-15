@@ -368,6 +368,17 @@ def _resolver_df(df, tile, fuente_nombre):
         return {'plotly': {'kpi': {'valor': valor, 'unidad': unidad}}}
 
     if not dimension:
+        if tile['tipo'] == 'tabla':
+            # Sin dimension: tabla de filas crudas (primeras N filas).
+            cols = [medida] if medida and medida in df.columns else []
+            cols += [c for c in df.columns if c not in cols]
+            cols = cols[:6]
+            sub = df[cols].head(limite)
+            filas = [
+                ['' if pd.isna(v) else str(v) for v in fila]
+                for fila in sub.itertuples(index=False)
+            ]
+            return {'plotly': {'tabla': {'headers': cols, 'filas': filas}}}
         return {'error': 'Este tipo de tile requiere una dimension'}
     if dimension not in df.columns:
         return {'error': f"La columna '{dimension}' no esta en la fuente"}
@@ -568,6 +579,10 @@ def _sanitizar_spec(data):
         if fuente_tipo not in ('conjunto_datos', 'indicador',
                                'catalogo_consulta'):
             continue
+        # Los conjuntos de datos siempre se muestran como TABLA
+        # (regla de UX: no graficar conjuntos de datos).
+        if fuente_tipo == 'conjunto_datos':
+            comunes['tipo'] = 'tabla'
         spec['tiles'].append({
             **comunes,
             'fuente_tipo': fuente_tipo,

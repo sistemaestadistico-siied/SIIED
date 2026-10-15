@@ -2210,7 +2210,7 @@ class CargaConjuntoDatos(models.Model):
         validators=[FileExtensionValidator(allowed_extensions=['xlsx', 'xls'])],
         blank=True,
         null=True,
-        help_text="Archivo Excel con los microdatos (puede entregarse por separado de la metadata)"
+        help_text="Archivo Excel con los conjuntos de datos (puede entregarse por separado de la metadata)"
     )
     archivo_metadata_variables_xlsx = models.FileField(
         upload_to='recoleccion/microdata_metadata/%Y/%m/',

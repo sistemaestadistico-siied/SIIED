@@ -2200,7 +2200,7 @@ class ICEDModuloEForm(ICEDBaseForm):
                 {'codigo': 'calendario', 'texto': 'Calendario de difusión'},
                 {'codigo': 'desagregacion_geo', 'texto': 'Indicadores o estadísticas con desagregación geográfica'},
                 {'codigo': 'desagregacion_tematica', 'texto': 'Indicadores o estadísticas con desagregación temática o enfoque diferencia e intersectorial'},
-                {'codigo': 'microdatos', 'texto': 'Microdatos'},
+                {'codigo': 'microdatos', 'texto': 'Conjuntos de datos'},
                 {'codigo': 'observatorios', 'texto': 'Documentos y/o resultados asociados a los observatorios'},
             ],
             'data-show-if': 'p38_productos_difusion!=ninguna',
