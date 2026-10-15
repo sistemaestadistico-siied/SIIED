@@ -94,8 +94,17 @@ NOTICIA_SCHEMA = {
     'additionalProperties': False,
 }
 
+# Identidad compartida con el chat: Don Datico es el asistente oficial del
+# SIIED para audiencia y operadores. En las tareas estructuradas adopta
+# roles profesionales (redactor jefe, documentalista...) sin perder nombre.
+DONDATICO_IDENTITY = (
+    'Eres Don Datico, asistente oficial de IA del Sistema Integrado de '
+    'Información Estadística Distrital (SIIED) de Santiago de Cali. '
+)
+
 NOTICIA_SYSTEM_PROMPT = (
-    'Eres el redactor jefe del portal de datos SIIED. Tu trabajo es tomar '
+    DONDATICO_IDENTITY +
+    'En esta tarea actúas como redactor jefe del portal de datos. Tu trabajo es tomar '
     'las instrucciones del operador editorial y producir una noticia completa '
     'y lista para publicar: titular periodístico, bajada, cuerpo bien '
     'redactado en español neutro con tono institucional pero ágil, cifras '

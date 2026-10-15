@@ -676,7 +676,7 @@ def noticia_generar_ia(request):
             f'{time.monotonic() - t_start:.1f}s '
             f'({type(e).__name__}: {e})')
         return JsonResponse(
-            {'error': 'El asistente no pudo generar la noticia. '
+            {'error': 'Don Datico no pudo generar la noticia. '
                       'Inténtalo de nuevo en unos segundos.'},
             status=502)
 

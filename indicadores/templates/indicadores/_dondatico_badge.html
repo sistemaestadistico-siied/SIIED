@@ -1,0 +1,29 @@
+{% comment %}
+Encabezado de marca Don Datico para módulos de asistencia de IA.
+
+Uso:
+    {% include "indicadores/_dondatico_badge.html" with titulo="Asistente editorial" subtitulo="Redacta el borrador completo a partir de tu descripción." %}
+
+Variables opcionales:
+    titulo    — rol del asistente en este contexto (default: "Asistente de IA")
+    subtitulo — una línea describiendo qué hace aquí (default: vacío)
+    avatar    — tamaño del avatar: "sm" | "md" | "lg" (default: "md")
+{% endcomment %}
+{% load static %}
+<div class="flex items-center gap-3">
+    <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico"
+         class="{% if avatar == 'sm' %}w-9 h-9{% elif avatar == 'lg' %}w-16 h-16{% else %}w-12 h-12{% endif %} rounded-full object-cover ring-2 ring-teal-400/60 bg-teal-50 shrink-0">
+    <div class="min-w-0">
+        <p class="font-bold text-teal-900 leading-tight">
+            Don Datico
+            <span class="ml-1 text-xs font-semibold text-teal-700 bg-teal-100 border border-teal-200 rounded-full px-2 py-0.5 align-middle">
+                {{ titulo|default:"Asistente de IA" }}
+            </span>
+        </p>
+        {% if subtitulo %}
+        <p class="text-xs text-teal-700/80 mt-0.5">{{ subtitulo }}</p>
+        {% else %}
+        <p class="text-xs text-teal-700/80 mt-0.5">Asistente oficial del SIIED</p>
+        {% endif %}
+    </div>
+</div>
