@@ -501,18 +501,18 @@ def _generar_banner_v3(organismo, etiqueta, url_formulario):
     <table {tbl} width="100%">
         <tr>
             <td align="left" style="{td_base}">
-                <!-- Banner V3: ancho fijo 680px -->
-                <table {tbl} width="680" style="max-width: 680px;">
+                <!-- Banner V3: ancho fijo 460px — igual a la firma de Gmail -->
+                <table {tbl} width="460" style="max-width: 460px;">
                     <tr>
-                        <td style="background-color: #10184a; border-radius: 18px; padding: 28px 36px 26px;">
+                        <td style="background-color: #10184a; border-radius: 14px; padding: 22px 26px 20px;">
                             <!-- Fila encabezado: organismo + etiqueta -->
                             <table {tbl} width="100%">
                                 <tr>
-                                    <td style="{td_base} color: #c9cfe8; font-size: 13px; font-weight: bold; letter-spacing: 0.2px;">
+                                    <td style="{td_base} color: #c9cfe8; font-size: 11px; font-weight: bold; letter-spacing: 0.2px;">
                                         {organismo.nombre}
                                     </td>
                                     <td align="right" style="{td_base}">
-                                        <span style="background-color: #2f3d9c; color: #ffffff; padding: 5px 14px; border-radius: 999px; font-size: 11px; font-weight: bold; letter-spacing: 0.6px; white-space: nowrap;">
+                                        <span style="background-color: #2f3d9c; color: #ffffff; padding: 4px 10px; border-radius: 999px; font-size: 10px; font-weight: bold; letter-spacing: 0.6px; white-space: nowrap;">
                                             {etiqueta}
                                         </span>
                                     </td>
@@ -520,12 +520,12 @@ def _generar_banner_v3(organismo, etiqueta, url_formulario):
                             </table>
 
                             <!-- Titular -->
-                            <p style="color: #ffffff; margin: 24px 0 14px 0; font-size: 24px; font-weight: bold; line-height: 1.3;">
+                            <p style="color: #ffffff; margin: 18px 0 10px 0; font-size: 19px; font-weight: bold; line-height: 1.3;">
                                 Tu opinión nos ayuda a <span style="color: #ffb648;">mejorar</span>
                             </p>
 
                             <!-- Subtexto -->
-                            <p style="color: #dfe3f5; margin: 0 0 24px 0; font-size: 14px; line-height: 1.5;">
+                            <p style="color: #dfe3f5; margin: 0 0 18px 0; font-size: 12.5px; line-height: 1.5;">
                                 Ahora queremos conocer tu satisfacción con la información estadística recibida.
                             </p>
 
@@ -533,7 +533,7 @@ def _generar_banner_v3(organismo, etiqueta, url_formulario):
                             <table {tbl}>
                                 <tr>
                                     <td style="background-color: #ffb648; border-radius: 999px;">
-                                        <a href="{url_formulario}" style="display: inline-block; padding: 13px 26px; color: #1a1440; font-size: 15px; font-weight: bold; text-decoration: none;">
+                                        <a href="{url_formulario}" style="display: inline-block; padding: 10px 20px; color: #1a1440; font-size: 13px; font-weight: bold; text-decoration: none;">
                                             Califica tu experiencia →
                                         </a>
                                     </td>
@@ -541,7 +541,7 @@ def _generar_banner_v3(organismo, etiqueta, url_formulario):
                             </table>
 
                             <!-- Pie -->
-                            <p style="color: #8f97c4; margin: 14px 0 0 0; font-size: 11px;">
+                            <p style="color: #8f97c4; margin: 10px 0 0 0; font-size: 10px;">
                                 Toma menos de 2 minutos
                             </p>
                         </td>
