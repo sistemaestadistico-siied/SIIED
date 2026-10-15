@@ -20,8 +20,13 @@ import pandas as pd
 import openpyxl
 from io import BytesIO
 import csv
+import json
+import logging
 import os
+import time
 from datetime import datetime
+
+from django.views.decorators.http import require_GET, require_POST
 
 from .models import (
     PerfilRecolector, CargaSerieIndicador, CargaConjuntoDatos, CargaMasivaSerie,
@@ -29,6 +34,8 @@ from .models import (
     EquipoOrganismo, Suborganismo, OperacionEstadistica
 )
 from .decorators import recolector_required, admin_required
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -4740,3 +4747,88 @@ def deconstruir_tabla(request):
         context['archivo_nombre'] = wizard_data.get('archivo_nombre', '')
 
     return render(request, 'recoleccion/deconstruir_tabla.html', context)
+
+
+# ============================================================================
+# APIs DE RECOLECCIÓN
+# ============================================================================
+
+@recolector_required
+@require_GET
+def api_suborganismos(request, organismo_id):
+    """Suborganismos de un organismo para el select dependiente del formulario
+    de metadata. Endpoint propio de recolección (el del taller usa
+    @delegado_required)."""
+    subs = (Suborganismo.objects
+            .filter(organismo_id=organismo_id, activo=True)
+            .values('id', 'nombre').order_by('nombre'))
+    return JsonResponse(list(subs), safe=False)
+
+
+@recolector_required
+@require_POST
+def metadata_generar_ia(request):
+    """Don Datico — asistencia estructurada para la metadata del indicador.
+
+    Recibe una descripción libre del indicador y devuelve los campos de
+    metadata redactados (no persiste nada: el usuario revisa antes de
+    guardar).
+    """
+    from .llm_structured import METADATA_SCHEMA, METADATA_SYSTEM_PROMPT
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Cuerpo JSON inválido.'}, status=400)
+
+    prompt = (payload.get('prompt') or '').strip()
+    if len(prompt) < 20:
+        return JsonResponse(
+            {'error': 'Describe el indicador con al menos una oración '
+                      '(qué mide, fuente, periodicidad, desagregaciones).'},
+            status=400)
+    if len(prompt) > 4000:
+        return JsonResponse(
+            {'error': 'La descripción es demasiado larga (máx. 4000 caracteres).'},
+            status=400)
+
+    # Contexto opcional: nombre del indicador seleccionado en el formulario
+    nombre_ind = (payload.get('indicador_nombre') or '').strip()
+    if nombre_ind:
+        prompt = (
+            f'El indicador seleccionado en el formulario es: "{nombre_ind}".\n'
+            f'Descripción del operador: {prompt}')
+
+    # Importación perezosa: views_chat arrastra dependencias pesadas
+    from .views_chat import ChatService
+    logger.info(
+        f'[IA] metadata_generar_ia inicio: {len(prompt)} chars de prompt')
+    t_start = time.monotonic()
+    try:
+        data = ChatService(request=request).generate_structured(
+            prompt, METADATA_SCHEMA,
+            system_prompt=METADATA_SYSTEM_PROMPT,
+            schema_name='metadata_indicador')
+        logger.info(
+            f'[IA] metadata_generar_ia OK en '
+            f'{time.monotonic() - t_start:.1f}s')
+    except Exception as e:
+        logger.error(
+            f'[IA] metadata_generar_ia falló en '
+            f'{time.monotonic() - t_start:.1f}s '
+            f'({type(e).__name__}: {e})')
+        return JsonResponse(
+            {'error': 'Don Datico no pudo redactar la metadata. '
+                      'Inténtalo de nuevo en unos segundos.'},
+            status=502)
+
+    # Sanitizar: solo strings y solo campos presentes en el schema
+    campos = METADATA_SCHEMA.get('properties', {})
+    metadata = {}
+    for campo in campos:
+        valor = data.get(campo)
+        if valor is None:
+            continue
+        metadata[campo] = str(valor).strip()
+
+    return JsonResponse({'ok': True, 'metadata': metadata})

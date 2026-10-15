@@ -117,3 +117,153 @@ NOTICIA_SYSTEM_PROMPT = (
     'operador no mencionó: si no hay datos concretos, deja "estadisticas" '
     'vacío antes que fabricar números.'
 )
+
+
+# ---------------------------------------------------------------------------
+# Metadata de indicador (recolección) — el operario describe el indicador en
+# lenguaje natural y Don Datico redacta los campos MSD/SDMX del formulario.
+# Los nombres de propiedad coinciden con los name="" del template
+# cargar_metadata_form.html (y con las claves del xlsx de metadata).
+# ---------------------------------------------------------------------------
+
+METADATA_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'Nombre_Indicador': {
+            'type': 'string',
+            'description': 'Nombre oficial del indicador, claro y conciso',
+        },
+        'Sigla': {
+            'type': 'string',
+            'description': 'Sigla o abreviatura usual (ej. TMI, IPM). Vacío '
+                           'si no se infiere con seguridad',
+        },
+        'Grupo_Indicador': {
+            'type': 'string',
+            'description': 'Grupo/sistema al que pertenece (ej. ICET, SIIET). '
+                           'Vacío si no se menciona',
+        },
+        'Descripcion_Indicador': {
+            'type': 'string',
+            'description': 'Descripción formal del indicador: qué mide, para '
+                           'qué sirve y cómo se interpreta. 2-4 oraciones en '
+                           'español institucional',
+        },
+        'Metodo_Medicion': {
+            'type': 'string',
+            'description': 'Método de medición/cálculo en prosa: cómo se '
+                           'obtiene el numerador y denominador, agregaciones '
+                           'y tratamiento de datos',
+        },
+        'Formula': {
+            'type': 'string',
+            'description': 'Fórmula matemática del indicador si se infiere '
+                           '(ej. "TMI = (defunciones <1 año / nacidos vivos) '
+                           '× 1.000"). Vacío si no aplica',
+        },
+        'Variables': {
+            'type': 'string',
+            'description': 'Variables o desagregaciones que componen el '
+                           'indicador, separadas por coma (ej. "edad, sexo, '
+                           'comuna")',
+        },
+        'Nombre_Conjunto_conjunto_datos': {
+            'type': 'string',
+            'description': 'Nombre sugerido del conjunto de datos '
+                           '(ej. "Encuesta de Calidad de Vida 2024"). Vacío '
+                           'si no se puede inferir',
+        },
+        'Unidad_Medida': {
+            'type': 'string',
+            'description': 'Unidad de medida del resultado: %, tasa por '
+                           '100.000 hab., índice, pesos, etc.',
+        },
+        'Fuente_Datos': {
+            'type': 'string',
+            'description': 'Fuente primaria de los datos (encuesta, registro '
+                           'administrativo, sistema de información)',
+        },
+        'Operacion_Estadistica': {
+            'type': 'string',
+            'description': 'Nombre de la operación estadística que produce '
+                           'los datos (ej. "Encuesta de Calidad de Vida", '
+                           '"Registro Civil de Defunciones")',
+        },
+        'Nomenclaturas_Clasificaciones': {
+            'type': 'string',
+            'description': 'Nomenclaturas/clasificaciones usadas (ej. CIE-10, '
+                           'DIVIPOLA, CIIU). Vacío si no se mencionan',
+        },
+        'Alcance_Tematico': {
+            'type': 'string',
+            'description': 'Alcance temático: áreas/dimensiones que cubre '
+                           'el indicador',
+        },
+        'Poblacion_Objetivo': {
+            'type': 'string',
+            'description': 'Población a la que refiere el indicador '
+                           '(ej. "Residentes de Santiago de Cali", '
+                           '"Menores de 5 años")',
+        },
+        'Cobertura_Geografica': {
+            'type': 'string',
+            'description': 'Cobertura geográfica (ej. "Santiago de Cali, '
+                           'desagregado por comuna")',
+        },
+        'Periodo_Referencia': {
+            'type': 'string',
+            'description': 'Periodo al que refieren los datos (ej. "2024", '
+                           '"2020-2024")',
+        },
+        'Periodo_Base': {
+            'type': 'string',
+            'description': 'Año o periodo base si es un índice. Vacío si '
+                           'no aplica',
+        },
+        'Serie_Historica_Disponible': {
+            'type': 'string',
+            'description': 'Rango de la serie disponible (ej. "2010-2024"). '
+                           'Vacío si no se menciona',
+        },
+        'Frecuencia_Difusion': {
+            'type': 'string',
+            'enum': ['Diaria', 'Semanal', 'Mensual', 'Bimensual',
+                     'Trimestral', 'Semestral', 'Anual', 'Bienal',
+                     'Quinquenal', 'A demanda'],
+            'description': 'Periodicidad de publicación; elegir la más '
+                           'plausible según la descripción',
+        },
+        'Medios_Difusion': {
+            'type': 'string',
+            'description': 'Canales de difusión (default razonable: '
+                           '"Portal SIIED, internet")',
+        },
+        'Referencias': {
+            'type': 'string',
+            'description': 'Referencias metodológicas o normativas '
+                           'mencionadas por el operador. Vacío si no hay',
+        },
+        'Comentarios_Adicionales': {
+            'type': 'string',
+            'description': 'Notas o salvedades relevantes no cubiertas por '
+                           'otros campos. Vacío si no aplica',
+        },
+    },
+    'required': ['Descripcion_Indicador', 'Unidad_Medida'],
+    'additionalProperties': False,
+}
+
+METADATA_SYSTEM_PROMPT = (
+    DONDATICO_IDENTITY +
+    'En esta tarea actúas como documentalista estadístico experto en '
+    'metadatos de indicadores (estándar MSD/SDMX colombiano). El operador '
+    'de recolección te describe un indicador en lenguaje natural — a veces '
+    'de forma incompleta o desordenada — y tú produces la metadata formal '
+    'del formulario. Reglas: redacción institucional en tercera persona, '
+    'sin primera persona ni muletillas; los campos que no puedas inferir '
+    'con seguridad déjalos vacíos antes que inventar; las fórmulas usa '
+    'notación clara (V₁/V₂ o palabras); Frecuencia_Difusion debe ser una '
+    'de las opciones válidas; si el operador da el nombre de un indicador '
+    'existente del SIIED, respétalo. Nunca inventes cifras, periodos ni '
+    'fuentes que el operador no mencionó o no sean deducibles del contexto.'
+)

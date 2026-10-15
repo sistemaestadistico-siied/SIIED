@@ -163,6 +163,8 @@ urlpatterns = [
     path('recoleccion/masiva/<int:carga_masiva_id>/confirmar/', views_recoleccion.confirmar_masiva, name='confirmar_masiva'),
     path('recoleccion/api/indicadores/', views_recoleccion.buscar_indicadores_masiva, name='buscar_indicadores_masiva'),
     path('recoleccion/catalogos/dominios/', views_recoleccion.descargar_catalogo_dominios, name='descargar_catalogo_dominios'),
+    path('recoleccion/api/suborganismos/<int:organismo_id>/', views_recoleccion.api_suborganismos, name='api_suborganismos'),
+    path('recoleccion/metadata/generar-ia/', views_recoleccion.metadata_generar_ia, name='metadata_generar_ia'),
     
     # Deconstruir tabla dinámica
     path('recoleccion/deconstruir-tabla/', views_recoleccion.deconstruir_tabla, name='deconstruir_tabla'),

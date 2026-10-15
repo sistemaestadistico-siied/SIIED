@@ -15,6 +15,27 @@
     </div>
   </div>
 
+  <!-- Asistente Don Datico: describe el indicador y el asistente redacta la metadata -->
+  <div class="mb-6 bg-gradient-to-r from-teal-50 to-cyan-50 border border-teal-200 rounded-2xl p-5">
+    {% include "indicadores/_dondatico_badge.html" with titulo="Asistente de metadatos" %}
+    <p class="text-sm text-teal-800 mt-3 mb-3">
+      Describe el indicador en lenguaje natural —qué mide, fuente de datos, periodicidad,
+      desagregaciones, población y cobertura— y Don Datico redactará
+      <strong>los campos de metadata</strong> del formulario.
+      <strong>Revisa antes de guardar</strong> — nada se registra sin tu revisión.
+    </p>
+    <textarea id="ia-prompt" rows="3"
+        class="w-full px-4 py-3 bg-white border-2 border-teal-200 rounded-xl text-slate-700 focus:outline-none focus:border-teal-500 transition-all"
+        placeholder="Ej: Indicador de mortalidad infantil en Cali: defunciones de menores de un año por cada mil nacidos vivos, con datos del Registro Civil de la Secretaría de Salud, desagregado por comuna y sexo. Se publica anual con serie desde 2010..."></textarea>
+    <div class="flex items-center gap-3 mt-3">
+      <button type="button" id="ia-generar"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-xl font-medium shadow-sm hover:bg-teal-700 transition-all disabled:opacity-50">
+        <i class="fas fa-wand-magic-sparkles"></i> Redactar metadata con Don Datico
+      </button>
+      <span id="ia-status" class="text-sm text-teal-700"></span>
+    </div>
+  </div>
+
   {% if cargas_pendientes %}
   <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
     <div class="px-6 py-4 border-b border-slate-100 bg-amber-50">
@@ -406,6 +427,61 @@
       const subPre = {{ indicador_pre.suborganismo_id|default:"null" }};
       cargarSuborganismos(selOrganismo.value, subPre);
     }
+  }
+
+  // --- Don Datico: generación estructurada de metadata ---
+  const btnIA = document.getElementById('ia-generar');
+  const promptIA = document.getElementById('ia-prompt');
+  const statusIA = document.getElementById('ia-status');
+
+  if (btnIA && promptIA && statusIA) {
+    btnIA.addEventListener('click', function () {
+      const prompt = (promptIA.value || '').trim();
+      if (prompt.length < 20) {
+        statusIA.textContent = 'Describe el indicador con al menos una oración.';
+        statusIA.className = 'text-sm text-red-600';
+        return;
+      }
+      btnIA.disabled = true;
+      statusIA.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Don Datico está redactando la metadata…';
+      statusIA.className = 'text-sm text-teal-700';
+
+      const indSel = document.getElementById('sel-indicador');
+      const indNombre = indSel && indSel.selectedIndex > 0
+        ? indSel.options[indSel.selectedIndex].textContent.trim()
+        : '';
+
+      fetch("{% url 'indicadores:metadata_generar_ia' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ prompt: prompt, indicador_nombre: indNombre })
+      })
+      .then(r => r.text().then(txt => {
+        let data = {};
+        try { data = JSON.parse(txt); }
+        catch (e) {
+          throw new Error('Don Datico tardó demasiado y el servidor '
+            + 'intermedio cortó la conexión. Inténtalo de nuevo.');
+        }
+        return { ok: r.ok, data };
+      }))
+      .then(({ ok, data }) => {
+        if (!ok || !data.ok) {
+          throw new Error(data.error || 'Error generando la metadata.');
+        }
+        poblarFormularioDesdeMetadata(data.metadata, null);
+        statusIA.textContent = 'Metadata lista — Don Datico redactó los campos. Revisa y guarda.';
+        statusIA.className = 'text-sm text-emerald-600 font-medium';
+      })
+      .catch(err => {
+        statusIA.textContent = err.message;
+        statusIA.className = 'text-sm text-red-600';
+      })
+      .finally(() => { btnIA.disabled = false; });
+    });
   }
 </script>
 {% endblock %}
