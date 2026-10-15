@@ -1017,6 +1017,26 @@
         box-shadow: var(--shadow);
     }
 
+    /* Enlaces en respuestas markdown — visibles a simple vista */
+    .message-content a {
+        color: var(--primary-color);
+        font-weight: 600;
+        text-decoration: underline;
+        text-decoration-color: rgba(37, 99, 235, 0.4);
+        text-underline-offset: 2px;
+        transition: color 0.15s ease, text-decoration-color 0.15s ease;
+    }
+
+    .message-content a:hover {
+        color: var(--primary-dark);
+        text-decoration-color: currentColor;
+    }
+
+    .message.user-message .message-content a {
+        color: #fff;
+        text-decoration-color: rgba(255, 255, 255, 0.6);
+    }
+
     .message-time {
         font-size: 0.75rem;
         color: var(--gray-500);
