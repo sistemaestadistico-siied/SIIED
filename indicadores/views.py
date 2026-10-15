@@ -5615,7 +5615,42 @@ def buscar_semantico(request):
 
 _tts_instance = None
 _tts_model_name = None
-_tts_lock = threading.Lock()  # Para thread-safety
+_tts_lock = threading.Lock()       # Lazy loading del modelo
+_tts_synth_lock = threading.Lock() # Coqui no es thread-safe en síntesis
+
+_TTS_MAX_CHARS = 2000
+
+# Limpieza defensiva server-side: el chat ahora produce markdown rico
+# (links, tablas, bloques de código, HTML) que no debe narrarse literal.
+_TTS_CLEAN_PATTERNS = [
+    (re.compile(r'```[\s\S]*?```'), ' '),                       # bloques de código
+    (re.compile(r'`[^`]*`'), ' '),                              # código inline
+    (re.compile(r'!\[[^\]]*\]\([^)]*\)'), ' '),              # imágenes
+    (re.compile(r'\[([^\]]+)\]\([^)]*\)'), r'\1'),           # links → texto
+    (re.compile(r'(?:https?://|www\.)\S+', re.IGNORECASE), ' un enlace '),
+    (re.compile(r'\S+@\S+\.\S+'), ' correo '),                # emails
+    (re.compile(r'(?:^[ \t]*\|[^\n]*\n?)+', re.M),
+     '\n Aquí hay una tabla con los datos. \n'),               # tablas markdown
+    (re.compile(r'\|'), ' '),                                  # pipes sueltos
+    (re.compile(r'^\s{0,3}#{1,6}\s*', re.M), ''),              # headers
+    (re.compile(r'^\s{0,3}>\s?', re.M), ''),                   # blockquotes
+    (re.compile(r'^\s*[-*+•]\s+', re.M), '. '),                # bullets
+    (re.compile(r'\*{1,3}|_{1,3}'), ' '),                       # **negrita** / _it_
+    (re.compile(r'<[^>]+>'), ' '),                              # HTML
+]
+_TTS_EMOJI_RE = re.compile(
+    '[\U0001F300-\U0001FAFF\u2600-\u27BF\uFE0F\u200D\u2B50\u2705\u274C]+')
+
+
+def _limpiar_texto_tts(text):
+    """Deja el texto listo para sintetizar: sin markdown, URLs, código,
+    tablas ni emojis. Defensa en profundidad: el cliente ya limpia, pero
+    el endpoint también recibe texto crudo de otros consumidores."""
+    for rx, rep in _TTS_CLEAN_PATTERNS:
+        text = rx.sub(rep, text)
+    text = _TTS_EMOJI_RE.sub(' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 def get_tts_instance(preferred_model=None):
     """
@@ -5688,7 +5723,7 @@ def get_tts_instance(preferred_model=None):
             return None
 
 @csrf_exempt
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 def text_to_speech(request):
     """
     Genera audio usando Coqui TTS o pico2wave como fallback
@@ -5705,17 +5740,31 @@ def text_to_speech(request):
     - /tts/?text=Bonjour&lang=fr&accent=neutral        # Francés acento neutral
     - /tts/?text=Texto&accent=standard                 # Acento estándar
     """
-    text = request.GET.get("text", "Texto de prueba")
-    lang = request.GET.get("lang", "es")
-    accent = request.GET.get("accent", "latino")  # Por defecto acento latino
+    # POST evita límites de longitud de URL en proxies; GET se mantiene
+    # por compatibilidad con llamadas existentes.
+    params = request.POST if request.method == 'POST' else request.GET
+    text = params.get("text", "")
+    lang = params.get("lang", "es")
+    accent = params.get("accent", "latino")  # Por defecto acento latino
     # Nota: speed se maneja en el frontend con Web Audio API
+
+    # Sanitizar antes de cachear/sintetizar: el texto llega con markdown,
+    # URLs, tablas o emojis que no tienen sentido narrados.
+    text = _limpiar_texto_tts(text)
 
     # Validar texto
     if not text or len(text.strip()) == 0:
         return HttpResponse("Texto vacío", status=400)
 
-    if len(text) > 2000:  # Limitar longitud
-        text = text[:2000] + "..."
+    if len(text) > _TTS_MAX_CHARS:
+        # Cortar en el último límite de oración para no dejar frase a medias
+        corte = max(
+            text.rfind('.', 0, _TTS_MAX_CHARS),
+            text.rfind('!', 0, _TTS_MAX_CHARS),
+            text.rfind('?', 0, _TTS_MAX_CHARS),
+        )
+        text = text[:corte + 1] if corte > _TTS_MAX_CHARS // 2 else \
+            text[:_TTS_MAX_CHARS]
 
     # Cache de audio: la síntesis TTS en CPU es costosa y los textos se repiten
     cache_key = f"tts_audio:{hashlib.md5(f'{text}|{lang}|{accent}'.encode()).hexdigest()}"
@@ -5766,12 +5815,15 @@ def _generate_audio_coqui_tts(tts, text, lang, accent="latino"):
         # La velocidad se manipula en el frontend usando Web Audio API
         print(f"🎵 Generando audio con acento: {accent}")
 
-        # Generar audio usando el modelo precargado
-        tts.tts_to_file(
-            text=text,
-            file_path=audio_buffer,
-            split_sentences=True,  # Mejor calidad para textos largos
-        )
+        # Generar audio usando el modelo precargado. El lock serializa
+        # la síntesis: el cliente ahora pide chunks en paralelo y Coqui
+        # no es thread-safe.
+        with _tts_synth_lock:
+            tts.tts_to_file(
+                text=text,
+                file_path=audio_buffer,
+                split_sentences=True,  # Mejor calidad para textos largos
+            )
 
         audio_data = audio_buffer.getvalue()
 
