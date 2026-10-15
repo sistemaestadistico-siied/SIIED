@@ -430,6 +430,7 @@ urlpatterns = [
     # MÓDULO ICED — Índice de Capacidad Estadística y de Datos
     # ========================================================================
     path('iced/', views_iced.iced_landing, name='iced_landing'),
+    path('iced/equipo/', views_iced.iced_equipo, name='iced_equipo'),
     path('iced/formulario/', views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS), name='iced_formulario_nuevo'),
     path('iced/formulario/<int:formulario_id>/', views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS), name='iced_formulario_retomar'),
     path('iced/confirmacion/<int:formulario_id>/', views_iced.iced_confirmacion, name='iced_confirmacion'),

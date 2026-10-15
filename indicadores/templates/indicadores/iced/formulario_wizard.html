@@ -1016,11 +1016,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(async r => {
                 const data = await r.json();
                 if (!r.ok || !data.ok) {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                        return;
+                    }
                     throw new Error(data.error || data.detail || 'Error desconocido');
                 }
                 return data;
             })
             .then(data => {
+                if (!data) return;
                 // Actualizar URL sin recargar la página (pushState)
                 if (data.formulario_id && !formularioId) {
                     const newUrl = window.location.pathname.replace('/nuevo/', '/' + data.formulario_id + '/');

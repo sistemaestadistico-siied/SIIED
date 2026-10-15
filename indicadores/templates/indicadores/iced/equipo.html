@@ -1,0 +1,117 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Elige tu equipo — FICED{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --iced-primary: #000866;
+        --iced-accent: #d97706;
+        --iced-bg: #f8fafc;
+        --iced-card: #ffffff;
+        --iced-border: #e2e8f0;
+        --iced-text: #0f172a;
+        --iced-muted: #64748b;
+    }
+    .equipo-wrap {
+        max-width: 640px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    .equipo-head { text-align: center; margin-bottom: 2rem; }
+    .equipo-icon {
+        width: 56px; height: 56px; margin: 0 auto 1rem;
+        background: #eef2ff; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem;
+    }
+    .equipo-head h1 { color: var(--iced-text); font-size: 1.5rem; margin: 0 0 .5rem; }
+    .equipo-head p { color: var(--iced-muted); font-size: .9rem; margin: 0; }
+    .equipo-opcion { display: block; cursor: pointer; margin-bottom: .75rem; }
+    .equipo-opcion input { position: absolute; opacity: 0; }
+    .equipo-card {
+        border: 2px solid var(--iced-border); border-radius: 14px;
+        background: var(--iced-card); padding: 1rem 1.25rem;
+        display: flex; align-items: center; justify-content: space-between;
+        transition: all .15s ease;
+    }
+    .equipo-card:hover { border-color: #b6c2f0; box-shadow: 0 2px 8px rgba(0,8,102,.08); }
+    .equipo-opcion input:checked + .equipo-card {
+        border-color: var(--iced-primary); background: #f4f6ff;
+    }
+    .equipo-nombre { font-weight: 700; color: var(--iced-text); }
+    .equipo-ocupado {
+        margin-left: .5rem; font-size: .7rem; font-weight: 600;
+        background: #fef3c7; color: #92400e; padding: .15rem .5rem;
+        border-radius: 999px;
+    }
+    .equipo-radio {
+        width: 20px; height: 20px; flex-shrink: 0;
+        border: 2px solid #cbd5e1; border-radius: 50%;
+    }
+    .equipo-opcion input:checked + .equipo-card .equipo-radio {
+        border-color: var(--iced-primary);
+        background: radial-gradient(circle, var(--iced-primary) 45%, transparent 50%);
+    }
+    .equipo-btn {
+        width: 100%; margin-top: 1.5rem; padding: .85rem;
+        background: var(--iced-primary); color: #fff; border: none;
+        border-radius: 12px; font-size: 1rem; font-weight: 600;
+        cursor: pointer; transition: background .15s;
+    }
+    .equipo-btn:hover { background: #0010a0; }
+    .equipo-nota { text-align: center; color: var(--iced-muted); font-size: .75rem; margin-top: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="equipo-wrap">
+    <div class="equipo-head">
+        <div class="equipo-icon">👥</div>
+        <h1>¿A qué equipo técnico perteneces?</h1>
+        <p>
+            El FICED de <strong>{{ organismo.nombre }}</strong> se diligencia por equipos.
+            Cada equipo responde solo las preguntas asignadas a su rol y luego
+            se concilian en validación.
+        </p>
+    </div>
+
+    {% if sin_perfil %}
+        <p style="text-align:center; color:#b91c1c; background:#fef2f2; padding:1rem; border-radius:12px;">
+            Tu usuario no tiene perfil de recolector configurado.
+            Contacta al administrador del SIIED para que asigne tu equipo.
+        </p>
+    {% else %}
+    <form method="post">
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        {% for valor, nombre in equipos %}
+        <label class="equipo-opcion">
+            <input type="radio" name="equipo" value="{{ valor }}" required>
+            <div class="equipo-card">
+                <div>
+                    <span class="equipo-nombre">{{ nombre }}</span>
+                    {% if valor in ocupados %}
+                    <span class="equipo-ocupado">ya tiene formulario en curso</span>
+                    {% endif %}
+                </div>
+                <div class="equipo-radio"></div>
+            </div>
+        </label>
+        {% endfor %}
+
+        <button type="submit" class="equipo-btn">
+            Confirmar mi equipo y comenzar el FICED →
+        </button>
+    </form>
+    {% endif %}
+
+    <p class="equipo-nota">
+        Esta elección se guarda en tu perfil; si te equivocas, el administrador puede corregirla.
+        Si varios compañeros del mismo equipo van a responder, coordinen quién diligencia:
+        el FICED de cada equipo es único por organismo.
+    </p>
+</div>
+{% endblock %}

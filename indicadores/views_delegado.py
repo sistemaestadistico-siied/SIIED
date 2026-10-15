@@ -148,13 +148,20 @@ def delegado_dashboard(request):
     )
 
     # FICED: Formulario de Capacidad Estadística Distrital
+    # La tarjeta refleja el formulario DEL EQUIPO del delegado — otros
+    # equipos del organismo tienen los suyos y se concilian en validación.
     ficed = None
     if organismo:
         from .models_iced import ICEDFormulario
         periodo_actual = str(timezone.now().year)
+        equipo_user = getattr(
+            getattr(request.user, 'perfil_recolector', None),
+            'subrol_ficed', ''
+        ) or ''
         ficed = ICEDFormulario.objects.filter(
             organismo=organismo,
-            periodo=periodo_actual
+            periodo=periodo_actual,
+            equipo=equipo_user,
         ).first()
 
     context = {

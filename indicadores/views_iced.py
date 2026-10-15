@@ -15,6 +15,7 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.urls import reverse
 from django.utils import timezone
 from django.http import JsonResponse
 
@@ -58,6 +59,16 @@ class ICEDWizardView(SessionWizardView):
     def dispatch(self, request, *args, **kwargs):
         """Validar propiedad del formulario y estado editable antes de entrar al wizard."""
         formulario_id = kwargs.get('formulario_id')
+        if not formulario_id:
+            # Formulario nuevo: el usuario debe declarar su equipo técnico
+            # primero — cada equipo tiene su propio FICED que luego se
+            # concilia en validación. Sin equipo, caería en el formulario
+            # '' (consolidado) de otro usuario.
+            if not request.user.is_staff and _get_user_organismo(request.user) \
+                    and not _get_user_equipo(request.user):
+                return redirect(
+                    reverse('indicadores:iced_equipo') + '?next=formulario'
+                )
         if formulario_id:
             formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
             organismo = _get_user_organismo(request.user)
@@ -460,10 +471,15 @@ class ICEDWizardView(SessionWizardView):
                 )
                 return redirect('indicadores:iced_resultado', formulario_id=formulario.pk)
         else:
+            equipo_user = _get_user_equipo(self.request.user)
+            if not self.request.user.is_staff and not equipo_user:
+                return redirect(
+                    reverse('indicadores:iced_equipo') + '?next=formulario'
+                )
             formulario, _ = ICEDFormulario.objects.get_or_create(
                 organismo=organismo,
                 periodo=str(timezone.now().year),
-                equipo=_get_user_equipo(self.request.user),
+                equipo=equipo_user,
                 defaults={
                     'usuario_diligencia': self.request.user,
                 }
@@ -747,7 +763,74 @@ def iced_landing(request):
         'page': 'iced',
         'organismo': organismo,
         'formularios': formularios,
+        'equipo_user': equipo_user,
         'periodo_actual': str(timezone.now().year),
+    })
+
+
+@login_required
+def iced_equipo(request):
+    """
+    Selector de equipo técnico FICED para usuarios del módulo /iced/.
+
+    El FICED se diligencia por equipos: cada equipo tiene su propio
+    formulario (organismo+periodo+equipo) que luego se concilia en
+    validación. Antes de iniciar un formulario nuevo, el usuario debe
+    declarar a qué equipo pertenece; se guarda en subrol_ficed del
+    perfil y el administrador puede corregirlo luego.
+    """
+    organismo = _get_user_organismo(request.user)
+    if not organismo:
+        messages.error(request, 'No tienes un organismo asignado.')
+        return redirect('indicadores:iced_landing')
+
+    perfil = getattr(request.user, 'perfil_recolector', None)
+
+    # Ya eligió equipo → volver al módulo
+    if perfil and perfil.subrol_ficed:
+        return redirect('indicadores:iced_landing')
+
+    equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
+    validos = {e for e, _ in equipos}
+    destino = request.POST.get('next') or request.GET.get('next') or ''
+
+    if request.method == 'POST':
+        equipo = request.POST.get('equipo', '')
+        if equipo not in validos:
+            messages.error(request, 'Selecciona un equipo válido.')
+        elif not perfil:
+            messages.error(
+                request,
+                'Tu usuario no tiene perfil de recolector; '
+                'contacta al administrador para asignar tu equipo.'
+            )
+        else:
+            perfil.subrol_ficed = equipo
+            perfil.save(update_fields=['subrol_ficed'])
+            messages.success(
+                request,
+                f'Equipo {equipo} asignado. Solo verás las preguntas de tu equipo.'
+            )
+            if destino == 'formulario':
+                return redirect('indicadores:iced_formulario_nuevo')
+            return redirect('indicadores:iced_landing')
+
+    # Equipos que ya tienen formulario en curso en este período
+    periodo = str(timezone.now().year)
+    ocupados = set(
+        ICEDFormulario.objects
+        .filter(organismo=organismo, periodo=periodo)
+        .exclude(equipo='')
+        .values_list('equipo', flat=True)
+    )
+
+    return render(request, 'indicadores/iced/equipo.html', {
+        'page': 'iced',
+        'organismo': organismo,
+        'equipos': equipos,
+        'ocupados': ocupados,
+        'sin_perfil': perfil is None,
+        'next': destino,
     })
 
 
@@ -832,10 +915,16 @@ def iced_guardar_parcial(request):
                          f'"{formulario.get_estado_display()}" y no puede modificarse'
             }, status=400)
     else:
+        equipo_user = _get_user_equipo(request.user)
+        if not request.user.is_staff and not equipo_user:
+            return JsonResponse({
+                'error': 'Debes seleccionar tu equipo técnico antes de iniciar el FICED.',
+                'redirect': reverse('indicadores:iced_equipo') + '?next=formulario',
+            }, status=400)
         formulario, _ = ICEDFormulario.objects.get_or_create(
             organismo=organismo,
             periodo=str(timezone.now().year),
-            equipo=_get_user_equipo(request.user),
+            equipo=equipo_user,
             defaults={
                 'usuario_diligencia': request.user,
             }

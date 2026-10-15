@@ -207,6 +207,14 @@
             <div class="iced-stat-value">{{ organismo.nombre|truncatechars:20 }}</div>
             <div class="iced-stat-label">Organismo</div>
         </div>
+        <div class="iced-stat-card">
+            <div class="iced-stat-value">{% if equipo_user %}{{ equipo_user }}{% else %}—{% endif %}</div>
+            <div class="iced-stat-label">
+                {% if equipo_user %}Tu equipo{% else %}
+                    <a href="{% url 'indicadores:iced_equipo' %}" style="color: var(--iced-accent);">Elige tu equipo</a>
+                {% endif %}
+            </div>
+        </div>
     </div>
     {% endif %}
 
