@@ -3583,7 +3583,7 @@ class Tablero(models.Model):
     class Meta:
         ordering = ['-fecha_actualizacion']
         verbose_name = 'Tablero'
-        verbose_name_plural = 'Tableros (Laboratorio Don Datico)'
+        verbose_name_plural = 'Tableros (Consulta y Tableros)'
 
     def __str__(self):
         return self.titulo

@@ -1,5 +1,5 @@
 {% extends 'indicadores/base.html' %}
-{% block title %}Mis Tableros — Laboratorio Don Datico{% endblock %}
+{% block title %}Mis Tableros — Consulta y Tableros{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 py-6">
@@ -9,7 +9,7 @@
                 <i class="fas fa-th-large text-teal-600"></i> Mis tableros
             </h1>
             <p class="text-sm text-slate-500 mt-1">
-                Tableros generados en el Laboratorio de Datos. Al abrirlos se recalculan con los datos vigentes.
+                Tableros generados en Consulta y Tableros. Al abrirlos se recalculan con los datos vigentes.
             </p>
         </div>
         <a href="{% url 'indicadores:laboratorio_home' %}"
@@ -44,7 +44,7 @@
     {% else %}
     <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400">
         <i class="fas fa-flask text-4xl mb-3"></i>
-        <p class="text-sm">Aún no tienes tableros. Entra al laboratorio y descríbele a Don Datico qué quieres ver.</p>
+        <p class="text-sm">Aún no tienes tableros. Entra a Consulta y Tableros y descríbele a Don Datico qué quieres ver.</p>
     </div>
     {% endif %}
 </div>

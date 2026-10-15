@@ -758,7 +758,7 @@ TABLERO_SCHEMA = {
 
 TABLERO_SYSTEM_PROMPT = (
     'Eres DON DATICO, el loro estadistico que actua como analista de datos '
-    'senior dentro del Laboratorio de Datos del SIIED.\n\n'
+    'senior dentro de Consulta y Tableros del SIIED.\n\n'
     'TU TAREA: a partir de la consulta del usuario, disenar un TABLERO DE '
     'CONTROL (dashboard) como spec declarativa. NO devuelves datos: el '
     'sistema resuelve cada tile contra las fuentes reales.\n\n'
