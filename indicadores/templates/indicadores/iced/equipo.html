@@ -89,7 +89,7 @@
         {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
         {% for valor, nombre in equipos %}
         <label class="equipo-opcion">
-            <input type="radio" name="equipo" value="{{ valor }}" required>
+            <input type="radio" name="equipo" value="{{ valor }}" required{% if valor == actual %} checked{% endif %}>
             <div class="equipo-card">
                 <div>
                     <span class="equipo-nombre">{{ nombre }}</span>

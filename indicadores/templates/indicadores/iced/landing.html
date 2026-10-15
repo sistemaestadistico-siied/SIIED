@@ -279,7 +279,7 @@
     <!-- Botón nuevo formulario -->
     {% if organismo %}
     <div style="margin-top: 2rem; text-align: center;">
-        <a href="{% url 'indicadores:iced_formulario_nuevo' %}" class="iced-btn iced-btn-primary" style="padding: 0.9rem 2rem; font-size: 1rem;">
+        <a href="{% url 'indicadores:iced_equipo' %}?next=formulario" class="iced-btn iced-btn-primary" style="padding: 0.9rem 2rem; font-size: 1rem;">
             + Iniciar nuevo formulario ICED {{ periodo_actual }}
         </a>
     </div>

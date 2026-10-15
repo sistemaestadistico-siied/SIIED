@@ -1542,8 +1542,12 @@ def delegado_ficed(request):
 @delegado_required
 def delegado_ficed_equipo(request):
     """
-    El delegado elige su equipo técnico FICED (primera vez que entra).
-    Se guarda en subrol_ficed de su perfil; el admin puede corregirlo luego.
+    Punto de entrada del FICED desde el portal del delegado.
+
+    Siempre pregunta primero por el equipo técnico: cada equipo tiene su
+    propio formulario (organismo+periodo+equipo) que luego se concilia en
+    validación. La elección se guarda en subrol_ficed del perfil (queda
+    pre-marcada si ya tenía uno) y el admin puede corregirla luego.
     """
     organismo = _get_organismo(request)
     if not organismo:
@@ -1552,10 +1556,6 @@ def delegado_ficed_equipo(request):
 
     from .models_iced import ICEDFormulario
     perfil = getattr(request.user, 'perfil_recolector', None)
-
-    # Ya tiene equipo → directo al formulario
-    if perfil and perfil.subrol_ficed:
-        return redirect('indicadores:delegado_ficed')
 
     equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
     validos = {e for e, _ in equipos}
@@ -1587,6 +1587,7 @@ def delegado_ficed_equipo(request):
         'organismo': organismo,
         'equipos': equipos,
         'ocupados': ocupados,
+        'actual': (perfil.subrol_ficed if perfil else ''),
     })
 
 

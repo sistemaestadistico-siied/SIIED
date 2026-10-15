@@ -786,10 +786,6 @@ def iced_equipo(request):
 
     perfil = getattr(request.user, 'perfil_recolector', None)
 
-    # Ya eligió equipo → volver al módulo
-    if perfil and perfil.subrol_ficed:
-        return redirect('indicadores:iced_landing')
-
     equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
     validos = {e for e, _ in equipos}
     destino = request.POST.get('next') or request.GET.get('next') or ''
@@ -831,6 +827,7 @@ def iced_equipo(request):
         'ocupados': ocupados,
         'sin_perfil': perfil is None,
         'next': destino,
+        'actual': (perfil.subrol_ficed if perfil else ''),
     })
 
 
