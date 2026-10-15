@@ -434,6 +434,33 @@
             {% endif %}
         </p>
 
+        {% if manual_paso %}
+        <!-- Manual focalizado de la sección (Fase 2 FICED) -->
+        <details class="iced-manual" style="margin-bottom:1.25rem; background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #3b82f6; border-radius:0.5rem;">
+            <summary style="cursor:pointer; padding:0.7rem 1rem; font-weight:700; color:#1e40af; font-size:0.9rem; list-style:none; display:flex; align-items:center; gap:0.5rem;">
+                📖 Guía de esta sección — {{ manual_paso.titulo }}
+                <span style="margin-left:auto; font-weight:400; font-size:0.78rem; color:#60a5fa;">clic para expandir</span>
+            </summary>
+            <div style="padding:0 1rem 0.9rem; font-size:0.85rem; color:#1e3a5f;">
+                <p style="margin:0.2rem 0 0.6rem;">{{ manual_paso.resumen }}</p>
+                <div style="display:grid; gap:0.75rem; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));">
+                    <div style="background:#fff; border-radius:0.4rem; padding:0.6rem 0.8rem;">
+                        <strong style="color:#166534;">✔ Consejos</strong>
+                        <ul style="margin:0.35rem 0 0; padding-left:1.1rem;">
+                            {% for tip in manual_paso.tips %}<li style="margin-bottom:0.25rem;">{{ tip }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                    <div style="background:#fff; border-radius:0.4rem; padding:0.6rem 0.8rem;">
+                        <strong style="color:#b45309;">⚠ Errores comunes</strong>
+                        <ul style="margin:0.35rem 0 0; padding-left:1.1rem;">
+                            {% for err in manual_paso.errores_comunes %}<li style="margin-bottom:0.25rem;">{{ err }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </details>
+        {% endif %}
+
         {% if formulario_actual and formulario_actual.estado == 'devuelto' and formulario_actual.observaciones_validador %}
         <!-- Observaciones del validador (formulario devuelto para corrección) -->
         <div style="margin-bottom: 1.25rem; padding: 1rem 1.25rem; background: #fffbeb; border: 1px solid #fcd34d; border-left: 4px solid #f59e0b; border-radius: 0.5rem;">
@@ -699,6 +726,62 @@
         </form>
     </div>
 </div>
+
+<!-- ============================================================
+     MINI-CHAT FICED — Don Datico asistente de diligenciamiento
+     (abajo-derecha; el botón global del chat está abajo-izquierda)
+============================================================ -->
+<button id="ficed-chat-btn" title="Asistente FICED — Don Datico"
+        style="position:fixed; bottom:20px; right:20px; z-index:1050; width:64px; height:64px;
+               border-radius:50%; border:3px solid #fff; cursor:pointer; padding:0;
+               background:#fff; box-shadow:0 4px 20px rgba(0,8,102,.35); overflow:hidden;">
+    <img src="{% static 'indicadores/images/don datico.png' %}" alt="Asistente FICED"
+         style="width:100%; height:100%; object-fit:contain;">
+    <span style="position:absolute; top:-4px; right:-4px; background:#d97706; color:#fff;
+                 font-size:.6rem; font-weight:800; padding:2px 6px; border-radius:8px;">FICED</span>
+</button>
+
+<div id="ficed-chat-panel" style="display:none; position:fixed; bottom:96px; right:20px;
+     z-index:1050; width:min(380px, calc(100vw - 40px)); height:480px; max-height:70vh;
+     background:#fff; border-radius:14px; box-shadow:0 10px 40px rgba(0,8,102,.3);
+     border:1px solid #dbe2f0; flex-direction:column; overflow:hidden;">
+
+    <div style="background:#000866; color:#fff; padding:.7rem 1rem; display:flex;
+                align-items:center; gap:.6rem;">
+        <img src="{% static 'indicadores/images/don datico.png' %}" alt=""
+             style="width:34px; height:34px; object-fit:contain;">
+        <div style="flex:1;">
+            <div style="font-weight:700; font-size:.9rem;">Don Datico · Asistente FICED</div>
+            <div style="font-size:.72rem; opacity:.8;">{{ current_step_label }}</div>
+        </div>
+        <button type="button" id="ficed-chat-close"
+                style="background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">✕</button>
+    </div>
+
+    <div id="ficed-chat-msgs" style="flex:1; overflow-y:auto; padding:.8rem;
+         display:flex; flex-direction:column; gap:.55rem; background:#f6f8fc;">
+        <div class="ficed-msg-bot">¡Hola! Soy <strong>Don Datico</strong> 🦜. Te ayudo a
+            diligenciar esta sección: <em>{{ current_step_label }}</em>. Puedes preguntarme
+            qué poner en cada campo, los formatos exigidos, o consultar tus respuestas de
+            este año y de años anteriores.</div>
+    </div>
+
+    <div style="padding:.6rem; border-top:1px solid #e2e8f0; display:flex; gap:.5rem; background:#fff;">
+        <input id="ficed-chat-input" type="text" maxlength="1500"
+               placeholder="Pregunta sobre esta sección…"
+               style="flex:1; border:1px solid #cbd5e1; border-radius:8px; padding:.55rem .7rem; font-size:.85rem;">
+        <button type="button" id="ficed-chat-send"
+                style="background:#000866; color:#fff; border:none; border-radius:8px;
+                       padding:.55rem .9rem; font-weight:700; cursor:pointer;">Enviar</button>
+    </div>
+</div>
+<style>
+.ficed-msg-bot,.ficed-msg-user{max-width:85%;padding:.55rem .75rem;border-radius:10px;
+    font-size:.83rem;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.ficed-msg-bot{background:#fff;border:1px solid #e2e8f0;align-self:flex-start;color:#1e293b}
+.ficed-msg-user{background:#000866;color:#fff;align-self:flex-end}
+.ficed-msg-bot.typing{opacity:.55;font-style:italic}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -1017,5 +1100,83 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+</script>
+
+<script>
+// ===== Mini-chat FICED — Don Datico (Fase 3) =====
+(function () {
+    const btn = document.getElementById('ficed-chat-btn');
+    const panel = document.getElementById('ficed-chat-panel');
+    const closeBtn = document.getElementById('ficed-chat-close');
+    const msgs = document.getElementById('ficed-chat-msgs');
+    const input = document.getElementById('ficed-chat-input');
+    const send = document.getElementById('ficed-chat-send');
+    if (!btn || !panel) return;
+
+    const PASO = '{{ wizard.steps.current|default:"" }}';
+    const FORM_ID = {% if formulario_id %}{{ formulario_id }}{% else %}null{% endif %};
+    const CSRF = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+    const historial = [];
+
+    btn.addEventListener('click', () => {
+        panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
+        if (panel.style.display === 'flex') input.focus();
+    });
+    closeBtn.addEventListener('click', () => { panel.style.display = 'none'; });
+
+    function addMsg(texto, quien) {
+        const d = document.createElement('div');
+        d.className = quien === 'user' ? 'ficed-msg-user' : 'ficed-msg-bot';
+        d.textContent = texto;
+        msgs.appendChild(d);
+        msgs.scrollTop = msgs.scrollHeight;
+        return d;
+    }
+
+    async function enviar() {
+        const texto = input.value.trim();
+        if (!texto) return;
+        input.value = '';
+        addMsg(texto, 'user');
+        const typing = addMsg('Don Datico está escribiendo…', 'bot');
+        typing.classList.add('typing');
+        send.disabled = true;
+        try {
+            const resp = await fetch("{% url 'indicadores:iced_chat' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF
+                },
+                body: JSON.stringify({
+                    pregunta: texto,
+                    paso: PASO,
+                    formulario_id: FORM_ID,
+                    historial: historial
+                })
+            });
+            const data = await resp.json();
+            typing.remove();
+            const respuesta = data.respuesta || data.error || 'Sin respuesta.';
+            addMsg(respuesta, 'bot');
+            historial.push({rol: 'user', texto: texto});
+            historial.push({rol: 'assistant', texto: respuesta});
+            if (historial.length > 16) historial.splice(0, historial.length - 16);
+        } catch (e) {
+            typing.remove();
+            addMsg('No pude conectar con Don Datico. Revisa tu conexión e intenta de nuevo.', 'bot');
+        }
+        send.disabled = false;
+        input.focus();
+    }
+
+    send.addEventListener('click', enviar);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            enviar();
+        }
+    });
+})();
 </script>
 {% endblock %}

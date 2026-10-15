@@ -172,6 +172,10 @@ class ICEDWizardView(SessionWizardView):
         context['current_step_index'] = list(ICED_STEP_LABELS.keys()).index(self.steps.current)
         context['current_step_label'] = ICED_STEP_LABELS.get(self.steps.current, '')
 
+        # Manual focalizado de la sección actual (Fase 2 FICED)
+        from .iced_manual import MANUAL_POR_PASO
+        context['manual_paso'] = MANUAL_POR_PASO.get(self.steps.current)
+
         # Formulario en edición: permite mostrar estado y observaciones del
         # validador (flujo devuelto → corrección) dentro del wizard.
         formulario_actual = None
@@ -857,6 +861,148 @@ def iced_guardar_parcial(request):
         'formulario_id': formulario.pk,
         'mensaje': 'Guardado parcial exitoso'
     })
+
+
+# =============================================================================
+# MINI-CHAT DON DATICO — Asistente de diligenciamiento FICED (Fase 3)
+# =============================================================================
+
+def _resumen_respuestas_iced(respuestas, max_items=25):
+    """'campo: valor' compacto de un dict de respuestas para el prompt."""
+    partes = []
+    for k, v in (respuestas or {}).items():
+        if v in (None, '', [], {}):
+            continue
+        vs = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+        if len(vs) > 180:
+            vs = vs[:180] + '…'
+        partes.append(f'{k}: {vs}')
+        if len(partes) >= max_items:
+            break
+    return partes
+
+
+@login_required
+def iced_chat(request):
+    """Chat flotante de Don Datico dentro del wizard FICED.
+
+    Recibe {pregunta, paso, formulario_id, historial}. Responde texto
+    plano orientado a la acción, con contexto de la sección actual del
+    wizard, el manual focalizado, las respuestas guardadas del
+    formulario actual y los formularios de años anteriores del organismo.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    try:
+        data = json.loads(request.body or '{}')
+    except (ValueError, TypeError):
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    pregunta = (data.get('pregunta') or '').strip()[:1500]
+    paso = (data.get('paso') or '').strip()
+    if not pregunta:
+        return JsonResponse({'error': 'Escribe una pregunta.'}, status=400)
+
+    organismo = _get_user_organismo(request.user)
+    if not organismo:
+        return JsonResponse({'error': 'Sin organismo asignado'}, status=403)
+
+    from .iced_manual import manual_texto_paso, resumen_manual
+    from .chat_config import get_config
+
+    periodo_actual = str(timezone.now().year)
+
+    # Formulario actual en diligenciamiento (si se identifica)
+    formulario = None
+    fid = data.get('formulario_id')
+    if fid:
+        formulario = ICEDFormulario.objects.filter(
+            pk=fid, organismo=organismo).first()
+    if not formulario:
+        formulario = ICEDFormulario.objects.filter(
+            organismo=organismo, periodo=periodo_actual,
+            estado='borrador').order_by('-fecha_actualizacion').first()
+
+    # Respuestas guardadas del formulario actual
+    resp_actual = ''
+    if formulario:
+        partes = []
+        for campo in ('respuestas_a', 'respuestas_b', 'respuestas_c',
+                      'respuestas_d', 'respuestas_e'):
+            partes += _resumen_respuestas_iced(getattr(formulario, campo))
+        if partes:
+            resp_actual = (
+                f"RESPUESTAS YA GUARDADAS del FICED {formulario.periodo} "
+                f"(equipo {formulario.equipo or 'general'}, "
+                f"estado {formulario.estado}):\n" + '\n'.join(partes[:60]))
+
+    # Formularios de años anteriores del mismo organismo
+    resp_previos = []
+    for f_prev in (ICEDFormulario.objects
+                   .filter(organismo=organismo)
+                   .exclude(periodo=periodo_actual)
+                   .order_by('-periodo')[:3]):
+        partes = []
+        for campo in ('respuestas_a', 'respuestas_b', 'respuestas_c',
+                      'respuestas_d', 'respuestas_e'):
+            partes += _resumen_respuestas_iced(getattr(f_prev, campo), 15)
+        resp_previos.append(
+            f"FICED {f_prev.periodo} (equipo {f_prev.equipo or 'general'}, "
+            f"{f_prev.estado}):\n" + '\n'.join(partes[:40]))
+
+    seccion = ICED_STEP_LABELS.get(paso, paso or 'sin paso')
+    system_prompt = f"""Eres Don Datico, asistente del SIIED para el diligenciamiento del FICED (Formulario de Infraestructura y Capacidad Estadística Distrital) del organismo "{organismo.nombre}".
+
+Tu ÚNICO propósito es guiar al delegado a responder el FICED correctamente. Responde en español, claro, breve (máx. ~120 palabras) y orientado a la acción. Cita el número de pregunta (P#) cuando sea relevante. Nunca inventes respuestas para el usuario: explica QUÉ debe poner y déjalo diligenciar. Si la pregunta no es del FICED, redirige amablemente al formulario.
+
+FORMATOS ESTRICTOS QUE DEBES RECORDAR AL USUARIO:
+- Correos: nombre@dominio.com. Teléfonos: máx. 10 dígitos o +57 + 10 (sin letras ni extensión).
+- Fechas "inicio de participación": MM/AAAA (ej: 03/2024). Fechas de widgets: selector de calendario AAAA-MM-DD.
+- P21: porcentajes 0-100 cuya suma no pase de 100. Años de experiencia: número entero.
+- URLs: completas https://…, varias separadas por coma. Códigos BP: números/códigos separados por coma.
+
+SECCIÓN ACTUAL DEL USUARIO: {seccion}
+
+GUÍA DE ESTA SECCIÓN:
+{manual_texto_paso(paso)}
+
+ÍNDICE DEL MANUAL COMPLETO:
+{resumen_manual()}
+
+{resp_actual}
+
+{'FORMULARIOS DE AÑOS ANTERIORES (referencia):' + chr(10) + chr(10).join(resp_previos) if resp_previos else 'No hay formularios de años anteriores.'}"""
+
+    # Historial corto de la conversación (máx. 8 turnos)
+    historial = data.get('historial') or []
+    messages = [{'role': 'system', 'content': system_prompt}]
+    for h in historial[-8:]:
+        rol = 'assistant' if h.get('rol') == 'assistant' else 'user'
+        texto = (h.get('texto') or '')[:1500]
+        if texto:
+            messages.append({'role': rol, 'content': texto})
+    messages.append({'role': 'user', 'content': pregunta})
+
+    try:
+        from .views_chat import ChatService
+        service = ChatService(request=request)
+        resp = service._call_llm_with_fallback(
+            messages,
+            stream=False,
+            model=get_config('CEREBRAS_MODEL', 'gpt-oss-120b'),
+            temperature=0.3,
+            max_tokens=700,
+        )
+        texto = (resp.choices[0].message.content or '').strip()
+    except Exception as e:
+        logging.getLogger(__name__).warning(f'iced_chat LLM error: {e}')
+        return JsonResponse(
+            {'error': 'Don Datico no está disponible ahora. Intenta de '
+                      'nuevo en unos segundos.'}, status=503)
+
+    if not texto:
+        texto = 'No pude generar una respuesta. Reformula tu pregunta.'
+    return JsonResponse({'respuesta': texto})
 
 
 def _get_user_equipo(user):

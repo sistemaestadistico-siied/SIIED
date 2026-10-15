@@ -435,6 +435,7 @@ urlpatterns = [
     path('iced/confirmacion/<int:formulario_id>/', views_iced.iced_confirmacion, name='iced_confirmacion'),
     path('iced/resultado/<int:formulario_id>/', views_iced.iced_resultado, name='iced_resultado'),
     path('iced/guardar-parcial/', views_iced.iced_guardar_parcial, name='iced_guardar_parcial'),
+    path('iced/chat/', views_iced.iced_chat, name='iced_chat'),
     path('iced/exportar-csv/', views_iced.iced_exportar_csv, name='iced_exportar_csv'),
 
     # ========================================================================
