@@ -252,7 +252,7 @@
             <p class="text-slate-500 mt-2">Del indicador puntual al tablero completo: entradas directas a las fuentes del SIIED.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Explorador de conjuntos -->
             <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="hcard hcyan group">
                 <div class="hcard-ico acc-cyan"><i class="fas fa-database"></i></div>
@@ -289,23 +289,6 @@
                 <span class="hcard-cta">Abrir Consulta y Tableros <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
-            <!-- Libro 3D -->
-            <a href="{% url 'indicadores:dominios_3d' %}" class="hcard hcyan group">
-                <div class="hcard-ico acc-sky"><i class="fas fa-book-open"></i></div>
-                <img src="{% static 'indicadores/images/logo_libro_3d.png' %}" alt="Libro Digital de Datos 3D" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Libro Digital de Datos 3D</h3>
-                <p class="text-sm text-slate-500 mt-1">Experiencia inmersiva para explorar las historias estadísticas de Cali.</p>
-                <span class="hcard-cta">Explorar capítulos <i class="fas fa-arrow-right ml-1"></i></span>
-            </a>
-
-            <!-- Calendario de Difusión -->
-            <a href="{% url 'indicadores:calendario_difusion' %}" class="hcard hcyan group">
-                <div class="hcard-ico acc-cyan"><i class="fas fa-calendar-days"></i></div>
-                <img src="{% static 'indicadores/images/logo_calendario.png' %}" alt="Calendario de Difusión" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Calendario de Difusión</h3>
-                <p class="text-sm text-slate-500 mt-1">Programación de publicaciones estadísticas por observatorio y organismo.</p>
-                <span class="hcard-cta">Ver calendario <i class="fas fa-arrow-right ml-1"></i></span>
-            </a>
         </div>
     </div>
 </section>
@@ -360,12 +343,21 @@
             <p class="text-slate-500 mt-2">El asistente que habla tu idioma, la API que habla con tus sistemas.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <a href="{% url 'indicadores:chat' %}" class="hcard group">
                 <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Don Datico · Asistente IA</h3>
                 <p class="text-sm text-slate-500 mt-1">Consulta indicadores en lenguaje natural con el guía del sistema.</p>
                 <span class="hcard-cta">Chatear ahora <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Libro 3D -->
+            <a href="{% url 'indicadores:dominios_3d' %}" class="hcard group">
+                <div class="hcard-ico acc-sky"><i class="fas fa-book-open"></i></div>
+                <img src="{% static 'indicadores/images/logo_libro_3d.png' %}" alt="Libro Digital de Datos 3D" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Libro Digital de Datos 3D</h3>
+                <p class="text-sm text-slate-500 mt-1">Experiencia inmersiva para explorar las historias estadísticas de Cali.</p>
+                <span class="hcard-cta">Explorar capítulos <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <a href="{% url 'indicadores:api_documentation' %}" class="hcard group">
@@ -397,7 +389,7 @@
             <p class="text-slate-500 mt-2">Medición, caracterización y difusión de la capacidad estadística distrital.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <a href="{% url 'indicadores:modulo_iced' %}" class="hcard group">
                 <div class="hcard-ico acc-lime"><i class="fas fa-gauge-high"></i></div>
                 <img src="{% static 'indicadores/images/logo_iced.png' %}" alt="ICED" class="hcard-img mb-3">
@@ -430,6 +422,13 @@
                 <span class="hcard-cta">Ver dashboard <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
+            <a href="{% url 'indicadores:calendario_difusion' %}" class="hcard group">
+                <div class="hcard-ico acc-rose"><i class="fas fa-calendar-days"></i></div>
+                <img src="{% static 'indicadores/images/logo_calendario.png' %}" alt="Calendario de Difusión" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Calendario de Difusión</h3>
+                <p class="text-sm text-slate-500 mt-1">Programación de publicaciones estadísticas por observatorio y organismo.</p>
+                <span class="hcard-cta">Ver calendario <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
         </div>
     </div>
 </section>
