@@ -168,7 +168,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'indicadores',
         'USER': 'amiranda',
-        'PASSWORD': '***REMOVED***',  # ⚠️ Expuesta
+        'PASSWORD': os.environ.get('DB_PASSWORD'),  # ⚠️ Expuesta
         'HOST': 'localhost',
         'PORT': '5432',
     }

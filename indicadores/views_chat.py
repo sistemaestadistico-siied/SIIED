@@ -3133,7 +3133,7 @@ class ChatService:
         return bool(cache.get(cls.PRIMARY_DOWN_CACHE_KEY))
 
     def __init__(self, request=None):
-        self.api_key = get_config('CEREBRAS_API_KEY', '***REMOVED***')
+        self.api_key = get_config('CEREBRAS_API_KEY', '')
         self.request = request
         
         # Configuración compatible con Cerebras API (desde configuración centralizada)

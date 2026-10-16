@@ -2,6 +2,16 @@
 Configuración centralizada para el sistema de chat
 Contiene todos los contextos, límites y parámetros configurables
 """
+import os
+from pathlib import Path
+
+# API keys y configuración sensible se leen de variables de entorno (.env).
+# load_dotenv aquí por si este módulo se importa fuera del arranque de Django.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / '.env')
+except ImportError:
+    pass
 
 # ============================================================================
 # LÍMITES Y PARÁMETROS DEL CHAT
@@ -38,12 +48,12 @@ CHAT_CONFIG = {
     # API Principal — Google AI Studio vía capa OpenAI-compatible
     # (generativelanguage.googleapis.com/v1beta/openai/). Gemini 3 exige
     # thought_signature al reenviar tool_calls (ya manejado en views_chat).
-    'CEREBRAS_API_KEY': '***REMOVED***',  # API Key Principal
-    'CEREBRAS_BASE_URL': 'https://generativelanguage.googleapis.com/v1beta/openai/',  # URL base de la API Principal
+    'CEREBRAS_API_KEY': os.environ.get('CEREBRAS_API_KEY', ''),  # API Key Principal (en .env)
+    'CEREBRAS_BASE_URL': os.environ.get('CEREBRAS_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/openai/'),  # URL base de la API Principal
     # gemini-3.8-flash tiene cuota free de solo 5 RPM / 20 RPD (se agota en
     # pocas consultas con tools -> 429/503/cuelgues). Los flash-lite tienen
     # 15 RPM / 500 RPD. Override posible vía ConfiguracionSistema en BD.
-    'CEREBRAS_MODEL': 'gemini-3.5-flash-lite',  # Modelo Principal
+    'CEREBRAS_MODEL': os.environ.get('CEREBRAS_MODEL', 'gemini-3.5-flash-lite'),  # Modelo Principal
     # Nivel de razonamiento del modelo (Gemini 3: minimal|low|medium|high).
     # Sin este parámetro el default puede pensar varios minutos por llamada.
     'LLM_REASONING_EFFORT': 'low',
@@ -58,9 +68,9 @@ CHAT_CONFIG = {
 
     # API Respaldo — las claves se llaman OLLAMA_* pero el endpoint
     # configurado es Cerebras real (api.cerebras.ai).
-    'OLLAMA_API_KEY': '***REMOVED***',  # API Key Respaldo
-    'OLLAMA_BASE_URL': 'https://api.cerebras.ai/v1',  # URL base Respaldo
-    'OLLAMA_MODEL': 'gpt-oss-120b',  # Modelo Respaldo
+    'OLLAMA_API_KEY': os.environ.get('OLLAMA_API_KEY', ''),  # API Key Respaldo (en .env)
+    'OLLAMA_BASE_URL': os.environ.get('OLLAMA_BASE_URL', 'https://api.cerebras.ai/v1'),  # URL base Respaldo
+    'OLLAMA_MODEL': os.environ.get('OLLAMA_MODEL', 'gpt-oss-120b'),  # Modelo Respaldo
     'OLLAMA_MAX_TOKENS': 14200,  # Máximo de tokens Respaldo
     'OLLAMA_TEMPERATURE': 0.15,  # Temperatura Respaldo
     'OLLAMA_TOP_P': 0.9,  # Top P Respaldo

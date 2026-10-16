@@ -11,34 +11,51 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Cargar variables de entorno desde .env (no versionado).
+# Copiar .env.example → .env y completar los valores del entorno.
+load_dotenv(BASE_DIR / '.env')
+
+
+def _env_list(name: str, default: list) -> list:
+    """Lee una variable de entorno como lista separada por comas."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return [item.strip() for item in raw.split(',') if item.strip()]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '***REMOVED***'
+# Configurar en .env — el fallback solo sirve para desarrollo local.
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-dev-placeholder-cambiar-en-.env',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').strip().lower() in ('true', '1', 'yes', 'on')
 
-ALLOWED_HOSTS = [
+ALLOWED_HOSTS = _env_list('ALLOWED_HOSTS', [
     'localhost',
     '127.0.0.1',
     '10.98.115.102',
     'indicadores.cali.gov.co',
-]
+])
 
 # CSRF trusted origins for production
-CSRF_TRUSTED_ORIGINS = [
+CSRF_TRUSTED_ORIGINS = _env_list('CSRF_TRUSTED_ORIGINS', [
     'http://indicadores.cali.gov.co',
     'https://indicadores.cali.gov.co',
     'http://localhost',
     'http://127.0.0.1',
-]
+])
 
 # FORCE_SCRIPT_NAME: Prefijo de URL para proxy reverso
 # En desarrollo local: '' (vacío)
@@ -114,12 +131,12 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'indicadores',
-        'USER': 'amiranda',
-        'PASSWORD': '***REMOVED***',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': os.environ.get('DB_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.environ.get('DB_NAME', 'indicadores'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -156,10 +173,10 @@ TIME_ZONE = 'America/Bogota'
 # ============================================================================
 # BREVO_API_KEY: API key v3 de Brevo (empieza con xkeysib-). Dejar vacío para usar solo SMTP.
 # Se usa la API REST (https://api.brevo.com/v3/smtp/email) como método principal.
-BREVO_API_KEY = ''
-BREVO_SENDER_EMAIL = 'sistemaestadistico@cali.gov.co'
-SITE_URL = 'https://indicadores.cali.gov.co'  # URL base del sitio para links en emails
-BREVO_NOTIFY_EMAILS = []  # Correos adicionales (opcional). Admins y validadores se detectan automático de la BD.
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL', 'sistemaestadistico@cali.gov.co')
+SITE_URL = os.environ.get('SITE_URL', 'https://indicadores.cali.gov.co')  # URL base del sitio para links en emails
+BREVO_NOTIFY_EMAILS = _env_list('BREVO_NOTIFY_EMAILS', [])  # Correos adicionales (opcional). Admins y validadores se detectan automático de la BD.
 
 # ============================================================================
 # Django Email Backend — Fallback SMTP via Brevo
@@ -167,13 +184,13 @@ BREVO_NOTIFY_EMAILS = []  # Correos adicionales (opcional). Admins y validadores
 # Estos settings también habilitan password-reset y otros emails de Django.
 # ============================================================================
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp-relay.brevo.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = '***REMOVED***'
-EMAIL_HOST_PASSWORD = '***REMOVED***'
-DEFAULT_FROM_EMAIL = 'sistemaestadistico@cali.gov.co'
-SERVER_EMAIL = 'sistemaestadistico@cali.gov.co'
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp-relay.brevo.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').strip().lower() in ('true', '1', 'yes', 'on')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'sistemaestadistico@cali.gov.co')
+SERVER_EMAIL = os.environ.get('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
 
 USE_I18N = True
 
@@ -381,10 +398,10 @@ ZERO_SHOT_LABELS = [
 # ============================================================================
 # APACHE SUPERSET — Integración con módulo Tableros
 # ============================================================================
-SUPERSET_BASE_URL = 'http://127.0.0.1:8088'  # URL interna (server-to-server API calls)
-SUPERSET_PUBLIC_URL = 'http://127.0.0.1:8088'  # URL para el navegador del usuario
-# En producción cambiar a: SUPERSET_PUBLIC_URL = 'https://indicadores.cali.gov.co/superset'
-SUPERSET_ADMIN_USERNAME = 'amiranda'
-SUPERSET_ADMIN_PASSWORD = '***REMOVED***'  # Configurar en producción
-SUPERSET_DATABASE_NAME = 'SIIED - Indicadores'  # Nombre del datasource en Superset
-SUPERSET_SHARED_PASSWORD = '***REMOVED***'  # Contraseña compartida para todos los usuarios de Superset creados desde Django
+SUPERSET_BASE_URL = os.environ.get('SUPERSET_BASE_URL', 'http://127.0.0.1:8088')  # URL interna (server-to-server API calls)
+SUPERSET_PUBLIC_URL = os.environ.get('SUPERSET_PUBLIC_URL', 'http://127.0.0.1:8088')  # URL para el navegador del usuario
+# En producción: SUPERSET_PUBLIC_URL='https://indicadores.cali.gov.co/superset'
+SUPERSET_ADMIN_USERNAME = os.environ.get('SUPERSET_ADMIN_USERNAME', '')
+SUPERSET_ADMIN_PASSWORD = os.environ.get('SUPERSET_ADMIN_PASSWORD', '')
+SUPERSET_DATABASE_NAME = os.environ.get('SUPERSET_DATABASE_NAME', 'SIIED - Indicadores')  # Nombre del datasource en Superset
+SUPERSET_SHARED_PASSWORD = os.environ.get('SUPERSET_SHARED_PASSWORD', '')  # Contraseña compartida para usuarios de Superset creados desde Django

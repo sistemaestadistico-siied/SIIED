@@ -26,7 +26,7 @@ def test_tools_basic():
     """Test básico de inicialización de tools"""
     try:
         # Usar tu API key
-        api_key = '***REMOVED***'
+        api_key = os.environ.get('CEREBRAS_API_KEY') or os.environ.get('OLLAMA_API_KEY', '')
         service = CerebrasToolsService(api_key)
         
         print("✅ Servicio inicializado correctamente")
