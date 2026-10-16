@@ -1378,14 +1378,23 @@
                 // Sección de procedimientos:
                 // - con subproceso: procedimientos del subproceso elegido
                 // - sin subprocesos en el proceso: procedimientos directos del proceso
+                // Fuente de procedimientos:
+                // - 'SIN_SUBPROCESO' elegido o proceso sin subprocesos: directos
+                // - subproceso elegido: los de ese subproceso
+                // - proceso con subprocesos y directos sin elegir subproceso:
+                //   mostrar los directos de inmediato (visibles sin mas clics)
                 const fuenteProcedimientos = esDirecto
                     ? procedimientosDirectos
                     : (procesoTieneSubprocesos
-                        ? (fila.subproceso_id ? datosMOP.procedimientos[fila.subproceso_id] : null)
+                        ? (fila.subproceso_id
+                            ? datosMOP.procedimientos[fila.subproceso_id]
+                            : (procedimientosDirectos.length ? procedimientosDirectos : null))
                         : (tieneProceso ? (procedimientosDirectos.length ? procedimientosDirectos : null) : null));
                 const mostrarProcedimientos = esDirecto
                     ? true
-                    : (procesoTieneSubprocesos ? !!fila.subproceso_id : tieneProceso);
+                    : (procesoTieneSubprocesos
+                        ? (!!fila.subproceso_id || procedimientosDirectos.length > 0)
+                        : tieneProceso);
 
                 if (mostrarProcedimientos) {
                     if (fuenteProcedimientos && fuenteProcedimientos.length > 0) {
@@ -1414,6 +1423,15 @@
                         });
                         selProc.addEventListener('change', () => {
                             filas[i].procedimientos[pi] = selProc.value;
+                            // Proceso con subprocesos pero se eligio un
+                            // procedimiento directo: registrar la opcion
+                            // centinela para guardar datos consistentes.
+                            if (selProc.value && procesoTieneSubprocesos && !filas[i].subproceso_id) {
+                                filas[i].subproceso_id = SIN_SUBPROCESO;
+                                sync();
+                                render();
+                                return;
+                            }
                             sync();
                         });
                         procRow.appendChild(selProc);
