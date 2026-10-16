@@ -185,11 +185,70 @@ def _terminos_consulta(consulta):
     ]
 
 
+def _depurar_registros(candidatos):
+    """Segunda criba de indicadores 'registro' encubiertos.
+
+    La forma por volumen (anios/filas) no basta: un registro por entidad
+    puede tener datos en varios anios o pocas filas y pasa por 'serie' o
+    'corte'. La senal real es la que usa el resolver en ejecucion: no hay
+    fila de total y las magnitudes agrupadas por desagregacion difieren
+    en mas de 100x dentro de un mismo anio (telefonos ~1e9 junto a
+    conteos ~1e2 — campos de un registro, no mediciones comparables).
+
+    ``candidatos``: lista de tuplas (dict-indicador, forma, anios, filas).
+    """
+    ids = [ind['id'] for ind, *_ in candidatos]
+    if not ids:
+        return candidatos
+
+    from django.db.models import Sum
+    from django.db.models.functions import ExtractYear
+
+    # Con fila de total (sin desags o desags 'total') el resolver usa
+    # esa fila y las demas no estorban -> serie/corte legitimo.
+    tiene_total = set(
+        Dato.objects
+        .filter(indicador_id__in=ids)
+        .filter(Q(desagregaciones_tematicas__isnull=True,
+                  desagregaciones_geograficas__isnull=True)
+                | Q(desagregaciones_tematicas__nombre__icontains='total'))
+        .values_list('indicador_id', flat=True))
+
+    # Sin total: sumas por (anio, nombre de desagregacion tematica).
+    grupos = (Dato.objects
+              .filter(indicador_id__in=ids, valor_dato__isnull=False)
+              .exclude(indicador_id__in=tiene_total)
+              .annotate(anio=ExtractYear('fecha_dato'))
+              .values('indicador_id', 'anio',
+                      'desagregaciones_tematicas__nombre')
+              .annotate(suma=Sum('valor_dato')))
+    sumas_por_anio = {}
+    for g in grupos:
+        # None = fila sin desagregacion tematica: no es un campo con
+        # nombre; se ignora para no inflar el spread.
+        if g['desagregaciones_tematicas__nombre'] is None:
+            continue
+        key = (g['indicador_id'], g['anio'])
+        sumas_por_anio.setdefault(key, []).append(float(g['suma'] or 0))
+
+    registro_ids = set()
+    for (iid, _anio), vals in sumas_por_anio.items():
+        pos = [v for v in vals if v > 0]
+        if len(pos) > 1 and max(pos) / min(pos) > 100:
+            registro_ids.add(iid)
+
+    if not registro_ids:
+        return candidatos
+    return [c for c in candidatos if c[0]['id'] not in registro_ids]
+
+
 def _contexto_fuentes(request, consulta=''):
     """
     Fuentes reales que el LLM puede usar en la spec: conjuntos de datos
     (con codigos de variables exactos), cuadros del catalogo de consulta
-    e indicadores activos (con forma: serie / registro / corte).
+    e indicadores activos (forma: serie / corte; los 'registro' — filas
+    que son campos de una entidad, no agregables — se excluyen porque
+    ningun tile sale bien de ellos).
 
     Para no-staff con organismo, los conjuntos se acotan a los del
     organismo; los indicadores son catalogo general del SIIED.
@@ -319,29 +378,35 @@ def _contexto_fuentes(request, consulta=''):
     else:
         ordenados = base
 
-    indicadores = []
-    for ind in ordenados:
+    # Candidatos con forma preliminar; los 'registro' evidentes por
+    # volumen quedan fuera de una vez y el resto pasa la segunda criba
+    # por magnitudes (registros pequenos o multianio disfrazados).
+    candidatos = []
+    for ind in ordenados[:120]:
         s = stats_dato.get(ind['id']) or {}
         anios = s.get('anios') or 0
         filas = s.get('filas') or 0
         if anios >= 2:
             forma = 'serie'  # mediciones en varios anios
         elif filas > 30:
-            # 'registro': foto de entidades (filas = campos, no
-            # agregable). Ningun tile sale bien de ahi: no se ofrece.
-            continue
+            continue  # registro evidente: filas=campos, no agregable
         else:
             forma = 'corte'  # pocos datos de un solo anio
-        indicadores.append({
+        candidatos.append((ind, forma, anios, filas))
+
+    candidatos = _depurar_registros(candidatos)
+
+    indicadores = [
+        {
             'id': ind['id'],
             'nombre': ind['nombre'],
             'unidad_medida': ind['unidad_medida'],
             'forma': forma,
             'anios': anios,
             'filas': filas,
-        })
-        if len(indicadores) >= 40:
-            break
+        }
+        for ind, forma, anios, filas in candidatos[:40]
+    ]
 
     return {
         'organismo': org.nombre if org else None,
