@@ -197,7 +197,7 @@
             <p class="text-slate-500 mt-2">Del indicador puntual al tablero completo: entradas directas a las fuentes del SIIED.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             <!-- Explorador de conjuntos -->
             <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="hcard hcyan group">
                 <div class="hcard-ico acc-cyan"><i class="fas fa-database"></i></div>
@@ -210,15 +210,24 @@
             <!-- Visor Comparativo -->
             <a href="{% url 'indicadores:visor_comparativo' %}" class="hcard hcyan group">
                 <div class="hcard-ico acc-sky"><i class="fas fa-chart-line"></i></div>
-                <img src="{% static 'indicadores/images/logo_sin_fondo.png' %}" alt="Visor Comparativo" class="hcard-img mb-3">
+                <img src="{% static 'indicadores/images/logosinfondoclaros.png' %}" alt="Visor Comparativo" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Visor Comparativo</h3>
                 <p class="text-sm text-slate-500 mt-1">Compara múltiples indicadores en series, cortes y cruces interactivos.</p>
                 <span class="hcard-cta">Acceder al Visor <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
+            <!-- Inventario de Operaciones -->
+            <a href="{% url 'indicadores:inventario_operaciones' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-blue"><i class="fas fa-clipboard-list"></i></div>
+                <img src="{% static 'indicadores/images/logo_inventario.png' %}" alt="Inventario de Operaciones" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Inventario de Operaciones</h3>
+                <p class="text-sm text-slate-500 mt-1">Catálogo oficial de operaciones: metodologías, periodicidad y responsables.</p>
+                <span class="hcard-cta">Explorar inventario <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
             <!-- Consulta y Tableros -->
             <a href="{% url 'indicadores:laboratorio_home' %}" class="hcard hcyan group">
-                <div class="hcard-ico acc-blue"><i class="fas fa-table-columns"></i></div>
+                <div class="hcard-ico acc-cyan"><i class="fas fa-table-columns"></i></div>
                 <img src="{% static 'indicadores/images/logo_consulta_tableros.png' %}" alt="Consulta y Tableros" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Consulta y Tableros</h3>
                 <p class="text-sm text-slate-500 mt-1">Describe el tablero que necesitas y Don Datico lo construye con fuentes reales.</p>
@@ -244,8 +253,8 @@
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Catálogo estadístico</span>
-            <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Conjuntos y dominios de indicadores</h2>
-            <p class="text-slate-500 mt-2">Las fuentes organizadas: datasets descargables, dominios temáticos y series históricas.</p>
+            <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Conjuntos de indicadores</h2>
+            <p class="text-slate-500 mt-2">Los tres grandes conjuntos: el catálogo por dominios temáticos, el histórico Cali en Cifras y los ODS.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -253,7 +262,7 @@
             <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}" class="hcard group">
                 <div class="hcard-ico acc-lime"><i class="fas fa-city"></i></div>
                 <h3 class="text-lg font-bold text-slate-800">Cali en Cifras</h3>
-                <p class="text-sm text-slate-500 mt-1">Anuario estadístico histórico del Distrito — series completas.</p>
+                <p class="text-sm text-slate-500 mt-1">Conjunto histórico de indicadores del Distrito — series hasta 2023.</p>
                 <span class="hcard-cta">Ver Cali en Cifras <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
@@ -267,9 +276,9 @@
 
             <!-- Todos los dominios -->
             <a href="{% url 'indicadores:dominios' %}" class="hcard group">
-                <div class="hcard-ico acc-fuchsia"><i class="fas fa-layer-group"></i></div>
-                <h3 class="text-lg font-bold text-slate-800">Todos los dominios</h3>
-                <p class="text-sm text-slate-500 mt-1">Navega el catálogo completo por dominios, temas e indicadores.</p>
+                <div class="hcard-ico acc-emerald"><i class="fas fa-layer-group"></i></div>
+                <h3 class="text-lg font-bold text-slate-800">Indicadores por dominios temáticos</h3>
+                <p class="text-sm text-slate-500 mt-1">El catálogo principal de la plataforma: todos los conjuntos de indicadores por tema.</p>
                 <span class="hcard-cta">Explorar dominios <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
         </div>
@@ -325,14 +334,6 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <a href="{% url 'indicadores:inventario_operaciones' %}" class="hcard group">
-                <div class="hcard-ico acc-cyan"><i class="fas fa-clipboard-list"></i></div>
-                <img src="{% static 'indicadores/images/logo_inventario.png' %}" alt="Inventario de Operaciones" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Inventario de Operaciones Estadísticas</h3>
-                <p class="text-sm text-slate-500 mt-1">Catálogo oficial de operaciones: metodologías, periodicidad y responsables.</p>
-                <span class="hcard-cta">Explorar inventario <i class="fas fa-arrow-right ml-1"></i></span>
-            </a>
-
             <a href="{% url 'indicadores:modulo_iced' %}" class="hcard group">
                 <div class="hcard-ico acc-lime"><i class="fas fa-gauge-high"></i></div>
                 <img src="{% static 'indicadores/images/logo_iced.png' %}" alt="ICED" class="hcard-img mb-3">
