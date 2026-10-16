@@ -320,14 +320,16 @@ def _contexto_fuentes(request, consulta=''):
         ordenados = base
 
     indicadores = []
-    for ind in ordenados[:40]:
+    for ind in ordenados:
         s = stats_dato.get(ind['id']) or {}
         anios = s.get('anios') or 0
         filas = s.get('filas') or 0
         if anios >= 2:
             forma = 'serie'  # mediciones en varios anios
         elif filas > 30:
-            forma = 'registro'  # foto de entidades, no agregable
+            # 'registro': foto de entidades (filas = campos, no
+            # agregable). Ningun tile sale bien de ahi: no se ofrece.
+            continue
         else:
             forma = 'corte'  # pocos datos de un solo anio
         indicadores.append({
@@ -338,6 +340,8 @@ def _contexto_fuentes(request, consulta=''):
             'anios': anios,
             'filas': filas,
         })
+        if len(indicadores) >= 40:
+            break
 
     return {
         'organismo': org.nombre if org else None,
@@ -663,13 +667,23 @@ def _resolver_tile(tile):
 
 
 def _url_fuente_tile(tile):
-    """URL pública donde el usuario puede consultar la fuente del tile."""
+    """URL pública donde el usuario puede consultar la fuente del tile.
+
+    Indicador → su ficha pública en el portal (subtema_detalle con
+    ?indicador=<id>), no la vista de conjuntos: el indicador NO es un
+    conjunto de datos. Conjunto → el explorador de conjuntos.
+    """
     fid = tile.get('fuente_id')
     try:
         if tile.get('fuente_tipo') == 'indicador' and fid:
-            # La ficha de conjuntos del indicador muestra sus datos
-            return reverse('indicadores:conjunto_datos_detalle',
-                           args=[fid])
+            ind = (Indicador.objects
+                   .select_related('subtema__tema__dominio')
+                   .filter(id=fid).first())
+            if ind and ind.subtema_id:
+                st = ind.subtema
+                url = reverse('indicadores:subtema_detalle', args=[
+                    st.tema.dominio.slug, st.tema.slug, st.slug])
+                return f'{url}?indicador={ind.id}'
         if tile.get('fuente_tipo') == 'conjunto_datos' and fid:
             return reverse('indicadores:conjuntos_datos_explorer')
         if tile.get('fuente_tipo') == 'catalogo_consulta' and fid:
@@ -920,7 +934,7 @@ def laboratorio_generar(request):
     # Se funde en la spec para que persista al guardar el tablero.
     analisis = _segunda_pasada_analisis(request, spec, resueltos)
     if analisis:
-        spec['analisis'] = str(analisis.get('analisis') or '')[:2000]
+        spec['analisis'] = str(analisis.get('analisis') or '')[:4000]
         insights = analisis.get('insights')
         if isinstance(insights, list):
             for i, ins in enumerate(insights):

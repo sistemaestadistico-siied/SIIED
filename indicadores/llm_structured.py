@@ -777,9 +777,10 @@ TABLERO_SCHEMA = {
         'contexto': {
             'type': 'string',
             'description': (
-                'Encuadre inicial del tablero en prosa: que se esta '
-                'midiendo, por que importa y como leerlo (2-4 oraciones). '
-                'Aparece arriba de los tiles.'),
+                'Encuadre inicial del tablero en prosa (3-6 oraciones): '
+                'que se esta midiendo, por que importa para la decision '
+                'publica, como debe leerse y cual es su limite mas '
+                'evidente. Aparece arriba de los tiles.'),
         },
         'explicacion': {
             'type': 'string',
@@ -827,7 +828,8 @@ TABLERO_SYSTEM_PROMPT = (
     'varios anios, apto para line/kpi), corte (pocos datos de un anio, '
     'solo kpi/tabla) o registro (foto de entidades — filas que son '
     'campos como nombre/telefono; NO es agregable: no lo uses para '
-    'kpi/line/bar/pie ni le inventes una serie).\n'
+    'NINGUN tipo de tile, ni kpi/line/bar/pie/tabla/mapa, ni le '
+    'inventes una serie).\n'
     '- NOMENCLATURA: los conjuntos de datos se llaman "conjunto de '
     'datos"/"conjuntos de datos". NUNCA uses la palabra "microdatos" ni '
     '"microdata" en titulos, insights ni textos.\n'
@@ -848,10 +850,11 @@ TABLERO_SYSTEM_PROMPT = (
     '- agregacion por defecto "suma"; usa "promedio" para tasas/promedios '
     'y "conteo" cuando no haya medida numerica clara.\n\n'
     'DISENO DEL TABLERO: titulo que describa la historia; "contexto" '
-    'abre el tablero explicando que se mide y por que importa; tiles '
-    'ordenados de lo general (kpi/serie) a lo detallado '
-    '(tabla/desagregaciones); explicacion clara de que muestra cada '
-    'cosa.\n\n'
+    'abre el tablero con un encuadre completo (que se mide, por que '
+    'importa para la decision publica, como leerlo y su limite '
+    'evidente); tiles ordenados de lo general (kpi/serie) a lo '
+    'detallado (tabla/desagregaciones); explicacion clara de que '
+    'muestra cada cosa.\n\n'
     'advertencias: filtros supuestos, columnas ambiguas elegidas por '
     'parecido, limites aplicados.'
 )
@@ -867,17 +870,21 @@ TABLERO_ANALISIS_SCHEMA = {
         'analisis': {
             'type': 'string',
             'description': (
-                'Analisis del tablero en prosa (2-5 oraciones): '
-                'hallazgos, tendencias y comparaciones usando '
-                'SOLO las cifras del resumen proporcionado'),
+                'Analisis critico del tablero en prosa (2-3 parrafos '
+                'cortos): hallazgo principal con las cifras del resumen, '
+                'comparacion o anomalia destacable, lectura critica de '
+                'que dice y que NO dice el dato (cobertura, corte '
+                'temporal, agregaciones que inducen a error) e '
+                'implicacion practica. Usa SOLO las cifras del resumen.'),
         },
         'insights': {
             'type': 'array',
             'items': {'type': 'string'},
             'description': (
-                'Lectura de cada tile en el MISMO orden que la lista '
-                'de tiles recibida (una oracion con el dato clave real; '
-                'string vacio si el tile no aporta lectura)'),
+                'Lectura critica de cada tile en el MISMO orden que la '
+                'lista recibida (1-2 oraciones: el dato clave real y por '
+                'que importa o que anomalia muestra; string vacio si el '
+                'tile no aporta lectura)'),
         },
     },
     'required': ['analisis'],
@@ -889,13 +896,19 @@ TABLERO_ANALISIS_PROMPT = (
     'tablero y el sistema resolvio sus tiles contra datos reales. Ahora '
     'recibes un RESUMEN de esos datos (titulo, tipo y cifras agregadas de '
     'cada tile).\n\n'
-    'TU TAREA: escribir el ANALISIS del tablero en prosa clara y directa, '
-    'como analista que ya vio los numeros: hallazgo principal, tendencia o '
-    'comparacion destacada, y una lectura honesta de limitaciones si el '
-    'dato es debil.\n\n'
+    'TU TAREA: escribir el ANALISIS del tablero con pensamiento critico '
+    'de analista senior — no describir el grafico, INTERPRETARLO: que '
+    'hallazgo principal muestran las cifras, que comparacion o anomalia '
+    'vale destacar, que dice y que NO dice el dato (limites de cobertura, '
+    'cortes temporales, agregaciones que inducen a error) y que '
+    'implicacion practica tiene para quien decide.\n\n'
     'REGLAS:\n'
     '- SOLO cifras que aparecen en el resumen. NUNCA inventes numeros, '
     'porcentajes ni anos.\n'
+    '- NO repitas la descripcion del tile: interpreta, compara, '
+    'cuestiona.\n'
+    '- Senala explicitamente las limitaciones cuando la serie sea corta, '
+    'el corte cubra un solo anio o la magnitud no permita comparar.\n'
     '- insights: una lectura corta por tile, en el mismo orden recibido. '
     'Con el dato clave real si el resumen lo trae; "" si no hay lectura '
     'util (ej: tile de texto).\n'
