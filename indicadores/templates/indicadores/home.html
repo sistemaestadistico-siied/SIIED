@@ -101,18 +101,31 @@
         }
     }
 
-    /* ---------- Fondo unico: un solo degradado continuo ---------- */
-    .home-canvas {
-        background: linear-gradient(180deg,
+    /* ---------- Fondo unico: degradado fijo sobre el body ---------- */
+    body {
+        background-color: #fbfdfe;
+        background-image: linear-gradient(180deg,
             #ffffff 0%,
-            #fcfef9 38%,
-            #f9fdfa 62%,
-            #f4fbfd 100%);
+            #f2fbef 22%,
+            #eefaf4 45%,
+            #ecf8f9 68%,
+            #e8f6fd 85%,
+            #e2f3fc 100%);
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+    }
+
+    /* Blobs decorativos suaves por seccion */
+    .blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(70px);
+        pointer-events: none;
     }
 </style>
 
-<!-- Fondo continuo de toda la pagina: sin cortes entre secciones -->
-<div class="home-canvas">
+<!-- Lienzo de la pagina: el fondo vive en body, aqui solo decoracion -->
+<div class="relative">
 
 <!-- ============================================================
      HERO — marca, doble CTA, accesos rapidos
@@ -236,7 +249,7 @@
 
             <img src="{% static 'indicadores/images/planeación.png' %}"
                  alt="Alcaldía de Santiago de Cali — Departamento Administrativo de Planeación Municipal"
-                 class="h-16 w-auto mt-8 opacity-90" loading="lazy">
+                 class="h-24 lg:h-28 w-auto mt-8 opacity-90" loading="lazy">
         </div>
     </div>
 </section>
@@ -244,9 +257,11 @@
 <!-- ============================================================
      HERRAMIENTAS DE CONSULTA — zona cian, contigua al hero/logo
      ============================================================ -->
-<section class="py-14">
+<section class="relative py-14 overflow-hidden">
     <div class="container mx-auto px-4">
-        <div class="max-w-2xl mb-10">
+        <div class="blob w-80 h-80 bg-cyan-200/50 -top-10 -right-16"></div>
+        <div class="blob w-56 h-56 bg-lime-200/50 bottom-0 -left-20"></div>
+        <div class="relative max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">Consulta y análisis</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Herramientas de consulta</h2>
             <p class="text-slate-500 mt-2">Del indicador puntual al tablero completo: entradas directas a las fuentes del SIIED.</p>
@@ -296,9 +311,11 @@
 <!-- ============================================================
      CONJUNTOS Y DOMINIOS DE INDICADORES — acentos acidos
      ============================================================ -->
-<section class="py-14">
+<section class="relative py-14 overflow-hidden">
     <div class="container mx-auto px-4">
-        <div class="max-w-2xl mb-10">
+        <div class="blob w-72 h-72 bg-lime-300/40 -top-8 -left-20"></div>
+        <div class="blob w-64 h-64 bg-amber-200/40 bottom-0 -right-16"></div>
+        <div class="relative max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Catálogo estadístico</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Conjuntos de indicadores</h2>
             <p class="text-slate-500 mt-2">Los tres grandes conjuntos: el catálogo por dominios temáticos, el histórico Cali en Cifras y los ODS.</p>
@@ -335,9 +352,11 @@
 <!-- ============================================================
      IA Y PLATAFORMA
      ============================================================ -->
-<section class="py-14">
+<section class="relative py-14 overflow-hidden">
     <div class="container mx-auto px-4">
-        <div class="max-w-2xl mb-10">
+        <div class="blob w-80 h-80 bg-sky-200/50 -top-12 -right-20"></div>
+        <div class="blob w-56 h-56 bg-fuchsia-200/40 bottom-0 -left-16"></div>
+        <div class="relative max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">IA y plataforma</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Inteligencia y acceso abierto</h2>
             <p class="text-slate-500 mt-2">El asistente que habla tu idioma, la API que habla con tus sistemas.</p>
@@ -381,9 +400,11 @@
 <!-- ============================================================
      INSTRUMENTOS DEL SISTEMA ESTADISTICO
      ============================================================ -->
-<section class="py-14">
+<section class="relative py-14 overflow-hidden">
     <div class="container mx-auto px-4">
-        <div class="max-w-2xl mb-10">
+        <div class="blob w-72 h-72 bg-emerald-200/50 -top-10 -left-20"></div>
+        <div class="blob w-64 h-64 bg-cyan-200/50 bottom-0 -right-16"></div>
+        <div class="relative max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-3">Ecosistema institucional</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Instrumentos del sistema</h2>
             <p class="text-slate-500 mt-2">Medición, caracterización y difusión de la capacidad estadística distrital.</p>
@@ -436,9 +457,11 @@
 <!-- ============================================================
      INDICADORES DESTACADOS — slider claro con acentos por tema
      ============================================================ -->
-<section class="py-14">
+<section class="relative py-14 overflow-hidden">
     <div class="container mx-auto px-4">
-        <div class="text-center mb-10">
+        <div class="blob w-72 h-72 bg-rose-200/40 top-0 -right-20"></div>
+        <div class="blob w-64 h-64 bg-lime-200/50 bottom-0 -left-16"></div>
+        <div class="relative text-center mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Cali en números</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Indicadores destacados</h2>
             <p class="text-slate-500 mt-2">Datos clave por temática para entender el desarrollo distrital.</p>
@@ -624,9 +647,11 @@
      NOTICIAS INSTITUCIONALES
      ============================================================ -->
 {% if noticias %}
-<section class="py-14">
+<section class="relative py-14 overflow-hidden">
     <div class="container mx-auto px-4">
-        <div class="flex items-center justify-between flex-wrap gap-4 mb-8">
+        <div class="blob w-72 h-72 bg-cyan-200/50 -top-8 -left-20"></div>
+        <div class="blob w-56 h-56 bg-sky-200/50 bottom-0 -right-16"></div>
+        <div class="relative flex items-center justify-between flex-wrap gap-4 mb-8">
             <div class="flex items-center gap-4">
                 <div class="hcard-ico acc-cyan !mb-0"><i class="fas fa-newspaper"></i></div>
                 <div>
@@ -757,9 +782,11 @@
      ============================================================ -->
 {% get_eventos_proximos 6 as upcoming_events %}
 {% if upcoming_events %}
-<section class="py-14">
+<section class="relative py-14 overflow-hidden">
     <div class="container mx-auto px-4">
-        <div class="text-center mb-10">
+        <div class="blob w-80 h-80 bg-cyan-200/40 -top-10 -right-20"></div>
+        <div class="blob w-64 h-64 bg-blue-200/40 bottom-0 -left-16"></div>
+        <div class="relative text-center mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">Agenda</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Calendario de eventos</h2>
             <p class="text-slate-500 mt-2 max-w-2xl mx-auto">Próximos eventos y actividades del Sistema Integrado de Información Estadística Distrital.</p>
