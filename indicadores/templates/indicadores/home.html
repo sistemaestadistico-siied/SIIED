@@ -101,6 +101,33 @@
         }
     }
 
+    /* ---------- Indicadores: reticula de datos + sparkline + entrada ---------- */
+    .indicadores-swiper .swiper-slide {
+        position: relative;
+        background-image: radial-gradient(circle, rgba(15, 23, 42, .055) 1px, transparent 1.4px);
+        background-size: 22px 22px;
+    }
+    .ind-spark {
+        position: absolute; right: 2rem; top: 1.4rem;
+        width: 190px; height: 78px; opacity: .16; pointer-events: none;
+    }
+    .ind-spark-line { stroke-dasharray: 420; stroke-dashoffset: 420; }
+    .ind-spark-dot  { opacity: 0; }
+    .swiper-slide-active .ind-spark-line { animation: sparkDraw 1.7s ease .25s forwards; }
+    .swiper-slide-active .ind-spark-dot  { animation: sparkDot .6s ease 1.85s forwards; }
+    @keyframes sparkDraw { to { stroke-dashoffset: 0; } }
+    @keyframes sparkDot  { to { opacity: 1; } }
+
+    .indicadores-swiper .stat-card { opacity: 0; transform: translateY(14px); }
+    .swiper-slide-active .stat-card { animation: statIn .55s cubic-bezier(.16,.84,.3,1) forwards; }
+    .swiper-slide-active .stat-card:nth-child(1) { animation-delay: .05s; }
+    .swiper-slide-active .stat-card:nth-child(2) { animation-delay: .11s; }
+    .swiper-slide-active .stat-card:nth-child(3) { animation-delay: .17s; }
+    .swiper-slide-active .stat-card:nth-child(4) { animation-delay: .23s; }
+    .swiper-slide-active .stat-card:nth-child(5) { animation-delay: .29s; }
+    .swiper-slide-active .stat-card:nth-child(6) { animation-delay: .35s; }
+    @keyframes statIn { to { opacity: 1; transform: translateY(0); } }
+
     /* ---------- Fondo unico: un solo degradado continuo ---------- */
     .home-canvas {
         background: linear-gradient(180deg,
@@ -453,39 +480,43 @@
 
                     <!-- Demografía y Población -->
                     <div class="swiper-slide min-h-[420px] md:h-96 bg-lime-50">
+                        <svg class="ind-spark" viewBox="0 0 220 80" fill="none" aria-hidden="true">
+                            <path class="ind-spark-line" d="M4 66 C34 58,48 30,74 40 S118 66,144 48 S190 16,216 22" stroke="#4d7c0f" stroke-width="3" stroke-linecap="round"/>
+                            <circle class="ind-spark-dot" cx="216" cy="22" r="5.5" fill="#4d7c0f"/>
+                        </svg>
                         <div class="p-6 md:p-8 h-full flex flex-col justify-center">
                             <h3 class="text-2xl md:text-3xl font-extrabold text-lime-800 mb-6 flex items-center gap-3">
                                 <span class="hcard-ico acc-lime !mb-0"><i class="fas fa-users"></i></span>
                                 Demografía y Población
                             </h3>
                             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-lime-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-lime-700">2,285,099</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-lime-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-lime-700">2,285,099</div>
                                     <div class="text-slate-600 text-sm font-medium">Población Total</div>
                                     <div class="text-slate-400 text-xs mt-1">2025 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-lime-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-lime-700">1,062,911</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-lime-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-lime-700">1,062,911</div>
                                     <div class="text-slate-600 text-sm font-medium">Población Hombres</div>
                                     <div class="text-slate-400 text-xs mt-1">2025 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-lime-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-lime-700">1,222,258</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-lime-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-lime-700">1,222,258</div>
                                     <div class="text-slate-600 text-sm font-medium">Población Mujeres</div>
                                     <div class="text-slate-400 text-xs mt-1">2025 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-lime-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-lime-700">11.85%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-lime-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-lime-700">11.85%</div>
                                     <div class="text-slate-600 text-sm font-medium">Tasa de Natalidad</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-lime-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-lime-700">2,240,018</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-lime-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-lime-700">2,240,018</div>
                                     <div class="text-slate-600 text-sm font-medium">Población Cabecera</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-lime-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-lime-700">45,081</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-lime-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-lime-700">45,081</div>
                                     <div class="text-slate-600 text-sm font-medium">Centros Poblados</div>
                                     <div class="text-slate-400 text-xs mt-1">2025 (DANE)</div>
                                 </div>
@@ -495,39 +526,43 @@
 
                     <!-- Educación y Bienestar -->
                     <div class="swiper-slide min-h-[420px] md:h-96 bg-cyan-50">
+                        <svg class="ind-spark" viewBox="0 0 220 80" fill="none" aria-hidden="true">
+                            <path class="ind-spark-line" d="M4 60 C30 68,50 34,78 44 S120 20,146 34 S192 56,216 28" stroke="#0e7490" stroke-width="3" stroke-linecap="round"/>
+                            <circle class="ind-spark-dot" cx="216" cy="28" r="5.5" fill="#0e7490"/>
+                        </svg>
                         <div class="p-6 md:p-8 h-full flex flex-col justify-center">
                             <h3 class="text-2xl md:text-3xl font-extrabold text-cyan-800 mb-6 flex items-center gap-3">
                                 <span class="hcard-ico acc-cyan !mb-0"><i class="fas fa-graduation-cap"></i></span>
                                 Educación y Bienestar Social
                             </h3>
                             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-cyan-700">89.29%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-cyan-700">89.29%</div>
                                     <div class="text-slate-600 text-sm font-medium">Cobertura Escolar Bruta</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (MEN)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-cyan-700">86.57%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-cyan-700">86.57%</div>
                                     <div class="text-slate-600 text-sm font-medium">Tasa de Aprobación</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (MEN)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-cyan-700">5.03%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-cyan-700">5.03%</div>
                                     <div class="text-slate-600 text-sm font-medium">Deserción Escolar</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (MEN)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-cyan-700">1,077</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-cyan-700">1,077</div>
                                     <div class="text-slate-600 text-sm font-medium">Graduados Ed. Superior</div>
                                     <div class="text-slate-400 text-xs mt-1">por 100k hab (2023)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-cyan-700">23.6%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-cyan-700">23.6%</div>
                                     <div class="text-slate-600 text-sm font-medium">Pobreza Monetaria</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-cyan-700">0.504</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-cyan-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-cyan-700">0.504</div>
                                     <div class="text-slate-600 text-sm font-medium">Coeficiente de Gini</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
@@ -537,39 +572,43 @@
 
                     <!-- Economía y Mercado Laboral -->
                     <div class="swiper-slide min-h-[420px] md:h-96 bg-amber-50">
+                        <svg class="ind-spark" viewBox="0 0 220 80" fill="none" aria-hidden="true">
+                            <path class="ind-spark-line" d="M4 62 C36 52,44 66,72 52 S116 28,142 40 S188 60,216 30" stroke="#b45309" stroke-width="3" stroke-linecap="round"/>
+                            <circle class="ind-spark-dot" cx="216" cy="30" r="5.5" fill="#b45309"/>
+                        </svg>
                         <div class="p-6 md:p-8 h-full flex flex-col justify-center">
                             <h3 class="text-2xl md:text-3xl font-extrabold text-amber-800 mb-6 flex items-center gap-3">
                                 <span class="hcard-ico acc-amber !mb-0"><i class="fas fa-briefcase"></i></span>
                                 Economía y Mercado Laboral
                             </h3>
                             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-amber-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-amber-700">$27.8M</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-amber-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-amber-700">$27.8M</div>
                                     <div class="text-slate-600 text-sm font-medium">PIB per cápita</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-amber-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-amber-700">58.26%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-amber-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-amber-700">58.26%</div>
                                     <div class="text-slate-600 text-sm font-medium">Tasa de Ocupación</div>
                                     <div class="text-slate-400 text-xs mt-1">2024 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-amber-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-amber-700">56.45%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-amber-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-amber-700">56.45%</div>
                                     <div class="text-slate-600 text-sm font-medium">Formalidad Laboral</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-amber-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-amber-700">64.20%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-amber-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-amber-700">64.20%</div>
                                     <div class="text-slate-600 text-sm font-medium">Participación Laboral</div>
                                     <div class="text-slate-400 text-xs mt-1">2024 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-amber-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-amber-700">8.26%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-amber-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-amber-700">8.26%</div>
                                     <div class="text-slate-600 text-sm font-medium">Jóvenes NINI</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-amber-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-amber-700">6.3%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-amber-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-amber-700">6.3%</div>
                                     <div class="text-slate-600 text-sm font-medium">Pobreza Extrema</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
@@ -579,34 +618,38 @@
 
                     <!-- Seguridad y Convivencia -->
                     <div class="swiper-slide min-h-[420px] md:h-96 bg-rose-50">
+                        <svg class="ind-spark" viewBox="0 0 220 80" fill="none" aria-hidden="true">
+                            <path class="ind-spark-line" d="M4 40 C34 56,52 24,80 36 S122 60,148 42 S192 18,216 34" stroke="#be123c" stroke-width="3" stroke-linecap="round"/>
+                            <circle class="ind-spark-dot" cx="216" cy="34" r="5.5" fill="#be123c"/>
+                        </svg>
                         <div class="p-6 md:p-8 h-full flex flex-col justify-center">
                             <h3 class="text-2xl md:text-3xl font-extrabold text-rose-800 mb-6 flex items-center gap-3">
                                 <span class="hcard-ico acc-rose !mb-0"><i class="fas fa-shield-heart"></i></span>
                                 Seguridad y Convivencia
                             </h3>
                             <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-rose-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-rose-700">11.5</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-rose-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-rose-700">11.5</div>
                                     <div class="text-slate-600 text-sm font-medium">Homicidios Tránsito</div>
                                     <div class="text-slate-400 text-xs mt-1">por 100k hab (2023)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-rose-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-rose-700">6</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-rose-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-rose-700">6</div>
                                     <div class="text-slate-600 text-sm font-medium">Víctimas RUV</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (RUV)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-rose-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-rose-700">1.8%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-rose-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-rose-700">1.8%</div>
                                     <div class="text-slate-600 text-sm font-medium">Trabajo Infantil</div>
                                     <div class="text-slate-400 text-xs mt-1">2023 (DANE)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-rose-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-rose-700">0.64</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-rose-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-rose-700">0.64</div>
                                     <div class="text-slate-600 text-sm font-medium">Espacio Público m²</div>
                                     <div class="text-slate-400 text-xs mt-1">per cápita (2024)</div>
                                 </div>
-                                <div class="bg-white rounded-xl p-3 md:p-4 border border-rose-100">
-                                    <div class="text-xl md:text-3xl font-extrabold text-rose-700">35.8%</div>
+                                <div class="stat-card bg-white rounded-xl p-3 md:p-4 border border-rose-100">
+                                    <div class="stat-num text-xl md:text-3xl font-extrabold text-rose-700">35.8%</div>
                                     <div class="text-slate-600 text-sm font-medium">Fuera Fuerza Laboral</div>
                                     <div class="text-slate-400 text-xs mt-1">2024 (DANE)</div>
                                 </div>
@@ -866,7 +909,35 @@ document.addEventListener('DOMContentLoaded', function() {
         watchOverflow: true,
         observer: true,
         observeParents: true,
+        on: {
+            init: function () { animateSlideStats(this.slides[this.activeIndex]); },
+            slideChangeTransitionStart: function () { animateSlideStats(this.slides[this.activeIndex]); },
+        },
     });
+
+    // Count-up de los valores estadisticos del slide activo
+    function animateSlideStats(slide) {
+        if (!slide) return;
+        slide.querySelectorAll('.stat-num').forEach(function (el) {
+            if (!el.dataset.orig) el.dataset.orig = el.textContent.trim();
+            var m = el.dataset.orig.match(/^([^\d]*)([\d,]*\.?\d+)(.*)$/);
+            if (!m) return;
+            var prefix = m[1], suffix = m[3];
+            var raw = m[2].replace(/,/g, '');
+            var target = parseFloat(raw);
+            var decimals = (raw.split('.')[1] || '').length;
+            var start = performance.now(), dur = 1100;
+            function tick(now) {
+                var t = Math.min((now - start) / dur, 1);
+                var eased = 1 - Math.pow(1 - t, 3);
+                el.textContent = prefix + (target * eased).toLocaleString('en-US', {
+                    minimumFractionDigits: decimals, maximumFractionDigits: decimals
+                }) + suffix;
+                if (t < 1) requestAnimationFrame(tick); else el.textContent = el.dataset.orig;
+            }
+            requestAnimationFrame(tick);
+        });
+    }
 
     // Slider de noticias institucionales
     const noticiasEl = document.querySelector('.noticias-swiper');
