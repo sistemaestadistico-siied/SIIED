@@ -154,6 +154,33 @@ def _organismo_del_usuario(request):
     return getattr(perfil, 'organismo', None)
 
 
+_LAB_STOPWORDS = {
+    'a', 'al', 'como', 'con', 'cual', 'cuales', 'dame', 'de', 'del',
+    'donde', 'e', 'el', 'en', 'entre', 'es', 'esa', 'ese', 'eso', 'esta',
+    'este', 'esto', 'genera', 'generar', 'grafica', 'grafico', 'hay',
+    'la', 'las', 'lo', 'los', 'mas', 'me', 'mi', 'muestra', 'muestrame',
+    'muy', 'no', 'o', 'para', 'por', 'que', 'quiero', 'se', 'si', 'sin',
+    'sobre', 'su', 'sus', 'tablero', 'tabla', 'todos',
+    'u', 'un', 'una', 'unas', 'unos', 'ver', 'y', 'ya',
+}
+
+
+def _norm(texto):
+    """Minusculas sin acentos — para match robusto contra nombres."""
+    import unicodedata
+    return ''.join(
+        c for c in unicodedata.normalize('NFKD', (texto or '').lower())
+        if not unicodedata.combining(c))
+
+
+def _terminos_consulta(consulta):
+    """Palabras clave de la consulta: sin stopwords ni ruido."""
+    return [
+        t for t in re.findall(r'[a-z0-9]+', _norm(consulta))
+        if t not in _LAB_STOPWORDS and len(t) >= 3
+    ]
+
+
 def _contexto_fuentes(request, consulta=''):
     """
     Fuentes reales que el LLM puede usar en la spec: conjuntos de datos
@@ -243,35 +270,43 @@ def _contexto_fuentes(request, consulta=''):
         .annotate(anios=Count('fecha_dato__year', distinct=True),
                   filas=Count('id'))
     }
-    # Ranking por relevancia a la consulta: busqueda semantica (la
-    # misma que usa el chat) y fallback a texto sobre nombre/descripcion.
-    ids_ranked = []
-    if consulta:
-        try:
-            from .search import SemanticSearch
-            resultados_sem = SemanticSearch().buscar_similar(
-                consulta=consulta, tipo_doc='indicador',
-                top_k=30, umbral=0.3)
-            ids_ranked = [r['referencia_id'] for r in resultados_sem
-                          if r.get('referencia_id')]
-        except Exception:
-            logger.warning(
-                'Laboratorio: busqueda semantica de indicadores fallo',
-                exc_info=True)
-        if not ids_ranked:
-            ids_ranked = list(
-                Indicador.objects.filter(
-                    Q(nombre__icontains=consulta) |
-                    Q(descripcion_indicador__icontains=consulta),
-                    activo=True, datos__isnull=False)
-                .values_list('id', flat=True)[:15])
-
     base = list(Indicador.objects
                 .filter(activo=True, datos__isnull=False)
                 .distinct().order_by('nombre')
                 .values('id', 'nombre', 'unidad_medida'))
-    # Primero los relevantes (en orden semantico), luego el resto
-    # alfabetico para rellenar el cupo.
+
+    # Ranking por relevancia a la consulta. La frase cruda del usuario
+    # ('dame el grafico de...') diluye el embedding y nunca matchea en
+    # icontains: primero se extraen los terminos clave y se busca por
+    # ellos (acento-insensible); la semantica corre sobre la consulta
+    # ya limpia. La union preserva ambos: texto primero, semantica tras.
+    ids_ranked = []
+    if consulta:
+        terminos = _terminos_consulta(consulta)
+        if terminos:
+            scored = []
+            for ind in base:
+                n = _norm(ind['nombre'])
+                hits = sum(1 for t in terminos if t in n)
+                if hits:
+                    scored.append((-hits, ind['id']))
+            scored.sort()
+            ids_ranked = [i for _, i in scored[:20]]
+        consulta_sem = ' '.join(terminos) or consulta
+        try:
+            from .search import SemanticSearch
+            resultados_sem = SemanticSearch().buscar_similar(
+                consulta=consulta_sem, tipo_doc='indicador',
+                top_k=30, umbral=0.3)
+            ids_sem = [r['referencia_id'] for r in resultados_sem
+                       if r.get('referencia_id')]
+            ids_ranked = list(dict.fromkeys(ids_ranked + ids_sem))
+        except Exception:
+            logger.warning(
+                'Laboratorio: busqueda semantica de indicadores fallo',
+                exc_info=True)
+
+    # Primero los relevantes, luego el resto alfabetico para rellenar.
     if ids_ranked:
         ranked_set = set(ids_ranked)
         por_id = {ind['id']: ind for ind in base}
