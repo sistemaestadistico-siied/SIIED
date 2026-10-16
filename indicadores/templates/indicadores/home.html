@@ -49,7 +49,17 @@
     .acc-amber   { background:#fef3c7; color:#b45309; }
     .acc-slate   { background:#f1f5f9; color:#475569; }
     .acc-sky     { background:#e0f2fe; color:#0369a1; }
+    .acc-blue    { background:#dbeafe; color:#1d4ed8; }
     .acc-rose    { background:#ffe4e6; color:#be123c; }
+
+    /* Variante cian: zonas cercanas al logo SIIED (azul) y al footer */
+    .hcard.hcyan:hover {
+        border-color: #22d3ee;
+        box-shadow: 0 16px 32px -12px rgba(34, 211, 238, .30),
+                    0 8px 16px -8px rgba(15, 23, 42, .10);
+    }
+    .hcard.hcyan .hcard-cta { color: #0e7490; }
+    .hcard.hcyan:hover .hcard-cta { color: #0891b2; }
 
     /* ---------- Swiper: bullets con texto (indicadores + noticias) ---------- */
     .indicadores-pagination .swiper-pagination-bullet,
@@ -95,10 +105,11 @@
 <!-- ============================================================
      HERO — blanco, marca, doble CTA, accesos rapidos
      ============================================================ -->
-<section class="relative overflow-hidden bg-white border-b border-lime-100">
-    <!-- Blobs acidos decorativos -->
-    <div class="absolute -top-24 -right-24 w-96 h-96 bg-lime-200/40 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-32 -left-24 w-96 h-96 bg-cyan-100/50 rounded-full blur-3xl pointer-events-none"></div>
+<section class="relative overflow-hidden bg-white border-b border-cyan-100">
+    <!-- Blobs decorativos cian/azul — armonizan con el logo SIIED -->
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-cyan-100/60 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 -left-24 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 w-[42rem] h-64 bg-lime-100/40 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="relative container mx-auto px-4 pt-12 pb-10 lg:pt-16 lg:pb-14">
         <div class="flex flex-col items-center text-center">
@@ -106,13 +117,13 @@
                  alt="SIIED — lupa, guayacán y datos"
                  class="h-40 lg:h-48 w-auto mb-6">
 
-            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-lime-100 text-lime-800 text-xs font-semibold tracking-wide uppercase mb-5">
+            <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-100 text-cyan-800 text-xs font-semibold tracking-wide uppercase mb-5">
                 <i class="fas fa-seedling"></i> Estadística distrital abierta
             </span>
 
             <h1 class="text-4xl lg:text-6xl font-extrabold text-slate-800 leading-tight max-w-4xl">
                 Sistema Integrado de Información
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-lime-600 via-emerald-600 to-cyan-600">Estadística Distrital</span>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 via-sky-600 to-blue-600">Estadística Distrital</span>
             </h1>
             <p class="mt-5 text-lg lg:text-xl text-slate-500 max-w-2xl">
                 Los datos oficiales de Santiago de Cali en un solo lugar:
@@ -122,7 +133,7 @@
             <!-- CTAs principales -->
             <div class="flex flex-wrap justify-center gap-4 mt-8">
                 <a href="{% url 'indicadores:laboratorio_home' %}"
-                   class="inline-flex items-center gap-2 px-7 py-3.5 bg-lime-400 hover:bg-lime-300 text-lime-950 font-bold rounded-2xl shadow-lg shadow-lime-400/30 transition-all duration-200 hover:-translate-y-0.5">
+                   class="inline-flex items-center gap-2 px-7 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-cyan-950 font-bold rounded-2xl shadow-lg shadow-cyan-400/30 transition-all duration-200 hover:-translate-y-0.5">
                     <i class="fas fa-table-columns"></i> Consulta y Tableros
                 </a>
                 <a href="{% url 'indicadores:chat' %}"
@@ -134,46 +145,50 @@
             <!-- Accesos rapidos -->
             <div class="flex flex-wrap justify-center gap-3 mt-8">
                 <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-lime-400 hover:text-lime-800 transition-colors">
+                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
                     Cali en Cifras
                 </a>
                 <a href="{% url 'indicadores:visor_comparativo' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-lime-400 hover:text-lime-800 transition-colors">
+                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
                     Visor Comparativo
                 </a>
                 <a href="{% url 'indicadores:conjuntos_datos_explorer' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-lime-400 hover:text-lime-800 transition-colors">
+                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
                     Conjuntos de Datos
                 </a>
                 <a href="{% url 'indicadores:dominio_detalle' 'ods' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-lime-400 hover:text-lime-800 transition-colors">
+                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
                     Indicadores ODS
                 </a>
             </div>
 
             <p class="mt-6 text-sm text-slate-400">
                 ¿Necesitas ayuda?
-                <a href="mailto:sistemaestadistico@cali.gov.co" class="text-emerald-600 hover:underline font-medium">sistemaestadistico@cali.gov.co</a>
+                <a href="mailto:sistemaestadistico@cali.gov.co" class="text-cyan-700 hover:underline font-medium">sistemaestadistico@cali.gov.co</a>
             </p>
+
+            <img src="{% static 'indicadores/images/planeación.png' %}"
+                 alt="Alcaldía de Santiago de Cali — Departamento Administrativo de Planeación Municipal"
+                 class="h-16 w-auto mt-8 opacity-90" loading="lazy">
         </div>
     </div>
 </section>
 
 <!-- ============================================================
-     EXPLORA LOS DATOS
+     HERRAMIENTAS DE CONSULTA — zona cian, contigua al hero/logo
      ============================================================ -->
-<section class="py-14 bg-[#fbfef5]">
+<section class="py-14 bg-[#f8fdfd]">
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mb-10">
-            <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Explora los datos</span>
+            <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">Consulta y análisis</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Herramientas de consulta</h2>
             <p class="text-slate-500 mt-2">Del indicador puntual al tablero completo: entradas directas a las fuentes del SIIED.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Consulta y Tableros -->
-            <a href="{% url 'indicadores:laboratorio_home' %}" class="hcard group">
-                <div class="hcard-ico acc-lime"><i class="fas fa-table-columns"></i></div>
+            <a href="{% url 'indicadores:laboratorio_home' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-cyan"><i class="fas fa-table-columns"></i></div>
                 <img src="{% static 'indicadores/images/logo_consulta_tableros.png' %}" alt="Consulta y Tableros" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Consulta y Tableros</h3>
                 <p class="text-sm text-slate-500 mt-1">Describe el tablero que necesitas y Don Datico lo construye con fuentes reales.</p>
@@ -181,14 +196,38 @@
             </a>
 
             <!-- Visor Comparativo -->
-            <a href="{% url 'indicadores:visor_comparativo' %}" class="hcard group">
-                <div class="hcard-ico acc-cyan"><i class="fas fa-chart-line"></i></div>
+            <a href="{% url 'indicadores:visor_comparativo' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-sky"><i class="fas fa-chart-line"></i></div>
                 <img src="{% static 'indicadores/images/logo_sin_fondo.png' %}" alt="Visor Comparativo" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Visor Comparativo</h3>
                 <p class="text-sm text-slate-500 mt-1">Compara múltiples indicadores en series, cortes y cruces interactivos.</p>
                 <span class="hcard-cta">Acceder al Visor <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
+            <!-- Libro 3D -->
+            <a href="{% url 'indicadores:dominios_3d' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-blue"><i class="fas fa-book-open"></i></div>
+                <img src="{% static 'indicadores/images/logo_libro_3d.png' %}" alt="Libro Digital de Datos 3D" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Libro Digital de Datos 3D</h3>
+                <p class="text-sm text-slate-500 mt-1">Experiencia inmersiva para explorar las historias estadísticas de Cali.</p>
+                <span class="hcard-cta">Explorar capítulos <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     CONJUNTOS Y DOMINIOS DE INDICADORES — acentos acidos
+     ============================================================ -->
+<section class="py-14 bg-[#fbfef5] border-y border-lime-100">
+    <div class="container mx-auto px-4">
+        <div class="max-w-2xl mb-10">
+            <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Catálogo estadístico</span>
+            <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Conjuntos y dominios de indicadores</h2>
+            <p class="text-slate-500 mt-2">Las fuentes organizadas: datasets descargables, dominios temáticos y series históricas.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <!-- Explorador de conjuntos -->
             <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="hcard group">
                 <div class="hcard-ico acc-emerald"><i class="fas fa-database"></i></div>
@@ -198,21 +237,20 @@
                 <span class="hcard-cta">Explorar datos <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
-            <!-- Libro 3D -->
-            <a href="{% url 'indicadores:dominios_3d' %}" class="hcard group">
-                <div class="hcard-ico acc-amber"><i class="fas fa-book-open"></i></div>
-                <img src="{% static 'indicadores/images/don datico.png' %}" alt="Libro Digital de Datos 3D" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Libro Digital de Datos 3D</h3>
-                <p class="text-sm text-slate-500 mt-1">Experiencia inmersiva para explorar las historias estadísticas de Cali.</p>
-                <span class="hcard-cta">Explorar capítulos <i class="fas fa-arrow-right ml-1"></i></span>
-            </a>
-
             <!-- Cali en Cifras -->
             <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}" class="hcard group">
-                <div class="hcard-ico acc-sky"><i class="fas fa-city"></i></div>
+                <div class="hcard-ico acc-lime"><i class="fas fa-city"></i></div>
                 <h3 class="text-lg font-bold text-slate-800">Cali en Cifras</h3>
                 <p class="text-sm text-slate-500 mt-1">Anuario estadístico histórico del Distrito — series completas.</p>
                 <span class="hcard-cta">Ver Cali en Cifras <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Indicadores ODS -->
+            <a href="{% url 'indicadores:dominio_detalle' 'ods' %}" class="hcard group">
+                <div class="hcard-ico acc-amber"><i class="fas fa-globe"></i></div>
+                <h3 class="text-lg font-bold text-slate-800">Indicadores ODS</h3>
+                <p class="text-sm text-slate-500 mt-1">Seguimiento distrital a los Objetivos de Desarrollo Sostenible.</p>
+                <span class="hcard-cta">Ver indicadores ODS <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Todos los dominios -->
@@ -247,6 +285,7 @@
 
             <a href="{% url 'indicadores:api_documentation' %}" class="hcard group">
                 <div class="hcard-ico acc-slate"><i class="fas fa-plug"></i></div>
+                <img src="{% static 'indicadores/images/logo_api.png' %}" alt="API Abierta" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">API Abierta</h3>
                 <p class="text-sm text-slate-500 mt-1">REST API gratuita con documentación y ejemplos para integrar los datos.</p>
                 <span class="hcard-cta">Ver documentación <i class="fas fa-arrow-right ml-1"></i></span>
@@ -283,6 +322,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <a href="{% url 'indicadores:inventario_operaciones' %}" class="hcard group">
                 <div class="hcard-ico acc-cyan"><i class="fas fa-clipboard-list"></i></div>
+                <img src="{% static 'indicadores/images/logo_inventario.png' %}" alt="Inventario de Operaciones" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Inventario de Operaciones Estadísticas</h3>
                 <p class="text-sm text-slate-500 mt-1">Catálogo oficial de operaciones: metodologías, periodicidad y responsables.</p>
                 <span class="hcard-cta">Explorar inventario <i class="fas fa-arrow-right ml-1"></i></span>
@@ -290,6 +330,7 @@
 
             <a href="{% url 'indicadores:modulo_iced' %}" class="hcard group">
                 <div class="hcard-ico acc-lime"><i class="fas fa-gauge-high"></i></div>
+                <img src="{% static 'indicadores/images/logo_iced.png' %}" alt="ICED" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Índice de Capacidad Estadística (ICED)</h3>
                 <p class="text-sm text-slate-500 mt-1">Evaluación integral de la capacidad estadística de los organismos del Distrito.</p>
                 <span class="hcard-cta">Explorar resultados ICED <i class="fas fa-arrow-right ml-1"></i></span>
@@ -297,6 +338,7 @@
 
             <a href="{% url 'indicadores:hall_capacidad_estadistica' %}" class="hcard group">
                 <div class="hcard-ico acc-emerald"><i class="fas fa-id-card"></i></div>
+                <img src="{% static 'indicadores/images/logo_hoja_vida.png' %}" alt="Hoja de Vida Estadística" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Hoja de Vida Estadística</h3>
                 <p class="text-sm text-slate-500 mt-1">Transparencia sobre recursos, procesos y resultados de cada organismo.</p>
                 <span class="hcard-cta">Explorar módulo <i class="fas fa-arrow-right ml-1"></i></span>
@@ -304,6 +346,7 @@
 
             <a href="{% url 'indicadores:taller_ecosistema' %}" class="hcard group">
                 <div class="hcard-ico acc-fuchsia"><i class="fas fa-diagram-project"></i></div>
+                <img src="{% static 'indicadores/images/logo_taller.png' %}" alt="Taller de Gestión de Datos" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Taller de Gestión de Datos</h3>
                 <p class="text-sm text-slate-500 mt-1">Caracteriza el ecosistema de datos de tu organismo: fuentes, retos y seguridad.</p>
                 <span class="hcard-cta">Ver ecosistema <i class="fas fa-arrow-right ml-1"></i></span>
@@ -311,6 +354,7 @@
 
             <a href="{% url 'indicadores:satisfaccion_dashboard' %}" class="hcard group">
                 <div class="hcard-ico acc-amber"><i class="fas fa-face-smile"></i></div>
+                <img src="{% static 'indicadores/images/logo_satisfaccion.png' %}" alt="Medición de Satisfacción" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Medición de Satisfacción</h3>
                 <p class="text-sm text-slate-500 mt-1">Cómo valoran los usuarios las respuestas del sistema estadístico.</p>
                 <span class="hcard-cta">Ver dashboard <i class="fas fa-arrow-right ml-1"></i></span>
@@ -318,6 +362,7 @@
 
             <a href="{% url 'indicadores:calendario_difusion' %}" class="hcard group">
                 <div class="hcard-ico acc-rose"><i class="fas fa-calendar-days"></i></div>
+                <img src="{% static 'indicadores/images/logo_calendario.png' %}" alt="Calendario de Difusión" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Calendario de Difusión</h3>
                 <p class="text-sm text-slate-500 mt-1">Programación de publicaciones estadísticas por observatorio y organismo.</p>
                 <span class="hcard-cta">Ver calendario <i class="fas fa-arrow-right ml-1"></i></span>
@@ -517,18 +562,18 @@
      NOTICIAS INSTITUCIONALES
      ============================================================ -->
 {% if noticias %}
-<section class="py-14 bg-[#fbfef5] border-y border-lime-100">
+<section class="py-14 bg-[#f8fdfd] border-y border-cyan-100">
     <div class="container mx-auto px-4">
         <div class="flex items-center justify-between flex-wrap gap-4 mb-8">
             <div class="flex items-center gap-4">
-                <div class="hcard-ico acc-lime !mb-0"><i class="fas fa-newspaper"></i></div>
+                <div class="hcard-ico acc-cyan !mb-0"><i class="fas fa-newspaper"></i></div>
                 <div>
                     <h2 class="text-2xl lg:text-3xl font-extrabold text-slate-800">Noticias Institucionales</h2>
                     <p class="text-slate-500">Últimas actualizaciones del sistema estadístico distrital.</p>
                 </div>
             </div>
             <a href="{% url 'indicadores:noticias_lista' %}"
-               class="inline-flex items-center gap-2 px-5 py-2.5 bg-lime-400 hover:bg-lime-300 text-lime-950 text-sm font-bold rounded-full transition-all duration-200">
+               class="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-cyan-950 text-sm font-bold rounded-full transition-all duration-200">
                 <i class="fas fa-archive"></i> Ver todas las noticias
             </a>
         </div>
@@ -547,7 +592,7 @@
                                 {% endif %}
                                 <div class="p-6">
                                     <div class="flex items-center gap-3 flex-wrap mb-3">
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-lime-100 text-lime-800">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800">
                                             <i class="fas fa-calendar-alt mr-1.5"></i>{{ noticia.fecha_publicacion|date:"F Y" }}
                                         </span>
                                         {% if noticia.subtitulo %}
@@ -565,7 +610,7 @@
                                     {% if noticia.estadisticas.all %}
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                                         {% for estadistica in noticia.estadisticas.all %}
-                                        <div class="flex items-center gap-2 text-emerald-700">
+                                        <div class="flex items-center gap-2 text-cyan-700">
                                             <i class="fas fa-check-circle text-sm"></i>
                                             <span class="text-sm font-medium">{{ estadistica.titulo }}: {{ estadistica.valor }}</span>
                                         </div>
@@ -579,10 +624,10 @@
                         <div class="lg:col-span-1 space-y-5">
                             {% if noticia.enlace_principal %}
                             <a href="{{ noticia.enlace_principal }}" target="_blank" rel="noopener"
-                               class="block bg-gradient-to-br from-lime-400 to-emerald-400 text-lime-950 font-bold rounded-2xl p-6 text-center shadow-lg shadow-lime-400/25 hover:-translate-y-1 transition-all duration-300">
+                               class="block bg-gradient-to-br from-cyan-400 to-sky-400 text-cyan-950 font-bold rounded-2xl p-6 text-center shadow-lg shadow-cyan-400/25 hover:-translate-y-1 transition-all duration-300">
                                 <i class="fas fa-external-link-alt text-2xl mb-3 block"></i>
                                 <span class="block text-lg">{{ noticia.texto_enlace_principal }}</span>
-                                <span class="text-sm font-medium text-lime-900/80 block mt-2">{{ noticia.subtitulo|default:"Más información" }}</span>
+                                <span class="text-sm font-medium text-cyan-900/80 block mt-2">{{ noticia.subtitulo|default:"Más información" }}</span>
                             </a>
                             {% endif %}
 
@@ -592,7 +637,7 @@
                                 <div class="space-y-4">
                                     {% for estadistica in noticia.estadisticas.all|slice:":2" %}
                                     <div class="text-center{% if not forloop.last %} border-b border-slate-100 pb-4{% endif %}">
-                                        <div class="text-3xl font-extrabold text-emerald-600">{{ estadistica.valor }}</div>
+                                        <div class="text-3xl font-extrabold text-cyan-600">{{ estadistica.valor }}</div>
                                         <div class="text-slate-700 font-medium text-sm">{{ estadistica.titulo }}</div>
                                         {% if estadistica.descripcion %}
                                         <div class="text-slate-400 text-xs">{{ estadistica.descripcion }}</div>
@@ -607,7 +652,7 @@
                             <div class="hidden lg:block space-y-2">
                                 {% for enlace in noticia.enlaces.all %}
                                 <a href="{{ enlace.url }}" target="_blank" rel="noopener"
-                                   class="flex items-center gap-3 text-slate-500 hover:text-lime-800 transition-colors p-3 rounded-xl hover:bg-white">
+                                   class="flex items-center gap-3 text-slate-500 hover:text-cyan-800 transition-colors p-3 rounded-xl hover:bg-white">
                                     <i class="fas fa-link text-sm"></i>
                                     <span class="text-sm font-medium">{{ enlace.titulo }}</span>
                                 </a>
@@ -616,12 +661,12 @@
                             {% else %}
                             <div class="hidden lg:block space-y-2">
                                 <a href="{% url 'indicadores:inventario_operaciones' %}"
-                                   class="flex items-center gap-3 text-slate-500 hover:text-lime-800 transition-colors p-3 rounded-xl hover:bg-white">
+                                   class="flex items-center gap-3 text-slate-500 hover:text-cyan-800 transition-colors p-3 rounded-xl hover:bg-white">
                                     <i class="fas fa-clipboard-list text-sm"></i>
                                     <span class="text-sm font-medium">Ver Operaciones Estadísticas</span>
                                 </a>
                                 <a href="{% url 'indicadores:dominios' %}"
-                                   class="flex items-center gap-3 text-slate-500 hover:text-lime-800 transition-colors p-3 rounded-xl hover:bg-white">
+                                   class="flex items-center gap-3 text-slate-500 hover:text-cyan-800 transition-colors p-3 rounded-xl hover:bg-white">
                                     <i class="fas fa-chart-bar text-sm"></i>
                                     <span class="text-sm font-medium">Explorar Indicadores</span>
                                 </a>
@@ -633,10 +678,10 @@
                 {% endfor %}
             </div>
 
-            <div class="noticias-button-next absolute top-1/2 right-2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-md flex items-center justify-center text-lime-700 hover:bg-lime-50 transition-all cursor-pointer">
+            <div class="noticias-button-next absolute top-1/2 right-2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-md flex items-center justify-center text-cyan-700 hover:bg-cyan-50 transition-all cursor-pointer">
                 <i class="fas fa-chevron-right"></i>
             </div>
-            <div class="noticias-button-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-md flex items-center justify-center text-lime-700 hover:bg-lime-50 transition-all cursor-pointer">
+            <div class="noticias-button-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 rounded-full shadow-md flex items-center justify-center text-cyan-700 hover:bg-cyan-50 transition-all cursor-pointer">
                 <i class="fas fa-chevron-left"></i>
             </div>
             <div class="noticias-pagination flex justify-center gap-2 mt-6"></div>
@@ -660,21 +705,21 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for evento in upcoming_events %}
-            <div class="hcard !p-0 overflow-hidden group">
+            <div class="hcard hcyan !p-0 overflow-hidden group">
                 {% if evento.imagen_url %}
                 <div class="h-44 overflow-hidden">
                     <img src="{{ evento.imagen_url }}" alt="{{ evento.nombre }}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
                 </div>
                 {% else %}
-                <div class="h-20 bg-gradient-to-r from-lime-200 via-emerald-100 to-cyan-100 flex items-center justify-center">
-                    <i class="fas fa-calendar-check text-3xl text-emerald-600"></i>
+                <div class="h-20 bg-gradient-to-r from-cyan-100 via-sky-100 to-blue-100 flex items-center justify-center">
+                    <i class="fas fa-calendar-check text-3xl text-cyan-600"></i>
                 </div>
                 {% endif %}
 
                 <div class="p-6 flex flex-col flex-1">
                     <div class="flex items-center justify-between mb-3">
                         <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-                            <i class="fas fa-clock text-lime-600"></i>{{ evento.fecha_inicio|date:"d M Y" }}
+                            <i class="fas fa-clock text-cyan-600"></i>{{ evento.fecha_inicio|date:"d M Y" }}
                         </span>
                         {% if evento.destacado %}
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
@@ -686,10 +731,10 @@
                     <h3 class="text-lg font-bold text-slate-800 leading-tight line-clamp-2 mb-2">{{ evento.nombre }}</h3>
 
                     <div class="flex items-center gap-2 text-slate-500 text-sm mb-1">
-                        <i class="fas fa-map-marker-alt text-lime-600"></i>{{ evento.lugar|truncatechars:40 }}
+                        <i class="fas fa-map-marker-alt text-cyan-600"></i>{{ evento.lugar|truncatechars:40 }}
                     </div>
                     <div class="flex items-center gap-2 text-slate-500 text-sm">
-                        <i class="fas fa-clock text-lime-600"></i>
+                        <i class="fas fa-clock text-cyan-600"></i>
                         {{ evento.fecha_inicio|date:"H:i" }}{% if evento.fecha_fin %} - {{ evento.fecha_fin|date:"H:i" }}{% endif %}
                     </div>
 
@@ -699,12 +744,12 @@
 
                     <div class="flex items-center justify-between pt-4 mt-4 border-t border-slate-100">
                         <a href="{% url 'indicadores:evento_detalle' slug=evento.slug %}"
-                           class="text-emerald-600 hover:text-emerald-700 font-semibold text-sm">
+                           class="text-cyan-600 hover:text-cyan-700 font-semibold text-sm">
                             <i class="fas fa-info-circle mr-1.5"></i>Ver detalles
                         </a>
                         {% if evento.url_externa %}
                         <a href="{{ evento.url_externa }}" target="_blank" rel="noopener"
-                           class="inline-flex items-center px-4 py-2 bg-lime-400 text-lime-950 text-sm font-bold rounded-full hover:bg-lime-300 transition-colors">
+                           class="inline-flex items-center px-4 py-2 bg-cyan-400 text-cyan-950 text-sm font-bold rounded-full hover:bg-cyan-300 transition-colors">
                             <i class="fas fa-external-link-alt mr-1.5"></i>Más info
                         </a>
                         {% endif %}
@@ -716,7 +761,7 @@
 
         <div class="text-center mt-10">
             <a href="{% url 'indicadores:eventos' %}"
-               class="inline-flex items-center gap-2 px-8 py-3.5 bg-white border-2 border-lime-400 text-lime-800 font-bold rounded-2xl hover:bg-lime-50 transition-all duration-200 hover:-translate-y-0.5">
+               class="inline-flex items-center gap-2 px-8 py-3.5 bg-white border-2 border-cyan-400 text-cyan-800 font-bold rounded-2xl hover:bg-cyan-50 transition-all duration-200 hover:-translate-y-0.5">
                 <i class="fas fa-calendar"></i> Ver todos los eventos
             </a>
         </div>
