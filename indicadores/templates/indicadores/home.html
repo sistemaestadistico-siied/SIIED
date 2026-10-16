@@ -142,42 +142,97 @@
                 consulta, compara, visualiza y lleva el tablero contigo.
             </p>
 
-            <!-- CTAs principales -->
-            <div class="flex flex-wrap justify-center gap-4 mt-8">
-                <a href="{% url 'indicadores:laboratorio_home' %}"
-                   class="inline-flex items-center gap-2 px-7 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-cyan-950 font-bold rounded-2xl shadow-lg shadow-cyan-400/30 transition-all duration-200 hover:-translate-y-0.5">
-                    <i class="fas fa-table-columns"></i> Consulta y Tableros
-                </a>
-                <a href="{% url 'indicadores:chat' %}"
-                   class="inline-flex items-center gap-2 px-7 py-3.5 bg-white border-2 border-cyan-300 text-cyan-700 font-bold rounded-2xl hover:bg-cyan-50 hover:border-cyan-400 transition-all duration-200 hover:-translate-y-0.5">
-                    <i class="fas fa-comments"></i> Hablar con Don Datico
-                </a>
+            <!-- Quiénes somos — desplegable sutil -->
+            <div class="w-full max-w-3xl mt-8 text-left">
+                <details class="group bg-white/80 rounded-2xl border border-cyan-100 overflow-hidden open:shadow-md transition-shadow duration-300">
+                    <summary class="flex items-center justify-between cursor-pointer list-none px-5 py-3.5 hover:bg-cyan-50/60 transition-colors duration-200">
+                        <span class="flex items-center gap-3">
+                            <span class="w-9 h-9 bg-cyan-100 rounded-full flex items-center justify-center group-open:bg-cyan-200 transition-colors duration-300">
+                                <i class="fas fa-info-circle text-cyan-700"></i>
+                            </span>
+                            <span class="text-left">
+                                <span class="block text-base font-bold text-slate-800">¿Quiénes somos?</span>
+                                <span class="block text-xs text-slate-500">Qué es el SIIED y qué ofrece la plataforma</span>
+                            </span>
+                        </span>
+                        <i class="fas fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-300"></i>
+                    </summary>
+                    <div class="px-5 pb-5 pt-3 text-slate-600 text-sm leading-relaxed space-y-4 border-t border-cyan-100/70">
+                        <p>
+                            El <strong>SIIED</strong> es el Sistema Integrado de Información Estadística Distrital de la
+                            Alcaldía de Santiago de Cali. Integra personas, procesos y tecnología para facilitar el acceso,
+                            la gestión y el análisis de información estadística confiable, oficial y actualizada del Distrito.
+                            Es operado por la <strong>Subdirección de Desarrollo Integral del Departamento Administrativo de
+                            Planeación (DAP)</strong>, que lidera técnica y estratégicamente la gobernanza estadística distrital.
+                        </p>
+                        <p>
+                            Su objetivo es optimizar la gestión, integración, administración y difusión de los datos e
+                            información estadística oficial del Distrito, garantizando su calidad, oportunidad y
+                            accesibilidad, para aportar insumos a la planeación, la toma de decisiones y el seguimiento de
+                            las políticas públicas.
+                        </p>
+                        <div>
+                            <p class="font-bold text-slate-800 mb-2">¿Qué ofrece la plataforma?</p>
+                            <ul class="grid sm:grid-cols-2 gap-x-6 gap-y-2 list-none">
+                                <li class="flex items-start gap-2"><i class="fas fa-chart-line text-cyan-600 mt-1"></i><span>Catálogo de indicadores con fichas técnicas y metadatos estándar SDMX</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-database text-cyan-600 mt-1"></i><span>Explorador de conjuntos de datos descargables</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-chart-bar text-cyan-600 mt-1"></i><span>Visores comparativos, mapas y productos de difusión</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-robot text-cyan-600 mt-1"></i><span>Don Datico: asistente virtual de IA para consultas en lenguaje natural</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-plug text-cyan-600 mt-1"></i><span>API abierta de acceso programático, sin registro ni autenticación</span></li>
+                                <li class="flex items-start gap-2"><i class="fas fa-graduation-cap text-cyan-600 mt-1"></i><span>Contenidos educativos interactivos para niños, niñas y adolescentes</span></li>
+                            </ul>
+                        </div>
+                        <p>
+                            Desde 1986 el DAP impulsó la cultura estadística local con la publicación de
+                            <em>“Cali en Cifras 1985”</em>; a partir de 2012 automatizó e integró los datos mediante el
+                            Sistema de Indicadores Sociales (SIS), y desde 2025 el SIIED consolidó esos avances en una
+                            plataforma oficial, unificada y confiable — parte del Sistema Estadístico Nacional conforme
+                            a la <strong>Ley 2335 de 2023</strong> y al <strong>Decreto 411.0.20.0516 de 2016</strong>.
+                        </p>
+                        <p class="text-slate-500">
+                            <i class="fas fa-envelope mr-1"></i>
+                            Contacto:
+                            <a href="mailto:sistemaestadistico@cali.gov.co" class="text-cyan-700 hover:underline font-medium">sistemaestadistico@cali.gov.co</a>
+                            &nbsp;·&nbsp; Subdirección de Desarrollo Integral — Sistema Estadístico Distrital
+                        </p>
+                        <div class="rounded-xl bg-cyan-50 border border-cyan-100 p-4 space-y-3">
+                            <p>
+                                <strong class="text-slate-800">SIIED también es una oferta de software de código abierto:</strong>
+                                toda la plataforma — su núcleo estadístico, el asistente de IA Don Datico y los módulos de
+                                recolección, validación, editorial, satisfacción y taller de gestión de datos institucionales — se documenta y
+                                comparte para que otras ciudades e instituciones puedan construir su propio sistema
+                                estadístico sobre esta base.
+                            </p>
+                            <div class="flex flex-wrap gap-3">
+                                <a href="{% url 'indicadores:documentacion' %}"
+                                   class="inline-flex items-center px-4 py-2 bg-cyan-500 text-white text-sm font-bold rounded-full hover:bg-cyan-600 transition-all duration-200 shadow">
+                                    <i class="fas fa-book mr-2"></i> Documentación open source
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </details>
             </div>
 
-            <!-- Accesos rapidos -->
-            <div class="flex flex-wrap justify-center gap-3 mt-8">
+            <!-- Accesos a los conjuntos de indicadores + catálogo de consulta -->
+            <div class="flex flex-wrap justify-center gap-3 mt-6">
+                <a href="{% url 'indicadores:dominios' %}"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-700 hover:border-cyan-400 hover:text-cyan-800 transition-colors shadow-sm">
+                    <i class="fas fa-layer-group text-cyan-600"></i> Dominios temáticos
+                </a>
                 <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
-                    Cali en Cifras
-                </a>
-                <a href="{% url 'indicadores:visor_comparativo' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
-                    Visor Comparativo
-                </a>
-                <a href="{% url 'indicadores:conjuntos_datos_explorer' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
-                    Conjuntos de Datos
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-700 hover:border-cyan-400 hover:text-cyan-800 transition-colors shadow-sm">
+                    <i class="fas fa-city text-cyan-600"></i> Cali en Cifras
                 </a>
                 <a href="{% url 'indicadores:dominio_detalle' 'ods' %}"
-                   class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-full hover:border-cyan-400 hover:text-cyan-800 transition-colors">
-                    Indicadores ODS
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-700 hover:border-cyan-400 hover:text-cyan-800 transition-colors shadow-sm">
+                    <i class="fas fa-globe text-cyan-600"></i> Indicadores ODS
+                </a>
+                <a href="{% url 'indicadores:catalogo_consulta_listado' %}"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-cyan-50 border border-cyan-200 rounded-full text-sm font-bold text-cyan-800 hover:bg-cyan-100 hover:border-cyan-400 transition-colors shadow-sm">
+                    <i class="fas fa-book-open text-cyan-600"></i> Catálogo de consulta
                 </a>
             </div>
-
-            <p class="mt-6 text-sm text-slate-400">
-                ¿Necesitas ayuda?
-                <a href="mailto:sistemaestadistico@cali.gov.co" class="text-cyan-700 hover:underline font-medium">sistemaestadistico@cali.gov.co</a>
-            </p>
 
             <img src="{% static 'indicadores/images/planeación.png' %}"
                  alt="Alcaldía de Santiago de Cali — Departamento Administrativo de Planeación Municipal"
