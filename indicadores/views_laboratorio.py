@@ -154,7 +154,7 @@ def _organismo_del_usuario(request):
     return getattr(perfil, 'organismo', None)
 
 
-def _contexto_fuentes(request):
+def _contexto_fuentes(request, consulta=''):
     """
     Fuentes reales que el LLM puede usar en la spec: conjuntos de datos
     (con codigos de variables exactos), cuadros del catalogo de consulta
@@ -162,6 +162,11 @@ def _contexto_fuentes(request):
 
     Para no-staff con organismo, los conjuntos se acotan a los del
     organismo; los indicadores son catalogo general del SIIED.
+
+    Cuando hay ``consulta`` los indicadores se ordenan por relevancia
+    semantica (misma busqueda vectorial del chat) — sin esto solo se
+    enviaban los primeros 40 por orden alfabetico y el LLM no podia
+    usar indicadores fuera de ese tramo (ej: 'Poblacion total').
     """
     org = _organismo_del_usuario(request)
 
@@ -238,11 +243,45 @@ def _contexto_fuentes(request):
         .annotate(anios=Count('fecha_dato__year', distinct=True),
                   filas=Count('id'))
     }
-    indicadores = []
-    for ind in (Indicador.objects
+    # Ranking por relevancia a la consulta: busqueda semantica (la
+    # misma que usa el chat) y fallback a texto sobre nombre/descripcion.
+    ids_ranked = []
+    if consulta:
+        try:
+            from .search import SemanticSearch
+            resultados_sem = SemanticSearch().buscar_similar(
+                consulta=consulta, tipo_doc='indicador',
+                top_k=30, umbral=0.3)
+            ids_ranked = [r['referencia_id'] for r in resultados_sem
+                          if r.get('referencia_id')]
+        except Exception:
+            logger.warning(
+                'Laboratorio: busqueda semantica de indicadores fallo',
+                exc_info=True)
+        if not ids_ranked:
+            ids_ranked = list(
+                Indicador.objects.filter(
+                    Q(nombre__icontains=consulta) |
+                    Q(descripcion_indicador__icontains=consulta),
+                    activo=True, datos__isnull=False)
+                .values_list('id', flat=True)[:15])
+
+    base = list(Indicador.objects
                 .filter(activo=True, datos__isnull=False)
-                .distinct().order_by('nombre')[:40]
-                .values('id', 'nombre', 'unidad_medida')):
+                .distinct().order_by('nombre')
+                .values('id', 'nombre', 'unidad_medida'))
+    # Primero los relevantes (en orden semantico), luego el resto
+    # alfabetico para rellenar el cupo.
+    if ids_ranked:
+        ranked_set = set(ids_ranked)
+        por_id = {ind['id']: ind for ind in base}
+        ordenados = [por_id[i] for i in ids_ranked if i in por_id]
+        ordenados += [ind for ind in base if ind['id'] not in ranked_set]
+    else:
+        ordenados = base
+
+    indicadores = []
+    for ind in ordenados[:40]:
         s = stats_dato.get(ind['id']) or {}
         anios = s.get('anios') or 0
         filas = s.get('filas') or 0
@@ -792,7 +831,7 @@ def laboratorio_generar(request):
             {'error': 'La consulta debe tener entre 5 y 3000 caracteres'},
             status=400)
 
-    ctx = _contexto_fuentes(request)
+    ctx = _contexto_fuentes(request, consulta)
     if not ctx['conjuntos_datos'] and not ctx['indicadores']:
         return JsonResponse(
             {'error': 'No hay fuentes de datos disponibles para tu perfil'},
