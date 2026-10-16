@@ -282,7 +282,7 @@
             <p class="text-slate-500 mt-2">Del indicador puntual al tablero completo: entradas directas a las fuentes del SIIED.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Explorador de conjuntos -->
             <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="hcard hcyan group">
                 <div class="hcard-ico acc-cyan"><i class="fas fa-database"></i></div>
@@ -299,15 +299,6 @@
                 <h3 class="text-lg font-bold text-slate-800">Visor Comparativo</h3>
                 <p class="text-sm text-slate-500 mt-1">Compara múltiples indicadores en series, cortes y cruces interactivos.</p>
                 <span class="hcard-cta">Acceder al Visor <i class="fas fa-arrow-right ml-1"></i></span>
-            </a>
-
-            <!-- Inventario de Operaciones -->
-            <a href="{% url 'indicadores:inventario_operaciones' %}" class="hcard hcyan group">
-                <div class="hcard-ico acc-blue"><i class="fas fa-clipboard-list"></i></div>
-                <img src="{% static 'indicadores/images/logo_inventario.png' %}" alt="Inventario de Operaciones" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Inventario de Operaciones</h3>
-                <p class="text-sm text-slate-500 mt-1">Catálogo oficial de operaciones: metodologías, periodicidad y responsables.</p>
-                <span class="hcard-cta">Explorar inventario <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Consulta y Tableros -->
@@ -420,6 +411,14 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <a href="{% url 'indicadores:inventario_operaciones' %}" class="hcard group">
+                <div class="hcard-ico acc-cyan"><i class="fas fa-clipboard-list"></i></div>
+                <img src="{% static 'indicadores/images/logo_inventario.png' %}" alt="Inventario de Operaciones" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Inventario de Operaciones Estadísticas</h3>
+                <p class="text-sm text-slate-500 mt-1">Catálogo oficial de operaciones: metodologías, periodicidad y responsables.</p>
+                <span class="hcard-cta">Explorar inventario <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
             <a href="{% url 'indicadores:modulo_iced' %}" class="hcard group">
                 <div class="hcard-ico acc-lime"><i class="fas fa-gauge-high"></i></div>
                 <img src="{% static 'indicadores/images/logo_iced.png' %}" alt="ICED" class="hcard-img mb-3">
