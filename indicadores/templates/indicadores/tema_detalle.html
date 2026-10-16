@@ -1,90 +1,85 @@
 {% extends 'indicadores/base.html' %}
-{% block content %}
 {% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
 
-<div class="container mx-auto px-4 py-8">
-    <!-- Breadcrumb -->
-    <div class="breadcrumb mb-6 text-sm text-gray-600">
-        <a href="{% url 'indicadores:home' %}" class="text-blue-600 hover:underline">Inicio</a> /
-        <a href="{% url 'indicadores:dominios' %}" class="text-blue-600 hover:underline">Dominios</a> /
-        <a href="{% url 'indicadores:dominio_detalle' dominio.slug %}" class="text-blue-600 hover:underline">{{ dominio.nombre }}</a> /
-        <span class="text-gray-800">{{ tema_actual.nombre }}</span>
-    </div>
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <a href="{% url 'indicadores:dominios' %}">Dominios</a>
+            <span class="sep">/</span>
+            <a href="{% url 'indicadores:dominio_detalle' dominio.slug %}">{{ dominio.nombre }}</a>
+            <span class="sep">/</span>
+            <span class="here">{{ tema_actual.nombre }}</span>
+        </nav>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <!-- Columna Izquierda (Sidebar de Temas) -->
-        <aside class="lg:col-span-1">
-            <div class="bg-white rounded-lg shadow-md p-6 text-center sticky top-8">
-                <!-- Imagen/Icono y nombre del tema actual -->
-                <div class="w-32 h-32 rounded-full bg-primary-700 flex items-center justify-center mx-auto mb-4 overflow-hidden">
-                    {% if tema_actual.imagen_url %}
-                        <img src="{{ tema_actual.imagen_url }}" alt="{{ tema_actual.nombre }}" class="h-full w-full object-cover">
-                    {% elif tema_actual.icono %}
-                        <i class="{{ tema_actual.icono }} text-6xl text-white"></i>
-                    {% else %}
-                        <svg class="h-20 w-20 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-                        </svg>
-                    {% endif %}
-                </div>
-                <h1 class="text-xl font-bold text-blue-800 mb-6">
-                    {{ tema_actual.nombre }}
-                </h1>
-
-                <!-- Navegación de Temas -->
-                <h3 class="text-lg font-semibold text-left text-gray-800 mb-3 border-b pb-2">Temas</h3>
-                <nav class="flex flex-col space-y-2 text-left">
-                    {% for tema in temas_del_dominio %}
-                        <a href="{% url 'indicadores:tema_detalle' dominio.slug tema.slug %}" 
-                           class="px-3 py-2 rounded-md text-sm font-medium transition-colors
-                                  {% if tema.slug == tema_actual.slug %}
-                                      bg-primary-100 text-primary-800
-                                  {% else %}
-                                      text-gray-700 hover:bg-gray-100 hover:text-gray-900
-                                  {% endif %}">
-                            {{ tema.nombre }}
-                        </a>
-                    {% endfor %}
-                </nav>
-            </div>
-        </aside>
-
-        <!-- Columna Derecha (Contenido Principal) -->
-        <main class="lg:col-span-3">
-            <div class="bg-white rounded-lg shadow-md p-8">
-                {% if tema_actual.descripcion %}
-                    <div class="prose max-w-none text-gray-700 mb-8">
-                        {{ tema_actual.descripcion|safe }}
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Sidebar del tema -->
+            <aside class="lg:col-span-1">
+                <div class="pbox p-6 sticky top-8">
+                    <div class="text-center">
+                        <div class="porb w-28 h-28 mb-4 bg-sky-700">
+                            {% if tema_actual.imagen_url %}
+                                <img src="{{ tema_actual.imagen_url }}" alt="{{ tema_actual.nombre }}">
+                            {% elif tema_actual.icono %}
+                                <i class="{{ tema_actual.icono }} text-4xl text-white"></i>
+                            {% else %}
+                                <i class="fas fa-folder-open text-4xl text-white"></i>
+                            {% endif %}
+                        </div>
+                        <h1 class="text-lg font-extrabold text-slate-800 mb-6">{{ tema_actual.nombre }}</h1>
                     </div>
-                {% endif %}
 
-                <h2 class="text-2xl font-bold text-primary-800 mb-6 border-b-2 border-primary-200 pb-2">Subtemas</h2>
-                
-                {% if subtemas %}
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 text-center">
-                        {% for subtema in subtemas %}
-                            <a href="{% url 'indicadores:subtema_detalle' dominio.slug tema_actual.slug subtema.slug %}" class="group">
-                                <div class="w-32 h-32 rounded-full bg-teal-500 flex items-center justify-center mx-auto mb-3 transition-transform duration-300 group-hover:scale-110">
-                                    {% if subtema.imagen_url %}
-                                        <img src="{{ subtema.imagen_url }}" alt="{{ subtema.nombre }}" class="h-20 w-20 object-contain">
-                                    {% elif subtema.icono %}
-                                        <i class="{{ subtema.icono }} text-5xl text-white"></i>
-                                    {% else %}
-                                        <!-- Fallback icon for subtheme -->
-                                        <svg class="h-20 w-20 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    {% endif %}
-                                </div>
-                                <h3 class="font-semibold text-gray-800 group-hover:text-teal-600 transition-colors">{{ subtema.nombre }}</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 border-b border-slate-100 pb-2">Temas del dominio</h3>
+                    <nav class="pnav flex flex-col space-y-1">
+                        {% for tema in temas_del_dominio %}
+                            <a href="{% url 'indicadores:tema_detalle' dominio.slug tema.slug %}"
+                               class="{% if tema.slug == tema_actual.slug %}active{% endif %}">
+                                {{ tema.nombre }}
                             </a>
                         {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-gray-500">No hay subtemas disponibles para este tema.</p>
-                {% endif %}
-            </div>
-        </main>
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- Contenido principal -->
+            <main class="lg:col-span-3">
+                <div class="pbox p-8">
+                    {% if tema_actual.descripcion %}
+                        <div class="prose max-w-none text-slate-600 mb-8">
+                            {{ tema_actual.descripcion|safe }}
+                        </div>
+                    {% endif %}
+
+                    <h2 class="psec"><i class="fas fa-indent"></i> Subtemas</h2>
+
+                    {% if subtemas %}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 text-center">
+                            {% for subtema in subtemas %}
+                                <a href="{% url 'indicadores:subtema_detalle' dominio.slug tema_actual.slug subtema.slug %}" class="group">
+                                    <div class="porb w-28 h-28 mb-3 bg-cyan-600">
+                                        {% if subtema.imagen_url %}
+                                            <img src="{{ subtema.imagen_url }}" alt="{{ subtema.nombre }}" class="contain">
+                                        {% elif subtema.icono %}
+                                            <i class="{{ subtema.icono }} text-4xl text-white"></i>
+                                        {% else %}
+                                            <i class="fas fa-table-list text-4xl text-white"></i>
+                                        {% endif %}
+                                    </div>
+                                    <h3 class="font-semibold text-sm text-slate-700 group-hover:text-cyan-700 transition-colors">{{ subtema.nombre }}</h3>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-slate-500">No hay subtemas disponibles para este tema.</p>
+                    {% endif %}
+                </div>
+            </main>
+        </div>
     </div>
 </div>
 {% endblock %}

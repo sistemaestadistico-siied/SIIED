@@ -1,102 +1,99 @@
 {% extends 'indicadores/base.html' %}
 {% load static %}
-
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="text-center mb-12">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">Productos de Información</h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-            Observatorios, sistemas sectoriales y plataformas de información desarrolladas por las diferentes 
-            dependencias de la Alcaldía de Cali para el seguimiento y análisis de políticas públicas específicas.
-        </p>
-    </div>
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
 
-    <!-- Grid de Categorías -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {% for categoria in categorias %}
-        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <!-- Header de la categoría -->
-            <div class="p-6 text-center" style="background: linear-gradient(135deg, {{ categoria.color|default:'#667eea' }}22, {{ categoria.color|default:'#667eea' }}11);">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" 
-                     style="background-color: {{ categoria.color|default:'#667eea' }};">
-                    {% if categoria.icono %}
-                        <i class="{{ categoria.icono }} text-2xl text-white"></i>
-                    {% else %}
-                        <i class="fas fa-folder text-2xl text-white"></i>
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <span class="here">Productos de información</span>
+        </nav>
+
+        <div class="mb-10">
+            <span class="pchip mb-3"><i class="fas fa-diagram-project"></i> Ecosistema distrital</span>
+            <h1 class="ptitle">Productos de <span class="pgrad">Información</span></h1>
+            <p class="psub mt-2">
+                Observatorios, sistemas sectoriales y plataformas desarrolladas por las dependencias
+                de la Alcaldía de Cali para el seguimiento de políticas públicas.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for categoria in categorias %}
+            <div class="pcard pcard-soft overflow-hidden">
+                <div class="p-6 text-center border-b border-slate-100" style="background: linear-gradient(135deg, {{ categoria.color|default:'#0284c7' }}1f, {{ categoria.color|default:'#0284c7' }}0d);">
+                    <div class="porb w-16 h-16 mb-4" style="background-color: {{ categoria.color|default:'#0284c7' }}; box-shadow: 0 8px 16px -6px {{ categoria.color|default:'#0284c7' }}66;">
+                        {% if categoria.icono %}
+                            <i class="{{ categoria.icono }} text-xl text-white"></i>
+                        {% else %}
+                            <i class="fas fa-folder text-xl text-white"></i>
+                        {% endif %}
+                    </div>
+                    <h3 class="text-base font-bold text-slate-800 mb-1">{{ categoria.nombre }}</h3>
+                    {% if categoria.descripcion %}
+                        <p class="text-xs text-slate-500">{{ categoria.descripcion|truncatewords:15 }}</p>
                     {% endif %}
                 </div>
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ categoria.nombre }}</h3>
-                {% if categoria.descripcion %}
-                    <p class="text-sm text-gray-600">{{ categoria.descripcion|truncatewords:15 }}</p>
-                {% endif %}
-            </div>
 
-            <!-- Lista de proyectos -->
-            <div class="p-4">
-                {% for proyecto in categoria.proyectos_activos %}
-                    <a href="{{ proyecto.url }}" 
-                       {% if proyecto.abrir_nueva_ventana %}target="_blank"{% endif %}
-                       class="block p-3 mb-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 group">
-                        <div class="flex items-center">
-                            {% if proyecto.icono %}
-                                <i class="{{ proyecto.icono }} text-gray-500 group-hover:text-blue-600 mr-3"></i>
-                            {% else %}
-                                <i class="fas fa-link text-gray-500 group-hover:text-blue-600 mr-3"></i>
-                            {% endif %}
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-900 group-hover:text-blue-600">
-                                    {{ proyecto.nombre }}
-                                    {% if proyecto.abrir_nueva_ventana %}
-                                        <i class="fas fa-external-link-alt text-xs ml-1"></i>
+                <div class="p-3">
+                    {% for proyecto in categoria.proyectos_activos %}
+                        <a href="{{ proyecto.url }}"
+                           {% if proyecto.abrir_nueva_ventana %}target="_blank"{% endif %}
+                           class="block px-3 py-2.5 mb-1 rounded-lg hover:bg-cyan-50 transition-colors duration-200 group">
+                            <div class="flex items-center">
+                                <i class="{% if proyecto.icono %}{{ proyecto.icono }}{% else %}fas fa-link{% endif %} text-slate-400 group-hover:text-cyan-700 mr-3 w-5 text-center"></i>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-semibold text-slate-700 group-hover:text-cyan-800">
+                                        {{ proyecto.nombre }}
+                                        {% if proyecto.abrir_nueva_ventana %}<i class="fas fa-external-link-alt text-xs ml-1"></i>{% endif %}
+                                    </div>
+                                    {% if proyecto.descripcion %}
+                                        <div class="text-xs text-slate-400 mt-0.5">{{ proyecto.descripcion|truncatewords:8 }}</div>
+                                    {% endif %}
+                                    {% if proyecto.dependencia_responsable %}
+                                        <div class="text-xs text-cyan-700 mt-0.5 font-medium">{{ proyecto.dependencia_responsable }}</div>
                                     {% endif %}
                                 </div>
-                                {% if proyecto.descripcion %}
-                                    <div class="text-xs text-gray-500 mt-1">{{ proyecto.descripcion|truncatewords:8 }}</div>
-                                {% endif %}
-                                {% if proyecto.dependencia_responsable %}
-                                    <div class="text-xs text-blue-600 mt-1 font-medium">{{ proyecto.dependencia_responsable }}</div>
-                                {% endif %}
                             </div>
-
+                        </a>
+                    {% empty %}
+                        <div class="text-center py-6 text-slate-400">
+                            <i class="fas fa-inbox text-2xl mb-1 block"></i>
+                            <p class="text-xs">Sin productos disponibles</p>
                         </div>
-                    </a>
-                {% empty %}
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-inbox text-3xl mb-2"></i>
-                        <p class="text-sm">No hay proyectos disponibles</p>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
             </div>
+            {% empty %}
+            <div class="col-span-full pbox text-center py-12">
+                <i class="fas fa-info-circle text-slate-300 text-5xl mb-4 block"></i>
+                <h3 class="text-lg font-bold text-slate-600 mb-1">No hay categorías configuradas</h3>
+                <p class="text-slate-500 text-sm">Las categorías de proyectos se configuran desde el panel de administración.</p>
+            </div>
+            {% endfor %}
         </div>
-        {% empty %}
-        <div class="col-span-full text-center py-12">
-            <i class="fas fa-info-circle text-gray-400 text-6xl mb-4"></i>
-            <h3 class="text-xl font-semibold text-gray-600 mb-2">No hay categorías configuradas</h3>
-            <p class="text-gray-500">Las categorías de proyectos se configuran desde el panel de administración.</p>
-        </div>
-        {% endfor %}
-    </div>
 
-    <!-- Call to Action -->
-    <div class="mt-12 bg-blue-50 rounded-lg p-6">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div class="flex-1">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                    <i class="fas fa-lightbulb text-blue-600 mr-2"></i>
-                    ¿Tienes un proyecto de información?
-                </h3>
-                <p class="text-gray-600">
-                    Si tu dependencia maneja un observatorio, sistema sectorial o plataforma de información 
-                    que debería aparecer aquí, contáctanos para incluirlo en este directorio.
-                </p>
-            </div>
-            <div class="w-full md:w-auto md:ml-6">
-                <a href="mailto:planeacion@cali.gov.co" 
-                   class="inline-flex items-center justify-center w-full md:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                    <i class="fas fa-envelope mr-2"></i>
-                    Contactar
-                </a>
+        <!-- CTA -->
+        <div class="phelp mt-14 p-8">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-extrabold text-sky-900 mb-2">
+                        <i class="fas fa-lightbulb text-cyan-600 mr-2"></i>¿Tienes un proyecto de información?
+                    </h3>
+                    <p class="text-sky-800/70 text-sm">
+                        Si tu dependencia maneja un observatorio, sistema sectorial o plataforma de información
+                        que debería aparecer aquí, contáctanos para incluirlo en este directorio.
+                    </p>
+                </div>
+                <div class="w-full md:w-auto md:ml-6">
+                    <a href="mailto:planeacion@cali.gov.co" class="pbtn w-full md:w-auto justify-center">
+                        <i class="fas fa-envelope"></i> Contactar
+                    </a>
+                </div>
             </div>
         </div>
     </div>

@@ -4,6 +4,7 @@
 {% block title %}Infraestructura de Información - SIIED{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
 <style>
     .infraestructura-container {
         display: flex;
@@ -13,8 +14,8 @@
     
     .sidebar-nav {
         width: 280px;
-        background: #f8f9fa;
-        border-right: 1px solid #e9ecef;
+        background: #ffffff;
+        border-right: 1px solid #e2e8f0;
         padding: 1.5rem 0;
         position: sticky;
         top: 0;
@@ -24,14 +25,14 @@
     }
     
     .breadcrumb-custom {
-        background: #fff;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid #e9ecef;
+        background: transparent;
+        padding: 1rem 1.5rem 0;
+        border-bottom: none;
         margin-bottom: 0;
     }
     
     .breadcrumb-custom a {
-        color: #0066cc;
+        color: #0891b2;
         text-decoration: none;
     }
     
@@ -46,13 +47,13 @@
     .sidebar-nav .nav-title {
         padding: 0.75rem 1.5rem;
         font-weight: 600;
-        color: #495057;
+        color: #155e75;
         font-size: 0.9rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid #bae6fd;
         margin-bottom: 0.5rem;
-        background: #e9ecef;
+        background: #f0f9ff;
     }
     
     .sidebar-nav .nav-item {
@@ -63,7 +64,7 @@
     .sidebar-nav .nav-link {
         display: block;
         padding: 0.75rem 1.5rem;
-        color: #6c757d;
+        color: #64748b;
         text-decoration: none;
         font-size: 0.9rem;
         border-left: 3px solid transparent;
@@ -71,28 +72,28 @@
     }
     
     .sidebar-nav .nav-link:hover {
-        background: #e9ecef;
-        color: #495057;
-        border-left-color: #0066cc;
+        background: #f0f9ff;
+        color: #0369a1;
+        border-left-color: #0891b2;
     }
     
     .sidebar-nav .nav-link.active {
-        background: #e3f2fd;
-        color: #0066cc;
-        border-left-color: #0066cc;
-        font-weight: 500;
+        background: #cffafe;
+        color: #155e75;
+        border-left-color: #0891b2;
+        font-weight: 600;
     }
     
     .sidebar-nav .nav-link.parent {
         font-weight: 500;
-        color: #495057;
+        color: #334155;
         position: relative;
         padding-right: 2.5rem;
     }
     
     .sidebar-nav .nav-link.parent.active {
-        background: #f0f0f0;
-        color: #0066cc;
+        background: #e0f2fe;
+        color: #0e7490;
     }
     
     .sidebar-nav .nav-link.parent .accordion-icon {
@@ -101,7 +102,7 @@
         top: 50%;
         transform: translateY(-50%);
         transition: transform 0.3s ease;
-        color: #6c757d;
+        color: #64748b;
         font-size: 0.75rem;
     }
     
@@ -110,7 +111,7 @@
     }
     
     .sidebar-nav .nav-link.parent:hover .accordion-icon {
-        color: #0066cc;
+        color: #0891b2;
     }
     
     .sidebar-nav .nav-link.child {
@@ -126,7 +127,7 @@
         top: 50%;
         transform: translateY(-50%);
         transition: transform 0.3s ease;
-        color: #6c757d;
+        color: #64748b;
         font-size: 0.75rem;
     }
     
@@ -135,7 +136,7 @@
     }
     
     .sidebar-nav .nav-link.child:hover .accordion-icon {
-        color: #0066cc;
+        color: #0891b2;
     }
     
     .sidebar-nav .nav-link.grandchild {
@@ -151,7 +152,7 @@
         top: 50%;
         transform: translateY(-50%);
         transition: transform 0.3s ease;
-        color: #6c757d;
+        color: #64748b;
         font-size: 0.75rem;
     }
     
@@ -160,7 +161,7 @@
     }
     
     .sidebar-nav .nav-link.grandchild:hover .accordion-icon {
-        color: #0066cc;
+        color: #0891b2;
     }
     
     .sidebar-nav .nav-link.great-grandchild {
@@ -189,13 +190,13 @@
     .content-area {
         flex: 1;
         padding: 0;
-        background: #fff;
+        background: transparent;
     }
     
     .content-header {
         padding: 2rem 2.5rem;
-        border-bottom: 1px solid #e9ecef;
-        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        background: transparent;
     }
     
     .content-body {
@@ -203,22 +204,23 @@
     }
     
     .category-card {
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: 0 1px 3px rgba(2,6,23,.05);
         transition: all 0.3s ease;
         margin-bottom: 2rem;
         overflow: hidden;
     }
     
     .category-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        transform: translateY(-3px);
+        border-color: #67e8f9;
+        box-shadow: 0 14px 28px -10px rgba(8,145,178,.22);
     }
     
     .category-header {
         padding: 2rem 2.5rem;
-        background: linear-gradient(135deg,rgb(49, 162, 255) 0%,rgb(152, 205, 255) 100%);
+        background: linear-gradient(120deg, #0891b2 0%, #2563eb 100%);
         color: white;
     }
     
@@ -241,12 +243,12 @@
     }
     
     .subcategory-item {
-        border-bottom: 1px solid #f8f9fa;
+        border-bottom: 1px solid #f1f5f9;
         transition: background-color 0.2s ease;
     }
     
     .subcategory-item:hover {
-        background: #f8f9fa;
+        background: #f0f9ff;
     }
     
     .subcategory-item:last-child {
@@ -262,13 +264,13 @@
     
     .subcategory-name {
         font-weight: 600;
-        color: #495057;
+        color: #334155;
         margin-bottom: 0.5rem;
     }
     
     .subcategory-description {
         font-size: 0.9rem;
-        color: #6c757d;
+        color: #64748b;
         margin: 0;
     }
     
@@ -276,19 +278,19 @@
         display: inline-flex;
         align-items: center;
         padding: 0.5rem 1rem;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 6px;
         text-decoration: none;
-        color: #6c757d;
+        color: #64748b;
         font-size: 0.9rem;
         transition: all 0.2s ease;
         margin-bottom: 1rem;
     }
     
     .back-button:hover {
-        background: #e9ecef;
-        color: #495057;
+        background: #f0f9ff;
+        color: #0369a1;
         text-decoration: none;
     }
     
@@ -316,6 +318,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="page-canvas">
 <div class="breadcrumb-custom">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb mb-0">
@@ -421,7 +424,7 @@
         {% block infraestructura_content %}
             <div class="content-header">
                 <h1 class="h2 mb-3">
-                    <i class="fas fa-network-wired me-3 text-primary"></i>
+                    <i class="fas fa-network-wired me-3" style="color:#0891b2"></i>
                     Infraestructura de Información
                 </h1>
                 <p class="lead text-muted mb-0">
@@ -467,6 +470,7 @@
             </div>
         {% endblock %}
     </main>
+</div>
 </div>
 
 {% block extra_js %}

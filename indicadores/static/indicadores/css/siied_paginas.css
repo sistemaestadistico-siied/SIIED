@@ -1,0 +1,132 @@
+/* ============================================================
+   SIIED — Sistema visual de paginas internas
+   Identico lenguaje del home: blanco, cian/azul priorizados,
+   acentos acidos suaves, tarjetas limpias.
+   ============================================================ */
+
+/* Lienzo continuo: blanco arriba, cian muy tenue hacia el pie */
+.page-canvas {
+    background: linear-gradient(180deg,
+        #ffffff 0%,
+        #fafdfe 40%,
+        #f2fafd 70%,
+        #e9f5fb 100%);
+    min-height: 60vh;
+}
+
+/* ---------- Cabecera de pagina ---------- */
+.pchip {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .28rem .9rem; border-radius: 9999px;
+    background: #cffafe; color: #155e75;
+    font-size: .7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .07em;
+}
+
+.ptitle {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 800; color: #1e293b; line-height: 1.15;
+}
+.pgrad {
+    background: linear-gradient(90deg, #0891b2, #2563eb);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+}
+.psub { color: #64748b; font-size: 1.05rem; max-width: 44rem; }
+.psub-center { margin-left: auto; margin-right: auto; }
+
+/* ---------- Breadcrumb ---------- */
+.pcrumb {
+    display: flex; align-items: center; flex-wrap: wrap; gap: .4rem;
+    font-size: .8rem; color: #94a3b8;
+}
+.pcrumb a { color: #0891b2; font-weight: 600; transition: color .2s; }
+.pcrumb a:hover { color: #0e7490; text-decoration: underline; }
+.pcrumb .sep { color: #cbd5e1; }
+.pcrumb .here { color: #475569; font-weight: 600; }
+
+/* ---------- Tarjetas ---------- */
+.pcard {
+    display: block; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 1.1rem;
+    box-shadow: 0 1px 3px rgba(2, 6, 23, .05);
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.pcard:hover {
+    transform: translateY(-4px);
+    border-color: #67e8f9;
+    box-shadow: 0 14px 28px -10px rgba(8, 145, 178, .22);
+}
+.pcard-soft:hover { border-color: #bae6fd; box-shadow: 0 12px 24px -10px rgba(37, 99, 235, .16); }
+
+/* Icono/numero en chip redondo — acento cian por defecto */
+.pico {
+    width: 2.9rem; height: 2.9rem; border-radius: .9rem;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.05rem; flex-shrink: 0;
+    background: #cffafe; color: #0e7490;
+}
+.pico-blue   { background: #dbeafe; color: #1d4ed8; }
+.pico-sky    { background: #e0f2fe; color: #0369a1; }
+.pico-lime   { background: #ecfccb; color: #4d7c0f; }
+.pico-emerald{ background: #d1fae5; color: #047857; }
+.pico-amber  { background: #fef3c7; color: #b45309; }
+.pico-rose   { background: #ffe4e6; color: #be123c; }
+.pico-fuchsia{ background: #fae8ff; color: #a21caf; }
+
+/* Orbe circular para imagenes/iconos de catalogo (dominios, temas) */
+.porb {
+    border-radius: 9999px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto;
+    box-shadow: 0 8px 20px -8px rgba(2, 132, 199, .35);
+    transition: transform .3s ease, box-shadow .3s ease;
+}
+a:hover .porb, .group:hover .porb {
+    transform: scale(1.06);
+    box-shadow: 0 14px 28px -8px rgba(2, 132, 199, .45);
+}
+.porb img { width: 100%; height: 100%; object-fit: cover; }
+.porb img.contain { object-fit: contain; padding: 8%; }
+
+/* ---------- Titulos de seccion internos ---------- */
+.psec {
+    font-size: 1.35rem; font-weight: 800; color: #1e293b;
+    padding-bottom: .55rem; margin-bottom: 1.25rem;
+    border-bottom: 2px solid #bae6fd;
+    display: flex; align-items: center; gap: .6rem;
+}
+.psec i { color: #0891b2; }
+
+/* ---------- Navegacion lateral (temas, etc.) ---------- */
+.pnav a {
+    display: block; padding: .5rem .8rem; border-radius: .6rem;
+    font-size: .85rem; font-weight: 500; color: #475569;
+    transition: all .2s;
+}
+.pnav a:hover { background: #f0f9ff; color: #0369a1; }
+.pnav a.active { background: #cffafe; color: #155e75; font-weight: 700; }
+
+/* ---------- Panel lateral / caja blanca ---------- */
+.pbox {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 1.1rem; box-shadow: 0 1px 3px rgba(2,6,23,.05);
+}
+
+/* ---------- Banner de ayuda/CTA ---------- */
+.phelp {
+    background: linear-gradient(120deg, #ecfeff, #eff6ff);
+    border: 1px solid #bae6fd; border-radius: 1.25rem;
+}
+.pbtn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .7rem 1.5rem; border-radius: 9999px;
+    font-weight: 700; font-size: .9rem;
+    background: #06b6d4; color: #083344;
+    transition: all .2s;
+}
+.pbtn:hover { background: #22d3ee; transform: translateY(-2px); box-shadow: 0 8px 18px -6px rgba(6,182,212,.4); }
+.pbtn-outline {
+    background: #fff; color: #0369a1; border: 2px solid #7dd3fc;
+}
+.pbtn-outline:hover { background: #f0f9ff; border-color: #38bdf8; box-shadow: 0 8px 18px -6px rgba(56,189,248,.35); }

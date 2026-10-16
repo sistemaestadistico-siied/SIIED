@@ -2326,6 +2326,11 @@ def configurar_layout_por_tipo(grafico, series_data):
         'title': grafico.titulo or grafico.nombre,
         'showlegend': grafico.mostrar_leyenda,
         'height': grafico.altura_grafico,
+        # Paleta por defecto del sistema: azul/cian primero, acentos ácidos.
+        # Solo aplica a series sin color configurado por el usuario.
+        'colorway': ['#0284c7', '#2563eb', '#06b6d4', '#22d3ee',
+                     '#84cc16', '#10b981', '#f59e0b', '#f43f5e',
+                     '#8b5cf6', '#64748b'],
         'margin': {
             'l': 80,  # Margen izquierdo más amplio para etiquetas
             'r': grafico.margen_derecho,
