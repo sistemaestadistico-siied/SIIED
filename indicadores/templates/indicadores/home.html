@@ -100,12 +100,24 @@
             font-size: 0;
         }
     }
+
+    /* ---------- Fondo unico: un solo degradado continuo ---------- */
+    .home-canvas {
+        background: linear-gradient(180deg,
+            #ffffff 0%,
+            #fcfef9 38%,
+            #f9fdfa 62%,
+            #f4fbfd 100%);
+    }
 </style>
 
+<!-- Fondo continuo de toda la pagina: sin cortes entre secciones -->
+<div class="home-canvas">
+
 <!-- ============================================================
-     HERO — blanco, marca, doble CTA, accesos rapidos
+     HERO — marca, doble CTA, accesos rapidos
      ============================================================ -->
-<section class="relative overflow-hidden bg-white border-b border-cyan-100">
+<section class="relative overflow-hidden">
     <!-- Blobs decorativos cian/azul — armonizan con el logo SIIED -->
     <div class="absolute -top-24 -right-24 w-96 h-96 bg-cyan-100/60 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -bottom-32 -left-24 w-96 h-96 bg-blue-100/50 rounded-full blur-3xl pointer-events-none"></div>
@@ -177,7 +189,7 @@
 <!-- ============================================================
      HERRAMIENTAS DE CONSULTA — zona cian, contigua al hero/logo
      ============================================================ -->
-<section class="py-14 bg-[#f8fdfd]">
+<section class="py-14">
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">Consulta y análisis</span>
@@ -228,7 +240,7 @@
 <!-- ============================================================
      CONJUNTOS Y DOMINIOS DE INDICADORES — acentos acidos
      ============================================================ -->
-<section class="py-14 bg-[#fbfef5] border-y border-lime-100">
+<section class="py-14">
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Catálogo estadístico</span>
@@ -267,7 +279,7 @@
 <!-- ============================================================
      IA Y PLATAFORMA
      ============================================================ -->
-<section class="py-14 bg-white">
+<section class="py-14">
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">IA y plataforma</span>
@@ -311,7 +323,7 @@
 <!-- ============================================================
      INSTRUMENTOS DEL SISTEMA ESTADISTICO
      ============================================================ -->
-<section class="py-14 bg-[#fbfef5] border-y border-lime-100">
+<section class="py-14">
     <div class="container mx-auto px-4">
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-3">Ecosistema institucional</span>
@@ -374,7 +386,7 @@
 <!-- ============================================================
      INDICADORES DESTACADOS — slider claro con acentos por tema
      ============================================================ -->
-<section class="py-14 bg-white">
+<section class="py-14">
     <div class="container mx-auto px-4">
         <div class="text-center mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Cali en números</span>
@@ -562,7 +574,7 @@
      NOTICIAS INSTITUCIONALES
      ============================================================ -->
 {% if noticias %}
-<section class="py-14 bg-[#f8fdfd] border-y border-cyan-100">
+<section class="py-14">
     <div class="container mx-auto px-4">
         <div class="flex items-center justify-between flex-wrap gap-4 mb-8">
             <div class="flex items-center gap-4">
@@ -695,7 +707,7 @@
      ============================================================ -->
 {% get_eventos_proximos 6 as upcoming_events %}
 {% if upcoming_events %}
-<section class="py-14 bg-white">
+<section class="py-14">
     <div class="container mx-auto px-4">
         <div class="text-center mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">Agenda</span>
@@ -771,6 +783,8 @@
     <img src="{% static 'indicadores/images/ciudad.png' %}" alt="Santiago de Cali" class="w-full object-cover mt-10" loading="lazy">
 </section>
 {% endif %}
+
+</div><!-- /home-canvas -->
 
 <!-- ============================================================
      SCRIPTS — sliders de indicadores y noticias
