@@ -185,14 +185,14 @@
             <p class="text-slate-500 mt-2">Del indicador puntual al tablero completo: entradas directas a las fuentes del SIIED.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Consulta y Tableros -->
-            <a href="{% url 'indicadores:laboratorio_home' %}" class="hcard hcyan group">
-                <div class="hcard-ico acc-cyan"><i class="fas fa-table-columns"></i></div>
-                <img src="{% static 'indicadores/images/logo_consulta_tableros.png' %}" alt="Consulta y Tableros" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Consulta y Tableros</h3>
-                <p class="text-sm text-slate-500 mt-1">Describe el tablero que necesitas y Don Datico lo construye con fuentes reales.</p>
-                <span class="hcard-cta">Abrir Consulta y Tableros <i class="fas fa-arrow-right ml-1"></i></span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Explorador de conjuntos -->
+            <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-cyan"><i class="fas fa-database"></i></div>
+                <img src="{% static 'indicadores/images/gato claro.png' %}" alt="Explorador de conjuntos de datos" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Explorador de Conjuntos de Datos</h3>
+                <p class="text-sm text-slate-500 mt-1">Accede, analiza y descarga datasets con herramientas interactivas.</p>
+                <span class="hcard-cta">Explorar datos <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Visor Comparativo -->
@@ -204,9 +204,18 @@
                 <span class="hcard-cta">Acceder al Visor <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
+            <!-- Consulta y Tableros -->
+            <a href="{% url 'indicadores:laboratorio_home' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-blue"><i class="fas fa-table-columns"></i></div>
+                <img src="{% static 'indicadores/images/logo_consulta_tableros.png' %}" alt="Consulta y Tableros" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Consulta y Tableros</h3>
+                <p class="text-sm text-slate-500 mt-1">Describe el tablero que necesitas y Don Datico lo construye con fuentes reales.</p>
+                <span class="hcard-cta">Abrir Consulta y Tableros <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
             <!-- Libro 3D -->
             <a href="{% url 'indicadores:dominios_3d' %}" class="hcard hcyan group">
-                <div class="hcard-ico acc-blue"><i class="fas fa-book-open"></i></div>
+                <div class="hcard-ico acc-sky"><i class="fas fa-book-open"></i></div>
                 <img src="{% static 'indicadores/images/logo_libro_3d.png' %}" alt="Libro Digital de Datos 3D" class="hcard-img mb-3">
                 <h3 class="text-lg font-bold text-slate-800">Libro Digital de Datos 3D</h3>
                 <p class="text-sm text-slate-500 mt-1">Experiencia inmersiva para explorar las historias estadísticas de Cali.</p>
@@ -227,16 +236,7 @@
             <p class="text-slate-500 mt-2">Las fuentes organizadas: datasets descargables, dominios temáticos y series históricas.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Explorador de conjuntos -->
-            <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="hcard group">
-                <div class="hcard-ico acc-emerald"><i class="fas fa-database"></i></div>
-                <img src="{% static 'indicadores/images/gato claro.png' %}" alt="Explorador de conjuntos de datos" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Explorador de Conjuntos de Datos</h3>
-                <p class="text-sm text-slate-500 mt-1">Accede, analiza y descarga datasets con herramientas interactivas.</p>
-                <span class="hcard-cta">Explorar datos <i class="fas fa-arrow-right ml-1"></i></span>
-            </a>
-
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Cali en Cifras -->
             <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}" class="hcard group">
                 <div class="hcard-ico acc-lime"><i class="fas fa-city"></i></div>
