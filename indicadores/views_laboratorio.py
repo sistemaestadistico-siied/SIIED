@@ -11,6 +11,9 @@ Flujo:
   3. ``laboratorio_guardar`` persiste unicamente la spec en ``Tablero``.
   4. ``laboratorio_ver`` re-resuelve un tablero guardado contra los datos
      vigentes (el tablero siempre refleja informacion fresca).
+
+La herramienta es de uso publico (``home`` y ``generar`` no exigen
+sesion); guardar y consultar tableros si requieren autenticacion.
 """
 import json
 import logging
@@ -18,15 +21,16 @@ import os
 import re
 
 import pandas as pd
-from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 
 from django.urls import reverse
 
 from .chat_config import get_config
+from .decorators import laboratorio_login_required
 from .llm_structured import (
     QUIZ_PROMPT, QUIZ_SCHEMA,
     TABLERO_ANALISIS_PROMPT, TABLERO_ANALISIS_SCHEMA,
@@ -840,15 +844,18 @@ def _segunda_pasada_analisis(request, spec, resueltos):
 # Vistas
 # ----------------------------------------------------------------------
 
-@login_required
+@ensure_csrf_cookie
 def laboratorio_home(request):
-    """Laboratorio vacio: chat lateral + canvas listo para generar."""
+    """Laboratorio vacio: chat lateral + canvas listo para generar.
+
+    ensure_csrf_cookie: los anónimos también generan tableros por POST
+    (la página no contiene {% csrf_token %} que emita la cookie).
+    """
     return render(request, 'laboratorio/laboratorio.html', {
         'fuentes_ctx': _contexto_fuentes(request),
     })
 
 
-@login_required
 @require_http_methods(['POST'])
 def laboratorio_generar(request):
     """Genera/ajusta un tablero a partir de una consulta en lenguaje natural.
@@ -935,7 +942,7 @@ def laboratorio_generar(request):
     })
 
 
-@login_required
+@laboratorio_login_required
 @require_http_methods(['POST'])
 def laboratorio_guardar(request):
     """Persiste la spec del tablero (los datos NO se guardan)."""
@@ -973,7 +980,7 @@ def laboratorio_guardar(request):
     return JsonResponse({'ok': True, 'tablero_id': tablero.id})
 
 
-@login_required
+@laboratorio_login_required
 def laboratorio_listar(request):
     """Lista de tableros propios (+ del organismo)."""
     qs = Tablero.objects.select_related('autor', 'organismo')
@@ -988,7 +995,8 @@ def laboratorio_listar(request):
     })
 
 
-@login_required
+@ensure_csrf_cookie
+@laboratorio_login_required
 def laboratorio_ver(request, tablero_id):
     """Renderiza un tablero guardado re-resolviendo sus tiles en vivo."""
     tablero = get_object_or_404(Tablero, id=tablero_id)

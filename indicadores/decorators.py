@@ -2,7 +2,9 @@
 Decoradores personalizados para control de acceso por roles
 """
 from functools import wraps
+from django.http import JsonResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
@@ -194,4 +196,44 @@ def taller_staff_required(view_func):
             messages.error(request, 'Esta sección es solo para el equipo del SIIED.')
             return redirect('indicadores:taller_landing')
         return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+def laboratorio_login_required(view_func):
+    """
+    Consulta y Tableros: la herramienta es de uso público, pero guardar y
+    consultar tableros requiere sesión iniciada.
+
+    - Peticiones POST/fetch: responde JSON 401 con la URL de login (el front
+      muestra el aviso en el chat en lugar de recibir un HTML de login).
+    - Peticiones GET: redirige al login del portal conservando ?next= para
+      volver al tablero tras autenticarse.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return view_func(request, *args, **kwargs)
+
+        if request.method == 'POST':
+            # El next debe ser la pagina origen (Referer), no este endpoint
+            # POST — tras el login redirigir a el daria 405.
+            origen = request.META.get('HTTP_REFERER', '')
+            next_path = request.path  # fallback razonable
+            if origen:
+                from urllib.parse import urlparse
+                parsed = urlparse(origen)
+                if parsed.netloc == request.get_host():
+                    next_path = parsed.path or request.path
+            login_url = (
+                f"{reverse('indicadores:delegado_login')}?next={next_path}")
+            return JsonResponse(
+                {
+                    'ok': False,
+                    'error': 'Inicia sesión para guardar y consultar tableros.',
+                    'login_url': login_url,
+                },
+                status=401)
+        return redirect(
+            f"{reverse('indicadores:delegado_login')}"
+            f"?next={request.get_full_path()}")
     return wrapper

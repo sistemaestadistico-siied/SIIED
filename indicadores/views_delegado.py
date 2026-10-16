@@ -10,6 +10,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib import messages
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.db.models import Q
 from django.core.files.base import ContentFile
 from django.core.paginator import Paginator
@@ -62,13 +63,22 @@ def _get_conjunto_datoss(request, organismo):
 # ============================================================================
 
 def delegado_login(request):
-    """Login exclusivo para delegados de organismos."""
+    """Login exclusivo para delegados de organismos.
+
+    Soporta ?next= para volver a la página de origen tras autenticarse
+    (ej: Consulta y Tableros). Solo URLs locales, para evitar open redirect.
+    """
+    next_url = request.GET.get('next', '')
+    if next_url and not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}):
+        next_url = ''
+
     if request.user.is_authenticated:
         if request.user.is_staff:
-            return redirect('indicadores:delegado_dashboard')
+            return redirect(next_url or 'indicadores:delegado_dashboard')
         if hasattr(request.user, 'perfil_recolector'):
             if request.user.perfil_recolector.es_delegado():
-                return redirect('indicadores:delegado_dashboard')
+                return redirect(next_url or 'indicadores:delegado_dashboard')
         auth_logout(request)
 
     if request.method == 'POST':
@@ -83,7 +93,7 @@ def delegado_login(request):
                 auth_login(request, user)
                 nombre = user.get_full_name() or user.username
                 messages.success(request, f'Bienvenido/a, {nombre}')
-                return redirect('indicadores:delegado_dashboard')
+                return redirect(next_url or 'indicadores:delegado_dashboard')
             else:
                 messages.error(
                     request,
