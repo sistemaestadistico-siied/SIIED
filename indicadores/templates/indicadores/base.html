@@ -254,13 +254,23 @@
                     </a>
                 </li>
                 <li class="py-4">
-                    <a href="{% url 'indicadores:proyectos_informacion' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'proyectos' %}text-primary-600 active{% endif %}">
-                        Productos
+                    <a href="{% url 'indicadores:herramientas_consulta' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'herramientas' %}text-primary-600 active{% endif %}">
+                        Herramientas
                     </a>
                 </li>
                 <li class="py-4">
-                    <a href="{% url 'indicadores:sistemas_informacion' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'sistemas' %}text-primary-600 active{% endif %}">
-                        Sistemas
+                    <a href="{% url 'indicadores:conjuntos_indicadores' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conjuntos' %}text-primary-600 active{% endif %}">
+                        Conjuntos
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:conectividad_acceso' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conectividad' %}text-primary-600 active{% endif %}">
+                        Conectividad
+                    </a>
+                </li>
+                <li class="py-4">
+                    <a href="{% url 'indicadores:instrumentos_sistema' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'instrumentos' %}text-primary-600 active{% endif %}">
+                        Instrumentos
                     </a>
                 </li>
                 <li class="py-4">

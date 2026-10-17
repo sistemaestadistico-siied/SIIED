@@ -1,0 +1,70 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <span class="here">Conectividad</span>
+        </nav>
+
+        <div class="mb-10 max-w-3xl">
+            <span class="pchip mb-3"><i class="fas fa-plug"></i> Conectividad</span>
+            <h1 class="ptitle">Conectividad y <span class="pgrad">Acceso Abierto</span></h1>
+            <p class="psub mt-2">
+                El asistente que habla tu idioma, la API que habla con tus
+                sistemas y la documentación abierta del SIIED: todos los canales
+                de acceso a la información estadística, para personas y máquinas.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Don Datico -->
+            <a href="{% url 'indicadores:chat' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Don Datico · Asistente IA</h3>
+                <p class="text-sm text-slate-500 mt-1">Consulta indicadores en lenguaje natural con el guía del sistema.</p>
+                <span class="pcta">Chatear ahora <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Libro 3D -->
+            <a href="{% url 'indicadores:dominios_3d' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_libro_3d.png' %}" alt="Libro Digital de Datos 3D" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Libro Digital de Datos 3D</h3>
+                <p class="text-sm text-slate-500 mt-1">Experiencia inmersiva para explorar las historias estadísticas de Cali.</p>
+                <span class="pcta">Explorar capítulos <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- API Abierta -->
+            <a href="{% url 'indicadores:api_documentation' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_api.png' %}" alt="API Abierta" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">API Abierta</h3>
+                <p class="text-sm text-slate-500 mt-1">REST API gratuita con documentación y ejemplos para integrar los datos.</p>
+                <span class="pcta">Ver documentación <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Documentación y código abierto -->
+            <a href="{% url 'indicadores:documentacion' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <div class="pico pico-emerald"><i class="fas fa-code-branch"></i></div>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Documentación y código abierto</h3>
+                <p class="text-sm text-slate-500 mt-1">Manuales, guías y el SIIED como software abierto: réplica, adapta y contribuye.</p>
+                <span class="pcta">Ir a documentación <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -58,6 +58,11 @@ urlpatterns = [
     path('catalogo-consulta/', views.catalogo_consulta_listado, name='catalogo_consulta_listado'),
     path('catalogo-consulta/<int:pk>/', views.catalogo_consulta_detalle, name='catalogo_consulta_detalle'),
     path('proyectos-informacion/', views.proyectos_informacion, name='proyectos_informacion'),
+    # Páginas del menú principal: mismas secciones de accesos del home
+    path('herramientas/', views.herramientas_consulta, name='herramientas_consulta'),
+    path('conjuntos/', views.conjuntos_indicadores, name='conjuntos_indicadores'),
+    path('conectividad/', views.conectividad_acceso, name='conectividad_acceso'),
+    path('instrumentos/', views.instrumentos_sistema, name='instrumentos_sistema'),
     path('aliado/<slug:slug>/', views.aliado_detalle, name='aliado_detalle'),
     path('eventos/', views.eventos_lista, name='eventos'),
     path('evento/<slug:slug>/', views.evento_detalle, name='evento_detalle'),

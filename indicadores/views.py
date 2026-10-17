@@ -672,6 +672,38 @@ def dominios(request):
     })
 
 
+def herramientas_consulta(request):
+    """Página 'Herramientas de consulta': accesos a las herramientas de
+    análisis de la plataforma (mismas tarjetas de la sección del home)."""
+    return render(request, 'indicadores/herramientas_consulta.html', {
+        'page': 'herramientas'
+    })
+
+
+def conjuntos_indicadores(request):
+    """Página 'Conjuntos de indicadores': accesos a los grandes conjuntos
+    del catálogo (dominios, Cali en Cifras, ODS)."""
+    return render(request, 'indicadores/conjuntos_indicadores.html', {
+        'page': 'conjuntos'
+    })
+
+
+def conectividad_acceso(request):
+    """Página 'Conectividad y Acceso Abierto': Don Datico, Libro 3D, API
+    abierta y documentación/código abierto del SIIED."""
+    return render(request, 'indicadores/conectividad_acceso.html', {
+        'page': 'conectividad'
+    })
+
+
+def instrumentos_sistema(request):
+    """Página 'Instrumentos del sistema': medición y difusión de la
+    capacidad estadística distrital (inventario, ICED, taller, etc.)."""
+    return render(request, 'indicadores/instrumentos_sistema.html', {
+        'page': 'instrumentos'
+    })
+
+
 def dominio_detalle(request, slug):
     # Obtener el dominio por slug (case-insensitive)
     dominio = get_object_or_404(MenuDominio, slug__iexact=slug)
@@ -695,8 +727,27 @@ def tema_detalle(request, dominio_slug, tema_slug):
     # Obtener todos los temas del dominio para la navegación lateral
     temas_del_dominio = MenuTema.objects.filter(dominio=dominio, activo=True).order_by('orden')
     
-    # Obtener los subtemas activos del tema ordenados por el campo 'orden'
-    subtemas = MenuSubtema.objects.filter(tema=tema, activo=True).order_by('orden')
+    # Subtemas activos CON contenido visible: al menos un indicador
+    # con datos o enlazado al catalogo de consulta (por FK principal o
+    # por subtemas_adicionales). Los subtemas vacios se ocultan.
+    hay_datos_fk = (Q(indicadores__datos__isnull=False)
+                    | Q(indicadores__catalogo_consulta__isnull=False))
+    hay_datos_m2m = (Q(indicadores_adicionales__datos__isnull=False)
+                     | Q(indicadores_adicionales__catalogo_consulta__isnull=False))
+    subtemas = (MenuSubtema.objects
+                .filter(tema=tema, activo=True)
+                .annotate(
+                    n_fk=Count('indicadores',
+                               filter=Q(indicadores__activo=True)
+                                      & hay_datos_fk,
+                               distinct=True),
+                    n_m2m=Count('indicadores_adicionales',
+                                filter=Q(indicadores_adicionales__activo=True)
+                                       & hay_datos_m2m,
+                                distinct=True),
+                )
+                .filter(Q(n_fk__gt=0) | Q(n_m2m__gt=0))
+                .order_by('orden'))
     
     return render(request, 'indicadores/tema_detalle.html', {
         'page': 'dominios',
@@ -717,10 +768,13 @@ def subtema_detalle(request, dominio_slug, tema_slug, subtema_slug):
     # Obtener el subtema por slug (case-insensitive)
     subtema = get_object_or_404(MenuSubtema, slug__iexact=subtema_slug, tema=tema, activo=True)
     
-    # Obtener todos los indicadores activos del subtema ordenados por campo orden
-    # indicadores_todos() une el subtema principal (FK) con los
-    # subtemas adicionales (M2M): el indicador aparece en todos.
-    indicadores = subtema.indicadores_todos().order_by('orden', 'nombre')
+    # Indicadores activos del subtema CON contenido visible: con datos
+    # o enlazados al catalogo de consulta. indicadores_todos() une el
+    # subtema principal (FK) con los adicionales (M2M).
+    indicadores = (subtema.indicadores_todos()
+                   .filter(Q(datos__isnull=False)
+                           | Q(catalogo_consulta__isnull=False))
+                   .distinct().order_by('orden', 'nombre'))
     
     return render(request, 'indicadores/subtema_detalle.html', {
         'page': 'dominios',
@@ -745,10 +799,12 @@ def subtema_detalle_2(request, tema_slug, subtema_slug):
     # Obtener el subtema por slug (case-insensitive)
     subtema = get_object_or_404(MenuSubtema, slug__iexact=subtema_slug, tema=tema, activo=True)
     
-    # Obtener todos los indicadores activos del subtema ordenados por campo orden
-    # indicadores_todos() une el subtema principal (FK) con los
-    # subtemas adicionales (M2M): el indicador aparece en todos.
-    indicadores = subtema.indicadores_todos().order_by('orden', 'nombre')
+    # Indicadores activos del subtema CON contenido visible: con datos
+    # o enlazados al catalogo de consulta.
+    indicadores = (subtema.indicadores_todos()
+                   .filter(Q(datos__isnull=False)
+                           | Q(catalogo_consulta__isnull=False))
+                   .distinct().order_by('orden', 'nombre'))
     
     return render(request, 'indicadores/subtema_detalle.html', {
         'page': 'dominios',
@@ -774,9 +830,13 @@ def subtema_detalle_3d(request, dominio_slug, tema_slug, subtema_slug):
     # Obtener el subtema por slug (case-insensitive)
     subtema = get_object_or_404(MenuSubtema, slug__iexact=subtema_slug, tema=tema, activo=True)
     
-    # Obtener todos los indicadores activos del subtema ordenados por campo orden
+    # Indicadores activos del subtema CON contenido visible: con datos
+    # o enlazados al catalogo de consulta.
     # (principal FK + adicionales M2M — ver MenuSubtema.indicadores_todos)
-    indicadores = subtema.indicadores_todos().order_by('orden', 'nombre')
+    indicadores = (subtema.indicadores_todos()
+                   .filter(Q(datos__isnull=False)
+                           | Q(catalogo_consulta__isnull=False))
+                   .distinct().order_by('orden', 'nombre'))
     
     return render(request, 'indicadores/subtema_detalle_3d.html', {
         'page': 'dominios',
@@ -6648,7 +6708,10 @@ def catalogo_consulta_listado(request):
 
     dominios_data = []
     for dominio in dominios:
-        conjuntos = [c for c in dominio.catalogos_consulta.all() if c.activo]
+        # Solo activos y no vacios: un catalogo sin filas no ofrece
+        # consulta y se oculta del listado publico.
+        conjuntos = [c for c in dominio.catalogos_consulta.all()
+                     if c.activo and c.filas]
         if conjuntos:
             dominios_data.append({'dominio': dominio, 'conjuntos': conjuntos})
 

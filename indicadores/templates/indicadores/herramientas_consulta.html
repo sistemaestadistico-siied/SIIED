@@ -1,0 +1,61 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <span class="here">Herramientas</span>
+        </nav>
+
+        <div class="mb-10 max-w-3xl">
+            <span class="pchip mb-3"><i class="fas fa-wrench"></i> Consulta y análisis</span>
+            <h1 class="ptitle">Herramientas de <span class="pgrad">consulta</span></h1>
+            <p class="psub mt-2">
+                Del indicador puntual al tablero completo: estas son las entradas
+                directas a las herramientas de consulta y análisis del SIIED —
+                explorador de conjuntos de datos, visor comparativo y el
+                generador de tableros con Don Datico.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Explorador de conjuntos -->
+            <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/gato claro.png' %}" alt="Explorador de conjuntos de datos" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Explorador de Conjuntos de Datos</h3>
+                <p class="text-sm text-slate-500 mt-1">Accede, analiza y descarga datasets con herramientas interactivas.</p>
+                <span class="pcta">Explorar datos <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Visor Comparativo -->
+            <a href="{% url 'indicadores:visor_comparativo' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logosinfondoclaros.png' %}" alt="Visor Comparativo" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Visor Comparativo</h3>
+                <p class="text-sm text-slate-500 mt-1">Compara múltiples indicadores en series, cortes y cruces interactivos.</p>
+                <span class="pcta">Acceder al Visor <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Consulta y Tableros -->
+            <a href="{% url 'indicadores:laboratorio_home' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_consulta_tableros.png' %}" alt="Consulta y Tableros" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Consulta y Tableros</h3>
+                <p class="text-sm text-slate-500 mt-1">Describe el tablero que necesitas y Don Datico lo construye con fuentes reales.</p>
+                <span class="pcta">Abrir Consulta y Tableros <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

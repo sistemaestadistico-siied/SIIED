@@ -1,0 +1,90 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <span class="here">Instrumentos</span>
+        </nav>
+
+        <div class="mb-10 max-w-3xl">
+            <span class="pchip mb-3"><i class="fas fa-toolbox"></i> Ecosistema institucional</span>
+            <h1 class="ptitle">Instrumentos del <span class="pgrad">sistema</span></h1>
+            <p class="psub mt-2">
+                Medición, caracterización y difusión de la capacidad estadística
+                distrital: el inventario de operaciones, la evaluación ICED, el
+                taller de gestión de datos y los canales de transparencia.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Inventario de Operaciones -->
+            <a href="{% url 'indicadores:inventario_operaciones' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_inventario.png' %}" alt="Inventario de Operaciones Estadísticas" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Inventario de Operaciones Estadísticas</h3>
+                <p class="text-sm text-slate-500 mt-1">Catálogo oficial de operaciones: metodologías, periodicidad y responsables.</p>
+                <span class="pcta">Explorar inventario <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- ICED -->
+            <a href="{% url 'indicadores:modulo_iced' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_iced.png' %}" alt="Índice de Capacidad Estadística" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Índice de Capacidad Estadística (ICED)</h3>
+                <p class="text-sm text-slate-500 mt-1">Evaluación integral de la capacidad estadística de los organismos del Distrito.</p>
+                <span class="pcta">Explorar resultados ICED <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Hoja de Vida Estadística -->
+            <a href="{% url 'indicadores:hall_capacidad_estadistica' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_hoja_vida.png' %}" alt="Hoja de Vida Estadística" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Hoja de Vida Estadística</h3>
+                <p class="text-sm text-slate-500 mt-1">Transparencia sobre recursos, procesos y resultados de cada organismo.</p>
+                <span class="pcta">Explorar módulo <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Taller de Gestión de Datos -->
+            <a href="{% url 'indicadores:taller_ecosistema' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_taller.png' %}" alt="Taller de Gestión de Datos" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Taller de Gestión de Datos</h3>
+                <p class="text-sm text-slate-500 mt-1">Caracteriza el ecosistema de datos de tu organismo: fuentes, retos y seguridad.</p>
+                <span class="pcta">Ver ecosistema <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Medición de Satisfacción -->
+            <a href="{% url 'indicadores:satisfaccion_dashboard' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_satisfaccion.png' %}" alt="Medición de Satisfacción" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Medición de Satisfacción</h3>
+                <p class="text-sm text-slate-500 mt-1">Cómo valoran los usuarios las respuestas del sistema estadístico.</p>
+                <span class="pcta">Ver dashboard <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Calendario de Difusión -->
+            <a href="{% url 'indicadores:calendario_difusion' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/logo_calendario.png' %}" alt="Calendario de Difusión" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Calendario de Difusión</h3>
+                <p class="text-sm text-slate-500 mt-1">Programación de publicaciones estadísticas por observatorio y organismo.</p>
+                <span class="pcta">Ver calendario <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

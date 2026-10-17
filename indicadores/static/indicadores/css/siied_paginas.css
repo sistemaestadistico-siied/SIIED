@@ -89,6 +89,24 @@ a:hover .porb, .group:hover .porb {
 .porb img { width: 100%; height: 100%; object-fit: cover; }
 .porb img.contain { object-fit: contain; padding: 8%; }
 
+/* ---------- Tarjetas de acceso con logo protagonista ---------- */
+.plogo {
+    height: 7.5rem; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1.1rem;
+}
+.plogo img {
+    max-height: 7rem; width: auto; object-fit: contain;
+    transition: transform .3s ease;
+}
+a:hover .plogo img, .group:hover .plogo img { transform: scale(1.08); }
+.plogo .pico { width: 4.25rem; height: 4.25rem; font-size: 1.7rem; border-radius: 1.2rem; }
+.pcta {
+    margin-top: auto; padding-top: 1rem;
+    color: #0d9488; font-weight: 600; font-size: .875rem;
+}
+a:hover .pcta, .group:hover .pcta { color: #65a30d; }
+
 /* ---------- Titulos de seccion internos ---------- */
 .psec {
     font-size: 1.35rem; font-weight: 800; color: #1e293b;
