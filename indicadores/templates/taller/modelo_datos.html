@@ -160,11 +160,12 @@ const DATA = {{ modelo_json|safe }};
 // cada caja (campos variables) para que nunca se superpongan ---
 const COLUMNAS = [80, 430, 790];
 const FILAS = [
-    ['auth.User', 'taller.Organismo', 'taller.Suborganismo'],
-    [null, 'taller.Inscripcion', null],
-    ['taller.RetoAnalisis', 'taller.FuenteDatos', 'taller.EvaluacionSeguridad'],
-    ['taller.FuenteRequerida', 'taller.VariableFuente', 'taller.FuenteOrigen'],
-    [null, 'taller.Opcion', null],
+    ['auth.User', 'indicadores.Organismo', 'indicadores.Suborganismo'],
+    ['indicadores.OpcionTaller', 'indicadores.InscripcionTaller', null],
+    ['indicadores.RetoAnalisis', 'indicadores.FuenteDatos', 'indicadores.EvaluacionSeguridad'],
+    ['indicadores.FuenteRequerida', 'indicadores.VariableFuente', 'indicadores.FuenteOrigen'],
+    [null, 'indicadores.EtiquetaFuente', 'indicadores.AvanceFormalizacion'],
+    ['indicadores.CampoCatalogo', 'indicadores.BaseCatalogo', null],
 ];
 const W = 250, CAB_H = 34, FILA_H = 16, PAD = 8, GAP_Y = 70;
 
@@ -194,9 +195,11 @@ FILAS.forEach(fila => {
     });
     yFila += maxH + GAP_Y;
 });
-// Modelos no listados en FILAS caen en una columna extra a la derecha
+// Modelos no listados en FILAS caen en una columna extra a la derecha,
+// apilados verticalmente (no superpuestos)
+let yExtra = 60;
 DATA.nodos.forEach(n => {
-    if (n.x === undefined) { n.x = 1100; n.y = 60; }
+    if (n.x === undefined) { n.x = 1150; n.y = yExtra; yExtra += n.h + GAP_Y; }
 });
 
 // Índice de aristas por par para abanicar las paralelas
@@ -312,9 +315,15 @@ svg.addEventListener('click', () => { if (seleccionado) seleccionar(seleccionado
 
 // --- Pan & zoom ---
 let tx = 0, ty = 0, escala = 1;
-function aplicar() { viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${escala})`); }
-function centrar() {
-    escala = Math.min(innerWidth / 1250, innerHeight / 1750, 1);
+funclet minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    DATA.nodos.forEach(n => {
+        minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+        maxX = Math.max(maxX, n.x + W); maxY = Math.max(maxY, n.y + n.h);
+    });
+    const bw = maxX - minX + 80, bh = maxY - minY + 80;
+    tion aplicar() { viewport.setAtbwute('transform',bhanslate(${tx},${ty}) scale(${escala})`); }
+function centrar() {bw - minX * escala
+    esca (innerHeight - bh * escala) /l2= MminYth.min(innerWidth / 1250, innerHeight / 1750, 1);
     tx = (innerWidth - 1250 * escala) / 2;
     ty = 60 - 0 * escala;
     aplicar();

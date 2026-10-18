@@ -7,6 +7,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 <style>
     .lab-layout { display: grid; grid-template-columns: 360px 1fr; gap: 1.25rem; align-items: start; }
+    .lab-chat-panel { height: 78vh; position: sticky; top: 5rem; }
     .lab-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
     .lab-tile-amplio { grid-column: 1 / -1; }
     .lab-tile-texto { padding-bottom: .5rem; }
@@ -25,6 +26,11 @@
     @media (max-width: 1023px) {
         .lab-layout { grid-template-columns: 1fr; }
         .lab-tiles { grid-template-columns: 1fr; }
+        /* Chat como panel de entrada compacto: sin sticky, mensajes
+           con scroll interno acotado, input siempre visible. */
+        .lab-chat-panel { position: static; height: auto; }
+        #lab-chat { max-height: 34vh; }
+        .lab-tile-kpi .kpi-valor { font-size: 2rem; }
     }
 </style>
 {% endblock %}
@@ -36,7 +42,7 @@
             <h1>
                 <img src="{% static 'indicadores/images/logo_consulta_tableros.png' %}"
                      alt="Consulta y Tableros"
-                     class="h-32 lg:h-40 w-auto object-contain">
+                     class="h-20 sm:h-28 lg:h-40 w-auto object-contain">
             </h1>
             <span class="inline-flex items-center gap-2 text-[11px] font-bold tracking-widest uppercase text-teal-700 bg-teal-50 border border-teal-200 rounded-full px-3 py-1 mt-1">
                 <i class="fas fa-flask"></i> Laboratorio de Datos Distrital
@@ -67,7 +73,7 @@
 
     <div class="lab-layout">
         <!-- ================= CHAT LATERAL ================= -->
-        <aside class="bg-white rounded-2xl shadow-sm border border-teal-200 overflow-hidden flex flex-col" style="height: 78vh; position: sticky; top: 1rem;">
+        <aside class="lab-chat-panel bg-white rounded-2xl shadow-sm border border-teal-200 overflow-hidden flex flex-col">
             <div class="px-4 py-3 bg-gradient-to-r from-teal-600 to-teal-700">
                 {% include "indicadores/_dondatico_badge.html" with titulo="Analista" subtitulo="Tableros con datos reales" %}
             </div>
@@ -410,6 +416,11 @@
             if (data.ok) {
                 burbuja('Listo — generé el tablero. Puedes pedirme ajustes ("cambia el pie a barras", "agrega un KPI", "filtra solo 2024").', false);
                 renderTablero(data);
+                // En móvil el canvas queda debajo del chat: llevar al resultado.
+                if (esMovil()) {
+                    document.getElementById('lab-titulo')
+                        .scrollIntoView({behavior: 'smooth', block: 'start'});
+                }
             } else {
                 burbuja(`<i class="fas fa-exclamation-triangle text-amber-500"></i> ${data.error || 'No pude generar el tablero.'}${data.explicacion ? '<br>' + data.explicacion : ''}`, false);
             }

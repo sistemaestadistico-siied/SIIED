@@ -1,0 +1,28 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Ecosistema 3D — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-2xl font-serif font-bold text-slate-900">Ecosistema 3D del Taller</h2>
+            <p class="text-sm text-slate-500 mt-1">Grafo interactivo de organismos, fuentes, variables y bases del catálogo.</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <a href="{% url 'indicadores:taller_ecosistema_metodologia' %}" target="_blank"
+               class="px-3 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-50">Metodología</a>
+            <a href="{% url 'indicadores:analitica_taller_modelo_datos' %}" target="_blank"
+               class="px-3 py-2 bg-white border border-slate-200 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-50">Modelo de datos</a>
+            <a href="{% url 'indicadores:taller_ecosistema_gexf' %}"
+               class="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold rounded-lg transition-colors">⬇ GEXF (Gephi)</a>
+            <a href="{% url 'indicadores:taller_ecosistema_svg' %}"
+               class="px-3 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold rounded-lg transition-colors">⬇ SVG</a>
+        </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <iframe src="{% url 'indicadores:taller_ecosistema' %}" class="w-full border-0" style="height: 78vh;" title="Ecosistema 3D del taller"></iframe>
+    </div>
+</div>
+{% endblock %}

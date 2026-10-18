@@ -151,7 +151,98 @@ class ChatConfigForm(forms.Form):
         max_value=1.0,
         help_text="Nucleus sampling (0.0 - 1.0, recomendado: 0.9-0.95)"
     )
-    
+
+    LLM_REASONING_EFFORT = forms.ChoiceField(
+        label="Nivel de razonamiento (chat)",
+        choices=[
+            ('minimal', 'Minimal'), ('low', 'Low'),
+            ('medium', 'Medium'), ('high', 'High'),
+        ],
+        initial='low',
+        help_text="Cuánto 'piensa' el modelo en el chat. 'low' responde rápido; "
+                  "'high' tarda más pero es más consistente."
+    )
+
+    CEREBRAS_TIMEOUT_SECONDS = forms.FloatField(
+        label="Timeout API Principal (segundos)",
+        min_value=5.0,
+        max_value=300.0,
+        help_text="Timeout HTTP de cada llamada al proveedor principal"
+    )
+
+    CEREBRAS_TOOL_ROUND_MAX_TOKENS = forms.IntegerField(
+        label="Max tokens por ronda de tools",
+        min_value=500,
+        max_value=20000,
+        help_text="Techo de tokens en las llamadas intermedias con herramientas "
+                  "(la respuesta final usa Max Tokens Principal)"
+    )
+
+    # Resiliencia y streaming del LLM
+    LLM_PRIMARY_COOLDOWN_SECONDS = forms.IntegerField(
+        label="Cooldown del primario (segundos)",
+        min_value=30,
+        max_value=7200,
+        help_text="Si el proveedor principal falla, se usa el respaldo directo "
+                  "durante este tiempo sin reintentar el primario"
+    )
+
+    LLM_STREAM_KEEPALIVE_SECONDS = forms.FloatField(
+        label="Keep-alive del stream (segundos)",
+        min_value=5.0,
+        max_value=120.0,
+        help_text="Intervalo de señales keep-alive en el stream SSE para que "
+                  "proxies/gateways no cierren la conexión"
+    )
+
+    LLM_STRUCTURED_MAX_SECONDS = forms.FloatField(
+        label="Presupuesto generación estructurada (segundos)",
+        min_value=10.0,
+        max_value=300.0,
+        help_text="Tiempo total para generate_structured (tableros, reglas de "
+                  "extracción, metadata, noticias, quizzes)"
+    )
+
+    LLM_STRUCTURED_REASONING_EFFORT = forms.ChoiceField(
+        label="Razonamiento en generación estructurada",
+        choices=[
+            ('minimal', 'Minimal'), ('low', 'Low'),
+            ('medium', 'Medium'), ('high', 'High'),
+        ],
+        initial='high',
+        help_text="Nivel de razonamiento para specs JSON (tableros, reglas). "
+                  "'high' da specs más consistentes"
+    )
+
+    MAX_ACTIVE_USERS = forms.IntegerField(
+        label="Máximo de usuarios activos",
+        min_value=5,
+        max_value=500,
+        help_text="Número máximo de usuarios activos simultáneos en el chat"
+    )
+
+    LLM_FORCE_IPV4 = forms.BooleanField(
+        label="Forzar IPv4 en llamadas al LLM",
+        required=False,
+        help_text="Evita stalls de ~40s en hosts sin IPv6 funcional. Desactivar "
+                  "solo si el servidor tiene IPv6 operativo"
+    )
+
+    # Voz (TTS)
+    TTS_MODEL = forms.CharField(
+        label="Modelo TTS preferido",
+        max_length=100,
+        required=False,
+        help_text="Modelo de voz (ej. pico2wave, coqui XTTS). Vacío = automático"
+    )
+
+    TTS_SPEAKER_WAV = forms.CharField(
+        label="WAV de referencia TTS",
+        max_length=300,
+        required=False,
+        help_text="Ruta al .wav de referencia para clonar voz (solo Coqui XTTS)"
+    )
+
     # Configuración de Modelos IA - API Respaldo
     OLLAMA_API_KEY = forms.CharField(
         label="API Key Respaldo",

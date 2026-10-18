@@ -1,0 +1,160 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}{{ organismo.nombre|truncatechars:50 }} — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+    <a href="{% url 'indicadores:analitica_taller_organismos' %}" class="text-xs text-slate-500 hover:text-fuchsia-700">← Todos los organismos</a>
+    <div class="flex flex-wrap items-start justify-between gap-3 mt-3 mb-1">
+        <h2 class="text-2xl font-serif font-bold text-slate-900">{{ organismo.nombre }}</h2>
+        <div class="flex items-center gap-2">
+            {% if organismo.get_tipo_organigrama_display %}
+            <span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-[10px] font-bold">{{ organismo.get_tipo_organigrama_display }}</span>
+            {% endif %}
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border
+                {% if organismo.activo %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-slate-100 text-slate-500 border-slate-300{% endif %}">
+                {% if organismo.activo %}Activo{% else %}Inactivo{% endif %}
+            </span>
+        </div>
+    </div>
+    <p class="text-sm text-slate-500 mb-2">
+        {{ inscripciones|length }} fichas · {{ fuentes|length }} fuentes · {{ retos|length }} retos · {{ n_variables }} variables
+    </p>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-xs">
+        {% if organismo.descripcion %}<p class="w-full text-slate-600">{{ organismo.descripcion|truncatechars:250 }}</p>{% endif %}
+        {% if organismo.codigo_organigrama %}<span><b class="text-slate-500 uppercase text-[9px]">Código organigrama</b> <span class="font-mono font-semibold text-slate-700">{{ organismo.codigo_organigrama }}</span></span>{% endif %}
+        {% if organismo.responsable %}<span><b class="text-slate-500 uppercase text-[9px]">Responsable</b> {{ organismo.responsable }}</span>{% endif %}
+        {% if organismo.email_contacto %}<span><b class="text-slate-500 uppercase text-[9px]">Correo</b> <a class="text-fuchsia-700 hover:underline" href="mailto:{{ organismo.email_contacto }}">{{ organismo.email_contacto }}</a></span>{% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Fuentes -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-700 border-b border-amber-200 pb-2 mb-3">Fuentes reportadas ({{ fuentes|length }})</h3>
+                <div class="space-y-2">
+                    {% for f in fuentes %}
+                    <div class="flex items-center justify-between gap-3 border border-slate-100 rounded-xl px-4 py-2.5 {% if f.fusionada_en_id %}opacity-60{% endif %}">
+                        <div class="min-w-0">
+                            <a href="{% url 'indicadores:analitica_taller_fuente' f.id %}" class="text-xs font-bold text-slate-800 hover:text-fuchsia-700">{{ f.nombre|truncatechars:55 }}</a>
+                            <p class="text-[10px] text-slate-400">{{ f.inscripcion.suborganismo.nombre|default:'—'|truncatechars:35 }} · Taller {{ f.inscripcion.edicion }}</p>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border
+                                {% if f.capa == 'gold' %}bg-emerald-50 text-emerald-700 border-emerald-300
+                                {% elif f.capa == 'plata' %}bg-slate-100 text-slate-600 border-slate-300
+                                {% else %}bg-amber-50 text-amber-700 border-amber-300{% endif %}">{{ f.capa }}</span>
+                            <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[9px] font-bold">{{ f.variables.count }} var.</span>
+                            {% if f.seguridad.criticidad == 'rojo' %}<span class="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-[9px] font-bold">crítica</span>{% endif %}
+                            {% if f.fusionada_en_id %}<span class="px-2 py-0.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-full text-[9px] font-bold">absorbida</span>{% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400">Sin fuentes caracterizadas.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Retos -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-700 border-b border-emerald-200 pb-2 mb-3">Retos de análisis ({{ retos|length }})</h3>
+                <div class="space-y-2">
+                    {% for r in retos %}
+                    <div class="border border-slate-100 rounded-xl px-4 py-2.5 {% if r.fusionado_en_id %}opacity-60{% endif %}">
+                        <div class="flex items-center justify-between gap-2">
+                            <a href="{% url 'indicadores:analitica_taller_reto' r.id %}" class="text-xs font-bold text-slate-800 hover:text-fuchsia-700"><span class="text-fuchsia-600">R{{ r.id }}</span> {{ r.nombre|truncatechars:70 }}</a>
+                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase border bg-slate-50 text-slate-600 border-slate-200">{{ r.get_estado_seguimiento_display }}</span>
+                        </div>
+                        {% if r.fusionado_en_id %}<p class="text-[10px] text-amber-600">Unificado en R{{ r.fusionado_en_id }}</p>{% endif %}
+                        {% if r.fuentes_requeridas.all %}
+                        <p class="text-[10px] text-slate-400 mt-1">Requiere: {% for fr in r.fuentes_requeridas.all %}{{ fr.nombre|truncatechars:25 }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400">Sin retos formulados.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Contactos de las fichas -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-sky-700 border-b border-sky-200 pb-2 mb-3">Usuarios y contactos de las fichas ({{ inscripciones|length }})</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead><tr class="text-left text-[9px] font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100">
+                            <th class="pb-2 pr-3">Nombre</th><th class="pb-2 pr-3">Correo</th><th class="pb-2 pr-3">Teléfono</th>
+                            <th class="pb-2 pr-3">Suborganismo / equipo</th><th class="pb-2 pr-3">Edición</th><th class="pb-2">Estado</th>
+                        </tr></thead>
+                        <tbody>
+                        {% for i in inscripciones %}
+                        <tr class="border-b border-slate-50">
+                            <td class="py-2 pr-3 font-semibold text-slate-700">{{ i.nombre_completo }}{% if i.user %}<br><span class="text-[9px] font-normal text-slate-400">@{{ i.user.username }}</span>{% endif %}</td>
+                            <td class="py-2 pr-3"><a href="mailto:{{ i.correo }}" class="text-fuchsia-700 hover:underline">{{ i.correo|truncatechars:30 }}</a></td>
+                            <td class="py-2 pr-3 text-slate-600">{{ i.telefono|default:'—' }}</td>
+                            <td class="py-2 pr-3 text-slate-600">{{ i.suborganismo.nombre|default:'—'|truncatechars:30 }}{% if i.equipo or i.equipo_responsable %}<br><span class="text-[10px] text-slate-400">{{ i.equipo.nombre|default:i.equipo_responsable|truncatechars:30 }}</span>{% endif %}</td>
+                            <td class="py-2 pr-3 font-bold text-slate-500">{{ i.edicion }}</td>
+                            <td class="py-2"><span class="px-2 py-0.5 rounded-full text-[9px] font-bold border {% if i.estado == 'completada' %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-amber-50 text-amber-700 border-amber-200{% endif %}">{{ i.get_estado_display }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="py-3 text-slate-400">Sin fichas.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna lateral -->
+        <div class="space-y-6">
+            <!-- Estructura jerárquica -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Estructura del organismo</h3>
+                <p class="text-[10px] text-slate-400 mb-3">{{ suborganismos|length }} suborganismos · {{ n_equipos }} equipos ({{ n_equipos_activos }} activos)</p>
+                <ul class="space-y-2">
+                    {% for s in suborganismos %}
+                    <li class="text-xs {% if not s.activo %}opacity-60{% endif %}">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="font-semibold text-slate-700">{{ s.nombre }}</p>
+                            <span class="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 border border-indigo-200 rounded text-[9px] font-bold shrink-0">{{ s.get_tipo_display }}</span>
+                        </div>
+                        {% if s.codigo_organigrama %}<p class="text-[9px] text-slate-400 font-mono">{{ s.codigo_organigrama }}</p>{% endif %}
+                        {% if s.equipos.all %}
+                        <ul class="mt-1 ml-3 space-y-0.5 border-l-2 border-slate-100 pl-2">
+                            {% for e in s.equipos.all %}
+                            <li class="text-[11px] flex items-center justify-between gap-2">
+                                <span class="text-slate-600 {% if not e.activo %}line-through text-slate-400{% endif %}">{{ e.nombre }}</span>
+                                {% if not e.activo %}<span class="text-[8px] font-bold text-slate-400 uppercase">inactivo</span>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </li>
+                    {% empty %}
+                    <li class="text-xs text-slate-400">Sin suborganismos registrados.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Variables más frecuentes -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Variables más frecuentes</h3>
+                {% for v in top_variables %}
+                <div class="mb-2">
+                    <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5">
+                        <span class="font-mono">{{ v.nombre|truncatechars:35 }}</span>
+                        <span class="font-bold text-fuchsia-700">{{ v.total }}</span>
+                    </div>
+                    <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {% widthratio v.total top_variables.0.total 100 %}%"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-xs text-slate-400">Sin variables registradas.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

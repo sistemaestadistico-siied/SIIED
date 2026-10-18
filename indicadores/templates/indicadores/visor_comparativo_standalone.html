@@ -612,34 +612,70 @@
     <nav id="main-nav" class="shadow-md sticky top-0 z-50 transition-all duration-300" style="background-color: var(--lab-nav-bg);">
         <div class="container mx-auto px-4">
             <ul class="flex flex-wrap justify-around md:justify-center space-x-0 md:space-x-8">
+                <!-- Siempre visibles (también en móvil) -->
                 <li class="py-4">
                     <a href="{% url 'indicadores:home' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
                         Inicio
                     </a>
                 </li>
                 <li class="py-4">
+                    <a href="{% url 'indicadores:conjuntos_indicadores' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Conjuntos
+                    </a>
+                </li>
+                <!-- Solo escritorio / desplegable en móvil -->
+                <li class="py-4 nav-extra hidden md:block">
                     <a href="{% url 'indicadores:dominios' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
                         Dominios
                     </a>
                 </li>
-                <li class="py-4">
-                    <a href="#" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
-                        Productos
+                <li class="py-4 nav-extra hidden md:block">
+                    <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Catálogos
                     </a>
                 </li>
                 <li class="py-4">
-                    <a href="#" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
-                        Sistemas
+                    <a href="{% url 'indicadores:herramientas_consulta' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300 active" style="color: var(--lab-nav-text);">
+                        Herramientas
                     </a>
                 </li>
                 <li class="py-4">
-                    <a href="#" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                    <a href="{% url 'indicadores:instrumentos_sistema' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Instrumentos
+                    </a>
+                </li>
+                <li class="py-4 nav-extra hidden md:block">
+                    <a href="{% url 'indicadores:infraestructura_index' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
                         Infraestructura
                     </a>
+                </li>
+                <li class="py-4 nav-extra hidden md:block">
+                    <a href="{% url 'indicadores:conectividad_acceso' %}" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);">
+                        Conectividad
+                    </a>
+                </li>
+                <!-- Botón 'Más': solo móvil, despliega los nav-extra -->
+                <li class="py-4 md:hidden">
+                    <button type="button" onclick="toggleNavExtra()" class="nav-link px-3 py-2 font-medium transition-colors duration-300" style="color: var(--lab-nav-text);" aria-label="Mostrar más opciones del menú">
+                        Más <i class="fas fa-chevron-down ml-1 text-xs nav-more-icon"></i>
+                    </button>
                 </li>
             </ul>
         </div>
     </nav>
+    <script>
+        // Menú móvil: 'Más' despliega los items secundarios (.nav-extra).
+        // En escritorio (md+) siempre son visibles vía md:block.
+        function toggleNavExtra() {
+            document.querySelectorAll('.nav-extra').forEach(function (el) {
+                el.classList.toggle('hidden');
+            });
+            document.querySelectorAll('.nav-more-icon').forEach(function (icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            });
+        }
+    </script>
     
     <!-- Contenido principal -->
     <main class="container mx-auto px-4 py-8">

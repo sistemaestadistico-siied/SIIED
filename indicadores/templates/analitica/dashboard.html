@@ -1,0 +1,76 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+{% block title %}Analítica e IA — SIIED{% endblock %}
+{% block analitica_content %}
+
+<style>
+    .acard {
+        display:flex; flex-direction:column;
+        background:#fff; border:1px solid #e7ecec; border-radius:1.25rem;
+        padding:1.5rem;
+        transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+        text-decoration:none;
+    }
+    .acard:hover {
+        transform:translateY(-4px);
+        border-color:#a3e635;
+        box-shadow:0 16px 32px -12px rgba(163,230,53,.30), 0 8px 16px -8px rgba(15,23,42,.10);
+    }
+    .acard .acard-cta { color:#0d9488; font-weight:600; font-size:.875rem; margin-top:auto; padding-top:.9rem; }
+    .acard:hover .acard-cta { color:#65a30d; }
+    .acard-ico {
+        width:3.25rem; height:3.25rem; border-radius:1rem;
+        display:flex; align-items:center; justify-content:center;
+        margin-bottom:1rem; font-size:1.35rem;
+    }
+    .acard.soon { opacity:.75; }
+    .acard.soon:hover { border-color:#e7ecec; box-shadow:none; transform:none; }
+</style>
+
+<div class="container mx-auto px-6 py-10">
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-slate-900">Administración de la IA del portal</h2>
+        <p class="text-slate-500 mt-1">Parámetros, prompts y comportamiento de Don Datico, y el futuro acceso a tableros Superset.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        <a href="{% url 'indicadores:analitica_configuracion' %}" class="acard">
+            <div class="acard-ico" style="background:#d1fae5;color:#047857;">
+                <i class="fas fa-sliders-h"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Configuración IA</h3>
+            <p class="text-sm text-slate-600 mb-4">Modelos, timeouts, límites de requests, resiliencia, streaming, generación estructurada y voz de Don Datico.</p>
+            <span class="acard-cta">Abrir configuración →</span>
+        </a>
+
+        <a href="{% url 'indicadores:analitica_contextos' %}" class="acard">
+            <div class="acard-ico" style="background:#cffafe;color:#0e7490;">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Contextos y Prompts</h3>
+            <p class="text-sm text-slate-600 mb-4">Edita los prompts de sistema de Don Datico: personalidad, instrucciones de herramientas y respaldo.</p>
+            <span class="acard-cta">Editar contextos →</span>
+        </a>
+
+        <a href="{% url 'indicadores:analitica_sugerencias' %}" class="acard">
+            <div class="acard-ico" style="background:#fae8ff;color:#a21caf;">
+                <i class="fas fa-lightbulb"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Consultas sugeridas</h3>
+            <p class="text-sm text-slate-600 mb-4">Las preguntas de ejemplo que el chat muestra a los usuarios al iniciar la conversación.</p>
+            <span class="acard-cta">Editar sugerencias →</span>
+        </a>
+
+        <a href="{% url 'indicadores:analitica_superset' %}" class="acard">
+            <div class="acard-ico" style="background:#e0f2fe;color:#0369a1;">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Tableros Superset</h3>
+            <p class="text-sm text-slate-600 mb-4">Generación de tableros con Apache Superset. Integración planificada — punto de entrada futuro.</p>
+            <span class="acard-cta">Ver estado →</span>
+        </a>
+
+    </div>
+</div>
+{% endblock %}

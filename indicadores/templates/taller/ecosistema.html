@@ -141,6 +141,19 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
 .eco-resumen ul { margin: 8px 0 0 16px; color: #2d3748; }
 .eco-resumen li { margin-bottom: 2px; }
 
+/* --- Escala global de la UI overlay ---
+   Los paneles fijos fueron diseñados para una escala ~80%; se replica con
+   transform (no zoom) para no alterar las coordenadas JS del tooltip ni
+   la resolución del canvas WebGL. Cada panel se ancla en su esquina. */
+.eco-top { transform: scale(0.8); transform-origin: top left; width: 125%; right: auto; }
+.eco-controls { transform: scale(0.8); transform-origin: top right; }
+.eco-filtros { transform: scale(0.8); transform-origin: top left; }
+.eco-info { transform: scale(0.8); transform-origin: top right; }
+.eco-leyenda { transform: scale(0.8); transform-origin: bottom left; }
+.eco-resumen { transform: scale(0.8); transform-origin: bottom right; }
+.eco-tooltip { transform: scale(0.8); transform-origin: top left; }
+.eco-loading { transform: translate(-50%, -50%) scale(0.8); }
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
     .eco-filtros { width: 200px; font-size: 10px; }

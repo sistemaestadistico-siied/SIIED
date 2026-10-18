@@ -1070,8 +1070,13 @@ def _fuentes_detalle(qs, ids):
     return resultado
 
 
-@taller_staff_required
-def dashboard(request):
+def _dashboard_context(request):
+    """Construye el contexto completo del dashboard del taller.
+
+    Compartido entre la vista legacy `taller/dashboard/` (redirige a
+    Analítica) y `analitica/taller/reportes/`, que renderiza el mismo
+    análisis dentro del módulo de Analítica.
+    """
     from .models_taller import FuenteRequerida
     from .models_catalogo import EvaluacionSeguridad, VariableFuente
     from . import wizard_taller as wz
@@ -1200,7 +1205,20 @@ def dashboard(request):
         'ultimas': _con_criticidad(inscripciones),
         'fuentes_detalle': _fuentes_detalle(fuentes, ids),
     }
-    return render(request, 'taller/dashboard.html', context)
+    return context
+
+
+@taller_staff_required
+def dashboard(request):
+    """Dashboard legacy del taller — castrado: el análisis vive en el
+    módulo de Analítica (`analitica/taller/reportes/`). Conserva
+    compatibilidad de URL redirigiendo con el alcance."""
+    from django.urls import reverse
+    url = reverse('indicadores:analitica_taller_reportes')
+    alcance = request.GET.get('alcance')
+    if alcance:
+        url += f'?alcance={alcance}'
+    return redirect(url)
 
 
 @taller_staff_required
@@ -1368,10 +1386,21 @@ def presentacion(request):
         if any('rud' in fr['nombre'].lower() or 'damnific' in fr['nombre'].lower()
                for fr in c['reqs']))
 
-    # capa Gold (constantes de arquitectura SIPDI)
-    context['n_gold'] = 9
-    context['n_gold_cat'] = 2
-    context['n_gold_int'] = 0
+    # Capa Gold — cifras reales: bases activas del catálogo + fuentes del
+    # taller validadas a gold y ya integradas al cruce (llave compartida).
+    from .models_catalogo import BaseCatalogo
+    from .catalogo_datalake import get_campos_cruzables
+    context['n_gold'] = BaseCatalogo.objects.filter(activa=True).count()
+    gold_fuentes = (FuenteDatos.objects
+                    .filter(capa=FuenteDatos.Capa.GOLD)
+                    .select_related('base_catalogo'))
+    context['n_gold_cat'] = gold_fuentes.count()
+    en_cruce = set()
+    for bases in get_campos_cruzables().values():
+        en_cruce.update(bases)
+    context['n_gold_int'] = sum(
+        1 for f in gold_fuentes
+        if f.base_catalogo_id and f.base_catalogo.slug in en_cruce)
 
     # CIA y protección: conteos vivos
     context['n_rojas'] = len(fuentes_rojas)
@@ -2366,12 +2395,16 @@ def modelo_datos(request):
     from django.db import models as dm
 
     from .models_taller import OpcionTaller, FuenteRequerida
-    from .models_catalogo import BaseCatalogo, CampoCatalogo, FuenteOrigen
+    from .models_catalogo import (
+        AvanceFormalizacion, BaseCatalogo, CampoCatalogo, EtiquetaFuente,
+        FuenteOrigen,
+    )
     modelos = [
         Organismo, Suborganismo,
         OpcionTaller, Inscripcion, FuenteDatos, FuenteOrigen,
         VariableFuente, RetoAnalisis, FuenteRequerida,
-        EvaluacionSeguridad, BaseCatalogo, CampoCatalogo,
+        EvaluacionSeguridad, EtiquetaFuente, AvanceFormalizacion,
+        BaseCatalogo, CampoCatalogo,
         get_user_model(),
     ]
     nodos, aristas = [], []

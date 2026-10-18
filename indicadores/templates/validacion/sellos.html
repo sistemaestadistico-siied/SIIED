@@ -1,0 +1,448 @@
+{% extends "validacion/base_validacion.html" %}
+{% load static %}
+{% block title %}Sellos de Calidad — Panel de Validación{% endblock %}
+{% block validacion_content %}
+
+<!-- Encabezado de sección -->
+<div class="mb-6">
+    <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+        <span class="w-10 h-10 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#fbbf24,#b45309);">
+            <i class="fas fa-award text-white"></i>
+        </span>
+        Sellos de calidad de metadatos
+    </h2>
+    <p class="text-slate-500 mt-2 text-sm max-w-3xl">
+        La metadata se publica al instante desde cualquier vía de carga (recolección, delegado,
+        masiva o individual). El sello solo certifica el nivel de verificación:
+        <strong>sin sello</strong> → <strong>organismo</strong> (pre-validación) → <strong>SIIED</strong> (validación final).
+        {% if es_validador_organismo and organismo_perfil %}
+        Solo ves los elementos de <strong>{{ organismo_perfil.nombre }}</strong> y puedes otorgar el sello del organismo.
+        {% else %}
+        Como equipo SIIED puedes otorgar el sello final de calidad sobre cualquier elemento.
+        {% endif %}
+    </p>
+</div>
+
+<!-- Filtros -->
+<form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-8 flex flex-wrap items-end gap-4">
+    <div class="flex-1 min-w-[220px]">
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Buscar</label>
+        <input type="text" name="q" value="{{ q }}" placeholder="Nombre, código o conjunto…"
+               class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+    </div>
+    <div>
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Sello</label>
+        <select name="sello" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="todos" {% if filtro_sello == 'todos' %}selected{% endif %}>Todos</option>
+            {% for val, label in sello_choices %}
+            <option value="{{ val }}" {% if filtro_sello == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition-colors">
+        <i class="fas fa-filter mr-1"></i> Filtrar
+    </button>
+    {% if filtro_sello != 'todos' or q %}
+    <a href="{% url 'indicadores:validacion_sellos' %}" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-900">Limpiar</a>
+    {% endif %}
+</form>
+
+<!-- ============ INDICADORES ============ -->
+<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-10">
+    <div class="px-8 py-5 flex justify-between items-center" style="background:linear-gradient(90deg,#0d9488,#0e7490);">
+        <h3 class="text-lg font-bold text-white">
+            <i class="fas fa-chart-line mr-2"></i>Indicadores
+        </h3>
+        <span class="text-sm text-teal-100">{{ n_indicadores }} en total</span>
+    </div>
+    {% if grupos_indicadores %}
+    <div class="divide-y divide-slate-200">
+        {% for gdom in grupos_indicadores %}
+        <details class="group/dom">
+            <summary class="px-8 py-3 bg-slate-100 hover:bg-slate-200/70 cursor-pointer flex items-center gap-2 select-none border-b border-slate-200">
+                <i class="fas fa-chevron-right text-slate-400 text-xs transition-transform group-open/dom:rotate-90"></i>
+                <span class="font-bold text-slate-700 text-sm">{{ gdom.dominio.nombre|default:'Sin clasificar' }}</span>
+                <span class="text-xs text-slate-400 font-medium">({{ gdom.n }})</span>
+            </summary>
+            {% for gtem in gdom.temas %}
+            <details class="group/tem">
+                <summary class="pl-12 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center gap-2 select-none border-b border-slate-100">
+                    <i class="fas fa-chevron-right text-slate-400 text-xs transition-transform group-open/tem:rotate-90"></i>
+                    <span class="font-semibold text-slate-600 text-sm">{{ gtem.tema.nombre|default:'Sin tema' }}</span>
+                    <span class="text-xs text-slate-400">({{ gtem.n }})</span>
+                </summary>
+                {% for gsub in gtem.subtemas %}
+                <details class="group/sub">
+                    <summary class="pl-16 pr-8 py-2 bg-white hover:bg-slate-50 cursor-pointer flex items-center gap-2 select-none border-b border-slate-100">
+                        <i class="fas fa-chevron-right text-slate-400 text-xs transition-transform group-open/sub:rotate-90"></i>
+                        <span class="font-medium text-slate-600 text-sm">{{ gsub.subtema.nombre|default:'Sin subtema' }}</span>
+                        <span class="text-xs text-slate-400">({{ gsub.n }})</span>
+                    </summary>
+                    {% for ind in gsub.indicadores %}
+        <div>
+            <div class="px-8 py-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+                <div class="flex items-center gap-4 min-w-0 flex-1">
+                    {% include 'indicadores/_sello_badge.html' with sello=ind.sello_calidad size='md' %}
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate">{{ ind.nombre }}</p>
+                        <p class="text-xs text-slate-500">
+                            {{ ind.codigo_indicador|default:'—' }}
+                            {% if ind.sigla %} · {{ ind.sigla }}{% endif %}
+                            {% if ind.organismo_responsable %} · {{ ind.organismo_responsable.nombre|truncatewords:4 }}{% endif %}
+                            {% if ind.sello_otorgado_por and ind.sello_fecha %}
+                            · sello por {{ ind.sello_otorgado_por.get_full_name|default:ind.sello_otorgado_por.username }}
+                              el {{ ind.sello_fecha|date:"d/m/Y" }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="shrink-0 flex items-center gap-2">
+                    <button type="button" onclick="toggleDet('det-ind-{{ ind.id }}', this)"
+                            title="Ver metadata a validar"
+                            class="w-8 h-8 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-teal-50 transition-colors">
+                        <i class="fas fa-chevron-down text-xs transition-transform"></i>
+                    </button>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                        {% if ind.pct_metadatos >= umbral_sello_min %}bg-emerald-100 text-emerald-700
+                        {% else %}bg-rose-100 text-rose-700{% endif %}"
+                        title="Completitud de metadata">
+                        <i class="fas fa-clipboard-check mr-1"></i>{{ ind.pct_metadatos }}%
+                    </span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold
+                        {% if ind.sello_calidad == 'sistema' %}bg-amber-100 text-amber-700
+                        {% elif ind.sello_calidad == 'organismo' %}bg-cyan-100 text-cyan-700
+                        {% else %}bg-slate-100 text-slate-500{% endif %}">
+                        {{ ind.get_sello_calidad_display }}
+                    </span>
+                    {% if ind.sello_calidad != nivel_otorgable and ind.sello_calidad != 'sistema' %}
+                    <form method="post" action="{% url 'indicadores:validacion_sello_otorgar' 'indicador' ind.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit"
+                                class="px-4 py-2 rounded-lg text-xs font-semibold text-white transition-colors
+                                       {% if es_validador_organismo %}bg-cyan-600 hover:bg-cyan-700{% else %}bg-amber-500 hover:bg-amber-600{% endif %}">
+                            <i class="fas fa-award mr-1"></i>
+                            Sellar {% if es_validador_organismo %}organismo{% else %}SIIED{% endif %}
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div id="det-ind-{{ ind.id }}" class="hidden px-8 py-5 bg-teal-50/40 border-t border-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4 text-sm">
+                    <p class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-teal-800 border-b border-teal-200 pb-1">Identificación</p>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">0.1 Nombre</p>
+                        <p class="text-slate-600">{{ ind.nombre|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">0.2 Código · 0.3 Sigla · 0.4 Grupo</p>
+                        <p class="text-slate-600">{{ ind.codigo_indicador|default:'N/A' }} · {{ ind.sigla|default:'N/A' }} · {{ ind.grupo_indicador|default:'N/A' }}</p>
+                    </div>
+                    <p class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-teal-800 border-b border-teal-200 pb-1">1 · Contacto institucional</p>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">1.1 Entidad u organismo responsable</p>
+                        <p class="text-slate-600">{{ ind.organismo_responsable.nombre|default:'N/A' }}{% if ind.entidad_responsable_legado %} · legado: {{ ind.entidad_responsable_legado }}{% endif %}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">1.3 Área o dependencia</p>
+                        <p class="text-slate-600">{{ ind.suborganismo.nombre|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">1.4 Correo · 1.5 Teléfono</p>
+                        <p class="text-slate-600">{{ ind.correo_contacto|default:'N/A' }} · {{ ind.telefono_contacto|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">1.6 Fecha de publicación de los metadatos</p>
+                        <p class="text-slate-600">{{ ind.fecha_publicacion_metadatos|date:'d/m/Y'|default:'N/A' }}</p>
+                    </div>
+                    <p class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-teal-800 border-b border-teal-200 pb-1">2 · Características del indicador</p>
+                    <div class="md:col-span-2">
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.2 Descripción del indicador</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.descripcion_indicador|default_if_none:''|striptags|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.3 Objetivo</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.objetivo|default_if_none:''|striptags|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.4 Cálculo / Método de medición</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.metodo_medicion|default_if_none:''|striptags|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.5 Fórmula</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.formula_ficha|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.6 Variables de la fórmula</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.variables|default_if_none:''|striptags|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.7 Unidad de medida</p>
+                        <p class="text-slate-600">{{ ind.unidad_medida|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.8 Fuente de la información</p>
+                        <p class="text-slate-600">{{ ind.fuente_datos|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.9 Operación estadística</p>
+                        <p class="text-slate-600">{{ ind.operacion.nombre|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.10 Nombre del conjunto de datos</p>
+                        <p class="text-slate-600">{{ ind.nombre_conjunto_datos|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.11 Nomenclaturas y clasificaciones</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.nomenclaturas_clasificaciones|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.12 Alcance temático</p>
+                        <p class="text-slate-600">{{ ind.alcance_tematico|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.13 Población objetivo</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.poblacion_objetivo|default_if_none:''|striptags|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.14 Cobertura geográfica</p>
+                        <p class="text-slate-600">{{ ind.cobertura_geografica|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.15 Período de referencia · 2.16 Período base</p>
+                        <p class="text-slate-600">{{ ind.periodo_referencia|default:'N/A' }} · {{ ind.periodo_base|default:'N/A' }}</p>
+                    </div>
+                    <p class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-teal-800 border-b border-teal-200 pb-1">3 · Difusión</p>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">3.1 Serie histórica · 3.2 Frecuencia</p>
+                        <p class="text-slate-600">{{ ind.serie_historica_disponible|default:'N/A' }} · {{ ind.frecuencia_difusion|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">3.3 Medios de difusión</p>
+                        <p class="text-slate-600">{{ ind.medios_difusion|default:'N/A' }}</p>
+                    </div>
+                    <p class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-teal-800 border-b border-teal-200 pb-1">4 · Comentarios</p>
+                    <div class="md:col-span-2">
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">4.1 Comentarios adicionales</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.comentarios_adicionales|default:'N/A' }}</p>
+                    </div>
+                    <p class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-teal-800 border-b border-teal-200 pb-1">5–6 · Referencias y responsabilidad</p>
+                    <div class="md:col-span-2">
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">5.1 Referencias</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ ind.referencias|default:'N/A' }}</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">6.3 Equipo responsable</p>
+                        <p class="text-slate-600">{{ ind.equipo_responsable.nombre|default:'N/A' }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-teal-100 flex justify-end">
+                    <a href="{% url 'indicadores:conjunto_datos_detalle' ind.id %}" target="_blank"
+                       class="text-xs font-semibold text-teal-700 hover:text-teal-900">
+                        <i class="fas fa-external-link-alt mr-1"></i>Ver ficha técnica completa
+                    </a>
+                </div>
+            </div>
+        </div>
+                    {% endfor %}
+                </details>
+                {% endfor %}
+            </details>
+            {% endfor %}
+        </details>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="py-12 text-center text-slate-500 text-sm">
+        No hay indicadores con metadata al menos al {{ umbral_sello_min }}% de completitud que coincidan con el filtro.
+    </div>
+    {% endif %}
+</div>
+
+<!-- ============ VARIABLES DE CONJUNTOS DE DATOS ============ -->
+<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-10">
+    <div class="px-8 py-5 flex justify-between items-center" style="background:linear-gradient(90deg,#7c3aed,#6d28d9);">
+        <h3 class="text-lg font-bold text-white">
+            <i class="fas fa-table mr-2"></i>Variables de conjuntos de datos
+        </h3>
+        <span class="text-sm text-violet-100">{{ n_variables }} en total</span>
+    </div>
+    {% if grupos_variables %}
+    <div class="divide-y divide-slate-200">
+        {% for gdom in grupos_variables %}
+        <details class="group/dom">
+            <summary class="px-8 py-3 bg-slate-100 hover:bg-slate-200/70 cursor-pointer flex items-center gap-2 select-none border-b border-slate-200">
+                <i class="fas fa-chevron-right text-slate-400 text-xs transition-transform group-open/dom:rotate-90"></i>
+                <span class="font-bold text-slate-700 text-sm">{{ gdom.dominio.nombre|default:'Sin clasificar' }}</span>
+                <span class="text-xs text-slate-400 font-medium">({{ gdom.n }})</span>
+            </summary>
+            {% for gtem in gdom.temas %}
+            <details class="group/tem">
+                <summary class="pl-12 pr-8 py-2.5 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center gap-2 select-none border-b border-slate-100">
+                    <i class="fas fa-chevron-right text-slate-400 text-xs transition-transform group-open/tem:rotate-90"></i>
+                    <span class="font-semibold text-slate-600 text-sm">{{ gtem.tema.nombre|default:'Sin tema' }}</span>
+                    <span class="text-xs text-slate-400">({{ gtem.n }})</span>
+                </summary>
+                {% for gsub in gtem.subtemas %}
+                <details class="group/sub">
+                    <summary class="pl-16 pr-8 py-2 bg-white hover:bg-slate-50 cursor-pointer flex items-center gap-2 select-none border-b border-slate-100">
+                        <i class="fas fa-chevron-right text-slate-400 text-xs transition-transform group-open/sub:rotate-90"></i>
+                        <span class="font-medium text-slate-600 text-sm">{{ gsub.subtema.nombre|default:'Sin subtema' }}</span>
+                        <span class="text-xs text-slate-400">({{ gsub.n }})</span>
+                    </summary>
+                    {% for gconj in gsub.conjuntos %}
+                    <div class="pl-16 pr-8 py-2.5 bg-violet-50/50 border-b border-violet-100 flex items-center justify-between gap-3">
+                        <span class="text-xs font-bold text-violet-700 uppercase tracking-wide truncate">
+                            <i class="fas fa-database mr-1"></i>{{ gconj.conjunto.nombre|default:'Sin conjunto'|truncatewords:8 }}
+                            <span class="text-violet-400 normal-case font-medium">({{ gconj.n }})</span>
+                        </span>
+            <div class="flex items-center gap-4">
+                {% with ind=gconj.conjunto.indicadores.first %}
+                {% if ind %}
+                <a href="{% url 'indicadores:conjunto_datos_detalle' ind.id %}" target="_blank"
+                   class="text-xs font-semibold text-slate-500 hover:text-violet-700 whitespace-nowrap">
+                    <i class="fas fa-external-link-alt mr-1"></i>Ver ficha
+                </a>
+                {% endif %}
+                {% endwith %}
+                {% if gconj.conjunto.pk %}
+                <form method="post" action="{% url 'indicadores:validacion_sello_otorgar' 'conjunto' gconj.conjunto.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="text-xs font-semibold text-violet-600 hover:text-violet-800 whitespace-nowrap">
+                        Sellar todo el conjunto →
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% for var in gconj.variables %}
+        <div>
+            <div class="px-8 py-3 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    {% include 'indicadores/_sello_badge.html' with sello=var.sello_calidad size='sm' %}
+                    <div class="min-w-0">
+                        <p class="text-sm text-slate-800 truncate">
+                            <span class="font-mono text-xs text-violet-600 mr-1">{{ var.codigo_variable }}</span>
+                            {{ var.nombre_variable }}
+                        </p>
+                    </div>
+                </div>
+                <div class="shrink-0 flex items-center gap-2">
+                    <button type="button" onclick="toggleDet('det-var-{{ var.id }}', this)"
+                            title="Ver metadata a validar"
+                            class="w-7 h-7 rounded-lg text-slate-400 hover:text-violet-600 hover:bg-violet-50 transition-colors">
+                        <i class="fas fa-chevron-down text-xs transition-transform"></i>
+                    </button>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold
+                        {% if var.pct_metadatos >= 70 %}bg-emerald-100 text-emerald-700
+                        {% elif var.pct_metadatos >= 35 %}bg-amber-100 text-amber-700
+                        {% else %}bg-rose-100 text-rose-700{% endif %}"
+                        title="Completitud de metadata">
+                        <i class="fas fa-clipboard-check mr-1"></i>{{ var.pct_metadatos }}%
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                        {% if var.sello_calidad == 'sistema' %}bg-amber-100 text-amber-700
+                        {% elif var.sello_calidad == 'organismo' %}bg-cyan-100 text-cyan-700
+                        {% else %}bg-slate-100 text-slate-500{% endif %}">
+                        {{ var.get_sello_calidad_display }}
+                    </span>
+                    {% if var.sello_calidad != nivel_otorgable and var.sello_calidad != 'sistema' %}
+                    <form method="post" action="{% url 'indicadores:validacion_sello_otorgar' 'variable' var.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors
+                                       {% if es_validador_organismo %}bg-cyan-600 hover:bg-cyan-700{% else %}bg-amber-500 hover:bg-amber-600{% endif %}">
+                            Sellar
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            <div id="det-var-{{ var.id }}" class="hidden px-8 py-4 bg-violet-50/40 border-t border-slate-100">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-3 text-sm">
+                    <div class="md:col-span-3">
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Definición conceptual</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ var.definicion_conceptual|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Tipo de dato / representación</p>
+                        <p class="text-slate-600">{{ var.tipo_dato|default:'N/A' }} · {{ var.tipo_representacion|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Unidad de medida</p>
+                        <p class="text-slate-600">{{ var.unidad_medida|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Dominio del dato</p>
+                        <p class="text-slate-600">{{ var.dominio_dato|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Población objetivo</p>
+                        <p class="text-slate-600">{{ var.poblacion_objetivo|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Cobertura geográfica</p>
+                        <p class="text-slate-600">{{ var.cobertura_geografica|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Desagregación geo. / temática</p>
+                        <p class="text-slate-600">{{ var.desagregacion_geografica|default:'N/A' }} · {{ var.desagregacion_tematica|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Periodicidad</p>
+                        <p class="text-slate-600">{{ var.periodicidad|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Tipo / categoría de variable</p>
+                        <p class="text-slate-600">{{ var.tipo_variable_estadistica|default:'N/A' }} · {{ var.categoria_estadistica|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Fuente de datos</p>
+                        <p class="text-slate-600">{{ var.fuente_datos|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Organismo productor</p>
+                        <p class="text-slate-600">{{ var.organismo_productor.nombre|default:var.organismo_productor_legado|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Pregunta / universo / concepto (DDI)</p>
+                        <p class="text-slate-600">{{ var.pregunta|default:'N/A' }} · {{ var.universo|default:'N/A' }} · {{ var.concepto|default:'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Referencias</p>
+                        <p class="text-slate-600">{{ var.referencias|default:'N/A' }}</p>
+                    </div>
+                    <div class="md:col-span-3">
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">Observaciones</p>
+                        <p class="text-slate-600 whitespace-pre-line">{{ var.observaciones|default:'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endfor %}
+                </details>
+                {% endfor %}
+            </details>
+            {% endfor %}
+        </details>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="py-12 text-center text-slate-500 text-sm">No hay variables que coincidan con el filtro.</div>
+    {% endif %}
+</div>
+
+<script>
+function toggleDet(id, btn) {
+    const panel = document.getElementById(id);
+    panel.classList.toggle('hidden');
+    const icon = btn.querySelector('i');
+    icon.classList.toggle('rotate-180');
+}
+</script>
+
+{% endblock %}

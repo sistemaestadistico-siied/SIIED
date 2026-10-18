@@ -99,8 +99,10 @@ def delegado_required(view_func):
 
 def validador_required(view_func):
     """
-    Decorador para el panel de Validación (Estadísticos SIIED).
-    Permite acceso a usuarios con rol 'validador' o staff.
+    Decorador para el panel de Validación.
+    Permite acceso a staff y a los roles 'validador', 'validador_organismo'
+    y 'analista'. Para acciones que exigen la validación final del SIIED
+    o los instrumentos de sistema usar validador_sistema_required.
     """
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -114,6 +116,50 @@ def validador_required(view_func):
                 return view_func(request, *args, **kwargs)
         messages.error(request, 'No tiene permisos de validador estadístico.')
         return redirect('indicadores:validacion_login')
+    return wrapper
+
+
+def validador_sistema_required(view_func):
+    """
+    Instrumentos del panel de Validación exclusivos del equipo SIIED
+    (segunda validación): staff, 'validador' y 'analista'.
+    El validador del organismo NO entra aquí.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('indicadores:validacion_login')
+        if request.user.is_staff:
+            return view_func(request, *args, **kwargs)
+        if hasattr(request.user, 'perfil_recolector'):
+            perfil = request.user.perfil_recolector
+            if perfil.es_validador_sistema():
+                return view_func(request, *args, **kwargs)
+        messages.error(
+            request,
+            'Esta sección es solo para el equipo validador del SIIED.')
+        return redirect('indicadores:validacion_dashboard')
+    return wrapper
+
+
+def analista_required(view_func):
+    """
+    Decorador para el módulo Analítica e Inteligencia Artificial.
+    Permite acceso a usuarios con rol 'analista' activo o staff.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('indicadores:analitica_login')
+        if request.user.is_staff:
+            return view_func(request, *args, **kwargs)
+        if hasattr(request.user, 'perfil_recolector'):
+            perfil = request.user.perfil_recolector
+            if perfil.es_analista():
+                return view_func(request, *args, **kwargs)
+        messages.error(
+            request, 'No tiene permisos para el módulo Analítica e IA.')
+        return redirect('indicadores:analitica_login')
     return wrapper
 
 

@@ -1,0 +1,29 @@
+{% comment %}
+Badge circular del sello de calidad de metadatos.
+Uso: {% include 'indicadores/_sello_badge.html' with sello=obj.sello_calidad size='sm|md|lg' %}
+Placeholder CSS hasta recibir las imágenes redondas reales.
+{% endcomment %}
+{% if size == 'lg' %}
+<span class="sello sello-{{ sello|default:'sin_sello' }} sello-lg" title="{{ titulo }}">
+{% elif size == 'md' %}
+<span class="sello sello-{{ sello|default:'sin_sello' }} sello-md" title="{{ titulo }}">
+{% else %}
+<span class="sello sello-{{ sello|default:'sin_sello' }} sello-sm" title="{{ titulo }}">
+{% endif %}{% if sello == 'sistema' %}<i class="fas fa-award"></i><span class="sello-txt">SIIED</span>{% elif sello == 'organismo' %}<i class="fas fa-check"></i><span class="sello-txt">ORG</span>{% else %}<i class="fas fa-question"></i><span class="sello-txt">—</span>{% endif %}
+</span>
+<style>
+.sello { display:inline-flex; align-items:center; justify-content:center; gap:.15rem;
+         border-radius:50%; font-weight:700; line-height:1; flex-direction:column; }
+.sello-sm { width:2rem; height:2rem; font-size:.5rem; }
+.sello-sm i { font-size:.6rem; }
+.sello-md { width:2.75rem; height:2.75rem; font-size:.55rem; }
+.sello-md i { font-size:.8rem; }
+.sello-lg { width:3.5rem; height:3.5rem; font-size:.6rem; }
+.sello-lg i { font-size:1rem; }
+.sello-sistema  { background:radial-gradient(circle,#fbbf24,#b45309); color:#fff;
+                 box-shadow:0 0 0 2px #fde68a, 0 2px 6px rgba(180,83,9,.4); }
+.sello-organismo{ background:radial-gradient(circle,#22d3ee,#0369a1); color:#fff;
+                 box-shadow:0 0 0 2px #a5f3fc, 0 2px 6px rgba(3,105,161,.35); }
+.sello-sin_sello{ background:#f1f5f9; color:#94a3b8; border:2px dashed #cbd5e1; }
+.sello-txt { letter-spacing:.02em; }
+</style>

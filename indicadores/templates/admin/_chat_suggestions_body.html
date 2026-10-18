@@ -1,0 +1,487 @@
+{% load static %}
+{% load chat_filters %}
+<style>
+.suggestions-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.suggestions-header {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+}
+
+.suggestions-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.suggestions-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+.suggestions-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+}
+
+.suggestions-sidebar {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+}
+
+.suggestions-sidebar h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    color: #333;
+}
+
+.category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.category-item {
+    margin-bottom: 0.5rem;
+}
+
+.category-item a {
+    display: block;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #555;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.category-item a:hover {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.category-item a.active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border-color: #7c3aed;
+}
+
+.category-item .icon {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.category-item .count {
+    float: right;
+    background: rgba(0,0,0,0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+}
+
+.category-item a.active .count {
+    background: rgba(255,255,255,0.2);
+}
+
+.suggestions-main {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-info {
+    background: #ede9fe;
+    border-left: 4px solid #8b5cf6;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.category-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #5b21b6;
+}
+
+.category-info p {
+    margin: 0;
+    color: #6d28d9;
+}
+
+.form-field {
+    margin-bottom: 1.5rem;
+}
+
+.form-field label {
+    display: block;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.form-field textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 2;
+    transition: all 0.3s;
+    resize: vertical;
+}
+
+.form-field textarea:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.help-text {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.preview-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.preview-section h4 {
+    margin: 0 0 1rem 0;
+    color: #666;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.preview-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.suggestion-chip {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: #555;
+    cursor: default;
+    transition: all 0.2s;
+}
+
+.suggestion-chip:hover {
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+.btn-save {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+    color: white;
+    text-decoration: none;
+}
+
+.line-counter {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: 0.5rem;
+}
+
+.all-suggestions {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+.all-suggestions h3 {
+    margin: 0 0 1rem 0;
+    color: #666;
+}
+
+.all-categories {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.mini-category {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 3px solid #8b5cf6;
+}
+
+.mini-category h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.mini-category ul {
+    margin: 0;
+    padding-left: 1.2rem;
+    font-size: 0.85rem;
+    color: #777;
+}
+
+.mini-category li {
+    margin-bottom: 0.25rem;
+}
+
+@media (max-width: 1024px) {
+    .suggestions-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .suggestions-sidebar {
+        position: static;
+    }
+    
+    .all-categories {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<div class="suggestions-container">
+    <!-- Breadcrumbs -->
+    <nav style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <a href="{% if back_url %}{{ back_url }}{% else %}{% url 'admin:index' %}{% endif %}" style="color: #8b5cf6; text-decoration: none;">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+        <span style="margin: 0 0.5rem; color: #999;">›</span>
+        <span style="color: #666;">Consultas Sugeridas</span>
+    </nav>
+
+    <div class="suggestions-header">
+        <h1><i class="fas fa-lightbulb"></i> Consultas Sugeridas - Chat Don Datico 🦜</h1>
+        <p>Personaliza las consultas de ejemplo que se muestran a los usuarios en el chat</p>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: 8px; {% if message.tags == 'success' %}background: #d4edda; color: #155724;{% else %}background: #f8d7da; color: #721c24;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="suggestions-layout">
+        <!-- Sidebar con categorías -->
+        <div class="suggestions-sidebar">
+            <h2><i class="fas fa-folder"></i> Categorías</h2>
+            <ul class="category-list">
+                {% for key, info in categories_info.items %}
+                <li class="category-item">
+                    <a href="?category={{ key }}" class="{% if selected_category == key %}active{% endif %}">
+                        <span class="icon">{{ info.icon }}</span>
+                        {{ key|title }}
+                        <span class="count">{{ current_suggestions|get_item:key|length }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                <p style="font-size: 0.85rem; color: #888; margin: 0;">
+                    <i class="fas fa-info-circle"></i> 
+                    Se muestran 2 consultas de cada categoría en el chat (máximo 8 total).
+                </p>
+            </div>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="suggestions-main">
+            {% if selected_category in categories_info %}
+            <div class="category-info">
+                <h3>{{ categories_info|get_item:selected_category|get_item:'icon' }} {{ selected_category|title }}</h3>
+                <p>{{ categories_info|get_item:selected_category|get_item:'description' }}</p>
+                <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
+                    {{ categories_info|get_item:selected_category|get_item:'example' }}
+                </p>
+            </div>
+            {% endif %}
+
+            <form method="post" id="suggestions-form">
+                {% csrf_token %}
+                
+                <input type="hidden" name="category" value="{{ selected_category }}">
+                
+                <div class="form-field">
+                    <label for="{{ form.suggestions.id_for_label }}">
+                        <i class="fas fa-edit"></i> {{ form.suggestions.label }}
+                    </label>
+                    {{ form.suggestions }}
+                    <span class="help-text">{{ form.suggestions.help_text }}</span>
+                    <div class="line-counter">
+                        <span id="line-count">0</span> / 5 consultas
+                    </div>
+                </div>
+
+                <!-- Preview de cómo se verán -->
+                <div class="preview-section">
+                    <h4><i class="fas fa-eye"></i> Vista previa</h4>
+                    <div class="preview-chips" id="preview-chips">
+                        <!-- Se llena dinámicamente con JavaScript -->
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i> Guardar Sugerencias
+                    </button>
+                    <a href="{% if back_url %}{{ back_url }}{% else %}{% url 'admin:index' %}{% endif %}" class="btn-cancel">
+                        <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                    </a>
+                </div>
+            </form>
+
+            <!-- Vista de todas las categorías -->
+            <div class="all-suggestions">
+                <h3><i class="fas fa-list-alt"></i> Todas las Consultas Configuradas</h3>
+                <div class="all-categories">
+                    {% for cat_key, suggestions in current_suggestions.items %}
+                    <div class="mini-category" style="{% if cat_key == selected_category %}border-color: #7c3aed; background: #f3e8ff;{% endif %}">
+                        <h4>{{ categories_info|get_item:cat_key|get_item:'icon' }} {{ cat_key|title }}</h4>
+                        <ul>
+                            {% for suggestion in suggestions %}
+                            <li>{{ suggestion|truncatechars:50 }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.querySelector('textarea[name="suggestions"]');
+    const lineCount = document.getElementById('line-count');
+    const previewChips = document.getElementById('preview-chips');
+    
+    function updatePreview() {
+        const lines = textarea.value.split('\n').filter(line => line.trim() !== '');
+        lineCount.textContent = lines.length;
+        
+        // Actualizar color según cantidad
+        if (lines.length > 5) {
+            lineCount.parentElement.style.color = '#dc3545';
+        } else if (lines.length >= 3) {
+            lineCount.parentElement.style.color = '#28a745';
+        } else {
+            lineCount.parentElement.style.color = '#999';
+        }
+        
+        // Actualizar preview
+        previewChips.innerHTML = '';
+        lines.slice(0, 5).forEach(line => {
+            const chip = document.createElement('span');
+            chip.className = 'suggestion-chip';
+            chip.textContent = line.trim();
+            previewChips.appendChild(chip);
+        });
+        
+        if (lines.length === 0) {
+            previewChips.innerHTML = '<span style="color: #999; font-style: italic;">Escribe las consultas arriba para ver la vista previa...</span>';
+        }
+    }
+    
+    textarea.addEventListener('input', updatePreview);
+    updatePreview();
+    
+    // Confirmación antes de salir si hay cambios
+    let formChanged = false;
+    textarea.addEventListener('input', () => formChanged = true);
+    
+    window.addEventListener('beforeunload', (e) => {
+        if (formChanged) {
+            e.preventDefault();
+            e.returnValue = '¿Seguro que quieres salir? Hay cambios sin guardar.';
+            return e.returnValue;
+        }
+    });
+    
+    document.getElementById('suggestions-form').addEventListener('submit', () => formChanged = false);
+    
+    // Advertir al cambiar de categoría
+    document.querySelectorAll('.category-item a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            if (formChanged && !confirm('¿Seguro que quieres cambiar de categoría? Hay cambios sin guardar.')) {
+                e.preventDefault();
+            } else {
+                formChanged = false;
+            }
+        });
+    });
+});
+</script>

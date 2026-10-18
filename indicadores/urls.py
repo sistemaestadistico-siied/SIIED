@@ -13,6 +13,8 @@ from . import views_validacion
 from . import views_iced
 from . import views_educativos
 from . import views_laboratorio
+from . import views_analitica
+from . import views_analitica_taller
 from . import views_editorial
 from . import views_taller
 from . import views_catalogo
@@ -384,6 +386,10 @@ urlpatterns = [
     # Historial
     path('validacion/historial/', views_validacion.validacion_historial, name='validacion_historial'),
 
+    # Sellos de calidad de metadatos (indicadores + variables de conjuntos)
+    path('validacion/sellos/', views_validacion.validacion_sellos, name='validacion_sellos'),
+    path('validacion/sellos/otorgar/<str:tipo>/<int:pk>/', views_validacion.validacion_sello_otorgar, name='validacion_sello_otorgar'),
+
     # ICED
     path('validacion/iced/<int:formulario_id>/', views_validacion.validacion_revisar_iced, name='validacion_revisar_iced'),
     path('validacion/iced/<int:formulario_id>/calcular/', views_validacion.validacion_calcular_iced, name='validacion_calcular_iced'),
@@ -395,6 +401,11 @@ urlpatterns = [
 
     # Wizard de conciliación de desagregaciones (compartido con el admin,
     # con los estilos del módulo)
+    # Fuentes del taller: validación final a capa gold
+    path('validacion/fuentes-taller/', views_validacion.validacion_fuentes_taller, name='validacion_fuentes_taller'),
+    path('validacion/fuentes-taller/<int:pk>/', views_validacion.validacion_fuente_revisar, name='validacion_fuente_revisar'),
+    path('validacion/fuentes-taller/<int:pk>/decidir/', views_validacion.validacion_fuente_decidir, name='validacion_fuente_decidir'),
+
     path('validacion/conciliacion/', views_validacion.validacion_conciliacion, name='validacion_conciliacion'),
     path('validacion/conciliacion/manual/', views_validacion.validacion_conciliacion_manual, name='validacion_conciliacion_manual'),
     path('validacion/conciliacion/equivalencias/', views_validacion.validacion_conciliacion_equivalencias, name='validacion_conciliacion_equivalencias'),
@@ -411,6 +422,42 @@ urlpatterns = [
     path('validacion/normalizacion-identidad/importar/', views_validacion.norm_importar_codigos, name='norm_importar_codigos'),
     path('validacion/normalizacion-identidad/conciliar/comparar/', views_validacion.norm_conciliar_comparar, name='norm_conciliar_comparar'),
     path('validacion/normalizacion-identidad/conciliar/aplicar/', views_validacion.norm_conciliar_aplicar, name='norm_conciliar_aplicar'),
+
+    # ========================================================================
+    # MÓDULO ANALÍTICA E INTELIGENCIA ARTIFICIAL (rol 'analista')
+    # ========================================================================
+    path('analitica/login/', views_analitica.analitica_login, name='analitica_login'),
+    path('analitica/logout/', views_analitica.analitica_logout, name='analitica_logout'),
+    path('analitica/', views_analitica.analitica_dashboard, name='analitica_dashboard'),
+    path('analitica/configuracion/', views_analitica.analitica_configuracion, name='analitica_configuracion'),
+    path('analitica/contextos/', views_analitica.analitica_contextos, name='analitica_contextos'),
+    path('analitica/sugerencias/', views_analitica.analitica_sugerencias, name='analitica_sugerencias'),
+    path('analitica/superset/', views_analitica.analitica_superset, name='analitica_superset'),
+
+    # --- Submódulo: Taller de Gestión de Datos ---
+    path('analitica/taller/reportes/', views_analitica_taller.taller_reportes, name='analitica_taller_reportes'),
+    path('analitica/taller/ecosistema/', views_analitica_taller.taller_ecosistema, name='analitica_taller_ecosistema'),
+    path('analitica/taller/catalogo/', views_analitica_taller.taller_catalogo, name='analitica_taller_catalogo'),
+    path('analitica/taller/fuentes/', views_analitica_taller.taller_fuentes, name='analitica_taller_fuentes'),
+    path('analitica/taller/fuentes/conciliar/', views_analitica_taller.taller_conciliar, name='analitica_taller_conciliar'),
+    path('analitica/taller/fuentes/<int:pk>/', views_analitica_taller.taller_fuente_detalle, name='analitica_taller_fuente'),
+    path('analitica/taller/fuentes/<int:pk>/accion/', views_analitica_taller.taller_fuente_accion, name='analitica_taller_fuente_accion'),
+    path('analitica/taller/retos/', views_analitica_taller.taller_retos, name='analitica_taller_retos'),
+    path('analitica/taller/retos/<int:pk>/', views_analitica_taller.taller_reto_detalle, name='analitica_taller_reto'),
+    path('analitica/taller/retos/<int:pk>/accion/', views_analitica_taller.taller_reto_accion, name='analitica_taller_reto_accion'),
+    path('analitica/taller/organismos/', views_analitica_taller.taller_organismos, name='analitica_taller_organismos'),
+    path('analitica/taller/organismos/<int:pk>/', views_analitica_taller.taller_organismo_detalle, name='analitica_taller_organismo'),
+    path('analitica/taller/seguridad/', views_analitica_taller.taller_seguridad, name='analitica_taller_seguridad'),
+    # Descargas re-gateadas para el rol analista
+    path('analitica/taller/exportar/csv/', views_analitica_taller.taller_export_csv, name='analitica_taller_export_csv'),
+    path('analitica/taller/exportar/excel/', views_analitica_taller.taller_export_excel, name='analitica_taller_export_excel'),
+    path('analitica/taller/exportar/variables/', views_analitica_taller.taller_export_variables, name='analitica_taller_export_variables'),
+    path('analitica/taller/exportar/informe/', views_analitica_taller.taller_informe, name='analitica_taller_informe'),
+    path('analitica/taller/casos-f2/', views_analitica_taller.taller_casos_f2, name='analitica_taller_casos_f2'),
+    path('analitica/taller/casos-f2/excel/', views_analitica_taller.taller_casos_f2_excel, name='analitica_taller_casos_f2_excel'),
+    path('analitica/taller/exportar/informe-claro/', views_analitica_taller.taller_reporte_excel, name='analitica_taller_reporte_excel'),
+    path('analitica/taller/presentacion/', views_analitica_taller.taller_presentacion, name='analitica_taller_presentacion'),
+    path('analitica/taller/modelo-datos/', views_analitica_taller.taller_modelo_datos, name='analitica_taller_modelo_datos'),
 
     # ========================================================================
     # HALL DE CAPACIDAD ESTADÍSTICA

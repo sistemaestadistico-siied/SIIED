@@ -213,7 +213,7 @@ class CerebrasToolsService:
                 "type": "function",
                 "function": {
                     "name": "buscar_indicadores",
-                    "description": "Busca indicadores por nombre, tema o palabras clave. Usa esta herramienta cuando el usuario pregunte por datos estadísticos específicos, indicadores de cualquier tema (educación, salud, economía, seguridad, etc.), o cuando mencione términos como 'cuántos', 'cuál es el valor', 'estadísticas de', 'datos de', 'indicadores de'. Devuelve únicamente indicadores activos CON DATOS cargados y sus metadatos básicos — un indicador sin datos no aparece en los resultados.",
+                    "description": "Busca indicadores por nombre, tema o palabras clave. Usa esta herramienta cuando el usuario pregunte por datos estadísticos específicos, indicadores de cualquier tema (educación, salud, economía, seguridad, etc.), o cuando mencione términos como 'cuántos', 'cuál es el valor', 'estadísticas de', 'datos de', 'indicadores de'. Devuelve únicamente indicadores activos CON DATOS cargados y sus metadatos básicos — un indicador sin datos no aparece en los resultados. Cada resultado trae dos enlaces a la ficha del subtema: 'url' (versión estándar, para público general y técnico) y 'url_3d' (versión 3D gamificada e infantilizada, pensada para niños, jóvenes y docentes). Ofrece 'url' por defecto; ofrece 'url_3d' SOLO cuando la audiencia lo justifique (menores, docencia, recursos didácticos o gamificados).",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -235,7 +235,7 @@ class CerebrasToolsService:
                 "type": "function",
                 "function": {
                     "name": "consultar_indicador",
-                    "description": "Obtiene datos completos de un indicador específico incluyendo valores históricos, metadatos, desagregaciones disponibles y últimas cifras. Usa esta herramienta cuando el usuario pregunte por valores específicos, series históricas, o después de buscar indicadores para profundizar en uno concreto.",
+                    "description": "Obtiene datos completos de un indicador específico incluyendo valores históricos, metadatos, desagregaciones disponibles y últimas cifras. Usa esta herramienta cuando el usuario pregunte por valores específicos, series históricas, o después de buscar indicadores para profundizar en uno concreto. El resultado incluye 'url' (ficha estándar, público general) y 'url_3d' (versión 3D gamificada para público infantil/educativo); enlaza la estándar salvo que el usuario busque material didáctico para niños, jóvenes o docencia.",
                     "parameters": {
                         "type": "object",
                         "properties": {
@@ -703,6 +703,30 @@ class CerebrasToolsService:
             pass
         return enlaces
 
+    def _urls_versiones_subtema(self, indicador) -> Dict[str, str]:
+        """URLs de la ficha del subtema del indicador en ambas presentaciones.
+
+        'url'    → versión estándar (público general / técnico).
+        'url_3d' → versión gamificada 3D (público infantil/juvenil o
+                   docentes buscando recursos didácticos).
+        """
+        urls = {}
+        try:
+            sub = indicador.subtema
+            if sub and sub.tema and sub.tema.dominio:
+                kwargs = {
+                    'dominio_slug': sub.tema.dominio.slug,
+                    'tema_slug': sub.tema.slug,
+                    'subtema_slug': sub.slug,
+                }
+                urls['url'] = self._build_absolute_url(
+                    named_url='indicadores:subtema_detalle', kwargs=kwargs)
+                urls['url_3d'] = self._build_absolute_url(
+                    named_url='indicadores:subtema_detalle_3d', kwargs=kwargs)
+        except Exception:
+            pass
+        return urls
+
     def _handle_mostrar_visualizacion(self, arguments: dict) -> Dict[str, Any]:
         """Adjunta una visualización (gráfico o mapa) al mensaje del chat.
 
@@ -833,9 +857,7 @@ class CerebrasToolsService:
                         desc_limpio = re.sub(r'<[^>]+>', '', str(ind.descripcion_indicador))
                         desc_texto = desc_limpio[:200] if len(desc_limpio) > 200 else desc_limpio
                     
-                    dominio_slug = ind.subtema.tema.dominio.slug if ind.subtema and ind.subtema.tema and ind.subtema.tema.dominio else None
-                    tema_slug = ind.subtema.tema.slug if ind.subtema and ind.subtema.tema else None
-                    resultados_formateados.append({
+                    resultado = {
                         'id': ind.id,
                         'nombre': ind.nombre,
                         'descripcion': desc_texto,
@@ -843,8 +865,9 @@ class CerebrasToolsService:
                         'dominio': ind.subtema.tema.dominio.nombre if ind.subtema and ind.subtema.tema and ind.subtema.tema.dominio else None,
                         'similitud': round(res['similitud'], 3),
                         'unidad_medida': getattr(ind, 'unidad_medida', '') or 'N/A',
-                        'url': self._build_absolute_url(named_url='indicadores:tema_detalle_3d', kwargs={'dominio_slug': dominio_slug, 'tema_slug': tema_slug}) if dominio_slug and tema_slug else None,
-                    })
+                    }
+                    resultado.update(self._urls_versiones_subtema(ind))
+                    resultados_formateados.append(resultado)
             
             return {
                 "success": True,
@@ -1201,17 +1224,16 @@ class CerebrasToolsService:
                     desc_limpio = re.sub(r'<[^>]+>', '', str(ind.descripcion_indicador))
                     desc = desc_limpio[:150] if len(desc_limpio) > 150 else desc_limpio
                 
-                dominio_slug = ind.subtema.tema.dominio.slug if ind.subtema and ind.subtema.tema and ind.subtema.tema.dominio else None
-                tema_slug = ind.subtema.tema.slug if ind.subtema and ind.subtema.tema else None
-                resultados.append({
+                resultado = {
                     'id': ind.id,
                     'nombre': ind.nombre,
                     'descripcion': desc,
                     'unidad_medida': ind.unidad_medida or 'N/A',
                     'tema': ind.subtema.tema.nombre if ind.subtema and ind.subtema.tema else None,
                     'dominio': ind.subtema.tema.dominio.nombre if ind.subtema and ind.subtema.tema and ind.subtema.tema.dominio else None,
-                    'url': self._build_absolute_url(named_url='indicadores:tema_detalle_3d', kwargs={'dominio_slug': dominio_slug, 'tema_slug': tema_slug}) if dominio_slug and tema_slug else None,
-                })
+                }
+                resultado.update(self._urls_versiones_subtema(ind))
+                resultados.append(resultado)
             
             return {
                 'success': True,
@@ -1388,22 +1410,21 @@ class CerebrasToolsService:
                     }
                 })
             
-            dominio_slug = indicador.subtema.tema.dominio.slug if indicador.subtema and indicador.subtema.tema and indicador.subtema.tema.dominio else None
-            tema_slug = indicador.subtema.tema.slug if indicador.subtema and indicador.subtema.tema else None
+            ficha = {
+                'id': indicador.id,
+                'nombre': indicador.nombre,
+                'descripcion': descripcion[:500] if len(descripcion) > 500 else descripcion,
+                'unidad_medida': indicador.unidad_medida or 'N/A',
+                'clasificacion': {
+                    'dominio': indicador.subtema.tema.dominio.nombre if indicador.subtema and indicador.subtema.tema and indicador.subtema.tema.dominio else None,
+                    'tema': indicador.subtema.tema.nombre if indicador.subtema and indicador.subtema.tema else None,
+                    'subtema': indicador.subtema.nombre if indicador.subtema else None,
+                },
+            }
+            ficha.update(self._urls_versiones_subtema(indicador))
             return {
                 'success': True,
-                'indicador': {
-                    'id': indicador.id,
-                    'nombre': indicador.nombre,
-                    'descripcion': descripcion[:500] if len(descripcion) > 500 else descripcion,
-                    'unidad_medida': indicador.unidad_medida or 'N/A',
-                    'clasificacion': {
-                        'dominio': indicador.subtema.tema.dominio.nombre if indicador.subtema and indicador.subtema.tema and indicador.subtema.tema.dominio else None,
-                        'tema': indicador.subtema.tema.nombre if indicador.subtema and indicador.subtema.tema else None,
-                        'subtema': indicador.subtema.nombre if indicador.subtema else None,
-                    },
-                    'url': self._build_absolute_url(named_url='indicadores:tema_detalle_3d', kwargs={'dominio_slug': dominio_slug, 'tema_slug': tema_slug}) if dominio_slug and tema_slug else None,
-                },
+                'indicador': ficha,
                 'datos': datos_formateados,
                 'total_datos': len(datos_formateados)
             }

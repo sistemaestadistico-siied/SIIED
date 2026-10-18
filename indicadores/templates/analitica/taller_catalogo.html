@@ -1,0 +1,25 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Catálogo de Datos — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-4">
+        <div>
+            <h2 class="text-2xl font-serif font-bold text-slate-900">Catálogo de Datos del Data Lake</h2>
+            <p class="text-sm text-slate-500 mt-1">
+                Bases publicadas (capa gold y dimensiones) con sus campos y llaves de cruce.
+                Las fuentes del taller ingresan aquí cuando pasan la validación a gold.
+            </p>
+        </div>
+        <a href="{% url 'indicadores:analitica_taller_fuentes' %}?capa=plata"
+           class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">
+            Fuentes en plata →
+        </a>
+    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <iframe src="{% url 'indicadores:catalogo_datos' %}" class="w-full border-0" style="height: 78vh;" title="Catálogo de datos"></iframe>
+    </div>
+</div>
+{% endblock %}

@@ -130,58 +130,32 @@ def reportes_dashboard(request):
                     fecha_min=Min('datos__fecha_dato'),
                     fecha_max=Max('datos__fecha_dato'),
                     total_datos_count=Count('datos')
+                ).prefetch_related(
+                    'dominios_desagregacion_tematica',
+                    'dominios_desagregacion_geografica',
+                    'subtemas_adicionales',
                 ).order_by('orden', 'nombre')
                 
                 total_ind_subtema = indicadores_subtema.count()
                 
                 # Lista de indicadores serializada para el template
                 lista_indicadores = []
-                
-                # Campos considerados como metadatos para medir la completitud
-                # (alineado al estándar MSD + SDMX de la plantilla Metadatos_SDMX)
-                campos_metadatos = [
-                    # Identificación
-                    'codigo_indicador', 'sigla', 'grupo_indicador',
-                    # Sección 1: Contacto Institucional
-                    'entidad_responsable', 'organismo_responsable_id', 'suborganismo_id',
-                    'correo_contacto', 'telefono_contacto', 'fecha_publicacion_metadatos',
-                    # Sección 2: Características del Indicador
-                    'descripcion_indicador', 'objetivo', 'metodo_medicion',
-                    'formula_ficha', 'variables', 'unidad_medida', 'fuente_datos',
-                    'operacion_id', 'nomenclaturas_clasificaciones',
-                    'alcance_tematico', 'poblacion_objetivo', 'cobertura_geografica',
-                    'periodo_referencia', 'periodo_base', 'nombre_conjunto_datos',
-                    # Sección 3: Difusión
-                    'serie_historica_disponible', 'frecuencia_difusion', 'medios_difusion',
-                    # Sección 4: Comentarios
-                    'comentarios_adicionales',
-                    # SDMX: Referencias y Responsabilidad Institucional
-                    'referencias', 'equipo_responsable_id',
-                    'nombre_responsable_validacion', 'cargo_responsable_validacion',
-                    'correo_responsable_validacion', 'celular_responsable_validacion',
-                ]
-                total_campos = len(campos_metadatos)
-                
+
                 if total_ind_subtema > 0:
                     # Contar estadísticas
                     ind_con_datos = 0
                     ind_con_graficos = 0
                     ind_con_mapa = 0
                     suma_completitud_metadatos = 0
-                    
+
                     for ind in indicadores_subtema:
                         has_data = ind.total_datos_count > 0
                         has_graph = ind.graficos.filter(activo=True).exists()
                         has_map = ind.mostrar_mapa
-                        
-                        # Calcular completitud de metadatos
-                        campos_llenos = 0
-                        for campo in campos_metadatos:
-                            valor = getattr(ind, campo, None)
-                            if valor and str(valor).strip() != '':
-                                campos_llenos += 1
-                        
-                        porcentaje_metadatos = round((campos_llenos / total_campos) * 100) if total_campos > 0 else 0
+
+                        # Completitud solo sobre campos del estándar MSD/SDMX
+                        # (fuente única: Indicador.campos_metadatos_estandar)
+                        porcentaje_metadatos = ind.porcentaje_completitud_metadatos()
                         suma_completitud_metadatos += porcentaje_metadatos
                         
                         if has_data:

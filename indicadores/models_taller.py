@@ -119,6 +119,9 @@ class InscripcionTaller(models.Model):
     equipo_responsable = models.CharField(
         'Equipo de trabajo responsable (texto original)', max_length=200, blank=True,
         help_text='Valor digitado en el taller; `equipo` guarda la versión reconciliada')
+    edicion = models.PositiveSmallIntegerField(
+        'Edición del taller', default=2026, db_index=True,
+        help_text='Año de la edición del taller que originó la ficha')
     nombre_completo = models.CharField('Nombre completo', max_length=150)
     correo = models.EmailField('Correo electrónico')
     telefono = models.CharField('Teléfono', max_length=30, blank=True)
@@ -193,9 +196,31 @@ class RetoAnalisis(models.Model):
         limit_choices_to={'categoria': OpcionTaller.Categoria.ENFOQUE_DIFERENCIAL})
     enfoque_diferencial_otro = models.CharField('Otro enfoque, ¿cuál?', max_length=200, blank=True)
 
+    # ── Seguimiento y conciliación (analítica del taller) ──
+    class EstadoSeguimiento(models.TextChoices):
+        PROPUESTO = 'propuesto', 'Propuesto'
+        EN_SEGUIMIENTO = 'en_seguimiento', 'En seguimiento'
+        CUMPLIDO = 'cumplido', 'Cumplido'
+        DESCARTADO = 'descartado', 'Descartado'
+
+    fusionado_en = models.ForeignKey(
+        'self', verbose_name='Unificado en', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='retos_absorbidos',
+        help_text='Si este reto era un duplicado, apunta al reto que lo absorbió')
+    estado_seguimiento = models.CharField(
+        'Estado de seguimiento', max_length=15,
+        choices=EstadoSeguimiento.choices,
+        default=EstadoSeguimiento.PROPUESTO, db_index=True)
+    notas_seguimiento = models.TextField('Notas de seguimiento', blank=True)
+
     class Meta:
         verbose_name = 'Taller · F2 Reto de análisis'
         verbose_name_plural = 'Taller · F2 Retos de análisis'
+
+    @property
+    def es_activo(self):
+        """Reto vigente (no absorbido por una unificación)."""
+        return self.fusionado_en_id is None
 
     def __str__(self):
         return self.nombre

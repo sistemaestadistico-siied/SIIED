@@ -352,6 +352,22 @@ def resolver_organismo_por_nombre(nombre):
     return organismo
 
 
+# ============================================================================
+# SELLO DE CALIDAD DE METADATOS
+# La metadata se publica al instante (recolección, delegado, masiva o
+# individual — no pasa por validación previa). El sello solo marca el nivel
+# de verificación alcanzado, nunca bloquea la publicación.
+# ============================================================================
+SELLO_CALIDAD_CHOICES = [
+    ('sin_sello', 'Sin sello (publicado sin validar)'),
+    ('organismo', 'Sello de calidad — validado por el organismo'),
+    ('sistema', 'Sello de calidad SIIED — validación final'),
+]
+
+# Nivel numérico del sello: solo se puede subir, nunca bajar al validar.
+SELLO_NIVEL = {'sin_sello': 0, 'organismo': 1, 'sistema': 2}
+
+
 class Indicador(models.Model):
     id = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=255,
@@ -675,6 +691,111 @@ class Indicador(models.Model):
     # Campo para ordenar los indicadores
     orden = models.IntegerField(default=0, help_text="Orden de visualización del indicador")
 
+    # ── Sello de calidad de la metadata ──
+    # Publicación instantánea; el sello marca solo el nivel de verificación.
+    # 'sin_sello' → publicado sin validar | 'organismo' → validado por el
+    # validador del organismo | 'sistema' → validación final del SIIED.
+    sello_calidad = models.CharField(
+        max_length=15, choices=SELLO_CALIDAD_CHOICES, default='sin_sello',
+        help_text="Nivel de verificación alcanzado por la metadata (no bloquea la publicación)"
+    )
+    sello_otorgado_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sellos_indicadores',
+        help_text="Validador que otorgó el sello actual"
+    )
+    sello_fecha = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Fecha en que se otorgó el sello actual"
+    )
+
+    def marcar_sello(self, nivel, usuario=None):
+        """Sube el sello al nivel dado si es mayor que el actual.
+        Devuelve True si el sello cambió."""
+        from django.utils import timezone
+        if SELLO_NIVEL.get(nivel, 0) > SELLO_NIVEL.get(self.sello_calidad, 0):
+            self.sello_calidad = nivel
+            self.sello_otorgado_por = usuario
+            self.sello_fecha = timezone.now()
+            self.save(update_fields=[
+                'sello_calidad', 'sello_otorgado_por', 'sello_fecha'])
+            return True
+        return False
+
+    def reiniciar_sello(self):
+        """Pierde el sello cuando la metadata se reescribe desde cualquier
+        vía de carga (la nueva versión aún no ha sido verificada)."""
+        if self.sello_calidad != 'sin_sello':
+            self.sello_calidad = 'sin_sello'
+            self.sello_otorgado_por = None
+            self.sello_fecha = None
+            self.save(update_fields=[
+                'sello_calidad', 'sello_otorgado_por', 'sello_fecha'])
+
+    # Campos excluidos de la detección de cambios de metadata: editarlos no
+    # invalida el sello (son los del propio sello + campos de control).
+    _SELLO_TRACK_EXCLUDE = {
+        'id', 'sello_calidad', 'sello_otorgado_por', 'sello_fecha'}
+
+    def save(self, *args, **kwargs):
+        """Si cambia cualquier campo de metadata, el sello pierde vigencia:
+        la nueva versión aún no fue verificada. Los saves que solo tocan
+        campos de sello (marcar_sello / reiniciar_sello) no disparan el reset."""
+        _sello_fields = {'sello_calidad', 'sello_otorgado_por', 'sello_fecha'}
+        update_fields = kwargs.get('update_fields')
+        solo_sello = (update_fields is not None
+                      and set(update_fields) <= _sello_fields)
+        if not solo_sello and self.pk and self.sello_calidad != 'sin_sello':
+            try:
+                viejo = type(self).objects.get(pk=self.pk)
+                tracked = [f.name for f in self._meta.concrete_fields
+                           if f.name not in self._SELLO_TRACK_EXCLUDE]
+                if any(getattr(viejo, n) != getattr(self, n) for n in tracked):
+                    self.sello_calidad = 'sin_sello'
+                    self.sello_otorgado_por = None
+                    self.sello_fecha = None
+                    if update_fields is not None:
+                        kwargs['update_fields'] = list(update_fields) + [
+                            f for f in _sello_fields if f not in update_fields]
+            except type(self).DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+
+    # =========================================================================
+    # COMPLETITUD DE METADATOS — solo campos del estándar MSD/SDMX
+    # =========================================================================
+    # Solo los campos cuyo verbose_name lleva numeración del estándar
+    # ('0.1 …', '1.6 …', '6.3 …') cuentan para completitud, se muestran al
+    # validar y eximen el sello. Se derivan del modelo para no desincronizar.
+    UMBRAL_SELLO_MIN = 35  # % mínimo de metadata estándar para validar
+
+    @classmethod
+    def campos_metadatos_estandar(cls):
+        """Campos del modelo con numeración del estándar MSD/SDMX."""
+        campos = []
+        for f in cls._meta.fields:
+            token = str(f.verbose_name or '').split(' ', 1)[0]
+            if token and '.' in token and token.replace('.', '').isdigit():
+                campos.append(f)
+        return campos
+
+    def porcentaje_completitud_metadatos(self):
+        """% de campos de metadata del estándar diligenciados (0-100).
+
+        FK se cuenta por su attname `_id`.
+        """
+        campos = self.campos_metadatos_estandar()
+        llenos = 0
+        for f in campos:
+            valor = getattr(self, f.attname)
+            if valor is not None and str(valor).strip() != '':
+                llenos += 1
+        return round(llenos / len(campos) * 100, 1) if campos else 0
+
+    def metadata_completa_para_sello(self):
+        """True si la completitud de metadata permite otorgar sello."""
+        return self.porcentaje_completitud_metadatos() >= self.UMBRAL_SELLO_MIN
+
     def __str__(self):
         return self.nombre
 
@@ -890,9 +1011,104 @@ class VariableConjuntoDatos(models.Model):
     categoria_estadistica = models.CharField(max_length=100, blank=True, null=True,
         help_text="DDI catStat — Clasificación estadística de la variable")
 
+    # ── Sello de calidad de la metadata ──
+    # Los items de esta tabla son la metadata de variables de los conjuntos
+    # de datos que se validan. Mismo esquema que Indicador: publicación
+    # instantánea; el sello solo marca el nivel de verificación alcanzado.
+    sello_calidad = models.CharField(
+        max_length=15, choices=SELLO_CALIDAD_CHOICES, default='sin_sello',
+        help_text="Nivel de verificación de la metadata de la variable"
+    )
+    sello_otorgado_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='sellos_variables',
+        help_text="Validador que otorgó el sello actual"
+    )
+    sello_fecha = models.DateTimeField(null=True, blank=True)
+
+    def marcar_sello(self, nivel, usuario=None):
+        """Sube el sello al nivel dado si es mayor que el actual."""
+        from django.utils import timezone
+        if SELLO_NIVEL.get(nivel, 0) > SELLO_NIVEL.get(self.sello_calidad, 0):
+            self.sello_calidad = nivel
+            self.sello_otorgado_por = usuario
+            self.sello_fecha = timezone.now()
+            self.save(update_fields=[
+                'sello_calidad', 'sello_otorgado_por', 'sello_fecha'])
+            return True
+        return False
+
+    def reiniciar_sello(self):
+        """Pierde el sello cuando la metadata de la variable se reescribe."""
+        if self.sello_calidad != 'sin_sello':
+            self.sello_calidad = 'sin_sello'
+            self.sello_otorgado_por = None
+            self.sello_fecha = None
+            self.save(update_fields=[
+                'sello_calidad', 'sello_otorgado_por', 'sello_fecha'])
+
+    _SELLO_TRACK_EXCLUDE = {
+        'id', 'sello_calidad', 'sello_otorgado_por', 'sello_fecha'}
+
+    def save(self, *args, **kwargs):
+        """Mismo esquema que Indicador: cambiar metadata invalida el sello;
+        escribir solo campos de sello no."""
+        _sello_fields = {'sello_calidad', 'sello_otorgado_por', 'sello_fecha'}
+        update_fields = kwargs.get('update_fields')
+        solo_sello = (update_fields is not None
+                      and set(update_fields) <= _sello_fields)
+        if not solo_sello and self.pk and self.sello_calidad != 'sin_sello':
+            try:
+                viejo = type(self).objects.get(pk=self.pk)
+                tracked = [f.name for f in self._meta.concrete_fields
+                           if f.name not in self._SELLO_TRACK_EXCLUDE]
+                if any(getattr(viejo, n) != getattr(self, n) for n in tracked):
+                    self.sello_calidad = 'sin_sello'
+                    self.sello_otorgado_por = None
+                    self.sello_fecha = None
+                    if update_fields is not None:
+                        kwargs['update_fields'] = list(update_fields) + [
+                            f for f in _sello_fields if f not in update_fields]
+            except type(self).DoesNotExist:
+                pass
+        super().save(*args, **kwargs)
+
+    # =========================================================================
+    # COMPLETITUD DE METADATOS
+    # =========================================================================
+    # Inventario completo de campos de metadata de la variable (versión actual
+    # del modelo), cuenten o no en formularios visibles. Se excluyen campos
+    # operativos: id, orden y sello_*.
+    CAMPOS_METADATOS_TEXTO = (
+        'codigo_variable', 'nombre_variable',
+        'definicion_conceptual', 'poblacion_objetivo',
+        'cobertura_geografica', 'desagregacion_geografica',
+        'desagregacion_tematica', 'tipo_dato', 'dominio_dato',
+        'unidad_medida', 'tipo_variable_estadistica', 'fuente_datos',
+        'periodicidad', 'observaciones', 'referencias',
+        'organismo_productor_legado',
+        'pregunta', 'universo', 'concepto', 'tipo_representacion',
+        'categoria_estadistica',
+    )
+    CAMPOS_METADATOS_FK = ('conjunto_datos', 'organismo_productor')
+
+    def porcentaje_completitud_metadatos(self):
+        """Porcentaje real de campos de metadata diligenciados (0-100)."""
+        llenos = 0
+        for nombre in self.CAMPOS_METADATOS_TEXTO:
+            valor = getattr(self, nombre, None)
+            if valor is not None and str(valor).strip() != '':
+                llenos += 1
+        for nombre in self.CAMPOS_METADATOS_FK:
+            if getattr(self, f'{nombre}_id', None):
+                llenos += 1
+        total = (len(self.CAMPOS_METADATOS_TEXTO)
+                 + len(self.CAMPOS_METADATOS_FK))
+        return round(llenos / total * 100, 1) if total else 0
+
     def __str__(self):
         return f"{self.codigo_variable} - {self.nombre_variable}"
-    
+
     class Meta:
         verbose_name = "Variable de Conjunto de Datos"
         verbose_name_plural = "Variables de Conjuntos de Datos"
@@ -1959,6 +2175,8 @@ class PerfilRecolector(models.Model):
         ('delegado', 'Delegado de Organismo'),
         ('validador', 'Validador Estadístico (SIIED)'),
         ('editor', 'Editor de Contenidos'),
+        ('analista', 'Analista (Editorial + Reportes + Recolección + Validación + Analítica)'),
+        ('validador_organismo', 'Validador del Organismo (pre-validación)'),
     ]
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_recolector')
@@ -2012,23 +2230,40 @@ class PerfilRecolector(models.Model):
     
     def puede_recolectar(self):
         """Verifica si el usuario puede acceder al módulo de recolección"""
-        return self.activo and self.rol in ['recolector', 'ambos']
-    
+        return self.activo and self.rol in ['recolector', 'ambos', 'analista']
+
     def puede_consultar_reportes(self):
         """Verifica si el usuario puede acceder al módulo de reportes"""
-        return self.activo and self.rol in ['consultor', 'ambos']
-    
+        return self.activo and self.rol in ['consultor', 'ambos', 'analista']
+
     def es_delegado(self):
         """Verifica si es delegado de organismo"""
         return self.activo and self.rol == 'delegado'
-    
+
     def es_validador(self):
-        """Verifica si es validador estadístico del SIIED"""
-        return self.activo and self.rol == 'validador'
-    
+        """Verifica si puede entrar al módulo de validación.
+
+        Incluye al validador del organismo (pre-validador) y al analista;
+        para la DECISIÓN final usar es_validador_sistema().
+        """
+        return self.activo and self.rol in [
+            'validador', 'validador_organismo', 'analista']
+
+    def es_validador_sistema(self):
+        """Validador con potestad de aprobación final (segunda validación)."""
+        return self.activo and self.rol in ['validador', 'analista']
+
+    def es_validador_organismo(self):
+        """Validador de organismo: solo pre-valida cargas de SU organismo."""
+        return self.activo and self.rol == 'validador_organismo'
+
+    def es_analista(self):
+        """Verifica si el usuario tiene el rol analista (módulo Analítica e IA)."""
+        return self.activo and self.rol == 'analista'
+
     def puede_editar_contenidos(self):
         """Verifica si el usuario puede acceder al módulo editorial"""
-        return self.activo and self.rol == 'editor'
+        return self.activo and self.rol in ['editor', 'analista']
 
 
 class CargaSerieIndicador(models.Model):
@@ -2039,10 +2274,11 @@ class CargaSerieIndicador(models.Model):
         ('procesando', 'Procesando'),
         ('exitoso', 'Exitoso'),
         ('error', 'Error'),
-        # Estados del nuevo flujo delegado → validador → admin
+        # Estados del flujo delegado → validador organismo → validador SIIED → admin
         ('borrador', 'Borrador (no enviado)'),
         ('enviado', 'Enviado para validación'),
         ('en_revision', 'En revisión por validador'),
+        ('prevalidado', 'Pre-validado por el organismo (pendiente validación SIIED)'),
         ('aprobado', 'Aprobado - listo para procesar'),
         ('rechazado', 'Rechazado por validador'),
         ('correcciones_solicitadas', 'Correcciones solicitadas'),
@@ -2113,6 +2349,23 @@ class CargaSerieIndicador(models.Model):
         blank=True,
         null=True,
         help_text="Observaciones del validador (visibles para el delegado)"
+    )
+
+    # Pre-validación del validador del organismo (primera capa del flujo
+    # delegado → organismo → SIIED). La validación final la hace el SIIED.
+    prevalidado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='series_prevalidadas',
+        help_text="Validador del organismo que pre-aprobó esta carga"
+    )
+    fecha_prevalidacion = models.DateTimeField(null=True, blank=True)
+    observaciones_prevalidador = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Observaciones del validador del organismo (visibles para el SIIED)"
     )
     es_calculo_complejo = models.BooleanField(
         default=False,
@@ -2191,10 +2444,11 @@ class CargaConjuntoDatos(models.Model):
         ('procesando', 'Procesando'),
         ('exitoso', 'Exitoso'),
         ('error', 'Error'),
-        # Estados del nuevo flujo delegado → validador → admin
+        # Estados del flujo delegado → validador organismo → validador SIIED → admin
         ('borrador', 'Borrador (no enviado)'),
         ('enviado', 'Enviado para validación'),
         ('en_revision', 'En revisión por validador'),
+        ('prevalidado', 'Pre-validado por el organismo (pendiente validación SIIED)'),
         ('aprobado', 'Aprobado - listo para procesar'),
         ('rechazado', 'Rechazado por validador'),
         ('correcciones_solicitadas', 'Correcciones solicitadas'),
@@ -2265,6 +2519,23 @@ class CargaConjuntoDatos(models.Model):
         blank=True,
         null=True,
         help_text="Observaciones del validador (visibles para el delegado)"
+    )
+
+    # Pre-validación del validador del organismo (primera capa del flujo
+    # delegado → organismo → SIIED). La validación final la hace el SIIED.
+    prevalidado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='conjuntos_datos_prevalidados',
+        help_text="Validador del organismo que pre-aprobó esta carga"
+    )
+    fecha_prevalidacion = models.DateTimeField(null=True, blank=True)
+    observaciones_prevalidador = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Observaciones del validador del organismo (visibles para el SIIED)"
     )
 
     # Propiedades de completitud para cargas parciales
@@ -3538,7 +3809,7 @@ from .models_taller import (  # noqa: E402,F401
 )
 from .models_catalogo import (  # noqa: E402,F401
     FuenteDatos, FuenteOrigen, VariableFuente, EvaluacionSeguridad,
-    BaseCatalogo, CampoCatalogo,
+    EtiquetaFuente, AvanceFormalizacion, BaseCatalogo, CampoCatalogo,
 )
 
 

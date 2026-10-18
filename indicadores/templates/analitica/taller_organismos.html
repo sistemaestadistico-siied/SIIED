@@ -1,0 +1,45 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Organismos del Taller — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+    <h2 class="text-2xl font-serif font-bold text-slate-900 mb-1">Organismos del Taller</h2>
+    <p class="text-sm text-slate-500 mb-6">Fuentes, retos y variables reportados por cada entidad participante.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for d in datos %}
+        <a href="{% url 'indicadores:analitica_taller_organismo' d.org.id %}"
+           class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md hover:border-fuchsia-300 transition-all block">
+            <p class="text-sm font-bold text-slate-800 leading-tight mb-1">{{ d.org.nombre|truncatechars:55 }}</p>
+            <div class="grid grid-cols-4 gap-2 mt-3">
+                <div class="text-center">
+                    <p class="text-lg font-bold text-sky-700">{{ d.n_inscripciones }}</p>
+                    <p class="text-[9px] font-bold uppercase text-slate-400">fichas</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-lg font-bold text-amber-700">{{ d.n_fuentes }}</p>
+                    <p class="text-[9px] font-bold uppercase text-slate-400">fuentes</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-lg font-bold text-violet-700">{{ d.n_variables }}</p>
+                    <p class="text-[9px] font-bold uppercase text-slate-400">variables</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-lg font-bold text-emerald-700">{{ d.n_retos }}</p>
+                    <p class="text-[9px] font-bold uppercase text-slate-400">retos</p>
+                </div>
+            </div>
+            <div class="flex gap-1 mt-3">
+                {% if d.plata %}<span class="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-full text-[10px] font-bold">{{ d.plata }} plata</span>{% endif %}
+                {% if d.gold %}<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">{{ d.gold }} gold</span>{% endif %}
+                {% if d.criticos %}<span class="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-[10px] font-bold">{{ d.criticos }} críticos</span>{% endif %}
+            </div>
+        </a>
+        {% empty %}
+        <p class="text-sm text-slate-400">Ningún organismo ha diligenciado el taller aún.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

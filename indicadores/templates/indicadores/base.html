@@ -243,14 +243,26 @@
     <nav class="bg-white shadow-md sticky top-0 z-50">
         <div class="container mx-auto px-4">
             <ul class="flex flex-wrap justify-around md:justify-center space-x-0 md:space-x-8">
+                <!-- Siempre visibles (también en móvil) -->
                 <li class="py-4">
                     <a href="{% url 'indicadores:home' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'inicio' %}text-primary-600 active{% endif %}">
                         Inicio
                     </a>
                 </li>
                 <li class="py-4">
+                    <a href="{% url 'indicadores:conjuntos_indicadores' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conjuntos' %}text-primary-600 active{% endif %}">
+                        Conjuntos
+                    </a>
+                </li>
+                <!-- Solo escritorio / desplegable en móvil -->
+                <li class="py-4 nav-extra hidden md:block">
                     <a href="{% url 'indicadores:dominios' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'dominios' %}text-primary-600 active{% endif %}">
                         Dominios
+                    </a>
+                </li>
+                <li class="py-4 nav-extra hidden md:block">
+                    <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'catalogo_consulta' %}text-primary-600 active{% endif %}">
+                        Catálogos
                     </a>
                 </li>
                 <li class="py-4">
@@ -259,33 +271,43 @@
                     </a>
                 </li>
                 <li class="py-4">
-                    <a href="{% url 'indicadores:conjuntos_indicadores' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conjuntos' %}text-primary-600 active{% endif %}">
-                        Conjuntos
-                    </a>
-                </li>
-                <li class="py-4">
-                    <a href="{% url 'indicadores:conectividad_acceso' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conectividad' %}text-primary-600 active{% endif %}">
-                        Conectividad
-                    </a>
-                </li>
-                <li class="py-4">
                     <a href="{% url 'indicadores:instrumentos_sistema' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'instrumentos' %}text-primary-600 active{% endif %}">
                         Instrumentos
                     </a>
                 </li>
-                <li class="py-4">
-                    <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'catalogo_consulta' %}text-primary-600 active{% endif %}">
-                        Catálogos
-                    </a>
-                </li>
-                <li class="py-4">
+                <li class="py-4 nav-extra hidden md:block">
                     <a href="{% url 'indicadores:infraestructura_index' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'infraestructura' %}text-primary-600 active{% endif %}">
                         Infraestructura
                     </a>
                 </li>
+                <li class="py-4 nav-extra hidden md:block">
+                    <a href="{% url 'indicadores:conectividad_acceso' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conectividad' %}text-primary-600 active{% endif %}">
+                        Conectividad
+                    </a>
+                </li>
+                <!-- Botón 'Más': solo móvil, despliega los nav-extra -->
+                <li class="py-4 md:hidden">
+                    <button type="button" onclick="toggleNavExtra()" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium" aria-label="Mostrar más opciones del menú">
+                        Más <i id="nav-more-icon" class="fas fa-chevron-down ml-1 text-xs"></i>
+                    </button>
+                </li>
             </ul>
         </div>
     </nav>
+    <script>
+        // Menú móvil: 'Más' despliega los items secundarios (.nav-extra).
+        // En escritorio (md+) siempre son visibles vía md:block.
+        function toggleNavExtra() {
+            document.querySelectorAll('.nav-extra').forEach(function (el) {
+                el.classList.toggle('hidden');
+            });
+            var icon = document.getElementById('nav-more-icon');
+            if (icon) {
+                icon.classList.toggle('fa-chevron-down');
+                icon.classList.toggle('fa-chevron-up');
+            }
+        }
+    </script>
     <!-- Contenido principal con más espacio y padding -->
     <main class="container mx-auto px-4 py-8">
         {% block content %}

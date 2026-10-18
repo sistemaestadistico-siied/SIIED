@@ -13,6 +13,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from .decorators import taller_login_required
 from django.views.decorators.http import require_GET
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from .catalogo_datalake import get_bases, get_campos_cruzables
 from .models import Organismo, Suborganismo
@@ -40,7 +41,9 @@ def api_fuentes_catalogo(request):
 
 
 
+@xframe_options_sameorigin
 def catalogo_datos(request):
+    """Catálogo público — SAMEORIGIN para poder embeberlo en Analítica."""
     import json
     from .catalogo_datalake import get_bases, get_campos_cruzables
     bases = get_bases()

@@ -1,0 +1,392 @@
+{% load static %}
+{% load chat_filters %}
+<style>
+.contexts-container {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.contexts-header {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(52, 211, 153, 0.3);
+}
+
+.contexts-header h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.contexts-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+}
+
+.contexts-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 2rem;
+}
+
+.contexts-sidebar {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+}
+
+.contexts-sidebar h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.25rem;
+    color: #333;
+}
+
+.context-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.context-item {
+    margin-bottom: 0.5rem;
+}
+
+.context-item a {
+    display: block;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #555;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.context-item a:hover {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.context-item a.active {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    color: white;
+    border-color: #10b981;
+}
+
+.contexts-main {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.context-info {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.context-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #856404;
+}
+
+.context-info p {
+    margin: 0;
+    color: #856404;
+}
+
+.variables-list {
+    margin-top: 0.5rem;
+    padding-left: 1.5rem;
+}
+
+.variables-list code {
+    background: #fff;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    color: black;
+}
+
+.form-field {
+    margin-bottom: 1.5rem;
+}
+
+.form-field label {
+    display: block;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.form-field textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    transition: all 0.3s;
+    resize: vertical;
+}
+
+.form-field textarea:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.code {
+    color: black;
+}
+
+.help-text {
+    font-size: 0.85rem;
+    color: #777;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+.btn-save {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(52, 211, 153, 0.3);
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 211, 153, 0.4);
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-cancel:hover {
+    background: #5a6268;
+    color: white;
+    text-decoration: none;
+}
+
+.char-counter {
+    text-align: right;
+    font-size: 0.85rem;
+    color: #999;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 1024px) {
+    .contexts-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .contexts-sidebar {
+        position: static;
+    }
+}
+</style>
+
+<div class="contexts-container">
+    <!-- Breadcrumbs -->
+    <nav style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <a href="{% if back_url %}{{ back_url }}{% else %}{% url 'admin:index' %}{% endif %}" style="color: #10b981; text-decoration: none;">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+        <span style="margin: 0 0.5rem; color: #999;">›</span>
+        <span style="color: #666;">Contextos del Sistema</span>
+    </nav>
+
+    <div class="contexts-header">
+        <h1><i class="fas fa-comments"></i> Contextos del Sistema - Don Datico 🦜</h1>
+        <p>Edita los prompts y contextos que definen el comportamiento del agente</p>
+    </div>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="contexts-layout">
+        <!-- Sidebar con lista de contextos -->
+        <div class="contexts-sidebar">
+            <h2><i class="fas fa-list"></i> Contextos</h2>
+            <ul class="context-list">
+                <li class="context-item">
+                    <a href="?context_key=don_datico_base" class="{% if selected_context == 'don_datico_base' %}active{% endif %}">
+                        <i class="fas fa-home"></i> Base
+                    </a>
+                </li>
+                <li class="context-item">
+                    <a href="?context_key=tools_round_1" class="{% if selected_context == 'tools_round_1' %}active{% endif %}">
+                        <i class="fas fa-play"></i> Ronda 1
+                    </a>
+                </li>
+                <li class="context-item">
+                    <a href="?context_key=tools_round_n" class="{% if selected_context == 'tools_round_n' %}active{% endif %}">
+                        <i class="fas fa-sync"></i> Rondas N
+                    </a>
+                </li>
+                <li class="context-item">
+                    <a href="?context_key=conversational" class="{% if selected_context == 'conversational' %}active{% endif %}">
+                        <i class="fas fa-comments"></i> Conversacional
+                    </a>
+                </li>
+                <li class="context-item">
+                    <a href="?context_key=enhanced_tools" class="{% if selected_context == 'enhanced_tools' %}active{% endif %}">
+                        <i class="fas fa-tools"></i> Mejorado
+                    </a>
+                </li>
+                <li class="context-item">
+                    <a href="?context_key=fallback" class="{% if selected_context == 'fallback' %}active{% endif %}">
+                        <i class="fas fa-shield-alt"></i> Respaldo
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="contexts-main">
+            {% if selected_context in contexts_info %}
+            <div class="context-info">
+                <h3><i class="fas fa-info-circle"></i> {{ contexts_info|get_item:selected_context|get_item:'description' }}</h3>
+                {% if contexts_info|get_item:selected_context|get_item:'variables' %}
+                <p><strong>Variables disponibles:</strong></p>
+                <ul class="variables-list">
+                    {% for var in contexts_info|get_item:selected_context|get_item:'variables' %}
+                    <li><code>{<code>{{ var }}</code>}</code></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="context-info" style="background: #d1ecf1; border-left: 4px solid #0c5460;">
+                <h3><i class="fas fa-server"></i> Aplicación de Cambios</h3>
+                <p>Los cambios se guardan en <code>chat_config.py</code> automáticamente.</p>
+                <p><strong>Producción:</strong> Si Gunicorn usa <code>--reload</code>, los cambios se aplicarán en unos segundos. De lo contrario, reinicia: <code>sudo systemctl restart gunicorn</code></p>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                <input type="hidden" name="context_key" value="{{ selected_context }}">
+                
+                <div class="form-field">
+                    <label for="{{ form.context_content.id_for_label }}">
+                        {{ form.context_content.label }}
+                    </label>
+                    {{ form.context_content }}
+                    <span class="help-text">{{ form.context_content.help_text }}</span>
+                    <div class="char-counter">
+                        <span id="char-count">0</span> caracteres
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i> Guardar Contexto
+                    </button>
+                    <a href="{% if back_url %}{{ back_url }}{% else %}{% url 'admin:index' %}{% endif %}" class="btn-cancel">
+                        <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Contador de caracteres
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.querySelector('textarea[name="context_content"]');
+    const charCount = document.getElementById('char-count');
+    
+    function updateCount() {
+        charCount.textContent = textarea.value.length.toLocaleString();
+    }
+    
+    textarea.addEventListener('input', updateCount);
+    updateCount();
+});
+
+// Confirmación antes de salir si hay cambios sin guardar
+let formChanged = false;
+const form = document.querySelector('form');
+const textarea = document.querySelector('textarea[name="context_content"]');
+
+textarea.addEventListener('input', () => {
+    formChanged = true;
+});
+
+// Advertir al usuario si intenta salir sin guardar
+window.addEventListener('beforeunload', (e) => {
+    if (formChanged) {
+        e.preventDefault();
+        e.returnValue = '¿Seguro que quieres salir? Hay cambios sin guardar.';
+        return e.returnValue;
+    }
+});
+
+// Resetear flag al enviar el formulario
+form.addEventListener('submit', () => {
+    formChanged = false;
+});
+
+// Resetear flag al cambiar de contexto
+const contextLinks = document.querySelectorAll('.context-item a');
+contextLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+        if (formChanged) {
+            if (!confirm('¿Seguro que quieres cambiar de contexto? Hay cambios sin guardar.')) {
+                e.preventDefault();
+            } else {
+                formChanged = false;
+            }
+        }
+    });
+});
+</script>

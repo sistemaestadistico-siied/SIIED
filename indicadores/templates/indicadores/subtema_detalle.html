@@ -63,7 +63,8 @@
                 <nav id="indicadores-nav" class="flex flex-col space-y-1 text-left">
                     {% for indicador in indicadores %}
                         <a href="#" data-indicador-id="{{ indicador.id }}" data-indicador-nombre="{{ indicador.nombre }}" data-mostrar-mapa="{{ indicador.mostrar_mapa|yesno:'true,false' }}"
-                           class="indicador-link px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                           class="indicador-link px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2">
+                            {% include 'indicadores/_sello_badge.html' with sello=indicador.sello_calidad size='sm' titulo=indicador.get_sello_calidad_display %}
                             <span>{{ indicador.nombre }}</span>
                         </a>
                     {% empty %}

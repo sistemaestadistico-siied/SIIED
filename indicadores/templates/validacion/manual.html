@@ -30,6 +30,7 @@
       <li><a href="#workspace" class="hover:text-emerald-900 hover:underline">8. Workspace unificado</a></li>
       <li><a href="#conciliacion" class="hover:text-emerald-900 hover:underline">9. Conciliación de dominios de desagregación</a></li>
       <li><a href="#identidad" class="hover:text-emerald-900 hover:underline">10. Normalización de identidad de indicadores</a></li>
+      <li><a href="#sellos" class="hover:text-emerald-900 hover:underline">11. Sellos de calidad de metadata</a></li>
     </ul>
   </div>
 
@@ -285,7 +286,9 @@
         <li>Desde el Workspace puedes saltar a Validación, Recolección, Reportes o el Portal de Delegado sin cerrar sesión.</li>
       </ul>
     </div>
-  </secSECCIÓN 9 -->
+  </section>
+
+  <!-- SECCIÓN 9 -->
   <section id="conciliacion" class="mb-10">
     <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
       <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">9</span>
@@ -350,7 +353,55 @@
     </div>
   </section>
 
-  <!-- tion>
+  <!-- SECCIÓN 11 -->
+  <section id="sellos" class="mb-10">
+    <h2 class="text-lg font-serif font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">11</span>
+      Sellos de calidad de metadata
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 text-sm text-slate-700 space-y-3">
+      <p>El menú <strong>"Sellos"</strong> (<code>/validacion/sellos/</code>) certifica que la <strong>metadata</strong> de indicadores y variables de conjuntos de datos fue revisada. Es independiente de la validación de cargas: aquí no se validan datos sino la ficha de metadata.</p>
+
+      <h3 class="font-semibold text-slate-800 pt-2">Navegación y revisión</h3>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Los <strong>indicadores</strong> se agrupan en desplegables <em>dominio › tema › subtema</em>; las <strong>variables</strong> en <em>dominio › tema › subtema › conjunto de datos</em>.</li>
+        <li>El botón <strong>chevron</strong> de cada fila despliega la metadata completa a revisar: para indicadores, todos los campos numerados del estándar MSD/SDMX (secciones 0–6); para variables, su inventario completo (definición, tipo/dominio del dato, desagregaciones, DDI, referencias…).</li>
+        <li>Los campos vacíos se muestran como <code>N/A</code>. Cada elemento muestra además un <strong>chip con su % de completitud de metadata</strong> y un enlace a la ficha técnica pública.</li>
+        <li>Filtros por estado de sello y búsqueda por nombre/código/conjunto.</li>
+      </ul>
+
+      <h3 class="font-semibold text-slate-800 pt-2">Umbral de completitud del 35%</h3>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Solo se listan indicadores con <strong>≥35% de completitud</strong> sobre los 31 campos del estándar; los demás no aparecen ni se pueden sellar (el servidor también lo bloquea).</li>
+        <li>El porcentaje es el mismo que muestra el módulo de Reportes (misma fuente de cálculo).</li>
+        <li>Las variables siempre se listan con su índice de completitud, sin umbral.</li>
+      </ul>
+
+      <h3 class="font-semibold text-slate-800 pt-2">Niveles de sello</h3>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><span class="px-1.5 py-0.5 rounded text-xs font-semibold bg-cyan-100 text-cyan-700">Sello organismo</span> — lo otorga el validador de organismo sobre indicadores y variables <strong>de su propio organismo</strong>.</li>
+        <li><span class="px-1.5 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-700">Sello SIIED</span> — lo otorga el validador del sistema sobre cualquier elemento. Es el nivel máximo.</li>
+        <li>El sello <strong>solo puede subir de nivel</strong>: nunca se rebaja por el panel.</li>
+        <li>Para variables existe la acción masiva <strong>"Sellar todo el conjunto"</strong>.</li>
+      </ul>
+
+      <h3 class="font-semibold text-slate-800 pt-2">Sello automático y vigencia</h3>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Al <strong>prevalidar</strong> una carga de serie, el indicador recibe el sello del organismo; al <strong>aprobarla</strong>, el sello SIIED (siempre que supere el 35%).</li>
+        <li>Al aprobar cargas de conjuntos de datos, sus variables se sellan automáticamente al nivel correspondiente.</li>
+        <li><strong>Vigencia:</strong> cualquier cambio en la metadata revierte el sello a <em>Sin sello</em> — hay que revalidar.</li>
+      </ul>
+
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-3">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>Consejo:
+        </p>
+        <p class="text-emerald-700">Antes de sellar, expande la metadata con el chevron y verifica que los campos del estándar estén correctos, no solo diligenciados — el % mide completitud, no calidad del contenido.</p>
+      </div>
+    </div>
+  </section>
 
   <!-- Contacto -->
   <div class="bg-slate-50 border border-slate-200 rounded-3xl p-5 text-sm text-slate-700">

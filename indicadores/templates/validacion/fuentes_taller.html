@@ -1,0 +1,91 @@
+{% extends 'validacion/base_validacion.html' %}
+
+{% block title %}Fuentes del Taller — Validación a Gold{% endblock %}
+
+{% block validacion_content %}
+<div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-slate-900">Fuentes del taller · validación a capa gold</h2>
+        <p class="text-sm text-slate-500 mt-1">
+            {{ n_pendientes }} fuentes prevalidadas (capa plata) por el equipo de Analítica esperan la
+            validación final. Aprobarlas las publica como bases del catálogo de datos.
+        </p>
+    </div>
+</div>
+
+{% if pendientes %}
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase">Fuente</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase">Organismo</th>
+                    <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">Variables</th>
+                    <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">Seguridad</th>
+                    <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">Avances</th>
+                    <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase">Prevalidada</th>
+                    <th class="px-4 py-3"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for f in pendientes %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3">
+                        <p class="text-xs font-bold text-slate-800">{{ f.nombre|truncatechars:50 }}</p>
+                        <div class="flex gap-1 mt-0.5">
+                            {% for e in f.etiquetas.all %}
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold border {{ e.color }}">{{ e.nombre }}</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-xs text-slate-600">{{ f.inscripcion.organismo.nombre|truncatechars:35 }}</td>
+                    <td class="px-4 py-3 text-center text-xs font-bold text-slate-700">{{ f.variables.count }}</td>
+                    <td class="px-4 py-3 text-center">
+                        {% if f.seguridad.criticidad %}
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                            {% if f.seguridad.criticidad == 'rojo' %}bg-red-100 text-red-700 border border-red-200
+                            {% elif f.seguridad.criticidad == 'amarillo' %}bg-amber-100 text-amber-700 border border-amber-200
+                            {% else %}bg-emerald-100 text-emerald-700 border border-emerald-200{% endif %}">{{ f.seguridad.criticidad }}</span>
+                        {% else %}<span class="text-xs text-slate-300">sin F3</span>{% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center text-xs font-bold text-slate-700">{{ f.avances.count }}</td>
+                    <td class="px-4 py-3 text-xs text-slate-500">
+                        {{ f.fecha_prevalidacion|date:'d/m/Y' }}<br>
+                        <span class="text-slate-400">{{ f.prevalidada_por.get_full_name|default:'' }}</span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <a href="{% url 'indicadores:validacion_fuente_revisar' f.pk %}"
+                           class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-lg transition-colors">
+                            Revisar →
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-8">
+    <p class="text-sm font-semibold text-emerald-800">✓ Cola vacía — no hay fuentes prevalidadas pendientes.</p>
+    <p class="text-xs text-emerald-600 mt-1">El equipo de Analítica prevalida fuentes (bronce → plata) desde el explorador de fuentes del taller.</p>
+</div>
+{% endif %}
+
+{% if recientes_gold %}
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 border-b-2 border-slate-300 pb-2 mb-4">Promovidas recientemente a gold</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    {% for f in recientes_gold %}
+    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+        <p class="text-xs font-bold text-emerald-800">{{ f.nombre|truncatechars:50 }}</p>
+        <p class="text-[10px] text-emerald-600 mt-0.5">{{ f.inscripcion.organismo.nombre|truncatechars:40 }}</p>
+        {% if f.base_catalogo %}
+        <p class="text-[10px] text-slate-500 mt-1">→ base <span class="font-mono">{{ f.base_catalogo.slug }}</span>
+            {% if f.base_catalogo.operacion %} · op. {{ f.base_catalogo.operacion.codigo }}{% endif %}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

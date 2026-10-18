@@ -1,0 +1,127 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Fuentes de Información — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-2xl font-serif font-bold text-slate-900">Fuentes de Información del Taller</h2>
+            <p class="text-sm text-slate-500 mt-1">
+                {{ totales.fuentes }} fuentes ·
+                <span class="text-amber-600 font-semibold">{{ totales.plata }} en plata</span> ·
+                <span class="text-emerald-600 font-semibold">{{ totales.gold }} en gold</span> ·
+                {{ totales.absorbidas }} absorbidas por conciliación
+            </p>
+        </div>
+        <a href="{% url 'indicadores:analitica_taller_conciliar' %}"
+           class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">
+            ⇄ Conciliar duplicados
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <input type="text" name="q" value="{{ q }}" placeholder="Buscar nombre o descripción..."
+                   class="col-span-2 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
+            <select name="organismo" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                <option value="">Todos los organismos</option>
+                {% for o in organismos %}
+                <option value="{{ o.id }}" {% if organismo_id == o.id|stringformat:'i' %}selected{% endif %}>{{ o.nombre|truncatechars:35 }}</option>
+                {% endfor %}
+            </select>
+            <select name="capa" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                <option value="">Todas las capas</option>
+                {% for v, l in capas %}
+                <option value="{{ v }}" {% if capa_sel == v %}selected{% endif %}>{{ l }}</option>
+                {% endfor %}
+            </select>
+            <select name="etiqueta" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                <option value="">Todas las etiquetas</option>
+                {% for e in etiquetas %}
+                <option value="{{ e.id }}" {% if etiqueta_id == e.id|stringformat:'i' %}selected{% endif %}>{{ e.nombre }}</option>
+                {% endfor %}
+            </select>
+            <select name="edicion" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                <option value="">Todas las ediciones</option>
+                {% for a in ediciones %}
+                <option value="{{ a }}" {% if edicion == a|stringformat:'i' %}selected{% endif %}>Taller {{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="flex items-center gap-4 mt-3">
+            <button type="submit" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">Filtrar</button>
+            <a href="{% url 'indicadores:analitica_taller_fuentes' %}" class="text-xs text-slate-500 hover:text-slate-700">Limpiar</a>
+            <label class="flex items-center gap-2 text-xs text-slate-600 ml-auto">
+                <input type="checkbox" name="absorbidas" value="si" {% if absorbidas %}checked{% endif %}
+                       onchange="this.form.submit()" class="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500">
+                Incluir fuentes absorbidas
+            </label>
+        </div>
+    </form>
+
+    <!-- Posibles duplicados -->
+    {% if duplicados %}
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
+        <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wide mb-3">
+            ⚠ {{ duplicados|length }} posibles duplicados detectados
+        </h3>
+        <div class="space-y-2">
+            {% for d in duplicados|slice:':10' %}
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-white rounded-lg border border-amber-200 px-4 py-2.5">
+                <div class="text-xs text-slate-700 min-w-0">
+                    <a href="{% url 'indicadores:analitica_taller_fuente' d.a_id %}" class="font-semibold text-fuchsia-700 hover:underline">{{ d.a_nombre|truncatechars:40 }}</a>
+                    <span class="text-slate-400">({{ d.a_org|truncatechars:25 }})</span>
+                    <span class="mx-1 text-amber-500 font-bold">⇄</span>
+                    <a href="{% url 'indicadores:analitica_taller_fuente' d.b_id %}" class="font-semibold text-fuchsia-700 hover:underline">{{ d.b_nombre|truncatechars:40 }}</a>
+                    <span class="text-slate-400">({{ d.b_org|truncatechars:25 }})</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-bold text-amber-700">{{ d.ratio }}% similar{% if d.variables_comunes %} · {{ d.variables_comunes }} var. comunes{% endif %}</span>
+                    <a href="{% url 'indicadores:analitica_taller_conciliar' %}?a={{ d.a_id }}&b={{ d.b_id }}"
+                       class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase rounded-md transition-colors">Conciliar</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Grid de fuentes -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for f in fuentes %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:shadow-md hover:border-fuchsia-300 transition-all {% if f.fusionada_en_id %}opacity-60{% endif %}">
+            <div class="flex items-start justify-between gap-2 mb-1">
+                <a href="{% url 'indicadores:analitica_taller_fuente' f.id %}"
+                   class="text-sm font-bold text-slate-800 hover:text-fuchsia-700 leading-tight">{{ f.nombre|truncatechars:60 }}</a>
+                <span class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border
+                    {% if f.capa == 'gold' %}bg-emerald-50 text-emerald-700 border-emerald-300
+                    {% elif f.capa == 'plata' %}bg-slate-100 text-slate-600 border-slate-300
+                    {% else %}bg-amber-50 text-amber-700 border-amber-300{% endif %}">
+                    {{ f.get_capa_display|truncatechars:6 }}
+                </span>
+            </div>
+            <p class="text-[11px] text-slate-500 mb-2">{{ f.inscripcion.organismo.nombre|truncatechars:45 }}{% if f.inscripcion.suborganismo %} · {{ f.inscripcion.suborganismo.nombre|truncatechars:25 }}{% endif %}</p>
+            <div class="flex flex-wrap gap-1 mb-2">
+                {% if f.rol %}<span class="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-[10px] font-bold uppercase">{{ f.get_rol_display|truncatechars:12 }}</span>{% endif %}
+                <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">{{ f.variables.count }} var.</span>
+                {% if f.n_compartidas %}<span class="px-2 py-0.5 bg-violet-50 text-violet-700 border border-violet-200 rounded-full text-[10px] font-bold">⇄ {{ f.n_compartidas }} compartidas</span>{% endif %}
+                {% if f.seguridad.criticidad == 'rojo' %}<span class="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-full text-[10px] font-bold uppercase">crítica</span>{% endif %}
+                {% for e in f.etiquetas.all %}<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border {{ e.color }}">{{ e.nombre }}</span>{% endfor %}
+            </div>
+            <p class="text-[11px] text-slate-500 leading-snug line-clamp-2 mb-2">{{ f.descripcion|default:'Sin descripción'|truncatechars:110 }}</p>
+            {% if f.fusionada_en_id %}
+            <p class="text-[10px] text-slate-400 italic">Absorbida por «{{ f.fusionada_en.nombre|truncatechars:40 }}»</p>
+            {% elif f.base_catalogo_id %}
+            <p class="text-[10px] text-emerald-600 font-semibold">→ Base «{{ f.base_catalogo.nombre|truncatechars:35 }}» en el catálogo</p>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p class="text-sm text-slate-400 col-span-3">No hay fuentes con estos filtros.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -14,9 +14,30 @@ Módulo propio del SIIED (no es el catálogo de consulta de indicadores, que es
 Portado del proyecto independiente `formulario/` (taller técnico DAP 2026).
 """
 
+from django.conf import settings
 from django.db import models
 
 from .models_taller import InscripcionTaller, OpcionTaller, Semaforo, SiNo, SiNoNoAplica, SiNoNoSeNoAplica
+
+
+class EtiquetaFuente(models.Model):
+    """Etiqueta analítica que el equipo SIIED asigna a las fuentes del taller
+    (ej. 'prioritaria', 'sensible', 'candidata gold'). Administrable."""
+
+    nombre = models.CharField('Nombre', max_length=60, unique=True)
+    color = models.CharField(
+        'Color (clases Tailwind)', max_length=60,
+        default='bg-slate-100 text-slate-700 border-slate-300',
+        help_text='Clases Tailwind para el chip, ej. bg-amber-100 text-amber-800 border-amber-300')
+    orden = models.PositiveSmallIntegerField('Orden', default=0)
+
+    class Meta:
+        verbose_name = 'Catálogo · Etiqueta de fuente'
+        verbose_name_plural = 'Catálogo · Etiquetas de fuentes'
+        ordering = ['orden', 'nombre']
+
+    def __str__(self):
+        return self.nombre
 
 
 class FuenteDatos(models.Model):
@@ -98,6 +119,34 @@ class FuenteDatos(models.Model):
                                         max_length=5, choices=SiNo.choices, blank=True)
     validacion_descripcion = models.TextField('Describa brevemente los procesos de validación aplicados', blank=True)
 
+    # ── Pipeline medallón (analítica del taller) ──
+    class Capa(models.TextChoices):
+        BRONCE = 'bronce', 'Bronce (reportada en taller)'
+        PLATA = 'plata', 'Plata (prevalidada / normalizada)'
+        GOLD = 'gold', 'Gold (catalogada en el Data Lake)'
+
+    capa = models.CharField(
+        'Capa del pipeline', max_length=10, choices=Capa.choices,
+        default=Capa.BRONCE, db_index=True)
+    etiquetas = models.ManyToManyField(
+        EtiquetaFuente, blank=True, related_name='fuentes',
+        verbose_name='Etiquetas analíticas')
+    fusionada_en = models.ForeignKey(
+        'self', verbose_name='Fusionada en', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='fuentes_absorbidas',
+        help_text='Si esta fuente era un duplicado, apunta a la fuente que la absorbió')
+    base_catalogo = models.ForeignKey(
+        'BaseCatalogo', verbose_name='Base de catálogo generada',
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='fuentes_origen',
+        help_text='Base del Data Lake creada al pasar a capa gold')
+    notas_analista = models.TextField('Notas del analista', blank=True)
+    prevalidada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name='Prevalidada por',
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='+')
+    fecha_prevalidacion = models.DateTimeField('Fecha de prevalidación', null=True, blank=True)
+
     class Meta:
         verbose_name = 'Catálogo · Fuente de datos'
         verbose_name_plural = 'Catálogo · Fuentes de datos'
@@ -108,6 +157,11 @@ class FuenteDatos(models.Model):
     @property
     def organismo(self):
         return self.inscripcion.organismo
+
+    @property
+    def es_activa(self):
+        """Fuente vigente (no absorbida por una conciliación de duplicados)."""
+        return self.fusionada_en_id is None
 
 
 class FuenteOrigen(models.Model):
@@ -389,6 +443,37 @@ class EvaluacionSeguridad(models.Model):
         super().save(*args, **kwargs)
 
 
+class AvanceFormalizacion(models.Model):
+    """Hito registrado por el analista en la formalización de una fuente:
+    acuerdos, normalización, metadata DDI, operación estadística, etc."""
+
+    class Hito(models.TextChoices):
+        ACUERDO_TRANSFERENCIA = 'acuerdo_transferencia', 'Acuerdo de transferencia de información'
+        ACUERDO_CONFIDENCIALIDAD = 'acuerdo_confidencialidad', 'Acuerdo de confidencialidad'
+        NORMALIZACION = 'normalizacion', 'Normalización de la fuente'
+        METADATA_DDI = 'metadata_ddi', 'Metadata estándar DDI'
+        OPERACION_ESTADISTICA = 'operacion_estadistica', 'Formalización como operación estadística'
+        CONTACTO = 'contacto', 'Gestión con el organismo'
+        OTRO = 'otro', 'Otro avance'
+
+    fuente = models.ForeignKey(
+        FuenteDatos, on_delete=models.CASCADE, related_name='avances')
+    hito = models.CharField('Hito', max_length=30, choices=Hito.choices)
+    nota = models.TextField('Nota / evidencia del avance', blank=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name='Registrado por',
+        on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    creado = models.DateTimeField('Registrado', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Catálogo · Avance de formalización'
+        verbose_name_plural = 'Catálogo · Avances de formalización'
+        ordering = ['-creado']
+
+    def __str__(self):
+        return f'{self.get_hito_display()} · {self.fuente}'
+
+
 # ──────────────────────────────────────────────────────────────────────────
 # Catálogo de bases del Data Lake (antes `catalogo_data.py` hardcodeado)
 # ──────────────────────────────────────────────────────────────────────────
@@ -410,6 +495,17 @@ class BaseCatalogo(models.Model):
     cobertura = models.CharField('Cobertura', max_length=100, blank=True)
     activa = models.BooleanField('Activa', default=True)
     orden = models.PositiveSmallIntegerField('Orden', default=0)
+
+    # Trazabilidad del pipeline medallón del taller
+    fuente_origen = models.ForeignKey(
+        FuenteDatos, verbose_name='Fuente del taller que la originó',
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='bases_catalogo')
+    operacion = models.ForeignKey(
+        'indicadores.OperacionEstadistica', verbose_name='Operación estadística',
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='bases_catalogo',
+        help_text='Operación formalizada cuando la fuente es registro administrativo o censo')
 
     class Meta:
         verbose_name = 'Catálogo · Base de datos'

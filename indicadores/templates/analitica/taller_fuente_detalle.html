@@ -1,0 +1,289 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}{{ fuente.nombre|truncatechars:50 }} — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+
+    <a href="{% url 'indicadores:analitica_taller_fuentes' %}" class="text-xs text-slate-500 hover:text-fuchsia-700">← Volver al explorador</a>
+
+    <!-- Encabezado -->
+    <div class="flex flex-wrap items-start justify-between gap-4 mt-3 mb-6">
+        <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <h2 class="text-2xl font-serif font-bold text-slate-900">{{ fuente.nombre }}</h2>
+                <span class="px-3 py-1 rounded-full text-xs font-bold uppercase border
+                    {% if fuente.capa == 'gold' %}bg-emerald-50 text-emerald-700 border-emerald-300
+                    {% elif fuente.capa == 'plata' %}bg-slate-100 text-slate-600 border-slate-300
+                    {% else %}bg-amber-50 text-amber-700 border-amber-300{% endif %}">
+                    {{ fuente.get_capa_display }}
+                </span>
+                {% if fuente.fusionada_en %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-300">
+                    Absorbida por «{{ fuente.fusionada_en.nombre|truncatechars:30 }}»
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-slate-500 mt-1">
+                {{ fuente.inscripcion.organismo.nombre }}
+                {% if fuente.inscripcion.suborganismo %} · {{ fuente.inscripcion.suborganismo.nombre }}{% endif %}
+                · Taller {{ fuente.inscripcion.edicion }}
+            </p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            {% if fuente.capa == 'bronce' and fuente.es_activa %}
+            <form method="post" action="{% url 'indicadores:analitica_taller_fuente_accion' fuente.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="prevalidar">
+                <button type="submit" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">
+                    ✓ Prevalidar (→ plata)
+                </button>
+            </form>
+            {% elif fuente.capa == 'plata' %}
+            <form method="post" action="{% url 'indicadores:analitica_taller_fuente_accion' fuente.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="revertir_plata">
+                <button type="submit" class="px-4 py-2 bg-white border border-slate-300 text-slate-600 text-xs font-bold uppercase tracking-wide rounded-lg hover:bg-slate-50 transition-colors">
+                    ↩ Devolver a bronce
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'indicadores:analitica_taller_conciliar' %}?a={{ fuente.pk }}"
+               class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">
+                ⇄ Conciliar
+            </a>
+        </div>
+    </div>
+
+    {% if fuente.capa == 'plata' %}
+    <div class="bg-slate-100 border border-slate-300 rounded-xl px-4 py-3 mb-6 text-xs text-slate-600">
+        Prevalidada{% if fuente.prevalidada_por %} por <b>{{ fuente.prevalidada_por.get_full_name|default:fuente.prevalidada_por.username }}</b>{% endif %}
+        {% if fuente.fecha_prevalidacion %}el {{ fuente.fecha_prevalidacion|date:'d/m/Y H:i' }}{% endif %} —
+        pendiente de validación final en el módulo de Validación para pasar a capa gold.
+    </div>
+    {% elif fuente.capa == 'gold' and fuente.base_catalogo %}
+    <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-6 text-xs text-emerald-700">
+        Validada a capa <b>gold</b>: publicada como base «<b>{{ fuente.base_catalogo.nombre }}</b>»
+        {% if fuente.base_catalogo.operacion %}· operación estadística «{{ fuente.base_catalogo.operacion.nombre }}»{% endif %}
+        en el catálogo de datos.
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Columna principal -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Caracterización F1 -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-700 border-b border-amber-200 pb-2 mb-4">F1 · Caracterización</h3>
+                <p class="text-sm text-slate-700 mb-4">{{ fuente.descripcion|default:'Sin descripción' }}</p>
+                <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Rol</dt><dd class="font-medium text-slate-800">{{ fuente.get_rol_display|default:'—'|truncatechars:30 }}</dd></div>
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Periodicidad</dt><dd class="font-medium text-slate-800">{% for p in fuente.periodicidades.all %}{{ p.etiqueta }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Última actualización</dt><dd class="font-medium text-slate-800">{{ fuente.fecha_actualizacion|date:'d/m/Y'|default:'—' }}</dd></div>
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Registros</dt><dd class="font-medium text-slate-800">{{ fuente.num_registros|default:'—' }}</dd></div>
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Georreferenciación</dt><dd class="font-medium text-slate-800">{{ fuente.get_georreferenciacion_display|default:'—' }}</dd></div>
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Diccionario</dt><dd class="font-medium text-slate-800">{{ fuente.get_tiene_diccionario_display|default:'—' }}</dd></div>
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Validación/limpieza</dt><dd class="font-medium text-slate-800">{{ fuente.get_tiene_validacion_display|default:'—' }}</dd></div>
+                    <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Desagregación</dt><dd class="font-medium text-slate-800">{% for d in fuente.desagregaciones.all %}{{ d.etiqueta }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
+                </dl>
+                {% if fuente.fuentes_origen.all %}
+                <p class="text-[11px] text-slate-500 mt-3">Orígenes: {% for fo in fuente.fuentes_origen.all %}{{ fo.nombre }} ({{ fo.organismo_productor }}){% if not forloop.last %} · {% endif %}{% endfor %}</p>
+                {% endif %}
+            </div>
+
+            <!-- Variables e interconectividad -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-violet-700 border-b border-violet-200 pb-2 mb-1">
+                    Variables e interconectividad
+                    <span class="text-[10px] font-semibold text-slate-400 normal-case">{{ n_compartidas }} de {{ compartidas|length }} compartidas</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 mb-4">Variables que conectan esta fuente con otras del taller o con bases del catálogo del Data Lake.</p>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase">Variable</th>
+                                <th class="px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase">Tipo</th>
+                                <th class="px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase">Conecta con fuentes</th>
+                                <th class="px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase">Conecta con catálogo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for c in compartidas %}
+                            <tr class="{% if c.compartida %}bg-violet-50/40{% endif %}">
+                                <td class="px-3 py-2 text-xs font-medium text-slate-800">
+                                    {{ c.variable.nombre }}
+                                    {% if c.es_llave %}<span class="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[9px] font-bold uppercase">llave</span>{% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-xs text-slate-500">{{ c.variable.get_tipo_display }}</td>
+                                <td class="px-3 py-2 text-xs">
+                                    {% for o in c.otras %}
+                                    <a href="{% url 'indicadores:analitica_taller_fuente' o.id %}" class="text-fuchsia-700 hover:underline">{{ o.nombre|truncatechars:30 }}</a>{% if not forloop.last %} · {% endif %}
+                                    {% empty %}<span class="text-slate-300">—</span>{% endfor %}
+                                </td>
+                                <td class="px-3 py-2 text-xs">
+                                    {% for b in c.bases %}<span class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[10px] font-mono">{{ b }}</span> {% endfor %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="px-3 py-4 text-xs text-slate-400">Sin variables registradas.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Seguridad F3 -->
+            {% if seguridad %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-fuchsia-700 border-b border-fuchsia-200 pb-2 mb-4">F3 · Seguridad y privacidad</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div class="rounded-xl border p-3 text-center {% if seguridad.confidencialidad == 'rojo' %}bg-red-50 border-red-200{% elif seguridad.confidencialidad == 'amarillo' %}bg-amber-50 border-amber-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
+                        <p class="text-[10px] font-bold uppercase text-slate-500">Confidencialidad</p>
+                        <p class="text-sm font-bold {% if seguridad.confidencialidad == 'rojo' %}text-red-700{% elif seguridad.confidencialidad == 'amarillo' %}text-amber-700{% else %}text-emerald-700{% endif %}">{{ seguridad.confidencialidad|default:'—'|capfirst }}</p>
+                    </div>
+                    <div class="rounded-xl border p-3 text-center {% if seguridad.integridad == 'rojo' %}bg-red-50 border-red-200{% elif seguridad.integridad == 'amarillo' %}bg-amber-50 border-amber-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
+                        <p class="text-[10px] font-bold uppercase text-slate-500">Integridad</p>
+                        <p class="text-sm font-bold {% if seguridad.integridad == 'rojo' %}text-red-700{% elif seguridad.integridad == 'amarillo' %}text-amber-700{% else %}text-emerald-700{% endif %}">{{ seguridad.integridad|default:'—'|capfirst }}</p>
+                    </div>
+                    <div class="rounded-xl border p-3 text-center {% if seguridad.disponibilidad == 'rojo' %}bg-red-50 border-red-200{% elif seguridad.disponibilidad == 'amarillo' %}bg-amber-50 border-amber-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
+                        <p class="text-[10px] font-bold uppercase text-slate-500">Disponibilidad</p>
+                        <p class="text-sm font-bold {% if seguridad.disponibilidad == 'rojo' %}text-red-700{% elif seguridad.disponibilidad == 'amarillo' %}text-amber-700{% else %}text-emerald-700{% endif %}">{{ seguridad.disponibilidad|default:'—'|capfirst }}</p>
+                    </div>
+                    <div class="rounded-xl border p-3 text-center {% if seguridad.criticidad == 'rojo' %}bg-red-50 border-red-200{% elif seguridad.criticidad == 'amarillo' %}bg-amber-50 border-amber-200{% else %}bg-emerald-50 border-emerald-200{% endif %}">
+                        <p class="text-[10px] font-bold uppercase text-slate-500">Criticidad</p>
+                        <p class="text-sm font-bold {% if seguridad.criticidad == 'rojo' %}text-red-700{% elif seguridad.criticidad == 'amarillo' %}text-amber-700{% else %}text-emerald-700{% endif %}">{{ seguridad.criticidad|default:'—'|capfirst }}</p>
+                    </div>
+                </div>
+                {% if factores %}
+                <p class="text-[11px] font-bold text-slate-600 mb-2">Factores de riesgo OCHA: {{ factores.total_riesgos }} de {{ factores.total_criterios }}</p>
+                <ul class="space-y-1">
+                    {% for f in factores.factores %}{% if f.es_riesgo %}
+                    <li class="text-[11px] text-red-700 bg-red-50 rounded px-2 py-1">⚠ {{ f.pregunta|truncatechars:90 }}</li>
+                    {% endif %}{% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Retos que la requieren -->
+            {% if retos_relacionados %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-700 border-b border-emerald-200 pb-2 mb-3">Retos F2 que la requieren</h3>
+                <ul class="space-y-2">
+                    {% for r in retos_relacionados %}
+                    <li class="text-xs text-slate-700">
+                        <span class="font-bold text-emerald-700">R{{ r.id }}</span> {{ r.nombre|truncatechars:80 }}
+                        <span class="text-slate-400">· {{ r.inscripcion.organismo.nombre|truncatechars:30 }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Columna lateral: acciones del analista -->
+        <div class="space-y-6">
+
+            <!-- Etiquetas -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Etiquetas analíticas</h3>
+                <form method="post" action="{% url 'indicadores:analitica_taller_fuente_accion' fuente.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="etiquetas">
+                    <div class="space-y-1.5 mb-3">
+                        {% for e in etiquetas %}
+                        <label class="flex items-center gap-2 text-xs text-slate-700">
+                            <input type="checkbox" name="etiquetas" value="{{ e.id }}"
+                                   {% if e in fuente.etiquetas.all %}checked{% endif %}
+                                   class="rounded border-slate-300 text-fuchsia-600 focus:ring-fuchsia-500">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border {{ e.color }}">{{ e.nombre }}</span>
+                        </label>
+                        {% empty %}
+                        <p class="text-[11px] text-slate-400">Aún no hay etiquetas creadas.</p>
+                        {% endfor %}
+                    </div>
+                    <input type="text" name="etiqueta_nueva" placeholder="Nueva etiqueta..."
+                           class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs mb-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
+                    <button type="submit" class="w-full px-3 py-1.5 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold rounded-lg transition-colors">Guardar etiquetas</button>
+                </form>
+            </div>
+
+            <!-- Avances de formalización -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Avances de formalización</h3>
+                <form method="post" action="{% url 'indicadores:analitica_taller_fuente_accion' fuente.pk %}" class="mb-4">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="avance">
+                    <select name="hito" class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs mb-2">
+                        {% for v, l in hitos %}<option value="{{ v }}">{{ l }}</option>{% endfor %}
+                    </select>
+                    <textarea name="nota" rows="2" placeholder="Nota / evidencia (acuerdo firmado, URL, fecha...)"
+                              class="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-xs mb-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-500"></textarea>
+                    <button type="submit" class="w-full px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors">Registrar avance</button>
+                </form>
+                <ul class="space-y-2 max-h-64 overflow-y-auto">
+                    {% for a in avances %}
+                    <li class="border-l-2 border-fuchsia-300 pl-3">
+                        <p class="text-[11px] font-bold text-slate-700">{{ a.get_hito_display }}</p>
+                        {% if a.nota %}<p class="text-[11px] text-slate-500">{{ a.nota|truncatechars:120 }}</p>{% endif %}
+                        <p class="text-[10px] text-slate-400">{{ a.creado|date:'d/m/Y H:i' }}{% if a.usuario %} · {{ a.usuario.get_full_name|default:a.usuario.username }}{% endif %}</p>
+                    </li>
+                    {% empty %}
+                    <li class="text-[11px] text-slate-400">Sin avances registrados aún.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Posibles duplicados -->
+            {% if similares %}
+            <div class="bg-amber-50 rounded-2xl border border-amber-200 p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-amber-800 mb-3">⚠ Posibles duplicados</h3>
+                <ul class="space-y-2">
+                    {% for d in similares %}
+                    <li class="bg-white rounded-lg border border-amber-200 px-3 py-2">
+                        {% if d.a_id == fuente.pk %}
+                        <a href="{% url 'indicadores:analitica_taller_fuente' d.b_id %}" class="text-xs font-semibold text-fuchsia-700 hover:underline">{{ d.b_nombre|truncatechars:45 }}</a>
+                        {% else %}
+                        <a href="{% url 'indicadores:analitica_taller_fuente' d.a_id %}" class="text-xs font-semibold text-fuchsia-700 hover:underline">{{ d.a_nombre|truncatechars:45 }}</a>
+                        {% endif %}
+                        <p class="text-[10px] text-amber-700 font-bold">{{ d.ratio }}% similar{% if d.variables_comunes %} · {{ d.variables_comunes }} var. comunes{% endif %}</p>
+                        <a href="{% url 'indicadores:analitica_taller_conciliar' %}?a={{ d.a_id }}&b={{ d.b_id }}" class="text-[10px] font-bold text-fuchsia-600 hover:underline">Conciliar →</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Fuentes absorbidas -->
+            {% if absorbidas %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Fuentes absorbidas ({{ absorbidas|length }})</h3>
+                <ul class="space-y-1.5">
+                    {% for f in absorbidas %}
+                    <li class="text-xs text-slate-600">
+                        <a href="{% url 'indicadores:analitica_taller_fuente' f.id %}" class="text-fuchsia-700 hover:underline">{{ f.nombre|truncatechars:45 }}</a>
+                        <span class="text-slate-400">· {{ f.inscripcion.organismo.nombre|truncatechars:25 }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Notas del analista -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Notas del analista</h3>
+                <form method="post" action="{% url 'indicadores:analitica_taller_fuente_accion' fuente.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="notas">
+                    <textarea name="notas" rows="4" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs mb-2 focus:outline-none focus:ring-2 focus:ring-fuchsia-500">{{ fuente.notas_analista }}</textarea>
+                    <button type="submit" class="w-full px-3 py-1.5 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold rounded-lg transition-colors">Guardar notas</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

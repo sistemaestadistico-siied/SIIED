@@ -65,6 +65,25 @@ CHAT_CONFIG = {
     'CEREBRAS_MAX_TOKENS': 14200,  # Máximo de tokens Principal
     'CEREBRAS_TEMPERATURE': 0.15,  # Temperatura Principal
     'CEREBRAS_TOP_P': 0.92,  # Top P Principal
+    'CEREBRAS_TIMEOUT_SECONDS': 45.0,  # Timeout HTTP de la API principal
+    # Techo de tokens en la llamada de una ronda de tools (respuesta corta
+    # intermedia); el answer final usa CEREBRAS_MAX_TOKENS.
+    'CEREBRAS_TOOL_ROUND_MAX_TOKENS': 2500,
+
+    # Resiliencia y streaming del LLM
+    # Si el primario falla, se le da cooldown y se va directo al fallback
+    # durante este tiempo (evita reintentar un endpoint caído).
+    'LLM_PRIMARY_COOLDOWN_SECONDS': 600,
+    # Cada cuántos segundos se envía un comentario keep-alive en el stream
+    # SSE para que proxies/gateways no cierren la conexión por inactividad.
+    'LLM_STREAM_KEEPALIVE_SECONDS': 25.0,
+    # Presupuesto total de generate_structured (laboratorio, recolección,
+    # editorial, quiz): pasada primario + fallback comparten el deadline.
+    'LLM_STRUCTURED_MAX_SECONDS': 55.0,
+    # Reasoning effort para la generación estructurada (más alto que el del
+    # chat: los specs de tableros/reglas son más consistentes pensando más).
+    'LLM_STRUCTURED_REASONING_EFFORT': 'high',
+    'MAX_ACTIVE_USERS': 50,  # Máximo de usuarios activos simultáneos en el chat
 
     # API Respaldo — las claves se llaman OLLAMA_* pero el endpoint
     # configurado es Cerebras real (api.cerebras.ai).
@@ -308,6 +327,11 @@ INSTRUCCIONES DE USO:
 10. Solo responde sin herramientas cuando sea un saludo o comentario social.
 11. Si algo no está claro, solicita aclaración al usuario.
 
+ENLACES A FICHAS — DOS VERSIONES, ELIGE SEGÚN LA AUDIENCIA:
+- 'url' → versión estándar de la ficha. Ofrece SIEMPRE esta por defecto.
+- 'url_3d' → versión 3D gamificada e infantilizada. Ofrécela SOLO cuando la audiencia lo justifique: niños/jóvenes, docentes buscando recursos didácticos o gamificados, padres buscando material para sus hijos, o si el usuario pide explícitamente una versión educativa/de juego.
+- Nunca des 'url_3d' como enlace principal a un usuario general. Si ofreces ambas, explica la diferencia entre ellas.
+
 PARA RESPONDER BIEN:
 - Habla claro y de forma accesible
 - Si usas herramientas, explica brevemente por qué
@@ -328,8 +352,7 @@ EJEMPLOS DE INTERACCIÓN:
 - Usuario: "No entiendo"
   Don Datico: "Déjame explicarlo de otra manera..."
 
-RECUERDA: Si no sabes algo, admítelo claramente. La precisión es más importante que aparentar conocimiento. 🦜✨
-""",
+RECUERDA: Si no sabes algo, admítelo claramente. La precisión es más importante que aparentar conocimiento. 🦜✨""",
 
     # Contexto de respaldo mínimo
     'fallback': """Eres Don Datico, asistente del SIIED de Santiago de Cali.
@@ -359,27 +382,26 @@ CHAT_SUGGESTIONS = {
     "exploratorias": [
         "¿Qué dominios y temas estadísticos están disponibles?",
         "Muéstrame los indicadores del dominio de salud",
-        "¿Qué subtemas hay en educación?"
+        "¿Qué subtemas hay en educación?",
     ],
     # Consultas específicas - búsquedas directas
     "especificas": [
         "Buscar indicadores de población en Cali",
         "Datos de empleo por comunas en 2024",
-        "Indicadores de seguridad ciudadana"
+        "Indicadores de seguridad ciudadana",
     ],
     # Consultas comparativas - análisis temporal o entre categorías
     "comparativas": [
         "Comparar tasa de desempleo entre 2020 y 2024",
         "Evolución de la matrícula escolar en los últimos años",
-        "Analizar tendencias de natalidad por comunas"
+        "Analizar tendencias de natalidad por comunas",
     ],
     # Consultas de datos completos - para obtener datasets
     "datos_completos": [
         "Obtener todos los datos del indicador de población 2024",
         "Histórico completo de indicadores de salud",
-        "Datos detallados de educación por año"
+        "Datos detallados de educación por año",
     ],
-    # Consultas sobre módulos extendidos
     "modulos_extendidos": [
         "¿Cuál es el ICED de la Secretaría de Salud?",
         "Muéstrame el ranking ICED de todos los organismos",
@@ -387,8 +409,8 @@ CHAT_SUGGESTIONS = {
         "¿Qué sistemas de consulta están disponibles?",
         "Buscar documentos de infraestructura estadística",
         "¿Qué productos académicos se han publicado?",
-        "¿Cómo es el ecosistema de datos de Hacienda?"
-    ]
+        "¿Cómo es el ecosistema de datos de Hacienda?",
+    ],
 }
 
 # ============================================================================

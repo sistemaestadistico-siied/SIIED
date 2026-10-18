@@ -1,0 +1,383 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Reportes del Taller de Gestión de Datos — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+
+    <!-- Encabezado + acciones -->
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-8">
+        <div>
+            <h2 class="text-2xl font-serif font-bold text-slate-900">Reportes del Taller de Gestión de Datos</h2>
+            <p class="text-sm text-slate-500 mt-1">Instrumento completo: identificación · F1 caracterización · F2 integración y uso · F3 seguridad y privacidad</p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{% url 'indicadores:analitica_taller_reportes' %}"
+               class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border transition-colors
+                      {% if alcance != 'completadas' %}bg-fuchsia-600 border-fuchsia-600 text-white{% else %}border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-50{% endif %}">
+                Todas las fichas
+            </a>
+            <a href="{% url 'indicadores:analitica_taller_reportes' %}?alcance=completadas"
+               class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border transition-colors
+                      {% if alcance == 'completadas' %}bg-fuchsia-600 border-fuchsia-600 text-white{% else %}border-fuchsia-300 text-fuchsia-700 hover:bg-fuchsia-50{% endif %}">
+                Solo completadas
+            </a>
+            <a href="{% url 'indicadores:analitica_taller_presentacion' %}" target="_blank"
+               class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide bg-slate-800 text-white hover:bg-slate-700 transition-colors">
+                ▶ Presentación
+            </a>
+            <!-- Menú único de descargas -->
+            <div class="relative" id="dlMenu">
+                <button type="button" onclick="document.getElementById('dlList').classList.toggle('hidden')"
+                        class="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide bg-emerald-600 text-white hover:bg-emerald-700 transition-colors">
+                    ⬇ Descargas ▾
+                </button>
+                <div id="dlList" class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-30 overflow-hidden">
+                    <a href="{% url 'indicadores:analitica_taller_export_csv' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Fichas completas (CSV)</a>
+                    <a href="{% url 'indicadores:analitica_taller_export_excel' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Fichas completas (Excel)</a>
+                    <a href="{% url 'indicadores:analitica_taller_export_variables' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Variables F1 (CSV)</a>
+                    <a href="{% url 'indicadores:analitica_taller_informe' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Informe de usuarios (Excel)</a>
+                    <a href="{% url 'indicadores:analitica_taller_reporte_excel' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Informe claro multi-hoja (Excel)</a>
+                    <div class="border-t border-slate-100"></div>
+                    <a href="{% url 'indicadores:analitica_taller_casos_f2' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Casos F2 clasificados</a>
+                    <a href="{% url 'indicadores:analitica_taller_casos_f2_excel' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Casos F2 (Excel)</a>
+                    <div class="border-t border-slate-100"></div>
+                    <a href="{% url 'indicadores:taller_ecosistema_gexf' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Mapa de grafos (GEXF · Gephi)</a>
+                    <a href="{% url 'indicadores:taller_ecosistema_svg' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Mapa del ecosistema (SVG)</a>
+                    <a href="{% url 'indicadores:taller_ecosistema_svg' %}?solo_relacionados=true" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Mapa SVG · solo relacionados</a>
+                    <a href="{% url 'indicadores:analitica_taller_modelo_datos' %}" class="block px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">Modelo de datos del taller</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-sky-700">{{ total_inscritos }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Fichas totales</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-emerald-700">{{ total_completadas }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Completadas</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-amber-700">{{ total_en_progreso }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">En progreso</p>
+        </div>
+        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-sky-700">{{ total_organismos }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Organismos</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-amber-700">{{ total_fuentes }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Fuentes F1</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-emerald-700">{{ total_retos }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Retos F2</p>
+        </div>
+        <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-sky-700">{{ total_variables }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Variables · {{ total_identificadores }} id.</p>
+        </div>
+        <div class="bg-fuchsia-50 border border-fuchsia-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-fuchsia-700">{{ con_datos_personales }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Con datos personales</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-red-700">{{ criticos }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Activos críticos</p>
+        </div>
+    </div>
+
+    <!-- Embudo -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-fuchsia-800 border-b-2 border-fuchsia-600 pb-2 mb-1">
+        Embudo de diligenciamiento <span class="text-[10px] font-semibold text-slate-400 normal-case">avance por paso</span>
+    </h3>
+    <p class="text-xs text-slate-500 mb-4">Fichas que han completado cada paso del wizard (según el alcance seleccionado).</p>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-10">
+        {% for e in embudo %}
+        <div class="flex items-center gap-3 mb-2">
+            <div class="w-72 shrink-0 text-xs font-medium text-slate-700 truncate">{{ e.titulo }}</div>
+            <div class="flex-1 h-3.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="h-full rounded-full {% if e.fase == 'inicio' %}bg-sky-400{% elif e.fase == 'f1' %}bg-amber-400{% elif e.fase == 'f2' %}bg-emerald-400{% else %}bg-fuchsia-400{% endif %}"
+                     style="width: {{ e.pct }}%"></div>
+            </div>
+            <div class="w-20 text-right text-xs font-bold text-fuchsia-700">{{ e.total }} · {{ e.pct }}%</div>
+        </div>
+        {% empty %}
+        <p class="text-sm text-slate-400">Aún no hay fichas en este alcance.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Identificación -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-fuchsia-800 border-b-2 border-fuchsia-600 pb-2 mb-4">
+        Identificación <span class="text-[10px] font-semibold text-slate-400 normal-case">quiénes participan</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">Organismos con más fichas</h4>
+            {% for f in organismos %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:42 }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% empty %}<p class="text-xs text-slate-400">Sin datos aún.</p>{% endfor %}
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">Fuentes más caracterizadas (F1)</h4>
+            {% for f in fuentes_top %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:42 }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% empty %}<p class="text-xs text-slate-400">Sin datos aún.</p>{% endfor %}
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">Fuentes más requeridas (F2 1.7)</h4>
+            {% for f in requeridas_top %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:42 }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% empty %}<p class="text-xs text-slate-400">Sin datos aún.</p>{% endfor %}
+        </div>
+    </div>
+
+    <!-- F1 -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-amber-700 border-b-2 border-amber-500 pb-2 mb-1">
+        F1 · Caracterización de datos <span class="text-[10px] font-semibold text-slate-400 normal-case">fuentes</span>
+    </h3>
+    <p class="text-xs text-slate-500 mb-4">Relación, recolección, actualización, rol, propósito, calidad y cobertura de las fuentes.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {% for p in paneles_f1 %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">{{ p.titulo }}</h4>
+            {% for f in p.filas %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:48 }}</span><span class="font-bold text-amber-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-5"><p class="text-xs text-slate-400">Aún no hay respuestas de F1.</p></div>
+        {% endfor %}
+    </div>
+
+    <!-- F2 -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-700 border-b-2 border-emerald-500 pb-2 mb-1">
+        F2 · Integración y uso <span class="text-[10px] font-semibold text-slate-400 normal-case">retos de análisis</span>
+    </h3>
+    <p class="text-xs text-slate-500 mb-4">Unidades de análisis, desagregación, tratamientos, resultados esperados, capacidades del SIPDI y enfoques diferenciales.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {% for p in paneles_f2 %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">{{ p.titulo }}</h4>
+            {% for f in p.filas %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:48 }}</span><span class="font-bold text-emerald-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-5"><p class="text-xs text-slate-400">Aún no hay respuestas de F2.</p></div>
+        {% endfor %}
+    </div>
+
+    <!-- F3 -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-fuchsia-800 border-b-2 border-fuchsia-600 pb-2 mb-4">
+        F3 · Seguridad y privacidad <span class="text-[10px] font-semibold text-slate-400 normal-case">datos personales y acceso</span>
+        <a href="{% url 'indicadores:analitica_taller_seguridad' %}" class="ml-2 text-[10px] font-bold text-fuchsia-600 hover:underline normal-case">ver apartado completo →</a>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {% for p in paneles_f3_acceso %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">{{ p.titulo }}</h4>
+            {% for f in p.filas %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:48 }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-5"><p class="text-xs text-slate-400">Aún no hay respuestas de F3.</p></div>
+        {% endfor %}
+    </div>
+
+    {% if paneles_f3_uso %}
+    <h3 class="text-sm font-bold uppercase tracking-wider text-fuchsia-800 border-b-2 border-fuchsia-600 pb-2 mb-1">
+        F3 · Cumplimiento de principios <span class="text-[10px] font-semibold text-slate-400 normal-case">uso, protección y divulgación</span>
+    </h3>
+    <p class="text-xs text-slate-500 mb-4">Distribución de respuestas (Sí / No / No sé / No aplica) por cada principio del instrumento.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {% for p in paneles_f3_uso %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">{{ p.titulo }}</h4>
+            {% for f in p.filas %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if paneles_f3_medidas or paneles_semaforo or paneles_clasificacion %}
+    <h3 class="text-sm font-bold uppercase tracking-wider text-fuchsia-800 border-b-2 border-fuchsia-600 pb-2 mb-4">
+        F3 · Valoración de activos <span class="text-[10px] font-semibold text-slate-400 normal-case">semáforo y clasificación</span>
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+        {% for p in paneles_f3_medidas %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">{{ p.titulo }}</h4>
+            {% for f in p.filas %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:48 }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        {% for p in paneles_semaforo %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">🚦 {{ p.titulo }}</h4>
+            {% for f in p.filas %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label|truncatechars:48 }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width: {{ f.pct }}%;{% if f.color %} background: {{ f.color }};{% else %} background:#a21caf;{% endif %}"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+        {% for p in paneles_clasificacion %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-700 mb-3">{{ p.titulo }}</h4>
+            {% for f in p.filas %}
+            <div class="mb-2">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ f.label }}</span><span class="font-bold text-fuchsia-700">{{ f.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {{ f.pct }}%"></div></div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Fichas registradas -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 border-b-2 border-slate-400 pb-2 mb-4">
+        Fichas registradas <span class="text-[10px] font-semibold text-slate-400 normal-case">detalle</span>
+    </h3>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-10">
+        {% if ultimas %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Responsable</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Organismo</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Fuente (F1)</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Reto (F2)</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">Criticidad</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actualizado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for i in ultimas %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-2.5 text-xs font-medium text-slate-800">{{ i.nombre_completo }}</td>
+                        <td class="px-4 py-2.5 text-xs text-slate-600">{{ i.organismo.nombre|truncatechars:30 }}</td>
+                        <td class="px-4 py-2.5 text-xs text-slate-600">{{ i.fuentes.count }} fuente(s)</td>
+                        <td class="px-4 py-2.5 text-xs text-slate-600">{{ i.reto.nombre|default:'—'|truncatechars:30 }}</td>
+                        <td class="px-4 py-2.5 text-center">
+                            {% if i.crit_peor %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                {% if i.crit_peor == 'rojo' %}bg-red-100 text-red-700 border border-red-200
+                                {% elif i.crit_peor == 'amarillo' %}bg-amber-100 text-amber-700 border border-amber-200
+                                {% else %}bg-emerald-100 text-emerald-700 border border-emerald-200{% endif %}">
+                                {{ i.crit_peor }}
+                            </span>
+                            {% else %}<span class="text-xs text-slate-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-2.5 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                {% if i.estado == 'completada' %}bg-emerald-100 text-emerald-700 border border-emerald-200{% else %}bg-amber-100 text-amber-700 border border-amber-200{% endif %}">
+                                {{ i.get_estado_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2.5 text-xs text-slate-500">{{ i.actualizado|date:'d/m/Y H:i' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400 p-6">Aún no hay fichas registradas en este alcance.</p>
+        {% endif %}
+    </div>
+
+    <!-- Fuentes: acceso al explorador -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-amber-700 border-b-2 border-amber-500 pb-2 mb-1">
+        Conjuntos de datos reportados <span class="text-[10px] font-semibold text-slate-400 normal-case">explorar F1</span>
+    </h3>
+    <p class="text-xs text-slate-500 mb-4">
+        El detalle completo de cada fuente —variables, interconectividad, seguridad, formalización y conciliación—
+        está en el <a href="{% url 'indicadores:analitica_taller_fuentes' %}" class="font-bold text-fuchsia-700 hover:underline">explorador de fuentes</a>.
+    </p>
+    <input type="text" id="fcSearch" placeholder="Buscar por nombre de fuente u organismo..."
+           oninput="filtrarFuentes()"
+           class="w-full mb-3 px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-fuchsia-500">
+    <p class="text-xs text-slate-400 mb-3" id="fcCount"></p>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6" id="fuentesGrid">
+        {% for f in fuentes_detalle %}
+        <div class="fuente-card bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md hover:border-fuchsia-300 transition-all"
+             data-busqueda="{{ f.nombre|lower }} {{ f.organismo|lower }}">
+            <p class="text-sm font-bold text-slate-800 mb-0.5 leading-tight">{{ f.nombre|truncatechars:60 }}</p>
+            <p class="text-[11px] text-slate-500 mb-2">{{ f.organismo|truncatechars:50 }}</p>
+            <div class="flex flex-wrap gap-1 mb-2">
+                {% if f.rol != '—' %}<span class="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-[10px] font-bold uppercase">{{ f.rol|truncatechars:20 }}</span>{% endif %}
+                {% if f.num_variables %}<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">{{ f.num_variables }} var.</span>{% endif %}
+                {% if f.num_identificadores %}<span class="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-bold">{{ f.num_identificadores }} id.</span>{% endif %}
+                {% if f.georref != '—' %}<span class="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-[10px] font-bold uppercase">{{ f.georref|truncatechars:15 }}</span>{% endif %}
+            </div>
+            <p class="text-[11px] text-slate-500 leading-snug line-clamp-2">{{ f.descripcion|truncatechars:120 }}</p>
+            <a href="{% url 'indicadores:analitica_taller_fuente' f.id %}"
+               class="inline-block mt-2 px-3 py-1.5 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                Ver ficha analítica →
+            </a>
+        </div>
+        {% empty %}
+        <p class="text-sm text-slate-400">Aún no hay fuentes caracterizadas en este alcance.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function filtrarFuentes() {
+    var q = document.getElementById('fcSearch').value.toLowerCase();
+    var cards = document.querySelectorAll('.fuente-card');
+    var visibles = 0;
+    cards.forEach(function(c) {
+        var mostrar = !q || c.getAttribute('data-busqueda').indexOf(q) !== -1;
+        c.style.display = mostrar ? '' : 'none';
+        if (mostrar) visibles++;
+    });
+    document.getElementById('fcCount').textContent = visibles + ' de ' + cards.length + ' conjuntos';
+}
+document.addEventListener('DOMContentLoaded', filtrarFuentes);
+// Cerrar el menú de descargas al hacer clic fuera
+document.addEventListener('click', function(e) {
+    var menu = document.getElementById('dlMenu');
+    if (menu && !menu.contains(e.target)) {
+        document.getElementById('dlList').classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

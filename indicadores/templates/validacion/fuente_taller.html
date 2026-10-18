@@ -1,0 +1,151 @@
+{% extends 'validacion/base_validacion.html' %}
+
+{% block title %}Revisar fuente — Validación a Gold{% endblock %}
+
+{% block validacion_content %}
+<a href="{% url 'indicadores:validacion_fuentes_taller' %}" class="text-xs text-slate-500 hover:text-emerald-700">← Cola de fuentes del taller</a>
+
+<div class="flex flex-wrap items-start justify-between gap-4 mt-3 mb-6">
+    <div>
+        <h2 class="text-xl font-bold text-slate-900">{{ fuente.nombre }}</h2>
+        <p class="text-sm text-slate-500 mt-1">
+            {{ fuente.inscripcion.organismo.nombre }}
+            {% if fuente.inscripcion.suborganismo %}· {{ fuente.inscripcion.suborganismo.nombre }}{% endif %}
+            · Taller {{ fuente.inscripcion.edicion }} · prevalidada por
+            <b>{{ fuente.prevalidada_por.get_full_name|default:'—' }}</b>
+            {% if fuente.fecha_prevalidacion %}el {{ fuente.fecha_prevalidacion|date:'d/m/Y' }}{% endif %}
+        </p>
+    </div>
+    <span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-slate-100 text-slate-600 border border-slate-300">Capa plata</span>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+
+        <!-- Checklist gold -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-4">Checklist de formalización</h3>
+            <ul class="space-y-2">
+                {% for c in checklist %}
+                <li class="flex items-center gap-3 text-xs">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold
+                        {% if c.ok %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-400{% endif %}">
+                        {% if c.ok %}✓{% else %}·{% endif %}
+                    </span>
+                    <span class="{% if c.ok %}text-slate-700{% else %}text-slate-400{% endif %}">{{ c.label }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="text-[10px] text-slate-400 mt-3">Los acuerdos son el requisito sustantivo del paso a gold; el resto documenta la madurez.</p>
+        </div>
+
+        <!-- Metadata F1 -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-700 border-b border-amber-200 pb-2 mb-4">Caracterización F1</h3>
+            <p class="text-sm text-slate-700 mb-4">{{ fuente.descripcion|default:'Sin descripción' }}</p>
+            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Rol</dt><dd class="font-medium">{{ fuente.get_rol_display|default:'—'|truncatechars:30 }}</dd></div>
+                <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Periodicidad</dt><dd class="font-medium">{% for p in fuente.periodicidades.all %}{{ p.etiqueta }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
+                <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Desagregación</dt><dd class="font-medium">{% for d in fuente.desagregaciones.all %}{{ d.etiqueta }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
+                <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Unidad de análisis</dt><dd class="font-medium">{% for u in fuente.unidades_analisis.all %}{{ u.etiqueta }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd></div>
+                <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Última actualización</dt><dd class="font-medium">{{ fuente.fecha_actualizacion|date:'d/m/Y'|default:'—' }}</dd></div>
+                <div class="flex justify-between border-b border-slate-100 py-1.5"><dt class="text-slate-500">Diccionario</dt><dd class="font-medium">{{ fuente.get_tiene_diccionario_display|default:'—' }}</dd></div>
+            </dl>
+        </div>
+
+        <!-- Variables -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Variables ({{ fuente.variables.count }}) — se convertirán en campos de la base</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase">Campo</th>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase">Tipo</th>
+                            <th class="px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase">Descripción</th>
+                            <th class="px-3 py-2 text-center text-[11px] font-bold text-slate-500 uppercase">Llave cruce</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for v in fuente.variables.all %}
+                        <tr>
+                            <td class="px-3 py-2 text-xs font-mono font-medium text-slate-800">{{ v.nombre }}</td>
+                            <td class="px-3 py-2 text-xs text-slate-500">{{ v.get_tipo_display }}</td>
+                            <td class="px-3 py-2 text-xs text-slate-500">{{ v.descripcion|truncatechars:60|default:'—' }}</td>
+                            <td class="px-3 py-2 text-center text-xs">{% if v.es_identificador %}<span class="text-amber-600 font-bold">✓</span>{% else %}<span class="text-slate-300">—</span>{% endif %}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="px-3 py-4 text-xs text-slate-400">Sin variables — la base se creará sin campos.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Decisión -->
+    <div class="space-y-6">
+        <div class="bg-white rounded-2xl border border-emerald-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-4">Decisión de validación</h3>
+            <form method="post" action="{% url 'indicadores:validacion_fuente_decidir' fuente.pk %}"
+                  onsubmit="return confirm('¿Aprobar a capa gold? Se publicará como base del catálogo.');">
+                {% csrf_token %}
+                <input type="hidden" name="decision" value="aprobar">
+                <label class="flex items-start gap-2 text-xs text-slate-700 mb-3">
+                    <input type="checkbox" name="crear_operacion" value="si" id="chkOp"
+                           class="mt-0.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                           onchange="document.getElementById('selOp').classList.toggle('hidden', !this.checked)">
+                    Es registro administrativo o censo → formalizar <b>operación estadística</b> (metadata DDI)
+                </label>
+                <div id="selOp" class="hidden mb-3">
+                    <select name="tipo_operacion" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                        <option value="registro_administrativo">Registro administrativo</option>
+                        <option value="censo">Censo</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">
+                    ✓ Aprobar a capa gold
+                </button>
+            </form>
+            <form method="post" action="{% url 'indicadores:validacion_fuente_decidir' fuente.pk %}" class="mt-3"
+                  onsubmit="return confirm('¿Devolver a capa bronce?');">
+                {% csrf_token %}
+                <input type="hidden" name="decision" value="rechazar">
+                <input type="text" name="motivo" placeholder="Motivo del rechazo..."
+                       class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs mb-2">
+                <button type="submit" class="w-full px-4 py-2 bg-white border border-red-300 text-red-600 text-xs font-bold uppercase tracking-wide rounded-lg hover:bg-red-50 transition-colors">
+                    ↩ Rechazar a bronce
+                </button>
+            </form>
+        </div>
+
+        {% if seguridad %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-fuchsia-700 mb-3">Seguridad F3</h3>
+            <div class="grid grid-cols-4 gap-2 text-center">
+                <div><p class="text-[9px] font-bold text-slate-400 uppercase">Conf.</p><p class="text-xs font-bold {% if seguridad.confidencialidad == 'rojo' %}text-red-600{% elif seguridad.confidencialidad == 'amarillo' %}text-amber-600{% else %}text-emerald-600{% endif %}">{{ seguridad.confidencialidad|default:'—' }}</p></div>
+                <div><p class="text-[9px] font-bold text-slate-400 uppercase">Int.</p><p class="text-xs font-bold {% if seguridad.integridad == 'rojo' %}text-red-600{% elif seguridad.integridad == 'amarillo' %}text-amber-600{% else %}text-emerald-600{% endif %}">{{ seguridad.integridad|default:'—' }}</p></div>
+                <div><p class="text-[9px] font-bold text-slate-400 uppercase">Disp.</p><p class="text-xs font-bold {% if seguridad.disponibilidad == 'rojo' %}text-red-600{% elif seguridad.disponibilidad == 'amarillo' %}text-amber-600{% else %}text-emerald-600{% endif %}">{{ seguridad.disponibilidad|default:'—' }}</p></div>
+                <div><p class="text-[9px] font-bold text-slate-400 uppercase">Crit.</p><p class="text-xs font-bold {% if seguridad.criticidad == 'rojo' %}text-red-600{% elif seguridad.criticidad == 'amarillo' %}text-amber-600{% else %}text-emerald-600{% endif %}">{{ seguridad.criticidad|default:'—' }}</p></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Avances -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">Historial de avances</h3>
+            <ul class="space-y-2 max-h-64 overflow-y-auto">
+                {% for a in avances %}
+                <li class="border-l-2 border-emerald-300 pl-3">
+                    <p class="text-[11px] font-bold text-slate-700">{{ a.get_hito_display }}</p>
+                    {% if a.nota %}<p class="text-[11px] text-slate-500">{{ a.nota|truncatechars:120 }}</p>{% endif %}
+                    <p class="text-[10px] text-slate-400">{{ a.creado|date:'d/m/Y H:i' }}{% if a.usuario %} · {{ a.usuario.get_full_name|default:a.usuario.username }}{% endif %}</p>
+                </li>
+                {% empty %}
+                <li class="text-[11px] text-slate-400">Sin avances registrados.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

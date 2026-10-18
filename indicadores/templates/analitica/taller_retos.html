@@ -1,0 +1,126 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Retos de Análisis — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-2xl font-serif font-bold text-slate-900">Retos de Análisis (F2)</h2>
+            <p class="text-sm text-slate-500 mt-1">{{ casos|length }} retos · clasificación por línea temática y seguimiento anual</p>
+        </div>
+        <a href="{% url 'indicadores:analitica_taller_casos_f2_excel' %}"
+           class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">
+            ⬇ Casos F2 (Excel)
+        </a>
+    </div>
+
+    <!-- Líneas temáticas -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        {% for l in lineas_cards %}
+        <a href="{% url 'indicadores:analitica_taller_retos' %}?linea={{ l.code }}"
+           class="rounded-xl border p-3 text-center transition-colors
+                  {% if linea_sel == l.code %}bg-fuchsia-600 border-fuchsia-600 text-white{% else %}bg-white border-slate-200 hover:border-fuchsia-300{% endif %}">
+            <p class="text-xl font-bold {% if linea_sel == l.code %}text-white{% else %}text-fuchsia-700{% endif %}">{{ l.count }}</p>
+            <p class="text-[10px] font-bold uppercase {% if linea_sel == l.code %}text-fuchsia-100{% else %}text-slate-500{% endif %}">{{ l.code }}</p>
+            <p class="text-[9px] {% if linea_sel == l.code %}text-fuchsia-100{% else %}text-slate-400{% endif %}">{{ l.label|truncatechars:35 }}</p>
+        </a>
+        {% endfor %}
+        <a href="{% url 'indicadores:analitica_taller_retos' %}"
+           class="rounded-xl border p-3 text-center transition-colors
+                  {% if linea_sel == '' %}bg-slate-700 border-slate-700 text-white{% else %}bg-white border-slate-200 hover:border-slate-300{% endif %}">
+            <p class="text-xl font-bold {% if linea_sel == '' %}text-white{% else %}text-slate-700{% endif %}">{{ sin_clasificar }}</p>
+            <p class="text-[10px] font-bold uppercase {% if linea_sel == '' %}text-slate-200{% else %}text-slate-500{% endif %}">Sin clasificar</p>
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
+        <input type="hidden" name="linea" value="{{ linea_sel }}">
+        <div class="flex flex-wrap items-center gap-3">
+            <input type="text" name="organismo" value="{{ organismo_q }}" placeholder="Filtrar por organismo..."
+                   class="px-3 py-2 border border-slate-300 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-fuchsia-500">
+            <select name="estado" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                <option value="">Todos los estados</option>
+                <option value="activos" {% if estado_sel == 'activos' %}selected{% endif %}>Solo activos (no unificados)</option>
+                {% for v, l in estados %}
+                <option value="{{ v }}" {% if estado_sel == v %}selected{% endif %}>{{ l }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">Filtrar</button>
+            <a href="{% url 'indicadores:analitica_taller_retos' %}" class="text-xs text-slate-500 hover:text-slate-700">Limpiar</a>
+        </div>
+    </form>
+
+    <!-- Posibles duplicados -->
+    {% if similares %}
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
+        <h3 class="text-sm font-bold text-amber-800 uppercase tracking-wide mb-3">⚠ {{ similares|length }} pares de retos posiblemente duplicados</h3>
+        <ul class="space-y-1.5">
+            {% for d in similares %}
+            <li class="text-xs bg-white rounded-lg border border-amber-200 px-3 py-2">
+                <a href="{% url 'indicadores:analitica_taller_reto' d.a_id %}" class="font-semibold text-slate-800 hover:text-fuchsia-700">R{{ d.a_id }} {{ d.a_nombre|truncatechars:40 }}</a>
+                <span class="text-slate-400">({{ d.a_org|truncatechars:20 }})</span>
+                <span class="mx-1 text-amber-500 font-bold">⇄</span>
+                <a href="{% url 'indicadores:analitica_taller_reto' d.b_id %}" class="font-semibold text-slate-800 hover:text-fuchsia-700">R{{ d.b_id }} {{ d.b_nombre|truncatechars:40 }}</a>
+                <span class="text-slate-400">({{ d.b_org|truncatechars:20 }})</span>
+                <span class="ml-1 text-[10px] font-bold text-amber-700">{{ d.ratio }}%</span>
+            </li>
+            {% endfor %}
+        </ul>
+        <p class="text-[10px] text-slate-500 mt-2">Para unificar, abra el reto que se conserva y use «Unificar con…» en su tarjeta.</p>
+    </div>
+    {% endif %}
+
+    <!-- Lista de retos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {% for c in casos %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 {% if c.fusionado_en %}opacity-60 border-dashed{% endif %}">
+            <div class="flex items-start justify-between gap-2 mb-1">
+                <p class="text-sm font-bold text-slate-800 leading-tight">
+                    <a href="{% url 'indicadores:analitica_taller_reto' c.id %}" class="hover:text-fuchsia-700">
+                        <span class="text-fuchsia-600">R{{ c.id }}</span> {{ c.nombre|default:'(sin nombre)'|truncatechars:70 }}
+                    </a>
+                </p>
+                <span class="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border
+                    {% if c.primaria %}bg-emerald-50 text-emerald-700 border-emerald-200{% else %}bg-slate-50 text-slate-500 border-slate-200{% endif %}">
+                    {{ c.primaria|default:'SIN' }}
+                </span>
+            </div>
+            <p class="text-[11px] text-slate-500 mb-2">{{ c.organismo|truncatechars:50 }}{% if c.edicion %} · Taller {{ c.edicion }}{% endif %}</p>
+
+            {% if c.fusionado_en %}
+            <p class="text-[11px] text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 mb-2">
+                Unificado en el reto <b>R{{ c.fusionado_en }}</b>
+            </p>
+            {% endif %}
+
+            <p class="text-xs text-slate-600 mb-2 line-clamp-2">{{ c.analisis|truncatechars:160 }}</p>
+
+            <div class="flex flex-wrap gap-1 mb-2">
+                {% if c.n_lineas > 1 %}<span class="px-2 py-0.5 bg-violet-50 text-violet-700 border border-violet-200 rounded-full text-[10px] font-bold">{{ c.n_lineas }} líneas</span>{% endif %}
+                <span class="px-2 py-0.5 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-[10px] font-bold">{{ c.reqs|length }} fuentes requeridas</span>
+                <span class="px-2 py-0.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-full text-[10px] font-bold">franja {{ c.franja }}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border
+                    {% if c.estado == 'cumplido' %}bg-emerald-50 text-emerald-700 border-emerald-200
+                    {% elif c.estado == 'en_seguimiento' %}bg-sky-50 text-sky-700 border-sky-200
+                    {% elif c.estado == 'descartado' %}bg-red-50 text-red-600 border-red-200
+                    {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
+                    {{ c.estado }}
+                </span>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-3">{{ c.limitacion|truncatechars:120 }}</p>
+
+            <div class="border-t border-slate-100 pt-2 mt-1">
+                <a href="{% url 'indicadores:analitica_taller_reto' c.id %}"
+                   class="text-[11px] font-bold text-fuchsia-700 hover:text-fuchsia-800">Ver ficha completa →</a>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-sm text-slate-400">No hay retos con estos filtros.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

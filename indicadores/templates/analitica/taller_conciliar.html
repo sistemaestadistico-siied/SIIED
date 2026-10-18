@@ -1,0 +1,107 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Conciliar fuentes — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+
+    <a href="{% url 'indicadores:analitica_taller_fuentes' %}" class="text-xs text-slate-500 hover:text-fuchsia-700">← Volver al explorador</a>
+    <h2 class="text-2xl font-serif font-bold text-slate-900 mt-3 mb-1">Conciliar fuentes duplicadas</h2>
+    <p class="text-sm text-slate-500 mb-6">
+        Dos inscripciones distintas pueden haber caracterizado la misma fuente. Al fusionar, la fuente
+        que <b>se conserva</b> absorbe variables, orígenes, seguridad, etiquetas y avances de la
+        <b>absorbida</b>; esta última queda registrada como duplicada (no se borra).
+    </p>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Selección -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-4">1 · Elegir el par</h3>
+            <form method="get" class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Fuente A</label>
+                    <select name="a" class="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                        <option value="">— elegir —</option>
+                        {% for f in activas %}
+                        <option value="{{ f.id }}" {% if a_id == f.id|stringformat:'i' %}selected{% endif %}>{{ f.nombre|truncatechars:45 }} · {{ f.inscripcion.organismo.nombre|truncatechars:20 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase">Fuente B</label>
+                    <select name="b" class="w-full mt-1 px-3 py-2 border border-slate-300 rounded-lg text-xs">
+                        <option value="">— elegir —</option>
+                        {% for f in activas %}
+                        <option value="{{ f.id }}" {% if b_id == f.id|stringformat:'i' %}selected{% endif %}>{{ f.nombre|truncatechars:45 }} · {{ f.inscripcion.organismo.nombre|truncatechars:20 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="col-span-2 px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg transition-colors">Comparar</button>
+            </form>
+
+            {% if duplicados %}
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mt-6 mb-3">Sugerencias automáticas</h3>
+            <ul class="space-y-1.5 max-h-64 overflow-y-auto">
+                {% for d in duplicados %}
+                <li>
+                    <a href="{% url 'indicadores:analitica_taller_conciliar' %}?a={{ d.a_id }}&b={{ d.b_id }}"
+                       class="block text-xs px-3 py-2 rounded-lg border border-slate-200 hover:border-fuchsia-300 hover:bg-fuchsia-50 transition-colors">
+                        <span class="font-semibold text-slate-800">{{ d.a_nombre|truncatechars:32 }}</span>
+                        <span class="text-amber-500 font-bold">⇄</span>
+                        <span class="font-semibold text-slate-800">{{ d.b_nombre|truncatechars:32 }}</span>
+                        <span class="text-[10px] font-bold text-amber-700 ml-1">{{ d.ratio }}%</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+
+        <!-- Comparación y decisión -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-4">2 · Decidir cuál se conserva</h3>
+            {% if fuente_a and fuente_b and fuente_a.id != fuente_b.id %}
+            <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
+                <div class="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                    <p class="font-bold text-slate-800 mb-1">{{ fuente_a.nombre }}</p>
+                    <p class="text-slate-500 mb-2">{{ fuente_a.inscripcion.organismo.nombre|truncatechars:40 }}{% if fuente_a.inscripcion.suborganismo %} · {{ fuente_a.inscripcion.suborganismo.nombre|truncatechars:20 }}{% endif %}</p>
+                    <p class="text-slate-600">{{ fuente_a.variables.count }} variables · capa {{ fuente_a.capa }}{% if fuente_a.seguridad %} · F3 {{ fuente_a.seguridad.criticidad|default:'—' }}{% else %} · sin F3{% endif %}</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Taller {{ fuente_a.inscripcion.edicion }} · {{ fuente_a.fecha_actualizacion|date:'d/m/Y'|default:'sin fecha' }}</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                    <p class="font-bold text-slate-800 mb-1">{{ fuente_b.nombre }}</p>
+                    <p class="text-slate-500 mb-2">{{ fuente_b.inscripcion.organismo.nombre|truncatechars:40 }}{% if fuente_b.inscripcion.suborganismo %} · {{ fuente_b.inscripcion.suborganismo.nombre|truncatechars:20 }}{% endif %}</p>
+                    <p class="text-slate-600">{{ fuente_b.variables.count }} variables · capa {{ fuente_b.capa }}{% if fuente_b.seguridad %} · F3 {{ fuente_b.seguridad.criticidad|default:'—' }}{% else %} · sin F3{% endif %}</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Taller {{ fuente_b.inscripcion.edicion }} · {{ fuente_b.fecha_actualizacion|date:'d/m/Y'|default:'sin fecha' }}</p>
+                </div>
+            </div>
+            <div class="space-y-2">
+                <form method="post" onsubmit="return confirm('¿Conservar A y absorber B? Esta acción no se puede deshacer automáticamente.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="mantener" value="{{ fuente_a.id }}">
+                    <input type="hidden" name="absorbida" value="{{ fuente_b.id }}">
+                    <button type="submit" class="w-full px-4 py-2.5 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold rounded-lg transition-colors">
+                        Conservar A — absorber «{{ fuente_b.nombre|truncatechars:40 }}»
+                    </button>
+                </form>
+                <form method="post" onsubmit="return confirm('¿Conservar B y absorber A? Esta acción no se puede deshacer automáticamente.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="mantener" value="{{ fuente_b.id }}">
+                    <input type="hidden" name="absorbida" value="{{ fuente_a.id }}">
+                    <button type="submit" class="w-full px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition-colors">
+                        Conservar B — absorber «{{ fuente_a.nombre|truncatechars:40 }}»
+                    </button>
+                </form>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-3">
+                La conservada recibe las variables que le falten, los orígenes, las etiquetas, la evaluación
+                F3 (si no tiene) y el historial de avances. La absorbida se marca y deja de contarse como activa.
+            </p>
+            {% else %}
+            <p class="text-sm text-slate-400">Seleccione dos fuentes distintas para compararlas y fusionarlas.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

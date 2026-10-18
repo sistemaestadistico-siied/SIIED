@@ -95,8 +95,8 @@
         </div>
         {% endif %}
 
-        <!-- Toggle: Cálculo complejo (solo para series) -->
-        {% if tipo == 'serie' %}
+        <!-- Toggle: Cálculo complejo (solo para series, solo equipo SIIED) -->
+        {% if tipo == 'serie' and es_validador_sistema %}
         <div class="bg-white rounded-3xl shadow-sm border {% if es_calculo_complejo %}border-amber-300{% else %}border-slate-200{% endif %} p-5">
             <div class="flex items-start gap-3">
                 <div class="flex-1">
@@ -132,9 +132,27 @@
         </div>
         {% endif %}
 
+        <!-- Observaciones de la pre-validación del organismo (solo equipo SIIED) -->
+        {% if es_validador_sistema and carga.prevalidado_por %}
+        <div class="bg-cyan-50 rounded-3xl border border-cyan-200 p-5 mb-4">
+            <h2 class="font-semibold text-cyan-900 mb-2 text-sm flex items-center gap-2">
+                <i class="fas fa-stamp"></i> Pre-validación del organismo
+            </h2>
+            <p class="text-xs text-cyan-800">
+                {{ carga.prevalidado_por.get_full_name|default:carga.prevalidado_por.username }}
+                {% if carga.fecha_prevalidacion %}· {{ carga.fecha_prevalidacion|date:"d/m/Y H:i" }}{% endif %}
+            </p>
+            {% if carga.observaciones_prevalidador %}
+            <p class="text-sm text-cyan-900 mt-2 whitespace-pre-line">{{ carga.observaciones_prevalidador }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <!-- Panel de decisión -->
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
-            <h2 class="font-semibold text-slate-800 mb-4">Tu decisión</h2>
+            <h2 class="font-semibold text-slate-800 mb-4">
+                {% if es_validador_organismo %}Tu pre-validación{% else %}Tu decisión{% endif %}
+            </h2>
             <form method="post"
                   action="{% if tipo == 'serie' %}{% url 'indicadores:validacion_decidir_serie' carga.id %}{% else %}{% url 'indicadores:validacion_decidir_conjunto_datos' carga.id %}{% endif %}"
                   id="form-decision">
@@ -150,6 +168,21 @@
                 </div>
 
                 <div class="space-y-2">
+                    {% if es_validador_organismo %}
+                    <button type="button" onclick="decidir('prevalidar')"
+                            {% if tipo == 'serie' and not carga.esta_completa %}disabled title="La carga está incompleta"{% endif %}
+                            class="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        <i class="fas fa-stamp"></i> Pre-validar y enviar al SIIED
+                    </button>
+                    <button type="button" onclick="decidir('correcciones')"
+                            class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        Solicitar correcciones
+                    </button>
+                    <button type="button" onclick="decidir('rechazar')"
+                            class="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        Rechazar carga
+                    </button>
+                    {% else %}
                     <button type="button" onclick="decidir('aprobar')"
                             {% if tipo == 'serie' and not carga.esta_completa %}disabled title="La carga está incompleta"{% endif %}
                             class="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
@@ -163,6 +196,7 @@
                             class="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Rechazar carga
                     </button>
+                    {% endif %}
                 </div>
                 <input type="hidden" name="accion" id="inp-accion" value="">
             </form>
@@ -181,8 +215,8 @@
             </div>
         </div>
 
-        <!-- Creación de gráfico (solo para series con indicador) -->
-        {% if tipo == 'serie' and carga.indicador %}
+        <!-- Creación de gráfico (solo para series con indicador, solo equipo SIIED) -->
+        {% if tipo == 'serie' and carga.indicador and es_validador_sistema %}
         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
             <h2 class="font-semibold text-slate-800 mb-3 text-sm">Configuración de gráfico</h2>
             <p class="text-xs text-slate-600 mb-3">
@@ -301,7 +335,8 @@
 function decidir(accion) {
     const obs = document.getElementById('txt-obs').value.trim();
     const mensajes = {
-        'aprobar': '¿Confirmas que apruebas esta carga? El administrador podrá procesarla.',
+        'aprobar': '¿Confirmas que apruebas esta carga? El administrador podrá procesarla y la metadata recibirá el sello SIIED.',
+        'prevalidar': '¿Confirmas la pre-validación? La carga pasará a la cola del equipo SIIED y la metadata recibirá el sello del organismo.',
         'correcciones': '¿Confirmas que solicitas correcciones? El delegado recibirá tus observaciones.',
         'rechazar': '¿Confirmas que rechazas esta carga? El delegado recibirá el motivo.'
     };

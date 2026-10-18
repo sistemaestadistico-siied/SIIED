@@ -48,34 +48,12 @@ def chat_config_view(request):
             except Exception as e:
                 messages.error(request, f'❌ Error al guardar configuración: {str(e)}')
     else:
-        # Cargar valores actuales (get_config lee BD primero, luego CHAT_CONFIG)
+        # Cargar valores actuales para TODOS los campos del form:
+        # get_config lee BD primero (ConfiguracionSistema), luego CHAT_CONFIG;
+        # el .initial del field cubre claves sin default en CHAT_CONFIG.
         initial_data = {
-            'MAX_HISTORY_MESSAGES': chat_config.get_config('MAX_HISTORY_MESSAGES', 8),
-            'MAX_MESSAGE_LENGTH': chat_config.get_config('MAX_MESSAGE_LENGTH', 1000),
-            'MAX_TOOL_ROUNDS': chat_config.get_config('MAX_TOOL_ROUNDS', 5),
-            'TOOL_TIMEOUT_SECONDS': chat_config.get_config('TOOL_TIMEOUT_SECONDS', 120),
-            'MAX_TOOL_CHAIN_LENGTH': chat_config.get_config('MAX_TOOL_CHAIN_LENGTH', 6),
-            'CONTEXT_CACHE_TIMEOUT': chat_config.get_config('CONTEXT_CACHE_TIMEOUT', 21600),
-            'CONTEXT_CACHE_KEY': chat_config.get_config('CONTEXT_CACHE_KEY', 'chat_system_context_v6'),
-            'REQUEST_MAX_AGE_MINUTES': chat_config.get_config('REQUEST_MAX_AGE_MINUTES', 5),
-            'CLEANUP_MAX_TIME': chat_config.get_config('CLEANUP_MAX_TIME', 3.0),
-            'MAX_ACTIVE_SESSIONS': chat_config.get_config('MAX_ACTIVE_SESSIONS', 30),
-            'MAX_RELEVANT_DATA_LENGTH': chat_config.get_config('MAX_RELEVANT_DATA_LENGTH', 500),
-            'SEARCH_TOP_K': chat_config.get_config('SEARCH_TOP_K'),
-            'ENABLE_CONTEXT_MEMORY': chat_config.get_config('ENABLE_CONTEXT_MEMORY', True),
-            'MIN_SIMILARITY_THRESHOLD': chat_config.get_config('MIN_SIMILARITY_THRESHOLD', 0.25),
-            'CEREBRAS_API_KEY': chat_config.get_config('CEREBRAS_API_KEY', ''),
-            'CEREBRAS_BASE_URL': chat_config.get_config('CEREBRAS_BASE_URL', 'https://api.cerebras.ai/v1'),
-            'CEREBRAS_MODEL': chat_config.get_config('CEREBRAS_MODEL', 'gpt-oss-120b'),
-            'CEREBRAS_MAX_TOKENS': chat_config.get_config('CEREBRAS_MAX_TOKENS', 14200),
-            'CEREBRAS_TEMPERATURE': chat_config.get_config('CEREBRAS_TEMPERATURE', 0.15),
-            'CEREBRAS_TOP_P': chat_config.get_config('CEREBRAS_TOP_P', 0.92),
-            'OLLAMA_API_KEY': chat_config.get_config('OLLAMA_API_KEY', ''),
-            'OLLAMA_BASE_URL': chat_config.get_config('OLLAMA_BASE_URL', 'http://localhost:11434/v1'),
-            'OLLAMA_MODEL': chat_config.get_config('OLLAMA_MODEL', 'cogito:3b'),
-            'OLLAMA_MAX_TOKENS': chat_config.get_config('OLLAMA_MAX_TOKENS', 8000),
-            'OLLAMA_TEMPERATURE': chat_config.get_config('OLLAMA_TEMPERATURE', 0.2),
-            'OLLAMA_TOP_P': chat_config.get_config('OLLAMA_TOP_P', 0.9),
+            name: chat_config.get_config(name, field.initial)
+            for name, field in ChatConfigForm.base_fields.items()
         }
         form = ChatConfigForm(initial=initial_data)
     

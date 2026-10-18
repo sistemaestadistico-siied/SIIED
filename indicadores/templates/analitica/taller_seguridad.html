@@ -1,0 +1,147 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+
+{% block title %}Seguridad de la Información — Analítica{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-8">
+
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-2xl font-serif font-bold text-slate-900">Seguridad de la Información (F3)</h2>
+            <p class="text-sm text-slate-500 mt-1">Valoración de los activos de información reportados en el taller</p>
+        </div>
+        <form method="get" class="flex items-center gap-2">
+            <select name="edicion" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+                <option value="">Todas las ediciones</option>
+                {% for a in ediciones %}
+                <option value="{{ a }}" {% if edicion == a|stringformat:'i' %}selected{% endif %}>Taller {{ a }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white text-xs font-bold uppercase tracking-wide rounded-lg">Filtrar</button>
+        </form>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white border border-slate-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-slate-700">{{ evals.count }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500 mt-1">Activos valorados</p>
+        </div>
+        <div class="bg-red-50 border border-red-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-red-700">{{ n_criticos }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Críticos (rojo)</p>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-amber-700">{{ n_datos_personales }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Con datos personales</p>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4">
+            <p class="text-3xl font-bold text-purple-700">{{ n_sensibles }}</p>
+            <p class="text-[11px] font-bold uppercase tracking-wide text-slate-600 mt-1">Con datos sensibles</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- CIA -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-4">🚦 Semáforo CIA</h3>
+            {% for c in cia %}
+            <div class="mb-4">
+                <p class="text-xs font-bold text-slate-700 mb-1">{{ c.label }}</p>
+                <div class="flex h-4 rounded-full overflow-hidden bg-slate-100">
+                    {% if c.d.verde %}<div class="bg-emerald-500" style="width: {% widthratio c.d.verde evals.count 100 %}%" title="Verde: {{ c.d.verde }}"></div>{% endif %}
+                    {% if c.d.amarillo %}<div class="bg-amber-400" style="width: {% widthratio c.d.amarillo evals.count 100 %}%" title="Amarillo: {{ c.d.amarillo }}"></div>{% endif %}
+                    {% if c.d.rojo %}<div class="bg-red-500" style="width: {% widthratio c.d.rojo evals.count 100 %}%" title="Rojo: {{ c.d.rojo }}"></div>{% endif %}
+                </div>
+                <p class="text-[10px] text-slate-400 mt-0.5">
+                    🟢 {{ c.d.verde|default:0 }} · 🟡 {{ c.d.amarillo|default:0 }} · 🔴 {{ c.d.rojo|default:0 }}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Clasificación -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-4">Clasificación de la información</h3>
+            {% for c in clasificacion %}
+            <div class="mb-2.5">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ c.label }}</span><span class="font-bold text-fuchsia-700">{{ c.total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {% widthratio c.total evals.count 100 %}%"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Medidas de protección -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-4">Medidas de protección aplicadas</h3>
+            {% for nombre, total in medidas %}
+            <div class="mb-2.5">
+                <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ nombre|truncatechars:45 }}</span><span class="font-bold text-fuchsia-700">{{ total }}</span></div>
+                <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full" style="width: {% widthratio total evals.count 100 %}%"></div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-xs text-slate-400">Sin medidas reportadas.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tabla por fuente -->
+    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 border-b-2 border-slate-400 pb-2 mb-4">Valoración por fuente</h3>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase">Fuente</th>
+                        <th class="px-4 py-3 text-left text-[11px] font-bold text-slate-500 uppercase">Organismo</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">C</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">I</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">D</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">Criticidad</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">Riesgos OCHA</th>
+                        <th class="px-4 py-3 text-center text-[11px] font-bold text-slate-500 uppercase">Datos personales</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for f in filas %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-2.5 text-xs font-medium">
+                            <a href="{% url 'indicadores:analitica_taller_fuente' f.fuente.id %}" class="text-fuchsia-700 hover:underline">{{ f.fuente.nombre|truncatechars:45 }}</a>
+                        </td>
+                        <td class="px-4 py-2.5 text-xs text-slate-600">{{ f.fuente.inscripcion.organismo.nombre|truncatechars:30 }}</td>
+                        <td class="px-4 py-2.5 text-center"><span class="inline-block w-3 h-3 rounded-full {% if f.eval.confidencialidad == 'rojo' %}bg-red-500{% elif f.eval.confidencialidad == 'amarillo' %}bg-amber-400{% elif f.eval.confidencialidad == 'verde' %}bg-emerald-500{% else %}bg-slate-200{% endif %}" title="{{ f.eval.confidencialidad }}"></span></td>
+                        <td class="px-4 py-2.5 text-center"><span class="inline-block w-3 h-3 rounded-full {% if f.eval.integridad == 'rojo' %}bg-red-500{% elif f.eval.integridad == 'amarillo' %}bg-amber-400{% elif f.eval.integridad == 'verde' %}bg-emerald-500{% else %}bg-slate-200{% endif %}" title="{{ f.eval.integridad }}"></span></td>
+                        <td class="px-4 py-2.5 text-center"><span class="inline-block w-3 h-3 rounded-full {% if f.eval.disponibilidad == 'rojo' %}bg-red-500{% elif f.eval.disponibilidad == 'amarillo' %}bg-amber-400{% elif f.eval.disponibilidad == 'verde' %}bg-emerald-500{% else %}bg-slate-200{% endif %}" title="{{ f.eval.disponibilidad }}"></span></td>
+                        <td class="px-4 py-2.5 text-center">
+                            {% if f.eval.criticidad %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                {% if f.eval.criticidad == 'rojo' %}bg-red-100 text-red-700 border border-red-200
+                                {% elif f.eval.criticidad == 'amarillo' %}bg-amber-100 text-amber-700 border border-amber-200
+                                {% else %}bg-emerald-100 text-emerald-700 border border-emerald-200{% endif %}">{{ f.eval.criticidad }}</span>
+                            {% else %}<span class="text-xs text-slate-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-2.5 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if f.riesgos > 5 %}bg-red-100 text-red-700{% elif f.riesgos > 2 %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600{% endif %}">
+                                {{ f.riesgos }}/{{ f.total_criterios }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2.5 text-center text-xs">
+                            {% if f.eval.contiene_datos_personales == 'si' %}<span class="text-red-600 font-bold">Sí</span>
+                            {% elif f.eval.contiene_datos_personales == 'no' %}<span class="text-emerald-600">No</span>
+                            {% else %}<span class="text-slate-300">—</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" class="px-4 py-6 text-sm text-slate-400">Sin evaluaciones F3 registradas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
