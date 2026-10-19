@@ -1,0 +1,226 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block content %}
+
+<!-- Hero -->
+<div class="relative bg-gradient-to-r from-amber-700 via-amber-600 to-amber-800 overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M30 0l30 30-30 30L0 30z\" fill=\"none\" stroke=\"%23374151\" stroke-width=\"1\"/%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"10\" fill=\"none\" stroke=\"%23374151\" stroke-width=\"1\"/%3E%3C/g%3E%3C/svg%3E');"></div>
+    </div>
+    <div class="relative container mx-auto px-4 py-16">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-8">
+                <div class="flex justify-center lg:justify-start">
+                    <div class="w-80 h-32 flex items-center justify-center bg-white rounded-2xl border border-amber-200 shadow-2xl">
+                        <div class="text-center px-6">
+                            <i class="fas fa-graduation-cap text-5xl text-amber-700"></i>
+                            <p class="mt-2 font-bold text-amber-800 tracking-wide">SIIED · Skill</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <h1 class="text-3xl lg:text-5xl font-bold text-white leading-tight">
+                        Skill SIIED
+                        <span class="block text-amber-100">API Abierta para tu IA</span>
+                    </h1>
+                    <p class="text-xl text-white leading-relaxed">
+                        Una skill que enseña a tu asistente de IA a usar la API abierta
+                        del SIIED: qué endpoints existen, cómo descubrir indicadores
+                        y conjuntos de datos, y cómo leer microdata correctamente.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            <span class="font-medium">Formato Agent Skills</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-amber-200 rounded-full animate-pulse"></div>
+                            <span class="font-medium">1 archivo SKILL.md</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            <span class="font-medium">Sin credenciales</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-8">
+                <div class="bg-white rounded-2xl p-8 border border-amber-200 shadow-xl">
+                    <h3 class="text-2xl font-bold text-amber-800 mb-6 text-center">Descarga</h3>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-amber-700 mb-2">Archivo de la skill</label>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900 font-mono text-sm break-all">
+                            siied-api-abierta/SKILL.md
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <a href="{% static 'indicadores/skills/siied-api-abierta/SKILL.md' %}" download
+                           class="flex-1 bg-amber-700 text-white hover:bg-amber-800 font-medium py-3 px-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1 text-center block">
+                            <i class="fas fa-download mr-2"></i>Descargar SKILL.md
+                        </a>
+                        <a href="#instalar-skill"
+                           class="text-amber-700 hover:text-amber-900 transition-colors duration-300 underline text-center block">
+                            <i class="fas fa-circle-arrow-down mr-2"></i>Cómo instalarla
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-12 flex justify-center">
+            <div class="w-48 h-1 bg-gradient-to-r from-transparent via-white/70 to-transparent rounded-full"></div>
+        </div>
+    </div>
+</div>
+
+<div class="py-8"></div>
+
+<div class="container mx-auto px-4 pb-12 max-w-6xl space-y-10">
+
+    <!-- ¿Qué es una skill? -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">
+            <i class="fas fa-circle-question text-amber-700 mr-2"></i>¿Qué es esta skill?
+        </h2>
+        <p class="text-slate-600 leading-relaxed mb-4">
+            Una <strong>skill</strong> es un paquete de instrucciones (estándar <em>Agent Skills</em>:
+            un directorio con un <code>SKILL.md</code> en frontmatter YAML + guía en Markdown) que
+            le enseña a un agente de IA <strong>cuándo y cómo</strong> usar una capacidad concreta.
+            La skill <code>siied-api-abierta</code> contiene:
+        </p>
+        <div class="grid md:grid-cols-2 gap-4">
+            <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
+                <li>El <strong>mapa completo de endpoints</strong> de la API abierta con sus parámetros.</li>
+                <li><strong>Flujos recomendados</strong>: descubrir indicadores → leer ficha → bajar series o filas.</li>
+                <li><strong>Reglas de oro</strong>: nunca inventar IDs, paginar con <code>offset</code>, qué hacer si un indicador no tiene series.</li>
+            </ul>
+            <ul class="text-sm text-slate-600 space-y-2 list-disc list-inside">
+                <li>El caso especial de los indicadores enlazados al <strong>catálogo de consulta</strong>.</li>
+                <li>Ejemplos <code>curl</code> listos para ejecutar.</li>
+                <li>Canal de soporte y contacto institucional.</li>
+            </ul>
+        </div>
+        <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <i class="fas fa-lightbulb mr-1"></i>
+            <strong>Skill vs MCP:</strong> el <a href="{% url 'indicadores:mcp_documentacion' %}" class="underline font-semibold">servidor MCP</a>
+            le da a tu IA <em>herramientas listas</em> que ya hablan con el SIIED. La skill le enseña a
+            <em>manejar la API REST directamente</em> — útil si tu cliente no soporta MCP o prefieres
+            que el agente llame los endpoints por sí mismo (con <code>curl</code>, Python, etc.).
+            Son complementarios: puedes usar ambos.
+        </div>
+    </div>
+
+    <!-- Instalar la skill -->
+    <div id="instalar-skill" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">
+            <i class="fas fa-circle-arrow-down text-amber-700 mr-2"></i>Cómo instalarla
+        </h2>
+        <p class="text-slate-600 mb-6">
+            Descarga el <code>SKILL.md</code> y colócalo en el directorio de skills de tu cliente
+            (cada uno lo lee de una carpeta concreta). Estructura final: una carpeta
+            <code>siied-api-abierta/</code> que contiene el archivo.
+        </p>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                        <th class="pb-3 pr-4">Cliente</th>
+                        <th class="pb-3 pr-4">Directorio de skills</th>
+                        <th class="pb-3">Ámbito</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr>
+                        <td class="py-3 pr-4 font-semibold text-slate-700">
+                            <img src="{% static 'indicadores/images/logo_mcp_claude.svg' %}" class="w-4 h-4 inline mr-1" alt="">Claude Code
+                        </td>
+                        <td class="py-3 pr-4 font-mono text-xs">~/.claude/skills/ · .claude/skills/</td>
+                        <td class="py-3 text-slate-500">usuario / proyecto</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4 font-semibold text-slate-700">
+                            <img src="{% static 'indicadores/images/logo_mcp_codex.svg' %}" class="w-4 h-4 inline mr-1" alt="">Codex CLI
+                        </td>
+                        <td class="py-3 pr-4 font-mono text-xs">~/.codex/skills/ · .agents/skills/</td>
+                        <td class="py-3 text-slate-500">usuario / proyecto</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4 font-semibold text-slate-700">
+                            <img src="{% static 'indicadores/images/logo_mcp_cursor.svg' %}" class="w-4 h-4 inline mr-1" alt="">Cursor
+                        </td>
+                        <td class="py-3 pr-4 font-mono text-xs">~/.cursor/skills/ · .cursor/skills/</td>
+                        <td class="py-3 text-slate-500">usuario / proyecto</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4 font-semibold text-slate-700">
+                            <img src="{% static 'indicadores/images/logo_mcp_opencode.svg' %}" class="w-4 h-4 inline mr-1" alt="">OpenCode
+                        </td>
+                        <td class="py-3 pr-4 font-mono text-xs">~/.config/opencode/skills/ · .opencode/skills/</td>
+                        <td class="py-3 text-slate-500">usuario / proyecto</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4 font-semibold text-slate-700">
+                            <img src="{% static 'indicadores/images/logo_mcp_gemini.svg' %}" class="w-4 h-4 inline mr-1" alt="">Gemini CLI
+                        </td>
+                        <td class="py-3 pr-4 font-mono text-xs">~/.gemini/skills/ · .agents/skills/</td>
+                        <td class="py-3 text-slate-500">usuario / proyecto</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4 font-semibold text-slate-700"><i class="fas fa-robot text-slate-400 mr-1"></i>Genérico</td>
+                        <td class="py-3 pr-4 font-mono text-xs">.agents/skills/ (estándar) o pegar el contenido como contexto del proyecto</td>
+                        <td class="py-3 text-slate-500">proyecto</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-5">
+            <p class="text-sm font-semibold text-slate-700 mb-2">Ejemplo de instalación (Claude Code):</p>
+            <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-sm overflow-x-auto">mkdir -p ~/.claude/skills/siied-api-abierta
+curl -o ~/.claude/skills/siied-api-abierta/SKILL.md \
+     {{ skill_url }}</pre>
+        </div>
+    </div>
+
+    <!-- Guías MCP por cliente (mismo include del instructivo MCP) -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">
+            <i class="fas fa-microchip text-cyan-700 mr-2"></i>¿Y el servidor MCP?
+        </h2>
+        <p class="text-slate-500 text-sm mb-4">
+            Si además de la skill quieres conectar el MCP del SIIED (herramientas nativas en tu
+            asistente), así se instala en cada cliente — más detalle en el
+            <a href="{% url 'indicadores:mcp_documentacion' %}" class="underline text-amber-700 font-semibold">instructivo MCP</a>.
+        </p>
+        {% include 'indicadores/_mcp_clientes_guia.html' %}
+    </div>
+
+    <!-- Solicitar acceso -->
+    <div class="bg-gradient-to-r from-amber-700 to-amber-600 rounded-2xl shadow-lg p-8 text-white">
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h2 class="text-2xl font-bold mb-3">
+                    <i class="fas fa-envelope mr-2"></i>¿Necesitas más acceso?
+                </h2>
+                <p class="text-amber-50 leading-relaxed mb-4">
+                    La skill y la API abierta son públicas — no requieren credenciales.
+                    Si eres funcionario y necesitas <strong>token MCP</strong> para cargar
+                    datos o consultar la hoja de vida FICED, escríbenos con tu nombre,
+                    organismo, correo institucional y uso previsto.
+                </p>
+                <a href="mailto:sistemaestadistico@cali.gov.co?subject=Solicitud%20token%20MCP%20SIIED&body=Nombre%3A%0AOrganismo%3A%0ACorreo%20institucional%3A%0AUso%20previsto%20%28recolecci%C3%B3n%20%2F%20validaci%C3%B3n%20FICED%29%3A"
+                   class="inline-block bg-white text-amber-800 font-semibold py-3 px-6 rounded-lg hover:bg-amber-50 transition-colors">
+                    <i class="fas fa-paper-plane mr-2"></i>sistemaestadistico@cali.gov.co
+                </a>
+            </div>
+            <div class="bg-white/10 rounded-xl p-6 border border-white/20">
+                <h4 class="font-bold mb-2"><i class="fas fa-comment-dots mr-2"></i>¿Prefieres la burbuja?</h4>
+                <p class="text-sm text-amber-50 leading-relaxed">
+                    También puedes enviar tu requerimiento por la <strong>burbuja flotante de
+                    chat</strong> (esquina inferior derecha del sitio) — llega al mismo correo
+                    <em>sistemaestadistico@cali.gov.co</em>.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

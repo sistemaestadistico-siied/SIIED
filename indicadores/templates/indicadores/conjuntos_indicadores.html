@@ -10,28 +10,28 @@
         <nav class="pcrumb mb-7">
             <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
             <span class="sep">/</span>
-            <span class="here">Conjuntos</span>
+            <span class="here">Indicadores</span>
         </nav>
 
         <div class="mb-10 max-w-3xl">
             <span class="pchip mb-3"><i class="fas fa-layer-group"></i> Catálogo estadístico</span>
             <h1 class="ptitle">Conjuntos de <span class="pgrad">indicadores</span></h1>
             <p class="psub mt-2">
-                Los tres grandes conjuntos de indicadores de la plataforma: el
-                catálogo por dominios temáticos, el histórico Cali en Cifras y
-                el seguimiento distrital a los Objetivos de Desarrollo Sostenible.
+                Los indicadores de la plataforma se organizan por dominios temáticos
+                —el catálogo principal del sistema—, con el seguimiento distrital a
+                los Objetivos de Desarrollo Sostenible y el histórico Cali en Cifras.
             </p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Cali en Cifras -->
-            <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}" class="pcard group p-6 flex flex-col h-full">
+            <!-- Todos los dominios (catálogo principal) -->
+            <a href="{% url 'indicadores:dominios' %}" class="pcard group p-6 flex flex-col h-full">
                 <div class="plogo">
-                    <div class="pico pico-lime"><i class="fas fa-city"></i></div>
+                    <div class="pico pico-emerald"><i class="fas fa-layer-group"></i></div>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800">Cali en Cifras</h3>
-                <p class="text-sm text-slate-500 mt-1">Conjunto histórico de indicadores del Distrito — series hasta 2023.</p>
-                <span class="pcta">Ver Cali en Cifras <i class="fas fa-arrow-right ml-1"></i></span>
+                <h3 class="text-lg font-bold text-slate-800">Indicadores por dominios temáticos</h3>
+                <p class="text-sm text-slate-500 mt-1">El catálogo principal de la plataforma: todos los conjuntos de indicadores por tema y fuente.</p>
+                <span class="pcta">Explorar dominios <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Indicadores ODS -->
@@ -44,14 +44,14 @@
                 <span class="pcta">Ver indicadores ODS <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
-            <!-- Todos los dominios -->
-            <a href="{% url 'indicadores:dominios' %}" class="pcard group p-6 flex flex-col h-full">
+            <!-- Cali en Cifras (histórico legacy) -->
+            <a href="{% url 'indicadores:dominio_detalle' 'CEC' %}" class="pcard group p-6 flex flex-col h-full">
                 <div class="plogo">
-                    <div class="pico pico-emerald"><i class="fas fa-layer-group"></i></div>
+                    <div class="pico pico-lime"><i class="fas fa-city"></i></div>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800">Indicadores por dominios temáticos</h3>
-                <p class="text-sm text-slate-500 mt-1">El catálogo principal de la plataforma: todos los conjuntos de indicadores por tema.</p>
-                <span class="pcta">Explorar dominios <i class="fas fa-arrow-right ml-1"></i></span>
+                <h3 class="text-lg font-bold text-slate-800">Cali en Cifras</h3>
+                <p class="text-sm text-slate-500 mt-1">Conjunto histórico de indicadores del Distrito — series hasta 2023.</p>
+                <span class="pcta">Ver Cali en Cifras <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
         </div>
 

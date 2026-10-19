@@ -19,7 +19,8 @@ from .catalogo_datalake import get_bases, get_campos_cruzables
 from .models import Organismo, Suborganismo
 from .models_taller import InscripcionTaller as Inscripcion, RetoAnalisis
 from .models_catalogo import (
-    EvaluacionSeguridad, FuenteDatos, FuenteOrigen, VariableFuente,
+    BaseCatalogo, EvaluacionSeguridad, FuenteDatos, FuenteOrigen,
+    VariableFuente,
 )
 
 
@@ -43,14 +44,96 @@ def api_fuentes_catalogo(request):
 
 @xframe_options_sameorigin
 def catalogo_datos(request):
-    """Catálogo público — SAMEORIGIN para poder embeberlo en Analítica."""
+    """Catálogo público — SAMEORIGIN para poder embeberlo en Analítica.
+
+    Además de las bases y los cruces internos entre bases, expone las
+    mismas capas de relación que dibuja el ecosistema 3D, proyectadas sobre
+    cada base del catálogo (`conexiones_json`):
+      - matching_variable: conjuntos del taller cuyas variables coinciden
+        (exacto o por subcadena) con campos de la base — detalle por campo.
+      - match_exacto / match_aproximado: conjuntos o retos que declaran la
+        base como fuente de origen o fuente requerida.
+      - cruce_catalogo: otras bases con llaves de cruce comunes.
+    """
     import json
+    from collections import defaultdict
     from .catalogo_datalake import get_bases, get_campos_cruzables
+    from .views_taller import _grafo_ecosistema, _norm_var
     bases = get_bases()
     cruzables = get_campos_cruzables()
+
+    nodos, aristas = _grafo_ecosistema()
+    nodo_por_id = {n['id']: n for n in nodos}
+
+    def _resumen(n):
+        tipo = n['tipo']
+        d = {'id': n['id'], 'tipo': tipo, 'nombre': n['nombre'],
+             'organismo': n.get('organismo', '')}
+        if tipo == 'conjunto':
+            d['fuente_id'] = n['fuente_id']
+            d['capa'] = n.get('capa', '')
+        elif tipo == 'reto':
+            d['reto_id'] = int(n['id'].split('-')[1])
+        return d
+
+    # Variables de los conjuntos del taller indexadas por nombre normalizado
+    vars_norm_por_conjunto = {}
+    for n in nodos:
+        if n['tipo'] == 'conjunto':
+            vars_norm_por_conjunto[n['id']] = {
+                _norm_var(v): v for v in n.get('variables', [])}
+
+    def _vars_que_matchean(conj_id, campo):
+        """Variables del conjunto que explican la arista matching_variable
+        contra un campo concreto (misma regla que el grafo: exacto o
+        subcadena ≥ 4 chars)."""
+        cnorm = _norm_var(campo)
+        out = []
+        for vnorm, vorig in vars_norm_por_conjunto.get(conj_id, {}).items():
+            if not vnorm:
+                continue
+            if vnorm == cnorm:
+                out.append({'var': vorig, 'exacto': True})
+            elif len(vnorm) >= 4 and len(cnorm) >= 4 and (
+                    vnorm in cnorm or cnorm in vnorm):
+                out.append({'var': vorig, 'exacto': False})
+        return out
+
+    conexiones = {}
+    for b in bases:
+        cid = 'cat-' + b['id']
+        capas = defaultdict(list)
+        por_campo = defaultdict(list)
+        for a in aristas:
+            if a['origen'] == cid:
+                otro = a['destino']
+            elif a['destino'] == cid:
+                otro = a['origen']
+            else:
+                continue
+            n = nodo_por_id.get(otro)
+            if not n:
+                continue
+            item = _resumen(n)
+            if a['tipo'] == 'cruce_catalogo':
+                item['campo'] = a.get('campo', '')
+            capas[a['tipo']].append(item)
+            if a['tipo'] == 'matching_variable':
+                for c in b['campos']:
+                    matches = _vars_que_matchean(otro, c['nombre'])
+                    if matches:
+                        por_campo[c['nombre'].lower()].append(
+                            {**item, 'matches': matches})
+        if capas or por_campo:
+            conexiones[b['id']] = {
+                'capas': dict(capas),
+                'por_campo': dict(por_campo),
+            }
+
     context = {
         'bases_json': json.dumps(bases, ensure_ascii=False),
         'cruzables_json': json.dumps(cruzables, ensure_ascii=False),
+        'conexiones_json': json.dumps(conexiones, ensure_ascii=False),
         'bases': bases,
         'cruzables': cruzables,
     }

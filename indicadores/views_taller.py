@@ -43,6 +43,23 @@ TIPO_LABEL = {
 }
 
 
+def _norm(s):
+    """Normaliza: lowercase + quita acentos + strip."""
+    import unicodedata
+    s = (s or '').lower().strip()
+    return ''.join(c for c in unicodedata.normalize('NFD', s)
+                   if unicodedata.category(c) != 'Mn')
+
+
+def _norm_var(s):
+    """Normaliza nombre de variable para matching: sin acentos, sin _ ni espacios."""
+    s = _norm(s)
+    for prefix in ('var_', 'cod_', 'num_', 'id_', 'nom_', 'desc_', 'codigo_', 'nombre_'):
+        if s.startswith(prefix):
+            s = s[len(prefix):]
+    return s.replace('_', '').replace(' ', '').replace('-', '')
+
+
 def _tamano_nodo(n):
     """Radio base del nodo según su tipo y métricas (misma escala que el 3D)."""
     tipo = n.get('tipo')
@@ -80,25 +97,10 @@ def api_suborganismos(request, organismo_id):
 
 def _construir_grafo_ecosistema(solo_relacionados=False):
     """Construye nodos y aristas del grafo del ecosistema (compartido por la API y el export GEXF)."""
-    import unicodedata
     from collections import Counter
     from .catalogo_datalake import get_bases, get_campos_cruzables
     from .models import (EvaluacionSeguridad, FuenteOrigen,
                          FuenteRequerida, Organismo, VariableFuente)
-
-    def _norm(s):
-        """Normaliza: lowercase + quita acentos + strip."""
-        s = s.lower().strip()
-        return ''.join(c for c in unicodedata.normalize('NFD', s)
-                       if unicodedata.category(c) != 'Mn')
-
-    def _norm_var(s):
-        """Normaliza nombre de variable para matching: sin acentos, sin _ ni espacios."""
-        s = _norm(s)
-        for prefix in ('var_', 'cod_', 'num_', 'id_', 'nom_', 'desc_', 'codigo_', 'nombre_'):
-            if s.startswith(prefix):
-                s = s[len(prefix):]
-        return s.replace('_', '').replace(' ', '').replace('-', '')
 
     nodos = []
     aristas = []
@@ -249,6 +251,7 @@ def _construir_grafo_ecosistema(solo_relacionados=False):
             'descripcion': fte.descripcion or '',
             'decisiones_apoya': fte.decisiones_apoya or '',
             'rol': fte.get_rol_display() if fte.rol else '',
+            'capa': fte.capa,
             'criticidad': seguridad.criticidad if seguridad else '',
             'organismo': org.nombre if org else '',
             'organismo_id': 'org-' + str(org.pk) if org else '',

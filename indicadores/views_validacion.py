@@ -34,6 +34,7 @@ from .calcular_iced import (
     PREGUNTA_LABELS, INDICADOR_LABELS, ESTRUCTURA_ICED, INDICADOR_PREGUNTA,
 )
 from .forms_iced import ICED_WIZARD_FORMS, ICED_STEP_LABELS
+from .templatetags.iced_tags import iced_field_label
 from .decorators import validador_required, validador_sistema_required
 from . import views_normalizacion as _nz
 
@@ -1117,10 +1118,14 @@ def validacion_revisar_iced(request, formulario_id):
                     continue
                 if formulario.equipo and not ICEDPreguntaEquipo.campo_pertenece_a_equipo(name, formulario.equipo):
                     continue
+                codigo = ICEDPreguntaEquipo.codigo_de_campo(name)
                 faltantes.append({
                     'label': pregunta_labels.get(name) or form_labels.get(name, name),
                     'field_key': name,
-                    'condicional': any(s in name for s in ('especificar', 'otro', 'motivo')),
+                    'codigo': codigo or '',
+                    'condicional': bool(
+                        (getattr(fld.widget, 'attrs', {}) or {}).get('data-show-if')
+                    ) or any(s in name for s in ('especificar', 'otro', 'motivo')),
                 })
             if items or faltantes:
                 pasos.append({
@@ -1322,6 +1327,81 @@ def _respuestas_planas(formulario):
     return r
 
 
+# --- Clasificación de campos para conciliación -------------------------------
+# La divergencia entre equipos se mide SOLO sobre los campos de decisión
+# (la opción seleccionada: radio/select/checkbox/boolean). Los campos de
+# texto libre, tablas/matrices JSON y auxiliares (¿Cuál?, otros, actividades)
+# no divergen: se fusionan de todos los equipos en el consolidado.
+
+_PASO_CAMPO = {
+    'identificacion': 'respuestas_a',
+    'entorno': 'respuestas_b',
+    'infraestructura_c1': 'respuestas_c',
+    'infraestructura_c2': 'respuestas_c',
+    'infraestructura_c3': 'respuestas_c',
+    'metodologia_d1': 'respuestas_d',
+    'metodologia_d2': 'respuestas_d',
+    'metodologia_d3': 'respuestas_d',
+    'metodologia_d4': 'respuestas_d',
+    'accesibilidad': 'respuestas_e',
+}
+_FIELD_DEFS = {}
+_FIELD_ATTR = {}
+for _s, _c in ICED_WIZARD_FORMS:
+    for _n, _f in _c.base_fields.items():
+        _FIELD_DEFS.setdefault(_n, _f)
+        if _s in _PASO_CAMPO:
+            _FIELD_ATTR.setdefault(_n, _PASO_CAMPO[_s])
+
+
+def _es_campo_decision(field_name):
+    """True si el campo es una opción seleccionable (radio/select/checkbox/
+    booleano): es la respuesta 'oficial' de la pregunta y define divergencia."""
+    fld = _FIELD_DEFS.get(field_name)
+    if fld is None:
+        return False
+    if isinstance(fld, forms.BooleanField):
+        return True
+    return isinstance(
+        fld.widget,
+        (forms.RadioSelect, forms.Select, forms.CheckboxSelectMultiple))
+
+
+def _fusionar_valores(valores):
+    """Fusiona valores no-decisión de varios equipos en uno solo.
+
+    - listas/tablones: se concatenan sin duplicar filas idénticas;
+    - dicts: se fusionan por clave recursivamente;
+    - textos y escalares: se unen con ' - ' (orden de equipo), sin repetir
+      valores idénticos; un solo valor no vacío se devuelve tal cual.
+    """
+    vals = [v for v in valores if not _vacio(v)]
+    if not vals:
+        return ''
+    if all(isinstance(v, dict) for v in vals):
+        claves = []
+        for v in vals:
+            for k in v:
+                if k not in claves:
+                    claves.append(k)
+        return {k: _fusionar_valores([v.get(k) for v in vals])
+                for k in claves}
+    if any(isinstance(v, list) for v in vals):
+        out, vistos = [], set()
+        for v in vals:
+            items = v if isinstance(v, list) else [v]
+            for item in items:
+                s = json.dumps(item, sort_keys=True, default=str,
+                               ensure_ascii=False)
+                if s not in vistos:
+                    vistos.add(s)
+                    out.append(item)
+        return out
+    if len(vals) == 1:
+        return vals[0]
+    return ' - '.join(dict.fromkeys(str(v) for v in vals))
+
+
 @validador_sistema_required
 def validacion_conciliar_iced(request, organismo_id, periodo):
     """
@@ -1378,6 +1458,14 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         for cod in [_codigo_de_campo(k)] if cod
     }
 
+    # field_key → atributo respuestas_* donde se guardó (para respuestas
+    # huérfanas no presentes en los forms del wizard).
+    attr_de = {}
+    for f in formularios:
+        for attr in _CAMPOS_RESP:
+            for k in _normalizar_respuestas(getattr(f, attr) or {}):
+                attr_de.setdefault(k, attr)
+
     preguntas = []
     for codigo in sorted(asignaciones.keys() | codigos_respondidos, key=_orden):
         por_equipo = {
@@ -1387,9 +1475,13 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
             }
             for f in formularios
         }
-        # ¿Las respuestas difieren entre equipos que respondieron?
+        # Divergencia SOLO sobre la opción seleccionada (campos de
+        # decisión). Textos/tablas/auxiliares se fusionan, no divergen.
         snapshots = {
-            _json.dumps(resp, sort_keys=True, default=str)
+            _json.dumps(
+                {k: v for k, v in resp.items()
+                 if _es_campo_decision(k) and not _vacio(v)},
+                sort_keys=True, default=str)
             for resp in por_equipo.values() if resp
         }
         # Preguntas sin asignación en la matriz: participan los equipos
@@ -1400,6 +1492,14 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
             'label': label_de(codigo),
             'asignados': sorted(asignaciones.get(codigo) or respondieron),
             'por_equipo': por_equipo,
+            'por_equipo_items': {
+                eq: [{
+                    'field_key': k,
+                    'label': iced_field_label(k),
+                    'respuesta': v,
+                } for k, v in resp.items() if not _vacio(v)]
+                for eq, resp in por_equipo.items()
+            },
             'divergente': len(snapshots) > 1,
         })
 
@@ -1418,10 +1518,23 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
             # Sin elección explícita: único equipo que respondió gana
             if ganador not in equipos_resp:
                 ganador = equipos_resp[0]
-            fuente = form_por_equipo[ganador]
-            for attr in _CAMPOS_RESP:
-                for k, v in _normalizar_respuestas(getattr(fuente, attr) or {}).items():
-                    if _codigo_de_campo(k) == p['codigo']:
+            resp_ganador = p['por_equipo'][ganador]
+            campos = set()
+            for r in p['por_equipo'].values():
+                campos.update(r)
+            for k in campos:
+                attr = _FIELD_ATTR.get(k) or attr_de.get(k) or 'respuestas_a'
+                if _es_campo_decision(k):
+                    # La opción seleccionada es la del equipo elegido
+                    v = resp_ganador.get(k)
+                    if not _vacio(v):
+                        nuevos[attr][k] = v
+                else:
+                    # Textos/tablas/auxiliares: se fusionan de TODOS los
+                    # equipos que respondieron (actividades, ¿cuál?, otros)
+                    v = _fusionar_valores(
+                        [p['por_equipo'][e].get(k) for e in equipos_resp])
+                    if not _vacio(v):
                         nuevos[attr][k] = v
             conciliadas += 1
 

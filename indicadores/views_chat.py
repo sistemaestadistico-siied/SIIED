@@ -103,6 +103,28 @@ def _asegurar_enlace_consulta(texto: str) -> str:
                   '[Consulta y Tableros](/laboratorio/)', texto, count=1)
 
 
+# Salvaguarda legal anexada al final de cada respuesta del asistente:
+# aclara que la interpretación del LLM no es posición institucional ni
+# declaración oficial — protección frente a alucinaciones del modelo.
+_DISCLAIMER_IA = (
+    "\n\n---\n*⚠️ **Limitaciones de la información.** Esta respuesta fue "
+    "generada por un asistente de inteligencia artificial como apoyo a la "
+    "consulta de los datos publicados en el SIIED. Su interpretación y "
+    "redacción **no representan posición institucional ni constituyen "
+    "declaración oficial** de la Alcaldía de Santiago de Cali, sus "
+    "organismos o dependencias, y pueden contener imprecisiones. Para "
+    "fines formales consulta siempre la ficha técnica y la fuente "
+    "original del indicador.*"
+)
+
+
+def _anexar_disclaimer(texto: str) -> str:
+    """Añade el bloque de limitaciones si aún no está en el texto."""
+    if not texto or 'Limitaciones de la información' in texto:
+        return texto
+    return texto + _DISCLAIMER_IA
+
+
 # --- IPv4 forzado para llamadas salientes del LLM ---
 # En hosts sin ruta IPv6 funcional (curl -6 agota timeout), httpx resuelve
 # primero los registros AAAA y espera ~40s de timeout por dirección antes
@@ -5077,19 +5099,19 @@ class ChatService:
                 # Confiar en el clasificador, NO hardcodear saludos
                 # El LLM manejará saludos, despedidas y conversación casual naturalmente
                 try:
-                    full_response = ""
                     for chunk in self._generate_traditional_stream(user_message, relevant_data, clean_history):
-                        if 'content' in chunk and chunk['content']:
-                            full_response += chunk['content']
+                        # Salvaguarda legal: antes del chunk de cierre emitir
+                        # el bloque de limitaciones y reflejarlo en el
+                        # historial que se persistirá.
+                        if isinstance(chunk, dict) and chunk.get('is_complete'):
+                            yield {"content": _DISCLAIMER_IA, "is_complete": False}
+                            uh = chunk.get('updated_history')
+                            if uh and isinstance(uh, list) and uh \
+                                    and uh[-1].get('role') == 'assistant':
+                                uh[-1]['content'] = _anexar_disclaimer(
+                                    uh[-1].get('content', ''))
                         yield chunk
-                    
-                    if full_response:
-                        updated_history = clean_history + [
-                            {'role': 'user', 'content': user_message},
-                            {'role': 'assistant', 'content': _asegurar_enlace_consulta(full_response)}
-                        ]
-                        yield {'is_complete': True, 'updated_history': updated_history}
-                        
+
                 except Exception as e:
                     logger.error(f"[STREAM_FIX] Error en conversación casual: {e}")
                     error_msg = "Error procesando solicitud."
@@ -6596,6 +6618,17 @@ class ChatService:
         if total_tokens <= max_tokens:
             return messages
         
+        # Mantener mensaje del sistema y recortar el resto
+        system_msgs = [msg for msg in messages if msg.get('role') == 'system']
+        other_msgs = [msg for msg in messages if msg.get('role') != 'system']
+        
+        # Reducir mensajes hasta cumplir el límite
+        while other_msgs and total_tokens > max_tokens:
+            removed = other_msgs.pop(0)
+            total_tokens -= self.count_message_tokens(removed)
+        
+        return system_msgs + other_msgs
+        return system_msgs + other_msgs
         # Mantener mensaje del sistema y recortar el resto
         system_msgs = [msg for msg in messages if msg.get('role') == 'system']
         other_msgs = [msg for msg in messages if msg.get('role') != 'system']

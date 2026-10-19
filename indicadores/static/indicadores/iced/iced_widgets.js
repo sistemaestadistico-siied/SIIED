@@ -259,10 +259,26 @@
         // Regla opcional: si config.autollenado = {campo_origen, campo_destino, mapa{}},
         // al cambiar campo_origen se rellena campo_destino con mapa[valor].
         const autollenado = config.autollenado || null;
-        let filas = readJson(targetName, null) || [];
-        if (!Array.isArray(filas)) filas = [];  // datos legacy: '{}' de borrador oculto
-        while (filas.length < minFilas) {
-            filas.push({});
+        // Filas precargadas desde el backend (p.ej. OOEE del organismo en P23):
+        // se insertan al inicio si el usuario aún no guardó filas. Las primeras
+        // `filas_bloqueadas` no se pueden eliminar y sus `fila_fija_campos`
+        // quedan deshabilitados (el delegado solo marca Sí/No).
+        const filasIniciales = Array.isArray(config.filas_iniciales) ? config.filas_iniciales : [];
+        const filasBloqueadas = config.filas_bloqueadas || 0;
+        const filaFijaCampos = config.fila_fija_campos || [];
+        let filas = readJson(targetName, null);
+        const sinDatos = !Array.isArray(filas) || !filas.length;  // '{}' legacy o vacío
+        filas = sinDatos ? [] : filas;
+        if (sinDatos && filasIniciales.length) {
+            filas = filasIniciales.map(f => ({ ...f }));
+            writeJson(targetName, filas);  // persistir precarga
+        }
+        // min_filas solo rellena cuando no hay datos previos: si el usuario ya
+        // guardó menos filas que las OOEE precargadas, no inyectar vacías.
+        if (sinDatos) {
+            while (filas.length < minFilas) {
+                filas.push({});
+            }
         }
 
         function sync() {
@@ -293,6 +309,7 @@
                 tr.appendChild(el('td', { class: 'iced-widget-num' }, [String(i + 1)]));
 
                 const inputsFila = {};
+                const esFilaFija = i < filasBloqueadas;
                 columnas.forEach(col => {
                     let input;
                     if (col.tipo === 'booleano') {
@@ -309,19 +326,50 @@
                         input.value = fila[col.name] || '';
                     } else if (col.tipo === 'organismo') {
                         // Select con los organismos activos (window.ORGANISMOS).
+                        // col.excluir: nombres que no aplican en esta pregunta.
+                        // col.permitir_otro: añade 'Otro' y un input '¿Cuál?' cuyo
+                        // valor se guarda en fila[col.campo_otro || col.name + '_otro'].
                         // Conserva valores guardados que ya no estén en la lista.
+                        const OTRO = 'Otro';
+                        const campoOtro = col.campo_otro || (col.name + '_otro');
+                        const excluir = (col.excluir || []).map(s => String(s).toUpperCase());
                         const valorGuardado = fila[col.name] || '';
-                        const listaOrg = (window.ORGANISMOS || []).slice();
-                        if (valorGuardado && !listaOrg.includes(valorGuardado)) {
+                        const listaOrg = (window.ORGANISMOS || [])
+                            .filter(n => excluir.indexOf(String(n).toUpperCase()) === -1);
+                        if (valorGuardado && valorGuardado !== OTRO && !listaOrg.includes(valorGuardado)) {
                             listaOrg.push(valorGuardado);
                         }
                         input = el('select', { class: 'iced-widget-input' }, [
                             el('option', { value: '' }, ['—']),
                             ...listaOrg.map(nombre =>
                                 el('option', { value: nombre }, [nombre])
-                            )
+                            ),
+                            ...(col.permitir_otro ? [el('option', { value: OTRO }, ['Otro (especifique)'])] : [])
                         ]);
                         input.value = valorGuardado;
+                        if (col.permitir_otro) {
+                            const inputOtro = el('input', {
+                                type: 'text', class: 'iced-widget-input',
+                                placeholder: '¿Cuál?',
+                                style: 'margin-top:4px;' + (valorGuardado === OTRO ? '' : 'display:none;'),
+                            });
+                            inputOtro.value = fila[campoOtro] || '';
+                            inputOtro.addEventListener('input', () => {
+                                filas[i][campoOtro] = inputOtro.value;
+                                sync();
+                            });
+                            input.addEventListener('change', () => {
+                                const esOtro = input.value === OTRO;
+                                inputOtro.style.display = esOtro ? '' : 'none';
+                                if (!esOtro && filas[i][campoOtro]) {
+                                    delete filas[i][campoOtro];
+                                    inputOtro.value = '';
+                                }
+                                sync();
+                            });
+                            // Se adjunta a la celda junto al select (ver tdChildren).
+                            input._extraCelda = inputOtro;
+                        }
                     } else if (col.tipo === 'select' && Array.isArray(col.opciones)) {
                         input = el('select', { class: 'iced-widget-input' }, [
                             el('option', { value: '' }, ['—']),
@@ -356,8 +404,13 @@
                         sync();
                     });
 
+                    // Filas fijas: ciertos campos van deshabilitados
+                    if (esFilaFija && filaFijaCampos.indexOf(col.name) !== -1) {
+                        input.disabled = true;
+                    }
                     inputsFila[col.name] = input;
                     const tdChildren = [input];
+                    if (input._extraCelda) tdChildren.push(input._extraCelda);
                     if (col.tipo === 'url') tdChildren.push(attachUrlValidation(input));
                     tr.appendChild(el('td', {}, tdChildren));
                 });
@@ -434,8 +487,13 @@
                     class: 'iced-widget-btn-del',
                     title: 'Eliminar fila',
                 }, ['✕']);
+                if (esFilaFija) {
+                    btnDel.disabled = true;
+                    btnDel.style.opacity = '0.3';
+                    btnDel.title = 'Esta fila viene del inventario y no se puede eliminar';
+                }
                 btnDel.addEventListener('click', () => {
-                    if (filas.length <= minFilas) return;
+                    if (filas.length <= minFilas || i < filasBloqueadas) return;
                     filas.splice(i, 1);
                     sync();
                     render();

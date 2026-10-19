@@ -1,0 +1,295 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block content %}
+
+<!-- Hero -->
+<div class="relative bg-gradient-to-r from-cyan-700 via-cyan-600 to-cyan-800 overflow-hidden">
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M30 0l30 30-30 30L0 30z\" fill=\"none\" stroke=\"%23374151\" stroke-width=\"1\"/%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"10\" fill=\"none\" stroke=\"%23374151\" stroke-width=\"1\"/%3E%3C/g%3E%3C/svg%3E');"></div>
+    </div>
+    <div class="relative container mx-auto px-4 py-16">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-8">
+                <div class="flex justify-center lg:justify-start">
+                    <div class="w-80 h-32 flex items-center justify-center bg-white rounded-2xl border border-cyan-200 shadow-2xl">
+                        <div class="text-center px-6">
+                            <i class="fas fa-microchip text-5xl text-cyan-700"></i>
+                            <p class="mt-2 font-bold text-cyan-800 tracking-wide">SIIED · MCP Server</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <h1 class="text-3xl lg:text-5xl font-bold text-white leading-tight">
+                        Servidor MCP
+                        <span class="block text-cyan-100">Model Context Protocol</span>
+                    </h1>
+                    <p class="text-xl text-white leading-relaxed">
+                        Conecta tu asistente de IA (Claude, Gemini, GPT u otro cliente MCP)
+                        a los datos abiertos del SIIED: indicadores, conjuntos de datos,
+                        catálogos y hoja de vida de los organismos —
+                        <span class="font-semibold text-cyan-100">directo desde el chat</span>.
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-white">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            <span class="font-medium">28 herramientas</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-cyan-200 rounded-full animate-pulse"></div>
+                            <span class="font-medium">3 niveles de acceso</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            <span class="font-medium">HTTP + stdio</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-8">
+                <div class="bg-white rounded-2xl p-8 border border-cyan-200 shadow-xl">
+                    <h3 class="text-2xl font-bold text-cyan-800 mb-6 text-center">Acceso Rápido</h3>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-cyan-700 mb-2">Endpoint (Streamable HTTP)</label>
+                        <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-3 text-cyan-900 font-mono text-sm break-all">
+                            {{ mcp_url }}
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <a href="#conexion"
+                           class="flex-1 bg-cyan-700 text-white hover:bg-cyan-800 font-medium py-3 px-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1 text-center block">
+                            <i class="fas fa-plug mr-2"></i>Cómo conectar
+                        </a>
+                        <a href="#acceso"
+                           class="text-cyan-700 hover:text-cyan-900 transition-colors duration-300 underline text-center block">
+                            <i class="fas fa-key mr-2"></i>Niveles de acceso y token
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-12 flex justify-center">
+            <div class="w-48 h-1 bg-gradient-to-r from-transparent via-white/70 to-transparent rounded-full"></div>
+        </div>
+    </div>
+</div>
+
+<div class="py-8"></div>
+
+<div class="container mx-auto px-4 pb-12 max-w-6xl space-y-10">
+
+    <!-- ¿Qué es MCP? -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">
+            <i class="fas fa-circle-question text-cyan-700 mr-2"></i>¿Qué es el MCP del SIIED?
+        </h2>
+        <p class="text-slate-600 leading-relaxed mb-4">
+            El <strong>Model Context Protocol (MCP)</strong> es un estándar abierto que permite a las
+            aplicaciones de IA usar herramientas externas de forma segura. El servidor MCP del SIIED
+            expone <strong>{{ total_tools }} herramientas</strong> para que tu asistente consulte el
+            catálogo estadístico distrital —y, si tienes rol asignado, automatice cargas y
+            consultas de validación— sin salir de tu aplicación de escritorio o flujo de agentes.
+        </p>
+        <div class="grid md:grid-cols-3 gap-4">
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <i class="fas fa-magnifying-glass-chart text-cyan-700 text-xl"></i>
+                <h4 class="font-bold text-slate-800 mt-2">Consulta abierta</h4>
+                <p class="text-sm text-slate-500">Indicadores, series, conjuntos de datos, catálogos de consulta y estructura dominio-tema-subtema.</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <i class="fas fa-cloud-arrow-up text-cyan-700 text-xl"></i>
+                <h4 class="font-bold text-slate-800 mt-2">Gestión por rol</h4>
+                <p class="text-sm text-slate-500">Recolectores cargan series, conjuntos de datos y metadata — siempre a validación, nada se publica directo.</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <i class="fas fa-id-card text-cyan-700 text-xl"></i>
+                <h4 class="font-bold text-slate-800 mt-2">Validación FICED</h4>
+                <p class="text-sm text-slate-500">Validadores consultan la hoja de vida completa del organismo y el detalle del formulario FICED.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cómo conectar -->
+    <div id="conexion" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">
+            <i class="fas fa-plug text-cyan-700 mr-2"></i>Cómo conectar tu cliente
+        </h2>
+        <p class="text-slate-600 mb-6">
+            El servidor ofrece dos transportes. Usa <strong>Streamable HTTP</strong> si tu cliente
+            acepta una URL remota; usa <strong>stdio</strong> si el cliente lanza el servidor como
+            proceso local (Claude Desktop, Gemini CLI, etc.).
+        </p>
+
+        <div class="space-y-6">
+            <!-- HTTP -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <div class="bg-slate-100 px-5 py-3 font-semibold text-slate-700">
+                    <i class="fas fa-globe mr-2 text-cyan-700"></i>Opción 1 · Endpoint HTTP remoto
+                </div>
+                <div class="p-5">
+                    <p class="text-sm text-slate-600 mb-3">En tu cliente configura un servidor MCP tipo <em>HTTP / streamable</em>:</p>
+                    <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-sm overflow-x-auto">{
+  "mcpServers": {
+    "siied": {
+      "url": "{{ mcp_url }}",
+      "headers": { "Authorization": "Bearer TU_TOKEN_MCP" }
+    }
+  }
+}</pre>
+                    <p class="text-xs text-slate-400 mt-2">El header <code>Authorization</code> solo es necesario si tienes token de acceso por rol (ver niveles de acceso).</p>
+                </div>
+            </div>
+
+            <!-- stdio -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                <div class="bg-slate-100 px-5 py-3 font-semibold text-slate-700">
+                    <i class="fas fa-terminal mr-2 text-cyan-700"></i>Opción 2 · Proceso local (stdio)
+                </div>
+                <div class="p-5">
+                    <p class="text-sm text-slate-600 mb-3">
+                        El cliente lanza el servidor él mismo. Ejemplo para Claude Desktop o
+                        <code>~/.gemini/settings.json</code> de Gemini CLI:
+                    </p>
+                    <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-sm overflow-x-auto">{
+  "mcpServers": {
+    "siied": {
+      "command": "/ruta/del/proyecto/.venv/bin/python",
+      "args": ["-m", "indicadores.mcp_stdio_entry"],
+      "cwd": "/ruta/del/proyecto",
+      "env": { "SIIED_MCP_TOKEN": "TU_TOKEN_MCP" }
+    }
+  }
+}</pre>
+                    <ul class="text-sm text-slate-500 mt-3 space-y-1 list-disc list-inside">
+                        <li>No hace falta mantener ningún servidor corriendo: el cliente lo inicia por sesión.</li>
+                        <li>La variable <code>SIIED_MCP_TOKEN</code> es opcional — sin ella la sesión queda en capa pública.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guías por cliente -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        {% include 'indicadores/_mcp_clientes_guia.html' %}
+    </div>
+
+    <!-- Niveles de acceso -->
+    <div id="acceso" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">
+            <i class="fas fa-key text-cyan-700 mr-2"></i>Niveles de acceso
+        </h2>
+        <p class="text-slate-600 mb-6">
+            El servidor decide qué herramientas mostrar según tu identidad. Sin token solo ves la
+            capa pública; con token personal, tu <strong>rol vigente</strong> en el SIIED define las
+            herramientas adicionales. <strong>No se comparten credenciales:</strong> cada token es
+            personal y todas las llamadas quedan registradas en auditoría.
+        </p>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                        <th class="pb-3 pr-4">Nivel</th>
+                        <th class="pb-3 pr-4">Requiere token</th>
+                        <th class="pb-3 pr-4">Herramientas</th>
+                        <th class="pb-3">Qué puede hacer</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr>
+                        <td class="py-3 pr-4"><span class="px-2 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold text-xs">Público</span></td>
+                        <td class="py-3 pr-4">No</td>
+                        <td class="py-3 pr-4 font-semibold">{{ tools_publicos }}</td>
+                        <td class="py-3 text-slate-600">Consulta abierta: buscar indicadores, fichas, series, conjuntos de datos, catálogo de consulta, estructura del sistema, satisfacción y documentos.</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4"><span class="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-xs">Recolector</span></td>
+                        <td class="py-3 pr-4">Sí</td>
+                        <td class="py-3 pr-4 font-semibold">+{{ tools_recolector }}</td>
+                        <td class="py-3 text-slate-600">Todo lo público + <code>mi_contexto</code>, <code>mis_cargas</code>, <code>estado_carga</code>, plantillas, deconstrucción de tablas y cargas de series/conjuntos/metadata <em>en borrador</em> (pasan a validación).</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4"><span class="px-2 py-1 rounded-full bg-purple-100 text-purple-800 font-semibold text-xs">Validador</span></td>
+                        <td class="py-3 pr-4">Sí</td>
+                        <td class="py-3 pr-4 font-semibold">+{{ tools_validador }}</td>
+                        <td class="py-3 text-slate-600">Todo lo público + <code>listar_organismos_ficed</code>, <code>hoja_vida_organismo</code> y <code>consultar_ficed</code>: hoja de vida completa del organismo y detalle FICED (solo lectura).</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4"><span class="px-2 py-1 rounded-full bg-cyan-100 text-cyan-800 font-semibold text-xs">Analista</span></td>
+                        <td class="py-3 pr-4">Sí</td>
+                        <td class="py-3 pr-4 font-semibold">Todas</td>
+                        <td class="py-3 text-slate-600">Suma las capas recolector y validador.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ¿Cuándo necesito usuario/token? -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-4">
+            <i class="fas fa-user-shield text-cyan-700 mr-2"></i>¿Cuándo se necesita usuario y token?
+        </h2>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                <h4 class="font-bold text-emerald-800 mb-2"><i class="fas fa-check-circle mr-1"></i>Sin token (anónimo)</h4>
+                <ul class="text-sm text-emerald-900 space-y-1 list-disc list-inside">
+                    <li>Explorar el catálogo público de indicadores y conjuntos.</li>
+                    <li>Leer fichas, series y catálogos de consulta.</li>
+                    <li>Probar el servidor y evaluar su utilidad.</li>
+                </ul>
+            </div>
+            <div class="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                <h4 class="font-bold text-amber-800 mb-2"><i class="fas fa-lock mr-1"></i>Con token personal</h4>
+                <ul class="text-sm text-amber-900 space-y-1 list-disc list-inside">
+                    <li><strong>Recolectores:</strong> cargar series, conjuntos de datos y metadata de variables.</li>
+                    <li><strong>Validadores:</strong> consultar hoja de vida y formularios FICED.</li>
+                    <li>Los tokens tienen vigencia y se revocan si cambia tu rol o tu acceso.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Solicitar acceso -->
+    <div class="bg-gradient-to-r from-cyan-700 to-cyan-600 rounded-2xl shadow-lg p-8 text-white">
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h2 class="text-2xl font-bold mb-3">
+                    <i class="fas fa-envelope mr-2"></i>Solicita tu token MCP
+                </h2>
+                <p class="text-cyan-50 leading-relaxed mb-4">
+                    Si eres funcionario de un organismo del Sistema Estadístico y necesitas cargar
+                    datos o consultar la hoja de vida/FICED desde tu asistente de IA, solicita tu
+                    token personal indicando: <strong>nombre, organismo, correo institucional y el
+                    uso previsto</strong>.
+                </p>
+                <a href="mailto:sistemaestadistico@cali.gov.co?subject=Solicitud%20token%20MCP%20SIIED&body=Nombre%3A%0AOrganismo%3A%0ACorreo%20institucional%3A%0AUso%20previsto%20%28recolecci%C3%B3n%20%2F%20validaci%C3%B3n%20FICED%29%3A"
+                   class="inline-block bg-white text-cyan-800 font-semibold py-3 px-6 rounded-lg hover:bg-cyan-50 transition-colors">
+                    <i class="fas fa-paper-plane mr-2"></i>sistemaestadistico@cali.gov.co
+                </a>
+            </div>
+            <div class="bg-white/10 rounded-xl p-6 border border-white/20">
+                <h4 class="font-bold mb-2"><i class="fas fa-comment-dots mr-2"></i>¿Prefieres la burbuja?</h4>
+                <p class="text-sm text-cyan-50 leading-relaxed">
+                    También puedes enviar tu requerimiento por la <strong>burbuja flotante de
+                    chat</strong> (esquina inferior derecha del sitio). Es el mismo canal de
+                    soporte: llega al correo <em>sistemaestadistico@cali.gov.co</em> — indica que
+                    la solicitud es para un <strong>token MCP</strong> y tu organismo.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notas técnicas -->
+    <div class="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+        <h3 class="font-bold text-slate-700 mb-3"><i class="fas fa-circle-info text-cyan-700 mr-2"></i>Notas</h3>
+        <ul class="text-sm text-slate-500 space-y-2 list-disc list-inside">
+            <li>Transporte HTTP: <em>Streamable HTTP</em> (protocolo MCP 2025-03-26) en <code>{{ mcp_url }}</code>.</li>
+            <li>Transporte stdio: <code>python -m indicadores.mcp_stdio_entry</code> — el cliente lanza el proceso.</li>
+            <li>Todas las llamadas quedan registradas en el log de auditoría (usuario, herramienta, duración, resultado).</li>
+            <li>Las cargas por MCP nunca se publican solas: quedan en estado <em>pendiente</em> hasta validación del SIIED.</li>
+            <li>El token se entrega una sola vez por correo seguro; no lo compartas ni lo subas a repositorios.</li>
+        </ul>
+    </div>
+
+</div>
+{% endblock %}

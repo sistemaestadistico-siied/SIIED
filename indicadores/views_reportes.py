@@ -1213,6 +1213,20 @@ def reportes_visitas(request):
     except Exception:
         pass
 
+    # Totales por categoría (pagina / api / mcp) antes del filtro
+    totales_categoria = {
+        r['categoria']: r['n'] for r in
+        qs.values('categoria').annotate(n=Count('id'))
+    }
+
+    # Filtro opcional por categoría
+    categoria = request.GET.get('categoria', '')
+    categorias_validas = {c.value for c in PageVisit.Categoria}
+    if categoria in categorias_validas:
+        qs = qs.filter(categoria=categoria)
+    else:
+        categoria = ''
+
     # Totales del período filtrado
     total_visitas = qs.count()
     visitantes_unicos = qs.values('ip_address').distinct().count()
@@ -1266,6 +1280,8 @@ def reportes_visitas(request):
     context = {
         'fecha_desde': fecha_desde,
         'fecha_hasta': fecha_hasta,
+        'categoria': categoria,
+        'totales_categoria': totales_categoria,
         'total_visitas': total_visitas,
         'visitantes_unicos': visitantes_unicos,
         'top_paginas': list(top_paginas),
@@ -1303,6 +1319,10 @@ def reportes_visitas_exportar_excel(request):
     except Exception:
         pass
 
+    categoria = request.GET.get('categoria', '')
+    if categoria in {c.value for c in PageVisit.Categoria}:
+        qs = qs.filter(categoria=categoria)
+
     # Hoja 1: Resumen diario
     visitas_por_dia_raw = list(
         qs.extra(select={'dia': "DATE(timestamp)"})
@@ -1331,12 +1351,12 @@ def reportes_visitas_exportar_excel(request):
 
     # Hoja 3: Detalle completo de visitas
     visitas_detalle = qs.select_related('user').values(
-        'timestamp', 'path', 'ip_address', 'user__username', 'user_agent', 'referer'
+        'timestamp', 'categoria', 'path', 'ip_address', 'user__username', 'user_agent', 'referer'
     )
     df_detalle = pd.DataFrame(visitas_detalle) if visitas_detalle else pd.DataFrame(
-        columns=['timestamp', 'path', 'ip_address', 'user__username', 'user_agent', 'referer']
+        columns=['timestamp', 'categoria', 'path', 'ip_address', 'user__username', 'user_agent', 'referer']
     )
-    df_detalle.columns = ['Fecha/Hora', 'Pagina', 'IP', 'Usuario', 'User Agent', 'Referer']
+    df_detalle.columns = ['Fecha/Hora', 'Categoria', 'Pagina', 'IP', 'Usuario', 'User Agent', 'Referer']
 
     # Convertir datetimes timezone-aware a naive (Excel no soporta tz)
     if not df_detalle.empty:

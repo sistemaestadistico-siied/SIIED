@@ -59,6 +59,9 @@ urlpatterns = [
     # Catálogo de Consulta (directorios/listados de referencia, ex-anuario CEC)
     path('catalogo-consulta/', views.catalogo_consulta_listado, name='catalogo_consulta_listado'),
     path('catalogo-consulta/<int:pk>/', views.catalogo_consulta_detalle, name='catalogo_consulta_detalle'),
+    # API abierta del catálogo de consulta (mismo contenido que el detalle HTML)
+    path('api/catalogo-consulta/', views.api_catalogo_consulta_list, name='api_catalogo_consulta_list'),
+    path('api/catalogo-consulta/<int:pk>/', views.api_catalogo_consulta_detalle, name='api_catalogo_consulta_detalle'),
     path('proyectos-informacion/', views.proyectos_informacion, name='proyectos_informacion'),
     # Páginas del menú principal: mismas secciones de accesos del home
     path('herramientas/', views.herramientas_consulta, name='herramientas_consulta'),
@@ -124,6 +127,8 @@ urlpatterns = [
     path('api/procesos/<int:proceso_id>/logs/', views.api_proceso_logs, name='api_proceso_logs'),
     # API Documentation
     path('api-documentation/', views.api_documentation, name='api_documentation'),
+    path('mcp-instructivo/', views.mcp_documentacion, name='mcp_documentacion'),
+    path('skill-api-abierta/', views.skill_instructivo, name='skill_instructivo'),
     # conjunto_datos views
     path('conjuntos-datos/indicador/<int:indicador_id>/', views.conjunto_datos_detalle, name='conjunto_datos_detalle'),
     path('conjuntos-datos/explorer/', views.conjuntos_datos_explorer, name='conjuntos_datos_explorer'),
@@ -484,8 +489,8 @@ urlpatterns = [
     # ========================================================================
     path('iced/', views_iced.iced_landing, name='iced_landing'),
     path('iced/equipo/', views_iced.iced_equipo, name='iced_equipo'),
-    path('iced/formulario/', login_required(views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS)), name='iced_formulario_nuevo'),
-    path('iced/formulario/<int:formulario_id>/', login_required(views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS)), name='iced_formulario_retomar'),
+    path('iced/formulario/', login_required(views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS, condition_dict=views_iced.ICED_CONDITIONS)), name='iced_formulario_nuevo'),
+    path('iced/formulario/<int:formulario_id>/', login_required(views_iced.ICEDWizardView.as_view(views_iced.ICED_WIZARD_FORMS, condition_dict=views_iced.ICED_CONDITIONS)), name='iced_formulario_retomar'),
     path('iced/confirmacion/<int:formulario_id>/', views_iced.iced_confirmacion, name='iced_confirmacion'),
     path('iced/resultado/<int:formulario_id>/', views_iced.iced_resultado, name='iced_resultado'),
     path('iced/guardar-parcial/', views_iced.iced_guardar_parcial, name='iced_guardar_parcial'),

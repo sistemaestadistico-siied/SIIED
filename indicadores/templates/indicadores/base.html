@@ -251,15 +251,10 @@
                 </li>
                 <li class="py-4">
                     <a href="{% url 'indicadores:conjuntos_indicadores' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conjuntos' %}text-primary-600 active{% endif %}">
-                        Conjuntos
+                        Indicadores
                     </a>
                 </li>
                 <!-- Solo escritorio / desplegable en móvil -->
-                <li class="py-4 nav-extra hidden md:block">
-                    <a href="{% url 'indicadores:dominios' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'dominios' %}text-primary-600 active{% endif %}">
-                        Dominios
-                    </a>
-                </li>
                 <li class="py-4 nav-extra hidden md:block">
                     <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'catalogo_consulta' %}text-primary-600 active{% endif %}">
                         Catálogos

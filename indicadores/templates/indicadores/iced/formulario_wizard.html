@@ -1,6 +1,6 @@
 {% extends 'indicadores/base.html' %}
 {% load static %}
-{% load chat_filters %}
+{% load chat_filters iced_tags %}
 
 {% block title %}FICED — {{ current_step_label }} — SIIED{% endblock %}
 
@@ -665,20 +665,26 @@
                         font-size: 0.85rem;
                         color: #3730a3;
                     ">
-                        <p style="font-weight: 600; margin: 0 0 0.4rem 0;">
-                            Otros equipos de su organismo ya respondieron esta pregunta:
+                        <p style="font-weight: 600; margin: 0 0 0.15rem 0;">
+                            Pregunta compartida: su respuesta se complementa con la de otros equipos técnicos de su organismo.
+                        </p>
+                        <p style="margin: 0 0 0.5rem 0; font-size: 0.78rem; color: #4f46e5;">
+                            Responda desde la perspectiva de su equipo. Como referencia, esto respondieron los demás equipos:
                         </p>
                         {% for otra in field.field.otras_respuestas %}
-                        <div style="margin-bottom: 0.5rem;">
+                        <div style="margin-bottom: 0.6rem; padding: 0.5rem 0.6rem; background: #fff; border-radius: 0.375rem; border: 1px solid #c7d2fe;">
                             <span style="display: inline-block; background: #6366f1; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.5rem; border-radius: 999px; margin-right: 0.4rem;">
                                 {{ otra.equipo }}
                             </span>
                             {% if otra.quien %}<span style="font-size: 0.75rem; color: #64748b;">({{ otra.quien }})</span>{% endif %}
-                            <ul style="margin: 0.3rem 0 0 0.75rem; list-style: disc;">
-                                {% for campo, valor in otra.campos.items %}
-                                <li>{{ valor|truncatechars:150 }}</li>
+                            <div style="margin-top: 0.4rem; display: grid; gap: 0.35rem;">
+                                {% for item in otra.items %}
+                                <div style="font-size: 0.8rem; color: #1e1b4b;">
+                                    <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.1rem;">{{ item.label }}</div>
+                                    <div>{{ item|render_iced_respuesta }}</div>
+                                </div>
                                 {% endfor %}
-                            </ul>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>

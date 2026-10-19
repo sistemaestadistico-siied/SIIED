@@ -93,10 +93,55 @@
 
   .cat-fields { padding: 8px 32px 40px; }
   .cat-field {
-    display: grid; grid-template-columns: 200px 70px 1fr auto auto; gap: 12px;
+    display: grid; grid-template-columns: 200px 70px 1fr auto auto auto; gap: 12px;
     padding: 10px 14px; border-radius: 8px; margin-bottom: 4px;
     transition: background 0.15s; align-items: center; cursor: default;
   }
+  .cat-field .fl {
+    font-size: 10px; padding: 3px 8px; border-radius: 4px; white-space: nowrap;
+    font-weight: 600; min-width: 42px; text-align: center;
+  }
+  .fl-yes { background: rgba(123,63,175,0.10); color: #6b21a8; border: 1px solid rgba(123,63,175,0.30); cursor: pointer; }
+  .fl-yes:hover { background: rgba(123,63,175,0.22); }
+  .fl-no { color: var(--cat-muted); }
+
+  /* Capas de relación del ecosistema (mismos colores que el 3D) */
+  .cat-aside-sub { padding: 14px 20px 10px; border-bottom: 1px solid var(--cat-border); background: var(--cat-panel-2);
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .cat-aside-sub h4 { font-size: 12px; font-weight: 700; margin: 0 0 2px; color: #6b21a8; }
+  .cat-aside-sub p { font-size: 10.5px; color: var(--cat-muted); margin: 0; }
+  .cat-aside-sub a.eco-link { font-size: 10px; white-space: nowrap; color: var(--cat-accent); text-decoration: none;
+    border: 1px solid var(--cat-border); padding: 3px 8px; border-radius: 6px; background: var(--cat-bg); }
+  .cat-aside-sub a.eco-link:hover { border-color: var(--cat-accent); }
+  .capa-grp { border-bottom: 1px solid var(--cat-border); }
+  .capa-hd { display: flex; align-items: center; gap: 8px; padding: 10px 20px; cursor: pointer; font-size: 11px; font-weight: 700; }
+  .capa-hd:hover { background: var(--cat-panel-2); }
+  .capa-hd .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .capa-hd .n { margin-left: auto; font-size: 10px; color: var(--cat-muted); font-weight: 400; }
+  .capa-hd .chev { font-size: 9px; color: var(--cat-muted); transition: transform 0.15s; }
+  .capa-grp.open .capa-hd .chev { transform: rotate(90deg); }
+  .capa-body { display: none; padding: 0 20px 10px; }
+  .capa-grp.open .capa-body { display: block; }
+  .capa-desc { font-size: 10px; color: var(--cat-muted); margin: 0 0 8px; line-height: 1.4; }
+  .nodo-chip { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px; margin-bottom: 4px;
+    font-size: 11px; text-decoration: none; color: var(--cat-text); border: 1px solid var(--cat-border); background: var(--cat-bg); }
+  .nodo-chip:hover { border-color: var(--cat-accent); }
+  .nodo-chip .t { font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700; text-transform: uppercase; flex: none; }
+  .t-conjunto { background: rgba(111,206,143,0.2); color: #276749; }
+  .t-reto { background: rgba(252,129,129,0.2); color: #9b2c2c; }
+  .t-catalogo, .t-gold { background: rgba(0,123,181,0.15); color: #005a8c; }
+  .nodo-chip .o { font-size: 9.5px; color: var(--cat-muted); margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+  .nodo-chip .cp { font-size: 9px; padding: 1px 5px; border-radius: 3px; flex: none; }
+  .cp-gold { background: rgba(255,215,0,0.25); color: #7c5e00; }
+  .cp-plata { background: rgba(160,174,192,0.3); color: #4a5568; }
+  .cp-bronce { background: rgba(183,121,31,0.2); color: #975a16; }
+  .campo-grp { padding: 6px 0 4px; }
+  .campo-grp .cn { font-size: 11px; font-weight: 600; color: var(--cat-accent); font-family: 'Fira Code', monospace; cursor: pointer; }
+  .campo-grp .cn:hover { text-decoration: underline; }
+  .campo-grp.sel .cn { color: #6b21a8; }
+  .var-match { font-size: 10px; color: var(--cat-muted); margin-left: 8px; }
+  .var-match b { color: var(--cat-text); font-family: 'Fira Code', monospace; font-weight: 500; }
+  .var-match .ex { color: #00a35c; } .var-match .ap { color: var(--cat-amber); }
   .cat-field:hover { background: var(--cat-panel); }
   .cat-field.highlight { background: rgba(0,75,135,0.08); border: 1px solid var(--cat-accent); }
   .cat-field.dim { opacity: 0.3; }
@@ -214,6 +259,14 @@
       <p>Campos comunes entre bases que permiten cruzar información para generar valor agregado</p>
     </div>
     <div id="cruzContainer"></div>
+    <div class="cat-aside-sub">
+      <div>
+        <h4>Capas de relación</h4>
+        <p>Las mismas aristas que dibuja el ecosistema 3D, vistas desde esta base</p>
+      </div>
+      <a class="eco-link" href="{% url 'indicadores:taller_ecosistema' %}" target="_blank" title="Abrir el ecosistema 3D">◉ 3D</a>
+    </div>
+    <div id="conexContainer"></div>
   </aside>
 
 </div>
@@ -221,6 +274,19 @@
 <script>
 const BASES = {{ bases_json|safe }};
 const CRUZABLES = {{ cruzables_json|safe }};
+const CONEXIONES = {{ conexiones_json|safe }};
+// Mismos colores/etiquetas que el ecosistema 3D (views_taller.COLOR_ARISTA)
+const CAPAS = [
+  ['matching_variable', 'Matching por variables', '#6fce8f',
+   'Conjuntos del taller con variables que coinciden (exacto o por subcadena) con campos de esta base.'],
+  ['match_exacto', 'Match exacto (nombre)', '#00ff88',
+   'Conjuntos o retos que declaran esta base como fuente de origen o requerida, con nombre exacto.'],
+  ['match_aproximado', 'Match aproximado', '#f6ad55',
+   'Fuente de origen o requerida cuyo nombre contiene / está contenido en el de esta base.'],
+  ['cruce_catalogo', 'Cruce entre bases', '#ffd700',
+   'Otras bases del catálogo que comparten una llave de cruce.'],
+];
+const capasAbiertas = new Set(['matching_variable']);
 
 let baseActiva = null;
 let filtroActivo = 'all';
@@ -235,12 +301,15 @@ function renderListaBases() {
     div.className = 'cat-base-item' + (baseActiva && baseActiva.id === b.id ? ' active' : '');
     div.onclick = () => seleccionarBase(b.id);
     const nSens = b.campos.filter(c => c.sensible === 'sensible').length;
+    const cx = CONEXIONES[b.id];
+    const nConex = cx ? Object.values(cx.capas).reduce((s, l) => s + l.length, 0) : 0;
     div.innerHTML = `
       <div class="bn">${b.nombre}</div>
       <div class="bd">${b.descripcion.substring(0, 80)}...</div>
       <div class="bm">
         <span>${b.campos.length} campos</span>
         <span>${b.campos.filter(c => c.cruzar).length} cruzables</span>
+        ${nConex > 0 ? `<span style="color:#6b21a8">⇄ ${nConex} relaciones</span>` : ''}
         ${nSens > 0 ? `<span style="color:var(--cat-red)">${nSens} sensibles</span>` : ''}
       </div>
     `;
@@ -255,6 +324,7 @@ function seleccionarBase(id) {
   renderListaBases();
   renderMain();
   renderCruz();
+  renderConexiones();
 }
 
 // --- Render panel central ---
@@ -294,8 +364,10 @@ function renderFields() {
     `<strong>${campos.length}</strong> de ${baseActiva.campos.length} campos`;
 
   container.innerHTML = '';
+  const conexionesBase = (CONEXIONES[baseActiva.id] || {}).por_campo || {};
   let lastCat = null;
   campos.forEach(c => {
+    const conex = conexionesBase[c.nombre.toLowerCase()];
     if (c.categoria !== lastCat) {
       lastCat = c.categoria;
       const catHeader = document.createElement('div');
@@ -322,6 +394,9 @@ function renderFields() {
       <div class="fd">${c.descripcion}</div>
       <div class="fc ${c.cruzar ? 'fc-yes' : 'fc-no'}">
         ${c.cruzar ? '🔗' : ''}
+      </div>
+      <div class="fl ${conex ? 'fl-yes' : 'fl-no'}" ${conex ? `onclick="event.stopPropagation(); saltarConexion('${c.nombre.toLowerCase().replace(/'/g, "\\\\'")}')"` : ''} title="${conex ? conex.length + ' fuente(s) del taller con esta variable' : 'Sin variables homónimas en el taller'}">
+        ${conex ? '⇄ ' + conex.length : '·'}
       </div>
       ${sensBadge}
     `;
@@ -350,6 +425,84 @@ function renderCruz() {
     `;
     container.appendChild(div);
   });
+}
+
+// --- Capas de relación del ecosistema vistas desde la base activa ---
+function hrefNodo(n) {
+  if (n.tipo === 'conjunto') return `/catalogo/ficha/${n.fuente_id}/`;
+  if (n.tipo === 'reto') return `/analitica/taller/retos/${n.reto_id}/`;
+  return null;
+}
+function chipNodo(n, extra = '') {
+  const href = hrefNodo(n);
+  const tag = href ? 'a' : 'div';
+  const esc = s => String(s || '').replace(/</g, '&lt;');
+  return `<${tag} class="nodo-chip" ${href ? `href="${href}" target="_blank"` : `onclick="seleccionarBase('${n.id.replace('cat-', '')}')" style="cursor:pointer"`} title="${esc(n.organismo)}">
+    <span class="t t-${n.tipo}">${n.tipo === 'gold' ? 'gold' : n.tipo}</span>
+    ${n.capa ? `<span class="cp cp-${n.capa}">${n.capa}</span>` : ''}
+    <span>${esc(n.nombre).substring(0, 42)}</span>
+    ${extra}
+    <span class="o">${esc(n.organismo)}</span>
+  </${tag}>`;
+}
+
+function renderConexiones() {
+  const c = document.getElementById('conexContainer');
+  if (!baseActiva) return;
+  const cx = CONEXIONES[baseActiva.id];
+  if (!cx) {
+    c.innerHTML = '<div class="cat-cruz-item"><div class="ci">Esta base no tiene relaciones en el ecosistema.</div></div>';
+    return;
+  }
+  let html = '';
+  CAPAS.forEach(([tipo, label, color, desc]) => {
+    const nodos = cx.capas[tipo] || [];
+    if (!nodos.length) return;
+    const open = capasAbiertas.has(tipo) ? ' open' : '';
+    let body = `<p class="capa-desc">${desc}</p>`;
+
+    if (tipo === 'matching_variable') {
+      // Desglose por campo de la base → variables del conjunto que matchean
+      const campos = Object.entries(cx.por_campo);
+      campos.forEach(([campo, lista]) => {
+        body += `<div class="campo-grp" id="conex-${campo}">
+          <div class="cn" onclick="resaltarCampo('${campo.replace(/'/g, "\\'")}')">${campo}</div>
+          ${lista.map(n => chipNodo(n, `<span class="var-match">${n.matches.map(m =>
+            `<b>${m.var}</b> <span class="${m.exacto ? 'ex' : 'ap'}">${m.exacto ? '=' : '≈'}</span>`).join(' ')}</span>`)).join('')}
+        </div>`;
+      });
+    } else if (tipo === 'cruce_catalogo') {
+      nodos.forEach(n => { body += chipNodo(n, `<span class="var-match"><b>${n.campo}</b></span>`); });
+    } else {
+      nodos.forEach(n => { body += chipNodo(n); });
+    }
+
+    html += `<div class="capa-grp${open}" data-capa="${tipo}">
+      <div class="capa-hd" onclick="toggleCapa('${tipo}')">
+        <span class="dot" style="background:${color}"></span>${label}
+        <span class="n">${nodos.length}</span><span class="chev">▶</span>
+      </div>
+      <div class="capa-body">${body}</div>
+    </div>`;
+  });
+  c.innerHTML = html || '<div class="cat-cruz-item"><div class="ci">Sin relaciones.</div></div>';
+}
+
+function toggleCapa(tipo) {
+  capasAbiertas.has(tipo) ? capasAbiertas.delete(tipo) : capasAbiertas.add(tipo);
+  document.querySelector(`.capa-grp[data-capa="${tipo}"]`)?.classList.toggle('open');
+}
+
+function saltarConexion(campo) {
+  capasAbiertas.add('matching_variable');
+  document.querySelector('.capa-grp[data-capa="matching_variable"]')?.classList.add('open');
+  const item = document.getElementById('conex-' + campo);
+  document.querySelectorAll('#conexContainer .campo-grp').forEach(i => i.classList.remove('sel'));
+  if (item) {
+    item.classList.add('sel');
+    item.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }
+  resaltarCampo(campo);
 }
 
 // --- Resaltar campo cruzable ---

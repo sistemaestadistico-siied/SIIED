@@ -1,0 +1,187 @@
+{% load static %}
+<!-- Guías de instalación por cliente — include compartido entre
+     mcp_documentacion.html y skill_instructivo.html.
+     Espera del contexto: mcp_url, venv_python, project_root -->
+
+<div id="clientes" class="space-y-6">
+    <h3 class="text-xl font-bold text-slate-800">
+        <i class="fas fa-laptop-code text-cyan-700 mr-2"></i>Instalación por cliente
+    </h3>
+    <p class="text-slate-500 text-sm">
+        Guía rápida para los clientes MCP más usados. En todos los casos el servidor se llama
+        <code>siied</code>; donde se muestra <code>TU_TOKEN</code> reemplázalo por tu token personal
+        u omítelo para la capa pública.
+    </p>
+
+    <div class="space-y-5">
+
+        <!-- Claude Desktop -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_claude.svg' %}" alt="Claude" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">Claude Desktop <span class="text-xs font-normal text-slate-400">(app escritorio)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600">Settings → Developer → <strong>Edit Config</strong>, o edita <code>claude_desktop_config.json</code>:</p>
+                <p class="text-xs text-slate-400">macOS <code>~/Library/Application Support/Claude/</code> · Windows <code>%APPDATA%\Claude\</code> · Linux <code>~/.config/Claude/</code></p>
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-xs overflow-x-auto">{
+  "mcpServers": {
+    "siied": {
+      "command": "/ruta/del/proyecto/.venv/bin/python",
+      "args": ["-m", "indicadores.mcp_stdio_entry"],
+      "cwd": "/ruta/del/proyecto",
+      "env": { "SIIED_MCP_TOKEN": "TU_TOKEN" }
+    }
+  }
+}</pre>
+                <p class="text-xs text-slate-400">Reinicia la app. Para servidor remoto: Settings → Connectors → agregar conector con la URL <code>{{ mcp_url }}</code>.</p>
+            </div>
+        </div>
+
+        <!-- ChatGPT -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_chatgpt.svg' %}" alt="ChatGPT" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">ChatGPT <span class="text-xs font-normal text-slate-400">(app escritorio / web)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600">Se configura por interfaz, sin archivo:</p>
+                <ol class="list-decimal list-inside text-slate-600 space-y-1">
+                    <li>Settings → <strong>MCP servers</strong> → <strong>Add server</strong>.</li>
+                    <li>Nombre: <code>siied</code> · elige <strong>Streamable HTTP</strong> y pega la URL <code>{{ mcp_url }}</code> — o <strong>STDIO</strong> con el comando <code>/ruta/del/proyecto/.venv/bin/python -m indicadores.mcp_stdio_entry</code> (cwd: <code>/ruta/del/proyecto</code>).</li>
+                    <li>Guarda y reinicia.</li>
+                </ol>
+                <p class="text-xs text-slate-400">Con token, añade header <code>Authorization: Bearer TU_TOKEN</code> (HTTP) o la env var <code>SIIED_MCP_TOKEN</code> (stdio). Las acciones de escritura requieren developer mode en planes Business/Enterprise.</p>
+            </div>
+        </div>
+
+        <!-- Cursor -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_cursor.svg' %}" alt="Cursor" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">Cursor <span class="text-xs font-normal text-slate-400">(IDE)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600"><code>.cursor/mcp.json</code> (proyecto) o <code>~/.cursor/mcp.json</code> (global):</p>
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-xs overflow-x-auto">{
+  "mcpServers": {
+    "siied": {
+      "url": "{{ mcp_url }}",
+      "headers": { "Authorization": "Bearer TU_TOKEN" }
+    }
+  }
+}</pre>
+                <p class="text-xs text-slate-400">O local por stdio: <code>"command": "/ruta/del/proyecto/.venv/bin/python", "args": ["-m","indicadores.mcp_stdio_entry"], "cwd": "/ruta/del/proyecto"</code>. Soporta <code>${workspaceFolder}</code> y <code>${env:VAR}</code>.</p>
+            </div>
+        </div>
+
+        <!-- VS Code / Copilot -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_vscode.svg' %}" alt="VS Code" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">VS Code + GitHub Copilot <span class="text-xs font-normal text-slate-400">(editor)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600"><code>.vscode/mcp.json</code> — ojo: la clave es <code>"servers"</code>, no <code>mcpServers</code>:</p>
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-xs overflow-x-auto">{
+  "servers": {
+    "siied": {
+      "type": "http",
+      "url": "{{ mcp_url }}",
+      "headers": { "Authorization": "Bearer TU_TOKEN" }
+    }
+  }
+}</pre>
+                <p class="text-xs text-slate-400">Alternativa portable para Copilot: <code>.mcp.json</code> en la raíz o <code>~/.copilot/mcp-config.json</code> con clave <code>"mcpServers"</code>. Para stdio usa <code>"type": "stdio"</code> + <code>command</code>/<code>args</code>/<code>cwd</code>. Pulsa <strong>Start</strong> sobre el bloque del server.</p>
+            </div>
+        </div>
+
+        <!-- Gemini CLI -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_gemini.svg' %}" alt="Gemini" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">Gemini CLI <span class="text-xs font-normal text-slate-400">(terminal)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600"><code>~/.gemini/settings.json</code> — para HTTP usa <code>httpUrl</code> (<code>url</code> es SSE):</p>
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-xs overflow-x-auto">{
+  "mcpServers": {
+    "siied": {
+      "httpUrl": "{{ mcp_url }}",
+      "headers": { "Authorization": "Bearer TU_TOKEN" }
+    }
+  }
+}</pre>
+                <p class="text-xs text-slate-400">Stdio: <code>"command": "/ruta/del/proyecto/.venv/bin/python", "args": ["-m","indicadores.mcp_stdio_entry"], "cwd": "/ruta/del/proyecto", "env": {"SIIED_MCP_TOKEN":"TU_TOKEN"}</code>. También: <code>gemini mcp add siied -- /ruta/del/proyecto/.venv/bin/python -m indicadores.mcp_stdio_entry</code>. Verifica con <code>/mcp</code>.</p>
+            </div>
+        </div>
+
+        <!-- Codex -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_codex.svg' %}" alt="Codex" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">Codex CLI <span class="text-xs font-normal text-slate-400">(terminal / OpenAI)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600"><code>~/.codex/config.toml</code> (compartido con ChatGPT desktop):</p>
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-xs overflow-x-auto">[mcp_servers.siied]
+command = "/ruta/del/proyecto/.venv/bin/python"
+args = ["-m", "indicadores.mcp_stdio_entry"]
+cwd = "/ruta/del/proyecto"
+env = { SIIED_MCP_TOKEN = "TU_TOKEN" }
+
+# o remoto:
+# [mcp_servers.siied]
+# url = "{{ mcp_url }}"
+# http_headers = { Authorization = "Bearer TU_TOKEN" }</pre>
+                <p class="text-xs text-slate-400">O vía CLI: <code>codex mcp add siied -- /ruta/del/proyecto/.venv/bin/python -m indicadores.mcp_stdio_entry</code>. Lista con <code>codex mcp list</code>.</p>
+            </div>
+        </div>
+
+        <!-- OpenCode -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_opencode.svg' %}" alt="OpenCode" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">OpenCode <span class="text-xs font-normal text-slate-400">(terminal)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600"><code>opencode.json</code> (proyecto) o <code>~/.config/opencode/opencode.json</code>:</p>
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-xs overflow-x-auto">{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "siied": {
+      "type": "remote",
+      "url": "{{ mcp_url }}",
+      "enabled": true,
+      "headers": { "Authorization": "Bearer TU_TOKEN" }
+    }
+  }
+}</pre>
+                <p class="text-xs text-slate-400">Local: <code>"type": "local", "command": ["/ruta/del/proyecto/.venv/bin/python","-m","indicadores.mcp_stdio_entry"], "cwd": "/ruta/del/proyecto", "environment": {"SIIED_MCP_TOKEN":"TU_TOKEN"}</code>.</p>
+            </div>
+        </div>
+
+        <!-- Windsurf -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+            <div class="bg-slate-100 px-5 py-3 flex items-center gap-3">
+                <img src="{% static 'indicadores/images/logo_mcp_windsurf.svg' %}" alt="Windsurf" class="w-6 h-6">
+                <span class="font-semibold text-slate-700">Windsurf <span class="text-xs font-normal text-slate-400">(IDE)</span></span>
+            </div>
+            <div class="p-5 text-sm space-y-2">
+                <p class="text-slate-600"><code>~/.codeium/windsurf/mcp_config.json</code>:</p>
+                <pre class="bg-slate-900 text-emerald-300 rounded-lg p-4 text-xs overflow-x-auto">{
+  "mcpServers": {
+    "siied": {
+      "command": "/ruta/del/proyecto/.venv/bin/python",
+      "args": ["-m", "indicadores.mcp_stdio_entry"],
+      "cwd": "/ruta/del/proyecto",
+      "env": { "SIIED_MCP_TOKEN": "TU_TOKEN" }
+    }
+  }
+}</pre>
+                <p class="text-xs text-slate-400">Guarda y haz "Refresh" en el panel MCP de Cascade.</p>
+            </div>
+        </div>
+
+    </div>
+</div>

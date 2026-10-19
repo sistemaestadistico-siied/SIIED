@@ -248,13 +248,25 @@ def _render_tabla(value, max_rows=10):
     if not isinstance(data, list) or not data:
         return escape(str(value)) if value else '—'
 
-    # Obtener columnas de la primera fila
+    # Obtener columnas de la primera fila. Los campos auxiliares '*_otro' se
+    # fusionan en su columna padre ("Otro: <texto>") en lugar de mostrarse
+    # como columna aparte.
     if isinstance(data[0], dict):
-        cols = list(data[0].keys())
+        cols = [c for c in data[0].keys() if not c.endswith('_otro')]
         header = ''.join(f'<th class="px-2 py-1 text-left bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">{escape(c.replace("_", " ").title())}</th>' for c in cols)
         rows = []
         for row in data[:max_rows]:
-            cells = ''.join(f'<td class="px-2 py-1 border-b border-slate-50 text-slate-700">{escape(str(row.get(c, "")))}</td>' for c in cols)
+            cells = ''
+            for c in cols:
+                val = str(row.get(c, '') or '')
+                otro = str(row.get(c + '_otro', '') or '').strip()
+                if val == 'Otro' and otro:
+                    val = f'Otro: {otro}'
+                if val.startswith('http'):
+                    cell = f'<a href="{escape(val)}" target="_blank" class="text-indigo-600 underline break-all">{escape(val)}</a>'
+                else:
+                    cell = escape(val)
+                cells += f'<td class="px-2 py-1 border-b border-slate-50 text-slate-700">{cell}</td>'
             rows.append(f'<tr>{cells}</tr>')
         extra = f'<tr><td colspan="{len(cols)}" class="px-2 py-1 text-center text-slate-400 italic">... y {len(data) - max_rows} filas más</td></tr>' if len(data) > max_rows else ''
         return f'<div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr>{header}</tr></thead><tbody>{"".join(rows)}{extra}</tbody></table></div>'

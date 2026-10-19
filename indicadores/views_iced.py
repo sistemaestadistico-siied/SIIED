@@ -28,6 +28,7 @@ from .models_iced import (
     ICEDMacroProceso, ICEDProceso, ICEDSubproceso, ICEDProcedimiento,
 )
 from .models import OperacionEstadistica, Organismo
+from .templatetags.iced_tags import iced_field_label
 from django.db.models import Q
 from .forms_iced import (
     ICEDModuloAForm, ICEDModuloBForm,
@@ -52,6 +53,22 @@ class ICEDWizardView(SessionWizardView):
     Diez pasos de módulos (A-E) + paso final de revisión y confirmación.
     """
     template_name = 'indicadores/iced/formulario_wizard.html'
+
+    def _paso_tiene_campos(self, step_key):
+        """True si el paso tiene al menos un campo visible para el equipo
+        del formulario. Los pasos sin preguntas asignadas se saltan (p.ej.
+        ETSGC no ve los módulos D y pasa de P22 a observaciones)."""
+        equipo = self._equipo_formulario()
+        if not equipo:
+            return True
+        from .models_iced import ICEDPreguntaEquipo
+        form_cls = dict(ICED_WIZARD_FORMS).get(step_key)
+        if not form_cls:
+            return True
+        return any(
+            ICEDPreguntaEquipo.campo_pertenece_a_equipo(fname, equipo)
+            for fname in form_cls.base_fields
+        )
 
     # Estados en los que el formulario aún puede editarse
     ESTADOS_EDITABLES = ('borrador', 'devuelto')
@@ -201,8 +218,9 @@ class ICEDWizardView(SessionWizardView):
             context['mop_data_json'] = self._mop_data_json()
             context['organismos_json'] = self._organismos_json()
 
-        # Progreso
-        steps_list = list(ICED_STEP_LABELS.keys())
+        # Progreso — solo los pasos visibles para este equipo
+        # (condition_dict puede haber saltado módulos sin campos).
+        steps_list = list(self.steps.all)
         current_idx = steps_list.index(self.steps.current) if self.steps.current in steps_list else 0
         context['progress_percent'] = int(((current_idx + 1) / len(steps_list)) * 100)
         context['steps_info'] = [
@@ -424,20 +442,35 @@ class ICEDWizardView(SessionWizardView):
 
         qs = OperacionEstadistica.objects.filter(activo=True)
         organismo = self._get_organismo()
+        filtrado = qs.none()
         if organismo:
             filtrado = qs.filter(
                 Q(organismo__iexact=organismo.nombre) |
                 Q(c_organismo__iexact=organismo.codigo)
             )
-            if filtrado.exists():
-                qs = filtrado
-        opciones = list(qs.order_by('nombre').values_list('nombre', flat=True).distinct())
+        propias = list(
+            filtrado.order_by('nombre')
+            .values_list('nombre', flat=True).distinct()
+        )
+        opciones = propias or list(
+            qs.order_by('nombre').values_list('nombre', flat=True).distinct()
+        )
 
         for col in config.get('columnas', []):
             if col.get('name') == 'nombre_oe':
                 col['tipo'] = 'select'
                 col['opciones'] = opciones
                 break
+
+        # El instrumento lista las OOEE del inventario y el delegado solo
+        # marca Sí/No: precargar una fila por operación (las del organismo o,
+        # si no tiene propias en el inventario, el inventario completo), con
+        # el nombre bloqueado.
+        nombres_filas = propias or opciones
+        config['filas_iniciales'] = [{'nombre_oe': n} for n in nombres_filas]
+        config['filas_bloqueadas'] = len(nombres_filas)
+        config['fila_fija_campos'] = ['nombre_oe']
+        config['min_filas'] = len(nombres_filas)
         widget.attrs['data-config'] = _json.dumps(config, ensure_ascii=False)
 
     def done(self, form_list, **kwargs):
@@ -689,17 +722,28 @@ class ICEDWizardView(SessionWizardView):
                     plano.update(getattr(f, attr) or {})
                 por_codigo = {}
                 for k, v in plano.items():
-                    cod = ICEDPreguntaEquipo.codigo_de_campo(k)
-                    if cod:
-                        por_codigo.setdefault(cod, {})[k] = v
+                    # Las claves se guardan con prefijo de paso: 'entorno-p10_x'
+                    fname = k.split('-', 1)[1] if '-' in k else k
+                    cod = ICEDPreguntaEquipo.codigo_de_campo(fname)
+                    if not cod or v in (None, '', [], {}, '[]', '{}'):
+                        continue
+                    if fname.endswith('_intro') or fname.endswith('_display'):
+                        continue
+                    por_codigo.setdefault(cod, {})[fname] = v
                 usuario = f.usuario_diligencia
                 quien = (usuario.get_full_name() or usuario.username
                          ) if usuario else ''
                 for cod, campos in por_codigo.items():
+                    items = [{
+                        'field_key': fname,
+                        'label': iced_field_label(fname),
+                        'respuesta': v,
+                    } for fname, v in campos.items()]
                     cache.setdefault(cod, []).append({
                         'equipo': f.equipo,
                         'quien': quien,
                         'campos': campos,
+                        'items': items,
                     })
 
         self._otros_cache = cache
@@ -730,6 +774,22 @@ class ICEDWizardView(SessionWizardView):
         return None
 
     # ...
+def _condicion_paso(step_key):
+    """Fábrica de condiciones del wizard: el paso se muestra solo si tiene
+    campos asignados al equipo técnico del formulario (pasos vacíos se saltan).
+    'identificacion' y 'revision' siempre se muestran."""
+    def cond(wizard):
+        return wizard._paso_tiene_campos(step_key)
+    return cond
+
+
+ICED_CONDITIONS = {
+    step: _condicion_paso(step)
+    for step, _form in ICED_WIZARD_FORMS
+    if step not in ('identificacion', 'revision')
+}
+
+
 # =============================================================================
 # VISTAS AUXILIARES
 # =============================================================================

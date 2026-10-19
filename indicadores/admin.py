@@ -3433,3 +3433,60 @@ class ProgresoUsuarioEducativoAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+# ============================================================================
+# MCP — tokens de acceso y auditoría
+# ============================================================================
+
+from .models import MCPApiToken, MCPAuditLog
+
+
+@admin.register(MCPApiToken)
+class MCPApiTokenAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'user', 'rol_actual', 'activo', 'expira_en',
+                    'ultimo_uso', 'fecha_creacion')
+    list_filter = ('activo', 'fecha_creacion')
+    search_fields = ('nombre', 'user__username', 'user__email')
+    readonly_fields = ('token_hash', 'ultimo_uso', 'ip_ultimo_uso',
+                       'fecha_creacion')
+    exclude = ('token',)
+    fieldsets = (
+        ('Token', {
+            'description': 'El token en claro solo se muestra al emitirse '
+                           '(manage.py emitir_token_mcp). Aquí nunca es '
+                           'recuperable.',
+            'fields': ('nombre', 'user', 'token_hash')
+        }),
+        ('Vigencia', {'fields': ('activo', 'expira_en')}),
+        ('Uso', {'fields': ('ultimo_uso', 'ip_ultimo_uso', 'fecha_creacion')}),
+    )
+
+    @admin.display(description='Rol actual')
+    def rol_actual(self, obj):
+        perfil = getattr(obj.user, 'perfil_recolector', None)
+        return perfil.get_rol_display() if perfil else '— (solo capa pública)'
+
+    def save_model(self, request, obj, form, change):
+        # El admin no permite crear tokens a mano: usar emitir_token_mcp
+        if not change and not obj.token_hash:
+            raise ValueError(
+                'Los tokens MCP se emiten con `manage.py emitir_token_mcp`.')
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(MCPAuditLog)
+class MCPAuditLogAdmin(admin.ModelAdmin):
+    list_display = ('fecha', 'usuario', 'rol', 'tool', 'exito',
+                    'duracion_ms', 'ip')
+    list_filter = ('exito', 'rol', 'tool', 'fecha')
+    search_fields = ('usuario__username', 'tool', 'ip')
+    readonly_fields = ('usuario', 'rol', 'tool', 'argumentos', 'exito',
+                       'duracion_ms', 'error', 'ip', 'fecha')
+    date_hierarchy = 'fecha'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

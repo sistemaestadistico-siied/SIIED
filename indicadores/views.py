@@ -1377,6 +1377,14 @@ def get_mapa(request, indicador_id):
     # Validar indicador
     indicador = get_object_or_404(Indicador, id=indicador_id, activo=True)
 
+    # Indicador enlazado al catálogo de consulta: no hay mapas que servir;
+    # se señala el conjunto enlazado para que el consumidor lo consulte.
+    if indicador.catalogo_consulta_id:
+        return JsonResponse({
+            'error': 'Este indicador está enlazado al catálogo de consulta; no tiene mapas.',
+            'catalogo_consulta': _payload_catalogo_consulta(indicador.catalogo_consulta),
+        }, status=404)
+
     # Parsear parámetros
     anio_param = request.GET.get('anio')
     try:
@@ -2100,6 +2108,20 @@ def geojson_indicador(request, indicador_id):
     """
     indicador = get_object_or_404(Indicador, id=indicador_id, activo=True)
 
+    # Indicador enlazado al catálogo de consulta: sin geometrías; la meta
+    # apunta al conjunto enlazado (mismo contrato de FeatureCollection).
+    if indicador.catalogo_consulta_id:
+        return JsonResponse({
+            'type': 'FeatureCollection',
+            'features': [],
+            'meta': {
+                'capas': [],
+                'count': 0,
+                'nota': 'Indicador enlazado al catálogo de consulta; no tiene capas geográficas.',
+                'catalogo_consulta': _payload_catalogo_consulta(indicador.catalogo_consulta),
+            }
+        })
+
     # Dominios geográficos del indicador -> desagregaciones -> capas
     dominios_geo = indicador.dominios_desagregacion_geografica.all()
     if not dominios_geo.exists():
@@ -2681,16 +2703,8 @@ def get_desagregaciones(request, indicador_id):
     # Si el indicador está enlazado a un conjunto del catálogo de consulta,
     # el front renderiza el cuadro de consulta en lugar de buscar Datos.
     if indicador.catalogo_consulta_id:
-        conjunto = indicador.catalogo_consulta
-        desagregaciones_data['catalogo_consulta'] = {
-            'id': conjunto.pk,
-            'nombre': conjunto.nombre,
-            'tipo_consulta': conjunto.tipo_consulta,
-            'tipo_display': conjunto.get_tipo_consulta_display(),
-            'columnas': conjunto.columnas or [],
-            'filas': conjunto.filas or [],
-            'url': reverse('indicadores:catalogo_consulta_detalle', args=[conjunto.pk]),
-        }
+        desagregaciones_data['catalogo_consulta'] = _payload_catalogo_consulta(
+            indicador.catalogo_consulta, incluir_filas=True)
 
     return JsonResponse(desagregaciones_data, safe=False)
 
@@ -2753,10 +2767,11 @@ def get_conjunto_datos_csv(request, indicador_id=None, conjunto_datos_id=None):
             
             # Validar que el indicador tenga conjunto_datos asociado
             if not indicador.conjunto_datos:
-                return JsonResponse(
-                    {'error': f'El indicador "{indicador.nombre}" no tiene conjunto_datos asociado.'}, 
-                    status=404
-                )
+                error = {'error': f'El indicador "{indicador.nombre}" no tiene conjunto_datos asociado.'}
+                if indicador.catalogo_consulta_id:
+                    error['catalogo_consulta'] = _payload_catalogo_consulta(
+                        indicador.catalogo_consulta)
+                return JsonResponse(error, status=404)
             conjunto_datos = indicador.conjunto_datos
         else:
             return JsonResponse(
@@ -3849,6 +3864,8 @@ def get_indicadores_simple(request):
                     # NO se exponen en el API pública — solo en formularios internos y admin.
                     'referencias': indicador.referencias,
                     'equipo_responsable': indicador.equipo_responsable.nombre if indicador.equipo_responsable else None,
+                    # Enlace al catálogo de consulta (si existe, reemplaza a los datos estadísticos)
+                    'catalogo_consulta': _payload_catalogo_consulta(indicador.catalogo_consulta) if indicador.catalogo_consulta_id else None,
                 }]
                 return JsonResponse(data, safe=False)
             except (ValueError, Indicador.DoesNotExist):
@@ -4096,8 +4113,11 @@ def get_datos_indicadores(request):
                 datos_comparativos.append(registro)
             
             # Preparar metadatos de indicadores (evitar cargar columnas innecesarias)
+            # catalogo_consulta_id/catalogo_consulta__nombre: si el indicador
+            # está enlazado, su "respuesta" vive en la API del catálogo.
             indicadores_data = list(
-                indicadores.values('id', 'nombre', 'unidad_medida')
+                indicadores.values('id', 'nombre', 'unidad_medida',
+                                   'catalogo_consulta_id', 'catalogo_consulta__nombre')
             )
             
             # Devolver datos junto con información de paginación
@@ -4623,6 +4643,35 @@ def api_documentation(request):
     }
 
     return render(request, 'indicadores/api_documentation.html', context)
+
+
+def mcp_documentacion(request):
+    """Instructivo del servidor MCP del SIIED: conexión, niveles de
+    acceso, cuándo se necesita token y cómo solicitarlo."""
+    base_url = request.build_absolute_uri('/').rstrip('/')
+    context = {
+        'page': 'mcp_documentacion',
+        'mcp_url': f'{base_url}/mcp',
+        # Conteos fijos alineados con mcp_server.ROLES_TOOLS
+        'total_tools': 28,
+        'tools_publicos': 17,
+        'tools_recolector': 8,
+        'tools_validador': 3,
+    }
+    return render(request, 'indicadores/mcp_documentacion.html', context)
+
+
+def skill_instructivo(request):
+    """Instructivo de la skill siied-api-abierta (Agent Skills):
+    qué es, cómo instalarla por cliente y cómo conectar el MCP."""
+    base_url = request.build_absolute_uri('/').rstrip('/')
+    context = {
+        'page': 'skill_instructivo',
+        'mcp_url': f'{base_url}/mcp',
+        'skill_url': f'{base_url}{settings.STATIC_URL}'
+                     'indicadores/skills/siied-api-abierta/SKILL.md',
+    }
+    return render(request, 'indicadores/skill_instructivo.html', context)
 
 
 def conjunto_datos_detalle(request, indicador_id):
@@ -6761,6 +6810,129 @@ def catalogo_consulta_detalle(request, pk):
         'busqueda': busqueda,
         'indicadores_enlazados': indicadores_enlazados,
     })
+
+
+# ----------------------------------------------------------------------
+# API abierta del catálogo de consulta
+# ----------------------------------------------------------------------
+
+def _payload_catalogo_consulta(conjunto, incluir_filas=False, request=None):
+    """Bloque uniforme que describe un conjunto del catálogo de consulta.
+
+    Lo usan tanto los endpoints propios del catálogo como los endpoints de
+    indicadores cuando el indicador está enlazado (`catalogo_consulta_id`)
+    en lugar de tener datos estadísticos.
+    """
+    payload = {
+        'tipo': 'catalogo_consulta',
+        'id': conjunto.pk,
+        'nombre': conjunto.nombre,
+        'descripcion': conjunto.descripcion or '',
+        'tipo_consulta': conjunto.tipo_consulta,
+        'tipo_display': conjunto.get_tipo_consulta_display(),
+        'dominio': conjunto.dominio.nombre if conjunto.dominio_id else None,
+        'columnas': conjunto.columnas or [],
+        'total_filas': len(conjunto.filas or []),
+        'url': reverse('indicadores:catalogo_consulta_detalle',
+                       args=[conjunto.pk]),
+        'url_api': reverse('indicadores:api_catalogo_consulta_detalle',
+                           args=[conjunto.pk]),
+    }
+    if incluir_filas:
+        payload['filas'] = conjunto.filas or []
+    return payload
+
+
+def api_catalogo_consulta_list(request):
+    """API abierta: lista los conjuntos activos del catálogo de consulta.
+
+    Parámetros GET opcionales:
+      - dominio: id numérico o nombre parcial del dominio temático
+      - tipo: uno de nomenclador|directorio|capacidad|ficha_territorial
+      - q: texto para filtrar por nombre/descripción (icontains)
+      - incluir_filas: '1'/'true' para traer las filas completas de cada conjunto
+    """
+    qs = (CatalogoConsulta.objects
+          .filter(activo=True)
+          .select_related('dominio')
+          .order_by('dominio__orden', 'orden', 'nombre'))
+
+    dominio = (request.GET.get('dominio') or '').strip()
+    if dominio:
+        if dominio.isdigit():
+            qs = qs.filter(dominio_id=int(dominio))
+        else:
+            qs = qs.filter(dominio__nombre__icontains=dominio)
+
+    tipo = (request.GET.get('tipo') or '').strip()
+    if tipo:
+        qs = qs.filter(tipo_consulta=tipo)
+
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(Q(nombre__icontains=q) | Q(descripcion__icontains=q))
+
+    incluir_filas = (request.GET.get('incluir_filas') or '').lower() in ('1', 'true', 'si')
+    return JsonResponse(
+        [_payload_catalogo_consulta(c, incluir_filas=incluir_filas) for c in qs],
+        safe=False)
+
+
+def api_catalogo_consulta_detalle(request, pk):
+    """API abierta: detalle de un conjunto del catálogo de consulta.
+
+    Devuelve metadata + `columnas` y las `filas` paginadas.
+
+    Parámetros GET opcionales:
+      - q: filtra filas que contengan el texto en cualquier columna
+      - pagina: número de página (por defecto 1)
+      - page_size: filas por página (por defecto 500, máximo 5000); 'todas'
+        devuelve todo el conjunto en una sola respuesta.
+    """
+    conjunto = get_object_or_404(
+        CatalogoConsulta.objects.select_related('dominio'),
+        pk=pk, activo=True)
+
+    filas = conjunto.filas or []
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        term = q.lower()
+        filas = [f for f in filas
+                 if any(term in str(v).lower() for v in f.values()
+                        if v is not None)]
+
+    payload = _payload_catalogo_consulta(conjunto)
+    payload['indicadores_enlazados'] = [
+        {'id': i.pk, 'nombre': i.nombre}
+        for i in conjunto.indicadores_enlazados.filter(activo=True)
+    ]
+
+    page_size_raw = (request.GET.get('page_size') or '').strip().lower()
+    if page_size_raw == 'todas':
+        payload['filas'] = filas
+        payload['paginacion'] = {
+            'pagina': 1, 'total_paginas': 1,
+            'total_filas': len(filas), 'page_size': len(filas),
+        }
+        return JsonResponse(payload)
+
+    try:
+        page_size = int(page_size_raw or 500)
+    except (TypeError, ValueError):
+        page_size = 500
+    page_size = max(1, min(page_size, 5000))
+
+    paginador = Paginator(filas, page_size)
+    pagina = paginador.get_page(request.GET.get('pagina'))
+    payload['filas'] = list(pagina)
+    payload['paginacion'] = {
+        'pagina': pagina.number,
+        'total_paginas': paginador.num_pages,
+        'total_filas': len(filas),
+        'page_size': page_size,
+        'query': q,
+    }
+    return JsonResponse(payload)
 
 
 def modelo_datos(request):

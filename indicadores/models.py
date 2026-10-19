@@ -3666,7 +3666,17 @@ class ProgresoUsuarioEducativo(models.Model):
 class PageVisit(models.Model):
     """
     Registro de visitas a páginas del sitio.
+    `path` se guarda normalizado (minúsculas, sin slash final, sin //).
+    `categoria` diferencia páginas HTML, endpoints de la API abierta y MCP.
     """
+    class Categoria(models.TextChoices):
+        PAGINA = 'pagina', 'Página'
+        API = 'api', 'API abierta'
+        MCP = 'mcp', 'MCP'
+
+    categoria = models.CharField(
+        max_length=10, choices=Categoria.choices,
+        default=Categoria.PAGINA, db_index=True)
     path = models.CharField(max_length=2048, db_index=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
@@ -3858,3 +3868,107 @@ class Tablero(models.Model):
 
     def __str__(self):
         return self.titulo
+
+
+# ============================================================================
+# MCP — tokens de acceso y auditoría (capa por roles del servidor MCP)
+# ============================================================================
+
+class MCPApiToken(models.Model):
+    """Token personal Bearer para clientes MCP externos (capa por roles).
+
+    El rol NO se almacena en el token: se deriva en cada request del
+    PerfilRecolector del usuario, así al revocar el perfil el token queda
+    inerte. Sin token o token inválido → el cliente solo ve la capa pública.
+    """
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='mcp_tokens')
+    token_hash = models.CharField(
+        max_length=64, unique=True, db_index=True,
+        help_text='SHA-256 del token. Nunca se guarda en claro.')
+    nombre = models.CharField(
+        max_length=150,
+        help_text='Descripción del cliente, ej: "Claude desktop de Juan".')
+    activo = models.BooleanField(default=True)
+    expira_en = models.DateTimeField(
+        blank=True, null=True,
+        help_text='Vacío = sin caducidad.')
+    ultimo_uso = models.DateTimeField(blank=True, null=True)
+    ip_ultimo_uso = models.GenericIPAddressField(blank=True, null=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Token MCP'
+        verbose_name_plural = 'Tokens MCP'
+
+    def __str__(self):
+        return f"{self.nombre} — {self.user.username}"
+
+    @staticmethod
+    def _hash(raw_token: str) -> str:
+        import hashlib
+        return hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+
+    @classmethod
+    def issue(cls, user, nombre, expira_en=None):
+        """Crea un token nuevo. Devuelve (instancia, token_en_claro).
+        El token en claro solo se muestra una vez al emitir."""
+        import secrets
+        raw = f"mcp_{secrets.token_urlsafe(32)}"
+        instancia = cls.objects.create(
+            user=user, nombre=nombre,
+            token_hash=cls._hash(raw), expira_en=expira_en)
+        return instancia, raw
+
+    def marcar_uso(self, ip=None):
+        from django.utils import timezone
+        self.ultimo_uso = timezone.now()
+        if ip:
+            self.ip_ultimo_uso = ip
+        self.save(update_fields=['ultimo_uso', 'ip_ultimo_uso'])
+
+    @classmethod
+    def resolver(cls, raw_token: str):
+        """Resuelve un token Bearer → instancia si es válida y vigente."""
+        from django.utils import timezone
+        if not raw_token:
+            return None
+        try:
+            token = cls.objects.select_related(
+                'user__perfil_recolector__organismo'
+            ).get(token_hash=cls._hash(raw_token), activo=True)
+        except cls.DoesNotExist:
+            return None
+        if token.expira_en and token.expira_en < timezone.now():
+            return None
+        return token
+
+
+class MCPAuditLog(models.Model):
+    """Auditoría de cada tools/call del servidor MCP (trazabilidad total)."""
+    usuario = models.ForeignKey(
+        User, on_delete=models.SET_NULL, blank=True, null=True,
+        related_name='mcp_audit_logs',
+        help_text='NULL = llamada de la capa pública (sin token).')
+    rol = models.CharField(
+        max_length=20, blank=True, default='publico',
+        help_text='Rol con el que se resolvió la llamada.')
+    tool = models.CharField(max_length=80)
+    argumentos = models.JSONField(
+        default=dict, blank=True,
+        help_text='Argumentos de la llamada (sin datos sensibles).')
+    exito = models.BooleanField(default=False)
+    duracion_ms = models.IntegerField(default=0)
+    error = models.TextField(blank=True, default='')
+    ip = models.GenericIPAddressField(blank=True, null=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-fecha']
+        verbose_name = 'Auditoría MCP'
+        verbose_name_plural = 'Auditoría MCP'
+
+    def __str__(self):
+        quien = self.usuario.username if self.usuario_id else 'anon'
+        return f"{quien} → {self.tool} ({self.fecha:%Y-%m-%d %H:%M})"

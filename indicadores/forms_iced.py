@@ -614,9 +614,15 @@ class ICEDModuloBForm(ICEDBaseForm):
                 'min_filas': 1,
                 'max_filas': 10,
                 'columnas': [
-                    {'name': 'actividad', 'label': 'Actividad / Curso / Taller', 'tipo': 'texto'},
+                    {'name': 'actividad', 'label': 'Actividad / Curso / Taller', 'tipo': 'textarea',
+                     'rows': 3, 'placeholder': 'Describa la actividad, curso o taller'},
                     {'name': 'fecha', 'label': 'Fecha', 'tipo': 'fecha'},
-                    {'name': 'organismo', 'label': 'Organismo encargado', 'tipo': 'organismo'},
+                    # La entidad encargada puede ser cualquiera (DANE, universidad,
+                    # cooperación...): la lista de organismos incluye 'Otro → ¿Cuál?'
+                    # y excluye los que no aplican como organizadores.
+                    {'name': 'organismo', 'label': 'Organismo o entidad encargada', 'tipo': 'organismo',
+                     'permitir_otro': True, 'excluir': ['METROCALI'],
+                     'campo_otro': 'organismo_otro'},
                 ],
             }, ensure_ascii=False),
             'data-show-if': 'p10_participacion=1,2,3',
@@ -654,11 +660,11 @@ class ICEDModuloBForm(ICEDBaseForm):
         label="12. ¿El organismo cuenta con mecanismos para asegurar la trazabilidad y continuidad en los procesos de generación, procesamiento, reporte o difusión de información estadística?"
     )
     p12_descripcion_mecanismo = forms.CharField(
-        max_length=2000,
+        max_length=10000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea',
-            'rows': 3,
+            'rows': 6,
             'data-show-if': 'p12_trazabilidad=1,2',
             'placeholder': 'Describa mediante qué mecanismo'
         }),
@@ -670,12 +676,15 @@ class ICEDModuloBForm(ICEDBaseForm):
 # MÓDULO C: INFRAESTRUCTURA (P13-P22) — Peso 25%
 # =============================================================================
 
+# Las escalas de suficiencia (P17, P20, P22) llevan el número de opción en
+# el texto: el instrumento y el módulo de validación se refieren a ellas
+# como "opción N", así que el delegado debe verlo igual.
 P17_CHOICES = [
-    ('1', 'Suficientes y facilitan las actividades'),
-    ('2', 'Limitadas pero no dificultan las actividades'),
-    ('3', 'Limitadas y causan dificultades en las actividades'),
-    ('4', 'Muy limitadas para desarrollar las actividades'),
-    ('5', 'Nulas, no permiten desarrollar las actividades'),
+    ('1', '1. Suficientes y facilitan las actividades'),
+    ('2', '2. Limitadas pero no dificultan las actividades'),
+    ('3', '3. Limitadas y causan dificultades en las actividades'),
+    ('4', '4. Muy limitadas para desarrollar las actividades'),
+    ('5', '5. Nulas, no permiten desarrollar las actividades'),
 ]
 
 P18_CHOICES = [
@@ -686,19 +695,19 @@ P18_CHOICES = [
 ]
 
 P20_CHOICES = [
-    ('1', 'Suficiente y facilita las actividades'),
-    ('2', 'Limitado pero no dificulta las actividades'),
-    ('3', 'Limitado y causa dificultades en las actividades'),
-    ('4', 'Muy limitado para desarrollar las actividades'),
-    ('5', 'Nulo, no permite desarrollar las actividades'),
+    ('1', '1. Suficiente y facilita las actividades'),
+    ('2', '2. Limitado pero no dificulta las actividades'),
+    ('3', '3. Limitado y causa dificultades en las actividades'),
+    ('4', '4. Muy limitado para desarrollar las actividades'),
+    ('5', '5. Nulo, no permite desarrollar las actividades'),
 ]
 
 P22_CHOICES = [
-    ('1', 'Suficientes y facilitan las actividades'),
-    ('2', 'Limitados pero no dificultan las actividades'),
-    ('3', 'Limitados y causan dificultades en las actividades'),
-    ('4', 'Muy limitados para desarrollar las actividades'),
-    ('5', 'Nulos, no permiten desarrollar las actividades'),
+    ('1', '1. Suficientes y facilitan las actividades'),
+    ('2', '2. Limitados pero no dificultan las actividades'),
+    ('3', '3. Limitados y causan dificultades en las actividades'),
+    ('4', '4. Muy limitados para desarrollar las actividades'),
+    ('5', '5. Nulos, no permiten desarrollar las actividades'),
 ]
 
 
@@ -1192,16 +1201,25 @@ class ICEDModuloD1Form(ICEDBaseForm):
                 {'name': 'doc_consistencia', 'label': 'Documento consistencia y validación', 'tipo': 'booleano'},
                 {'name': 'acciones_fortalecimiento', 'label': 'Acciones de fortalecimiento', 'tipo': 'texto'},
                 {'name': 'publicado_sicode', 'label': 'Publicado en SICODE', 'tipo': 'booleano'},
+                {'name': 'url_evidencia', 'label': 'URL de evidencia', 'tipo': 'url',
+                 'placeholder': 'https://... (documentos, ficha, publicación)'},
             ],
             # El instrumento pide opción NA en las columnas Sí/No
             'opcion_na': True,
-            # Si vigente='no', las demás columnas quedan en NA deshabilitadas.
+            # Si vigente='no', las demás columnas quedan en NA deshabilitadas
+            # (la URL de evidencia se vacía, no admite 'na').
             'control_bloqueo': [
                 {
                     'campo': 'vigente',
                     'valor': 'no',
-                    'excluir': ['nombre_oe', 'vigente'],
+                    'excluir': ['nombre_oe', 'vigente', 'url_evidencia'],
                     'valor_bloqueado': 'na',
+                },
+                {
+                    'campo': 'vigente',
+                    'valor': 'no',
+                    'campos': ['url_evidencia'],
+                    'valor_bloqueado': '',
                 },
             ],
         }),
