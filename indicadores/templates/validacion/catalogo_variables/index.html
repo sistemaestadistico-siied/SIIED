@@ -1,0 +1,136 @@
+{% extends "validacion/base_validacion.html" %}
+{% block title %}Catálogo de Variables — Panel de Validación{% endblock %}
+{% block validacion_content %}
+
+<div class="container mx-auto px-6 py-8">
+
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl font-serif font-bold text-slate-900">Catálogo de Variables</h1>
+            <p class="text-slate-600 mt-1">Gestión del antiguo catálogo del Plan Estadístico (módulo de validación)</p>
+        </div>
+        <a href="{% url 'indicadores:gestion_catalogo_variable_crear' %}"
+           class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
+            <i class="fas fa-plus mr-1"></i> Nueva variable
+        </a>
+    </div>
+
+    <!-- Métricas -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="text-2xl font-bold text-cyan-700">{{ stats.variables }}</div>
+            <p class="text-xs text-slate-500 mt-1">Variables</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="text-2xl font-bold text-indigo-700">{{ stats.valores }}</div>
+            <p class="text-xs text-slate-500 mt-1">Valores de dominio</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="text-2xl font-bold text-emerald-700">{{ stats.geografias }}</div>
+            <p class="text-xs text-slate-500 mt-1">Geografías</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="text-2xl font-bold text-amber-700">{{ stats.areas }}</div>
+            <p class="text-xs text-slate-500 mt-1">Áreas</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div class="text-2xl font-bold text-slate-700">{{ stats.noticias }}</div>
+            <p class="text-xs text-slate-500 mt-1">Noticias históricas</p>
+        </div>
+    </div>
+
+    <!-- Tablas de referencia -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-4"><i class="fas fa-table-list mr-2 text-cyan-600"></i>Tablas de referencia</h2>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' 'areas' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">Áreas de información</a>
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' 'unidades' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">Unidades de análisis</a>
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' 'tipos-datos' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">Tipos de datos</a>
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' 'tipos-variables' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">Tipos de variables</a>
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' 'tipos-valores' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">Tipos de valores</a>
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' 'geografias' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">Geografías</a>
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' 'noticias' %}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-cyan-50 hover:border-cyan-300 transition-colors">Noticias históricas</a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="md:col-span-2">
+                <input type="text" name="q" value="{{ params.q }}" placeholder="Buscar por código, nombre o descripción…"
+                       class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+            </div>
+            <select name="unidad" class="border border-slate-300 rounded-xl px-3 py-2.5 text-sm">
+                <option value="">Todas las unidades</option>
+                {% for u in unidades %}<option value="{{ u.pk }}" {% if params.unidad == u.pk|stringformat:'i' %}selected{% endif %}>{{ u.nombre_unidad_analisis }}</option>{% endfor %}
+            </select>
+            <select name="tipo_dato" class="border border-slate-300 rounded-xl px-3 py-2.5 text-sm">
+                <option value="">Todos los tipos</option>
+                {% for t in tipos_datos %}<option value="{{ t.pk }}" {% if params.tipo_dato == t.pk|stringformat:'i' %}selected{% endif %}>{{ t.nombre_tipo_dato }}</option>{% endfor %}
+            </select>
+            <select name="area" class="border border-slate-300 rounded-xl px-3 py-2.5 text-sm">
+                <option value="">Todas las áreas</option>
+                {% for a in areas %}<option value="{{ a.pk }}" {% if params.area == a.pk|stringformat:'i' %}selected{% endif %}>{{ a.nombre_area }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="flex items-center gap-3 mt-4">
+            <select name="tipo_variable" class="border border-slate-300 rounded-xl px-3 py-2.5 text-sm">
+                <option value="">Todos los tipos de variable</option>
+                {% for t in tipos_variables %}<option value="{{ t.pk }}" {% if params.tipo_variable == t.pk|stringformat:'i' %}selected{% endif %}>{{ t.nombre_tipo_variable }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="bg-slate-700 hover:bg-slate-800 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">
+                <i class="fas fa-search mr-1"></i> Filtrar
+            </button>
+            <span class="text-sm text-slate-500 ml-auto">{{ total }} variable{{ total|pluralize }}</span>
+        </div>
+    </form>
+
+    <!-- Tabla de variables -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="text-left px-5 py-3 font-semibold text-slate-600">Código</th>
+                    <th class="text-left px-5 py-3 font-semibold text-slate-600">Nombre</th>
+                    <th class="text-left px-5 py-3 font-semibold text-slate-600">Unidad</th>
+                    <th class="text-left px-5 py-3 font-semibold text-slate-600">Área</th>
+                    <th class="text-left px-5 py-3 font-semibold text-slate-600">Valores</th>
+                    <th class="text-right px-5 py-3 font-semibold text-slate-600">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for v in pagina %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3"><span class="font-mono text-xs font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">{{ v.id_variable }}</span></td>
+                    <td class="px-5 py-3 font-semibold text-slate-800">{{ v.nombre|truncatechars:50 }}</td>
+                    <td class="px-5 py-3 text-slate-500">{{ v.unidad_analisis.nombre_unidad_analisis|default:'—' }}</td>
+                    <td class="px-5 py-3 text-slate-500">{{ v.area_informacion.nombre_area|default:'—' }}</td>
+                    <td class="px-5 py-3 text-slate-500">{{ v.valores.count }}</td>
+                    <td class="px-5 py-3 text-right whitespace-nowrap">
+                        <a href="{% url 'indicadores:catalogo_variables_ficha' v.id_variable %}" class="text-slate-400 hover:text-cyan-600 px-2" title="Ver ficha pública"><i class="fas fa-eye"></i></a>
+                        <a href="{% url 'indicadores:gestion_catalogo_variable_valores' v.id_variable %}" class="text-slate-400 hover:text-indigo-600 px-2" title="Valores de dominio"><i class="fas fa-list-ul"></i></a>
+                        <a href="{% url 'indicadores:gestion_catalogo_variable_editar' v.id_variable %}" class="text-slate-400 hover:text-emerald-600 px-2" title="Editar"><i class="fas fa-pen"></i></a>
+                        <a href="{% url 'indicadores:gestion_catalogo_variable_eliminar' v.id_variable %}" class="text-slate-400 hover:text-red-600 px-2" title="Eliminar"><i class="fas fa-trash"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="px-5 py-12 text-center text-slate-400">Sin variables</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if pagina.has_other_pages %}
+    <nav class="flex justify-center gap-2 mt-6">
+        {% if pagina.has_previous %}
+        <a href="?{{ qs_base }}&page={{ pagina.previous_page_number }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">← Anterior</a>
+        {% endif %}
+        <span class="px-4 py-2 text-sm text-slate-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+        {% if pagina.has_next %}
+        <a href="?{{ qs_base }}&page={{ pagina.next_page_number }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">Siguiente →</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+</div>
+{% endblock %}

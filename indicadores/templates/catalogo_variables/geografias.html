@@ -1,0 +1,126 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}Niveles y capas geo — Catálogo de Variables{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <a href="{% url 'indicadores:catalogo_variables_home' %}">Catálogo de variables</a>
+            <span class="sep">/</span>
+            <span class="here">Niveles y capas geo</span>
+        </nav>
+
+        <div class="mb-8 max-w-3xl">
+            <h1 class="ptitle">Niveles y <span class="pgrad">capas geográficas</span></h1>
+            <p class="psub mt-2">
+                Jerarquía territorial de referencia del SIIED:
+                {{ total_niveles }} niveles, {{ total_capas }} capas y
+                {{ total_elementos }} elementos geográficos.
+            </p>
+        </div>
+
+        {% with activo='geografias' %}{% include 'catalogo_variables/_nav_sets.html' %}{% endwith %}
+
+        <form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="min-w-60">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nivel geográfico</label>
+                    <select name="nivel" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todos los niveles</option>
+                        {% for n in todos_niveles %}
+                        <option value="{{ n.pk }}" {% if nivel_id == n.pk|stringformat:'i' %}selected{% endif %}>{{ n.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
+                    <i class="fas fa-filter mr-1"></i> Filtrar
+                </button>
+                {% if nivel_id %}<a href="?" class="text-sm text-slate-500 hover:text-cyan-700">Limpiar</a>{% endif %}
+            </div>
+        </form>
+
+        <div class="space-y-6 mb-10" id="niveles">
+            {% for nivel in niveles %}
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="px-7 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-bold text-slate-800 text-lg"><i class="fas fa-map-marked-alt text-cyan-600 mr-2"></i>{{ nivel.nombre }}</h2>
+                        {% if nivel.descripcion %}<p class="text-sm text-slate-500 mt-1">{{ nivel.descripcion }}</p>{% endif %}
+                    </div>
+                    <span class="text-xs font-bold px-3 py-1 rounded-full bg-cyan-50 text-cyan-700">{{ nivel.capas.count }} capa{{ nivel.capas.count|pluralize }}</span>
+                </div>
+                {% if nivel.capas.all %}
+                <div class="divide-y divide-slate-100">
+                    {% for capa in nivel.capas.all %}
+                    <div class="px-7 py-4 flex flex-wrap items-center justify-between gap-3 hover:bg-slate-50">
+                        <div class="min-w-0">
+                            <p class="font-semibold text-slate-800">{{ capa.nombre }}</p>
+                            {% if capa.descripcion %}<p class="text-xs text-slate-500 mt-0.5">{{ capa.descripcion|truncatechars:120 }}</p>{% endif %}
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span class="text-xs text-slate-500">{{ capa.elementos.count }} elemento{{ capa.elementos.count|pluralize }}</span>
+                            <a href="?capa={{ capa.pk }}#elementos" class="text-xs font-semibold text-cyan-700 hover:text-cyan-900">Ver elementos <i class="fas fa-arrow-right ml-1"></i></a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="px-7 py-5 text-sm text-slate-400">Sin capas registradas para este nivel.</p>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p class="text-slate-400">Sin niveles geográficos registrados.</p>
+            {% endfor %}
+        </div>
+
+        {% if capa_sel %}
+        <div class="bg-white rounded-3xl border border-cyan-200 shadow-sm overflow-hidden mb-8" id="elementos">
+            <div class="px-7 py-5 border-b border-slate-100 bg-cyan-50/50">
+                <p class="text-xs font-bold text-cyan-700 uppercase tracking-wider mb-1">Elementos de la capa</p>
+                <h2 class="font-bold text-slate-800">{{ capa_sel.nombre }}
+                    <span class="text-sm font-normal text-slate-500">— {{ capa_sel.nivel_geografico.nombre }}</span>
+                </h2>
+            </div>
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-600 w-40">Código</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-600">Nombre</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-600 w-32">Geometría</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for e in elementos %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-3"><span class="font-mono text-xs font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">{{ e.codigo }}</span></td>
+                        <td class="px-6 py-3 text-slate-800 font-semibold">{{ e.nombre }}</td>
+                        <td class="px-6 py-3 text-xs text-slate-500">{% if e.geom_wkt %}<i class="fas fa-draw-polygon text-emerald-500 mr-1"></i>WKT{% else %}—{% endif %}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="px-6 py-12 text-center text-slate-400">La capa no tiene elementos.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if elementos.has_other_pages %}
+            <nav class="flex justify-center gap-2 py-5 border-t border-slate-100">
+                {% if elementos.has_previous %}
+                <a href="?capa={{ capa_sel.pk }}&page={{ elementos.previous_page_number }}#elementos" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">← Anterior</a>
+                {% endif %}
+                <span class="px-4 py-2 text-sm text-slate-500">Página {{ elementos.number }} de {{ elementos.paginator.num_pages }}</span>
+                {% if elementos.has_next %}
+                <a href="?capa={{ capa_sel.pk }}&page={{ elementos.next_page_number }}#elementos" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">Siguiente →</a>
+                {% endif %}
+            </nav>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

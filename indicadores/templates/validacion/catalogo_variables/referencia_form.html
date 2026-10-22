@@ -1,0 +1,55 @@
+{% extends "validacion/base_validacion.html" %}
+{% block title %}{% if objeto %}Editar{% else %}Nuevo{% endif %} — {{ titulo }}{% endblock %}
+{% block validacion_content %}
+
+<style>
+.cv-input {
+    width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem;
+    padding: 0.6rem 0.9rem; font-size: 0.875rem;
+}
+.cv-input:focus { outline: none; box-shadow: 0 0 0 2px #0891b2; border-color: #0891b2; }
+</style>
+
+<div class="container mx-auto px-6 py-8 max-w-2xl">
+
+    <nav class="text-sm text-slate-500 mb-6">
+        <a href="{% url 'indicadores:gestion_catalogo_variables' %}" class="hover:text-cyan-700">Catálogo de variables</a>
+        <span class="mx-1">/</span>
+        <a href="{% url 'indicadores:gestion_catalogo_referencia' tabla %}" class="hover:text-cyan-700">{{ titulo }}</a>
+        <span class="mx-1">/</span>
+        <span>{% if objeto %}Editar{% else %}Nuevo{% endif %}</span>
+    </nav>
+
+    <h1 class="text-2xl font-serif font-bold text-slate-900 mb-6">
+        {% if objeto %}Editar registro{% else %}Nuevo registro{% endif %} — {{ titulo }}
+    </h1>
+
+    <form method="post" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        {% for field in form %}
+        <div class="mb-5">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1" for="{{ field.id_for_label }}">
+                {{ field.label }}{% if field.field.required %} *{% endif %}
+            </label>
+            {{ field }}
+            {% for e in field.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+
+        <div class="flex items-center gap-4 mt-8 pt-6 border-t border-slate-100">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
+                <i class="fas fa-save mr-1"></i> Guardar
+            </button>
+            <a href="{% url 'indicadores:gestion_catalogo_referencia' tabla %}" class="text-slate-500 hover:text-slate-700 text-sm">Cancelar</a>
+        </div>
+    </form>
+
+</div>
+{% endblock %}

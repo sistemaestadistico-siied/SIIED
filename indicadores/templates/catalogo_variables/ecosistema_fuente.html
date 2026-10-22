@@ -1,0 +1,123 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}{{ variable.nombre }} — Datalake{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10 max-w-5xl">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <a href="{% url 'indicadores:catalogo_variables_ecosistema' %}">Taller de Gestión de Datos — Datalake</a>
+            <span class="sep">/</span>
+            <span class="here">{{ variable.nombre|truncatechars:40 }}</span>
+        </nav>
+
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+            <div class="px-8 py-7 border-b border-slate-100">
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <span class="text-xs font-bold px-3 py-1 rounded-lg bg-amber-100 text-amber-800"><i class="fas fa-clipboard-list mr-1"></i>Taller de Gestión de Datos</span>
+                    {% if fuente.capa == 'bronce' %}<span class="text-xs font-bold px-3 py-1 rounded-lg bg-amber-100 text-amber-800">Capa Bronce</span>
+                    {% elif fuente.capa == 'plata' %}<span class="text-xs font-bold px-3 py-1 rounded-lg bg-slate-200 text-slate-700">Capa Plata</span>
+                    {% elif fuente.capa == 'gold' %}<span class="text-xs font-bold px-3 py-1 rounded-lg bg-yellow-100 text-yellow-800">Capa Gold</span>{% endif %}
+                    {% if variable.es_identificador %}
+                    <span class="text-xs font-bold px-3 py-1 rounded-lg bg-red-50 text-red-700"><i class="fas fa-fingerprint mr-1"></i>Identificador</span>
+                    {% endif %}
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900">{{ variable.nombre }}</h1>
+                {% if variable.descripcion %}
+                <p class="text-slate-600 mt-2">{{ variable.descripcion }}</p>
+                {% endif %}
+            </div>
+
+            <div class="px-8 py-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Tipo de dato</p>
+                    <p class="font-semibold text-slate-800">{{ variable.get_tipo_display|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Organismo</p>
+                    <p class="font-semibold text-slate-800">{{ inscripcion.organismo.nombre|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Estado inscripción</p>
+                    <p class="font-semibold text-slate-800">{{ inscripcion.get_estado_display|default:'—' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conexiones -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-5"><i class="fas fa-diagram-project text-cyan-600 mr-2"></i>Conexiones</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Fuente -->
+                <div class="border border-slate-200 rounded-2xl p-5">
+                    <p class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2"><i class="fas fa-clipboard-list mr-1"></i>Fuente (taller)</p>
+                    <p class="font-bold text-slate-800">{{ fuente.nombre }}</p>
+                    <dl class="text-sm text-slate-600 mt-2 space-y-1">
+                        {% if fuente.fusionada_en %}<div><dt class="inline text-slate-400">Unificada en:</dt> <dd class="inline font-semibold">{{ fuente.fusionada_en.nombre }}</dd></div>{% endif %}
+                        {% if fuente.diccionario_ubicacion %}<div><dt class="inline text-slate-400">Diccionario:</dt> <dd class="inline">{{ fuente.diccionario_ubicacion }}</dd></div>{% endif %}
+                        {% if inscripcion.equipo_responsable %}<div><dt class="inline text-slate-400">Equipo:</dt> <dd class="inline">{{ inscripcion.equipo_responsable }}</dd></div>{% endif %}
+                    </dl>
+                </div>
+
+                <!-- Reto -->
+                <div class="border border-slate-200 rounded-2xl p-5">
+                    <p class="text-xs font-bold text-violet-600 uppercase tracking-wider mb-2"><i class="fas fa-bullseye mr-1"></i>Reto de análisis</p>
+                    {% if reto %}
+                    <p class="font-bold text-slate-800">{{ reto.nombre }}</p>
+                    <p class="text-sm text-slate-600 mt-1 line-clamp-3">{{ reto.analisis_propuesto }}</p>
+                    <span class="inline-block mt-2 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-xs font-semibold">{{ reto.get_estado_seguimiento_display }}</span>
+                    {% else %}
+                    <p class="text-sm text-slate-400">Esta inscripción no tiene reto de análisis registrado.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Data Lake -->
+                <div class="border border-slate-200 rounded-2xl p-5">
+                    <p class="text-xs font-bold text-cyan-600 uppercase tracking-wider mb-2"><i class="fas fa-database mr-1"></i>Data Lake (gold)</p>
+                    {% if base_gold %}
+                    <p class="font-bold text-slate-800 font-mono text-sm">{{ base_gold.slug }}</p>
+                    <p class="text-sm text-slate-600 mt-1">{{ base_gold.nombre }}</p>
+                    {% if campos_match %}
+                    <p class="text-xs text-slate-500 mt-2">Campos homónimos en la base:</p>
+                    <ul class="mt-1 space-y-1">
+                        {% for c in campos_match %}
+                        <li><a href="{% url 'indicadores:catalogo_variables_ecosistema_campo' c.pk %}" class="text-cyan-700 hover:underline text-sm font-mono">{{ c.nombre }}</a></li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% else %}
+                    <p class="text-sm text-slate-400">La fuente aún no ha llegado a la capa gold del Data Lake.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Otras variables de la fuente -->
+                <div class="border border-slate-200 rounded-2xl p-5">
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2"><i class="fas fa-list mr-1"></i>Otras variables de la fuente</p>
+                    <ul class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for v in fuente.variables.all %}
+                        <li class="text-sm">
+                            {% if v.pk == variable.pk %}
+                            <span class="font-bold text-cyan-800">{{ v.nombre }}</span>
+                            {% else %}
+                            <a href="{% url 'indicadores:catalogo_variables_ecosistema_fuente' v.pk %}" class="text-slate-700 hover:text-cyan-700">{{ v.nombre }}</a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <a href="{% url 'indicadores:catalogo_variables_ecosistema' %}" class="text-cyan-700 hover:text-cyan-900 font-semibold text-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Volver al datalake
+        </a>
+
+    </div>
+</div>
+{% endblock %}

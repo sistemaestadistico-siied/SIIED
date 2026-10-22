@@ -116,6 +116,10 @@
                class="vnav {% if 'fuentes' in request.resolver_match.url_name %}on{% else %}off{% endif %}">
                 <i class="fas fa-database mr-1"></i> Fuentes del taller
             </a>
+            <a href="{% url 'indicadores:gestion_catalogo_variables' %}"
+               class="vnav {% if 'catalogo' in request.resolver_match.url_name %}on{% else %}off{% endif %}">
+                <i class="fas fa-list-check mr-1"></i> Catálogo de variables
+            </a>
             <a href="{% url 'indicadores:validacion_manual' %}"
                class="vnav {% if request.resolver_match.url_name == 'validacion_manual' %}on{% else %}off{% endif %}">
                 <i class="fas fa-book mr-1"></i> Manual

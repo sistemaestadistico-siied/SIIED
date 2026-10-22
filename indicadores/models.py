@@ -3821,6 +3821,10 @@ from .models_catalogo import (  # noqa: E402,F401
     FuenteDatos, FuenteOrigen, VariableFuente, EvaluacionSeguridad,
     EtiquetaFuente, AvanceFormalizacion, BaseCatalogo, CampoCatalogo,
 )
+from .models_catalogo_variables import (  # noqa: E402,F401
+    CVAreaInformacion, CVUnidadAnalisis, CVTipoDato, CVTipoVariableEstadistica,
+    CVTipoValoresDominio, CVGeografia, CVVariable, CVValor, CVNoticia,
+)
 
 
 # ======================================================================

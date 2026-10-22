@@ -1,0 +1,132 @@
+{% extends "validacion/base_validacion.html" %}
+{% block title %}{{ accion }} — Catálogo de Variables{% endblock %}
+{% block validacion_content %}
+
+<style>
+.cv-input {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.875rem;
+}
+.cv-input:focus { outline: none; box-shadow: 0 0 0 2px #0891b2; border-color: #0891b2; }
+.cv-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.3rem;
+}
+.cv-error { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
+</style>
+
+<div class="container mx-auto px-6 py-8 max-w-4xl">
+
+    <nav class="text-sm text-slate-500 mb-6">
+        <a href="{% url 'indicadores:gestion_catalogo_variables' %}" class="hover:text-cyan-700">Catálogo de variables</a>
+        <span class="mx-1">/</span>
+        <span>{{ accion }}</span>
+    </nav>
+
+    <h1 class="text-2xl font-serif font-bold text-slate-900 mb-6">{{ accion }}</h1>
+
+    <form method="post" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 text-sm">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+                <label class="cv-label" for="{{ form.id_variable.id_for_label }}">Código (id_variable) *</label>
+                {{ form.id_variable }}
+                {% for e in form.id_variable.errors %}<p class="cv-error">{{ e }}</p>{% endfor %}
+            </div>
+            <div>
+                <label class="cv-label" for="{{ form.nombre.id_for_label }}">Nombre *</label>
+                {{ form.nombre }}
+                {% for e in form.nombre.errors %}<p class="cv-error">{{ e }}</p>{% endfor %}
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <label class="cv-label" for="{{ form.descripcion.id_for_label }}">Descripción *</label>
+            <textarea name="{{ form.descripcion.name }}" id="{{ form.descripcion.id_for_label }}" rows="4" class="cv-input">{{ form.descripcion.value|default:'' }}</textarea>
+            {% for e in form.descripcion.errors %}<p class="cv-error">{{ e }}</p>{% endfor %}
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-5">
+            <div>
+                <label class="cv-label">Unidad de análisis *</label>
+                {{ form.unidad_analisis }}
+            </div>
+            <div>
+                <label class="cv-label">Tipo de dato *</label>
+                {{ form.tipo_dato }}
+            </div>
+            <div>
+                <label class="cv-label">Tipo de variable *</label>
+                {{ form.tipo_variable_estadistica }}
+            </div>
+            <div>
+                <label class="cv-label">Área de información</label>
+                {{ form.area_informacion }}
+            </div>
+            <div>
+                <label class="cv-label">Tipo de valores de dominio</label>
+                {{ form.tipo_valores }}
+            </div>
+            <div>
+                <label class="cv-label">Longitud de campo</label>
+                {{ form.longitud_campo }}
+            </div>
+            <div>
+                <label class="cv-label">Llave primaria</label>
+                {{ form.llave_primaria }}
+            </div>
+            <div>
+                <label class="cv-label">Campo obligatorio</label>
+                {{ form.campo_obligatorio }}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+            <div>
+                <label class="cv-label">Forma de la pregunta</label>
+                <textarea name="{{ form.forma_pregunta.name }}" rows="3" class="cv-input">{{ form.forma_pregunta.value|default:'' }}</textarea>
+            </div>
+            <div>
+                <label class="cv-label">Opciones de respuesta</label>
+                <textarea name="{{ form.opciones_respuesta.name }}" rows="3" class="cv-input">{{ form.opciones_respuesta.value|default:'' }}</textarea>
+            </div>
+            <div>
+                <label class="cv-label">Reglas de consistencia</label>
+                <textarea name="{{ form.reglas_consistencia.name }}" rows="3" class="cv-input">{{ form.reglas_consistencia.value|default:'' }}</textarea>
+            </div>
+            <div>
+                <label class="cv-label">Validación en lenguaje natural</label>
+                <textarea name="{{ form.reglas_validacion_lenguaje_natural.name }}" rows="3" class="cv-input">{{ form.reglas_validacion_lenguaje_natural.value|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 mt-8 pt-6 border-t border-slate-100">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
+                <i class="fas fa-save mr-1"></i> Guardar
+            </button>
+            <a href="{% url 'indicadores:gestion_catalogo_variables' %}" class="text-slate-500 hover:text-slate-700 text-sm">Cancelar</a>
+            {% if variable %}
+            <a href="{% url 'indicadores:gestion_catalogo_variable_valores' variable.id_variable %}" class="ml-auto text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
+                <i class="fas fa-list-ul mr-1"></i> Valores de dominio ({{ variable.valores.count }})
+            </a>
+            {% endif %}
+        </div>
+    </form>
+
+</div>
+{% endblock %}

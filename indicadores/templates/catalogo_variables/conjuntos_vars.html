@@ -1,0 +1,102 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}Variables de conjuntos de datos — Catálogo de Variables{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <span class="here">Catálogo de variables</span>
+            <span class="sep">/</span>
+            <span class="here">Conjuntos de datos</span>
+        </nav>
+
+        <div class="mb-8 max-w-3xl">
+            <h1 class="ptitle">Variables de <span class="pgrad">conjuntos de datos</span></h1>
+            <p class="psub mt-2">
+                Fichas técnicas de las variables que componen los conjuntos de datos
+                publicados en el SIIED.
+            </p>
+        </div>
+
+        {% with activo='conjuntos' %}{% include 'catalogo_variables/_nav_sets.html' %}{% endwith %}
+
+        <form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+            <div class="flex flex-wrap items-end gap-4">
+                <div class="flex-1 min-w-60">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Búsqueda</label>
+                    <input type="text" name="q" value="{{ q }}" placeholder="Nombre, código o definición…"
+                           class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div class="flex-1 min-w-60">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Conjunto de datos</label>
+                    <select name="conjunto" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todos</option>
+                        {% for c in conjuntos %}
+                        <option value="{{ c.pk }}" {% if conjunto_id == c.pk|stringformat:'i' %}selected{% endif %}>{{ c.nombre|truncatechars:60 }} ({{ c.n }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 pb-2">
+                    <input type="checkbox" name="curadas" value="1" id="curadas" {% if solo_curadas %}checked{% endif %}
+                           class="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500">
+                    <label for="curadas" class="text-xs font-semibold text-slate-500">Solo fichas curadas ({{ total_curadas }})</label>
+                </div>
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
+                    <i class="fas fa-search mr-1"></i> Buscar
+                </button>
+            </div>
+        </form>
+
+        <p class="text-sm text-slate-500 mb-4">{{ total }} variable{{ total|pluralize }}</p>
+
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-600">Código</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-600">Variable</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-600">Conjunto de datos</th>
+                        <th class="text-left px-6 py-3 font-semibold text-slate-600">Tipo</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for v in pagina %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-3"><span class="font-mono text-xs font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">{{ v.codigo_variable }}</span></td>
+                        <td class="px-6 py-3">
+                            <a href="{% url 'indicadores:catalogo_variables_variable_conjunto' v.pk %}" class="font-semibold text-slate-800 hover:text-cyan-700">{{ v.nombre_variable|truncatechars:70 }}</a>
+                            {% if v.definicion_conceptual|slice:':9' == 'Columna "' %}
+                            <span class="ml-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs" title="Generada automáticamente desde el encabezado del archivo">columna de archivo</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-3 text-slate-500 text-xs">{{ v.conjunto_datos.nombre|truncatechars:50|default:'—' }}</td>
+                        <td class="px-6 py-3 text-slate-500 text-xs">{{ v.tipo_dato|default:'—' }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="px-6 py-12 text-center text-slate-400">Sin variables con esos filtros.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pagina.has_other_pages %}
+        <nav class="flex justify-center gap-2">
+            {% if pagina.has_previous %}
+            <a href="?{{ qs_base }}&page={{ pagina.previous_page_number }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">← Anterior</a>
+            {% endif %}
+            <span class="px-4 py-2 text-sm text-slate-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+            {% if pagina.has_next %}
+            <a href="?{{ qs_base }}&page={{ pagina.next_page_number }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">Siguiente →</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

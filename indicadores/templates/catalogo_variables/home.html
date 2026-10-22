@@ -1,0 +1,132 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}Catálogo de Variables — SIIED{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <span class="here">Catálogo de variables</span>
+        </nav>
+
+        <div class="mb-8 max-w-3xl">
+            <span class="pchip mb-3"><i class="fas fa-list-check"></i> Instrumento del sistema</span>
+            <h1 class="ptitle">Catálogo de <span class="pgrad">variables</span></h1>
+            <p class="psub mt-2">
+                Fichas técnicas de las variables estadísticas del antiguo Plan
+                Estadístico: unidad de análisis, tipo de dato, dominio, reglas
+                de consistencia y validación.
+            </p>
+        </div>
+
+        {% with activo='plan' %}{% include 'catalogo_variables/_nav_sets.html' %}{% endwith %}
+
+        <!-- Filtros -->
+        <form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="lg:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Búsqueda</label>
+                    <input type="text" name="q" value="{{ params.q }}"
+                           placeholder="Nombre, código o descripción…"
+                           class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Unidad de análisis</label>
+                    <select name="unidad" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todas</option>
+                        {% for u in unidades %}
+                        <option value="{{ u.pk }}" {% if params.unidad == u.pk|stringformat:'i' %}selected{% endif %}>{{ u.nombre_unidad_analisis }} ({{ u.n }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo de dato</label>
+                    <select name="tipo_dato" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todos</option>
+                        {% for t in tipos_datos %}
+                        <option value="{{ t.pk }}" {% if params.tipo_dato == t.pk|stringformat:'i' %}selected{% endif %}>{{ t.nombre_tipo_dato }} ({{ t.n }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo de variable</label>
+                    <select name="tipo_variable" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todas</option>
+                        {% for t in tipos_variables %}
+                        <option value="{{ t.pk }}" {% if params.tipo_variable == t.pk|stringformat:'i' %}selected{% endif %}>{{ t.nombre_tipo_variable }} ({{ t.n }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4">
+                <div class="flex-1 max-w-xs">
+                    <select name="area" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todas las áreas</option>
+                        {% for a in areas %}
+                        <option value="{{ a.pk }}" {% if params.area == a.pk|stringformat:'i' %}selected{% endif %}>{{ a.nombre_area }} ({{ a.n }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
+                    <i class="fas fa-search mr-1"></i> Buscar
+                </button>
+                <a href="{% url 'indicadores:catalogo_variables_home' %}" class="text-slate-500 hover:text-slate-700 text-sm">Limpiar</a>
+                <a href="{% url 'indicadores:catalogo_variables_geografias' %}" class="ml-auto text-cyan-700 hover:text-cyan-900 text-sm font-semibold">
+                    <i class="fas fa-map-marker-alt mr-1"></i> Geografías de referencia
+                </a>
+            </div>
+        </form>
+
+        <!-- Resultados -->
+        <p class="text-sm text-slate-500 mb-4">{{ total }} variable{{ total|pluralize }} encontrada{{ total|pluralize }}</p>
+
+        {% if pagina %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {% for v in pagina %}
+            <a href="{% url 'indicadores:catalogo_variables_ficha' v.id_variable %}"
+               class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 hover:border-cyan-400 hover:shadow-md transition-all group">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-xs font-mono font-bold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded">{{ v.id_variable }}</span>
+                        <h3 class="font-bold text-slate-800 mt-2 group-hover:text-cyan-800">{{ v.nombre }}</h3>
+                        <p class="text-sm text-slate-500 mt-1 line-clamp-2">{{ v.descripcion|striptags|truncatewords:25 }}</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-slate-300 group-hover:text-cyan-600 mt-1 shrink-0"></i>
+                </div>
+                <div class="flex flex-wrap gap-2 mt-3 text-xs">
+                    {% if v.unidad_analisis %}<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{{ v.unidad_analisis.nombre_unidad_analisis }}</span>{% endif %}
+                    {% if v.tipo_dato %}<span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600">{{ v.tipo_dato.nombre_tipo_dato }}</span>{% endif %}
+                    {% if v.area_informacion %}<span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">{{ v.area_informacion.nombre_area }}</span>{% endif %}
+                    {% if v.es_llave_primaria %}<span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700"><i class="fas fa-key mr-0.5"></i>Llave</span>{% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Paginación -->
+        {% if pagina.has_other_pages %}
+        <nav class="flex justify-center gap-2">
+            {% if pagina.has_previous %}
+            <a href="?{{ qs_base }}&page={{ pagina.previous_page_number }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">← Anterior</a>
+            {% endif %}
+            <span class="px-4 py-2 text-sm text-slate-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+            {% if pagina.has_next %}
+            <a href="?{{ qs_base }}&page={{ pagina.next_page_number }}" class="px-4 py-2 rounded-xl border border-slate-200 text-sm hover:bg-slate-50">Siguiente →</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-16 text-center">
+            <i class="fas fa-search text-4xl text-slate-300 mb-4"></i>
+            <p class="text-slate-500">No se encontraron variables con esos filtros.</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

@@ -315,17 +315,21 @@ svg.addEventListener('click', () => { if (seleccionado) seleccionar(seleccionado
 
 // --- Pan & zoom ---
 let tx = 0, ty = 0, escala = 1;
-funclet minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    DATA.nodos.forEach(n => {
-        minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
-        maxX = Math.max(maxX, n.x + W); maxY = Math.max(maxY, n.y + n.h);
-    });
-    const bw = maxX - minX + 80, bh = maxY - minY + 80;
-    tion aplicar() { viewport.setAtbwute('transform',bhanslate(${tx},${ty}) scale(${escala})`); }
-function centrar() {bw - minX * escala
-    esca (innerHeight - bh * escala) /l2= MminYth.min(innerWidth / 1250, innerHeight / 1750, 1);
-    tx = (innerWidth - 1250 * escala) / 2;
-    ty = 60 - 0 * escala;
+let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+DATA.nodos.forEach(n => {
+    minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+    maxX = Math.max(maxX, n.x + W); maxY = Math.max(maxY, n.y + n.h);
+});
+const bw = maxX - minX + 80, bh = maxY - minY + 80;
+
+function aplicar() {
+    viewport.setAttribute('transform', `translate(${tx},${ty}) scale(${escala})`);
+}
+
+function centrar() {
+    escala = Math.min(innerWidth / bw, innerHeight / bh, 1);
+    tx = (innerWidth - bw * escala) / 2 - (minX - 40) * escala;
+    ty = (innerHeight - bh * escala) / 2 - (minY - 40) * escala;
     aplicar();
 }
 centrar();

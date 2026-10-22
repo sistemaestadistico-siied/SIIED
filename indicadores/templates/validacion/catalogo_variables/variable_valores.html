@@ -1,0 +1,78 @@
+{% extends "validacion/base_validacion.html" %}
+{% block title %}Valores de {{ variable.id_variable }} — Catálogo de Variables{% endblock %}
+{% block validacion_content %}
+
+<style>
+.cv-input {
+    width: 100%; border: 1px solid #cbd5e1; border-radius: 0.75rem;
+    padding: 0.6rem 0.9rem; font-size: 0.875rem;
+}
+.cv-input:focus { outline: none; box-shadow: 0 0 0 2px #0891b2; border-color: #0891b2; }
+</style>
+
+<div class="container mx-auto px-6 py-8 max-w-3xl">
+
+    <nav class="text-sm text-slate-500 mb-6">
+        <a href="{% url 'indicadores:gestion_catalogo_variables' %}" class="hover:text-cyan-700">Catálogo de variables</a>
+        <span class="mx-1">/</span>
+        <span>{{ variable.id_variable }} — valores de dominio</span>
+    </nav>
+
+    <h1 class="text-2xl font-serif font-bold text-slate-900 mb-1">{{ variable.nombre }}</h1>
+    <p class="text-slate-500 mb-6 text-sm">Valores de dominio de <code class="font-mono bg-slate-100 px-2 py-0.5 rounded">{{ variable.id_variable }}</code></p>
+
+    <!-- Agregar valor -->
+    <form method="post" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        {% csrf_token %}
+        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Agregar valor</label>
+        <div class="flex gap-3">
+            <div class="flex-1">
+                {{ form.descripcion_valor }}
+                {% for e in form.descripcion_valor.errors %}<p class="text-red-600 text-xs mt-1">{{ e }}</p>{% endfor %}
+            </div>
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2 rounded-xl text-sm transition-colors self-start">
+                <i class="fas fa-plus mr-1"></i> Agregar
+            </button>
+        </div>
+    </form>
+
+    <!-- Lista de valores -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="text-left px-5 py-3 font-semibold text-slate-600 w-16">#</th>
+                    <th class="text-left px-5 py-3 font-semibold text-slate-600">Descripción</th>
+                    <th class="text-right px-5 py-3 font-semibold text-slate-600 w-24">Acción</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for v in valores %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-5 py-3 text-slate-400 font-mono text-xs">{{ v.pk }}</td>
+                    <td class="px-5 py-3 text-slate-800">{{ v.descripcion_valor }}</td>
+                    <td class="px-5 py-3 text-right">
+                        <form method="post" class="inline" onsubmit="return confirm('¿Eliminar este valor?');">
+                            {% csrf_token %}
+                            <button type="submit" name="eliminar_valor" value="{{ v.pk }}"
+                                    class="text-slate-400 hover:text-red-600" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="px-5 py-12 text-center text-slate-400">Esta variable no tiene valores de dominio.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-6">
+        <a href="{% url 'indicadores:gestion_catalogo_variable_editar' variable.id_variable %}" class="text-indigo-600 hover:text-indigo-800 text-sm font-semibold">
+            <i class="fas fa-pen mr-1"></i> Editar variable
+        </a>
+    </div>
+
+</div>
+{% endblock %}

@@ -53,7 +53,7 @@
                 </div>
                 <div class="flex justify-center">
                     <div class="relative w-64 h-64 lg:w-72 lg:h-72 bg-white border-4 border-amber-200 rounded-[32px] shadow-xl flex items-center justify-center overflow-hidden">
-                        <img src="https://i.ibb.co/gZH2yJLd/Chat-GPT-Image-15-mar-2026-02-18-16-p-m.png"
+                        <img src="{% static 'indicadores/images/logo_libro_3d.png' %}"
                              alt="Logo Libro Digital"
                              class="w-full h-full object-contain"
                              loading="lazy">
@@ -91,7 +91,7 @@
                         {% elif dominio.icono %}
                             <i class="{{ dominio.icono }} text-5xl text-white"></i>
                         {% else %}
-                            <img src="https://i.ibb.co/gZH2yJLd/Chat-GPT-Image-15-mar-2026-02-18-16-p-m.png" alt="Decoración" class="w-20 h-20 object-contain drop-shadow-2xl" loading="lazy">
+                            <img src="{% static 'indicadores/images/logo_libro_3d.png' %}" alt="Decoración" class="w-20 h-20 object-contain drop-shadow-2xl" loading="lazy">
                         {% endif %}
                     </div>
                     <h3 class="storybook-font-title text-2xl font-bold text-slate-900">{{ dominio.nombre }}</h3>

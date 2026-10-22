@@ -1,0 +1,127 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}{{ variable.nombre }} — Catálogo de Variables{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10 max-w-5xl">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <a href="{% url 'indicadores:catalogo_variables_home' %}">Catálogo de variables</a>
+            <span class="sep">/</span>
+            <span class="here">{{ variable.id_variable }}</span>
+        </nav>
+
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-8 py-7">
+                <div class="flex flex-wrap items-center gap-3 mb-3">
+                    <span class="text-xs font-mono font-bold text-cyan-200 bg-cyan-900/50 px-3 py-1 rounded-lg">{{ variable.id_variable }}</span>
+                    {% if variable.es_llave_primaria %}
+                    <span class="text-xs font-bold text-amber-300 bg-amber-900/50 px-3 py-1 rounded-lg"><i class="fas fa-key mr-1"></i>Llave primaria</span>
+                    {% endif %}
+                    {% if variable.es_obligatorio %}
+                    <span class="text-xs font-bold text-red-300 bg-red-900/50 px-3 py-1 rounded-lg">Obligatorio</span>
+                    {% endif %}
+                </div>
+                <h1 class="text-2xl font-bold text-white">{{ variable.nombre }}</h1>
+            </div>
+
+            <div class="px-8 py-6">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descripción</h2>
+                <div class="text-slate-700 leading-relaxed">{{ variable.descripcion|safe }}</div>
+            </div>
+
+            <div class="px-8 pb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Unidad de análisis</p>
+                    <p class="font-semibold text-slate-800">{{ variable.unidad_analisis.nombre_unidad_analisis|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Tipo de dato</p>
+                    <p class="font-semibold text-slate-800">{{ variable.tipo_dato.nombre_tipo_dato|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Tipo de variable</p>
+                    <p class="font-semibold text-slate-800">{{ variable.tipo_variable_estadistica.nombre_tipo_variable|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Área de información</p>
+                    <p class="font-semibold text-slate-800">{{ variable.area_informacion.nombre_area|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Tipo de valores</p>
+                    <p class="font-semibold text-slate-800">{{ variable.tipo_valores.nombre_tipo_valores_dominio|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Longitud</p>
+                    <p class="font-semibold text-slate-800 font-mono">{{ variable.longitud_campo|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Llave primaria</p>
+                    <p class="font-semibold text-slate-800">{{ variable.llave_primaria|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Campo obligatorio</p>
+                    <p class="font-semibold text-slate-800">{{ variable.campo_obligatorio|default:'—' }}</p>
+                </div>
+            </div>
+        </div>
+
+        {% if variable.forma_pregunta or variable.opciones_respuesta %}
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-comment-dots text-cyan-600 mr-2"></i>Captura de la información</h2>
+            {% if variable.forma_pregunta %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Forma de la pregunta</h3>
+            <div class="text-slate-700 mb-4">{{ variable.forma_pregunta|safe }}</div>
+            {% endif %}
+            {% if variable.opciones_respuesta %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Opciones de respuesta</h3>
+            <div class="text-slate-700">{{ variable.opciones_respuesta|safe }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if valores %}
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-list-ul text-cyan-600 mr-2"></i>Valores de dominio ({{ valores|length }})</h2>
+            <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {% for valor in valores %}
+                <li class="flex items-start gap-2 text-sm text-slate-700 bg-slate-50 rounded-lg px-4 py-2">
+                    <i class="fas fa-check text-emerald-500 mt-1 text-xs"></i>
+                    <span>{{ valor.descripcion_valor }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if variable.reglas_consistencia or variable.reglas_validacion_lenguaje_natural %}
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-shield-halved text-cyan-600 mr-2"></i>Reglas de validación</h2>
+            {% if variable.reglas_consistencia %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Reglas de consistencia</h3>
+            <div class="text-slate-700 mb-4">{{ variable.reglas_consistencia|safe }}</div>
+            {% endif %}
+            {% if variable.reglas_validacion_lenguaje_natural %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Validación en lenguaje natural</h3>
+            <div class="text-slate-700">{{ variable.reglas_validacion_lenguaje_natural|safe }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="flex justify-between items-center">
+            <a href="{% url 'indicadores:catalogo_variables_home' %}" class="text-cyan-700 hover:text-cyan-900 font-semibold text-sm">
+                <i class="fas fa-arrow-left mr-1"></i> Volver al catálogo
+            </a>
+            <button onclick="window.print()" class="text-slate-500 hover:text-slate-700 text-sm">
+                <i class="fas fa-print mr-1"></i> Imprimir ficha
+            </button>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

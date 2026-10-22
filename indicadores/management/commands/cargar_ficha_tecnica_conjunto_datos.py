@@ -112,11 +112,20 @@ class Command(BaseCommand):
             
             indicador = indicadores_subtema.first()
             indicadores_procesados.add(indicador.id)
-            
+
+            # Las variables pertenecen al conjunto de datos del indicador
+            conjunto = indicador.conjunto_datos
+            if not conjunto:
+                errores.append(f'{codigo_indicador}: indicador sin conjunto_datos')
+                self.stdout.write(
+                    self.style.WARNING('  ⚠ Indicador sin conjunto_datos, saltando')
+                )
+                continue
+
             # Limpiar variables existentes si se solicita
             if limpiar and not dry_run:
-                variables_eliminadas = VariableConjuntoDatos.objects.filter(indicador=indicador).count()
-                VariableConjuntoDatos.objects.filter(indicador=indicador).delete()
+                variables_eliminadas = VariableConjuntoDatos.objects.filter(conjunto_datos=conjunto).count()
+                VariableConjuntoDatos.objects.filter(conjunto_datos=conjunto).delete()
                 
                 self.stdout.write(
                     self.style.WARNING(
@@ -124,33 +133,35 @@ class Command(BaseCommand):
                     )
                 )
             
-            # Crear las variables
+            # Crear/actualizar las variables (upsert por conjunto+código)
             for idx, variable_info in enumerate(variables, start=1):
                 try:
                     if not dry_run:
-                        VariableConjuntoDatos.objects.create(
-                            indicador=indicador,
+                        org = resolver_organismo_por_nombre(variable_info.get('Organismo_Productor', '').strip())
+                        VariableConjuntoDatos.objects.update_or_create(
+                            conjunto_datos=conjunto,
                             codigo_variable=variable_info.get('Codigo_Variable', '').strip(),
-                            nombre_variable=variable_info.get('Nombre_Variable', '').strip(),
-                            definicion_conceptual=variable_info.get('Definicion_Conceptual', '').strip(),
-                            poblacion_objetivo=variable_info.get('Poblacion_Objetivo', '').strip() or None,
-                            cobertura_geografica=variable_info.get('Cobertura_Geografica', '').strip() or None,
-                            desagregacion_geografica=variable_info.get('Desagregacion_Geografica', '').strip() or None,
-                            desagregacion_tematica=variable_info.get('Desagregacion_Tematica', '').strip() or None,
-                            tipo_dato=variable_info.get('Tipo_Dato', '').strip() or None,
-                            dominio_dato=variable_info.get('Dominio_Dato', '').strip() or None,
-                            unidad_medida=variable_info.get('Unidad_Medida', '').strip() or None,
-                            tipo_variable_estadistica=variable_info.get('Tipo_Variable_Estadistica', '').strip() or None,
-                            fuente_datos=variable_info.get('Fuente_Datos', '').strip() or None,
-                            periodicidad=variable_info.get('Periodicidad', '').strip() or None,
-                            observaciones=variable_info.get('Observaciones', '').strip() or None,
-                            referencias=variable_info.get('Referencias', '').strip() or None,
-                            organismo_productor=resolver_organismo_por_nombre(variable_info.get('Organismo_Productor', '').strip()),
-                            organismo_productor_legado=(
-                                '' if resolver_organismo_por_nombre(variable_info.get('Organismo_Productor', '').strip())
-                                else variable_info.get('Organismo_Productor', '').strip()
-                            ),
-                            orden=idx
+                            defaults={
+                                'nombre_variable': variable_info.get('Nombre_Variable', '').strip(),
+                                'definicion_conceptual': variable_info.get('Definicion_Conceptual', '').strip(),
+                                'poblacion_objetivo': variable_info.get('Poblacion_Objetivo', '').strip() or None,
+                                'cobertura_geografica': variable_info.get('Cobertura_Geografica', '').strip() or None,
+                                'desagregacion_geografica': variable_info.get('Desagregacion_Geografica', '').strip() or None,
+                                'desagregacion_tematica': variable_info.get('Desagregacion_Tematica', '').strip() or None,
+                                'tipo_dato': variable_info.get('Tipo_Dato', '').strip() or None,
+                                'dominio_dato': variable_info.get('Dominio_Dato', '').strip() or None,
+                                'unidad_medida': variable_info.get('Unidad_Medida', '').strip() or None,
+                                'tipo_variable_estadistica': variable_info.get('Tipo_Variable_Estadistica', '').strip() or None,
+                                'fuente_datos': variable_info.get('Fuente_Datos', '').strip() or None,
+                                'periodicidad': variable_info.get('Periodicidad', '').strip() or None,
+                                'observaciones': variable_info.get('Observaciones', '').strip() or None,
+                                'referencias': variable_info.get('Referencias', '').strip() or None,
+                                'organismo_productor': org,
+                                'organismo_productor_legado': (
+                                    '' if org else variable_info.get('Organismo_Productor', '').strip()
+                                ),
+                                'orden': idx,
+                            }
                         )
                     
                     variables_creadas += 1

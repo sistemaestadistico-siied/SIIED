@@ -886,8 +886,25 @@ TABLERO_ANALISIS_SCHEMA = {
                 'que importa o que anomalia muestra; string vacio si el '
                 'tile no aporta lectura)'),
         },
+        'disclaimer': {
+            'type': 'string',
+            'description': (
+                'Bloque de cierre del tablero (3-5 oraciones). Combina '
+                'DOS cosas: (a) salvaguarda institucional — la '
+                'interpretacion fue generada por un asistente de IA, no '
+                'representa posicion institucional ni declaracion oficial '
+                'de la Alcaldia de Santiago de Cali y puede contener '
+                'imprecisiones; los datos publicados en el SIIED si son '
+                'la fuente confiable —; y (b) limitaciones CONCRETAS de '
+                'la informacion usada en este tablero: corte temporal '
+                'real de las series (ej. los datos llegan hasta 2020), '
+                'cobertura (ej. solo area urbana, sin corregimientos), '
+                'indicadores o fuentes que faltarian para un analisis '
+                'completo, agregaciones que pueden inducir a error. '
+                'Solo afirma limitaciones que el resumen sustente.'),
+        },
     },
-    'required': ['analisis'],
+    'required': ['analisis', 'disclaimer'],
     'additionalProperties': False,
 }
 
@@ -912,7 +929,303 @@ TABLERO_ANALISIS_PROMPT = (
     '- insights: una lectura corta por tile, en el mismo orden recibido. '
     'Con el dato clave real si el resumen lo trae; "" si no hay lectura '
     'util (ej: tile de texto).\n'
+    '- disclaimer: cierre OBLIGATORIO del tablero. Debe (a) aclarar que '
+    'la interpretacion fue generada por un asistente de IA, no representa '
+    'posicion institucional ni declaracion oficial de la Alcaldia de '
+    'Santiago de Cali y puede contener imprecisiones — los datos del '
+    'SIIED si son confiables —; y (b) advertir las limitaciones '
+    'CONCRETAS de la informacion: hasta que anio llegan las series del '
+    'resumen, que territorio/poblacion cubren (ej. solo area urbana), '
+    'que indicadores o fuentes faltarian para completar la lectura y '
+    'cualquier cautela de interpretacion. Basate solo en el resumen.\n'
     '- Tono ejecutivo pero cercano; sin relleno ni generalidades.'
+)
+
+
+# ======================================================================
+# DON DATICO × SUPERSET — consultas, análisis y tableros asistidos
+# (módulo Analítica e IA). A diferencia del Laboratorio, aquí cada
+# capacidad es una petición aparte y opera sobre los DATASETS ya
+# integrados en Superset (no sobre los modelos de Django).
+# ======================================================================
+
+_FILTRO_SUPERSET = {
+    'type': 'object',
+    'properties': {
+        'col': {'type': 'string', 'description': 'Nombre exacto de columna'},
+        'op': {
+            'type': 'string',
+            'enum': ['=', '!=', '>', '>=', '<', '<=', 'IN', 'LIKE'],
+        },
+        'val': {
+            'description': 'Valor literal; lista de valores si op=IN',
+        },
+    },
+    'required': ['col', 'op', 'val'],
+    'additionalProperties': False,
+}
+
+SUPERSET_CONSULTA_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'entendido': {
+            'type': 'string',
+            'description': 'Lo que el usuario pidio, reformulado (1 oracion)',
+        },
+        'consultas': {
+            'type': 'array',
+            'description': (
+                'Consultas agregadas a ejecutar sobre los datasets '
+                '(1-3). Cada una produce una tabla de resultados.'),
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'dataset_id': {
+                        'type': 'integer',
+                        'description': 'ID de dataset del catalogo recibido',
+                    },
+                    'columnas': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': (
+                            'Columnas de dimension/agrupacion (nombres '
+                            'EXACTOS del dataset, max 5)'),
+                    },
+                    'metricas': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': (
+                            'Expresiones agregadas: SUM(col), AVG(col), '
+                            'COUNT(*), MAX(col), MIN(col) (max 4)'),
+                    },
+                    'filtros': {
+                        'type': 'array',
+                        'items': _FILTRO_SUPERSET,
+                        'description': 'Filtros WHERE (vacio si no aplica)',
+                    },
+                    'orden_col': {
+                        'type': 'string',
+                        'description': 'Columna o metrica para ordenar',
+                    },
+                    'orden_desc': {'type': 'boolean'},
+                    'limite': {
+                        'type': 'integer',
+                        'description': 'Max filas a devolver (default 100)',
+                    },
+                    'titulo': {
+                        'type': 'string',
+                        'description': 'Titulo corto de esta tabla de resultados',
+                    },
+                },
+                'required': ['dataset_id'],
+                'additionalProperties': False,
+            },
+        },
+        'fuentes': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': (
+                'Nombres legibles de las fuentes usadas (nombre del '
+                'dataset e indicadores/cuadros involucrados)'),
+        },
+    },
+    'required': ['consultas', 'fuentes'],
+    'additionalProperties': False,
+}
+
+SUPERSET_PROSA_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'respuesta': {
+            'type': 'string',
+            'description': (
+                'Respuesta en prosa a la consulta del usuario usando '
+                'SOLO las cifras de los resultados recibidos (2-5 '
+                'parrafos cortos).'),
+        },
+        'notas': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': (
+                'Cautelas concretas: corte temporal, cobertura, filtros '
+                'aplicados, datos faltantes (max 4)'),
+        },
+    },
+    'required': ['respuesta'],
+    'additionalProperties': False,
+}
+
+SUPERSET_TABLERO_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'titulo': {
+            'type': 'string',
+            'description': 'Titulo del dashboard Superset (max 100 chars)',
+        },
+        'descripcion': {
+            'type': 'string',
+            'description': 'Descripcion breve de lo que muestra el tablero',
+        },
+        'charts': {
+            'type': 'array',
+            'description': 'Graficos del tablero (1-6)',
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'titulo': {'type': 'string'},
+                    'viz': {
+                        'type': 'string',
+                        'enum': ['line', 'bar', 'pie', 'big_number', 'table'],
+                        'description': (
+                            'line: serie temporal (x temporal). bar: '
+                            'comparacion por categoria. pie: composicion. '
+                            'big_number: cifra unica. table: filas '
+                            'agregadas.'),
+                    },
+                    'dataset_id': {'type': 'integer'},
+                    'x': {
+                        'type': 'string',
+                        'description': (
+                            'Columna del eje/dimension principal '
+                            '(nombre EXACTO). Para line debe ser la '
+                            'columna temporal o de anio.'),
+                    },
+                    'metrica': {
+                        'type': 'string',
+                        'description': (
+                            'Expresion agregada: SUM(col), AVG(col), '
+                            'COUNT(*) — obligatoria salvo table con '
+                            'solo columnas'),
+                    },
+                    'groupby': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': 'Columnas de serie/agrupacion extra',
+                    },
+                    'filtros': {
+                        'type': 'array',
+                        'items': _FILTRO_SUPERSET,
+                    },
+                    'limite': {
+                        'type': 'integer',
+                        'description': 'Max categorias/filas (default 25)',
+                    },
+                },
+                'required': ['titulo', 'viz', 'dataset_id'],
+                'additionalProperties': False,
+            },
+        },
+        'fuentes': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': 'Datasets usados (nombres legibles)',
+        },
+        'indicadores': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': (
+                'Indicadores del SIIED involucrados en el tablero '
+                '(nombres, para mostrarselos al usuario)'),
+        },
+        'advertencias': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': 'Supuestos o limites que el usuario debe revisar',
+        },
+    },
+    'required': ['titulo', 'charts', 'fuentes'],
+    'additionalProperties': False,
+}
+
+SUPERSET_CONSULTA_PROMPT = (
+    'Eres DON DATICO, analista de datos del SIIED operando sobre Apache '
+    'Superset. El usuario (un analista institucional) te pide datos en '
+    'lenguaje natural y tu traduces la peticion a CONSULTAS AGREGADAS '
+    'sobre los datasets ya integrados.\n\n'
+    'RECIBES: el catalogo de datasets de Superset con id, nombre de tabla '
+    'y columnas (nombre/tipo/temporal). Los prefijos identifican la '
+    'familia: vista_indicadores_datos y dominio_* = indicadores del SIIED '
+    '(columnas: indicador, dominio, tema, subtema, anio, valor_dato, '
+    'desagregacion_geografica, desagregacion_tematica); conjunto_* = '
+    'conjuntos de datos; catalogo_* = cuadros del catalogo de consulta; '
+    'ficed_/taller_/satisf_ = datos de modulos internos.\n\n'
+    'REGLAS:\n'
+    '- SOLO datasets y columnas del catalogo recibido. NUNCA inventes '
+    'ids, columnas ni tablas.\n'
+    '- metricas: funciones de agregacion sobre columnas numericas '
+    '(SUM/AVG/MAX/MIN/COUNT). Para indicadores usa '
+    'SUM(valor_dato) o AVG(valor_dato) segun la consulta.\n'
+    '- filtros: col debe ser nombre EXACTO de columna; val literal. '
+    'Para indicadores concretos filtra indicador = "nombre" y rango de '
+    'anio con >= y <=.\n'
+    '- 1-3 consultas: la justa para responder; si la peticion no se puede '
+    'responder con los datasets disponibles, devuelve consultas vacio y '
+    'explica en fuentes que falta.\n'
+    '- fuentes: nombres legibles (ej. "Matricula oficial por nivel" no '
+    '"dominio_12_educacion").'
+)
+
+SUPERSET_ANALISIS_PROMPT = (
+    'Eres DON DATICO, analista de datos senior del SIIED operando sobre '
+    'Apache Superset. El usuario pide un ANALISIS en lenguaje natural. '
+    'Tu traduces la peticion a CONSULTAS AGREGADAS sobre los datasets '
+    'integrados — la interpretacion se escribe despues con los datos.\n\n'
+    'RECIBES: el catalogo de datasets (id, tabla, columnas). Mismos '
+    'prefijos de familia: vista_indicadores_datos/dominio_* = '
+    'indicadores; conjunto_* = conjuntos de datos; catalogo_* = cuadros '
+    'del catalogo; ficed_/taller_/satisf_ = modulos internos.\n\n'
+    'REGLAS:\n'
+    '- Para un analisis util necesitas series o comparaciones: pide las '
+    'consultas que traigan la evidencia (ej. tendencia por anio, corte '
+    'por categoria, comparacion entre periodos).\n'
+    '- SOLO datasets y columnas del catalogo; nombres EXACTOS.\n'
+    '- metricas: SUM/AVG/MAX/MIN/COUNT sobre columnas numericas.\n'
+    '- filtros: nombres exactos de columna, valores literales.\n'
+    '- 1-3 consultas. Si falta evidencia para el analisis pedido, '
+    'devuelve lo alcanzable y dilo en fuentes.\n'
+    '- fuentes: nombres legibles de datasets e indicadores usados.'
+)
+
+SUPERSET_PROSA_PROMPT = (
+    'Eres DON DATICO, analista de datos del SIIED. Recibes los '
+    'RESULTADOS REALES de las consultas ejecutadas sobre Superset '
+    '(columnas y filas) y la peticion original del usuario.\n\n'
+    'TU TAREA: responder en prosa con base SOLO en esos datos. '
+    'REGLAS:\n'
+    '- Cita las cifras reales del resultado; NUNCA inventes numeros, '
+    'porcentajes ni anos.\n'
+    '- Responde directo a lo que se pregunto; si es analisis, interpreta '
+    '(hallazgo principal, comparacion, anomalia, limite del dato).\n'
+    '- Si un resultado vino vacio o con error, dilo sin disimular.\n'
+    '- notas: cautelas concretas (corte temporal, cobertura, filtros).\n'
+    '- Tono de analista institucional; sin relleno ni generalidades.'
+)
+
+SUPERSET_TABLERO_PROMPT = (
+    'Eres DON DATICO, analista de datos del SIIED operando sobre Apache '
+    'Superset. El usuario describe en lenguaje natural un TABLERO DE '
+    'CONTROL y tu produces la spec de charts que el sistema creara en '
+    'Superset por el — evitandole la interfaz compleja del BI.\n\n'
+    'RECIBES: el catalogo de datasets (id, tabla, columnas con tipo y '
+    'marca temporal). Prefijos: vista_indicadores_datos/dominio_* = '
+    'indicadores; conjunto_* = conjuntos de datos; catalogo_* = '
+    'cuadros del catalogo; ficed_/taller_/satisf_ = modulos internos.\n\n'
+    'REGLAS:\n'
+    '- SOLO datasets y columnas del catalogo; nombres EXACTOS.\n'
+    '- viz="line" SOLO con x temporal (columna de fecha o anio). '
+    'viz="big_number" lleva metrica, no x. viz="table" puede ir solo '
+    'con columnas, sin metrica.\n'
+    '- metrica: SUM(col)/AVG(col)/COUNT(*)/MAX(col)/MIN(col). Para '
+    'indicadores, SUM(valor_dato) o AVG(valor_dato).\n'
+    '- filtros: columnas exactas, valores literales (anio como numero).\n'
+    '- 1-6 charts ordenados de lo general (cifra/serie) a lo detallado '
+    '(tabla/desagregaciones).\n'
+    '- indicadores: lista los indicadores del SIIED que alimentan el '
+    'tablero por nombre — el usuario necesita saberlos con claridad.\n'
+    '- advertencias: supuestos (filtros, agregaciones) o fuentes que '
+    'faltarian para el tablero ideal.\n'
+    '- Si la peticion no se puede armar con los datasets disponibles, '
+    'devuelve charts vacio y explica en advertencias que falta.'
 )
 
 

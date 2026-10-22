@@ -1,0 +1,199 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}Taller de Gestión de Datos — Datalake — Catálogo de Variables{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <a href="{% url 'indicadores:catalogo_variables_home' %}">Catálogo de variables</a>
+            <span class="sep">/</span>
+            <span class="here">Taller de Gestión de Datos — Datalake</span>
+        </nav>
+
+        <div class="mb-8 max-w-3xl">
+            <span class="pchip mb-3"><i class="fas fa-lock"></i> Acceso restringido — usuarios registrados</span>
+            <h1 class="ptitle">Taller de Gestión de Datos <span class="pgrad">— Datalake</span></h1>
+            <p class="psub mt-2">
+                Variables unificadas: cada fila agrupa las ocurrencias del mismo campo en las
+                fuentes del taller y en las bases del Data Lake. La calificación
+                (bronce / plata / gold) es la capa más alta de todas las fuentes y
+                dimensiones donde aparece.
+            </p>
+        </div>
+
+        {% with activo='ecosistema' %}{% include 'catalogo_variables/_nav_sets.html' %}{% endwith %}
+
+        <!-- Métricas -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div class="text-2xl font-bold text-violet-700">{{ stats.unificadas }}</div>
+                <p class="text-xs text-slate-500 mt-1">Variables unificadas</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div class="text-2xl font-bold text-amber-700">{{ stats.taller }}</div>
+                <p class="text-xs text-slate-500 mt-1">Variables del taller</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div class="text-2xl font-bold text-cyan-700">{{ stats.lake }}</div>
+                <p class="text-xs text-slate-500 mt-1">Campos del Data Lake</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div class="text-2xl font-bold text-indigo-700">{{ stats.fuentes }}</div>
+                <p class="text-xs text-slate-500 mt-1">Fuentes caracterizadas</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                <div class="text-2xl font-bold text-emerald-700">{{ stats.bases }}</div>
+                <p class="text-xs text-slate-500 mt-1">Bases del Data Lake</p>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <form method="get" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Búsqueda</label>
+                    <input type="text" name="q" value="{{ q }}" placeholder="Nombre de la variable, campo o fuente…"
+                           class="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Origen</label>
+                    <select name="origen" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todos</option>
+                        <option value="taller" {% if origen == 'taller' %}selected{% endif %}>Taller de gestión de datos</option>
+                        <option value="lake" {% if origen == 'lake' %}selected{% endif %}>Data Lake (capa gold)</option>
+                        <option value="ambos" {% if origen == 'ambos' %}selected{% endif %}>En ambos (taller + lake)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Capa</label>
+                    <select name="capa" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todas</option>
+                        <option value="bronce" {% if capa == 'bronce' %}selected{% endif %}>Bronce — reportada en taller</option>
+                        <option value="plata" {% if capa == 'plata' %}selected{% endif %}>Plata — prevalidada</option>
+                        <option value="gold" {% if capa == 'gold' %}selected{% endif %}>Gold — catalogada en Data Lake</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Organismo</label>
+                    <select name="organismo" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todos</option>
+                        {% for o in organismos %}
+                        <option value="{{ o.pk }}" {% if organismo_id == o.pk|stringformat:'i' %}selected{% endif %}>{{ o.nombre|truncatechars:45 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Fuente</label>
+                    <select name="fuente" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todas</option>
+                        {% for f in fuentes %}
+                        <option value="{{ f.pk }}" {% if fuente_id == f.pk|stringformat:'i' %}selected{% endif %}>{{ f.nombre|truncatechars:45 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Reto de análisis</label>
+                    <select name="reto" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500">
+                        <option value="">Todos</option>
+                        {% for r in retos %}
+                        <option value="{{ r.pk }}" {% if reto_id == r.pk|stringformat:'i' %}selected{% endif %}>{{ r.nombre|truncatechars:55 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4">
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
+                    <i class="fas fa-search mr-1"></i> Filtrar
+                </button>
+                <a href="{% url 'indicadores:catalogo_variables_ecosistema' %}" class="text-slate-500 hover:text-slate-700 text-sm">Limpiar</a>
+                <span class="ml-auto text-sm text-slate-500">{{ total }} variable{{ total|pluralize }}</span>
+            </div>
+        </form>
+
+        <!-- Resultados agrupados por categoría temática (desplegables) -->
+        {% for seccion in secciones %}
+        <details class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-4" open>
+            <summary class="flex items-center gap-3 px-5 py-4 cursor-pointer select-none bg-slate-50 hover:bg-slate-100 transition-colors">
+                <i class="fas fa-folder-open text-cyan-700"></i>
+                <h2 class="font-bold text-slate-800">{{ seccion.categoria }}</h2>
+                <span class="ml-auto px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold">
+                    {{ seccion.filas|length }} variable{{ seccion.filas|length|pluralize }}
+                </span>
+            </summary>
+            <table class="w-full text-sm">
+                <thead class="border-b border-slate-200">
+                    <tr>
+                        <th class="text-left px-5 py-3 font-semibold text-slate-600">Variable</th>
+                        <th class="text-left px-5 py-3 font-semibold text-slate-600">Calificación</th>
+                        <th class="text-left px-5 py-3 font-semibold text-slate-600">Fuentes del taller</th>
+                        <th class="text-left px-5 py-3 font-semibold text-slate-600">Bases del Data Lake</th>
+                        <th class="text-left px-5 py-3 font-semibold text-slate-600">Organismos</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for fila in seccion.filas %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-5 py-3">
+                            {% if fila.vars %}
+                            <a href="{% url 'indicadores:catalogo_variables_ecosistema_fuente' fila.vars.0.pk %}" class="font-semibold text-slate-800 hover:text-cyan-700">{{ fila.nombre|truncatechars:45 }}</a>
+                            {% else %}
+                            <a href="{% url 'indicadores:catalogo_variables_ecosistema_campo' fila.campos.0.pk %}" class="font-semibold text-slate-800 hover:text-cyan-700 font-mono">{{ fila.nombre|truncatechars:45 }}</a>
+                            {% endif %}
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                {{ fila.vars|length }} en taller · {{ fila.campos|length }} en lake
+                            </p>
+                        </td>
+                        <td class="px-5 py-3">
+                            {% if fila.capa_max == 'bronce' %}<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">Bronce</span>
+                            {% elif fila.capa_max == 'plata' %}<span class="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs font-bold">Plata</span>
+                            {% elif fila.capa_max == 'gold' %}<span class="px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-bold">Gold</span>
+                            {% endif %}
+                            {% if fila.origen == 'ambos' %}
+                            <span class="block mt-1 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-xs font-semibold w-max" title="Presente en el taller y en el Data Lake">
+                                <i class="fas fa-link mr-0.5"></i>Taller + Lake
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-3 text-xs">
+                            {% for fte in fila.fuentes %}
+                            <span class="inline-block px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 mb-0.5" title="Capa: {{ fte.get_capa_display }}">
+                                <i class="fas fa-clipboard-list mr-0.5"></i>{{ fte.nombre|truncatechars:35 }}
+                            </span>
+                            {% empty %}
+                            <span class="text-slate-400">—</span>
+                            {% endfor %}
+                        </td>
+                        <td class="px-5 py-3 text-xs">
+                            {% for base in fila.bases %}
+                            <span class="inline-block px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 font-mono mb-0.5" title="{{ base.nombre }}">
+                                <i class="fas fa-database mr-0.5"></i>{{ base.slug }}
+                            </span>
+                            {% empty %}
+                            <span class="text-slate-400">—</span>
+                            {% endfor %}
+                        </td>
+                        <td class="px-5 py-3 text-slate-500 text-xs">
+                            {% for org in fila.org_nombres %}{{ org|truncatechars:30 }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </details>
+        {% empty %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-14 text-center text-slate-400">
+            Sin variables con esos filtros.
+        </div>
+        {% endfor %}
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,138 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+{% block title %}{{ variable.nombre_variable }} — Catálogo de Variables{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+{% endblock %}
+{% block content %}
+<div class="page-canvas">
+    <div class="container mx-auto px-4 py-10 max-w-5xl">
+
+        <nav class="pcrumb mb-7">
+            <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
+            <span class="sep">/</span>
+            <a href="{% url 'indicadores:catalogo_variables_conjuntos' %}">Variables de conjuntos de datos</a>
+            <span class="sep">/</span>
+            <span class="here">{{ variable.codigo_variable }}</span>
+        </nav>
+
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+            <div class="px-8 py-7 border-b border-slate-100">
+                <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <span class="text-xs font-mono font-bold text-cyan-700 bg-cyan-50 px-3 py-1 rounded-lg">{{ variable.codigo_variable }}</span>
+                    {% if variable.tipo_variable_estadistica %}
+                    <span class="text-xs font-bold px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700">{{ variable.tipo_variable_estadistica }}</span>
+                    {% endif %}
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900">{{ variable.nombre_variable }}</h1>
+                {% if variable.conjunto_datos %}
+                <p class="text-sm text-slate-500 mt-2">
+                    <i class="fas fa-database mr-1 text-cyan-600"></i>
+                    Conjunto: <strong>{{ variable.conjunto_datos.nombre }}</strong>
+                </p>
+                {% endif %}
+            </div>
+
+            {% if variable.definicion_conceptual %}
+            <div class="px-8 py-6">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Definición conceptual</h2>
+                <div class="text-slate-700 leading-relaxed">{{ variable.definicion_conceptual|safe }}</div>
+            </div>
+            {% endif %}
+
+            <div class="px-8 pb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Tipo de dato</p>
+                    <p class="font-semibold text-slate-800">{{ variable.tipo_dato|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Dominio</p>
+                    <p class="font-semibold text-slate-800">{{ variable.dominio_dato|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Unidad de medida</p>
+                    <p class="font-semibold text-slate-800">{{ variable.unidad_medida|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Periodicidad</p>
+                    <p class="font-semibold text-slate-800">{{ variable.periodicidad|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Población objetivo</p>
+                    <p class="font-semibold text-slate-800">{{ variable.poblacion_objetivo|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Cobertura geográfica</p>
+                    <p class="font-semibold text-slate-800">{{ variable.cobertura_geografica|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Desagregación geográfica</p>
+                    <p class="font-semibold text-slate-800">{{ variable.desagregacion_geografica|default:'—' }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Desagregación temática</p>
+                    <p class="font-semibold text-slate-800">{{ variable.desagregacion_tematica|default:'—' }}</p>
+                </div>
+            </div>
+        </div>
+
+        {% if variable.pregunta or variable.concepto or variable.universo %}
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-comment-dots text-cyan-600 mr-2"></i>Origen y captura</h2>
+            {% if variable.pregunta %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pregunta del instrumento</h3>
+            <div class="text-slate-700 mb-4">{{ variable.pregunta|safe }}</div>
+            {% endif %}
+            {% if variable.concepto %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Concepto estándar</h3>
+            <p class="text-slate-700 mb-4">{{ variable.concepto }}</p>
+            {% endif %}
+            {% if variable.universo %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Universo</h3>
+            <div class="text-slate-700">{{ variable.universo|safe }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if variable.fuente_datos or variable.organismo_productor or variable.organismo_productor_legado %}
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-building text-cyan-600 mr-2"></i>Fuente y producción</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% if variable.fuente_datos %}
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Fuente de datos</p>
+                    <p class="font-semibold text-slate-800">{{ variable.fuente_datos }}</p>
+                </div>
+                {% endif %}
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-semibold text-slate-400 uppercase mb-1">Organismo productor</p>
+                    <p class="font-semibold text-slate-800">
+                        {% if variable.organismo_productor %}{{ variable.organismo_productor.nombre }}
+                        {% else %}{{ variable.organismo_productor_legado|default:'—' }}{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if variable.observaciones or variable.referencias %}
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-book text-cyan-600 mr-2"></i>Notas y referencias</h2>
+            {% if variable.observaciones %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Observaciones</h3>
+            <div class="text-slate-700 mb-4">{{ variable.observaciones|safe }}</div>
+            {% endif %}
+            {% if variable.referencias %}
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Referencias</h3>
+            <div class="text-slate-700">{{ variable.referencias|safe }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <a href="{% url 'indicadores:catalogo_variables_conjuntos' %}" class="text-cyan-700 hover:text-cyan-900 font-semibold text-sm">
+            <i class="fas fa-arrow-left mr-1"></i> Volver a variables de conjuntos
+        </a>
+
+    </div>
+</div>
+{% endblock %}

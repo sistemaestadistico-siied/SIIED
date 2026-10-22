@@ -19,12 +19,22 @@
             <p class="psub mt-2">
                 Del indicador puntual al tablero completo: estas son las entradas
                 directas a las herramientas de consulta y análisis del SIIED —
-                explorador de conjuntos de datos, visor comparativo y el
-                generador de tableros con Don Datico.
+                el asistente Don Datico, el explorador de conjuntos de datos,
+                el visor comparativo y el generador de tableros.
             </p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Don Datico -->
+            <a href="{% url 'indicadores:chat' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo">
+                    <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico" loading="lazy">
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Don Datico · Asistente IA</h3>
+                <p class="text-sm text-slate-500 mt-1">Consulta indicadores en lenguaje natural con el guía del sistema.</p>
+                <span class="pcta">Chatear ahora <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
             <!-- Explorador de conjuntos -->
             <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="pcard group p-6 flex flex-col h-full">
                 <div class="plogo">
@@ -53,6 +63,16 @@
                 <h3 class="text-lg font-bold text-slate-800">Consulta y Tableros</h3>
                 <p class="text-sm text-slate-500 mt-1">Describe el tablero que necesitas y Don Datico lo construye con fuentes reales.</p>
                 <span class="pcta">Abrir Consulta y Tableros <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Superset -->
+            <a href="{% url 'indicadores:analitica_dashboard' %}" class="pcard group p-6 flex flex-col h-full">
+                <div class="plogo flex items-center justify-center text-orange-500">
+                    <i class="fas fa-fire-flame-curved text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Superset · Tableros BI</h3>
+                <p class="text-sm text-slate-500 mt-1">Dashboards interactivos de Apache Superset conectados a los datos del sistema, ahora también con creación asistida por Don Datico.</p>
+                <span class="pcta">Abrir Superset <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
         </div>
 

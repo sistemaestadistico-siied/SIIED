@@ -2496,7 +2496,7 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
         }),
         ('Rol y Permisos', {
             'fields': ('rol', 'activo'),
-            'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos'
+            'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos | analista = Analítica e IA (crea usuario en Superset automáticamente)'
         }),
         ('Vínculo a Organismo', {
             'fields': ('organismo', 'subrol_ficed'),
@@ -2523,6 +2523,41 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
         return obj.user.get_full_name() or obj.user.username
     get_nombre_completo.short_description = 'Nombre Completo'
     get_nombre_completo.admin_order_field = 'user__first_name'
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Al asignar rol analista, crear/verificar usuario en Superset
+        # automáticamente (los analistas usan Tableros Superset embebido).
+        if obj.rol == 'analista' and obj.activo:
+            try:
+                from .superset_service import SupersetService
+                service = SupersetService()
+                resultado = service.crear_usuario(
+                    username=obj.user.username,
+                    email=obj.user.email or '',
+                    first_name=obj.user.first_name or obj.user.username,
+                    last_name=obj.user.last_name or '',
+                    role_name='Alpha',
+                )
+                if resultado.get('success'):
+                    messages.success(
+                        request,
+                        f'Usuario "{obj.user.username}" creado/verificado en '
+                        'Superset correctamente.'
+                    )
+                else:
+                    messages.warning(
+                        request,
+                        'No se pudo crear el usuario en Superset: '
+                        f'{resultado.get("error", "Error desconocido")}. '
+                        'Verifique que Superset esté disponible.'
+                    )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f'Error al crear usuario en Superset: {e}. '
+                    'Superset puede no estar disponible.'
+                )
 
 @admin.register(CargaSerieIndicador)
 class CargaSerieIndicadorAdmin(admin.ModelAdmin):

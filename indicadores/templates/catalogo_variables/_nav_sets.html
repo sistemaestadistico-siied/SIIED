@@ -1,0 +1,23 @@
+{# Navegación entre los conjuntos del catálogo de variables. Variable de contexto: activo #}
+<nav class="flex flex-wrap gap-2 mb-8">
+    <a href="{% url 'indicadores:catalogo_variables_home' %}"
+       class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors {% if activo == 'plan' %}bg-cyan-600 text-white{% else %}bg-white border border-slate-200 text-slate-600 hover:border-cyan-400{% endif %}">
+        <i class="fas fa-list-check mr-1"></i> Plan Estadístico
+    </a>
+    <a href="{% url 'indicadores:catalogo_variables_dominios' %}"
+       class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors {% if activo == 'dominios' %}bg-cyan-600 text-white{% else %}bg-white border border-slate-200 text-slate-600 hover:border-cyan-400{% endif %}">
+        <i class="fas fa-layer-group mr-1"></i> Dominios de desagregación
+    </a>
+    <a href="{% url 'indicadores:catalogo_variables_conjuntos' %}"
+       class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors {% if activo == 'conjuntos' %}bg-cyan-600 text-white{% else %}bg-white border border-slate-200 text-slate-600 hover:border-cyan-400{% endif %}">
+        <i class="fas fa-database mr-1"></i> Conjuntos de datos
+    </a>
+    <a href="{% url 'indicadores:catalogo_variables_ecosistema' %}"
+       class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors {% if activo == 'ecosistema' %}bg-slate-800 text-white{% else %}bg-white border border-slate-200 text-slate-600 hover:border-cyan-400{% endif %}">
+        <i class="fas fa-lock mr-1"></i> Taller de Gestión de Datos — Datalake
+    </a>
+    <a href="{% url 'indicadores:catalogo_variables_geografias' %}"
+       class="px-4 py-2 rounded-xl text-sm font-semibold transition-colors {% if activo == 'geografias' %}bg-cyan-600 text-white{% else %}bg-white border border-slate-200 text-slate-600 hover:border-cyan-400{% endif %}">
+        <i class="fas fa-map-marker-alt mr-1"></i> Niveles y capas geo
+    </a>
+</nav>
