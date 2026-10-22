@@ -14,7 +14,7 @@
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900">Analítica e Inteligencia Artificial</h1>
-                    <p class="text-sm text-slate-500">Administración de Don Datico y futuros tableros Superset</p>
+                    <p class="text-sm text-slate-500">Tableros estadísticos · Administración de Don Datico · Taller de gestión de datos</p>
                 </div>
             </div>
             {% if user.is_authenticated %}
@@ -29,6 +29,7 @@
         </div>
 
         {% if user.is_authenticated %}
+        <!-- Funciones principales del módulo -->
         <nav class="flex flex-wrap gap-1">
             <a href="{% url 'indicadores:analitica_dashboard' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
@@ -39,84 +40,91 @@
                       {% endif %}">
                 Inicio
             </a>
-            <a href="{% url 'indicadores:analitica_configuracion' %}"
-               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                      {% if request.resolver_match.url_name == 'analitica_configuracion' %}
-                          bg-fuchsia-600 text-white shadow-sm
-                      {% else %}
-                          text-slate-600 hover:bg-slate-100
-                      {% endif %}">
-                Configuración IA
-            </a>
-            <a href="{% url 'indicadores:analitica_contextos' %}"
-               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                      {% if request.resolver_match.url_name == 'analitica_contextos' %}
-                          bg-fuchsia-600 text-white shadow-sm
-                      {% else %}
-                          text-slate-600 hover:bg-slate-100
-                      {% endif %}">
-                Contextos y Prompts
-            </a>
-            <a href="{% url 'indicadores:analitica_sugerencias' %}"
-               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                      {% if request.resolver_match.url_name == 'analitica_sugerencias' %}
-                          bg-fuchsia-600 text-white shadow-sm
-                      {% else %}
-                          text-slate-600 hover:bg-slate-100
-                      {% endif %}">
-                Consultas sugeridas
-            </a>
             <a href="{% url 'indicadores:analitica_superset' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-                      {% if request.resolver_match.url_name == 'analitica_superset' %}
-                          bg-fuchsia-600 text-white shadow-sm
+                      {% if 'analitica_superset' in request.resolver_match.url_name %}
+                          bg-sky-600 text-white shadow-sm
                       {% else %}
                           text-slate-600 hover:bg-slate-100
                       {% endif %}">
-                Tableros Superset
+                SIIED BI
+            </a>
+            <a href="{% url 'indicadores:analitica_dondatico' %}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                      {% if 'analitica_dondatico' in request.resolver_match.url_name %}
+                          bg-emerald-600 text-white shadow-sm
+                      {% else %}
+                          text-emerald-700 bg-emerald-50 hover:bg-emerald-100
+                      {% endif %}">
+                <i class="fas fa-wand-magic-sparkles mr-1"></i> Don Datico BI
             </a>
         </nav>
 
-        <!-- Submódulo: Taller de Gestión de Datos -->
-        <div class="mt-4 pt-4 border-t border-slate-100">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Taller de Gestión de Datos</p>
-            <nav class="flex flex-wrap gap-1">
-                <a href="{% url 'indicadores:analitica_taller_reportes' %}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                          {% if request.resolver_match.url_name == 'analitica_taller_reportes' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
-                    Reportes del taller
-                </a>
-                <a href="{% url 'indicadores:analitica_taller_fuentes' %}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                          {% if request.resolver_match.url_name == 'analitica_taller_fuentes' or request.resolver_match.url_name == 'analitica_taller_fuente' or request.resolver_match.url_name == 'analitica_taller_conciliar' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
-                    Fuentes
-                </a>
-                <a href="{% url 'indicadores:analitica_taller_retos' %}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                          {% if request.resolver_match.url_name == 'analitica_taller_retos' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
-                    Retos
-                </a>
-                <a href="{% url 'indicadores:analitica_taller_organismos' %}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                          {% if request.resolver_match.url_name == 'analitica_taller_organismos' or request.resolver_match.url_name == 'analitica_taller_organismo' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
-                    Organismos
-                </a>
-                <a href="{% url 'indicadores:analitica_taller_seguridad' %}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                          {% if request.resolver_match.url_name == 'analitica_taller_seguridad' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
-                    Seguridad
-                </a>
-                <a href="{% url 'indicadores:analitica_taller_ecosistema' %}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                          {% if request.resolver_match.url_name == 'analitica_taller_ecosistema' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
-                    Ecosistema 3D
-                </a>
-                <a href="{% url 'indicadores:analitica_taller_catalogo' %}"
-                   class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
-                          {% if request.resolver_match.url_name == 'analitica_taller_catalogo' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
-                    Catálogo
-                </a>
-            </nav>
+        <!-- Secciones de administración -->
+        <div class="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
+            <!-- Don Datico / Inteligencia Artificial -->
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Don Datico — Inteligencia Artificial</p>
+                <nav class="flex flex-wrap gap-1">
+                    <a href="{% url 'indicadores:analitica_configuracion' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_configuracion' %}bg-violet-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-violet-50 hover:text-violet-800{% endif %}">
+                        Configuración IA
+                    </a>
+                    <a href="{% url 'indicadores:analitica_contextos' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_contextos' %}bg-violet-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-violet-50 hover:text-violet-800{% endif %}">
+                        Contextos y Prompts
+                    </a>
+                    <a href="{% url 'indicadores:analitica_sugerencias' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_sugerencias' %}bg-violet-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-violet-50 hover:text-violet-800{% endif %}">
+                        Consultas sugeridas
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Submódulo: Taller de Gestión de Datos -->
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Taller de Gestión de Datos</p>
+                <nav class="flex flex-wrap gap-1">
+                    <a href="{% url 'indicadores:analitica_taller_reportes' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_taller_reportes' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
+                        Reportes del taller
+                    </a>
+                    <a href="{% url 'indicadores:analitica_taller_fuentes' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_taller_fuentes' or request.resolver_match.url_name == 'analitica_taller_fuente' or request.resolver_match.url_name == 'analitica_taller_conciliar' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
+                        Fuentes
+                    </a>
+                    <a href="{% url 'indicadores:analitica_taller_retos' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_taller_retos' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
+                        Retos
+                    </a>
+                    <a href="{% url 'indicadores:analitica_taller_organismos' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_taller_organismos' or request.resolver_match.url_name == 'analitica_taller_organismo' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
+                        Organismos
+                    </a>
+                    <a href="{% url 'indicadores:analitica_taller_seguridad' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_taller_seguridad' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
+                        Seguridad
+                    </a>
+                    <a href="{% url 'indicadores:analitica_taller_ecosistema' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_taller_ecosistema' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
+                        Ecosistema 3D
+                    </a>
+                    <a href="{% url 'indicadores:analitica_taller_catalogo' %}"
+                       class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                              {% if request.resolver_match.url_name == 'analitica_taller_catalogo' %}bg-amber-500 text-white shadow-sm{% else %}text-slate-600 hover:bg-amber-50 hover:text-amber-800{% endif %}">
+                        Catálogo
+                    </a>
+                </nav>
+            </div>
         </div>
         {% endif %}
     </div>

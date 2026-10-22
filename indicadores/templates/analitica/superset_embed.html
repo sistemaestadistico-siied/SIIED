@@ -1,0 +1,141 @@
+{% extends 'analitica/base_analitica.html' %}
+{% block title %}{{ page_title|default:"SIIED BI" }} — Analítica e IA{% endblock %}
+{% block analitica_content %}
+<div class="container mx-auto px-6">
+<div class="-mx-2 md:-mx-4 flex flex-col" style="height: calc(100vh - 17rem); min-height: 480px;">
+    <!-- Mini toolbar -->
+    <div class="flex items-center justify-between px-4 py-2 bg-white border border-slate-200 rounded-t-2xl flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'indicadores:analitica_superset' %}"
+               class="inline-flex items-center px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i> Volver
+            </a>
+            <span class="text-slate-300">|</span>
+            <span class="text-sm font-medium text-slate-700">
+                <i class="fas fa-{{ icon|default:'chart-bar' }} text-sky-500 mr-1"></i>
+                {{ page_title|default:"SIIED BI" }}
+            </span>
+        </div>
+        <div class="flex items-center gap-2">
+            {% if target_url %}
+            <a href="{{ target_url }}" target="_blank"
+               class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-sky-700 hover:bg-sky-50 rounded-lg transition-colors border border-slate-200">
+                <i class="fas fa-external-link-alt mr-1"></i> Abrir en ventana
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Iframe container -->
+    <div class="flex-1 relative bg-slate-100 rounded-b-2xl border border-t-0 border-slate-200 overflow-hidden">
+        <!-- Loading overlay -->
+        <div id="loading-overlay" class="absolute inset-0 flex items-center justify-center bg-slate-50 z-10 transition-opacity duration-500">
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-sky-50 rounded-full mb-4">
+                    <i class="fas fa-chart-bar text-sky-500 text-2xl animate-pulse"></i>
+                </div>
+                <p class="text-sm font-medium text-slate-600">Cargando SIIED BI...</p>
+            </div>
+        </div>
+
+        {% if embed_uuid %}
+        <!-- Dashboard embebido vía @superset-ui/embedded-sdk + guest token -->
+        <div id="superset-embed" class="w-full h-full bg-white"></div>
+        {% elif login_ok %}
+        <!-- UI completa de Superset — el usuario autentica dentro del iframe -->
+        <iframe id="superset-frame"
+                class="w-full h-full border-0"
+                src="{{ target_url }}"
+                style="opacity: 0; transition: opacity 0.5s ease-in;"
+                allowfullscreen>
+        </iframe>
+        {% else %}
+        <!-- Login falló — mostrar error -->
+        <div class="absolute inset-0 flex items-center justify-center bg-slate-50">
+            <div class="text-center max-w-md">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-full mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                </div>
+                <p class="text-sm font-medium text-slate-700 mb-2">No se pudo cargar SIIED BI</p>
+                <p class="text-xs text-slate-500">Contacte al administrador para verificar la configuración de Superset.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+</div>
+
+{% if embed_uuid %}
+<!-- SDK oficial de embedding — inyecta el iframe y autentica con el guest token -->
+<script src="https://unpkg.com/@superset-ui/embedded-sdk@0.2.0/dist/embedded-sdk.umd.js"></script>
+<script>
+(function() {
+    var overlay = document.getElementById('loading-overlay');
+    function hideOverlay() {
+        overlay.style.opacity = '0';
+        setTimeout(function() { overlay.style.display = 'none'; }, 500);
+    }
+
+    embedDashboard({
+        id: "{{ embed_uuid }}",
+        supersetDomain: "{{ superset_domain }}",
+        mountPoint: document.getElementById("superset-embed"),
+        fetchGuestToken: function() { return "{{ guest_token }}"; },
+        dashboardUiConfig: {
+            hideTitle: false,
+            hideTab: false,
+            hideChartControls: false,
+            filters: { visible: true, expanded: false }
+        }
+    });
+
+    // El SDK inyecta <iframe> dentro del mount point; ocultar overlay al cargar
+    var observer = new MutationObserver(function() {
+        var frame = document.querySelector('#superset-embed iframe');
+        if (frame) {
+            observer.disconnect();
+            frame.addEventListener('load', hideOverlay);
+            setTimeout(hideOverlay, 8000);  // fallback
+        }
+    });
+    observer.observe(document.getElementById('superset-embed'),
+                     { childList: true, subtree: true });
+})();
+</script>
+{% else %}
+<script>
+(function() {
+    var supersetFrame = document.getElementById('superset-frame');
+    var overlay = document.getElementById('loading-overlay');
+
+    // Sin iframe (login fallido): quitar el overlay para que se vea
+    // el mensaje de error renderizado debajo — si no, queda girando
+    // "Cargando SIIED BI..." para siempre tapándolo.
+    if (!supersetFrame) {
+        overlay.style.display = 'none';
+        return;
+    }
+
+    // Cuando el iframe principal carga, ocultar overlay
+    supersetFrame.addEventListener('load', function() {
+        overlay.style.opacity = '0';
+        setTimeout(function() {
+            overlay.style.display = 'none';
+        }, 500);
+        supersetFrame.style.opacity = '1';
+    });
+
+    // Fallback: si después de 8s no carga, mostrar de todos modos
+    setTimeout(function() {
+        if (overlay.style.display !== 'none') {
+            overlay.style.opacity = '0';
+            setTimeout(function() {
+                overlay.style.display = 'none';
+            }, 500);
+            if (supersetFrame) supersetFrame.style.opacity = '1';
+        }
+    }, 8000);
+})();
+</script>
+{% endif %}
+{% endblock %}

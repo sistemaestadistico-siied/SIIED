@@ -64,6 +64,12 @@ CSRF_TRUSTED_ORIGINS = _env_list('CSRF_TRUSTED_ORIGINS', [
 # la aplicación está detrás de un proxy PHP
 FORCE_SCRIPT_NAME = os.environ.get('FORCE_SCRIPT_NAME', '')
 
+# El proxy de Apache termina HTTPS y reenvía X-Forwarded-Proto=https.
+# Sin este header confiable, request.is_secure() es False y el check de
+# CSRF rechaza cualquier POST con Origin https:// → 403 (ej. login).
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_PORT = True
+
 # Límite de campos por request GET/POST (default Django: 1000).
 # El editor editorial de series de gráficos envía ~5 campos por serie
 # + 1 select por dominio de desagregación del indicador; con muchas

@@ -1,0 +1,291 @@
+{% extends 'analitica/base_analitica.html' %}
+{% block title %}Manual de Uso — SIIED BI{% endblock %}
+
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-10">
+<div class="max-w-3xl mx-auto">
+
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+      <a href="{% url 'indicadores:analitica_superset' %}" class="hover:text-sky-600 transition-colors">
+          <i class="fas fa-tachometer-alt mr-1"></i> SIIED BI
+      </a>
+      <i class="fas fa-chevron-right text-xs"></i>
+      <span class="text-slate-800 font-medium">Manual</span>
+  </div>
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-slate-900">Manual de uso de SIIED BI</h1>
+    <p class="text-slate-500 mt-1">Guía para crear dashboards estadísticos con Apache Superset integrado al SIIED.</p>
+  </div>
+
+  <!-- Índice rápido -->
+  <div class="bg-sky-50 border border-sky-200 rounded-3xl p-4 mb-8">
+    <p class="text-sm font-semibold text-sky-800 mb-2 flex items-center">
+      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+      </svg>En esta guía encontrarás:
+    </p>
+    <ul class="text-sm text-sky-700 space-y-1 ml-6">
+      <li><a href="#que-es" class="hover:text-sky-900 hover:underline">1. ¿Qué es SIIED BI?</a></li>
+      <li><a href="#acceso" class="hover:text-sky-900 hover:underline">2. Acceso y permisos</a></li>
+      <li><a href="#dashboard" class="hover:text-sky-900 hover:underline">3. Panel principal</a></li>
+      <li><a href="#subir-csv" class="hover:text-sky-900 hover:underline">4. Subir datos CSV</a></li>
+      <li><a href="#crear-tablero" class="hover:text-sky-900 hover:underline">5. Crear un tablero</a></li>
+      <li><a href="#compartir" class="hover:text-sky-900 hover:underline">6. Compartir y embeber tableros</a></li>
+      <li><a href="#consejos" class="hover:text-sky-900 hover:underline">7. Consejos y buenas prácticas</a></li>
+    </ul>
+  </div>
+
+  <!-- SECCIÓN 1 -->
+  <section id="que-es" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">1</span>
+      ¿Qué es SIIED BI?
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>SIIED BI integra <strong>Apache Superset</strong> al SIIED para permitir la creación de dashboards interactivos sin necesidad de licencias de herramientas propietarias como Looker Studio o Power BI.</p>
+      <p>Con este módulo puede:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li>Crear <strong>tableros de control estadístico</strong> con gráficos, tablas y filtros interactivos.</li>
+        <li>Usar datos del SIIED (indicadores, series, conjuntos de datos, catálogos de consulta) directamente como fuente de datos.</li>
+        <li>Subir archivos <strong>CSV propios</strong> como datasets adicionales.</li>
+        <li>Obtener <strong>links de acceso</strong> para compartir tableros con el equipo.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 2 -->
+  <section id="acceso" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">2</span>
+      Acceso y permisos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>Pueden acceder a SIIED BI:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Analistas:</strong> usuarios con rol de analista del módulo Analítica e IA.</li>
+        <li><strong>Administradores (staff):</strong> acceso total.</li>
+      </ul>
+      <p>Acceda desde <code>/analitica/superset/</code> o desde el módulo <strong>Analítica e IA</strong> del portal.
+      Al asignar el rol analista a un usuario en el admin, su cuenta de Superset se crea automáticamente con la contraseña compartida del sistema.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 3 -->
+  <section id="dashboard" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">3</span>
+      Panel principal
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>Al ingresar verá el panel principal con:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Estado de Superset:</strong> indicador de si el servicio está en línea.</li>
+        <li><strong>Contadores:</strong> tableros creados, datasets disponibles, conjuntos de datos del SIIED.</li>
+        <li><strong>Grid de tableros:</strong> tarjetas con thumbnail, título, estado y acceso rápido.</li>
+      </ul>
+      <p>Desde aquí puede crear tableros, subir CSV o abrir Superset directamente.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 4 -->
+  <section id="datasets" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">4</span>
+      Los datasets: las fuentes de datos
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-4 text-sm text-slate-700">
+      <p>En Superset todo gráfico nace de un <strong>dataset</strong> (una tabla consultable).
+      El SIIED le entrega cuatro familias de datasets, identificables por su nombre:</p>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border border-slate-200 rounded-lg">
+          <thead class="bg-slate-50 text-slate-600 uppercase">
+            <tr>
+              <th class="px-3 py-2">Dataset</th>
+              <th class="px-3 py-2">Origen SIIED</th>
+              <th class="px-3 py-2">Contenido</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">vista_indicadores_datos</td>
+              <td class="px-3 py-2">Indicadores y sus datos</td>
+              <td class="px-3 py-2">Vista plana global dominio → tema → subtema → indicador → año → valor, con desagregaciones geográfica y temática. Útil para análisis comparativos entre temas.</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">dominio_&lt;id&gt;_&lt;nombre&gt;</td>
+              <td class="px-3 py-2">Indicadores por dominio</td>
+              <td class="px-3 py-2">La misma vista plana pero filtrada a un solo dominio — más liviana para trabajar un área específica sin perder la taxonomía. Se crean con <strong>Sincronizar SIIED</strong>.</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">conjunto_&lt;id&gt;_&lt;nombre&gt;</td>
+              <td class="px-3 py-2">Conjuntos de Datos</td>
+              <td class="px-3 py-2">Cada ConjuntoDatos del SIIED (archivos microdata) subido como tabla. Se crean con <strong>Sincronizar SIIED</strong>.</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">catalogo_&lt;id&gt;_&lt;nombre&gt;</td>
+              <td class="px-3 py-2">Catálogos de consulta</td>
+              <td class="px-3 py-2">Nomencladores, directorios, inventarios y fichas territoriales del catálogo de consulta. Se crean con <strong>Sincronizar SIIED</strong>.</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">ficed_*</td>
+              <td class="px-3 py-2">Medición FICED</td>
+              <td class="px-3 py-2">Capacidad estadística por organismo: <code>formularios</code> (puntajes por período), <code>recursos_humanos</code> (equipos) y <code>dimensiones</code> (puntaje por dimensión B/C/D/E para radar o barras). Vistas en vivo.</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">taller_*</td>
+              <td class="px-3 py-2">Taller de gestión de datos</td>
+              <td class="px-3 py-2">Seguimiento del taller: <code>inscripciones</code>, <code>retos</code>, <code>fuentes</code> (con conteos de variables/etiquetas), <code>evaluaciones</code> de seguridad y <code>avances</code> de formalización. Vistas en vivo.</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">satisf_*</td>
+              <td class="px-3 py-2">Encuestas de satisfacción</td>
+              <td class="px-3 py-2">Respuestas completas del formulario oficial: <code>respuestas</code> (6 calificaciones + promedio) y <code>dimensiones</code> (una fila por dimensión para distribuciones). Vistas en vivo.</td>
+            </tr>
+            <tr>
+              <td class="px-3 py-2 font-mono text-sky-700">nombre libre</td>
+              <td class="px-3 py-2">Archivos propios</td>
+              <td class="px-3 py-2">CSV/Excel que usted sube manualmente desde <strong>Subir CSV</strong>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-4">
+        <p class="text-emerald-800 font-semibold flex items-center">
+          <i class="fas fa-sync-alt mr-2"></i>Sincronizar SIIED
+        </p>
+        <p class="text-emerald-700 mt-1">El botón <strong>"Sincronizar SIIED"</strong> del panel
+        convierte automáticamente todos los Conjuntos de Datos y Catálogos de Consulta activos en
+        datasets de Superset. Ejecútelo cuando cargue o actualice conjuntos o catálogos — cada
+        re-sincronización reemplaza la tabla con los datos más recientes.</p>
+      </div>
+
+      <p>Columnas clave de <code>vista_indicadores_datos</code>: <code>dominio</code>,
+      <code>tema</code>, <code>subtema</code>, <code>indicador</code>, <code>codigo_indicador</code>,
+      <code>anio</code>, <code>fecha_dato</code>, <code>valor_dato</code>,
+      <code>desagregacion_geografica</code>, <code>desagregacion_tematica</code>.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 5 -->
+  <section id="explorar" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">5</span>
+      Explorar un dataset
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>Antes de armar un tablero, explore los datos con la vista <strong>Explore</strong>:</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Vaya a <strong>"Explorar SIIED BI"</strong>. En el menú superior elija
+        <strong>Datasets</strong> (o <strong>Charts → + Chart</strong>).</li>
+        <li>Seleccione el dataset a explorar — por ejemplo
+        <code>vista_indicadores_datos</code> o un <code>catalogo_*</code>.</li>
+        <li>En el panel izquierdo elija el <strong>tipo de gráfico</strong> (Table, Bar Chart,
+        Line Chart, Pie...).</li>
+        <li>Arrastre columnas al constructor:
+          <ul class="list-disc list-inside ml-4 mt-1">
+            <li><strong>Dimensión / eje X:</strong> <code>anio</code>, <code>dominio</code>,
+            <code>tema</code> o la columna territorial del catálogo.</li>
+            <li><strong>Métrica:</strong> <code>SUM(valor_dato)</code>,
+            <code>AVG(valor_dato)</code> o <code>COUNT(*)</code> para conteos.</li>
+            <li><strong>Agrupar por:</strong> <code>desagregacion_geografica</code> o
+            <code>desagregacion_tematica</code> para comparar segmentos.</li>
+            <li><strong>Filtros:</strong> <code>indicador = '...'</code>, rango de
+            <code>anio</code>, etc.</li>
+          </ul>
+        </li>
+        <li>Presione <strong>"Update chart"</strong> para previsualizar. Ajuste y repita.</li>
+        <li>Cuando el gráfico sirva, use <strong>"Save"</strong> → asígnelo a un dashboard
+        (nuevo o existente).</li>
+      </ol>
+      <p>Para análisis ad-hoc con SQL use <strong>SQL Lab</strong> (menú SQL → SQL Lab):
+      la base de datos <em>SIIED - Indicadores</em> expone todas las tablas del sistema.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 6 -->
+  <section id="subir-csv" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">6</span>
+      Subir un CSV propio
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>Para crear un dataset a partir de un archivo propio:</p>
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Vaya a <strong>"Subir CSV"</strong> desde el encabezado del panel.</li>
+        <li>Elija la fuente:
+          <ul class="list-disc list-inside ml-4 mt-1">
+            <li><strong>Archivo:</strong> suba un .csv, .tsv, .xlsx o .xls desde su equipo.</li>
+            <li><strong>Conjunto de Datos SIIED:</strong> seleccione un conjunto ya cargado
+            (el nombre se genera solo).</li>
+          </ul>
+        </li>
+        <li>Opcionalmente asigne un <strong>nombre de tabla</strong> (snake_case, ej:
+        <code>empleo_informal_2025</code>). Si lo deja vacío se genera desde el archivo.</li>
+        <li>Haga clic en <strong>"Subir a SIIED BI"</strong>.</li>
+      </ol>
+      <p>El dataset quedará disponible inmediatamente en Superset para crear visualizaciones.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 7 -->
+  <section id="crear-tablero" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">7</span>
+      Crear un tablero
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <ol class="list-decimal list-inside space-y-2 ml-2">
+        <li>Haga clic en <strong>"Crear Tablero"</strong>. Se abrirá SIIED BI (Apache Superset) embebido.</li>
+        <li>En Superset, cree un <strong>nuevo dashboard</strong> y agréguele gráficos (charts).</li>
+        <li>Para cada gráfico, seleccione el dataset (tabla del SIIED o CSV subido).</li>
+        <li>Configure el tipo de visualización: barras, líneas, tablas, mapas, etc.</li>
+        <li>Una vez satisfecho, <strong>publique</strong> el dashboard.</li>
+      </ol>
+      <p>El tablero aparecerá automáticamente en la lista del panel de Tableros del SIIED.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 8 -->
+  <section id="compartir" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">8</span>
+      Compartir y embeber tableros
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <p>Cada tablero tiene:</p>
+      <ul class="list-disc list-inside space-y-1 ml-2">
+        <li><strong>Link directo:</strong> URL compartible que lleva al dashboard en Superset.</li>
+        <li><strong>Vista embebida:</strong> si está habilitada, el dashboard se muestra dentro del SIIED sin salir del portal.</li>
+        <li><strong>Botón "Abrir en ventana":</strong> abre el dashboard directamente en Superset.</li>
+      </ul>
+      <p>Para habilitar la vista embebida, un administrador debe activar el modo "Embedded" en el dashboard desde Superset.</p>
+    </div>
+  </section>
+
+  <!-- SECCIÓN 9 -->
+  <section id="consejos" class="mb-10">
+    <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+      <span class="bg-sky-600 text-white text-sm font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">9</span>
+      Consejos y buenas prácticas
+    </h2>
+    <div class="bg-white border border-slate-200 rounded-3xl p-5 space-y-3 text-sm text-slate-700">
+      <ul class="list-disc list-inside space-y-2 ml-2">
+        <li>Use <strong>nombres descriptivos</strong> para tableros y datasets (incluya el año y tema).</li>
+        <li>Prefiera <strong>vista_indicadores_datos</strong> y los datasets sincronizados
+        (<code>conjunto_*</code>, <code>catalogo_*</code>) en lugar de CSV sueltos: los datos se
+        actualizan con el sistema.</li>
+        <li>Re-ejecute <strong>Sincronizar SIIED</strong> tras cargar conjuntos o catálogos nuevos.</li>
+        <li>Publique solo tableros <strong>finalizados</strong> — los borradores son visibles solo para editores.</li>
+        <li>Aproveche los <strong>filtros interactivos</strong> de Superset para que los usuarios puedan explorar los datos.</li>
+        <li>Para exploración ad-hoc con lenguaje natural, use <strong>Consulta y Tableros</strong> (Don Datico).</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,304 @@
+{% extends 'analitica/base_analitica.html' %}
+{% load static %}
+{% block title %}Don Datico BI — Analítica e IA{% endblock %}
+{% block analitica_content %}
+
+<style>
+    .dd-tab { padding:.6rem 1rem; border-radius:.6rem; font-size:.85rem; font-weight:600; cursor:pointer; border:1px solid #e2e8f0; background:#fff; color:#475569; transition:all .15s; }
+    .dd-tab.active { background:#047857; color:#fff; border-color:#047857; }
+    .dd-panel { display:none; }
+    .dd-panel.active { display:block; }
+    .dd-tabla { width:100%; font-size:.78rem; border-collapse:collapse; }
+    .dd-tabla th { text-align:left; padding:.45rem .6rem; background:#d1fae5; color:#065f46; font-weight:600; border-bottom:1px solid #a7f3d0; }
+    .dd-tabla td { padding:.4rem .6rem; border-bottom:1px solid #e2e8f0; color:#334155; }
+    .dd-chip { display:inline-block; font-size:.72rem; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; border-radius:999px; padding:.2rem .7rem; margin:.15rem .2rem .15rem 0; }
+    .dd-chip-ind { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+    .dd-prosa { font-size:.9rem; line-height:1.65; color:#334155; }
+    .dd-prosa p + p { margin-top:.55rem; }
+</style>
+
+<div class="container mx-auto px-6 py-8">
+<div class="max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-6 flex items-center gap-4">
+        <img src="{% static 'indicadores/images/logo_dondatico_bi.png' %}"
+             alt="Don Datico BI"
+             class="h-16 sm:h-20 w-auto object-contain shrink-0">
+        <div>
+            <h1 class="text-2xl font-bold text-emerald-950">
+                Don Datico BI
+            </h1>
+            <p class="text-slate-500 mt-1">
+                Consulte, analice y genere tableros con asistencia de IA — sin pelear con la
+                interfaz del BI · Powered by Apache Superset.
+            </p>
+        </div>
+    </div>
+
+    {% if not superset_disponible %}
+    <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+        <i class="fas fa-exclamation-triangle mr-1"></i>
+        Apache Superset no está disponible. Las herramientas de este submódulo lo requieren.
+    </div>
+    {% endif %}
+
+    <!-- Tabs -->
+    <div class="flex flex-wrap gap-2 mb-5">
+        <button type="button" class="dd-tab active" data-tab="consulta"><i class="fas fa-magnifying-glass mr-1"></i> Consulta de datos</button>
+        <button type="button" class="dd-tab" data-tab="analisis"><i class="fas fa-chart-line mr-1"></i> Análisis</button>
+        <button type="button" class="dd-tab" data-tab="tablero"><i class="fas fa-table-columns mr-1"></i> Crear tablero</button>
+    </div>
+
+    <!-- ============ CONSULTA ============ -->
+    <div id="panel-consulta" class="dd-panel active">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <p class="text-sm text-slate-600 mb-3">
+                Pregunte por datos concretos integrados en Superset. Don Datico ejecuta la consulta
+                sobre los datasets y responde con la cifra, la tabla de resultados y las fuentes usadas.
+            </p>
+            <textarea id="in-consulta" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+                      placeholder='Ej: "¿Cuál fue la matrícula oficial por año? ¿Y por sector en 2024?"'></textarea>
+            <button id="btn-consulta" class="mt-3 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50">
+                <i class="fas fa-paper-plane mr-1"></i> Consultar
+            </button>
+        </div>
+        <div id="out-consulta" class="mt-5"></div>
+    </div>
+
+    <!-- ============ ANÁLISIS ============ -->
+    <div id="panel-analisis" class="dd-panel">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <p class="text-sm text-slate-600 mb-3">
+                Pida una lectura interpretativa: tendencias, comparaciones, anomalías. Don Datico
+                extrae la evidencia de Superset y escribe el análisis con las cifras reales.
+            </p>
+            <textarea id="in-analisis" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+                      placeholder='Ej: "Analiza la evolución de la cobertura educativa en la última década y compara los últimos dos años"'></textarea>
+            <button id="btn-analisis" class="mt-3 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50">
+                <i class="fas fa-brain mr-1"></i> Analizar
+            </button>
+        </div>
+        <div id="out-analisis" class="mt-5"></div>
+    </div>
+
+    <!-- ============ CREAR TABLERO ============ -->
+    <div id="panel-tablero" class="dd-panel">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <p class="text-sm text-slate-600 mb-3">
+                Describa el tablero de control que necesita. Don Datico crea en Superset el dashboard
+                con sus gráficos ya dispuestos — usted solo lo revisa y publica.
+            </p>
+            <textarea id="in-tablero" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+                      placeholder='Ej: "Tablero de educación: matrícula por año en línea, KPI de matrícula total 2024, barras por nivel y tabla por zona"'></textarea>
+            <button id="btn-tablero" class="mt-3 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50">
+                <i class="fas fa-wand-magic-sparkles mr-1"></i> Generar tablero
+            </button>
+            <p class="text-[11px] text-slate-400 mt-2">
+                El tablero se crea como borrador en Superset. Después puede editarlo, publicarlo
+                y gestionar permisos desde «SIIED BI».
+            </p>
+        </div>
+        <div id="out-tablero" class="mt-5"></div>
+    </div>
+
+    <!-- Datasets disponibles (referencia) -->
+    {% if datasets %}
+    <details class="mt-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+        <summary class="text-sm font-semibold text-slate-700 cursor-pointer">
+            <i class="fas fa-database text-emerald-700 mr-2"></i>
+            Datasets integrados en Superset ({{ datasets|length }})
+        </summary>
+        <div class="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-1">
+            {% for d in datasets %}
+            <span class="font-mono text-xs bg-slate-50 text-slate-600 border border-slate-200 rounded px-2 py-1 truncate" title="{{ d.table_name }}">{{ d.table_name }}</span>
+            {% endfor %}
+        </div>
+    </details>
+    {% endif %}
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    'use strict';
+
+    const URLS = {
+        consulta: "{% url 'indicadores:analitica_dondatico_consultar' %}",
+        analisis: "{% url 'indicadores:analitica_dondatico_analizar' %}",
+        tablero: "{% url 'indicadores:analitica_dondatico_generar' %}",
+    };
+    const URL_DETALLE = "{% url 'indicadores:analitica_superset_detalle' 0 %}";
+
+    function csrf() {
+        const m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+    }
+
+    const esc = s => String(s == null ? '' : s).replace(/</g, '&lt;');
+    const prosa = s => `<p>${esc(s).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
+    const num = v => (typeof v === 'number')
+        ? v.toLocaleString('es-CO', {maximumFractionDigits: 2})
+        : esc(v);
+
+    // ---------- tabs ----------
+    document.querySelectorAll('.dd-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.dd-tab').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.dd-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+        });
+    });
+
+    // ---------- renderers ----------
+    function renderError(msg, extra) {
+        return `<div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-800">
+            <i class="fas fa-exclamation-triangle mr-1"></i> ${esc(msg)}
+            ${extra || ''}</div>`;
+    }
+
+    function renderTabla(t) {
+        if (!t.ok) {
+            return `<div class="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 mb-3">
+                <strong>${esc(t.titulo)}</strong>: ${esc(t.error || 'sin resultados')}</div>`;
+        }
+        const cols = t.columnas || [];
+        const filas = (t.filas || []).slice(0, 100);
+        const head = cols.map(c => `<th>${esc(c)}</th>`).join('');
+        const body = filas.map(f =>
+            `<tr>${cols.map(c => `<td>${num(f[c])}</td>`).join('')}</tr>`).join('');
+        return `<div class="bg-white border border-slate-200 rounded-xl overflow-hidden mb-4">
+            <div class="px-4 py-2 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 flex justify-between">
+                <span><i class="fas fa-table mr-1"></i> ${esc(t.titulo || 'Resultados')}</span>
+                <span class="text-slate-400 font-mono">${esc(t.dataset || '')}</span>
+            </div>
+            <div class="overflow-auto" style="max-height:320px">
+                <table class="dd-tabla"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+            </div>
+        </div>`;
+    }
+
+    function renderFuentes(fuentes, indicadores) {
+        let html = '';
+        if (indicadores && indicadores.length) {
+            html += `<div class="mb-2"><p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Indicadores involucrados</p>`
+                + indicadores.map(i => `<span class="dd-chip dd-chip-ind"><i class="fas fa-chart-line mr-1"></i>${esc(i)}</span>`).join('') + '</div>';
+        }
+        if (fuentes && fuentes.length) {
+            html += `<div><p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Fuentes usadas</p>`
+                + fuentes.map(f => `<span class="dd-chip"><i class="fas fa-database mr-1"></i>${esc(f)}</span>`).join('') + '</div>';
+        }
+        return html;
+    }
+
+    function renderConsulta(data) {
+        let html = '';
+        if (data.entendido) {
+            html += `<div class="mb-4 p-3 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-900">
+                <strong><i class="fas fa-comment-dots mr-1"></i> Don Datico:</strong> ${esc(data.entendido)}</div>`;
+        }
+        if (data.respuesta) {
+            html += `<div class="bg-white border border-slate-200 rounded-xl p-5 mb-4">
+                <div class="dd-prosa">${prosa(data.respuesta)}</div></div>`;
+        }
+        (data.tablas || []).forEach(t => { html += renderTabla(t); });
+        if (data.notas && data.notas.length) {
+            html += `<div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 mb-4">
+                <strong><i class="fas fa-exclamation-circle mr-1"></i> Cautelas:</strong>
+                <ul class="list-disc list-inside mt-1">${data.notas.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>`;
+        }
+        html += renderFuentes(data.fuentes);
+        html += `<p class="text-[10px] text-slate-400 italic mt-4"><i class="fas fa-shield-halved mr-1"></i>
+            Respuesta generada por IA como apoyo a la consulta de datos del SIIED; no representa
+            posición institucional ni declaración oficial.</p>`;
+        return html;
+    }
+
+    function renderTablero(data, consulta) {
+        let html = `<div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 mb-4">`;
+        html += `<div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <h3 class="text-lg font-bold text-slate-800"><i class="fas fa-table-columns text-sky-800 mr-2"></i>${esc(data.titulo)}</h3>
+            <div class="flex gap-2">
+                <a href="${URL_DETALLE.replace('/0/', '/' + data.dashboard_id + '/')}"
+                   class="px-4 py-2 bg-sky-800 text-white rounded-lg text-sm font-medium hover:bg-sky-900 transition">
+                    <i class="fas fa-eye mr-1"></i> Ver en el módulo
+                </a>
+                ${data.url_dashboard ? `<a href="${data.url_dashboard}" target="_blank" rel="noopener"
+                   class="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition">
+                    <i class="fas fa-external-link-alt mr-1"></i> Abrir en Superset</a>` : ''}
+            </div>
+        </div>`;
+        if (data.descripcion) html += `<p class="text-sm text-slate-500 mb-3">${esc(data.descripcion)}</p>`;
+        html += '<div class="space-y-1">';
+        (data.charts || []).forEach(c => {
+            html += `<div class="flex items-center gap-2 text-sm ${c.ok ? 'text-slate-700' : 'text-rose-600'}">
+                <i class="fas ${c.ok ? 'fa-check-circle text-emerald-500' : 'fa-times-circle text-rose-500'}"></i>
+                <span>${esc(c.titulo)}</span>
+                <span class="text-xs text-slate-400 font-mono">${c.viz ? '(' + esc(c.viz) + ')' : ''} ${c.dataset ? '· ' + esc(c.dataset) : ''}</span>
+                ${c.ok ? '' : `<span class="text-xs">— ${esc(c.error || 'error')}</span>`}
+            </div>`;
+        });
+        html += '</div>';
+        if (data.advertencias && data.advertencias.length) {
+            html += `<div class="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+                <strong><i class="fas fa-exclamation-circle mr-1"></i> Revisar:</strong>
+                <ul class="list-disc list-inside mt-1">${data.advertencias.map(a => `<li>${esc(a)}</li>`).join('')}</ul></div>`;
+        }
+        html += '</div>';
+        html += renderFuentes(data.fuentes, data.indicadores);
+        return html;
+    }
+
+    // ---------- petición ----------
+    async function enviar(modo, inputId, btnId, outId) {
+        const $in = document.getElementById(inputId);
+        const $btn = document.getElementById(btnId);
+        const $out = document.getElementById(outId);
+        const consulta = $in.value.trim();
+        if (consulta.length < 5) return;
+        $btn.disabled = true;
+        $out.innerHTML = `<div class="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
+            <i class="fas fa-circle-notch fa-spin mr-1 text-sky-700"></i>
+            ${modo === 'tablero'
+                ? 'Don Datico está creando el tablero en Superset (puede tardar un momento)…'
+                : 'Don Datico está consultando los datos en Superset…'}</div>`;
+        try {
+            const resp = await fetch(URLS[modo], {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf()},
+                body: JSON.stringify({consulta}),
+            });
+            const data = await resp.json();
+            if (!resp.ok || data.ok === false || data.error && !data.ok) {
+                $out.innerHTML = renderError(
+                    data.error || 'No pude procesar la petición.',
+                    (data.advertencias && data.advertencias.length)
+                        ? `<ul class="list-disc list-inside mt-2">${data.advertencias.map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : '');
+            } else if (modo === 'tablero') {
+                $out.innerHTML = renderTablero(data, consulta);
+            } else {
+                $out.innerHTML = renderConsulta(data);
+            }
+        } catch (e) {
+            $out.innerHTML = renderError('Error de conexión. Intenta de nuevo.');
+        } finally {
+            $btn.disabled = false;
+        }
+    }
+
+    document.getElementById('btn-consulta').addEventListener('click',
+        () => enviar('consulta', 'in-consulta', 'btn-consulta', 'out-consulta'));
+    document.getElementById('btn-analisis').addEventListener('click',
+        () => enviar('analisis', 'in-analisis', 'btn-analisis', 'out-analisis'));
+    document.getElementById('btn-tablero').addEventListener('click',
+        () => enviar('tablero', 'in-tablero', 'btn-tablero', 'out-tablero'));
+    document.getElementById('in-consulta').addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('btn-consulta').click(); }
+    });
+})();
+</script>
+{% endblock %}

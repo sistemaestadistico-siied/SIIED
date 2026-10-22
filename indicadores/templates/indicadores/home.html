@@ -39,7 +39,7 @@
         display: flex; align-items: center; justify-content: center;
         margin-bottom: 1rem; font-size: 1.35rem;
     }
-    .hcard-img { max-height: 5.5rem; width: auto; object-fit: contain; }
+    .hcard-img { height: 5.5rem; width: 100%; object-fit: contain; }
 
     /* ---------- Acentos por tema ---------- */
     .acc-lime    { background:#ecfccb; color:#4d7c0f; }
@@ -298,10 +298,18 @@
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">Consulta y análisis</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Herramientas de consulta</h2>
-            <p class="text-slate-500 mt-2">Del indicador puntual al tablero completo: entradas directas a las fuentes del SIIED.</p>
+            <p class="text-slate-500 mt-2">El asistente Don Datico, el explorador de conjuntos de datos, el visor comparativo, el generador de tableros y SIIED BI: consulta el SIIED a tu manera.</p>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Don Datico -->
+            <a href="{% url 'indicadores:chat' %}" class="hcard hcyan group">
+                <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Don Datico · Asistente IA</h3>
+                <p class="text-sm text-slate-500 mt-1">Consulta indicadores en lenguaje natural con el guía del sistema.</p>
+                <span class="hcard-cta">Chatear ahora <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
             <!-- Explorador de conjuntos -->
             <a href="{% url 'indicadores:conjuntos_datos_explorer' %}" class="hcard hcyan group">
                 <img src="{% static 'indicadores/images/gato claro.png' %}" alt="Explorador de conjuntos de datos" class="hcard-img mb-3">
@@ -326,6 +334,22 @@
                 <span class="hcard-cta">Abrir Consulta y Tableros <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
+            <!-- SIIED BI -->
+            <a href="{% url 'indicadores:analitica_superset' %}" class="hcard hcyan group">
+                <img src="{% static 'indicadores/images/logo_siied_bi.png' %}" alt="SIIED BI" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">SIIED BI</h3>
+                <p class="text-sm text-slate-500 mt-1">Tableros estadísticos interactivos conectados a los datos del sistema. Powered by Apache Superset.</p>
+                <span class="hcard-cta">Abrir SIIED BI <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
+            <!-- Don Datico BI -->
+            <a href="{% url 'indicadores:analitica_dondatico' %}" class="hcard group">
+                <img src="{% static 'indicadores/images/logo_dondatico_bi.png' %}" alt="Don Datico BI" class="hcard-img mb-3">
+                <h3 class="text-lg font-bold text-slate-800">Don Datico BI</h3>
+                <p class="text-sm text-slate-500 mt-1">Describe el tablero en lenguaje natural y el asistente lo construye por ti. Powered by Apache Superset.</p>
+                <span class="hcard-cta">Crear con IA <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
+
         </div>
     </div>
 </section>
@@ -338,7 +362,7 @@
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Catálogo estadístico</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Conjuntos de indicadores</h2>
-            <p class="text-slate-500 mt-2">Los tres grandes conjuntos: el catálogo por dominios temáticos, el histórico Cali en Cifras y los ODS.</p>
+            <p class="text-slate-500 mt-2">El histórico Cali en Cifras, el seguimiento distrital a los ODS y el catálogo completo por dominios temáticos.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -377,17 +401,10 @@
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-cyan-100 text-cyan-800 text-xs font-bold uppercase tracking-wider mb-3">Conectividad</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Conectividad y Acceso Abierto</h2>
-            <p class="text-slate-500 mt-2">El asistente que habla tu idioma, la API que habla con tus sistemas.</p>
+            <p class="text-slate-500 mt-2">Libro digital 3D, API abierta, documentación y código abierto, servidor MCP y skill para tu IA: todos los canales de acceso.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <a href="{% url 'indicadores:chat' %}" class="hcard group">
-                <img src="{% static 'indicadores/images/don datico.png' %}" alt="Don Datico" class="hcard-img mb-3">
-                <h3 class="text-lg font-bold text-slate-800">Don Datico · Asistente IA</h3>
-                <p class="text-sm text-slate-500 mt-1">Consulta indicadores en lenguaje natural con el guía del sistema.</p>
-                <span class="hcard-cta">Chatear ahora <i class="fas fa-arrow-right ml-1"></i></span>
-            </a>
-
             <!-- Libro 3D -->
             <a href="{% url 'indicadores:dominios_3d' %}" class="hcard group">
                 <img src="{% static 'indicadores/images/logo_libro_3d.png' %}" alt="Libro Digital de Datos 3D" class="hcard-img mb-3">
@@ -435,7 +452,7 @@
         <div class="max-w-2xl mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-3">Ecosistema institucional</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Instrumentos del sistema</h2>
-            <p class="text-slate-500 mt-2">Medición, caracterización y difusión de la capacidad estadística distrital.</p>
+            <p class="text-slate-500 mt-2">Inventario de operaciones, ICED, hoja de vida estadística, taller de gestión de datos, satisfacción, calendario de difusión y catálogo de variables: la capacidad estadística del Distrito, medida y transparente.</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -480,6 +497,15 @@
                 <p class="text-sm text-slate-500 mt-1">Programación de publicaciones estadísticas por observatorio y organismo.</p>
                 <span class="hcard-cta">Ver calendario <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
+
+            <a href="{% url 'indicadores:catalogo_variables_home' %}" class="hcard group">
+                <div class="hcard-img mb-3 flex items-center justify-center text-cyan-600">
+                    <i class="fas fa-list-check text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800">Catálogo de Variables</h3>
+                <p class="text-sm text-slate-500 mt-1">Fichas técnicas del antiguo Plan Estadístico: unidades, dominios y reglas de validación.</p>
+                <span class="hcard-cta">Explorar catálogo <i class="fas fa-arrow-right ml-1"></i></span>
+            </a>
         </div>
     </div>
 </section>
@@ -492,7 +518,7 @@
         <div class="text-center mb-10">
             <span class="inline-block px-3 py-1 rounded-full bg-lime-100 text-lime-800 text-xs font-bold uppercase tracking-wider mb-3">Cali en números</span>
             <h2 class="text-3xl lg:text-4xl font-extrabold text-slate-800">Indicadores destacados</h2>
-            <p class="text-slate-500 mt-2">Datos clave por temática para entender el desarrollo distrital.</p>
+            <p class="text-slate-500 mt-2">Cifras clave de demografía y población, educación y bienestar, economía y mercado laboral, y seguridad y convivencia.</p>
         </div>
 
         <div class="relative overflow-hidden rounded-3xl border border-slate-200 shadow-sm">

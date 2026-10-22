@@ -14,10 +14,12 @@ from . import views_iced
 from . import views_educativos
 from . import views_laboratorio
 from . import views_analitica
+from . import views_analitica_dondatico
 from . import views_analitica_taller
 from . import views_editorial
 from . import views_taller
 from . import views_catalogo
+from . import views_catalogo_variables
 
 # Custom path converter for organismo codes with accented characters
 class OrganismoCodeConverter:
@@ -68,6 +70,18 @@ urlpatterns = [
     path('conjuntos/', views.conjuntos_indicadores, name='conjuntos_indicadores'),
     path('conectividad/', views.conectividad_acceso, name='conectividad_acceso'),
     path('instrumentos/', views.instrumentos_sistema, name='instrumentos_sistema'),
+    # Catálogo de variables (ex portal planestadistico.cali.gov.co)
+    path('catalogo-variables/', views_catalogo_variables.catalogo_variables_home, name='catalogo_variables_home'),
+    path('catalogo-variables/geografias/', views_catalogo_variables.catalogo_variables_geografias, name='catalogo_variables_geografias'),
+    path('catalogo-variables/dominios/', views_catalogo_variables.catalogo_variables_dominios, name='catalogo_variables_dominios'),
+    path('catalogo-variables/dominios/<int:pk>/', views_catalogo_variables.catalogo_variables_dominio_detalle, name='catalogo_variables_dominio_detalle'),
+    path('catalogo-variables/conjuntos-datos/', views_catalogo_variables.catalogo_variables_conjuntos, name='catalogo_variables_conjuntos'),
+    path('catalogo-variables/conjuntos-datos/<int:pk>/', views_catalogo_variables.catalogo_variables_variable_conjunto, name='catalogo_variables_variable_conjunto'),
+    # Ecosistema taller + data lake (solo usuarios autenticados)
+    path('catalogo-variables/ecosistema/', views_catalogo_variables.catalogo_variables_ecosistema, name='catalogo_variables_ecosistema'),
+    path('catalogo-variables/ecosistema/fuente/<int:pk>/', views_catalogo_variables.catalogo_variables_ecosistema_fuente, name='catalogo_variables_ecosistema_fuente'),
+    path('catalogo-variables/ecosistema/campo/<int:pk>/', views_catalogo_variables.catalogo_variables_ecosistema_campo, name='catalogo_variables_ecosistema_campo'),
+    path('catalogo-variables/<str:id_variable>/', views_catalogo_variables.catalogo_variables_ficha, name='catalogo_variables_ficha'),
     path('aliado/<slug:slug>/', views.aliado_detalle, name='aliado_detalle'),
     path('eventos/', views.eventos_lista, name='eventos'),
     path('evento/<slug:slug>/', views.evento_detalle, name='evento_detalle'),
@@ -401,6 +415,17 @@ urlpatterns = [
     path('validacion/iced/<int:formulario_id>/decidir/', views_validacion.validacion_decidir_iced, name='validacion_decidir_iced'),
     path('validacion/iced/conciliar/<int:organismo_id>/<str:periodo>/', views_validacion.validacion_conciliar_iced, name='validacion_conciliar_iced'),
 
+    # Catálogo de variables — gestión (solo equipo SIIED)
+    path('validacion/catalogo-variables/', views_catalogo_variables.gestion_catalogo_variables, name='gestion_catalogo_variables'),
+    path('validacion/catalogo-variables/nueva/', views_catalogo_variables.gestion_catalogo_variable_crear, name='gestion_catalogo_variable_crear'),
+    path('validacion/catalogo-variables/<str:id_variable>/editar/', views_catalogo_variables.gestion_catalogo_variable_editar, name='gestion_catalogo_variable_editar'),
+    path('validacion/catalogo-variables/<str:id_variable>/eliminar/', views_catalogo_variables.gestion_catalogo_variable_eliminar, name='gestion_catalogo_variable_eliminar'),
+    path('validacion/catalogo-variables/<str:id_variable>/valores/', views_catalogo_variables.gestion_catalogo_variable_valores, name='gestion_catalogo_variable_valores'),
+    path('validacion/catalogo-variables/referencia/<str:tabla>/', views_catalogo_variables.gestion_catalogo_referencia, name='gestion_catalogo_referencia'),
+    path('validacion/catalogo-variables/referencia/<str:tabla>/nuevo/', views_catalogo_variables.gestion_catalogo_referencia_form, name='gestion_catalogo_referencia_crear'),
+    path('validacion/catalogo-variables/referencia/<str:tabla>/<int:pk>/editar/', views_catalogo_variables.gestion_catalogo_referencia_form, name='gestion_catalogo_referencia_editar'),
+    path('validacion/catalogo-variables/referencia/<str:tabla>/<int:pk>/eliminar/', views_catalogo_variables.gestion_catalogo_referencia_eliminar, name='gestion_catalogo_referencia_eliminar'),
+
     # Manual
     path('validacion/manual/', views_validacion.validacion_manual, name='validacion_manual'),
 
@@ -438,6 +463,17 @@ urlpatterns = [
     path('analitica/contextos/', views_analitica.analitica_contextos, name='analitica_contextos'),
     path('analitica/sugerencias/', views_analitica.analitica_sugerencias, name='analitica_sugerencias'),
     path('analitica/superset/', views_analitica.analitica_superset, name='analitica_superset'),
+    path('analitica/superset/crear/', views_analitica.analitica_superset_crear, name='analitica_superset_crear'),
+    path('analitica/superset/subir-csv/', views_analitica.analitica_superset_subir_csv, name='analitica_superset_subir_csv'),
+    path('analitica/superset/sincronizar/', views_analitica.analitica_superset_sincronizar, name='analitica_superset_sincronizar'),
+    path('analitica/superset/explorar/', views_analitica.analitica_superset_explorar, name='analitica_superset_explorar'),
+    path('analitica/superset/manual/', views_analitica.analitica_superset_manual, name='analitica_superset_manual'),
+    path('analitica/superset/dashboard/<int:dashboard_id>/', views_analitica.analitica_superset_detalle, name='analitica_superset_detalle'),
+    # Submódulo: Don Datico × Superset (consulta, análisis y tableros asistidos)
+    path('analitica/superset/dondatico/', views_analitica_dondatico.dondatico_home, name='analitica_dondatico'),
+    path('analitica/superset/dondatico/consultar/', views_analitica_dondatico.dondatico_consultar, name='analitica_dondatico_consultar'),
+    path('analitica/superset/dondatico/analizar/', views_analitica_dondatico.dondatico_analizar, name='analitica_dondatico_analizar'),
+    path('analitica/superset/dondatico/generar/', views_analitica_dondatico.dondatico_generar, name='analitica_dondatico_generar'),
 
     # --- Submódulo: Taller de Gestión de Datos ---
     path('analitica/taller/reportes/', views_analitica_taller.taller_reportes, name='analitica_taller_reportes'),

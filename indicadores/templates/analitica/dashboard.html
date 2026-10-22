@@ -30,10 +30,10 @@
 <div class="container mx-auto px-6 py-10">
     <div class="mb-8">
         <h2 class="text-2xl font-bold text-slate-900">Administración de la IA del portal</h2>
-        <p class="text-slate-500 mt-1">Parámetros, prompts y comportamiento de Don Datico, y el futuro acceso a tableros Superset.</p>
+        <p class="text-slate-500 mt-1">Parámetros, prompts y comportamiento de Don Datico, y los productos BI — SIIED BI y Don Datico BI.</p>
     </div>
 
-    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         <a href="{% url 'indicadores:analitica_configuracion' %}" class="acard">
             <div class="acard-ico" style="background:#d1fae5;color:#047857;">
@@ -66,9 +66,18 @@
             <div class="acard-ico" style="background:#e0f2fe;color:#0369a1;">
                 <i class="fas fa-chart-pie"></i>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-2">Tableros Superset</h3>
-            <p class="text-sm text-slate-600 mb-4">Generación de tableros con Apache Superset. Integración planificada — punto de entrada futuro.</p>
-            <span class="acard-cta">Ver estado →</span>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">SIIED BI</h3>
+            <p class="text-sm text-slate-600 mb-4">Crea y gestiona dashboards sobre los datos del SIIED: sube CSV, explora y publica tableros. Powered by Apache Superset.</p>
+            <span class="acard-cta">Abrir tableros →</span>
+        </a>
+
+        <a href="{% url 'indicadores:analitica_dondatico' %}" class="acard">
+            <div class="acard-ico" style="background:#d1fae5;color:#047857;">
+                <i class="fas fa-wand-magic-sparkles"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Don Datico BI</h3>
+            <p class="text-sm text-slate-600 mb-4">Consulta y analiza los datos integrados, y crea tableros de control con lenguaje natural. Powered by Apache Superset.</p>
+            <span class="acard-cta">Crear con asistencia →</span>
         </a>
 
     </div>

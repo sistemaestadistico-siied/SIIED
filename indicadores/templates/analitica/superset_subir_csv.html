@@ -1,0 +1,153 @@
+{% extends 'analitica/base_analitica.html' %}
+{% block title %}Subir CSV a SIIED BI — Analítica e IA{% endblock %}
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-10">
+<div class="max-w-3xl mx-auto">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+        <a href="{% url 'indicadores:analitica_superset' %}" class="hover:text-sky-600 transition-colors">
+            <i class="fas fa-tachometer-alt mr-1"></i> SIIED BI
+        </a>
+        <i class="fas fa-chevron-right text-xs"></i>
+        <span class="text-slate-800 font-medium">Subir CSV</span>
+    </div>
+
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-slate-900">Subir datos CSV</h1>
+        <p class="text-slate-500 mt-1">Cree un nuevo dataset en Superset desde un archivo CSV o
+        desde un conjunto de datos existente del SIIED.</p>
+    </div>
+
+    {% if not superset_disponible %}
+    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle text-rose-500 text-lg mt-0.5"></i>
+            <div class="text-sm text-rose-800">
+                <p class="font-semibold mb-1">SIIED BI no disponible</p>
+                <p>Apache Superset no está respondiendo. Contacte al administrador del sistema.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Nombre de tabla -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">
+                <i class="fas fa-tag text-sky-500 mr-2"></i>
+                Nombre del dataset
+            </h2>
+            <input type="text" name="nombre_tabla"
+                   placeholder="Ej: encuesta_percepcion_2025, empleo_informal_cali"
+                   class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+                   value="{{ request.POST.nombre_tabla }}">
+            <p class="text-xs text-slate-400 mt-2">
+                Este nombre identificará la tabla en Superset. Use snake_case sin espacios ni
+                caracteres especiales. <strong>Opcional:</strong> si lo deja vacío se genera
+                automáticamente desde el archivo o el conjunto seleccionado.
+            </p>
+        </div>
+
+        <!-- Fuente de datos -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">
+                <i class="fas fa-database text-sky-500 mr-2"></i>
+                Fuente de datos
+            </h2>
+
+            <!-- Tabs: archivo o conjunto de datos -->
+            <div class="flex border-b border-slate-200 mb-4" id="source-tabs">
+                <button type="button" onclick="showTab('archivo')" id="tab-archivo"
+                        class="px-4 py-2 text-sm font-medium border-b-2 border-sky-600 text-sky-700 transition-colors">
+                    <i class="fas fa-file-csv mr-1"></i> Subir archivo CSV
+                </button>
+                <button type="button" onclick="showTab('conjunto')" id="tab-conjunto"
+                        class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors ml-2">
+                    <i class="fas fa-table mr-1"></i> Desde Conjuntos de Datos SIIED
+                </button>
+            </div>
+
+            <!-- Panel: archivo -->
+            <div id="panel-archivo">
+                <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-sky-400 transition-colors">
+                    <i class="fas fa-cloud-upload-alt text-slate-300 text-4xl mb-4"></i>
+                    <p class="text-slate-600 font-medium mb-2">Seleccione un archivo CSV</p>
+                    <p class="text-xs text-slate-400 mb-4">Formatos aceptados: .csv, .tsv, .xlsx, .xls (máx. 50MB)</p>
+                    <input type="file" name="archivo_csv" accept=".csv,.tsv,.xlsx,.xls"
+                           class="block mx-auto text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                </div>
+            </div>
+
+            <!-- Panel: conjunto de datos -->
+            <div id="panel-conjunto" style="display: none;">
+                {% if conjuntos %}
+                <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                    {% for c in conjuntos %}
+                    <label class="flex items-center p-3 rounded-lg border border-slate-200 hover:bg-sky-50 cursor-pointer transition-colors">
+                        <input type="radio" name="conjunto_id" value="{{ c.id }}" class="mr-3 text-sky-600">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-slate-800 truncate">{{ c.nombre }}</p>
+                            <p class="text-xs text-slate-400">
+                                {% if c.operacion %}
+                                <span class="mr-3"><i class="fas fa-chart-line mr-1"></i>{{ c.operacion|truncatechars:40 }}</span>
+                                {% endif %}
+                                <i class="fas fa-calendar mr-1"></i>{{ c.fecha_carga|date:"d/m/Y" }}
+                            </p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-slate-400">
+                    <i class="fas fa-table text-3xl mb-2"></i>
+                    <p class="text-sm">No hay conjuntos de datos disponibles en el SIIED.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'indicadores:analitica_superset' %}" class="px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
+                Cancelar
+            </a>
+            <button type="submit" {% if not superset_disponible %}disabled{% endif %}
+                    class="px-5 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-upload mr-2"></i> Subir a SIIED BI
+            </button>
+        </div>
+    </form>
+
+    <!-- Info box -->
+    <div class="mt-8 bg-sky-50 border border-sky-200 rounded-2xl p-5">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-lightbulb text-sky-500 text-lg mt-0.5"></i>
+            <div class="text-sm text-sky-800">
+                <p class="font-semibold mb-1">Consejo</p>
+                <p>Una vez subido el CSV como dataset, podrá usarlo en Superset para crear gráficos,
+                tablas dinámicas y dashboards completos. Los datos del SIIED (indicadores, series,
+                conjuntos de datos) también están disponibles directamente como tablas de la base
+                de datos.</p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+function showTab(tab) {
+    document.getElementById('panel-archivo').style.display = tab === 'archivo' ? 'block' : 'none';
+    document.getElementById('panel-conjunto').style.display = tab === 'conjunto' ? 'block' : 'none';
+
+    document.getElementById('tab-archivo').className = tab === 'archivo'
+        ? 'px-4 py-2 text-sm font-medium border-b-2 border-sky-600 text-sky-700 transition-colors'
+        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors';
+    document.getElementById('tab-conjunto').className = tab === 'conjunto'
+        ? 'px-4 py-2 text-sm font-medium border-b-2 border-sky-600 text-sky-700 transition-colors ml-2'
+        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors ml-2';
+}
+</script>
+{% endblock %}
