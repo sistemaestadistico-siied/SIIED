@@ -109,6 +109,37 @@
             </div>
         </div>
 
+        <!-- Visibilidad -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">
+                <i class="fas fa-eye text-sky-500 mr-2"></i>
+                ¿Quién puede usar este dataset?
+            </h2>
+            <div class="space-y-3">
+                <label class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-sky-50 cursor-pointer transition-colors">
+                    <input type="radio" name="visibilidad" value="propio" checked class="mt-1 text-sky-600">
+                    <div>
+                        <p class="text-sm font-medium text-slate-800">Solo yo</p>
+                        <p class="text-xs text-slate-400">Nadie más lo verá en SIIED BI ni Don Datico BI (el equipo SIIED sí, para soporte).</p>
+                    </div>
+                </label>
+                <label class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-sky-50 cursor-pointer transition-colors">
+                    <input type="radio" name="visibilidad" value="interno" class="mt-1 text-sky-600">
+                    <div>
+                        <p class="text-sm font-medium text-slate-800">Equipo SIIED (uso interno)</p>
+                        <p class="text-xs text-slate-400">Disponible solo para analistas del equipo estadístico distrital.</p>
+                    </div>
+                </label>
+                <label class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-sky-50 cursor-pointer transition-colors">
+                    <input type="radio" name="visibilidad" value="publico" class="mt-1 text-sky-600">
+                    <div>
+                        <p class="text-sm font-medium text-slate-800">Público / todos los organismos</p>
+                        <p class="text-xs text-slate-400">Cualquier consumidor de SIIED BI podrá usarlo en sus tableros.</p>
+                    </div>
+                </label>
+            </div>
+        </div>
+
         <!-- Submit -->
         <div class="flex justify-end gap-3">
             <a href="{% url 'indicadores:analitica_superset' %}" class="px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">

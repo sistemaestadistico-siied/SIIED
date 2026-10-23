@@ -139,7 +139,7 @@ def editorial_dashboard(request):
     # Productos recientes (últimos 10)
     productos_recientes = ProductoAcademico.objects.all().order_by('-updated_at')[:10]
     
-    # Sistemas de información
+    # Sistemas de consulta
     sistemas_stats = {
         'total': SistemaInformacion.objects.count(),
         'activos': SistemaInformacion.objects.filter(activo=True).count(),
@@ -1232,12 +1232,12 @@ def _crear_secciones_educativas(producto, plantilla, indicadores):
 
 
 # ============================================================================
-# SISTEMAS DE INFORMACIÓN
+# SISTEMAS DE CONSULTA
 # ============================================================================
 
 @editor_required
 def sistemas_listado(request):
-    """Listado de sistemas de información organizados por categorías"""
+    """Listado de sistemas de consulta organizados por categorías"""
     categorias = CategoriaInformacion.objects.filter(activo=True).prefetch_related('sistemas').order_by('orden', 'nombre')
     sistemas = SistemaInformacion.objects.select_related('categoria').order_by('categoria__orden', 'orden', 'nombre')
     
@@ -1256,7 +1256,7 @@ def sistemas_listado(request):
 
 @editor_required
 def sistema_crear(request):
-    """Crear un nuevo sistema de información"""
+    """Crear un nuevo sistema de consulta"""
     if request.method == 'POST':
         form = SistemaInformacionForm(request.POST)
         if form.is_valid():
@@ -1266,13 +1266,13 @@ def sistema_crear(request):
     else:
         form = SistemaInformacionForm()
     
-    context = {'form': form, 'titulo_form': 'Nuevo Sistema de Información'}
+    context = {'form': form, 'titulo_form': 'Nuevo Sistema de Consulta'}
     return render(request, 'editorial/sistema_form.html', context)
 
 
 @editor_required
 def sistema_editar(request, pk):
-    """Editar un sistema de información"""
+    """Editar un sistema de consulta"""
     sistema = get_object_or_404(SistemaInformacion, pk=pk)
     
     if request.method == 'POST':
@@ -1290,7 +1290,7 @@ def sistema_editar(request, pk):
 
 @editor_required
 def sistema_eliminar(request, pk):
-    """Eliminar un sistema de información"""
+    """Eliminar un sistema de consulta"""
     sistema = get_object_or_404(SistemaInformacion, pk=pk)
     if request.method == 'POST':
         nombre = sistema.nombre
@@ -1298,7 +1298,7 @@ def sistema_eliminar(request, pk):
         messages.success(request, f'Sistema "{nombre}" eliminado.')
         return redirect('indicadores:editorial_sistemas')
     
-    context = {'objeto': sistema, 'tipo': 'sistema de información', 'nombre': sistema.nombre, 'url_listado': 'indicadores:editorial_sistemas'}
+    context = {'objeto': sistema, 'tipo': 'sistema de consulta', 'nombre': sistema.nombre, 'url_listado': 'indicadores:editorial_sistemas'}
     return render(request, 'editorial/confirmar_eliminar_generico.html', context)
 
 

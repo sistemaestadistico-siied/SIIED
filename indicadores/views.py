@@ -284,21 +284,20 @@ def visor_comparativo(request):
 
 
 def sistemas_informacion(request):
-    """Vista para mostrar los sistemas de información organizados por categorías"""
+    """Página 'Sistemas de Consulta': directorio plano (estilo INEGI)
+    configurable desde Editorial — categorías activas con sus ítems."""
     categorias = CategoriaInformacion.objects.filter(activo=True).prefetch_related(
         'sistemas'
     ).order_by('orden', 'nombre')
-    
-    # Agregar sistemas activos a cada categoría
+
     for categoria in categorias:
-        categoria.sistemas_activos = categoria.sistemas.filter(activo=True).order_by('orden', 'nombre')
-    
-    context = {
+        categoria.sistemas_activos = categoria.sistemas.filter(
+            activo=True).order_by('orden', 'nombre')
+
+    return render(request, 'indicadores/sistemas_informacion.html', {
         'categorias': categorias,
         'page_context': 'sistemas',  # Para el menú activo
-    }
-    
-    return render(request, 'indicadores/sistemas_informacion.html', context)
+    })
 
 
 def proyectos_informacion(request):
@@ -672,35 +671,11 @@ def dominios(request):
     })
 
 
-def herramientas_consulta(request):
-    """Página 'Herramientas de consulta': accesos a las herramientas de
-    análisis de la plataforma (mismas tarjetas de la sección del home)."""
-    return render(request, 'indicadores/herramientas_consulta.html', {
-        'page': 'herramientas'
-    })
-
-
 def conjuntos_indicadores(request):
     """Página 'Conjuntos de indicadores': accesos a los grandes conjuntos
     del catálogo (dominios, Cali en Cifras, ODS)."""
     return render(request, 'indicadores/conjuntos_indicadores.html', {
         'page': 'conjuntos'
-    })
-
-
-def conectividad_acceso(request):
-    """Página 'Conectividad y Acceso Abierto': Don Datico, Libro 3D, API
-    abierta y documentación/código abierto del SIIED."""
-    return render(request, 'indicadores/conectividad_acceso.html', {
-        'page': 'conectividad'
-    })
-
-
-def instrumentos_sistema(request):
-    """Página 'Instrumentos del sistema': medición y difusión de la
-    capacidad estadística distrital (inventario, ICED, taller, etc.)."""
-    return render(request, 'indicadores/instrumentos_sistema.html', {
-        'page': 'instrumentos'
     })
 
 

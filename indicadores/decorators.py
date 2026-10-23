@@ -163,6 +163,30 @@ def analista_required(view_func):
     return wrapper
 
 
+def bi_required(view_func):
+    """
+    Decorador para las vistas de BI (SIIED BI / Don Datico BI).
+    Permite acceso a staff y a los roles 'analista' y
+    'analista_organismo' (el subrol BI por organismo). Las vistas de
+    configuración/administración del módulo siguen usando
+    analista_required (solo equipo SIIED).
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('indicadores:analitica_login')
+        if request.user.is_staff:
+            return view_func(request, *args, **kwargs)
+        if hasattr(request.user, 'perfil_recolector'):
+            perfil = request.user.perfil_recolector
+            if perfil.es_bi():
+                return view_func(request, *args, **kwargs)
+        messages.error(
+            request, 'No tiene permisos para el módulo de BI.')
+        return redirect('indicadores:analitica_login')
+    return wrapper
+
+
 def admin_required(view_func):
     """
     Decorador que verifica que el usuario sea staff (administrador).

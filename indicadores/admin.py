@@ -2480,7 +2480,7 @@ class AliadoAdmin(admin.ModelAdmin):
             'all': ('admin/css/ckeditor_custom.css',)
         }
 
-from .models import PerfilRecolector, CargaSerieIndicador, CargaConjuntoDatos
+from .models import PerfilRecolector, CargaSerieIndicador, CargaConjuntoDatos, DatasetBI, TableroBI
 
 @admin.register(PerfilRecolector)
 class PerfilRecolectorAdmin(admin.ModelAdmin):
@@ -2496,7 +2496,7 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
         }),
         ('Rol y Permisos', {
             'fields': ('rol', 'activo'),
-            'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos | analista = Analítica e IA (crea usuario en Superset automáticamente)'
+            'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos | analista = Analítica e IA (cuenta Superset Alpha) | analista_organismo = solo SIIED BI / Don Datico BI (cuenta Superset Gamma)'
         }),
         ('Vínculo a Organismo', {
             'fields': ('organismo', 'subrol_ficed'),
@@ -2524,26 +2524,38 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
     get_nombre_completo.short_description = 'Nombre Completo'
     get_nombre_completo.admin_order_field = 'user__first_name'
 
+    # Rol SIIED → rol en Superset (cuenta nativa). Los consumidores de
+    # tableros embebidos NO necesitan cuenta: van por guest token.
+    _SUPERSET_ROLE_MAP = {
+        'analista': 'Alpha',            # constructor: charts/datasets/dashboards
+        'analista_organismo': 'Gamma',  # consumidor BI del organismo
+    }
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        # Al asignar rol analista, crear/verificar usuario en Superset
-        # automáticamente (los analistas usan Tableros Superset embebido).
-        if obj.rol == 'analista' and obj.activo:
-            try:
-                from .superset_service import SupersetService
-                service = SupersetService()
+        # Sync de cuenta Superset: crear si el rol es BI y está activo,
+        # desactivar si perdió el acceso (rol cambió o activo=False) para
+        # evitar cuentas huérfanas.
+        role_superset = self._SUPERSET_ROLE_MAP.get(obj.rol)
+        cambio_acceso = (
+            'rol' in form.changed_data or 'activo' in form.changed_data)
+        try:
+            from .superset_service import SupersetService
+            service = SupersetService()
+
+            if role_superset and obj.activo:
                 resultado = service.crear_usuario(
                     username=obj.user.username,
                     email=obj.user.email or '',
                     first_name=obj.user.first_name or obj.user.username,
                     last_name=obj.user.last_name or '',
-                    role_name='Alpha',
+                    role_name=role_superset,
                 )
                 if resultado.get('success'):
                     messages.success(
                         request,
                         f'Usuario "{obj.user.username}" creado/verificado en '
-                        'Superset correctamente.'
+                        f'Superset (rol {role_superset}).'
                     )
                 else:
                     messages.warning(
@@ -2552,12 +2564,46 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
                         f'{resultado.get("error", "Error desconocido")}. '
                         'Verifique que Superset esté disponible.'
                     )
-            except Exception as e:
-                messages.warning(
-                    request,
-                    f'Error al crear usuario en Superset: {e}. '
-                    'Superset puede no estar disponible.'
-                )
+            elif cambio_acceso:
+                # Perdió acceso BI: desactivar la cuenta si existe.
+                resultado = service.desactivar_usuario(obj.user.username)
+                if resultado.get('error'):
+                    messages.warning(
+                        request,
+                        'No se pudo desactivar la cuenta en Superset: '
+                        f'{resultado["error"]}.')
+        except Exception as e:
+            messages.warning(
+                request,
+                f'Error al sincronizar usuario en Superset: {e}. '
+                'Superset puede no estar disponible.'
+            )
+
+@admin.register(DatasetBI)
+class DatasetBIAdmin(admin.ModelAdmin):
+    list_display = ('nombre_tabla', 'dataset_id', 'visibilidad',
+                    'es_base_siied', 'usuario', 'organismo', 'activo',
+                    'fecha_creacion')
+    list_filter = ('visibilidad', 'es_base_siied', 'activo', 'organismo')
+    search_fields = ('nombre_tabla', 'usuario__username')
+    autocomplete_fields = ['usuario', 'organismo']
+
+
+@admin.register(TableroBI)
+class TableroBIAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'dashboard_id', 'visibilidad', 'origen',
+                    'organismo', 'creado_por', 'activo', 'fecha_creacion')
+    list_filter = ('visibilidad', 'origen', 'activo', 'organismo')
+    search_fields = ('titulo', 'creado_por__username')
+    autocomplete_fields = ['creado_por', 'organismo']
+    readonly_fields = ('link_publico',)
+
+    def link_publico(self, obj):
+        if not obj.pk:
+            return '—'
+        return obj.url_publica()
+    link_publico.short_description = 'URL de acceso SIIED'
+
 
 @admin.register(CargaSerieIndicador)
 class CargaSerieIndicadorAdmin(admin.ModelAdmin):

@@ -114,7 +114,7 @@
                       border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900
                       {% endif %}">
                 <i class="fas fa-server w-5 mr-3 text-center {% if 'sistema' in request.resolver_match.url_name %}text-purple-600{% else %}text-slate-400{% endif %}"></i>
-                Sistemas Info.
+                Sistemas Consulta
             </a>
 
             <a href="{% url 'indicadores:editorial_proyectos_info' %}" 
@@ -187,7 +187,7 @@
                 <a href="{% url 'indicadores:editorial_eventos' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'evento' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Eventos</a>
                 <a href="{% url 'indicadores:editorial_noticias' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'noticia' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Noticias</a>
                 <a href="{% url 'indicadores:editorial_calendario_difusion' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'calendario_difusion' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Calendario Difusión</a>
-                <a href="{% url 'indicadores:editorial_sistemas' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'sistema' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Sistemas</a>
+                <a href="{% url 'indicadores:editorial_sistemas' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'sistema' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Sistemas Consulta</a>
                 <a href="{% url 'indicadores:editorial_proyectos_info' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'proyecto_info' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Productos Info.</a>
                 <a href="{% url 'indicadores:editorial_documentos' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'documento' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Documentos</a>
                 <a href="{% url 'indicadores:editorial_infraestructura_arbol' %}" class="flex-shrink-0 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 {% if 'infraestructura_arbol' in request.resolver_match.url_name or 'infra_' in request.resolver_match.url_name %}border-purple-600 text-purple-700{% else %}border-transparent text-slate-500 hover:text-slate-700{% endif %}">Árbol</a>

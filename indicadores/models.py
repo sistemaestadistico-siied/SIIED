@@ -2176,6 +2176,7 @@ class PerfilRecolector(models.Model):
         ('validador', 'Validador Estadístico (SIIED)'),
         ('editor', 'Editor de Contenidos'),
         ('analista', 'Analista (Editorial + Reportes + Recolección + Validación + Analítica)'),
+        ('analista_organismo', 'Analista BI del Organismo (SIIED BI / Don Datico BI)'),
         ('validador_organismo', 'Validador del Organismo (pre-validación)'),
     ]
     
@@ -2261,9 +2262,147 @@ class PerfilRecolector(models.Model):
         """Verifica si el usuario tiene el rol analista (módulo Analítica e IA)."""
         return self.activo and self.rol == 'analista'
 
+    def es_analista_organismo(self):
+        """Analista BI del organismo: solo SIIED BI / Don Datico BI,
+        con datasets y tableros scoped a su organismo."""
+        return self.activo and self.rol == 'analista_organismo'
+
+    def es_bi(self):
+        """Puede entrar a las vistas de BI (SIIED BI / Don Datico BI):
+        analista del equipo SIIED o analista BI del organismo."""
+        return self.activo and self.rol in [
+            'analista', 'analista_organismo']
+
     def puede_editar_contenidos(self):
         """Verifica si el usuario puede acceder al módulo editorial"""
         return self.activo and self.rol in ['editor', 'analista']
+
+
+# ============================================================================
+# BI POR ORGANISMO (SIIED BI / Don Datico BI)
+# Registro de visibilidad: el SIIED decide quién ve cada dataset/tablero;
+# Superset solo valida el guest token que acuña el backend.
+# ============================================================================
+
+class DatasetBI(models.Model):
+    """Dataset subido a Superset por un usuario, con política de visibilidad.
+
+    Los datasets que el SIIED provee como base (sincronizados desde
+    ConjuntoDatos/catálogos) se marcan con es_base_siied=True: los puede
+    ver cualquier analista_organismo. Los subidos por usuarios solo son
+    visibles según `visibilidad`:
+      - propio:   solo su dueño (y el equipo SIIED)
+      - interno:  equipo SIIED (staff + analista)
+      - publico:  cualquier consumidor autenticado de BI
+    """
+    VISIBILIDAD_CHOICES = [
+        ('propio', 'Solo el usuario que lo subió'),
+        ('interno', 'Equipo SIIED (uso interno)'),
+        ('publico', 'Público / todos los organismos'),
+    ]
+
+    nombre_tabla = models.CharField(max_length=200, unique=True)
+    dataset_id = models.IntegerField(
+        null=True, blank=True,
+        help_text='ID del dataset en Superset (se llena tras el upload)')
+    usuario = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='datasets_bi')
+    organismo = models.ForeignKey(
+        'Organismo', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='datasets_bi')
+    visibilidad = models.CharField(
+        max_length=10, choices=VISIBILIDAD_CHOICES, default='propio')
+    es_base_siied = models.BooleanField(
+        default=False,
+        help_text='Dataset base provisto por el SIIED (visible para todos '
+                  'los analistas BI de organismo)')
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Dataset BI'
+        verbose_name_plural = 'Datasets BI'
+
+    def __str__(self):
+        return f'{self.nombre_tabla} [{self.get_visibilidad_display()}]'
+
+    @staticmethod
+    def visibles_para(user):
+        """Queryset de datasets que el usuario puede consumir en BI.
+
+        - staff/analista: todos.
+        - analista_organismo: base SIIED + públicos + propios (+ los de su
+          organismo si son públicos — ya cubierto).
+        - otros autenticados: públicos.
+        """
+        from django.db.models import Q
+        qs = DatasetBI.objects.filter(activo=True)
+        perfil = getattr(user, 'perfil_recolector', None)
+        if user.is_staff or (perfil and perfil.rol == 'analista'):
+            return qs
+        if perfil and perfil.rol == 'analista_organismo':
+            return qs.filter(
+                Q(es_base_siied=True) | Q(visibilidad='publico')
+                | Q(usuario=user))
+        return qs.filter(visibilidad='publico')
+
+
+class TableroBI(models.Model):
+    """Tablero de Superset publicado a través del SIIED.
+
+    `visibilidad` define qué guest token se acuña en la vista de embed:
+      - publico:      sin sesión (ciudadanía) — identidad 'anonimo_ciudadano'
+      - autenticado:  cualquier usuario SIIED logueado
+      - organismo:    usuarios cuyo perfil.organismo coincida (RLS)
+      - interno:      staff + analista + analista_organismo
+    """
+    VISIBILIDAD_CHOICES = [
+        ('publico', 'Público — sin sesión'),
+        ('autenticado', 'Requiere sesión SIIED'),
+        ('organismo', 'Solo su organismo (RLS)'),
+        ('interno', 'Solo equipo SIIED'),
+    ]
+    ORIGEN_CHOICES = [
+        ('manual', 'Creado por el usuario'),
+        ('ia', 'Generado por Don Datico BI'),
+    ]
+
+    dashboard_id = models.IntegerField(unique=True)
+    titulo = models.CharField(max_length=250)
+    descripcion = models.TextField(blank=True, default='')
+    visibilidad = models.CharField(
+        max_length=12, choices=VISIBILIDAD_CHOICES, default='interno')
+    origen = models.CharField(
+        max_length=10, choices=ORIGEN_CHOICES, default='manual',
+        help_text='Quién generó el tablero: usuario manual o Don Datico BI (IA)')
+    organismo = models.ForeignKey(
+        'Organismo', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='tableros_bi',
+        help_text='Requerido cuando visibilidad=organismo; define el scope '
+                  'de la cláusula RLS')
+    rls_clause = models.CharField(
+        max_length=500, blank=True, default='',
+        help_text='Cláusula RLS extra para el guest token '
+                  '(ej: "organismo_id = 5"). Si está vacía y el tablero es '
+                  'de organismo, se genera desde perfil.organismo.')
+    creado_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='tableros_bi')
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Tablero BI'
+        verbose_name_plural = 'Tableros BI'
+
+    def __str__(self):
+        return f'{self.titulo} (dashboard {self.dashboard_id})'
+
+    def url_publica(self):
+        """URL del SIIED que renderiza el embed según la visibilidad."""
+        from django.urls import reverse
+        return reverse('indicadores:bi_tablero', args=[self.dashboard_id])
 
 
 class CargaSerieIndicador(models.Model):
@@ -3976,3 +4115,4 @@ class MCPAuditLog(models.Model):
     def __str__(self):
         quien = self.usuario.username if self.usuario_id else 'anon'
         return f"{quien} → {self.tool} ({self.fecha:%Y-%m-%d %H:%M})"
+

@@ -65,11 +65,8 @@ urlpatterns = [
     path('api/catalogo-consulta/', views.api_catalogo_consulta_list, name='api_catalogo_consulta_list'),
     path('api/catalogo-consulta/<int:pk>/', views.api_catalogo_consulta_detalle, name='api_catalogo_consulta_detalle'),
     path('proyectos-informacion/', views.proyectos_informacion, name='proyectos_informacion'),
-    # Páginas del menú principal: mismas secciones de accesos del home
-    path('herramientas/', views.herramientas_consulta, name='herramientas_consulta'),
+    # Página del menú principal: accesos del catálogo de indicadores
     path('conjuntos/', views.conjuntos_indicadores, name='conjuntos_indicadores'),
-    path('conectividad/', views.conectividad_acceso, name='conectividad_acceso'),
-    path('instrumentos/', views.instrumentos_sistema, name='instrumentos_sistema'),
     # Catálogo de variables (ex portal planestadistico.cali.gov.co)
     path('catalogo-variables/', views_catalogo_variables.catalogo_variables_home, name='catalogo_variables_home'),
     path('catalogo-variables/geografias/', views_catalogo_variables.catalogo_variables_geografias, name='catalogo_variables_geografias'),
@@ -469,6 +466,8 @@ urlpatterns = [
     path('analitica/superset/explorar/', views_analitica.analitica_superset_explorar, name='analitica_superset_explorar'),
     path('analitica/superset/manual/', views_analitica.analitica_superset_manual, name='analitica_superset_manual'),
     path('analitica/superset/dashboard/<int:dashboard_id>/', views_analitica.analitica_superset_detalle, name='analitica_superset_detalle'),
+    # Tableros BI por visibilidad (guest token): público/autenticado/organismo/interno
+    path('bi/<int:dashboard_id>/', views_analitica.bi_tablero, name='bi_tablero'),
     # Submódulo: Don Datico × Superset (consulta, análisis y tableros asistidos)
     path('analitica/superset/dondatico/', views_analitica_dondatico.dondatico_home, name='analitica_dondatico'),
     path('analitica/superset/dondatico/consultar/', views_analitica_dondatico.dondatico_consultar, name='analitica_dondatico_consultar'),
@@ -576,7 +575,7 @@ urlpatterns = [
     path('editorial/noticias/<int:pk>/eliminar/', views_editorial.noticia_eliminar, name='editorial_noticia_eliminar'),
     path('editorial/noticias/<int:pk>/preview/', views_editorial.noticia_preview, name='editorial_noticia_preview'),
     
-    # Sistemas de Información
+    # Sistemas de Consulta
     path('editorial/sistemas/', views_editorial.sistemas_listado, name='editorial_sistemas'),
     path('editorial/sistemas/crear/', views_editorial.sistema_crear, name='editorial_sistema_crear'),
     path('editorial/sistemas/<int:pk>/editar/', views_editorial.sistema_editar, name='editorial_sistema_editar'),

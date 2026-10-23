@@ -28,7 +28,8 @@ from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 
 from .chat_config import get_config
-from .decorators import analista_required
+from .decorators import bi_required
+from .models import DatasetBI, TableroBI
 from .llm_structured import (
     SUPERSET_ANALISIS_PROMPT, SUPERSET_CONSULTA_PROMPT,
     SUPERSET_CONSULTA_SCHEMA, SUPERSET_PROSA_PROMPT,
@@ -93,6 +94,23 @@ def _datasets_contexto(service):
         })
     cache.set(_CACHE_KEY_DATASETS, ctx, _CACHE_TTL)
     return ctx
+
+
+def _datasets_visibles_para(request, ctx):
+    """Restringe el catálogo al scope del usuario.
+
+    staff/analista ven todo; analista_organismo solo los datasets que
+    el registro DatasetBI marca como visibles para él (base SIIED +
+    públicos + propios). El ctx viene cacheado global — se filtra en
+    memoria, sin tocar la caché.
+    """
+    perfil = getattr(request.user, 'perfil_recolector', None)
+    if request.user.is_staff or (perfil and perfil.rol == 'analista'):
+        return ctx
+    visibles = set(
+        DatasetBI.visibles_para(request.user)
+        .values_list('nombre_tabla', flat=True))
+    return [d for d in ctx if d.get('tabla') in visibles]
 
 
 def _dataset_por_id(ctx, dataset_id):
@@ -313,8 +331,36 @@ def _chart_params(viz, chart, columnas, metricas, filtros, limite):
     return viz_type, base
 
 
-def _position_json(titulo, charts):
-    """Layout del dashboard: header + filas de máximo 2 charts (grid 12)."""
+def _markdown_header(titulo, consulta, spec, creados):
+    """Texto de marca + contexto que corona el tablero generado."""
+    descripcion = str(spec.get('descripcion') or '').strip()[:400]
+    fuentes = sorted({c.get('dataset') for c in creados if c.get('dataset')})
+    partes = [
+        '<img src="/static/assets/images/logo_dondatico_bi.png" '
+        'alt="Don Datico BI" height="30" align="right">',
+        f'### {titulo}',
+    ]
+    if descripcion:
+        partes.append(descripcion)
+    partes.append(
+        f'*Generado por **Don Datico BI** a partir de:* _«{consulta[:220]}»_')
+    if fuentes:
+        partes.append('**Fuentes:** ' + ' · '.join(fuentes))
+    partes.append(
+        '<small> Use el panel de **filtros** (barra izquierda), haga clic en '
+        'los gráficos para filtrar entre ellos, y el menú **⋮ → Download** '
+        'de cada gráfico para exportar datos o imagen.</small>')
+    return '\n\n'.join(partes)
+
+
+_MARKDOWN_FOOTER = (
+    '---\n\n<small>Tablero generado por **Don Datico BI** · Borrador editable — '
+    'ajústelo a su gusto (tamaños, filtros, colores, texto) y publíquelo '
+    'desde **SIIED BI**.</small>')
+
+
+def _position_json(titulo, charts, header_md=None, footer_md=None):
+    """Layout del dashboard: header markdown + filas de 2 charts + footer."""
     import json as _json
     position = {
         'DASHBOARD_VERSION_KEY': 'v2',
@@ -328,6 +374,19 @@ def _position_json(titulo, charts):
         'GRID_ID': {'type': 'GRID', 'id': 'GRID_ID',
                     'parents': ['ROOT_ID'], 'children': []},
     }
+
+    def _markdown(key, code, height):
+        position[key] = {
+            'type': 'MARKDOWN', 'id': key,
+            'parents': ['ROOT_ID', 'GRID_ID'],
+            'children': [],
+            'meta': {'width': 12, 'height': height, 'code': code[:4000]},
+        }
+        position['GRID_ID']['children'].append(key)
+
+    if header_md:
+        _markdown('MARKDOWN-HEADER', header_md, 26)
+
     filas = [charts[i:i + 2] for i in range(0, len(charts), 2)]
     for ri, fila in enumerate(filas):
         row_key = f'ROW-{ri}'
@@ -352,7 +411,68 @@ def _position_json(titulo, charts):
             row['children'].append(chart_key)
         position[row_key] = row
         position['GRID_ID']['children'].append(row_key)
+
+    if footer_md:
+        _markdown('MARKDOWN-FOOTER', footer_md, 14)
     return _json.dumps(position)
+
+
+def _json_metadata(titulo, creados):
+    """json_metadata: filtros nativos, cross-filters y esquema de color.
+
+    Los filtros se deducen de las dimensiones (x/groupby) de los charts
+    creados, deduplicadas por dataset+columna (máx. 4 para no saturar
+    la barra). El funcionario puede editarlos/borrarlos después.
+    """
+    import json as _json
+    import secrets
+    chart_ids = [c['chart_id'] for c in creados]
+    vistos, filtros = set(), []
+    for c in creados:
+        for col in (c.get('columnas_filtro') or []):
+            key = (c.get('dataset_id'), col)
+            if not col or key in vistos or len(filtros) >= 4:
+                continue
+            vistos.add(key)
+            filtros.append({
+                'id': f'NATIVE_FILTER-{secrets.token_hex(8)}',
+                'name': str(col)[:60],
+                'filterType': 'filter_select',
+                'targets': [{'datasetId': c['dataset_id'],
+                             'column': {'name': col}}],
+                'defaultDataMask': {'extraFormData': {},
+                                    'filterState': {}},
+                'cascadeParentIds': [],
+                'scope': {'rootPath': ['ROOT_ID'], 'excluded': []},
+                'controlValues': {
+                    'enableEmptyFilter': False,
+                    'defaultToFirstItem': False,
+                    'multiSelect': True,
+                    'searchAllOptions': True,
+                    'inverseSelection': False},
+                'type': 'NATIVE_FILTER',
+                'description': f'Filtro sugerido por Don Datico BI',
+                'chartsInScope': chart_ids,
+                'tabsInScope': [],
+            })
+    meta = {
+        'native_filter_configuration': filtros,
+        'cross_filters_enabled': True,
+        'color_scheme': 'supersetColors',
+        'filter_bar_orientation': 'VERTICAL',
+        'chart_configuration': {},
+        'global_chart_configuration': {
+            'scope': {'rootPath': ['ROOT_ID'], 'excluded': []},
+            'chartsInScope': chart_ids},
+        'expanded_slices': {},
+        'refresh_frequency': 0,
+        'timed_refresh_immune_slices': [],
+        'default_filters': '{}',
+        'label_colors': {},
+        'shared_label_colors': {},
+        'color_scheme_domain': [],
+    }
+    return _json.dumps(meta)
 
 
 # ----------------------------------------------------------------------
@@ -431,26 +551,40 @@ def _resumen_resultados(resultados):
 # Vistas
 # ----------------------------------------------------------------------
 
-@analista_required
+@bi_required
 def dondatico_home(request):
     """Portada del submódulo: consulta, análisis y creación de tableros."""
     service = SupersetService()
     disponible = service.health_check()
     datasets = service.listar_datasets()[:60] if disponible else []
+    perfil = getattr(request.user, 'perfil_recolector', None)
+    if (perfil and perfil.rol == 'analista_organismo'
+            and not request.user.is_staff):
+        visibles = set(
+            DatasetBI.visibles_para(request.user)
+            .values_list('nombre_tabla', flat=True))
+        datasets = [d for d in datasets
+                    if d.get('table_name') in visibles]
+    # Tableros que la IA ya creó para esta cuenta (registro TableroBI)
+    tableros_ia = (
+        TableroBI.objects
+        .filter(origen='ia', creado_por=request.user, activo=True)
+        .order_by('-fecha_creacion')[:12])
     return render(request, 'analitica/dondatico.html', {
         'superset_disponible': disponible,
         'datasets': datasets,
+        'tableros_ia': tableros_ia,
     })
 
 
-@analista_required
+@bi_required
 @require_http_methods(['POST'])
 def dondatico_consultar(request):
     """Consulta semántica → prosa + tablas + fuentes."""
     return _consulta_o_analisis(request, modo='consulta')
 
 
-@analista_required
+@bi_required
 @require_http_methods(['POST'])
 def dondatico_analizar(request):
     """Análisis semántico → prosa interpretativa + tablas + fuentes."""
@@ -471,11 +605,11 @@ def _consulta_o_analisis(request, modo):
             {'error': 'Superset no está disponible en este momento.'},
             status=503)
 
-    ctx = _datasets_contexto(service)
+    ctx = _datasets_visibles_para(request, _datasets_contexto(service))
     if not ctx:
         return JsonResponse(
-            {'error': 'No hay datasets en Superset. '
-                      'Usa «Sincronizar SIIED» primero.'}, status=400)
+            {'error': 'No hay datasets visibles para tu cuenta en '
+                      'Superset. Contacta al equipo SIIED.'}, status=400)
 
     prompt = consulta + _ctx_prompt(ctx)
     system = (SUPERSET_CONSULTA_PROMPT if modo == 'consulta'
@@ -531,7 +665,7 @@ def _consulta_o_analisis(request, modo):
     })
 
 
-@analista_required
+@bi_required
 @require_http_methods(['POST'])
 def dondatico_generar(request):
     """Genera un dashboard real en Superset a partir de lenguaje natural."""
@@ -548,11 +682,11 @@ def dondatico_generar(request):
             {'error': 'Superset no está disponible en este momento.'},
             status=503)
 
-    ctx = _datasets_contexto(service)
+    ctx = _datasets_visibles_para(request, _datasets_contexto(service))
     if not ctx:
         return JsonResponse(
-            {'error': 'No hay datasets en Superset. '
-                      'Usa «Sincronizar SIIED» primero.'}, status=400)
+            {'error': 'No hay datasets visibles para tu cuenta en '
+                      'Superset. Contacta al equipo SIIED.'}, status=400)
 
     prompt = consulta + _ctx_prompt(ctx)
     try:
@@ -583,6 +717,22 @@ def dondatico_generar(request):
             {'error': 'No se pudo crear el dashboard en Superset: '
                       f"{dash['error']}"}, status=502)
     dashboard_id = dash['dashboard_id']
+
+    # Registrar en TableroBI: define quién puede embeberlo vía guest
+    # token. 'interno' por defecto; el creador/admin puede publicarlo.
+    visibilidad = str((body or {}).get('visibilidad') or 'interno')
+    if visibilidad not in dict(TableroBI.VISIBILIDAD_CHOICES):
+        visibilidad = 'interno'
+    perfil = getattr(request.user, 'perfil_recolector', None)
+    tablero, _ = TableroBI.objects.update_or_create(
+        dashboard_id=dashboard_id,
+        defaults={
+            'titulo': titulo,
+            'visibilidad': visibilidad,
+            'origen': 'ia',
+            'organismo': perfil.organismo if perfil else None,
+            'creado_por': request.user,
+        })
 
     charts_result = []
     for chart in (spec.get('charts') or [])[:_MAX_CHARTS]:
@@ -649,13 +799,20 @@ def dondatico_generar(request):
         charts_result.append({
             'titulo': titulo_chart, 'ok': creado['ok'],
             'chart_id': creado['chart_id'], 'viz': viz,
-            'dataset': ds['tabla'], 'error': creado['error']})
+            'dataset': ds['tabla'], 'dataset_id': ds['id'],
+            'columnas_filtro': columnas,
+            'error': creado['error']})
 
     creados = [c for c in charts_result if c['ok'] and c.get('chart_id')]
     if creados:
         service.actualizar_dashboard(dashboard_id, {
             'dashboard_title': titulo,
-            'position_json': _position_json(titulo, creados),
+            'position_json': _position_json(
+                titulo, creados,
+                header_md=_markdown_header(
+                    titulo, consulta, spec, creados),
+                footer_md=_MARKDOWN_FOOTER),
+            'json_metadata': _json_metadata(titulo, creados),
         })
 
     url_publica = service.obtener_url_publica_dashboard(dashboard_id)
@@ -664,6 +821,7 @@ def dondatico_generar(request):
         'dashboard_id': dashboard_id,
         'titulo': titulo,
         'url_dashboard': url_publica or '',
+        'url_siied': request.build_absolute_uri(tablero.url_publica()),
         'charts': charts_result,
         'fuentes': [str(f)[:200] for f in (spec.get('fuentes') or [])][:10],
         'indicadores': [str(i)[:200] for i in

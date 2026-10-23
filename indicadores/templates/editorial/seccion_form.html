@@ -134,7 +134,7 @@
 
         {% if form.sistema_vinculado %}
         <div class="bloque-condicional mb-5" data-bloques="sistema_informacion">
-            <label for="{{ form.sistema_vinculado.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Sistema de información</label>
+            <label for="{{ form.sistema_vinculado.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-1.5">Sistema de consulta</label>
             {{ form.sistema_vinculado }}
             {% for e in form.sistema_vinculado.errors %}<p class="mt-1 text-xs text-rose-500">{{ e }}</p>{% endfor %}
         </div>

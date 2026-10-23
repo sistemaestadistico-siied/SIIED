@@ -127,7 +127,9 @@ class SupersetService:
                     o.get('first_name', '') + ' ' + o.get('last_name', '')
                     for o in (d.get('owners') or [])
                 ],
-                'thumbnail_url': d.get('thumbnail_url', ''),
+                # THUMBNAILS deshabilitado → la URL siempre 404; el template
+                # muestra el placeholder cuando la clave está ausente/vacía.
+                'thumbnail_url': '',
             })
 
         return dashboards
@@ -188,15 +190,18 @@ class SupersetService:
         return self.obtener_embed_id(dashboard_id)
 
     def get_guest_token(self, resource_id, username,
-                        first_name='', last_name=''):
+                        first_name='', last_name='', rls=None):
         """Genera un guest token para embeber un recurso (dashboard).
 
         El token lo consume @superset-ui/embedded-sdk en el navegador;
         expira según GUEST_TOKEN_JWT_EXP_SECONDS de Superset.
+
+        `rls`: lista de cláusulas de row-level security para Superset,
+        p.ej. [{'clause': "organismo_id = 5"}]. Vacío = sin filtro.
         """
         payload = {
             'resources': [{'type': 'dashboard', 'id': str(resource_id)}],
-            'rls': [],
+            'rls': list(rls or []),
             'user': {
                 'username': username,
                 'first_name': first_name,
@@ -385,6 +390,18 @@ class SupersetService:
             return False
         return len(data.get('result', [])) > 0
 
+    def roles_de_usuario(self, username):
+        """Roles Superset del usuario (['Alpha','Admin',...]) o [] si no existe."""
+        data = self._api_request(
+            'GET', 'security/users/',
+            params={'q': f'(filters:!((col:username,opr:eq,value:{username})))'}
+        )
+        result = (data or {}).get('result') or []
+        if not result:
+            return []
+        return [r.get('name') for r in (result[0].get('roles') or [])
+                if r.get('name')]
+
     def crear_usuario(self, username, email='', first_name='', last_name='', role_name='Alpha'):
         """
         Crea un usuario en Superset con la contraseña compartida.
@@ -429,6 +446,34 @@ class SupersetService:
         except requests.RequestException as e:
             logger.error(f"Superset: error creando usuario '{username}': {e}")
             return {'error': str(e)}
+
+    def obtener_usuario_id(self, username):
+        """Retorna el ID interno del usuario en Superset (o None)."""
+        data = self._api_request(
+            'GET', 'security/users/',
+            params={'q': f'(filters:!((col:username,opr:eq,value:{username})))'}
+        )
+        if not data:
+            return None
+        resultados = data.get('result', [])
+        return resultados[0].get('id') if resultados else None
+
+    def desactivar_usuario(self, username):
+        """Desactiva (active=False) la cuenta de Superset del usuario.
+
+        Se usa cuando el perfil SIIED pasa a activo=False o cambia a un
+        rol sin acceso BI — evita cuentas Alpha/Gamma huérfanas."""
+        user_id = self.obtener_usuario_id(username)
+        if not user_id:
+            return {'success': True, 'message': 'Usuario no existe en Superset'}
+        data = self._write_request(
+            'PUT', f'security/users/{user_id}', {'active': False})
+        if data is None or '_error' in data:
+            return {'error': (data or {}).get('_detalle')
+                            or (data or {}).get('_error')
+                            or 'error desactivando usuario'}
+        logger.info(f"Superset: usuario '{username}' desactivado")
+        return {'success': True, 'username': username}
 
     # ========================================================================
     # TOOLS DE ANALÍTICA (equivalente REST de las tools del MCP de Superset:

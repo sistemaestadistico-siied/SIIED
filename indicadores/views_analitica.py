@@ -14,17 +14,18 @@ import io
 import logging
 import importlib
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
 from django.conf import settings
 from django.core.cache import cache
 
-from .decorators import analista_required
+from .decorators import analista_required, bi_required
 from .forms_chat_config import ChatConfigForm, ChatContextForm, ChatSuggestionsForm
 from . import chat_config
 from .models import (ConfiguracionSistema, ConjuntoDatos, CatalogoConsulta,
-                     MenuDominio)
+                     MenuDominio, DatasetBI, TableroBI)
 from .superset_service import SupersetService
 from django.utils.text import slugify
 
@@ -35,14 +36,27 @@ logger = logging.getLogger(__name__)
 # AUTENTICACIÓN
 # ============================================================================
 
+def _es_bi(request_or_user):
+    """True si el usuario puede entrar a las vistas de BI."""
+    user = getattr(request_or_user, 'user', request_or_user)
+    if user.is_staff:
+        return True
+    perfil = getattr(user, 'perfil_recolector', None)
+    return bool(perfil and perfil.es_bi())
+
+
 def analitica_login(request):
-    """Login del módulo Analítica e IA (analistas y staff)."""
+    """Login del módulo Analítica e IA (analistas, analistas BI y staff)."""
     if request.user.is_authenticated:
         if request.user.is_staff:
             return redirect('indicadores:analitica_dashboard')
         if hasattr(request.user, 'perfil_recolector'):
-            if request.user.perfil_recolector.es_analista():
+            perfil = request.user.perfil_recolector
+            if perfil.es_analista():
                 return redirect('indicadores:analitica_dashboard')
+            if perfil.es_bi():
+                # analista_organismo entra directo a SIIED BI
+                return redirect('indicadores:analitica_superset')
         auth_logout(request)
 
     if request.method == 'POST':
@@ -52,13 +66,16 @@ def analitica_login(request):
         if user is not None:
             if user.is_staff or (
                 hasattr(user, 'perfil_recolector') and
-                user.perfil_recolector.es_analista()
+                user.perfil_recolector.es_bi()
             ):
                 auth_login(request, user)
                 messages.success(
                     request,
                     f'Bienvenido/a, {user.get_full_name() or user.username}')
-                return redirect('indicadores:analitica_dashboard')
+                if user.is_staff or (
+                        user.perfil_recolector.es_analista()):
+                    return redirect('indicadores:analitica_dashboard')
+                return redirect('indicadores:analitica_superset')
             else:
                 messages.error(
                     request,
@@ -346,7 +363,7 @@ def analitica_sugerencias(request):
 # TABLEROS SUPERSET — Integración SIIED ↔ Apache Superset
 # ============================================================================
 
-@analista_required
+@bi_required
 def analitica_superset(request):
     """Panel de Tableros Superset: lista dashboards del servicio y su estado."""
     service = SupersetService()
@@ -360,6 +377,24 @@ def analitica_superset(request):
         dashboards = service.listar_dashboards()
         status = service.get_status()
         datasets = service.listar_datasets()
+        # Origen de cada tablero según el registro SIIED (ia/manual)
+        origenes = dict(
+            TableroBI.objects.filter(
+                dashboard_id__in=[d['id'] for d in dashboards],
+                activo=True,
+            ).values_list('dashboard_id', 'origen'))
+        for d in dashboards:
+            d['origen'] = origenes.get(d['id'], 'manual')
+        perfil = getattr(request.user, 'perfil_recolector', None)
+        if (perfil and perfil.rol == 'analista_organismo'
+                and not request.user.is_staff):
+            # El analista BI del organismo solo ve los datasets visibles
+            # para él en el registro: base SIIED + públicos + propios.
+            visibles = set(
+                DatasetBI.visibles_para(request.user)
+                .values_list('nombre_tabla', flat=True))
+            datasets = [d for d in datasets
+                        if d.get('table_name') in visibles]
     else:
         messages.warning(
             request,
@@ -420,16 +455,37 @@ def _superset_embed_view(request, target_path, page_title='SIIED BI',
             and target_path.startswith('/superset/')):
         target_path = target_path[len('/superset'):]
 
+    # Hint de credenciales: la clave compartida SOLO funciona en cuentas
+    # Alpha/Gamma creadas por el sync del admin. Cuentas Admin (p.ej. la
+    # de servicio) o pre-existentes tienen su propia contraseña.
+    try:
+        roles = SupersetService().roles_de_usuario(request.user.username)
+    except Exception:
+        roles = []
+    if {'Alpha', 'Gamma'} & set(roles):
+        superset_password = getattr(settings, 'SUPERSET_SHARED_PASSWORD', '')
+        login_hint = 'shared'
+    elif roles:
+        superset_password = ''
+        login_hint = 'admin'
+    else:
+        superset_password = ''
+        login_hint = 'none'
+
     return render(request, 'analitica/superset_embed.html', {
         'target_url': f"{superset_url}{target_path}",
         'page_title': page_title,
         'icon': icon,
         'superset_public_url': superset_url,
         'login_ok': True,
+        # La página va tras bi_required: solo usuarios SIIED autenticados.
+        'superset_username': request.user.username,
+        'superset_password': superset_password,
+        'login_hint': login_hint,
     })
 
 
-@analista_required
+@bi_required
 def analitica_superset_crear(request):
     """Interfaz de Superset embebida para crear/gestionar dashboards."""
     return _superset_embed_view(
@@ -439,7 +495,7 @@ def analitica_superset_crear(request):
         icon='th-large')
 
 
-@analista_required
+@bi_required
 def analitica_superset_detalle(request, dashboard_id):
     """Muestra un dashboard de Superset embebido en el módulo."""
     service = SupersetService()
@@ -485,12 +541,27 @@ def analitica_superset_detalle(request, dashboard_id):
                                 icon='chart-area')
 
 
-@analista_required
+@bi_required
 def analitica_superset_subir_csv(request):
-    """Sube un CSV a Superset como nuevo dataset (propio o ConjuntoDatos)."""
+    """Sube un CSV a Superset como nuevo dataset (propio o ConjuntoDatos).
+
+    Registra el dataset en DatasetBI con la visibilidad elegida por el
+    usuario. El analista_organismo solo puede listar los ConjuntoDatos
+    de su organismo como origen.
+    """
     service = SupersetService()
 
+    perfil = getattr(request.user, 'perfil_recolector', None)
+    es_analista_organismo = (
+        perfil and perfil.rol == 'analista_organismo'
+        and not request.user.is_staff)
+    organismo_perfil = perfil.organismo if perfil else None
+
     conjuntos = ConjuntoDatos.objects.order_by('-fecha_carga')[:50]
+    if es_analista_organismo:
+        conjuntos = conjuntos.filter(
+            indicadores__organismo_responsable=organismo_perfil
+        ).distinct()
 
     if request.method == 'POST':
         nombre_tabla = request.POST.get('nombre_tabla', '').strip()
@@ -551,9 +622,23 @@ def analitica_superset_subir_csv(request):
         resultado = service.subir_csv(archivo, nombre_tabla)
 
         if resultado.get('success'):
+            # Registrar en DatasetBI: la visibilidad elegida decide quién
+            # puede consumirlo en SIIED BI / Don Datico BI.
+            visibilidad = request.POST.get('visibilidad', 'propio')
+            if visibilidad not in dict(
+                    DatasetBI.VISIBILIDAD_CHOICES):
+                visibilidad = 'propio'
+            DatasetBI.objects.update_or_create(
+                nombre_tabla=nombre_tabla,
+                defaults={
+                    'usuario': request.user,
+                    'organismo': organismo_perfil,
+                    'visibilidad': visibilidad,
+                })
             messages.success(
                 request,
-                f'Dataset "{nombre_tabla}" creado exitosamente en Superset. '
+                f'Dataset "{nombre_tabla}" creado exitosamente en Superset '
+                f'(visibilidad: {visibilidad}). '
                 'Ya puede usarlo para crear gráficos y dashboards.')
             return redirect('indicadores:analitica_superset')
         else:
@@ -987,7 +1072,7 @@ def analitica_superset_sincronizar(request):
     return redirect('indicadores:analitica_superset')
 
 
-@analista_required
+@bi_required
 def analitica_superset_explorar(request):
     """Abre la interfaz completa de Superset embebida."""
     return _superset_embed_view(
@@ -997,7 +1082,82 @@ def analitica_superset_explorar(request):
         icon='compass')
 
 
-@analista_required
+@bi_required
 def analitica_superset_manual(request):
     """Manual de uso de los Tableros Superset."""
     return render(request, 'analitica/superset_manual.html')
+
+
+# ============================================================================
+# TABLEROS PÚBLICOS — guest token por visibilidad (TableroBI)
+# ============================================================================
+
+def bi_tablero(request, dashboard_id):
+    """Embed de un TableroBI según su nivel de visibilidad.
+
+    - publico:      sin sesión; identidad 'anonimo_ciudadano'.
+    - autenticado:  cualquier usuario SIIED logueado.
+    - organismo:    login + perfil.organismo == tablero.organismo (RLS).
+    - interno:      staff + analista + analista_organismo (es_bi).
+    """
+    tablero = get_object_or_404(
+        TableroBI, dashboard_id=dashboard_id, activo=True)
+
+    if tablero.visibilidad == 'interno' and not _es_bi(request):
+        messages.error(request, 'Este tablero es solo para el equipo SIIED.')
+        return redirect('indicadores:analitica_login')
+
+    if tablero.visibilidad in ('autenticado', 'organismo', 'interno') \
+            and not request.user.is_authenticated:
+        return redirect(
+            f"{reverse('indicadores:delegado_login')}"
+            f"?next={request.get_full_path()}")
+
+    rls = []
+    if tablero.visibilidad == 'organismo':
+        perfil = getattr(request.user, 'perfil_recolector', None)
+        org_user = perfil.organismo if perfil else None
+        if not request.user.is_staff \
+                and org_user != tablero.organismo:
+            messages.error(
+                request, 'Este tablero es exclusivo de otro organismo.')
+            return redirect('indicadores:index')
+        if tablero.rls_clause:
+            rls = [{'clause': tablero.rls_clause}]
+        elif org_user:
+            rls = [{'clause': f"organismo = '{org_user.nombre}'"}]
+    elif tablero.rls_clause:
+        rls = [{'clause': tablero.rls_clause}]
+
+    identidad = (
+        {'username': request.user.username,
+         'first_name': request.user.first_name or '',
+         'last_name': request.user.last_name or ''}
+        if request.user.is_authenticated
+        else {'username': 'anonimo_ciudadano',
+              'first_name': 'Ciudadano', 'last_name': ''})
+
+    service = SupersetService()
+    embed_uuid = service.get_or_create_embed_id(dashboard_id)
+    guest_token = (
+        service.get_guest_token(embed_uuid, rls=rls, **identidad)
+        if embed_uuid else None)
+
+    if not (embed_uuid and guest_token):
+        logger.warning(
+            f"bi_tablero: guest token no disponible para dashboard "
+            f"{dashboard_id} (embed_uuid={embed_uuid})")
+        messages.error(
+            request,
+            'El tablero no está disponible en este momento.')
+        return redirect('indicadores:index')
+
+    return render(request, 'analitica/superset_embed.html', {
+        'embed_uuid': embed_uuid,
+        'guest_token': guest_token,
+        'superset_domain': getattr(
+            settings, 'SUPERSET_PUBLIC_URL', '').rstrip('/'),
+        'page_title': tablero.titulo,
+        'icon': 'chart-area',
+        'login_ok': True,
+    })

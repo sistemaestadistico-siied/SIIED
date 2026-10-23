@@ -2,6 +2,24 @@
 {% load static %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'indicadores/css/siied_paginas.css' %}">
+<style>
+    /* Estilo directorio INEGI: bloque plano por categoría, lista de enlaces */
+    .syscat-title {
+        display: flex; align-items: center; gap: .75rem;
+        padding-bottom: .65rem; margin-bottom: .9rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .syscat-title i {
+        font-size: 1.5rem; color: #0369a1;
+        width: 2.2rem; text-align: center; flex-shrink: 0;
+    }
+    .syscat-title h2 { font-size: 1.05rem; font-weight: 800; color: #0f172a; }
+    .syscat ul { list-style: none; margin: 0; padding: 0; }
+    .syscat li { display: flex; gap: .55rem; align-items: baseline; padding: .18rem 0; }
+    .syscat li::before { content: '•'; color: #0284c7; font-weight: 800; flex-shrink: 0; }
+    .syscat a { color: #075985; font-size: .9rem; line-height: 1.35; text-decoration: none; }
+    .syscat a:hover { color: #0c4a6e; text-decoration: underline; }
+</style>
 {% endblock %}
 {% block content %}
 <div class="page-canvas">
@@ -10,70 +28,39 @@
         <nav class="pcrumb mb-7">
             <a href="{% url 'indicadores:home' %}"><i class="fas fa-house mr-1"></i>Inicio</a>
             <span class="sep">/</span>
-            <span class="here">Sistemas de consulta</span>
+            <span class="here">Sistemas de Consulta</span>
         </nav>
 
-        <div class="mb-10">
+        <div class="mb-12 max-w-3xl">
             <span class="pchip mb-3"><i class="fas fa-magnifying-glass-chart"></i> Consulta y análisis</span>
             <h1 class="ptitle">Sistemas de <span class="pgrad">Consulta</span></h1>
             <p class="psub mt-2">
-                Visualizadores de datos, geovisores y herramientas analíticas del
-                Sistema Integrado de Información Estadística Distrital.
+                Todas las puertas de entrada al dato distrital: herramientas de
+                consulta y análisis, los instrumentos que miden la capacidad
+                estadística del sistema y los canales abiertos de conectividad.
             </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-12">
             {% for categoria in categorias %}
-            <div class="pcard pcard-soft overflow-hidden">
-                <div class="p-6 text-center border-b border-slate-100" style="background: linear-gradient(135deg, {{ categoria.color|default:'#0284c7' }}1f, {{ categoria.color|default:'#0284c7' }}0d);">
-                    <div class="porb w-16 h-16 mb-4" style="background-color: {{ categoria.color|default:'#0284c7' }}; box-shadow: 0 8px 16px -6px {{ categoria.color|default:'#0284c7' }}66;">
-                        {% if categoria.icono %}
-                            <i class="{{ categoria.icono }} text-xl text-white"></i>
-                        {% else %}
-                            <i class="fas fa-folder text-xl text-white"></i>
-                        {% endif %}
-                    </div>
-                    <h3 class="text-base font-bold text-slate-800 mb-1">{{ categoria.nombre }}</h3>
-                    {% if categoria.descripcion %}
-                        <p class="text-xs text-slate-500">{{ categoria.descripcion|truncatewords:15 }}</p>
-                    {% endif %}
+            <div class="syscat">
+                <div class="syscat-title">
+                    <i class="{% if categoria.icono %}{{ categoria.icono }}{% else %}fas fa-folder{% endif %}"></i>
+                    <h2>{{ categoria.nombre }}</h2>
                 </div>
-
-                <div class="p-3">
-                    {% for sistema in categoria.sistemas.all %}
-                        {% if sistema.activo %}
+                <ul>
+                    {% for sistema in categoria.sistemas_activos %}
+                    <li>
                         <a href="{{ sistema.url }}"
-                           {% if sistema.abrir_nueva_ventana %}target="_blank"{% endif %}
-                           class="block px-3 py-2.5 mb-1 rounded-lg hover:bg-cyan-50 transition-colors duration-200 group">
-                            <div class="flex items-center">
-                                <i class="{% if sistema.icono %}{{ sistema.icono }}{% else %}fas fa-link{% endif %} text-slate-400 group-hover:text-cyan-700 mr-3 w-5 text-center"></i>
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-sm font-semibold text-slate-700 group-hover:text-cyan-800">
-                                        {{ sistema.nombre }}
-                                        {% if sistema.abrir_nueva_ventana %}<i class="fas fa-external-link-alt text-xs ml-1"></i>{% endif %}
-                                    </div>
-                                    {% if sistema.descripcion %}
-                                        <div class="text-xs text-slate-400 mt-0.5">{{ sistema.descripcion|truncatewords:8 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
+                           {% if sistema.abrir_nueva_ventana %}target="_blank" rel="noopener"{% endif %}
+                           {% if sistema.descripcion %}title="{{ sistema.descripcion }}"{% endif %}>
+                            {{ sistema.nombre }}{% if sistema.abrir_nueva_ventana %} <i class="fas fa-arrow-up-right-from-square text-[0.65rem] align-baseline"></i>{% endif %}
                         </a>
-                        {% endif %}
+                    </li>
                     {% empty %}
-                        <div class="text-center py-4 text-slate-400 text-sm">
-                            <i class="fas fa-info-circle mb-1 block"></i>
-                            Sin sistemas en esta categoría
-                        </div>
+                    <li class="text-slate-400 text-sm">Sin ítems en esta categoría</li>
                     {% endfor %}
-                </div>
-
-                {% if categoria.sistemas.all %}
-                <div class="px-4 pb-4">
-                    <div class="text-xs text-slate-400 text-center">
-                        {{ categoria.sistemas.all|length }} sistema{{ categoria.sistemas.all|length|pluralize }}
-                    </div>
-                </div>
-                {% endif %}
+                </ul>
             </div>
             {% empty %}
             <div class="col-span-full pbox text-center py-12">

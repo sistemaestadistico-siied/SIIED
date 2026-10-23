@@ -333,7 +333,7 @@ class ProductoEducativoBasicoForm(forms.ModelForm):
 
 
 # ============================================================================
-# FORMULARIOS DE SISTEMAS DE INFORMACIÓN
+# FORMULARIOS DE SISTEMAS DE CONSULTA
 # ============================================================================
 
 WIDGET_CLASSES = 'w-full px-4 py-3 bg-white border-2 border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all'
@@ -341,7 +341,7 @@ CHECKBOX_CLASSES = 'w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-
 
 
 class CategoriaInformacionForm(forms.ModelForm):
-    """Formulario para categorías de sistemas de información"""
+    """Formulario para categorías de sistemas de consulta"""
     
     class Meta:
         model = CategoriaInformacion
@@ -358,7 +358,7 @@ class CategoriaInformacionForm(forms.ModelForm):
 
 
 class SistemaInformacionForm(forms.ModelForm):
-    """Formulario para sistemas de información"""
+    """Formulario para sistemas de consulta"""
     
     class Meta:
         model = SistemaInformacion

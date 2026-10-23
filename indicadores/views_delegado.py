@@ -43,19 +43,27 @@ def _get_organismo(request):
 
 
 def _get_indicadores(request, organismo):
+    """Indicadores del organismo del delegado. Fail-closed: sin organismo
+    no ve nada — solo staff ve el catálogo completo."""
     if organismo:
         return Indicador.objects.filter(
             organismo_responsable=organismo, activo=True
         ).order_by('codigo_indicador')
-    return Indicador.objects.filter(activo=True).order_by('codigo_indicador')
+    if request.user.is_staff:
+        return Indicador.objects.filter(activo=True).order_by('codigo_indicador')
+    return Indicador.objects.none()
 
 
 def _get_conjunto_datoss(request, organismo):
+    """Conjuntos de datos del organismo del delegado. Fail-closed igual
+    que _get_indicadores."""
     if organismo:
         return ConjuntoDatos.objects.filter(
             indicadores__organismo_responsable=organismo
         ).distinct().order_by('nombre')
-    return ConjuntoDatos.objects.all().order_by('nombre')
+    if request.user.is_staff:
+        return ConjuntoDatos.objects.all().order_by('nombre')
+    return ConjuntoDatos.objects.none()
 
 
 # ============================================================================
