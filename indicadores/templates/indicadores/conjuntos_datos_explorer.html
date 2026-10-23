@@ -175,7 +175,7 @@
             border-radius: 0.5rem;
             min-height: 46px;
             padding: 0.25rem 0.5rem;
-            transition: all 0.2s ease-in-out;
+            transition: color 0.2s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out, outline-color 0.2s ease-out, opacity 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out, fill 0.2s ease-out, stroke 0.2s ease-out;
         }
 
         .select2-container--default.select2-container--focus .select2-selection--multiple {
@@ -196,7 +196,7 @@
             font-weight: 500;
             display: inline-flex;
             align-items: center;
-            transition: all 0.2s ease-in-out;
+            transition: color 0.2s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out, outline-color 0.2s ease-out, opacity 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out, fill 0.2s ease-out, stroke 0.2s ease-out;
         }
 
         [data-theme="dark"] .select2-container--default .select2-selection--multiple .select2-selection__choice {
@@ -217,7 +217,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.2s ease-in-out;
+            transition: color 0.2s ease-out;
         }
 
         .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
@@ -251,7 +251,7 @@
             padding: 0.75rem 1rem;
             font-size: 0.875rem;
             line-height: 1.25rem;
-            transition: all 0.15s ease-in-out;
+            transition: color 0.15s ease-out, background-color 0.15s ease-out, border-color 0.15s ease-out, outline-color 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.15s ease-out, transform 0.15s ease-out, fill 0.15s ease-out, stroke 0.15s ease-out;
         }
 
         .select2-container--default .select2-results__option--highlighted[aria-selected] {
@@ -293,7 +293,7 @@
             margin-right: 0.5rem;
             font-size: 1.25rem;
             line-height: 1;
-            transition: color 0.2s ease-in-out;
+            transition: color 0.2s ease-out;
         }
 
         .select2-container--default .select2-selection--multiple .select2-selection__clear:hover {
@@ -555,7 +555,7 @@
         .nav-link {
             position: relative;
             color: var(--lab-nav-text) !important;
-            transition: all 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
             padding: 0.5rem 1rem;
             font-weight: 500;
             text-decoration: none;
@@ -639,7 +639,7 @@
         
         #main-nav a {
             color: var(--text-primary) !important;
-            transition: all 0.2s ease;
+            transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, outline-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
             position: relative;
             padding: 0.5rem 1rem;
             display: inline-block;
@@ -687,7 +687,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
             font-size: 14px;
             font-weight: 500;
             margin: 0;
@@ -1590,7 +1590,7 @@
                                     <a href="{% url 'indicadores:aliado_detalle' aliado.slug %}" 
                                        class="sponsor-logo-link" 
                                        title="{{ aliado.nombre }}"
-                                        style="display: block; transition: all 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                                        style="display: block; transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                                         {% if aliado.logo_url %}
                                             <img src="{{ aliado.logo_url }}" 
                                                  alt="{{ aliado.nombre }}" 

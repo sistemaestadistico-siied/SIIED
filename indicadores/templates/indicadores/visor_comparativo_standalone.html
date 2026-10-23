@@ -220,7 +220,7 @@
         /* Animaciones y efectos */
         .nav-link {
             position: relative;
-            transition: all 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
         }
         .nav-link::after {
             content: '';
@@ -453,7 +453,7 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -2420,7 +2420,7 @@
                             <a href="{% url 'indicadores:aliado_detalle' aliado.slug %}" 
                                class="sponsor-logo-link" 
                                title="{{ aliado.nombre }}"
-                               style="display: block; transition: all 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                               style="display: block; transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                                 {% if aliado.logo_url %}
                                     <img src="{{ aliado.logo_url }}" 
                                          alt="{{ aliado.nombre }}" 

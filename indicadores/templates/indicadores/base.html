@@ -61,13 +61,54 @@
             font-family: 'Inter', sans-serif;
             background-color: #f7fafc;
         }
+
+        /* === Capa Apple Design === */
+        /* §1 Response: feedback al presionar, no al soltar */
+        a[href], button, [type="button"], [type="submit"], [type="reset"], [role="button"], summary, .sw-btn {
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 150ms ease-out;
+        }
+        a[href]:active, button:active, [type="button"]:active, [type="submit"]:active,
+        [type="reset"]:active, [role="button"]:active, summary:active {
+            transform: scale(0.97);
+            transition-duration: 100ms;
+        }
+
+        /* §15 Tipografía: tracking específico por tamaño */
+        h1, h2 { letter-spacing: -0.02em; }
+        h3 { letter-spacing: -0.01em; }
+
+        /* §12 Materials: nav sticky como capa translúcida */
+        .nav-chrome {
+            background: rgba(255, 255, 255, 0.72);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            backdrop-filter: blur(20px) saturate(180%);
+            box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06), 0 6px 16px -10px rgba(15, 23, 42, 0.12);
+        }
+        @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+            .nav-chrome { background: #ffffff; }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+            .nav-chrome { background: #ffffff; -webkit-backdrop-filter: none; backdrop-filter: none; }
+        }
+
+        /* §14 Reduced motion: reemplazo global por transiciones casi instantáneas */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+        /* === fin capa Apple Design === */
         #map { height: 75vh; }
         .leaflet-container { z-index: 1 !important; }
 
         /* Animaciones y efectos */
         .nav-link {
             position: relative;
-            transition: all 0.3s ease;
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
         }
         .nav-link::after {
             content: '';
@@ -91,7 +132,7 @@
             bottom: 20px;
             left: 20px;
             z-index: 1000;
-            transition: all 0.3s ease-in-out;
+            transition: color 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out, outline-color 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out, transform 0.3s ease-out, fill 0.3s ease-out, stroke 0.3s ease-out;
             animation: float 3s ease-in-out infinite;
         }
         
@@ -104,7 +145,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease-in-out;
+            transition: color 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out, outline-color 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out, transform 0.3s ease-out, fill 0.3s ease-out, stroke 0.3s ease-out;
             position: relative;
             overflow: hidden;
         }
@@ -114,7 +155,7 @@
             height: 100%;
             object-fit: contain;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-            transition: all 0.3s ease-in-out;
+            transition: color 0.3s ease-out, background-color 0.3s ease-out, border-color 0.3s ease-out, outline-color 0.3s ease-out, opacity 0.3s ease-out, box-shadow 0.3s ease-out, transform 0.3s ease-out, fill 0.3s ease-out, stroke 0.3s ease-out;
         }
         
         .floating-chat a::before {
@@ -199,7 +240,7 @@
                     </div>
                     <div class="h-10 sm:h-12 md:h-14 w-px bg-sky-900 flex-shrink-0"></div>
     
-                    
+                nav cre
                     <!-- Nombre de la plataforma -->
                     <div class="flex items-center space-x-4">
                         <div>
@@ -317,7 +358,7 @@
                                 <a href="{% url 'indicadores:aliado_detalle' aliado.slug %}" 
                                    class="sponsor-logo-link" 
                                    title="{{ aliado.nombre }}"
-                                    style="display: block; transition: all 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                                    style="display: block; transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease; border-radius: 8px; padding: 10px; background: rgba(255, 255, 255, 0.7); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                                     {% if aliado.logo_url %}
                                         <img src="{{ aliado.logo_url }}" 
                                              alt="{{ aliado.nombre }}" 
