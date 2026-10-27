@@ -26,6 +26,10 @@
                 <i class="fas fa-file-upload mr-2 text-sky-500"></i>
                 Subir CSV
             </a>
+            <a href="{% url 'indicadores:analitica_geo_descargas' %}" class="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm">
+                <i class="fas fa-map-marked-alt mr-2 text-emerald-500"></i>
+                Capas geo
+            </a>
             <form method="post" action="{% url 'indicadores:analitica_superset_sincronizar' %}" class="inline">
                 {% csrf_token %}
                 <button type="submit" class="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm" title="Sube los Conjuntos de Datos y Catálogos de Consulta del SIIED como datasets de Superset">

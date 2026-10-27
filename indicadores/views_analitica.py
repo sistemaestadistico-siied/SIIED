@@ -20,12 +20,15 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib import messages
 from django.conf import settings
 from django.core.cache import cache
+from django.http import HttpResponse
+from django.db.models import Count
 
 from .decorators import analista_required, bi_required
 from .forms_chat_config import ChatConfigForm, ChatContextForm, ChatSuggestionsForm
 from . import chat_config
 from .models import (ConfiguracionSistema, ConjuntoDatos, CatalogoConsulta,
-                     MenuDominio, DatasetBI, TableroBI)
+                     MenuDominio, DatasetBI, TableroBI,
+                     NivelGeografico, ElementoGeo, CapaGeoJSON)
 from .superset_service import SupersetService
 from django.utils.text import slugify
 
@@ -1086,6 +1089,131 @@ def analitica_superset_explorar(request):
 def analitica_superset_manual(request):
     """Manual de uso de los Tableros Superset."""
     return render(request, 'analitica/superset_manual.html')
+
+
+EXCEL_MAX_CELL = 32000  # límite real de celda: 32767; margen de seguridad
+
+
+@bi_required
+def analitica_geo_descargas(request):
+    """Catálogo descargable de niveles/capas geográficas para tableros Superset.
+
+    Cada nivel se descarga en XLSX o CSV con codigo/nombre (claves de join) y
+    geojson. El XLSX omite geojson cuando excede el límite de celda de Excel
+    (32767 caracteres) — para esas capas el CSV es la única vía completa.
+    """
+    niveles = NivelGeografico.objects.annotate(
+        n_capas=Count('capas', distinct=True),
+        n_elementos=Count('capas__elementos', distinct=True),
+    ).order_by('id')
+
+    # Tamaño máximo de geojson por nivel (define si el XLSX puede llevarlo)
+    max_geo = {}
+    for fila in (CapaGeoJSON.objects
+                 .select_related('capa_geo')
+                 .only('capa_geo', 'geojson')):
+        nid = fila.capa_geo.nivel_geografico_id
+        largo = len(fila.geojson or '')
+        if largo > max_geo.get(nid, 0):
+            max_geo[nid] = largo
+
+    filas = [{
+        'id': n.id,
+        'nombre': n.nombre,
+        'capas': n.n_capas,
+        'elementos': n.n_elementos,
+        'geo_exportados': CapaGeoJSON.objects.filter(
+            capa_geo__nivel_geografico=n).count(),
+        'excede_excel': max_geo.get(n.id, 0) > EXCEL_MAX_CELL,
+    } for n in niveles]
+
+    return render(request, 'analitica/superset_geo_descargas.html', {
+        'niveles': filas,
+        'excel_max_cell': EXCEL_MAX_CELL,
+    })
+
+
+@bi_required
+def analitica_geo_exportar(request, nivel_id, formato):
+    """Descarga las capas de un NivelGeografico como XLSX o CSV.
+
+    Columnas: nivel_geografico, capa_id, capa, codigo, nombre, geojson.
+    En XLSX, geojson va vacío (y geojson_excede=1) cuando la geometría supera
+    el límite de celda de Excel — el CSV siempre la incluye completa.
+    """
+    nivel = get_object_or_404(NivelGeografico, pk=nivel_id)
+    filas = (CapaGeoJSON.objects
+             .filter(capa_geo__nivel_geografico=nivel)
+             .select_related('capa_geo')
+             .order_by('capa_geo__nombre', 'codigo'))
+
+    if not filas.exists():
+        messages.warning(
+            request,
+            f'«{nivel.nombre}» no tiene geometrías exportadas. Ejecute '
+            f'`manage.py export_geojson_superset` primero.')
+        return redirect('indicadores:analitica_geo_descargas')
+
+    slug_n = slugify(nivel.nombre) or f'nivel_{nivel_id}'
+    headers = ['nivel_geografico', 'capa_id', 'capa',
+               'codigo', 'nombre', 'geojson', 'geojson_excede']
+
+    def _fila(f, con_geo=True):
+        g = f.geojson or ''
+        excede = len(g) > EXCEL_MAX_CELL
+        if con_geo:
+            return [nivel.nombre, f.capa_geo_id, f.capa_geo.nombre,
+                    f.codigo, f.nombre, '' if excede else g,
+                    1 if excede else 0]
+        return [nivel.nombre, f.capa_geo_id, f.capa_geo.nombre,
+                f.codigo, f.nombre, g, 0]
+
+    if formato == 'csv':
+        resp = HttpResponse(content_type='text/csv; charset=utf-8')
+        resp['Content-Disposition'] = (
+            f'attachment; filename="capas_geo_{slug_n}.csv"')
+        resp.write('﻿')  # BOM para que Excel reconozca UTF-8
+        w = csv.writer(resp)
+        w.writerow(headers)
+        for f in filas:
+            # CSV siempre lleva el geojson completo (sin límite de celda)
+            w.writerow(_fila(f, con_geo=False))
+        return resp
+
+    if formato == 'xlsx':
+        try:
+            from openpyxl import Workbook
+        except ImportError:
+            messages.error(request, 'openpyxl no está instalado; use el CSV.')
+            return redirect('indicadores:analitica_geo_descargas')
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'capas_geo'
+        ws.append(headers)
+        for f in filas:
+            ws.append(_fila(f, con_geo=True))
+
+        nota = wb.create_sheet('leeme')
+        nota.append(['Columna geojson:'])
+        nota.append(['  Si geojson_excede=1, la geometría supera el límite de '
+                     'celda de Excel (32767 chars) y va vacía.'])
+        nota.append(['  Para esas capas descargue el CSV, que la incluye '
+                     'completa. Superset acepta CSV y Excel por igual.'])
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+        resp = HttpResponse(
+            buf.read(),
+            content_type='application/vnd.openxmlformats-'
+                         'officedocument.spreadsheetml.sheet')
+        resp['Content-Disposition'] = (
+            f'attachment; filename="capas_geo_{slug_n}.xlsx"')
+        return resp
+
+    messages.error(request, f'Formato «{formato}» no soportado (use csv o xlsx).')
+    return redirect('indicadores:analitica_geo_descargas')
 
 
 # ============================================================================

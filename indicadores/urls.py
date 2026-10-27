@@ -467,6 +467,8 @@ urlpatterns = [
     path('analitica/superset/explorar/', views_analitica.analitica_superset_explorar, name='analitica_superset_explorar'),
     path('analitica/superset/manual/', views_analitica.analitica_superset_manual, name='analitica_superset_manual'),
     path('analitica/superset/dashboard/<int:dashboard_id>/', views_analitica.analitica_superset_detalle, name='analitica_superset_detalle'),
+    path('analitica/superset/geo/', views_analitica.analitica_geo_descargas, name='analitica_geo_descargas'),
+    path('analitica/superset/geo/<int:nivel_id>/<str:formato>/', views_analitica.analitica_geo_exportar, name='analitica_geo_exportar'),
     # Tableros BI por visibilidad (guest token): público/autenticado/organismo/interno
     path('bi/<int:dashboard_id>/', views_analitica.bi_tablero, name='bi_tablero'),
     # Submódulo: Don Datico × Superset (consulta, análisis y tableros asistidos)
