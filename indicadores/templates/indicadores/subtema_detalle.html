@@ -6,15 +6,15 @@
 {% block content %}
 
 <!-- Mensaje de orientación para móviles -->
-<div class="portrait:block landscape:hidden md:hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
+<div class="portrait:block landscape:hidden md:hidden fixed inset-0 bg-slate-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-lg p-6 text-center max-w-sm mx-auto">
         <div class="mb-4">
             <svg class="w-16 h-16 mx-auto text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
             </svg>
         </div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">Rota tu dispositivo</h3>
-        <p class="text-gray-600 text-sm">Para una mejor experiencia visualizando gráficos y mapas estadísticos, por favor gira tu dispositivo a orientación horizontal.</p>
+        <h3 class="text-lg font-semibold text-slate-900 mb-2">Rota tu dispositivo</h3>
+        <p class="text-slate-600 text-sm">Para una mejor experiencia visualizando gráficos y mapas estadísticos, por favor gira tu dispositivo a orientación horizontal.</p>
     </div>
 </div>
 
@@ -59,16 +59,16 @@
 
 
                 <!-- Navegación de Indicadores -->
-                <h3 class="text-md font-semibold text-left text-gray-800 mb-3 border-b pb-2">Indicadores</h3>
+                <h3 class="text-md font-semibold text-left text-slate-800 mb-3 border-b pb-2">Indicadores</h3>
                 <nav id="indicadores-nav" class="flex flex-col space-y-1 text-left">
                     {% for indicador in indicadores %}
                         <a href="#" data-indicador-id="{{ indicador.id }}" data-indicador-nombre="{{ indicador.nombre }}" data-mostrar-mapa="{{ indicador.mostrar_mapa|yesno:'true,false' }}"
-                           class="indicador-link px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 hover:bg-gray-100 hover:text-gray-900 flex items-center gap-2">
+                           class="indicador-link px-3 py-2 rounded-md text-sm font-medium transition-colors text-slate-700 hover:bg-slate-100 hover:text-slate-900 flex items-center gap-2">
                             {% include 'indicadores/_sello_badge.html' with sello=indicador.sello_calidad size='sm' titulo=indicador.get_sello_calidad_display %}
                             <span>{{ indicador.nombre }}</span>
                         </a>
                     {% empty %}
-                        <p class="text-sm text-gray-500 px-3 py-2">No hay indicadores disponibles.</p>
+                        <p class="text-sm text-slate-500 px-3 py-2">No hay indicadores disponibles.</p>
                     {% endfor %}
                 </nav>
             </div>
@@ -80,7 +80,7 @@
                 <!-- Título del indicador seleccionado -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <h1 id="indicador-titulo" class="text-xl lg:text-2xl font-bold text-cyan-800">Selecciona un indicador</h1>
-                    <button id="conjunto-datos-access-btn" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 text-sm lg:text-base">
+                    <button id="conjunto-datos-access-btn" disabled class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200 text-sm lg:text-base">
                         <i class="fas fa-table mr-2"></i>
                         Acceder a Agregaciones de Conjunto de datos
                     </button>
@@ -90,12 +90,12 @@
                 <!-- Filtros globales de Desagregaciones (colapsables) -->
                 <div class="mb-6">
                     <button id="toggle-filtros-globales" type="button"
-                            class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                            class="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium">
                         <i class="fas fa-filter"></i>
                         Filtros globales
                         <i id="toggle-filtros-icon" class="fas fa-chevron-down transition-transform duration-200"></i>
                     </button>
-                    <div id="filtros-globales-panel" class="hidden mt-3 p-4 bg-gray-50 rounded-lg">
+                    <div id="filtros-globales-panel" class="hidden mt-3 p-4 bg-slate-50 rounded-lg">
                     <!-- Un control de filtro por cada dominio de desagregación -->
                     <div id="filtro-dominios" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 
@@ -103,16 +103,16 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Selector de desagregaciones geográficas -->
                         <div id="filtro-desagregaciones-geograficas">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Desagregaciones Geográficas</label>
-                            <select id="desagregaciones-geograficas" multiple class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Desagregaciones Geográficas</label>
+                            <select id="desagregaciones-geograficas" multiple class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
                                 <!-- Las opciones se llenarán dinámicamente -->
                             </select>
                         </div>
 
                         <!-- Selector de desagregaciones temáticas -->
                         <div id="filtro-desagregaciones-tematicas">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Desagregaciones Temáticas</label>
-                            <select id="desagregaciones-tematicas" multiple class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Desagregaciones Temáticas</label>
+                            <select id="desagregaciones-tematicas" multiple class="w-full p-2 border border-slate-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500">
                                 <!-- Las opciones se llenarán dinámicamente -->
                             </select>
                         </div>
@@ -122,7 +122,7 @@
                         <button id="aplicar-filtros" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                             Aplicar Filtros de Desagregaciones
                         </button>
-                        <button id="limpiar-filtros" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        <button id="limpiar-filtros" class="px-4 py-2 bg-slate-300 text-slate-700 rounded-md hover:bg-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500">
                             Limpiar Desagregaciones
                         </button>
                     </div>
@@ -148,23 +148,23 @@
                     <div class="bg-white rounded-lg shadow-md p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-xl font-bold text-cyan-800">Mapa Geográfico</h3>
-                            <div class="text-sm text-gray-600">
+                            <div class="text-sm text-slate-600">
                                 <i class="fas fa-map text-primary-600 mr-1"></i>
                                 Distribución territorial del indicador
                             </div>
                         </div>
                         
                         <!-- Controles específicos del mapa -->
-                        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="mb-4 p-4 bg-slate-50 rounded-lg">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <!-- Control de año para el mapa -->
                                 <div>
-                                    <label for="mapa-ano-slider" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <label for="mapa-ano-slider" class="block text-sm font-medium text-slate-700 mb-2">
                                         Año del Mapa: <span id="mapa-ano-display" class="font-bold text-primary-600">2025</span>
                                     </label>
                                     <div class="flex items-center space-x-2">
                                         <input type="range" id="mapa-ano-slider" class="flex-1" min="1985" max="2042" value="2025">
-                                        <button id="mapa-restablecer-ano" class="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                                        <button id="mapa-restablecer-ano" class="px-3 py-1 text-xs bg-slate-200 text-slate-700 rounded hover:bg-slate-300">
                                             Restablecer
                                         </button>
                                     </div>
@@ -172,17 +172,17 @@
                                 
                                 <!-- Selector de desagregaciones temáticas para el mapa -->
                                 <div>
-                                    <label for="mapa-desagregaciones-tematicas" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <label for="mapa-desagregaciones-tematicas" class="block text-sm font-medium text-slate-700 mb-2">
                                         Filtros Temáticos del Mapa
                                     </label>
-                                    <select id="mapa-desagregaciones-tematicas" multiple class="w-full p-2 border border-gray-300 rounded-md text-sm mb-2">
+                                    <select id="mapa-desagregaciones-tematicas" multiple class="w-full p-2 border border-slate-300 rounded-md text-sm mb-2">
                                         <!-- Se llenarán dinámicamente -->
                                     </select>
                                     <div class="flex space-x-2">
                                         <button id="mapa-aplicar-filtros" class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">
                                             Aplicar Filtros
                                         </button>
-                                        <button id="mapa-limpiar-filtros" class="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600">
+                                        <button id="mapa-limpiar-filtros" class="px-3 py-1 text-xs bg-slate-500 text-white rounded hover:bg-slate-600">
                                             Limpiar Filtros
                                         </button>
                                     </div>
@@ -191,7 +191,7 @@
                         </div>
                         
                         <div id="mapa-plotly" style="height: 600px; width: 100%; position: relative; z-index: 1; background: white;"></div>
-                        <div id="mapa-loading" class="text-center p-8 text-gray-600">
+                        <div id="mapa-loading" class="text-center p-8 text-slate-600">
                             <i class="fas fa-spinner fa-spin mr-2"></i>
                             Cargando mapa geográfico...
                         </div>
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
             graficosContainer.innerHTML = `
                 <div class="text-center p-8 text-red-600">
                     <p><strong>Error Crítico:</strong> La librería Plotly.js no se ha cargado correctamente.</p>
-                    <p class="text-sm text-gray-500 mt-2">Por favor, contacte al administrador del sistema.</p>
+                    <p class="text-sm text-slate-500 mt-2">Por favor, contacte al administrador del sistema.</p>
                 </div>`;
         }
         return; // Detener la ejecución si Plotly no está disponible
@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const wrap = document.createElement('div');
             if (dom.dominio_padre) wrap.className = 'pl-3 border-l-2 border-primary-200';
             const label = document.createElement('label');
-            label.className = 'block text-sm font-medium text-gray-700 mb-1';
+            label.className = 'block text-sm font-medium text-slate-700 mb-1';
             label.textContent = dom.nombre;
             wrap.appendChild(label);
             const sel = document.createElement('select');
@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
             sel.dataset.dominioId = dom.id;
             sel.dataset.dominioTipo = dom.tipo;
             sel.dataset.dominioPadre = dom.dominio_padre || '';
-            sel.className = 'w-full p-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-primary-500 focus:border-primary-500';
+            sel.className = 'w-full p-2 border border-slate-300 rounded-md shadow-sm text-sm focus:ring-primary-500 focus:border-primary-500';
             (dom.desagregaciones || []).forEach(d => {
                 const o = document.createElement('option');
                 o.value = d.id;
@@ -409,18 +409,18 @@ document.addEventListener('DOMContentLoaded', function() {
             </p>
             <div class="flex flex-col sm:flex-row gap-3 mb-3">
                 <input type="text" id="cuadro-consulta-buscar" placeholder="Buscar en el cuadro..."
-                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300">
+                       class="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300">
                 <a href="${_esc(conjunto.url)}" class="px-4 py-2 bg-cyan-700 text-white rounded-md text-sm font-medium hover:bg-cyan-800 transition-colors whitespace-nowrap text-center">
                     <i class="fas fa-external-link-alt mr-1"></i>Ver en catálogo de consulta
                 </a>
             </div>
-            <div class="text-xs text-gray-500 mb-2" id="cuadro-consulta-count"></div>
-            <div class="overflow-x-auto max-h-[480px] overflow-y-auto border border-gray-200 rounded-md">
+            <div class="text-xs text-slate-500 mb-2" id="cuadro-consulta-count"></div>
+            <div class="overflow-x-auto max-h-[480px] overflow-y-auto border border-slate-200 rounded-md">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-50 sticky top-0">
-                        <tr>${cols.map(c => `<th class="px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase whitespace-nowrap border-b">${_esc(c)}</th>`).join('')}</tr>
+                    <thead class="bg-slate-50 sticky top-0">
+                        <tr>${cols.map(c => `<th class="px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase whitespace-nowrap border-b">${_esc(c)}</th>`).join('')}</tr>
                     </thead>
-                    <tbody id="cuadro-consulta-body" class="divide-y divide-gray-100"></tbody>
+                    <tbody id="cuadro-consulta-body" class="divide-y divide-slate-100"></tbody>
                 </table>
             </div>`;
         graficosContainer.appendChild(wrap);
@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const count = wrap.querySelector('#cuadro-consulta-count');
         function pintarFilas(lista) {
             tbody.innerHTML = lista.map(f =>
-                `<tr class="hover:bg-cyan-50">${cols.map(c => `<td class="px-3 py-2 text-gray-700 whitespace-nowrap">${_esc(f[c]) || '—'}</td>`).join('')}</tr>`
+                `<tr class="hover:bg-cyan-50">${cols.map(c => `<td class="px-3 py-2 text-slate-700 whitespace-nowrap">${_esc(f[c]) || '—'}</td>`).join('')}</tr>`
             ).join('');
             count.textContent = `${lista.length} registro(s)`;
         }
@@ -533,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         abortControllersPorGrafico[graficoId] = new AbortController();
         const plotDiv = itemContainer.querySelector('.grafico-plot');
-        plotDiv.innerHTML = '<div class="text-center p-4 text-gray-500 text-sm"><i class="fas fa-spinner fa-spin mr-1"></i> Actualizando...</div>';
+        plotDiv.innerHTML = '<div class="text-center p-4 text-slate-500 text-sm"><i class="fas fa-spinner fa-spin mr-1"></i> Actualizando...</div>';
         let url = `{% url 'indicadores:api_get_grafico' 0 %}`.replace('/0/', `/${graficoId}/`);
         const params = new URLSearchParams();
         if (estado.anoInicio) params.append('ano_inicio', estado.anoInicio);
@@ -594,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
         indicadorLink.classList.add('bg-cyan-100', 'text-cyan-800', 'font-bold');
         indicadorTitulo.textContent = indicadorNombre;
         if (conjuntoDatosAccessBtn) conjuntoDatosAccessBtn.disabled = false;
-        graficosContainer.innerHTML = '<div class="text-center p-8"><p class="text-gray-600">Cargando gráficos...</p></div>';
+        graficosContainer.innerHTML = '<div class="text-center p-8"><p class="text-slate-600">Cargando gráficos...</p></div>';
         toggleControlesIndicador(false);
 
         cargarMetadatosIndicador(indicadorId);
@@ -672,21 +672,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         };
                     }
                     const item = document.createElement('div');
-                    item.className = 'grafico-item mb-10 bg-white rounded-lg shadow-sm border border-gray-200 p-4';
+                    item.className = 'grafico-item mb-10 bg-white rounded-lg shadow-sm border border-slate-200 p-4';
                     item.dataset.graficoId = graficoId;
                     item.innerHTML = `
                         <div class="flex items-center justify-between mb-3 border-b pb-2">
                             <h3 class="text-lg font-bold text-slate-800">${grafico.nombre || 'Gráfico'}</h3>
-                            <span class="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">${tipo}</span>
+                            <span class="text-xs px-2 py-1 bg-slate-100 rounded text-slate-600">${tipo}</span>
                         </div>
-                        <div class="grafico-controles mb-3 p-3 bg-gray-50 rounded-md">
+                        <div class="grafico-controles mb-3 p-3 bg-slate-50 rounded-md">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div class="controles-ano">
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">${esAnoUnico ? 'Año' : 'Rango de Años'}</label>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">${esAnoUnico ? 'Año' : 'Rango de Años'}</label>
                                     <div class="controles-ano-inputs"></div>
                                 </div>
                                 <div class="controles-desagregaciones">
-                                    <label class="block text-xs font-medium text-gray-600 mb-1">Desagregaciones</label>
+                                    <label class="block text-xs font-medium text-slate-600 mb-1">Desagregaciones</label>
                                     <div class="controles-dominios-grafico grid grid-cols-1 gap-2"></div>
                                     <div class="flex gap-2 controles-desag-planos">
                                         <select class="desag-geo-select w-1/2 text-xs border rounded p-1" multiple></select>
@@ -696,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="mt-2 flex gap-2">
                                 <button class="btn-aplicar-grafico px-3 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Aplicar</button>
-                                <button class="btn-limpiar-grafico px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Limpiar</button>
+                                <button class="btn-limpiar-grafico px-3 py-1 text-xs bg-slate-300 text-slate-700 rounded hover:bg-slate-400">Limpiar</button>
                             </div>
                         </div>
                         <div class="grafico-plot" id="grafico-plot-${graficoId}"></div>
@@ -749,7 +749,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         controlesAnoDiv.innerHTML = `
                             <div class="flex items-center gap-2">
                                 <input type="number" class="ano-min-input w-20 text-xs border rounded p-1" min="${rangoAnios.min_disponible}" max="${rangoAnios.max_disponible}" value="${vMin}">
-                                <span class="text-gray-500">-</span>
+                                <span class="text-slate-500">-</span>
                                 <input type="number" class="ano-max-input w-20 text-xs border rounded p-1" min="${rangoAnios.min_disponible}" max="${rangoAnios.max_disponible}" value="${vMax}">
                             </div>`;
                     }
@@ -1203,13 +1203,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 locations: locations,
                 z: z,
                 text: text,
-                colorscale: [
-                    [0, '#FF0000'],      // Rojo brillante
-                    [0.25, '#FF8C00'],   // Naranja
-                    [0.5, '#FFD700'],    // Amarillo dorado
-                    [0.75, '#32CD32'],   // Verde lima
-                    [1, '#0000FF']       // Azul brillante
-                ],
+                colorscale: window.SIIED_COLORSCALE,
                 showscale: true,
                 colorbar: {
                     title: 'Valor',
@@ -1667,14 +1661,7 @@ document.addEventListener('DOMContentLoaded', function() {
             customdata: customdata,
             geojson: geojson,
             featureidkey: 'properties.codigo',
-            colorscale: [
-                [0, '#f7fafc'],
-                [0.2, '#bee3f8'],
-                [0.4, '#63b3ed'],
-                [0.6, '#3182ce'],
-                [0.8, '#2c5aa0'],
-                [1, '#1a365d']
-            ],
+            colorscale: window.SIIED_COLORSCALE,
             colorbar: {
                 title: {
                     text: 'Valor',
@@ -1827,14 +1814,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const anosSet = new Set();
         (grafico.series || []).forEach(s => (s.x || []).forEach(x => anosSet.add(x)));
         const anos = Array.from(anosSet).sort();
-        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
-        html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
+        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-slate-200">';
+        html += '<thead><tr class="bg-slate-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
         anos.forEach(a => { html += `<th class="py-2 px-4 border-b text-right">${a}</th>`; });
         html += '</tr></thead><tbody>';
         (grafico.series || []).forEach(s => {
             const mapa = {};
             (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
-            html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+            html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
             anos.forEach(a => {
                 const v = mapa[a] !== undefined ? mapa[a] : 'N/A';
                 html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`;
@@ -1879,7 +1866,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Crear botón para mostrar/ocultar tabla
         const toggleButton = document.createElement('button');
-        toggleButton.className = 'grafico-tabla-toggle mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300';
+        toggleButton.className = 'grafico-tabla-toggle mt-2 px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300';
         toggleButton.textContent = 'Mostrar/Ocultar Datos en Tabla';
         toggleButton.addEventListener('click', function() {
             const tablaOculta = container.classList.toggle('hidden');
@@ -1899,7 +1886,7 @@ document.addEventListener('DOMContentLoaded', function() {
         container.parentNode.insertBefore(toggleButton, container);
         
         // Generar la tabla según el tipo de gráfico
-        let tablaHTML = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
+        let tablaHTML = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-slate-200">';
         let datosCSV = [];
         
         // Para gráficos pie
@@ -1907,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const pieData = grafico.series[0];
             
             // Encabezados de la tabla
-            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<thead><tr class="bg-slate-100">';
             tablaHTML += '<th class="py-2 px-4 border-b text-left">Segmento</th>';
             tablaHTML += '<th class="py-2 px-4 border-b text-left">Valor</th>';
             tablaHTML += '</tr></thead><tbody>';
@@ -1918,7 +1905,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Generar filas de datos
             if (pieData.labels && pieData.values) {
                 for (let i = 0; i < pieData.labels.length; i++) {
-                    tablaHTML += '<tr class="hover:bg-gray-50">';
+                    tablaHTML += '<tr class="hover:bg-slate-50">';
                     tablaHTML += `<td class="py-2 px-4 border-b">${pieData.labels[i] || 'N/A'}</td>`;
                     const v = pieData.values[i] !== undefined ? pieData.values[i] : 'N/A';
                     tablaHTML += `<td class="py-2 px-4 border-b">${formatearNumero(v)}</td>`;
@@ -1935,7 +1922,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const treemapData = grafico.series[0];
             
             // Encabezados de la tabla
-            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<thead><tr class="bg-slate-100">';
             tablaHTML += '<th class="py-2 px-4 border-b text-left">Categoría</th>';
             tablaHTML += '<th class="py-2 px-4 border-b text-left">Valor</th>';
             tablaHTML += '</tr></thead><tbody>';
@@ -1946,7 +1933,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Generar filas de datos
             if (treemapData.labels && treemapData.values) {
                 for (let i = 0; i < treemapData.labels.length; i++) {
-                    tablaHTML += '<tr class="hover:bg-gray-50">';
+                    tablaHTML += '<tr class="hover:bg-slate-50">';
                     tablaHTML += `<td class="py-2 px-4 border-b">${treemapData.labels[i] || 'N/A'}</td>`;
                     const v = treemapData.values[i] !== undefined ? treemapData.values[i] : 'N/A';
                     tablaHTML += `<td class="py-2 px-4 border-b">${formatearNumero(v)}</td>`;
@@ -1961,7 +1948,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Para gráficos pirámide poblacional
         else if (grafico.tipo_grafico === 'piramide_poblacional' && grafico.series.length > 0) {
             // Encabezados de la tabla
-            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<thead><tr class="bg-slate-100">';
             tablaHTML += '<th class="py-2 px-4 border-b text-left">Rango de Edad</th>';
             
             // Agregar encabezados para cada serie (género)
@@ -1982,7 +1969,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Generar filas de datos
                 for (let i = 0; i < rangosEdad.length; i++) {
-                    tablaHTML += '<tr class="hover:bg-gray-50">';
+                    tablaHTML += '<tr class="hover:bg-slate-50">';
                     tablaHTML += `<td class="py-2 px-4 border-b">${rangosEdad[i] || 'N/A'}</td>`;
                     
                     // Valores de cada serie
@@ -2009,7 +1996,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const anos = Array.from(anosSet).sort();
 
-            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<thead><tr class="bg-slate-100">';
             tablaHTML += '<th class="py-2 px-4 border-b text-left">Categoría</th>';
             const encabezados = ['Categoría'];
             anos.forEach(a => {
@@ -2023,7 +2010,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Mapa x -> y para alinear valores con las columnas de años
                 const mapa = {};
                 (serie.x || []).forEach((x, i) => { mapa[x] = (serie.y || [])[i]; });
-                tablaHTML += '<tr class="hover:bg-gray-50">';
+                tablaHTML += '<tr class="hover:bg-slate-50">';
                 tablaHTML += `<td class="py-2 px-4 border-b">${serie.name || 'Serie'}</td>`;
                 const filaCSV = [serie.name || 'Serie'];
                 anos.forEach(a => {
@@ -2041,7 +2028,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const esBarraHorizontal = grafico.tipo_grafico === 'bar_horizontal';
             
             // Encabezados de la tabla
-            tablaHTML += '<thead><tr class="bg-gray-100">';
+            tablaHTML += '<thead><tr class="bg-slate-100">';
             tablaHTML += `<th class="py-2 px-4 border-b text-left">${esBarraHorizontal ? 'Categoría' : 'Año'}</th>`;
             
             // Agregar encabezados para cada serie
@@ -2077,7 +2064,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Generar filas de datos
             xsOrdenados.forEach(x => {
-                tablaHTML += '<tr class="hover:bg-gray-50">';
+                tablaHTML += '<tr class="hover:bg-slate-50">';
                 
                 // Año/Categoría (primera columna)
                 const categoriaAno = x !== undefined && x !== null ? x : 'N/A';
@@ -2217,10 +2204,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function row(label, val) {
-            return `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b font-medium text-gray-700 w-1/3">${label}</td><td class="py-2 px-4 border-b text-gray-600">${fmt(val)}</td></tr>`;
+            return `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b font-medium text-slate-700 w-1/3">${label}</td><td class="py-2 px-4 border-b text-slate-600">${fmt(val)}</td></tr>`;
         }
 
-        let tablaHTML = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
+        let tablaHTML = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-slate-200">';
         tablaHTML += '<thead><tr class="bg-blue-100"><th class="py-2 px-4 border-b text-left font-semibold">Campo</th><th class="py-2 px-4 border-b text-left font-semibold">Información</th></tr></thead><tbody>';
 
         // Sección 0: Identificación

@@ -12,7 +12,7 @@
     <div class="flex flex-wrap items-start justify-between gap-4 mt-3 mb-6">
         <div class="min-w-0">
             <p class="text-xs font-bold text-fuchsia-600 uppercase tracking-wider mb-1">Reto de análisis F2 · R{{ reto.id }}</p>
-            <h2 class="text-2xl font-serif font-bold text-slate-900 leading-tight">{{ reto.nombre|default:'(sin nombre)' }}</h2>
+            <h2 class="text-2xl font-bold text-slate-900 leading-tight">{{ reto.nombre|default:'(sin nombre)' }}</h2>
             <p class="text-sm text-slate-500 mt-1">
                 {{ reto.inscripcion.organismo.nombre }}
                 {% if reto.inscripcion.suborganismo %} · {{ reto.inscripcion.suborganismo.nombre }}{% endif %}

@@ -6,13 +6,13 @@
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-serif font-bold text-slate-900">
+        <h1 class="text-3xl font-bold text-slate-900">
             <svg class="w-6 h-6 inline mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>Evidencia de Carga
         </h1>
         <a href="{% url 'indicadores:historial_cargas_series' %}" 
-           class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
+           class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>Volver al Historial
@@ -20,9 +20,9 @@
     </div>
 
     <!-- Información Principal -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-6">
-            <h2 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-emerald-500 px-8 py-6">
+            <h2 class="text-xl font-bold text-white">
                 Código de Evidencia: {{ carga.codigo_evidencia }}
             </h2>
             {% if carga.indicador %}
@@ -97,18 +97,18 @@
     </div>
 
     {% if carga.indicador %}
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-4">
-            <h3 class="text-lg font-serif font-bold text-white">Actualizar indicador existente</h3>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-blue-500 px-8 py-4">
+            <h3 class="text-lg font-bold text-white">Actualizar indicador existente</h3>
         </div>
         <div class="p-6 flex flex-wrap gap-3">
             <a href="{% url 'indicadores:cargar_serie_inline' %}?indicador_id={{ carga.indicador.id }}"
-               class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition">
+               class="inline-flex items-center gap-2 bg-indigo-500 hover:bg-indigo-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18"/></svg>
                 Actualizar datos inline
             </a>
             <a href="{% url 'indicadores:cargar_metadata_form' %}?indicador_id={{ carga.indicador.id }}"
-               class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition">
+               class="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 Actualizar metadata
             </a>
@@ -118,7 +118,7 @@
 
     <!-- Correcciones solicitadas por el admin -->
     {% if carga.estado == 'correcciones_solicitadas' and carga.observaciones_admin %}
-    <div class="bg-amber-50 border border-amber-300 rounded-3xl p-5 mb-6 flex items-start gap-4">
+    <div class="bg-amber-50 border border-amber-300 rounded-2xl p-5 mb-6 flex items-start gap-4">
         <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/>
@@ -140,7 +140,7 @@
 
     <!-- Aviso de visualización -->
     {% if carga.estado == 'pendiente' or carga.estado == 'exitoso' %}
-    <div class="bg-amber-50 border border-amber-200 rounded-3xl p-5 mb-6 flex items-start gap-4">
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
         <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
             <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -179,9 +179,9 @@
     {% endif %}
 
     <!-- Archivos -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-slate-600 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>Archivos
@@ -270,9 +270,9 @@
 
     <!-- Log de Procesamiento -->
     {% if carga.log_procesamiento %}
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-slate-600 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                 </svg>Log de Procesamiento
@@ -286,9 +286,9 @@
 
     <!-- Mensaje de Error -->
     {% if carga.mensaje_error %}
-    <div class="bg-white rounded-3xl border-2 border-red-500 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-red-500 to-red-600 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border-2 border-red-500 shadow-sm overflow-hidden">
+        <div class="bg-red-500 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                 </svg>Error

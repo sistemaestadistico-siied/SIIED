@@ -3,7 +3,7 @@
 {% block content %}
 
 <!-- Hero Section for API Documentation -->
-<div class="relative bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 overflow-hidden">
+<div class="relative bg-blue-600 overflow-hidden">
     <!-- Patrón de fondo -->
     <div class="absolute inset-0 opacity-10">
         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M30 0l30 30-30 30L0 30z\" fill=\"none\" stroke=\"%23374151\" stroke-width=\"1\"/%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"10\" fill=\"none\" stroke=\"%23374151\" stroke-width=\"1\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -61,7 +61,7 @@
             <!-- Panel de información rápida -->
             <div class="space-y-8">
                 <!-- Panel de acceso rápido -->
-                <div class="bg-white rounded-2xl p-8 border border-blue-200 shadow-xl">
+                <div class="bg-white rounded-2xl p-8 border border-blue-200 shadow-lg">
                     <h3 class="text-2xl font-bold text-blue-800 mb-6 text-center">Acceso Rápido</h3>
 
                     <!-- Base URL -->
@@ -89,7 +89,7 @@
 
         <!-- Línea decorativa inferior -->
         <div class="mt-12 flex justify-center">
-            <div class="w-48 h-1 bg-gradient-to-r from-transparent via-white/70 to-transparent rounded-full"></div>
+            <div class="w-48 h-1 from-transparent via-white/70 to-transparent rounded-full"></div>
         </div>
     </div>
 </div>
@@ -100,19 +100,19 @@
 <div class="container mx-auto px-4 pb-8">
     <!-- Estadísticas de la API -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-        <div class="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 text-center">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
             <div class="text-3xl font-bold text-blue-600 mb-2">{{ api_stats.total_endpoints }}</div>
             <div class="text-blue-700 font-medium">Endpoints Totales</div>
         </div>
-        <div class="bg-gradient-to-r from-white to-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+        <div class=" from-white border border-blue-200 rounded-xl p-6 text-center">
             <div class="text-3xl font-bold text-blue-600 mb-2">{{ api_stats.categories }}</div>
             <div class="text-blue-700 font-medium">Categorías</div>
         </div>
-        <div class="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 text-center">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
             <div class="text-3xl font-bold text-blue-600 mb-2">JSON</div>
             <div class="text-blue-700 font-medium">Formato</div>
         </div>
-        <div class="bg-gradient-to-r from-white to-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+        <div class=" from-white border border-blue-200 rounded-xl p-6 text-center">
             <div class="text-3xl font-bold text-blue-600 mb-2">REST</div>
             <div class="text-blue-700 font-medium">Arquitectura</div>
         </div>
@@ -121,17 +121,17 @@
     <!-- Documentación de Endpoints -->
     <div id="endpoints" class="space-y-8">
         <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">Documentación de Endpoints</h2>
-            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            <h2 class="text-3xl font-bold text-slate-800 mb-4">Documentación de Endpoints</h2>
+            <p class="text-xl text-slate-600 max-w-3xl mx-auto">
                 Explora todos los endpoints disponibles organizados por categorías.
                 Cada endpoint incluye descripción, parámetros y ejemplos de uso.
             </p>
         </div>
 
         {% for category_name, endpoints in api_endpoints.items %}
-        <div class="bg-white rounded-2xl shadow-xl border border-blue-200 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-lg border border-blue-200 overflow-hidden">
             <!-- Header de categoría -->
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
+            <div class="bg-blue-600 px-8 py-6">
                 <h3 class="text-2xl font-bold text-white flex items-center">
                     <i class="fas fa-folder mr-3 text-blue-200"></i>
                     {{ category_name|title }}
@@ -142,9 +142,9 @@
             </div>
 
             <!-- Lista de endpoints -->
-            <div class="divide-y divide-gray-100">
+            <div class="divide-y divide-slate-100">
                 {% for endpoint in endpoints %}
-                <div class="p-8 hover:bg-gray-50 transition-colors duration-200">
+                <div class="p-8 hover:bg-slate-50 transition-colors duration-200">
                     <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
                         <!-- Información del endpoint -->
                         <div class="flex-1">
@@ -157,28 +157,28 @@
                                     {% endif %}">
                                     {{ endpoint.method }}
                                 </span>
-                                <code class="bg-gray-100 px-3 py-1 rounded text-sm font-mono text-gray-800">
+                                <code class="bg-slate-100 px-3 py-1 rounded text-sm font-mono text-slate-800">
                                     {{ endpoint.endpoint }}
                                 </code>
                             </div>
 
-                            <h4 class="text-lg font-semibold text-gray-800 mb-2">{{ endpoint.description }}</h4>
+                            <h4 class="text-lg font-semibold text-slate-800 mb-2">{{ endpoint.description }}</h4>
 
                             <!-- Parámetros -->
                             {% if endpoint.parameters %}
                             <div class="mb-4">
-                                <h5 class="text-sm font-medium text-gray-600 mb-2">Parámetros:</h5>
+                                <h5 class="text-sm font-medium text-slate-600 mb-2">Parámetros:</h5>
                                 <div class="space-y-2">
                                     {% for param in endpoint.parameters %}
                                     <div class="flex items-center gap-2 text-sm">
                                         <code class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">{{ param.name }}</code>
-                                        <span class="text-gray-500">({{ param.type }})</span>
+                                        <span class="text-slate-500">({{ param.type }})</span>
                                         {% if param.required %}
                                         <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-medium">Requerido</span>
                                         {% else %}
-                                        <span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs">Opcional</span>
+                                        <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs">Opcional</span>
                                         {% endif %}
-                                        <span class="text-gray-700">- {{ param.description }}</span>
+                                        <span class="text-slate-700">- {{ param.description }}</span>
                                     </div>
                                     {% endfor %}
                                 </div>
@@ -202,7 +202,7 @@
                         <!-- Botón de prueba -->
                         <div class="lg:w-48 flex-shrink-0">
                             <button onclick="testEndpoint('{{ base_url }}{{ endpoint.example }}')"
-                                   class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                   class="w-full bg-blue-600 hover:bg-blue-800 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
                                 <i class="fas fa-play mr-2"></i>Probar
                             </button>
                         </div>
@@ -215,7 +215,7 @@
     </div>
 
     <!-- Información adicional -->
-    <div class="mt-16 bg-white rounded-2xl p-8 border border-blue-200 shadow-xl">
+    <div class="mt-16 bg-white rounded-2xl p-8 border border-blue-200 shadow-lg">
         <div class="text-center">
             <h3 class="text-2xl font-bold text-blue-800 mb-4">¿Necesitas Ayuda?</h3>
             <p class="text-blue-700 mb-6 max-w-2xl mx-auto">
@@ -241,7 +241,7 @@
     <div class="flex items-center justify-center min-h-screen p-2 lg:p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[95vh] lg:max-h-[90vh] overflow-hidden">
             <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+            <div class="bg-blue-600 px-6 py-4">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xl font-bold text-white">Probar Endpoint</h3>
                     <button onclick="closeTestModal()" class="text-white hover:text-blue-200">
@@ -253,15 +253,15 @@
             <!-- Content -->
             <div class="p-6">
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">URL del Endpoint:</label>
-                    <div class="bg-gray-100 rounded-lg p-3 overflow-x-auto">
-                        <code class="font-mono text-xs lg:text-sm text-gray-800 whitespace-nowrap block" id="testUrl"></code>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">URL del Endpoint:</label>
+                    <div class="bg-slate-100 rounded-lg p-3 overflow-x-auto">
+                        <code class="font-mono text-xs lg:text-sm text-slate-800 whitespace-nowrap block" id="testUrl"></code>
                     </div>
                 </div>
 
                 <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Respuesta:</label>
-                    <pre class="bg-gray-900 text-green-400 rounded-lg p-4 text-xs lg:text-sm overflow-x-auto overflow-y-auto max-h-96" id="testResponse">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Respuesta:</label>
+                    <pre class="bg-slate-900 text-green-400 rounded-lg p-4 text-xs lg:text-sm overflow-x-auto overflow-y-auto max-h-96" id="testResponse">
                         Haz clic en "Ejecutar" para probar el endpoint...
                     </pre>
                 </div>
@@ -316,11 +316,11 @@ async function executeTest() {
 
         // Formatear respuesta
         responseElement.textContent = JSON.stringify(data, null, 2);
-        responseElement.className = 'bg-gray-900 text-green-400 rounded-lg p-4 text-sm overflow-x-auto max-h-96';
+        responseElement.className = 'bg-slate-900 text-green-400 rounded-lg p-4 text-sm overflow-x-auto max-h-96';
 
     } catch (error) {
         responseElement.textContent = `Error: ${error.message}`;
-        responseElement.className = 'bg-gray-900 text-red-400 rounded-lg p-4 text-sm overflow-x-auto max-h-96';
+        responseElement.className = 'bg-slate-900 text-red-400 rounded-lg p-4 text-sm overflow-x-auto max-h-96';
     } finally {
         // Restaurar estado del botón
         executeBtn.disabled = false;

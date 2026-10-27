@@ -47,7 +47,7 @@
     <div class="grid grid-cols-7 gap-1 bg-slate-200 rounded-xl overflow-hidden">
         {% for semana in calendario %}
             {% for dia in semana %}
-                <div class="min-h-[100px] md:min-h-[120px] p-2 bg-white {% if dia == 0 %}bg-slate-50{% endif %} {% if dia in eventos_por_dia %}bg-gradient-to-b from-sky-50/50 to-white{% endif %}">
+                <div class="min-h-[100px] md:min-h-[120px] p-2 bg-white {% if dia == 0 %}bg-slate-50{% endif %} {% if dia in eventos_por_dia %}bg-sky-50/50 to-white{% endif %}">
                     {% if dia != 0 %}
                         <div class="font-bold text-slate-800 text-sm mb-1">{{ dia }}</div>
                         {% if dia in eventos_por_dia %}

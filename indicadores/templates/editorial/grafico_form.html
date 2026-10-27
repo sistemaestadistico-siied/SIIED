@@ -415,7 +415,7 @@
     {% else %}
     <p class="text-sm text-slate-500 mb-4">Visualiza cómo se renderiza este gráfico con los datos actuales. Los controles son independientes y no afectan la configuración guardada.</p>
 
-    <div class="grafico-preview-controles mb-4 p-3 bg-gray-50 rounded-md">
+    <div class="grafico-preview-controles mb-4 p-3 bg-slate-50 rounded-md">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div id="preview-control-ano"></div>
             <div id="preview-control-geo"></div>
@@ -423,7 +423,7 @@
         </div>
         <div class="mt-2 flex gap-2">
             <button id="preview-btn-aplicar" class="px-3 py-1 text-xs bg-primary-600 text-white rounded hover:bg-primary-700">Aplicar</button>
-            <button id="preview-btn-limpiar" class="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Limpiar</button>
+            <button id="preview-btn-limpiar" class="px-3 py-1 text-xs bg-slate-300 text-slate-700 rounded hover:bg-slate-400">Limpiar</button>
         </div>
     </div>
     <div id="grafico-preview-plot" style="min-height:400px;"></div>
@@ -497,14 +497,14 @@
         const anosSet = new Set();
         (grafico.series || []).forEach(s => (s.x || []).forEach(x => anosSet.add(x)));
         const anos = Array.from(anosSet).sort();
-        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200">';
-        html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
+        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-slate-200">';
+        html += '<thead><tr class="bg-slate-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
         anos.forEach(a => { html += `<th class="py-2 px-4 border-b text-right">${a}</th>`; });
         html += '</tr></thead><tbody>';
         (grafico.series || []).forEach(s => {
             const mapa = {};
             (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
-            html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+            html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
             anos.forEach(a => {
                 const v = mapa[a] !== undefined ? mapa[a] : 'N/A';
                 html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`;
@@ -519,12 +519,12 @@
         tablaDiv.innerHTML = '';
         const esTipoTabla = (grafico.tipo_grafico === 'sin_grafico' || grafico.tipo_grafico === 'tabla_dinamica');
         const toggleBtn = document.createElement('button');
-        toggleBtn.className = 'mt-2 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300';
+        toggleBtn.className = 'mt-2 px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300';
         toggleBtn.textContent = 'Mostrar/Ocultar Datos en Tabla';
         const tableContainer = document.createElement('div');
         tableContainer.className = (esTipoTabla ? '' : 'hidden ') + 'mt-2 overflow-x-auto';
 
-        let html = '<table class="min-w-full bg-white border border-gray-200"><thead><tr class="bg-gray-100">';
+        let html = '<table class="min-w-full bg-white border border-slate-200"><thead><tr class="bg-slate-100">';
         let csv = [];
         const fmt = v => {
             if (v === null || v === undefined || v === 'N/A') return 'N/A';
@@ -537,7 +537,7 @@
             html += '<th class="py-2 px-4 border-b">Segmento</th><th class="py-2 px-4 border-b">Valor</th></tr></thead><tbody>';
             csv.push(['Segmento','Valor']);
             for (let i = 0; i < (d.labels?.length || 0); i++) {
-                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${d.labels[i]||'N/A'}</td><td class="py-2 px-4 border-b">${fmt(d.values[i])}</td></tr>`;
+                html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${d.labels[i]||'N/A'}</td><td class="py-2 px-4 border-b">${fmt(d.values[i])}</td></tr>`;
                 csv.push([d.labels[i]||'N/A', fmtCsv(d.values[i])]);
             }
         } else if (grafico.tipo_grafico === 'piramide_poblacional' && grafico.series?.length > 0) {
@@ -547,7 +547,7 @@
             html += '</tr></thead><tbody>'; csv.push(heads);
             const rangos = grafico.series[0].y || [];
             for (let i = 0; i < rangos.length; i++) {
-                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${rangos[i]}</td>`;
+                html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${rangos[i]}</td>`;
                 const row = [rangos[i]];
                 grafico.series.forEach(s => { const v = s.x && s.x[i]!==undefined ? Math.abs(s.x[i]) : 'N/A'; html += `<td class="py-2 px-4 border-b">${fmt(v)}</td>`; row.push(typeof v==='number'?v.toFixed(1).replace('.',','):v); });
                 html += '</tr>'; csv.push(row);
@@ -563,7 +563,7 @@
             html += '</tr></thead><tbody>'; csv.push(heads);
             grafico.series.forEach(s => {
                 const mapa = {}; (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
-                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+                html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
                 const row = [s.name || 'Serie'];
                 anos.forEach(a => { const v = mapa[a] !== undefined ? mapa[a] : 'N/A'; html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`; row.push(fmtCsv(v)); });
                 html += '</tr>'; csv.push(row);
@@ -577,7 +577,7 @@
             let maxP = 0; grafico.series.forEach(s => { const x = esH?s.y:s.x; if (x?.length>maxP) maxP=x.length; });
             for (let i=0;i<maxP;i++) {
                 const prim = grafico.series[0]; const xv = esH?prim.y:prim.x; const cat = xv&&xv[i]!==undefined?xv[i]:'N/A';
-                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${cat}</td>`;
+                html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${cat}</td>`;
                 const row = [cat];
                 grafico.series.forEach(s => { const yv = esH?s.x:s.y; const v = yv&&yv[i]!==undefined?yv[i]:'N/A'; html += `<td class="py-2 px-4 border-b">${fmt(v)}</td>`; row.push(typeof v==='number'?v.toFixed(1).replace('.',','):v); });
                 html += '</tr>'; csv.push(row);
@@ -605,7 +605,7 @@
 
     function cargarPreview() {
         // La tabla repivotada ocupa el slot del gráfico (tabla_dinamica)
-        plotDiv.innerHTML = '<div class="text-center p-8 text-gray-500">Cargando vista previa...</div>';
+        plotDiv.innerHTML = '<div class="text-center p-8 text-slate-500">Cargando vista previa...</div>';
         let url = `{% url 'indicadores:api_get_grafico' grafico.pk %}`;
         const params = new URLSearchParams();
         if (estado.anoInicio) params.append('ano_inicio', estado.anoInicio);
@@ -621,7 +621,7 @@
                     // La tabla repivotada ocupa el slot del gráfico
                     plotDiv.innerHTML = generarTablaPivotadaHTML(data);
                 } else if (data.tipo_grafico === 'sin_grafico') {
-                    plotDiv.innerHTML = '<div class="text-center p-8 text-gray-500 text-sm">Este tipo no genera gráfico: los datos se muestran directamente en la tabla.</div>';
+                    plotDiv.innerHTML = '<div class="text-center p-8 text-slate-500 text-sm">Este tipo no genera gráfico: los datos se muestran directamente en la tabla.</div>';
                 } else {
                     renderizarPlotly(data);
                 }
@@ -637,27 +637,27 @@
         const tipo = data.tipo_grafico || 'line';
         const esUnico = (tipo === 'pie' || tipo === 'piramide_poblacional' || tipo === 'treemap');
 
-        controlAno.innerHTML = `<label class="block text-xs font-medium text-gray-600 mb-1">${esUnico?'Año':'Rango de Años'}</label>`;
+        controlAno.innerHTML = `<label class="block text-xs font-medium text-slate-600 mb-1">${esUnico?'Año':'Rango de Años'}</label>`;
         if (esUnico) {
             controlAno.innerHTML += `<div class="flex items-center gap-2"><span id="preview-ano-display" class="text-sm font-semibold text-primary-600">${rangoAnios.max}</span><input type="range" id="preview-ano-slider" min="${rangoAnios.min}" max="${rangoAnios.max}" value="${rangoAnios.max}" class="flex-1"></div>`;
             const slider = document.getElementById('preview-ano-slider');
             const display = document.getElementById('preview-ano-display');
             slider.addEventListener('input', () => { display.textContent = slider.value; });
         } else {
-            controlAno.innerHTML += `<div class="flex items-center gap-2"><input type="number" id="preview-ano-min" class="w-20 text-xs border rounded p-1" value="${rangoAnios.min}"><span class="text-gray-500">-</span><input type="number" id="preview-ano-max" class="w-20 text-xs border rounded p-1" value="${rangoAnios.max}"></div>`;
+            controlAno.innerHTML += `<div class="flex items-center gap-2"><input type="number" id="preview-ano-min" class="w-20 text-xs border rounded p-1" value="${rangoAnios.min}"><span class="text-slate-500">-</span><input type="number" id="preview-ano-max" class="w-20 text-xs border rounded p-1" value="${rangoAnios.max}"></div>`;
         }
 
         // Desagregaciones reales desde el indicador
         const geoOpts = desagregaciones.desagregaciones_geograficas || [];
         const temOpts = desagregaciones.desagregaciones_tematicas || [];
 
-        let geoHtml = '<label class="block text-xs font-medium text-gray-600 mb-1">Desagregaciones Geográficas</label><select id="preview-desag-geo" multiple class="w-full text-xs border rounded p-1 bg-white">';
+        let geoHtml = '<label class="block text-xs font-medium text-slate-600 mb-1">Desagregaciones Geográficas</label><select id="preview-desag-geo" multiple class="w-full text-xs border rounded p-1 bg-white">';
         if (geoOpts.length === 0) geoHtml += '<option disabled>No hay desagregaciones geográficas</option>';
         geoOpts.forEach(d => { geoHtml += `<option value="${d.id}">${d.nombre}</option>`; });
         geoHtml += '</select>';
         controlGeo.innerHTML = geoHtml;
 
-        let temHtml = '<label class="block text-xs font-medium text-gray-600 mb-1">Desagregaciones Temáticas</label><select id="preview-desag-tem" multiple class="w-full text-xs border rounded p-1 bg-white">';
+        let temHtml = '<label class="block text-xs font-medium text-slate-600 mb-1">Desagregaciones Temáticas</label><select id="preview-desag-tem" multiple class="w-full text-xs border rounded p-1 bg-white">';
         if (temOpts.length === 0) temHtml += '<option disabled>No hay desagregaciones temáticas</option>';
         temOpts.forEach(d => { temHtml += `<option value="${d.id}">${d.nombre}</option>`; });
         temHtml += '</select>';
@@ -705,7 +705,7 @@
             if (graficoData.tipo_grafico === 'tabla_dinamica') {
                 plotDiv.innerHTML = generarTablaPivotadaHTML(graficoData);
             } else if (graficoData.tipo_grafico === 'sin_grafico') {
-                plotDiv.innerHTML = '<div class="text-center p-8 text-gray-500 text-sm">Este tipo no genera gráfico: los datos se muestran directamente en la tabla.</div>';
+                plotDiv.innerHTML = '<div class="text-center p-8 text-slate-500 text-sm">Este tipo no genera gráfico: los datos se muestran directamente en la tabla.</div>';
             } else {
                 renderizarPlotly(graficoData);
             }

@@ -440,6 +440,7 @@ urlpatterns = [
     path('validacion/conciliacion/aplicar/', views_validacion.validacion_conciliacion_aplicar, name='validacion_conciliacion_aplicar'),
     path('validacion/conciliacion/eliminar/', views_validacion.validacion_conciliacion_eliminar, name='validacion_conciliacion_eliminar'),
     path('validacion/conciliacion/dominio/<int:dominio_id>/', views_validacion.validacion_conciliacion_dominio, name='validacion_conciliacion_dominio'),
+    path('validacion/conciliacion/indicador/<int:indicador_id>/', views_validacion.validacion_conciliacion_indicador, name='validacion_conciliacion_indicador'),
 
     # Wizard de normalización de identidad de indicadores (códigos + conciliación)
     path('validacion/normalizacion-identidad/', views_validacion.validacion_normalizacion, name='validacion_normalizacion_identidad'),

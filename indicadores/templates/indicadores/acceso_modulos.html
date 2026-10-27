@@ -4,177 +4,118 @@
 {% block title %}Acceso a Módulos{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-sky-50 via-white to-gray-50 py-10 px-4">
+<div class="page-canvas py-12 px-4">
     <div class="max-w-6xl mx-auto">
         <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">
-                <i class="fas fa-door-open text-sky-700 mr-2"></i>
-                Acceso a Módulos
-            </h1>
-            <p class="text-base text-gray-600">Seleccione el módulo al que desea acceder</p>
+        <div class="text-center mb-10">
+            <span class="eyebrow acc-cyan">Portal interno</span>
+            <h1 class="sect-title">Acceso a Módulos</h1>
+            <p class="sect-sub max-w-xl mx-auto">Seleccione el módulo al que desea acceder</p>
         </div>
 
         <!-- Mensajes -->
         {% if messages %}
         <div class="max-w-2xl mx-auto mb-8">
             {% for message in messages %}
-            <div class="mb-4 p-4 rounded-lg shadow-lg {% if message.tags == 'error' %}bg-red-50 text-red-800 border-l-4 border-red-500{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border-l-4 border-yellow-500{% elif message.tags == 'success' %}bg-green-50 text-green-800 border-l-4 border-green-500{% else %}bg-blue-50 text-blue-800 border-l-4 border-blue-500{% endif %}">
+            <div class="mb-4 p-4 rounded-xl shadow-sm border-l-4 {% if message.tags == 'error' %}bg-rose-50 text-rose-800 border-rose-400{% elif message.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-400{% elif message.tags == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-400{% else %}bg-sky-50 text-sky-800 border-sky-400{% endif %}">
                 <div class="flex items-center">
-                    <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% elif message.tags == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %} text-2xl mr-3"></i>
-                    <span class="font-medium">{{ message }}</span>
+                    <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% elif message.tags == 'success' %}fa-check-circle{% else %}fa-info-circle{% endif %} text-xl mr-3"></i>
+                    <span class="font-medium text-sm">{{ message }}</span>
                 </div>
             </div>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Módulos Grid: tarjetas uniformes, 1/2/3/4 columnas según pantalla -->
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <!-- Módulos Grid -->
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
             <!-- Administración -->
-            <a href="{% url 'admin:index' %}"
-               class="group bg-white rounded-xl shadow-md hover:shadow-xl border border-slate-200 border-t-4 border-t-sky-600 transition-all duration-300 hover:-translate-y-1 p-5 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 shrink-0 bg-gradient-to-br from-sky-600 to-sky-800 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-cog text-white text-xl"></i>
-                    </div>
-                    <h2 class="text-base font-bold text-gray-800 leading-tight">Administración</h2>
-                </div>
-                <p class="text-xs text-gray-500 leading-relaxed flex-1">
+            <a href="{% url 'admin:index' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-cyan"><i class="fas fa-cog"></i></div>
+                <h2 class="text-lg font-bold text-slate-800">Administración</h2>
+                <p class="text-sm text-slate-500 mt-1">
                     Panel completo del sistema: gestión de indicadores, datos, configuraciones y usuarios.
                 </p>
-                <div class="mt-4 flex items-center justify-end text-sm font-semibold text-sky-700">
-                    <span>Ingresar</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-                </div>
+                <span class="hcard-cta">Ingresar <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Recolección -->
-            <a href="{% url 'indicadores:recoleccion_login' %}"
-               class="group bg-white rounded-xl shadow-md hover:shadow-xl border border-slate-200 border-t-4 border-t-slate-600 transition-all duration-300 hover:-translate-y-1 p-5 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 shrink-0 bg-gradient-to-br from-slate-600 to-slate-800 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-cloud-upload-alt text-white text-xl"></i>
-                    </div>
-                    <h2 class="text-base font-bold text-gray-800 leading-tight">Recolección</h2>
-                </div>
-                <p class="text-xs text-gray-500 leading-relaxed flex-1">
+            <a href="{% url 'indicadores:recoleccion_login' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-emerald"><i class="fas fa-cloud-upload-alt"></i></div>
+                <h2 class="text-lg font-bold text-slate-800">Recolección</h2>
+                <p class="text-sm text-slate-500 mt-1">
                     Portal del equipo de recolección: carga de series de indicadores y conjuntos de datos con evidencias.
                 </p>
-                <div class="mt-4 flex items-center justify-end text-sm font-semibold text-slate-600">
-                    <span>Ingresar</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-                </div>
+                <span class="hcard-cta">Ingresar <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Reportes -->
-            <a href="{% url 'indicadores:reportes_login' %}"
-               class="group bg-white rounded-xl shadow-md hover:shadow-xl border border-slate-200 border-t-4 border-t-green-600 transition-all duration-300 hover:-translate-y-1 p-5 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 shrink-0 bg-gradient-to-br from-green-600 to-green-800 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-chart-bar text-white text-xl"></i>
-                    </div>
-                    <h2 class="text-base font-bold text-gray-800 leading-tight">Reportes</h2>
-                </div>
-                <p class="text-xs text-gray-500 leading-relaxed flex-1">
+            <a href="{% url 'indicadores:reportes_login' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-emerald"><i class="fas fa-chart-bar"></i></div>
+                <h2 class="text-lg font-bold text-slate-800">Reportes</h2>
+                <p class="text-sm text-slate-500 mt-1">
                     Consulta y descarga de reportes, datos de indicadores y conjuntos de datos con desagregaciones.
                 </p>
-                <div class="mt-4 flex items-center justify-end text-sm font-semibold text-green-700">
-                    <span>Ingresar</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-                </div>
+                <span class="hcard-cta">Ingresar <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Editorial -->
-            <a href="{% url 'indicadores:editorial_dashboard' %}"
-               class="group bg-white rounded-xl shadow-md hover:shadow-xl border border-slate-200 border-t-4 border-t-purple-600 transition-all duration-300 hover:-translate-y-1 p-5 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 shrink-0 bg-gradient-to-br from-purple-600 to-purple-900 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-pen-fancy text-white text-xl"></i>
-                    </div>
-                    <h2 class="text-base font-bold text-gray-800 leading-tight">Editorial</h2>
-                </div>
-                <p class="text-xs text-gray-500 leading-relaxed flex-1">
+            <a href="{% url 'indicadores:editorial_dashboard' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-fuchsia"><i class="fas fa-pen-fancy"></i></div>
+                <h2 class="text-lg font-bold text-slate-800">Editorial</h2>
+                <p class="text-sm text-slate-500 mt-1">
                     Para editores de contenidos: productos académicos, eventos, noticias y calendario de difusión.
                 </p>
-                <div class="mt-4 flex items-center justify-end text-sm font-semibold text-purple-700">
-                    <span>Ingresar</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-                </div>
+                <span class="hcard-cta">Ingresar <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Portal de Organismos -->
-            <a href="{% url 'indicadores:delegado_login' %}"
-               class="group bg-white rounded-xl shadow-md hover:shadow-xl border border-slate-200 border-t-4 border-t-blue-600 transition-all duration-300 hover:-translate-y-1 p-5 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 shrink-0 bg-gradient-to-br from-blue-600 to-blue-900 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-building text-white text-xl"></i>
-                    </div>
-                    <h2 class="text-base font-bold text-gray-800 leading-tight">Portal de Organismos</h2>
-                </div>
-                <p class="text-xs text-gray-500 leading-relaxed flex-1">
+            <a href="{% url 'indicadores:delegado_login' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-emerald"><i class="fas fa-building"></i></div>
+                <h2 class="text-lg font-bold text-slate-800">Portal de Organismos</h2>
+                <p class="text-sm text-slate-500 mt-1">
                     Para delegados de organismos que entregan datos al SIIED: cargas y seguimiento de validación.
                 </p>
-                <div class="mt-4 flex items-center justify-end text-sm font-semibold text-blue-700">
-                    <span>Ingresar</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-                </div>
+                <span class="hcard-cta">Ingresar <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Panel de Validación -->
-            <a href="{% url 'indicadores:validacion_login' %}"
-               class="group bg-white rounded-xl shadow-md hover:shadow-xl border border-slate-200 border-t-4 border-t-indigo-600 transition-all duration-300 hover:-translate-y-1 p-5 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 shrink-0 bg-gradient-to-br from-indigo-700 to-slate-800 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-clipboard-check text-white text-xl"></i>
-                    </div>
-                    <h2 class="text-base font-bold text-gray-800 leading-tight">Panel de Validación</h2>
-                </div>
-                <p class="text-xs text-gray-500 leading-relaxed flex-1">
+            <a href="{% url 'indicadores:validacion_login' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-emerald"><i class="fas fa-clipboard-check"></i></div>
+                <h2 class="text-lg font-bold text-slate-800">Panel de Validación</h2>
+                <p class="text-sm text-slate-500 mt-1">
                     Para el equipo estadístico del SIIED: revisar, aprobar o solicitar correcciones a las cargas.
                 </p>
-                <div class="mt-4 flex items-center justify-end text-sm font-semibold text-indigo-700">
-                    <span>Ingresar</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-                </div>
+                <span class="hcard-cta">Ingresar <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
 
             <!-- Analítica e IA -->
-            <a href="{% url 'indicadores:analitica_login' %}"
-               class="group bg-white rounded-xl shadow-md hover:shadow-xl border border-slate-200 border-t-4 border-t-fuchsia-600 transition-all duration-300 hover:-translate-y-1 p-5 flex flex-col">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-12 h-12 shrink-0 bg-gradient-to-br from-fuchsia-600 to-violet-800 rounded-xl flex items-center justify-center shadow group-hover:scale-105 transition-transform duration-300">
-                        <i class="fas fa-brain text-white text-xl"></i>
-                    </div>
-                    <h2 class="text-base font-bold text-gray-800 leading-tight">Analítica e IA</h2>
-                </div>
-                <p class="text-xs text-gray-500 leading-relaxed flex-1">
+            <a href="{% url 'indicadores:analitica_login' %}" class="hcard hcyan group">
+                <div class="hcard-ico acc-violet"><i class="fas fa-brain"></i></div>
+                <h2 class="text-lg font-bold text-slate-800">Analítica e IA</h2>
+                <p class="text-sm text-slate-500 mt-1">
                     Administración de Don Datico —parámetros, prompts y sugerencias—, tableros Superset y creación asistida por IA.
                 </p>
-                <div class="mt-4 flex items-center justify-end text-sm font-semibold text-fuchsia-700">
-                    <span>Ingresar</span>
-                    <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform duration-300"></i>
-                </div>
+                <span class="hcard-cta">Ingresar <i class="fas fa-arrow-right ml-1"></i></span>
             </a>
         </div>
 
         <!-- Info Footer -->
         <div class="mt-10 text-center">
-            <div class="inline-flex items-center bg-sky-50 border border-sky-200 rounded-lg px-6 py-4">
-                <i class="fas fa-info-circle text-sky-700 text-2xl mr-4"></i>
+            <div class="inline-flex items-center bg-cyan-50 border border-cyan-100 rounded-2xl px-6 py-4">
+                <i class="fas fa-info-circle text-cyan-700 text-2xl mr-4"></i>
                 <div class="text-left">
-                    <p class="text-sm font-semibold text-gray-800">¿Necesita ayuda?</p>
-                    <p class="text-xs text-gray-600">Contacte al administrador del sistema si tiene problemas de acceso</p>
+                    <p class="text-sm font-semibold text-slate-800">¿Necesita ayuda?</p>
+                    <p class="text-xs text-slate-600">Contacte al administrador del sistema si tiene problemas de acceso</p>
                 </div>
             </div>
         </div>
 
         <!-- Back to Home -->
         <div class="mt-6 text-center">
-            <a href="{% url 'indicadores:home' %}"
-               class="inline-flex items-center text-gray-600 hover:text-sky-700 transition-colors duration-200">
-                <i class="fas fa-arrow-left mr-2"></i>
+            <a href="{% url 'indicadores:home' %}" class="sbtn sbtn-outline">
+                <i class="fas fa-arrow-left"></i>
                 Volver al inicio
             </a>
         </div>

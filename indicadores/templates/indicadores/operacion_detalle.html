@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <!-- Hero Section with Emerald/Teal Theme -->
-<div class="relative bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 overflow-hidden">
+<div class="relative bg-emerald-600 overflow-hidden">
     <!-- Background pattern -->
     <div class="absolute inset-0 opacity-10">
         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -56,13 +56,13 @@
                 <div class="flex flex-col sm:flex-row gap-4">
                     {% if operacion.link_adda %}
                     <a href="{{ operacion.link_adda }}" target="_blank" rel="noopener"
-                       class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-6 py-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-center">
+                       class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-6 py-3 transition-all duration-300 shadow-lg hover:shadow-lg transform hover:-translate-y-1 text-center">
                         <i class="fas fa-database mr-2"></i>ADDA
                     </a>
                     {% endif %}
                     {% if operacion.url %}
                     <a href="{{ operacion.url }}" target="_blank" rel="noopener"
-                       class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg px-6 py-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-center">
+                       class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg px-6 py-3 transition-all duration-300 shadow-lg hover:shadow-lg transform hover:-translate-y-1 text-center">
                         <i class="fas fa-external-link-alt mr-2"></i>Sitio público
                     </a>
                     {% endif %}
@@ -76,7 +76,7 @@
 
         <!-- Decorative bottom line -->
         <div class="mt-12 flex justify-center">
-            <div class="w-48 h-1 bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent rounded-full"></div>
+            <div class="w-48 h-1 from-transparent to-transparent rounded-full"></div>
         </div>
     </div>
 </div>
@@ -97,29 +97,29 @@
     <div class="lg:col-span-2 space-y-6">
       {% if operacion.descripcion %}
       <section class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-3">Descripción</h2>
-        <p class="text-gray-700 whitespace-pre-line">{{ operacion.descripcion }}</p>
+        <h2 class="text-xl font-semibold text-slate-800 mb-3">Descripción</h2>
+        <p class="text-slate-700 whitespace-pre-line">{{ operacion.descripcion }}</p>
       </section>
       {% endif %}
 
       {% if operacion.objetivo %}
       <section class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-3">Objetivo</h2>
-        <p class="text-gray-700 whitespace-pre-line">{{ operacion.objetivo }}</p>
+        <h2 class="text-xl font-semibold text-slate-800 mb-3">Objetivo</h2>
+        <p class="text-slate-700 whitespace-pre-line">{{ operacion.objetivo }}</p>
       </section>
       {% endif %}
 
       {% if operacion.metodologia %}
       <section class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-3">Metodología</h2>
-        <p class="text-gray-700 whitespace-pre-line">{{ operacion.metodologia }}</p>
+        <h2 class="text-xl font-semibold text-slate-800 mb-3">Metodología</h2>
+        <p class="text-slate-700 whitespace-pre-line">{{ operacion.metodologia }}</p>
       </section>
       {% endif %}
 
       {% if operacion.principales_resultados %}
       <section class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-3">Principales resultados</h2>
-        <p class="text-gray-700 whitespace-pre-line">{{ operacion.principales_resultados }}</p>
+        <h2 class="text-xl font-semibold text-slate-800 mb-3">Principales resultados</h2>
+        <p class="text-slate-700 whitespace-pre-line">{{ operacion.principales_resultados }}</p>
       </section>
       {% endif %}
     </div>
@@ -127,53 +127,53 @@
     <!-- Lateral: metadatos -->
     <aside class="space-y-6">
       <section class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Ficha técnica</h3>
-        <dl class="divide-y divide-gray-200">
+        <h3 class="text-lg font-semibold text-slate-800 mb-4">Ficha técnica</h3>
+        <dl class="divide-y divide-slate-200">
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Organismo</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.organismo|default:'-' }}</dd>
+            <dt class="text-slate-500">Organismo</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.organismo|default:'-' }}</dd>
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Suborganismo</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.suborganismo|default:'-' }}</dd>
+            <dt class="text-slate-500">Suborganismo</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.suborganismo|default:'-' }}</dd>
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Área temática</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.area_tem|default:'-' }}</dd>
+            <dt class="text-slate-500">Área temática</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.area_tem|default:'-' }}</dd>
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Tema</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.tema|default:'-' }}</dd>
+            <dt class="text-slate-500">Tema</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.tema|default:'-' }}</dd>
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Periodicidad</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.periodicidad|default:'-' }}</dd>
+            <dt class="text-slate-500">Periodicidad</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.periodicidad|default:'-' }}</dd>
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Fecha inicio</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.fecha_inicio|date:'Y-m-d' }}</dd>
+            <dt class="text-slate-500">Fecha inicio</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.fecha_inicio|date:'Y-m-d' }}</dd>
           </div>
           {% if operacion.fecha_fin %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Fecha fin</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.fecha_fin|date:'Y-m-d' }}</dd>
+            <dt class="text-slate-500">Fecha fin</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.fecha_fin|date:'Y-m-d' }}</dd>
           </div>
           {% endif %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Unidad de observación</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.unidad_observ|default:'-' }}</dd>
+            <dt class="text-slate-500">Unidad de observación</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.unidad_observ|default:'-' }}</dd>
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Entidad recopiladora</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.entidad_recopiladora|default:'-' }}</dd>
+            <dt class="text-slate-500">Entidad recopiladora</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.entidad_recopiladora|default:'-' }}</dd>
           </div>
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Metodología</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.tipo_oe_i|default:'-' }}</dd>
+            <dt class="text-slate-500">Metodología</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.tipo_oe_i|default:'-' }}</dd>
           </div>
           {% if operacion.doc_met %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Doc. metodológico</dt>
+            <dt class="text-slate-500">Doc. metodológico</dt>
             <dd class="col-span-2 text-blue-700">
               <span>{{ operacion.doc_met }}</span>
             </dd>
@@ -181,7 +181,7 @@
           {% endif %}
           {% if operacion.ficha_met %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Ficha metodológica</dt>
+            <dt class="text-slate-500">Ficha metodológica</dt>
             <dd class="col-span-2 text-blue-700">
               <span>{{ operacion.ficha_met }}</span>
             </dd>
@@ -189,7 +189,7 @@
           {% endif %}
           {% if operacion.manual_op %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Manual operativo</dt>
+            <dt class="text-slate-500">Manual operativo</dt>
             <dd class="col-span-2 text-blue-700">
               <span>{{ operacion.manual_op }}</span>
             </dd>
@@ -197,7 +197,7 @@
           {% endif %}
           {% if operacion.diccionario_datos %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">Diccionario de datos</dt>
+            <dt class="text-slate-500">Diccionario de datos</dt>
             <dd class="col-span-2 text-blue-700">
               <span>{{ operacion.diccionario_datos }}</span>
             </dd>
@@ -208,18 +208,18 @@
 
       {% if operacion.mop or operacion.pdd %}
       <section class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Alineación institucional</h3>
-        <dl class="divide-y divide-gray-200">
+        <h3 class="text-lg font-semibold text-slate-800 mb-4">Alineación institucional</h3>
+        <dl class="divide-y divide-slate-200">
           {% if operacion.mop %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">MOP</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.mop }}</dd>
+            <dt class="text-slate-500">MOP</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.mop }}</dd>
           </div>
           {% endif %}
           {% if operacion.pdd %}
           <div class="py-3 grid grid-cols-3 gap-2">
-            <dt class="text-gray-500">PDD</dt>
-            <dd class="col-span-2 text-gray-900">{{ operacion.pdd }}</dd>
+            <dt class="text-slate-500">PDD</dt>
+            <dd class="col-span-2 text-slate-900">{{ operacion.pdd }}</dd>
           </div>
           {% endif %}
         </dl>
@@ -228,7 +228,7 @@
 
       {% if operacion.nombre_tematico or operacion.nombre_coordinador %}
       <section class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Responsables de la operación</h3>
+        <h3 class="text-lg font-semibold text-slate-800 mb-4">Responsables de la operación</h3>
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-start gap-2">
           <svg class="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
@@ -238,15 +238,15 @@
 
         {% if operacion.nombre_tematico %}
         <div class="mb-4">
-          <h4 class="font-semibold text-gray-700 mb-2">Responsable Temático</h4>
-          <p class="text-gray-900">{{ operacion.nombre_tematico }}</p>
+          <h4 class="font-semibold text-slate-700 mb-2">Responsable Temático</h4>
+          <p class="text-slate-900">{{ operacion.nombre_tematico }}</p>
         </div>
         {% endif %}
 
         {% if operacion.nombre_coordinador %}
         <div>
-          <h4 class="font-semibold text-gray-700 mb-2">Coordinador</h4>
-          <p class="text-gray-900">{{ operacion.nombre_coordinador }}</p>
+          <h4 class="font-semibold text-slate-700 mb-2">Coordinador</h4>
+          <p class="text-slate-900">{{ operacion.nombre_coordinador }}</p>
         </div>
         {% endif %}
       </section>

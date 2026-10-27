@@ -15,18 +15,14 @@
 
 {% block content %}
 <!-- Hero del módulo con navegación -->
-<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200">
+<div class="bg-white border-b border-slate-200">
     <div class="container mx-auto px-6 py-8">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg flex items-center justify-center">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v1a1 1 0 001 1h4a1 1 0 001-1v-1m3-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8m5-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
+                <div class="hcard-ico acc-emerald !mb-0" style="width:3rem;height:3rem;font-size:1.2rem;"><i class="fas fa-chart-bar"></i></div>
                 <div>
-                    <h1 class="text-2xl font-serif font-bold text-slate-900">Módulo de Reportes</h1>
-                    <p class="text-sm text-slate-600">Sistema Integrado de Información Estadística Distrital</p>
+                    <h1 class="text-2xl font-extrabold text-slate-800">Módulo de Reportes</h1>
+                    <p class="text-sm text-slate-500">Sistema Integrado de Información Estadística Distrital</p>
                 </div>
             </div>
             {% if user.is_authenticated %}
@@ -48,63 +44,63 @@
             <a href="{% url 'indicadores:reportes_dashboard' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'reportes_dashboard' %}
-                          bg-emerald-500 text-white shadow-sm
+                          bg-emerald-600 text-white shadow-sm
                       {% else %}
-                          text-slate-600 hover:bg-slate-200
+                          text-slate-600 hover:bg-emerald-50 hover:text-emerald-800
                       {% endif %}">
                 Dashboard
             </a>
             <a href="{% url 'indicadores:reportes_indicadores' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'reportes_indicadores' %}
-                          bg-emerald-500 text-white shadow-sm
+                          bg-emerald-600 text-white shadow-sm
                       {% else %}
-                          text-slate-600 hover:bg-slate-200
+                          text-slate-600 hover:bg-emerald-50 hover:text-emerald-800
                       {% endif %}">
                 Indicadores
             </a>
             <a href="{% url 'indicadores:reportes_conjuntos_datos' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'reportes_conjuntos_datos' %}
-                          bg-emerald-500 text-white shadow-sm
+                          bg-emerald-600 text-white shadow-sm
                       {% else %}
-                          text-slate-600 hover:bg-slate-200
+                          text-slate-600 hover:bg-emerald-50 hover:text-emerald-800
                       {% endif %}">
                 Conjunto de datos
             </a>
             <a href="{% url 'indicadores:reportes_trazabilidad' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'reportes_trazabilidad' %}
-                          bg-emerald-500 text-white shadow-sm
+                          bg-emerald-600 text-white shadow-sm
                       {% else %}
-                          text-slate-600 hover:bg-slate-200
+                          text-slate-600 hover:bg-emerald-50 hover:text-emerald-800
                       {% endif %}">
                 Trazabilidad
             </a>
             <a href="{% url 'indicadores:reportes_operaciones' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'reportes_operaciones' %}
-                          bg-emerald-500 text-white shadow-sm
+                          bg-emerald-600 text-white shadow-sm
                       {% else %}
-                          text-slate-600 hover:bg-slate-200
+                          text-slate-600 hover:bg-emerald-50 hover:text-emerald-800
                       {% endif %}">
                 Operaciones
             </a>
             <a href="{% url 'indicadores:reportes_produccion_mensual' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'reportes_produccion_mensual' %}
-                          bg-emerald-500 text-white shadow-sm
+                          bg-emerald-600 text-white shadow-sm
                       {% else %}
-                          text-slate-600 hover:bg-slate-200
+                          text-slate-600 hover:bg-emerald-50 hover:text-emerald-800
                       {% endif %}">
                 Producción Mensual
             </a>
             <a href="{% url 'indicadores:reportes_visitas' %}"
                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
                       {% if request.resolver_match.url_name == 'reportes_visitas' %}
-                          bg-emerald-500 text-white shadow-sm
+                          bg-emerald-600 text-white shadow-sm
                       {% else %}
-                          text-slate-600 hover:bg-slate-200
+                          text-slate-600 hover:bg-emerald-50 hover:text-emerald-800
                       {% endif %}">
                 Visitas
             </a>

@@ -131,6 +131,50 @@
     color: var(--infantil-text);
 }
 
+/* Menú compartido de productos educativos */
+.edu-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.7rem 1rem;
+    margin: 0 auto 1.2rem;
+    max-width: 900px;
+    background: #fffbe6;
+    border: 2px dashed var(--infantil-primary, #f59e0b);
+    border-radius: 14px;
+    font-size: 0.95rem;
+}
+.edu-menu-label {
+    font-weight: 700;
+    color: #92600a;
+    margin-right: 0.3rem;
+}
+.edu-menu a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 1.5px solid var(--infantil-primary, #f59e0b);
+    color: #92600a;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background .15s, color .15s;
+}
+.edu-menu a:hover {
+    background: var(--infantil-primary, #f59e0b);
+    color: #fff;
+}
+.edu-menu .edu-tag {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 6px;
+    background: #fef3c7;
+    color: #92600a;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .header-infantil h1 {
@@ -155,6 +199,20 @@
             <span>¡Hola! Soy Don Datico, tu compañero en esta exploración</span>
         </div>
     </div>
+
+    <!-- Menú propio: otros productos del aula de datos -->
+    {% if otros_educativos %}
+    <nav class="edu-menu" aria-label="Otros productos educativos">
+        <span class="edu-menu-label">🧭 Más aventuras:</span>
+        {% for otro in otros_educativos %}
+        <a href="{% url 'indicadores:producto_educativo' otro.slug %}" title="{{ otro.titulo }}">
+            {% if otro.publico == 'infantil' %}🎈{% else %}🔬{% endif %}
+            {{ otro.titulo|truncatechars:55 }}
+            <span class="edu-tag">{{ otro.get_publico_display|slice:'-8' }}</span>
+        </a>
+        {% endfor %}
+    </nav>
+    {% endif %}
 
     <!-- Secciones -->
     {% for seccion in secciones %}

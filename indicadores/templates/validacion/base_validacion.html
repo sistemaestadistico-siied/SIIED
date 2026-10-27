@@ -38,31 +38,28 @@
         transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease;
     }
     .vcard:hover {
-        transform:translateY(-3px); border-color:#a3e635;
-        box-shadow:0 14px 28px -12px rgba(163,230,53,.28),
+        transform:translateY(-3px); border-color:#34d399;
+        box-shadow:0 14px 28px -12px rgba(16,185,129,.28),
                    0 8px 16px -8px rgba(15,23,42,.08);
     }
     .vnav { padding:.5rem 1rem; border-radius:.65rem; font-size:.875rem;
             font-weight:500; transition: color .2s, background-color .2s, border-color .2s, outline-color .2s, opacity .2s, box-shadow .2s, transform .2s, fill .2s, stroke .2s; }
     .vnav.on  { background:#059669; color:#fff; box-shadow:0 2px 8px rgba(5,150,105,.35); }
     .vnav.off { color:#475569; }
-    .vnav.off:hover { background:#ecfccb; color:#365314; }
+    .vnav.off:hover { background:#d1fae5; color:#065f46; }
     .vnav-sep { width:1px; align-self:stretch; background:#e2e8f0; margin:0 .5rem; }
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- Hero del módulo: fondo blanco/mint con acento emerald del home -->
-<div class="bg-gradient-to-br from-white to-emerald-50/60 border-b border-slate-200">
+<div class="bg-white border-b border-slate-200">
     <div class="container mx-auto px-6 py-7">
         <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl shadow-lg flex items-center justify-center"
-                     style="background:linear-gradient(135deg,#34d399,#059669);">
-                    <i class="fas fa-clipboard-check text-white text-xl"></i>
-                </div>
+                <div class="hcard-ico acc-emerald !mb-0" style="width:3rem;height:3rem;font-size:1.2rem;"><i class="fas fa-clipboard-check"></i></div>
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Panel de Validación</h1>
+                    <h1 class="text-2xl font-extrabold text-slate-800">Panel de Validación</h1>
                     <p class="text-sm text-slate-500">
                         {% if es_validador_organismo and organismo_perfil %}
                         Pre-validación — {{ organismo_perfil.nombre }}

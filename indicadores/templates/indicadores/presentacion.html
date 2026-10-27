@@ -2857,6 +2857,94 @@ camEdi.userData.ruta = { pts: [[34, -11.5], [38, -11.5], [38, -22],
     // 6 comité — los cruces de 62.5/-22 son tránsito)
     i: 1, dir: 1, espera: 0, esperaMid: 0.6, paradas: [4, 6] };
 
+// ============ PORTAL DE ACCESO /acceso-modulos/ — 7 logins ============
+// El grafo empieza aquí: cada rol hace login antes de rodar —
+// los ductos cian del acceso bajan a cada camión y a los módulos
+// internos (validación, reportes, torre). Siete torniquetes.
+{
+    const portal = new THREE.Group();
+    const matP = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    const matT = new THREE.MeshLambertMaterial({ color: 0x475569 });
+    const base = new THREE.Mesh(new THREE.BoxGeometry(19, 0.18, 3.4), matP);
+    base.position.y = 0.09; portal.add(base);
+    const nombresLogin = ['DEL', 'REC', 'VAL', 'REP', 'EDI', 'ANL', 'ADM'];
+    nombresLogin.forEach((n, i) => {
+        const tx = -7.8 + i * 2.6;
+        const torn = new THREE.Mesh(new THREE.BoxGeometry(1.7, 2.1, 1.9), matT);
+        torn.position.set(tx, 1.14, 0); torn.castShadow = true; portal.add(torn);
+        const vid = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.9),
+            new THREE.MeshBasicMaterial({ map: texturaPantalla(n, 'login interno') }));
+        vid.position.set(tx, 1.55, 0.98); portal.add(vid);
+        const led = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.12),
+            new THREE.MeshBasicMaterial({ color: 0x67e8f9 }));
+        led.position.set(tx, 2.3, 0.9); portal.add(led);
+        const brazo = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), matP);
+        brazo.rotation.z = Math.PI / 2;
+        brazo.position.set(tx + 0.92, 1.05, 0); portal.add(brazo);
+    });
+    for (const px of [-9.2, 9.2]) {
+        const col = new THREE.Mesh(new THREE.BoxGeometry(0.22, 4.4, 0.22), matP);
+        col.position.set(px, 2.2, 0); portal.add(col);
+    }
+    const marq = new THREE.Mesh(new THREE.BoxGeometry(20.4, 0.9, 2.6), matT);
+    marq.position.set(0, 4.6, 0); marq.castShadow = true; portal.add(marq);
+    const cartelP = crearCartel('ACCESO · /acceso-modulos/', 'siete logins internos + home público', 9);
+    cartelP.position.set(0, 5.7, 0); portal.add(cartelP);
+    for (let i = 0; i < 4; i++) {   // fila de usuarios que entran por la cara norte
+        const f = crearFigura([0xf59e0b, 0x38bdf8, 0x84cc16, 0xef4444][i]);
+        f.position.set(-6 + i * 4, 0, 3.1);
+        portal.add(f);
+    }
+    portal.position.set(12, 0, -28.5);
+    scene.add(portal);
+    // Poste de login en cada muelle: el rol se autentica al atracar —
+    // el poste es fijo, no un cable persiguiendo al camión en ruta.
+    [[57.8, -6.4, 'REC', 'rol de recolección'],
+     [53.8, -6.2, 'DEL', 'rol del delegado'],
+     [33.2, -9.9, 'EDI', 'rol editorial']].forEach(([px, pz, rol, sub]) => {
+        const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 1.7, 8),
+            new THREE.MeshLambertMaterial({ color: 0x334155 }));
+        poste.position.set(px, 0.85, pz); poste.castShadow = true; scene.add(poste);
+        const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.52),
+            new THREE.MeshBasicMaterial({ map: texturaPantalla('LOGIN ' + rol, sub),
+                side: THREE.DoubleSide }));
+        scr.position.set(px, 1.95, pz); scene.add(scr);
+        const led = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6),
+            new THREE.MeshBasicMaterial({ color: 0x67e8f9 }));
+        led.position.set(px, 1.72, pz); scene.add(led);
+    });
+}
+
+// ============ ANALÍTICA DEL TALLER — anexo del taller ============
+// anTaller del puml: 22 rutas /analitica/taller/ — reportes,
+// ecosistema, fuentes, retos y casos que alimenta el censo.
+{
+    const an = new THREE.Group();
+    const matA = new THREE.MeshLambertMaterial({ color: 0x3f4a58 });
+    const losa = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.16, 4.4), matA);
+    losa.position.y = 0.08; an.add(losa);
+    const cuerpoA = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.2, 3.4),
+        new THREE.MeshLambertMaterial({ color: 0x55697a }));
+    cuerpoA.position.y = 1.2; cuerpoA.castShadow = true; an.add(cuerpoA);
+    const techoA = new THREE.Mesh(new THREE.BoxGeometry(3, 0.14, 3.8), matA);
+    techoA.position.y = 2.36; an.add(techoA);
+    const matBar = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+    for (let i = 0; i < 3; i++) {   // mini gráfico de barras en la cara este
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4 + i * 0.35, 0.06), matBar);
+        bar.position.set(1.32, 0.62 + (0.4 + i * 0.35) / 2, -1 + i * 0.9);
+        an.add(bar);
+    }
+    const monA = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.64),
+        new THREE.MeshBasicMaterial({ map: texturaPantalla('ANALÍTICA', '/analitica/taller/ · 22 rutas') }));
+    monA.position.set(1.33, 1.78, 0); monA.rotation.y = Math.PI / 2; an.add(monA);
+    const mastA = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.1, 0.08), matA);
+    mastA.position.set(0, 3.0, -1.6); an.add(mastA);
+    const cartelA = crearCartel('ANALÍTICA DEL TALLER', 'reportes · ecosistema · retos · casos', 3.6);
+    cartelA.position.set(0, 3.95, -1.6); an.add(cartelA);
+    an.position.set(-36, 0, -2.5);
+    scene.add(an);
+}
+
 // ============ GARITA DE VALIDACIÓN — pre-aprueba al delegado ============
 // El módulo de validación pre-aprueba cada movimiento del delegado:
 // su camión se detiene en la garita (x=11, carril z=-8) antes de
@@ -3980,6 +4068,16 @@ const TVs = [];
     cartelTV.position.set(0, 5.7, 0);
     cartelTV.rotation.y = -Math.PI / 2;
     paredG.add(cartelTV);
+    // Los 8 módulos públicos del portal (puml: audiencia)
+    const MODS_TV = ['HOME', 'DOMINIOS', 'CONJUNTOS', 'VISORES',
+                     'CATÁLOGOS', 'DON DATICO', 'LABORATORIO', 'API·BI'];
+    MODS_TV.forEach((m, i) => {
+        const etq = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.34),
+            new THREE.MeshBasicMaterial({ map: texturaPantalla(m, 'módulo del portal') }));
+        etq.position.set(-0.42, 0.34, -3.6 + i * 1.02);
+        etq.rotation.y = -Math.PI / 2;
+        paredG.add(etq);
+    });
     scene.add(paredG);
 }
 
@@ -4274,13 +4372,50 @@ const ductos = [];
     { pts: [[8.2, 14.0, 11], [1, 12.6, 15.5], [-12, 9.2, 18.2], [-24, 6.4, 18.6],
             [-30.5, 3.6, 17.4]],
       color: 0xf87171, n: 3 },        // admin → editorial: gráficos de indicadores a editar
+    // ---- conexiones del puml que no venían en la escena ----
+    { pts: [[10, 1.6, -27.5], [16, 3, -22], [18, 2.5, -15.5]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // acceso → módulo de validación
+    { pts: [[12, 1.8, -27.5], [18, 5, -16], [21, 2.2, -1]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // acceso → reportes y auditoría
+    { pts: [[10, 2, -27.5], [20, 8, -18], [10, 12, -6], [8.2, 13.5, 10.5]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // acceso → torre del admin
+    { pts: [[8.2, 13.5, 10.5], [10, 9, -1], [11, 3, -8]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // torre → garita (control del brazo)
+    { pts: [[8.2, 13.5, 10.5], [8, 10, 5], [6.5, 2, -0.6]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // torre → calidad y desagregación
+    { pts: [[8.2, 13.5, 10.5], [13, 9, -7], [16, 2.5, -14.2]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // torre → validación
+    { pts: [[8.2, 13.5, 10.5], [18, 11, 4], [29, 2.2, -0.6]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // torre → extracción automática
+    { pts: [[8.2, 13.5, 10.5], [24, 11, 5.5], [36.5, 2.2, -0.6]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // torre → ficha técnica MSD
+    { pts: [[8.2, 13.5, 10.5], [30, 13, 10.5], [48, 9, 9.5], [61.6, 4.5, 9.5]],
+      color: 0x67e8f9, n: 2, r: 0.09 },        // torre → chat Don Datico (portal)
+    { pts: [[35, 2.6, 14], [46, 4.5, 13], [54, 4.5, 6], [58.8, 3, 1]],
+      color: 0xa3e635, n: 2, r: 0.12 },        // ciudadanía → observatorio (encuestas)
+    { pts: [[27, 2.6, -9], [29.5, 2.2, -13.5]],
+      color: 0xc4b5fd, n: 1, r: 0.09 },        // hoja de vida → reunión técnica
+    { pts: [[54, 3, 3], [46, 7, -6], [33, 3, -14.5]],
+      color: 0xc4b5fd, n: 2, r: 0.09 },        // estantería indicadores → reunión
+    { pts: [[16, 2.5, -14.7], [0, 5.5, -18.5], [-16, 2.5, -14.9]],
+      color: 0xc4b5fd, n: 2, r: 0.09 },        // validación → eval. estratégica
+    { pts: [[31, 3, -16.5], [44, 6, -25], [51.5, 4.5, -29]],
+      color: 0xc4b5fd, n: 2, r: 0.09 },        // reunión técnica → despacho
+    { pts: [[-30.5, 2.8, 17.4], [-22, 4.5, 14], [-16, 3.5, 10], [-10.5, 3, 7.6]],
+      color: 0xf87171, n: 2, r: 0.09 },        // editorial → inventario ops (sin validación)
+    { pts: [[-33, 3, -2.5], [-36, 2.6, -2.5]],
+      color: 0x67e8f9, n: 1, r: 0.09 },        // taller → analítica del taller
+    { pts: [[-26, 3.5, -5.5], [-22, 4, -11], [-18, 2.5, -14.3]],
+      color: 0xc4b5fd, n: 1, r: 0.09 },        // taller → eval. estratégica (el censo arranca C)
+    { pts: [[11, 2.5, -9.5], [14, 3.5, -12], [16, 2.5, -14.2]],
+      color: 0xc4b5fd, n: 1, r: 0.09 },        // garita → validación (expediente del delegado)
 ].forEach(d => {
     d.pts0 = new THREE.Vector3(...d.pts[0]);   // boca del ducto
     d.curva = new THREE.CatmullRomCurve3(
         d.pts.map(p => new THREE.Vector3(...p)));
     d.largo = d.curva.getLength();
     const tubo = new THREE.Mesh(
-        new THREE.TubeGeometry(d.curva, 64, 0.19, 8, false),
+        new THREE.TubeGeometry(d.curva, 64, d.r || 0.19, 8, false),
         new THREE.MeshLambertMaterial({ color: d.color, transparent: true,
                                         opacity: 0.26, depthWrite: false }));
     scene.add(tubo);
@@ -5989,176 +6124,182 @@ const ACTOS_TODOS = [
       cam: [[62, 7, 6], [44, 2, -8]],    // camiones llegando desde el lado del observatorio
       ficha: 'El Comité de Gestión del ecosistema define lineamientos, dominios y prioridades; los observatorios de los organismos generan la materia prima que surte a recolección, delegado y editorial.' },
     // --- Las 5 bandas: paneo por cada una ---
-    { t0: 65,  t1: 73,  acto: 'Paneo', texto: 'Banda de generación de datos', sub: 'lo que procesa: operación estadística → conjunto de datos → control de calidad → series → extracción → ficha técnica MSD → difusión', pan: true,
+    { t0: 65,  t1: 73,  acto: 'Acceso', texto: 'El portal interno', sub: '/acceso-modulos/ — siete logins: delegado · recolección · validación · reportes · editorial · analítica · admin', pan: true,
+    cam: [[24, 9, -40], [12, 1.8, -28]],
+      ficha: 'Antes de rodar, cada rol hace login en el portal interno /acceso-modulos/: delegado, recolección, validación, reportes, editorial, analítica y administración — siete torniquetes, cada uno abre su módulo.' },
+    { t0: 73,  t1: 81,  acto: 'Paneo', texto: 'La analítica del taller', sub: '22 rutas /analitica/taller/: reportes, ecosistema de datos, fuentes, retos y casos de estudio', pan: true,
+    cam: [[-24, 7, -14], [-36, 2.5, -3]],
+      ficha: 'La analítica del taller convierte el censo y el prediagnóstico en reportes: ecosistema de datos por organismo, fuentes registradas, retos de publicación y casos — el taller no solo produce, también mide su propia planta.' },
+    { t0: 81,  t1: 89,  acto: 'Paneo', texto: 'Banda de generación de datos', sub: 'lo que procesa: operación estadística → conjunto de datos → control de calidad → series → extracción → ficha técnica MSD → difusión', pan: true,
       cam: [[-34, 7, 10], [20, 2.4, 4]],  // barrido de toda la línea D (D1+D2)
       ficha: 'La cadena sigue el modelo GSBPM de la CEPE-ONU y los lineamientos del DANE: operación estadística → conjunto → control de calidad → series → extracción → ficha técnica MSD → difusión.' },
-    { t0: 73,  t1: 81,  acto: 'Paneo', texto: 'Banda de capacidad estadística', sub: 'lo que procesa: evaluación estratégica → satisfacción ciudadana → evaluación táctica → formulario FICED → validación', pan: true,
+    { t0: 89,  t1: 97,  acto: 'Paneo', texto: 'Banda de capacidad estadística', sub: 'lo que procesa: evaluación estratégica → satisfacción ciudadana → evaluación táctica → formulario FICED → validación', pan: true,
       cam: [[-14, 6, -5], [10, 2.5, -14.7]], // barrido a lo largo de la banda C
       ficha: 'Dos mediciones retroalimentan el ecosistema: el FICED mide la capacidad instalada de cada organismo y la encuesta de satisfacción evalúa utilidad, relevancia y accesibilidad (2 preguntas de referencia + 7 de satisfacción).' },
-    { t0: 81,  t1: 85,  acto: 'Paneo', texto: 'Línea editorial', sub: 'lo que procesa: noticias, portada y calendario de eventos', pan: true,
+    { t0: 97,  t1: 101,  acto: 'Paneo', texto: 'Línea editorial', sub: 'lo que procesa: noticias, portada y calendario de eventos', pan: true,
       cam: [[-24, 5, 16], [-14, 1.5, 12]] },
-    { t0: 85,  t1: 89,  acto: 'Paneo', texto: 'Línea de aprendizaje', sub: 'lo que procesa: productos académicos y educativos para cada público', pan: true,
+    { t0: 101,  t1: 105,  acto: 'Paneo', texto: 'Línea de aprendizaje', sub: 'lo que procesa: productos académicos y educativos para cada público', pan: true,
       cam: [[-24, 5, 23], [-14, 1.5, 18]] },
-    { t0: 89,  t1: 93,  acto: 'Paneo', texto: 'Línea de agenda', sub: 'lo que procesa: calendario de difusión estadística y agenda pública', pan: true,
+    { t0: 105,  t1: 109,  acto: 'Paneo', texto: 'Línea de agenda', sub: 'lo que procesa: calendario de difusión estadística y agenda pública', pan: true,
       cam: [[-24, 5, 29], [-14, 1.5, 24]] },
     // --- Descarga en módulos + control central ---
-    { t0: 93,  t1: 100, acto: 'Paneo', texto: 'Cada rol descarga en módulos', sub: 'estaciones de trabajo: validación, operaciones, ingesta, calidad, series, extracción, metadatos y difusión', pan: true,
+    { t0: 109,  t1: 116, acto: 'Paneo', texto: 'Cada rol descarga en módulos', sub: 'estaciones de trabajo: validación, operaciones, ingesta, calidad, series, extracción, metadatos y difusión', pan: true,
       dato: 'El rol no toca el dato final: lo entrega en un módulo y ese módulo lo procesa según lo que configure la administración.',
       cam: [[4, 9, 18], [-2, 2.5, 4]] },
-    { t0: 100, t1: 108, acto: 'Paneo', texto: 'El módulo de administración lo controla todo', sub: 'nada se publica sin pasar por aquí: fichas MSD, reglas de extracción, validación de cargas y capas geográficas', pan: true,
+    { t0: 116, t1: 124, acto: 'Paneo', texto: 'El módulo de administración lo controla todo', sub: 'nada se publica sin pasar por aquí: fichas MSD, reglas de extracción, validación de cargas y capas geográficas', pan: true,
       dato: 'La administración decide qué sale y qué se devuelve — todo lo que los roles traen queda pre-aprobado hasta que este módulo lo autorice.',
       cam: [[-2, 9, 20], [4.5, 8.8, 11.3]],
       ficha: 'Las cargas de los roles quedan pre-aprobadas hasta que la administración las autorice: aquí se configuran fichas MSD, reglas de extracción, validación de cargas y capas geográficas.' },
-    { t0: 108, t1: 114, acto: 'Paneo', texto: 'Todo llega al nivel estratégico', sub: 'la producción de datos y la medición de capacidades terminan en la reunión técnica DAPD · DADII · DATIC · CDO', pan: true,
+    { t0: 124, t1: 130, acto: 'Paneo', texto: 'Todo llega al nivel estratégico', sub: 'la producción de datos y la medición de capacidades terminan en la reunión técnica DAPD · DADII · DATIC · CDO', pan: true,
       dato: 'En esta mesa se evalúa el ecosistema: qué produjo la banda de datos, qué midió la de capacidad y qué sale por las líneas de servicio.',
       cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // entra por el vidrio sur
-    { t0: 114, t1: 120, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 130, t1: 136, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [24, 5.5, -16.5]] }, // oeste: vitrina de expedientes ICED
-    { t0: 120, t1: 126, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 136, t1: 142, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [30, 6, -20]] },     // norte: tablero FICED
-    { t0: 126, t1: 130, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 142, t1: 146, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [36, 5.5, -16.5]] }, // este: TVs de monitoreo
     // ======= B: MÓDULOS DE ACCESO — la cámara los SIGUE =======
-    { t0: 130,  t1: 146, acto: 'Módulo 01', texto: 'RECOLECCIÓN', sub: 'suministro técnico: carga series y conjuntos con las plantillas normalizadas del equipo, y registra operaciones',
+    { t0: 146,  t1: 162, acto: 'Módulo 01', texto: 'RECOLECCIÓN', sub: 'suministro técnico: carga series y conjuntos con las plantillas normalizadas del equipo, y registra operaciones',
       dato: 'El DANE entrega al Distrito sus proyecciones de población actualizadas. Es el insumo: población total de Cali por año, edad y sexo.',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camRec',
       ficha: 'El equipo técnico carga series y conjuntos con las plantillas normalizadas del equipo y registra las operaciones estadísticas del inventario distrital.' },
-    { t0: 146, t1: 162, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'cada organismo carga sus series y conjuntos desde su portal: cargas parciales e incrementales, a prueba de errores',
+    { t0: 162, t1: 178, acto: 'Módulo 02', texto: 'DELEGADO', sub: 'cada organismo carga sus series y conjuntos desde su portal: cargas parciales e incrementales, a prueba de errores',
       dato: 'Vea la barrera: el rol del delegado se detiene en el punto de validación. Todo lo que un organismo cargue — series, conjuntos, el FICED — queda pre-aprobado antes de tocar la banda. Y no solo trae el dossier: descarga en la banda de calidad, da la vuelta por el oeste y entrega también los indicadores del organismo del otro lado del taller.',
       cam: [[4, 3.4, 5], [0, 0, 0]], sigue: 'camDel',
       ficha: 'Cada organismo carga desde su portal con cargas parciales e incrementales, a prueba de errores; todo queda pre-aprobado en el punto de validación antes de tocar la banda.' },
-    { t0: 162, t1: 180, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'la voz pública: noticias, productos, catálogo, menús y calendarios — autónoma: no pasa por recolección ni pide autorización',
+    { t0: 178, t1: 196, acto: 'Módulo 03', texto: 'EDITORIAL', sub: 'la voz pública: noticias, productos, catálogo, menús y calendarios — autónoma: no pasa por recolección ni pide autorización',
       dato: 'El rol editorial no para en validación y gestiona nueve funciones: noticias, productos académicos y educativos, el catálogo de consulta, los menús de sistemas de consulta, productos de información e infraestructura, el calendario de eventos y el de difusión — y edita los gráficos de los indicadores que procesa el admin.',
       cam: [[4, 3.6, 5], [0, 0, 0]], sigue: 'camEdi',
       ficha: 'Nueve funciones autónomas: noticias, productos académicos y educativos, catálogo de consulta, menús de consulta, productos de información e infraestructura, calendario de eventos y de difusión, y gráficos de indicadores.' },
     // ======= C: EL TALLER + SALA DE RECOLECCIÓN =======
-    { t0: 180, t1: 188, acto: 'Módulo 04', texto: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
+    { t0: 196, t1: 204, acto: 'Módulo 04', texto: 'TALLER DE GESTIÓN DE DATOS INSTITUCIONALES · DADII', sub: `censo de fuentes de datos de ${STATS.organismos} organismos inscritos, con prediagnóstico de riesgos de publicación bajo criterios OCHA`,
       dato: 'De aquí no sale un rol: sale la lista. El censo y el prediagnóstico ordenan qué organismo entra primero — así arranca la segunda banda, la de capacidad estadística.',
       cam: [[-13, 9.5, 7], [-24.5, 5.0, -2.6]],
       ficha: 'El taller del DADII realiza el censo de fuentes de datos y el prediagnóstico de riesgos OCHA. Las seis rutas LADY de asistencia técnica acompañan a los organismos: metadatos, operaciones y registros, socialización de lineamientos, actualización en sistemas, fortalecimiento y observatorios.' },
-    { t0: 188, t1: 194, acto: 'Sala', texto: 'Equipo técnico DADII', sub: 'el segundo piso del taller: la junta revisa el censo y el prediagnóstico organismo por organismo',
+    { t0: 204, t1: 210, acto: 'Sala', texto: 'Equipo técnico DADII', sub: 'el segundo piso del taller: la junta revisa el censo y el prediagnóstico organismo por organismo',
       cam: [[-19.5, 8.4, 1.6], [-26, 7.3, -2.5]] },
-    { t0: 194, t1: 200, acto: 'Sala', texto: 'Equipo técnico', sub: 'la cabina de administración: carga indicadores con el procesador de la torre y configura fichas MSD, dominios, reglas y capas geográficas', pan: true,
+    { t0: 210, t1: 216, acto: 'Sala', texto: 'Equipo técnico', sub: 'la cabina de administración: carga indicadores con el procesador de la torre y configura fichas MSD, dominios, reglas y capas geográficas', pan: true,
       dato: 'Aquí el equipo diseña la operación: llevar la proyección del DANE al nivel subdistrital — 22 comunas y 15 corregimientos. El administrador configura aquí toda la operación.',
       cam: [[-17, 1.5, -0.8], [-15.4, 1.0, 0.55]] },   // escritorios SE
-    { t0: 200, t1: 204, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 216, t1: 220, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[-17, 1.5, -0.8], [-18.6, 1.0, 0.55]] },   // escritorios SO
-    { t0: 204, t1: 208, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 220, t1: 224, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[-17, 1.5, -0.8], [-19.2, 0.9, -1.4]] },   // archivador NO
-    { t0: 208, t1: 212, acto: 'Torre', texto: 'MÓDULO DE ADMINISTRACIÓN', sub: 'centro de control junto a la explanada: la administración opera desde las consolas, no desde una máquina', pan: true,
+    { t0: 224, t1: 228, acto: 'Torre', texto: 'MÓDULO DE ADMINISTRACIÓN', sub: 'centro de control junto a la explanada: la administración opera desde las consolas, no desde una máquina', pan: true,
       dato: 'Cinco consolas: extracción y cálculo automático de indicadores desde conjuntos, validación de las cargas de recolección, gestor de capas geoestadísticas, gestor de variables y desagregaciones — y Don Datico.',
       cam: [[-2, 9, 20], [4.5, 8.8, 11.3]],   // consolas + cartel de la torre en cuadro
       ficha: 'Cinco consolas: extracción y cálculo automático de indicadores, validación de cargas, gestor de capas geoestadísticas, gestor de variables y desagregaciones, y el asistente Don Datico que el administrador entrena con el contenido publicado.' },
-    { t0: 212, t1: 218, acto: 'Sala', texto: 'Equipo técnico SIIED', sub: 'el equipo que documenta cada ficha MSD y responde cada carga de los roles', pan: true,
+    { t0: 228, t1: 234, acto: 'Sala', texto: 'Equipo técnico SIIED', sub: 'el equipo que documenta cada ficha MSD y responde cada carga de los roles', pan: true,
       dato: 'Sin ficha MSD, sin dominios y sin regla de extracción, ningún rol mueve nada. Y cuando la metodología esté escrita, la cargará editorial: cada módulo hace lo suyo.',
       cam: [[-24, 4, 7], [-17, 1.6, -0.8]] },
     // ======= D: CADENA DE DATOS — estación por estación =======
-    { t0: 218, t1: 232, acto: 'Módulo 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'inventario distrital de operaciones: cada una con enlace al ADDA (Archivo Distrital de Datos) y a sus documentos metodológicos',
+    { t0: 234, t1: 248, acto: 'Módulo 05', texto: 'OPERACIONES ESTADÍSTICAS', sub: 'inventario distrital de operaciones: cada una con enlace al ADDA (Archivo Distrital de Datos) y a sus documentos metodológicos',
       dato: 'La operación nació primero en el ADDA, la plataforma de datos abiertos del Distrito. Aquí entra al inventario con su enlace, su ficha metodológica y su diccionario de datos.',
       cam: [[-14, 4.5, 10], [-8.5, 2.4, -0.2]],
       ficha: 'El ADDA describe organismo responsable, área temática, metodología de recolección y acceso a los conjuntos de datos. Una operación recorre las 8 fases de la Ley 2335 de 2023: necesidades → diseño → construcción → recolección → procesamiento → análisis → difusión → evaluación.' },
-    { t0: 232, t1: 244, acto: 'Módulo 06', texto: 'INGESTA DE CONJUNTOS', sub: 'conjuntos de datos documentados con DDI completo: identificación, universo, cobertura, método y condiciones de uso',
+    { t0: 248, t1: 260, acto: 'Módulo 06', texto: 'INGESTA DE CONJUNTOS', sub: 'conjuntos de datos documentados con DDI completo: identificación, universo, cobertura, método y condiciones de uso',
       dato: 'La operación produce UN conjunto de datos: población proyectada por año × edad simple × sexo × comuna/corregimiento. Es la base de todo lo que sigue.',
       cam: [[-7, 5, 12], [-1, 2.4, 0]],
       ficha: 'Conjuntos de datos documentados con DDI completo: identificación, universo, cobertura, método de recolección y condiciones de uso — el estándar internacional de archivos de datos.' },
-    { t0: 244, t1: 256, acto: 'Módulo 07', texto: 'Catálogo de consulta', sub: 'listados del anuario Cali en Cifras — los gestiona el módulo editorial; ningún rol los trae',
+    { t0: 260, t1: 272, acto: 'Módulo 07', texto: 'Catálogo de consulta', sub: 'listados del anuario Cali en Cifras — los gestiona el módulo editorial; ningún rol los trae',
       dato: 'Este conjunto NO pasa por aquí. El catálogo publica tablas de referencia; la población proyectada no es un listado: continúa su camino hacia el estatus de indicador.',
       cam: [[-8, 5.5, 16], [-2, 2.5, 20.5]],
       ficha: 'El catálogo publica los listados del anuario Cali en Cifras como tablas de referencia documentadas — lo gestiona el módulo editorial, ningún rol los trae.' },
-    { t0: 256, t1: 268, acto: 'Módulo 08', texto: 'CONTROL DE CALIDAD Y DESAGREGACIÓN', sub: 'dominios de desagregación declarados, totales verificados y bitácora de cambios',
+    { t0: 272, t1: 284, acto: 'Módulo 08', texto: 'CONTROL DE CALIDAD Y DESAGREGACIÓN', sub: 'dominios de desagregación declarados, totales verificados y bitácora de cambios',
       dato: 'Se declaran los dominios: sexo, grupo de edad, comuna, corregimiento. La suma de las 22 comunas y 15 corregimientos debe coincidir con el total distrital del DANE. Si no cuadra, no pasa.',
       cam: [[3.5, 4.5, 11], [6.5, 2.2, -0.2]],
       ficha: 'Verificación bajo la NTC PE 1000:2020: validación de fuentes, coherencia de datos y consistencia de totales frente al origen, con dominios de desagregación declarados y bitácora de cambios para trazabilidad.' },
-    { t0: 268, t1: 280, acto: 'Módulo 09', texto: 'SERIES DE INDICADORES', sub: 'cada indicador con sus metadatos: objetivo, método, fórmula y variables',
+    { t0: 284, t1: 296, acto: 'Módulo 09', texto: 'SERIES DE INDICADORES', sub: 'cada indicador con sus metadatos: objetivo, método, fórmula y variables',
       dato: 'Del conjunto se derivan indicadores: pirámide poblacional por comuna, población por sexo, estructura por grupos de edad. Cada uno con fórmula explícita sobre el conjunto fuente.',
       cam: [[11, 4.5, 11], [14, 2.2, -0.2]] },
-    { t0: 280, t1: 292, acto: 'Módulo 10', texto: 'REPORTES Y AUDITORÍA', sub: 'tablero de monitoreo de la plataforma: indicadores sin datos, series desactualizadas, completitud MSD+SDMX, producción mensual y trazabilidad',
+    { t0: 296, t1: 308, acto: 'Módulo 10', texto: 'REPORTES Y AUDITORÍA', sub: 'tablero de monitoreo de la plataforma: indicadores sin datos, series desactualizadas, completitud MSD+SDMX, producción mensual y trazabilidad',
       dato: 'Cuando la pirámide llegue, este tablero debe prenderse en verde: con datos, sin alertas, ficha completa. Si algo falta, aparece aquí antes que afuera.',
       cam: [[18.5, 4.5, 11], [21.5, 2.2, -0.2]],
       ficha: 'El tablero monitorea completitud MSD+SDMX, indicadores sin datos, series desactualizadas, producción mensual y trazabilidad de las cargas — las alertas aparecen aquí antes que afuera.' },
-    { t0: 292, t1: 304, acto: 'Módulo 11', texto: 'EXTRACCIÓN', sub: 'del conjunto a las series: el administrador define para cada indicador las columnas fuente, la fórmula y el orden de desagregaciones',
+    { t0: 308, t1: 320, acto: 'Módulo 11', texto: 'EXTRACCIÓN', sub: 'del conjunto a las series: el administrador define para cada indicador las columnas fuente, la fórmula y el orden de desagregaciones',
       dato: 'La regla de extracción recorta el conjunto: para la pirámide de la comuna 13, hombres y mujeres por grupo quinquenal, año a año.',
       cam: [[26, 4.5, 11], [29, 2.2, -0.2]] },
-    { t0: 304, t1: 316, acto: 'Módulo 12', texto: 'METADATOS · FICHA TÉCNICA', sub: 'ficha técnica del indicador bajo el estándar MSD del DANE, con secciones SDMX: referencias APA y responsable institucional',
+    { t0: 320, t1: 332, acto: 'Módulo 12', texto: 'METADATOS · FICHA TÉCNICA', sub: 'ficha técnica del indicador bajo el estándar MSD del DANE, con secciones SDMX: referencias APA y responsable institucional',
       dato: 'Fuente: DANE + operación distrital. Unidad: personas. Periodicidad anual. Desagregaciones: sexo, edad, comuna, corregimiento. Y un responsable de validación con nombre y cargo.',
       cam: [[33.5, 4.5, 11], [36.5, 2.2, -0.2]],
       ficha: 'Ficha técnica bajo el estándar MSD del DANE con secciones SDMX: fuente, unidad de medida, periodicidad, desagregaciones, referencias y responsable institucional de validación.' },
-    { t0: 316, t1: 328, acto: 'Módulo 13', texto: 'DIFUSIÓN DEL DATO', sub: 'gráficos, calendario de difusión y API abierta: publicación programada',
+    { t0: 332, t1: 344, acto: 'Módulo 13', texto: 'DIFUSIÓN DEL DATO', sub: 'gráficos, calendario de difusión y API abierta: publicación programada',
       dato: 'La pirámide poblacional de cada comuna queda publicada, con fecha en el calendario y disponible por API para quien la necesite.',
       cam: [[40, 5, 11], [44, 2.4, -0.2]] },
-    { t0: 328, t1: 342, acto: 'Módulo 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`,
+    { t0: 344, t1: 358, acto: 'Módulo 14', texto: 'Inventario de indicadores', sub: `${STATS.indicadores} indicadores activos: ODS · Cali en Cifras · dominios del Comité`,
       dato: 'Los indicadores de población entran al marco Cali en Cifras. Y la plataforma entera gana denominadores: cualquier tasa por habitante del Distrito nace aquí.',
       cam: [[44, 5.5, 12], [51.3, 4, 2.4]],
       ficha: 'La batería de seguimiento ODS de Cali suma 85 indicadores: 66 ODS, 8 OCDE, 9 del Sistema de Planeación Territorial, 1 DAFP y 1 del Censo Nacional — origen: CONPES 3918 de 2018, acción 2.5. Las series se clasifican según el ODS al que contribuyen.' },
     // ======= E: LÍNEA DE CAPACIDAD — arrancó en el taller =======
-    { t0: 342, t1: 354, acto: 'Módulo 15', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación estratégica inicial: entorno institucional y capacidad de decisión de cada organismo',
+    { t0: 358, t1: 370, acto: 'Módulo 15', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación estratégica inicial: entorno institucional y capacidad de decisión de cada organismo',
       dato: 'Esta banda no empieza aquí: ya venía rodando desde el taller de gestión de datos institucionales — el censo de fuentes y el prediagnóstico pusieron a cada organismo en la fila.',
       cam: [[-18, 5, -5], [-18, 2.5, -14.7]] },
-    { t0: 354, t1: 366, acto: 'Módulo 16', texto: 'SATISFACCIÓN CIUDADANA', sub: 'la ciudadanía califica la atención estadística de cada organismo: pulso rápido y formulario completo',
+    { t0: 370, t1: 382, acto: 'Módulo 16', texto: 'SATISFACCIÓN CIUDADANA', sub: 'la ciudadanía califica la atención estadística de cada organismo: pulso rápido y formulario completo',
       cam: [[-8, 5, -5], [-8, 2.5, -14.7]],
       ficha: 'Operación estadística sobre las solicitudes respondidas por canales institucionales: 2 preguntas de referencia + 7 de satisfacción (utilidad, relevancia, accesibilidad) y una abierta. Informe de Seguimiento al Ciudadano trimestral; en fase piloto en equipos del DAP.' },
-    { t0: 366, t1: 378, acto: 'Módulo 17', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación táctica y operativa: infraestructura y operación estadística del organismo en detalle',
+    { t0: 382, t1: 394, acto: 'Módulo 17', texto: 'EQUIPO TÉCNICO DEL SIIED', sub: 'evaluación táctica y operativa: infraestructura y operación estadística del organismo en detalle',
       cam: [[0, 5, -5], [0, 2.5, -14.7]] },
-    { t0: 378, t1: 390, acto: 'Módulo 18', texto: 'FICED', sub: 'cinco módulos: identificación → entorno institucional → infraestructura → metodología estadística → accesibilidad y uso',
+    { t0: 394, t1: 406, acto: 'Módulo 18', texto: 'FICED', sub: 'cinco módulos: identificación → entorno institucional → infraestructura → metodología estadística → accesibilidad y uso',
       dato: 'El ICED es el promedio ponderado de los módulos B a E. Un organismo con metodología estadística débil (módulo D) no llega a esta banda: el sistema lo mide y lo acompaña.',
       cam: [[8, 5, -5], [8, 2.5, -14.7]],
       ficha: 'Formulario ICED en cinco módulos: A identificación, B entorno institucional, C infraestructura, D metodología estadística, E accesibilidad y uso. El ICED pondera B–E; puede diligenciarse por equipos técnicos y conciliarse en un consolidado.' },
-    { t0: 390, t1: 402, acto: 'Módulo 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'pre-aprueba todo lo del delegado: el punto de control detiene al rol en la calle y esta sala decide el expediente — series, conjuntos y el FICED — aprobando o devolviendo con observaciones',
+    { t0: 406, t1: 418, acto: 'Módulo 19', texto: 'MÓDULO DE VALIDACIÓN', sub: 'pre-aprueba todo lo del delegado: el punto de control detiene al rol en la calle y esta sala decide el expediente — series, conjuntos y el FICED — aprobando o devolviendo con observaciones',
       dato: 'La coordinación es contractual: el delegado cargó, el punto de validación lo detuvo y ahora la validación decide. Aprobar devuelve la caja a la banda rumbo a la publicación; devolver la regresa al organismo.',
       cam: [[16, 5, -5], [16, 2.5, -14.7]],
       ficha: 'El validador aprueba, devuelve con observaciones o rechaza — decisión terminal. Cuando el organismo trabaja por equipos técnicos, los formularios parciales se concilian y la decisión se toma sobre el consolidado.' },
-    { t0: 402, t1: 414, acto: 'Módulo 20', texto: 'Complejo de capacidad', sub: 'la hoja de vida de cada organismo se decide en esta sala',
+    { t0: 418, t1: 430, acto: 'Módulo 20', texto: 'Complejo de capacidad', sub: 'la hoja de vida de cada organismo se decide en esta sala',
       dato: 'La línea de capacidad mide a quien produce el dato, no al dato. Un organismo con baja capacidad estadística produce datos que esta plataforma no puede publicar.',
       cam: [[18, 6.5, -4], [29, 3.5, -11]],
       ficha: 'El expediente del organismo integra el ICED (adaptación del ICET del DANE), el ecosistema de datos y la satisfacción del usuario — la hoja de vida completa de quién produce la estadística.' },
     // ======= F: SALAS DE GOBIERNO — la cámara ENTRA y GIRA =======
-    { t0: 414, t1: 420, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el consejo de don Daticos delibera sobre los expedientes ICED', pan: true,
+    { t0: 430, t1: 436, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el consejo de don Daticos delibera sobre los expedientes ICED', pan: true,
       dato: 'Don Daticos es uno y es todos — y es literal: don Datico es también el asistente del portal, que responde en lenguaje natural sobre indicadores y documentos, y el administrador lo entrena con el contenido publicado.',
       cam: [[30, 5.9, -16.5], [24, 5.5, -16.5]] },
-    { t0: 420, t1: 424, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 436, t1: 440, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [30, 6, -20]] },
-    { t0: 424, t1: 428, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 440, t1: 444, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[30, 5.9, -16.5], [36, 5.5, -16.5]] },
-    { t0: 428, t1: 432, acto: 'Sala', texto: '', sub: '', pan: true,
-      cam: [[30, 5.9, -16.5], [30, 5.5, -13]] },
-    { t0: 432, t1: 438, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el ecosistema entero en una pantalla: cada expediente con su veredicto', pan: true,
-      cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // sale por el sur: vidrio (los TVs de la pared este darían la espalda)
-    { t0: 438, t1: 444, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan en plenaria', pan: true,
-      cam: [[52, 1.7, -14], [45.5, 1.35, -14]] },  // a la altura de los don Daticos
     { t0: 444, t1: 448, acto: 'Sala', texto: '', sub: '', pan: true,
+      cam: [[30, 5.9, -16.5], [30, 5.5, -13]] },
+    { t0: 448, t1: 454, acto: 'Sala', texto: 'Evaluación estratégica', sub: 'el ecosistema entero en una pantalla: cada expediente con su veredicto', pan: true,
+      cam: [[33, 7, -7], [30, 5.9, -16.5]] },   // sale por el sur: vidrio (los TVs de la pared este darían la espalda)
+    { t0: 454, t1: 460, acto: 'Sala', texto: 'Comité de Gestión', sub: 'todos los organismos deliberan en plenaria', pan: true,
+      cam: [[52, 1.7, -14], [45.5, 1.35, -14]] },  // a la altura de los don Daticos
+    { t0: 460, t1: 464, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 1.7, -14], [52, 1.7, -17.8]] },   // norte: TVs con gráficos
-    { t0: 448, t1: 452, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 464, t1: 468, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 1.7, -14], [58.5, 1.5, -14]] },   // este: proyección del tablero
-    { t0: 452, t1: 456, acto: 'Sala', texto: '', sub: '', pan: true,
+    { t0: 468, t1: 472, acto: 'Sala', texto: '', sub: '', pan: true,
       cam: [[52, 1.7, -14], [52, 1.6, -10]] },     // sur: tablero ICED animado
-    { t0: 456, t1: 462, acto: 'Sala', texto: 'Comité de Gestión', sub: 'los organismos deliberan con el tablero de producción proyectado al frente', pan: true,
+    { t0: 472, t1: 478, acto: 'Sala', texto: 'Comité de Gestión', sub: 'los organismos deliberan con el tablero de producción proyectado al frente', pan: true,
       cam: [[57, 6, -6], [52, 3, -14]] },   // sale por el SE: vidrio, no los backs de los TVs
-    { t0: 462, t1: 474, acto: 'Sala', texto: 'Información estratégica para la toma de decisiones', sub: 'llega al despacho del Alcalde', pan: true,
+    { t0: 478, t1: 490, acto: 'Sala', texto: 'Información estratégica para la toma de decisiones', sub: 'llega al despacho del Alcalde', pan: true,
       dato: 'La pirámide de la comuna 13 llega aquí: ¿dónde construir el próximo colegio, el próximo centro de salud? Un dato que no llega a esta mesa no cumplió su ciclo.',
       cam: [[42, 10, -18], [52, 4.8, -30]] },   // paneo EXTERIOR: frente y cartel
-    { t0: 474, t1: 486, acto: 'Sala', texto: 'Despacho del Alcalde', sub: 'el gabinete decide con el dato encima de la mesa', pan: true,
+    { t0: 490, t1: 502, acto: 'Sala', texto: 'Despacho del Alcalde', sub: 'el gabinete decide con el dato encima de la mesa', pan: true,
       cam: [[64, 10, -40], [52, 4.8, -30]] },   // barrido exterior sobre la esquina
     // ======= G: LÍNEAS DE SERVICIO =======
-    { t0: 486, t1: 498, acto: 'Módulo 21', texto: 'Línea editorial', sub: 'gestión de noticias: redacción, portada y calendario de eventos',
+    { t0: 502, t1: 514, acto: 'Módulo 21', texto: 'Línea editorial', sub: 'gestión de noticias: redacción, portada y calendario de eventos',
       cam: [[-14, 4, 18], [-14, 1.5, 12]] },
-    { t0: 498, t1: 510, acto: 'Módulo 22', texto: 'Línea de aprendizaje', sub: 'productos académicos y educativos para cada público, con gráficos interactivos de los propios indicadores',
+    { t0: 514, t1: 526, acto: 'Módulo 22', texto: 'Línea de aprendizaje', sub: 'productos académicos y educativos para cada público, con gráficos interactivos de los propios indicadores',
       dato: 'El documento metodológico de la operación vive aquí, publicado para cualquiera: otro distrito puede replicar el método, y cualquier estadístico puede refutarlo.',
       cam: [[-14, 4, 24], [-14, 1.5, 18]],
       ficha: 'Productos académicos y educativos para cada público: la documentación metodológica publicada hace la operación reproducible y refutable — transparencia como principio del sistema.' },
-    { t0: 510, t1: 522, acto: 'Módulo 23', texto: 'Línea de agenda', sub: 'calendario de difusión estadística y agenda pública programada',
+    { t0: 526, t1: 538, acto: 'Módulo 23', texto: 'Línea de agenda', sub: 'calendario de difusión estadística y agenda pública programada',
       cam: [[-14, 4, 30], [-14, 1.5, 24]] },
     // ======= H: CIUDADANÍA =======
-    { t0: 522, t1: 529, acto: 'Módulo 24', texto: 'La ciudadanía', sub: 'todo lo que esta plataforma produce termina frente a una persona', pan: true,
+    { t0: 538, t1: 545, acto: 'Módulo 24', texto: 'La ciudadanía', sub: 'todo lo que esta plataforma produce termina frente a una persona', pan: true,
       cam: [[30, 10, 24], [16, 0.8, 17]] },
-    { t0: 529, t1: 536, acto: 'Módulo 24', texto: '', sub: 'la región que todo el sistema sirve: la ciudad y su gente', pan: true,
+    { t0: 545, t1: 552, acto: 'Módulo 24', texto: '', sub: 'la región que todo el sistema sirve: la ciudad y su gente', pan: true,
       cam: [[30, 10, 24], [50, 2.5, 14]] },
-    { t0: 536, t1: 548, acto: 'Módulo 25', texto: 'La ventanilla PQRS', sub: 'atención al ciudadano: encuestas que viajan por tubo a satisfacción',
+    { t0: 552, t1: 564, acto: 'Módulo 25', texto: 'La ventanilla PQRS', sub: 'atención al ciudadano: encuestas que viajan por tubo a satisfacción',
       dato: 'Una ciudadana pregunta cuántos niños menores de cinco años hay en su comuna. La respuesta salió de esta plataforma.',
       cam: [[43, 4, 19], [36.5, 2, 14]] },
-    { t0: 548, t1: 560, acto: 'Módulo 26', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
+    { t0: 564, t1: 576, acto: 'Módulo 26', texto: 'El observatorio', sub: 'los organismos observan a la ciudadanía: ahí nace la recolección',
       dato: 'El círculo se cierra: la población que el DANE proyectó es la misma que hace la pregunta. El dato sale de la gente y vuelve a la gente.',
       cam: [[50, 6, -4], [58.8, 3.8, 0]] },
-    { t0: 560, t1: 590, acto: 'Final', texto: 'Y al caer el turno…', sub: 'un sistema de información no se legitima por lo que promete sino por lo que ya produjo — esto es Cali',
+    { t0: 576, t1: 606, acto: 'Final', texto: 'Y al caer el turno…', sub: 'un sistema de información no se legitima por lo que promete sino por lo que ya produjo — esto es Cali',
       dato: `${STATS.indicadores} indicadores, ${STATS.organismos} organismos, ${STATS.conjuntos} conjuntos. Y una proyección de población que acaba de recorrer la plataforma entera.`,
       cam: [[0, 18, 38], [0, 3, -4]], finale: true },
 ];

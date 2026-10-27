@@ -16,8 +16,8 @@
             <span class="here">{{ variable.id_variable }}</span>
         </nav>
 
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-            <div class="bg-gradient-to-r from-slate-700 to-slate-800 px-8 py-7">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+            <div class="bg-slate-700 px-8 py-7">
                 <div class="flex flex-wrap items-center gap-3 mb-3">
                     <span class="text-xs font-mono font-bold text-cyan-200 bg-cyan-900/50 px-3 py-1 rounded-lg">{{ variable.id_variable }}</span>
                     {% if variable.es_llave_primaria %}
@@ -72,7 +72,7 @@
         </div>
 
         {% if variable.forma_pregunta or variable.opciones_respuesta %}
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-6">
             <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-comment-dots text-cyan-600 mr-2"></i>Captura de la información</h2>
             {% if variable.forma_pregunta %}
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Forma de la pregunta</h3>
@@ -86,7 +86,7 @@
         {% endif %}
 
         {% if valores %}
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-6">
             <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-list-ul text-cyan-600 mr-2"></i>Valores de dominio ({{ valores|length }})</h2>
             <ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {% for valor in valores %}
@@ -100,7 +100,7 @@
         {% endif %}
 
         {% if variable.reglas_consistencia or variable.reglas_validacion_lenguaje_natural %}
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 mb-6">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 mb-6">
             <h2 class="text-lg font-bold text-slate-800 mb-4"><i class="fas fa-shield-halved text-cyan-600 mr-2"></i>Reglas de validación</h2>
             {% if variable.reglas_consistencia %}
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Reglas de consistencia</h3>

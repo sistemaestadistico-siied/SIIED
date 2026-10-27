@@ -5,7 +5,7 @@
 
 <div class="mb-6">
     <a href="{% url 'indicadores:validacion_dashboard' %}" class="text-sm text-emerald-600 hover:text-emerald-700 hover:underline">← Volver al dashboard</a>
-    <h1 class="text-2xl font-serif font-bold text-slate-900 mt-2">
+    <h1 class="text-2xl font-bold text-slate-900 mt-2">
         Revisar Formulario ICED
         <span class="text-lg font-normal text-slate-400">— {{ formulario.organismo.nombre }}</span>
     </h1>
@@ -17,7 +17,7 @@
     <div class="lg:col-span-1 space-y-4">
 
         <!-- Info del formulario -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
             <h2 class="font-semibold text-slate-800 mb-4">Información del formulario</h2>
             <dl class="space-y-3 text-sm">
                 <div>
@@ -78,9 +78,9 @@
         </div>
 
         <!-- Puntaje ICED -->
-        <div class="bg-white rounded-3xl shadow-sm border border-indigo-200 p-5 text-center">
+        <div class="bg-white rounded-2xl shadow-sm border border-indigo-200 p-5 text-center">
             <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">Puntaje ICED (Preview, 0-100)</p>
-            <div class="text-4xl font-serif font-bold text-indigo-700">{{ resultado.puntaje_global|floatformat:1 }}</div>
+            <div class="text-4xl font-bold text-indigo-700">{{ resultado.puntaje_global|floatformat:1 }}</div>
             <span class="inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold text-white
                 {% if resultado.nivel_codigo == 'muy_alto' %}bg-emerald-800
                 {% elif resultado.nivel_codigo == 'alto' %}bg-emerald-500
@@ -94,7 +94,7 @@
         </div>
 
         <!-- Dimensiones resumen -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
             <h2 class="font-semibold text-slate-800 mb-3 text-sm">Puntaje por dimensión</h2>
             <div class="space-y-3">
                 {% for dim_key, dim in resultado.detalle.items %}
@@ -119,7 +119,7 @@
 
         {% if formulario.equipo %}
         <!-- Formulario parcial de equipo: el ICED oficial se decide sobre el consolidado -->
-        <div class="bg-amber-50 rounded-3xl shadow-sm border border-amber-300 p-5">
+        <div class="bg-amber-50 rounded-2xl shadow-sm border border-amber-300 p-5">
             <h2 class="font-semibold text-amber-900 mb-2 text-sm">⚠ Formulario parcial — equipo {{ formulario.equipo }}</h2>
             <p class="text-xs text-amber-800 leading-relaxed mb-3">
                 Este formulario contiene solo las preguntas asignadas a este equipo
@@ -129,13 +129,13 @@
                 de todos los equipos.
             </p>
             <a href="{% url 'indicadores:validacion_conciliar_iced' formulario.organismo_id formulario.periodo %}"
-               class="inline-block w-full text-center bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm">
+               class="inline-block w-full text-center bg-amber-500 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm">
                 ⇄ Conciliar respuestas entre equipos
             </a>
         </div>
         {% else %}
         <!-- Panel de decisión -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
             <h2 class="font-semibold text-slate-800 mb-4">Tu decisión</h2>
 
             {% if formulario.estado == 'enviado' %}
@@ -146,7 +146,7 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-slate-700 mb-2">
-                        Observaciones <span class="text-gray-400 text-xs">(requeridas para devolver/rechazar)</span>
+                        Observaciones <span class="text-slate-400 text-xs">(requeridas para devolver/rechazar)</span>
                     </label>
                     <textarea name="observaciones" rows="5" id="txt-obs"
                               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
@@ -158,15 +158,15 @@
                 </p>
                 <div class="space-y-2">
                     <button type="button" onclick="decidir('aprobar')"
-                            class="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                            class="w-full bg-emerald-600 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Aprobar y publicar ICED
                     </button>
                     <button type="button" onclick="decidir('devolver')"
-                            class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                            class="w-full bg-amber-500 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Devolver para correcciones
                     </button>
                     <button type="button" onclick="decidir('rechazar')"
-                            class="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                            class="w-full bg-red-600 hover:bg-red-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Rechazar formulario
                     </button>
                 </div>
@@ -229,9 +229,9 @@
     <div class="lg:col-span-2 space-y-4">
 
         <!-- SECCIÓN 1: Respuestas del organismo (lo que el validador revisa primero) -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden" id="respuestas-organismo">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" id="respuestas-organismo">
             <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-                <h2 class="font-serif font-bold text-slate-900">Respuestas del organismo</h2>
+                <h2 class=" font-bold text-slate-900">Respuestas del organismo</h2>
                 <span class="text-xs text-slate-500 font-medium bg-white px-2 py-1 rounded-full border border-slate-200">Revisar antes de calcular</span>
             </div>
 

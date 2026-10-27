@@ -22,7 +22,11 @@
   .btn-rename { background: #f59e0b; color: #fff; }
   .norm-help { color: #64748b; font-size: .85rem; }
   .indicador-chips { margin-top: .5rem; }
-  .indicador-chips span { display: inline-block; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 8px; font-size: .78rem; margin: 2px; }
+  .indicador-chips a { display: inline-block; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 8px; font-size: .78rem; margin: 2px; text-decoration: none; }
+  .indicador-chips a:hover { border-color: #4f46e5; }
+  .conc-desags { margin-top: .8rem; padding: .8rem 1rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+  .conc-desags select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: .85rem; max-width: 300px; }
+  .btn-conciliar { background: #4f46e5; color: #fff; }
 </style>
 {% endblock %}
 
@@ -52,7 +56,7 @@
   {% if stats.indicadores %}
   <div class="indicador-chips">
     <span class="norm-help">Indicadores que lo usan:</span>
-    {% for ind in stats.indicadores %}<span title="id {{ ind.0 }}">{{ ind.1 }}</span>{% endfor %}
+    {% for ind in stats.indicadores %}<a href="{% url ind_url ind.0 %}" title="id {{ ind.0 }} — ver sus dominios">{{ ind.1 }}</a>{% endfor %}
   </div>
   {% endif %}
 
@@ -66,10 +70,15 @@
   </form>
 
   <h3>Desagregaciones ({{ stats.n_desags }})</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="accion" value="conciliar_desags">
   <div class="scroll-box">
     <table class="norm-table">
       <thead>
         <tr>
+          <th><input type="checkbox" title="Seleccionar todas"
+                onclick="document.querySelectorAll('.desag-cb').forEach(c=>c.checked=this.checked)"></th>
           <th>ID</th><th>Nombre</th><th>Datos</th><th>Series</th>
           <th>FKs</th><th>Pred</th><th>Hijas</th><th>Capa geo</th>
         </tr>
@@ -77,6 +86,7 @@
       <tbody>
       {% for d in desags %}
         <tr>
+          <td><input class="desag-cb" type="checkbox" name="desags" value="{{ d.id }}"></td>
           <td>{{ d.id }}</td>
           <td>{{ d.nombre }}</td>
           <td>{{ d.refs.datos }}</td>
@@ -87,11 +97,24 @@
           <td>{% if d.capa_geo_id %}🗺️ sí{% else %}—{% endif %}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="8" class="norm-help">Sin desagregaciones.</td></tr>
+        <tr><td colspan="9" class="norm-help">Sin desagregaciones.</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
-  <p class="norm-help">Vuelve al listado para conciliar (checkbox origen + radio destino) o eliminar (solo 1 checkbox).</p>
+  {% if desags %}
+  <div class="conc-desags">
+    <strong>Conciliar dentro del dominio:</strong>
+    las marcadas →
+    <select name="desag_destino">
+      {% for d in desags %}<option value="{{ d.id }}">{{ d.nombre }} (id {{ d.id }})</option>{% endfor %}
+    </select>
+    <button type="submit" class="norm-btn btn-conciliar"
+      onclick="return confirm('Las referencias se repuntan al destino y los orígenes se eliminan. ¿Aplicar?')">Conciliar</button>
+    <span class="norm-help">Todas las referencias (datos, series, FKs, predeterminadas, hijas, capa geo) se heredan al destino.</span>
+  </div>
+  {% endif %}
+  </form>
+  <p class="norm-help">Vuelve al listado para conciliar dominios completos (checkbox origen + radio destino) o eliminar (solo 1 checkbox).</p>
 </div>
 {% endblock %}

@@ -111,3 +111,46 @@ denso) y dropdowns del nav en iteración posterior.
 - Migrar modales de `chat.html` a entrada/salida simétrica con origin en trigger.
 - Sheet/drawer con spring + momentum si aparece un caso de uso real.
 - Hit-padding en icon-buttons densos (barras de herramientas admin).
+
+---
+
+## Auditoría capilar de templates (292 archivos)
+
+### Mapa de herencia
+
+- `indicadores/base.html` → 75 hijas (chrome público normalizado).
+- `editorial/base_editorial.html` → 32 · `validacion/base_validacion.html` → 22
+  · `recoleccion/base_recoleccion.html` → 21 · `analitica/base_analitica.html` → 20
+  · `delegado/base_delegado.html` → 16 · `reportes/base_reportes.html` → 7.
+- `admin/base_site.html` → 11 · `taller/base.html` → 9 · `taller/wizard_base.html` → 6.
+- 19 sin `extends` (bases, parciales `_*.html`, presentaciones y páginas standalone).
+- `delegado/base.html`, `reportes/base.html`, `validacion/base.html`: bases huérfanas
+  (ningún template las extiende).
+
+### Barrido mecánico aplicado (≈150 archivos tocados)
+
+- `font-serif` eliminado → Inter en todo el sistema.
+- `gray-*` → `slate-*` (paleta única).
+- `rounded-3xl` → `rounded-2xl`; `shadow-xl` → `shadow-lg` (elevación más contenida).
+- `bg-gradient-to-* from-X …` → `bg-X` plano (salvo `bg-clip-text`).
+- `variante:from-A variante:to-B` → `variante:bg-*` sólido; residuos `from/to/via` y
+  prefijos huérfanos eliminados.
+- Reparados: `bg-clip-text` sin gradiente en `home.html` y
+  `conjuntos_datos_explorer.html` (texto invisible).
+
+### Identidad por módulo (chrome = color real interno)
+
+- Delegado, Recolección, Reportes, Validación → **emerald** (era su color dominante
+  en ~500 usos internos; portal, login y nav unificados a emerald).
+- Editorial → **fuchsia** · Analítica → **violet** (secciones: cyan SIIED BI,
+  emerald Don Datico, amber taller) · Admin Django → **cyan** SIIED.
+
+### Cluster `taller/` (sistema propio)
+
+- `#004b87` → `#155e75`, `#007bb5` → `#0891b2`, `#003366` → `#164e63` en 16 archivos.
+- Montserrat → Inter (link de Google Fonts actualizado en `base.html` y `cerrado.html`).
+
+### Verificación
+
+- `manage.py check`: 0 issues. Smoke test: /, acceso-modulos, noticias, eventos,
+  catalogo, conjuntos-datos/explorer, taller (2), 6 logins, admin → 200.

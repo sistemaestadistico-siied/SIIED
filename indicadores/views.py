@@ -644,10 +644,17 @@ def producto_academico(request, slug):
                     'sub_tabs': sub_tabs
                 })
 
+    # Otros productos académicos para el menú lateral (los educativos
+    # infantil/adolescente son un modelo aparte y tienen menú propio).
+    otros_qs = ProductoAcademico.objects.exclude(pk=producto.pk).order_by('titulo')
+    if not (request.user.is_authenticated and request.user.is_staff):
+        otros_qs = otros_qs.filter(estado='publicado')
+
     context = {
         'producto': producto,
         'secciones': secciones,
         'presentacion_secciones': presentacion_secciones,
+        'otros_productos': otros_qs,
         'tabs': tabs,
         'indicadores_vinculados_json': json.dumps(indicadores_vinculados),
         'mapas_vinculados_json': json.dumps(mapas_vinculados),
@@ -972,8 +979,12 @@ def procesar_grafico_uno(grafico, indicador, ano_inicio=None, ano_fin=None,
 
         datos = datos.order_by('fecha_dato')
 
-        x_data = [dato.fecha_dato.strftime('%Y') for dato in datos]
-        y_data = [dato.valor_dato for dato in datos]
+        # Agregar por fecha: si la serie deja desagregaciones sin filtrar
+        # (p. ej. varias comunas por año), se suma el marginal en lugar de
+        # dibujar una columna de puntos sueltos por cada valor del año.
+        agregados = datos.values('fecha_dato').annotate(total=Sum('valor_dato')).order_by('fecha_dato')
+        x_data = [row['fecha_dato'].strftime('%Y') for row in agregados]
+        y_data = [row['total'] for row in agregados]
 
         # Una serie filtrada que quedó sin datos no aporta nada al gráfico ni
         # a la tabla (columna vacía). Se omite para tipos basados en series.
@@ -3074,7 +3085,10 @@ def crear_piramide_poblacional(grafico, datos_filtrados):
             if any(word in nombre_lower for word in ['hombre', 'mujer', 'masculino', 'femenino', 'sexo']):
                 genero = desag_tem.nombre
                 generos.add(genero)
-            elif any(word in nombre_lower for word in ['edad', 'años', 'año']) or '-' in desag_tem.nombre:
+            elif (any(word in nombre_lower for word in ['edad', 'años', 'año'])
+                  or '-' in desag_tem.nombre
+                  or re.search(r"\b\d+\s*a\s*\d+\b", nombre_lower)):
+                # Rangos "0-4", "0 a 4" o nombres que contengan edad/años
                 rango_edad = desag_tem.nombre
                 rangos_edad.add(rango_edad)
             else:

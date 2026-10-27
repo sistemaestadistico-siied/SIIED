@@ -14,7 +14,7 @@
     
     <div class="container mx-auto px-4 py-8 relative z-10">
         <!-- Encabezado de sección -->
-        <div class="storybook-panel rounded-[28px] shadow-xl p-6 mb-8">
+        <div class="storybook-panel rounded-[28px] shadow-lg p-6 mb-8">
             <div class="flex items-center gap-5">
                 <div class="bg-white rounded-2xl p-4 border border-purple-100">
                     <svg class="w-12 h-12 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
@@ -41,8 +41,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <!-- Página izquierda: Navegación de secciones -->
             <aside class="lg:col-span-1">
-                <div class="bg-white rounded-3xl shadow-xl p-6 border border-purple-100 sticky top-8">
-                    <div class="w-28 h-28 rounded-[26px] bg-gradient-to-br from-purple-400 to-pink-400 mx-auto flex items-center justify-center mb-4">
+                <div class="bg-white rounded-2xl shadow-lg p-6 border border-purple-100 sticky top-8">
+                    <div class="w-28 h-28 rounded-[26px] bg-purple-400 mx-auto flex items-center justify-center mb-4">
                         {% if tema_actual.imagen_url %}
                             <img src="{{ tema_actual.imagen_url }}" alt="{{ tema_actual.nombre }}" class="h-20 w-20 object-cover rounded-2xl">
                         {% elif tema_actual.icono %}
@@ -61,7 +61,7 @@
                                 <a href="{% url 'indicadores:tema_detalle_3d' dominio.slug tema.slug %}" 
                                    class="px-3 py-2 rounded-xl text-sm font-semibold transition-all
                                           {% if tema.slug == tema_actual.slug %}
-                                              bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200 shadow-sm
+                                              bg-purple-100 text-purple-800 border border-purple-200 shadow-sm
                                           {% else %}
                                               bg-white text-slate-600 border border-slate-100 hover:border-purple-200 hover:text-purple-700
                                           {% endif %}">
@@ -77,7 +77,7 @@
             <main class="lg:col-span-3">
                 <div class="relative">
                     <!-- Sombra de página -->
-                    <div class="absolute -inset-1 bg-gray-400 rounded-2xl transform translate-x-2 translate-y-2"></div>
+                    <div class="absolute -inset-1 bg-slate-400 rounded-2xl transform translate-x-2 translate-y-2"></div>
                     
                     <!-- Página principal -->
                     <div class="relative bg-white rounded-2xl shadow-2xl p-8 border-4 border-purple-700" style="box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);">
@@ -87,14 +87,14 @@
                         <div class="relative">
                             {% if tema_actual.descripcion %}
                                 <!-- Caja de historia -->
-                                <div class="mb-8 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-6 border-4 border-pink-300 shadow-inner">
+                                <div class="mb-8 bg-pink-50 rounded-2xl p-6 border-4 border-pink-300 shadow-inner">
                                     <div class="flex items-center gap-2 mb-3">
                                         <span class="text-3xl">📖</span>
                                         <h3 class="text-xl font-black text-pink-800" style="font-family: 'Comic Sans MS', cursive;">
                                             La Historia de Esta Sección
                                         </h3>
                                     </div>
-                                    <div class="prose max-w-none text-gray-700" style="font-family: 'Comic Sans MS', cursive; font-size: 1.1rem;">
+                                    <div class="prose max-w-none text-slate-700" style="font-family: 'Comic Sans MS', cursive; font-size: 1.1rem;">
                                         {{ tema_actual.descripcion|safe }}
                                     </div>
                                 </div>
@@ -115,8 +115,8 @@
                                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
                                     {% for subtema in subtemas %}
                                         <a href="{% url 'indicadores:subtema_detalle_3d' dominio.slug tema_actual.slug subtema.slug %}" class="group block">
-                                            <div class="bg-white rounded-2xl border border-cyan-50 shadow-md hover:shadow-xl transition p-4 text-center flex flex-col items-center">
-                                                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center mb-3">
+                                            <div class="bg-white rounded-2xl border border-cyan-50 shadow-md hover:shadow-lg transition p-4 text-center flex flex-col items-center">
+                                                <div class="w-20 h-20 rounded-full bg-teal-400 flex items-center justify-center mb-3">
                                                     {% if subtema.imagen_url %}
                                                         <img src="{{ subtema.imagen_url }}" alt="{{ subtema.nombre }}" class="h-14 w-14 object-contain">
                                                     {% elif subtema.icono %}
@@ -136,7 +136,7 @@
                             {% else %}
                                 <div class="bg-yellow-100 rounded-2xl p-8 text-center border-4 border-yellow-400">
                                     <span class="text-6xl mb-4 block">📚</span>
-                                    <p class="text-xl text-gray-600 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                                    <p class="text-xl text-slate-600 font-bold" style="font-family: 'Comic Sans MS', cursive;">
                                         No hay historias disponibles en esta sección todavía
                                     </p>
                                 </div>
@@ -144,7 +144,7 @@
                         </div>
                         
                         <!-- Esquina doblada -->
-                        <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[35px] border-l-transparent border-b-[35px] border-b-gray-300"></div>
+                        <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[35px] border-l-transparent border-b-[35px] border-b-slate-300"></div>
                     </div>
                 </div>
             </main>
@@ -152,7 +152,7 @@
         
         <!-- Decoración inferior -->
         <div class="mt-12 text-center">
-            <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-xl border-3 border-purple-600">
+            <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-lg border-3 border-purple-600">
                 <span class="text-4xl">🎭</span>
                 <p class="text-lg font-bold text-purple-900" style="font-family: 'Comic Sans MS', cursive;">
                     ¡Descubre datos mágicos en cada historia!

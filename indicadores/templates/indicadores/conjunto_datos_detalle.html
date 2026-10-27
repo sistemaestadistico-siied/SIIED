@@ -238,7 +238,7 @@
     <nav class="flex mb-6" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
             <li class="inline-flex items-center">
-                <a href="{% url 'indicadores:home' %}" class="text-gray-700 hover:text-primary-600">
+                <a href="{% url 'indicadores:home' %}" class="text-slate-700 hover:text-primary-600">
                     <i class="fas fa-home mr-1"></i>
                     Inicio
                 </a>
@@ -246,8 +246,8 @@
 
             <li aria-current="page">
                 <div class="flex items-center">
-                    <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                    <span class="text-gray-500">{{ indicador.nombre|truncatechars:50 }}</span>
+                    <i class="fas fa-chevron-right text-slate-400 mx-2"></i>
+                    <span class="text-slate-500">{{ indicador.nombre|truncatechars:50 }}</span>
                 </div>
             </li>
         </ol>
@@ -257,7 +257,7 @@
         <!-- Technical Sheet -->
         <div class="bg-white rounded-lg shadow-lg p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">
+                <h3 class="text-lg font-semibold text-slate-800">
                     <i class="fas fa-table text-blue-500 mr-2"></i>
                     Tabla Dinámica Interactiva
                 </h3>
@@ -272,22 +272,22 @@
             <div id="user-guide-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                 <div class="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto">
                     <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-                            <h2 class="text-xl font-bold text-gray-800">
+                            <h2 class="text-xl font-bold text-slate-800">
                                 <i class="fas fa-book text-blue-500 mr-2"></i>
                                 Guía de Uso - Tabla Dinámica
                             </h2>
-                        <button id="close-guide-btn" class="text-gray-500 hover:text-gray-700">
+                        <button id="close-guide-btn" class="text-slate-500 hover:text-slate-700">
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
                     <div class="p-6">
                         <!-- Univer Guide -->
                         <div class="mb-8">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
                                 <i class="fas fa-table text-blue-500 mr-2"></i>
                                 Hoja de Cálculo Interactiva (Univer)
                             </h3>
-                            <div class="space-y-4 text-sm text-gray-700">
+                            <div class="space-y-4 text-sm text-slate-700">
                                 <div class="bg-blue-50 p-4 rounded-lg">
                                     <h4 class="font-semibold text-blue-800 mb-2">🚀 Cómo empezar:</h4>
                                     <ol class="list-decimal list-inside space-y-1">
@@ -323,9 +323,9 @@
                         
                         
                         <!-- Tips -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-gray-800 mb-2">💡 Consejos útiles:</h4>
-                            <ul class="text-sm text-gray-700 space-y-1">
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800 mb-2">💡 Consejos útiles:</h4>
+                            <ul class="text-sm text-slate-700 space-y-1">
                                 <li>• Use la hoja de cálculo para editar y analizar los datos</li>
                                 <li>• Descargue los datos originales usando los botones superiores</li>
                                 <li>• Haga doble clic en una celda para editarla</li>
@@ -339,7 +339,7 @@
         
         <!-- Technical Information -->
         <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">
                 <i class="fas fa-info-circle text-blue-500 mr-2"></i>
                 Información Técnica
             </h3>
@@ -393,7 +393,7 @@
         {% if indicador.conjunto_datos and indicador.conjunto_datos.variables.exists %}
         <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-gray-800">
+                <h3 class="text-lg font-semibold text-slate-800">
                     <i class="fas fa-file-alt text-purple-500 mr-2"></i>
                     Ficha Técnica de Variables de Conjunto de datos
                 </h3>
@@ -403,66 +403,66 @@
             </div>
             
             <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre Variable</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Definición</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title="Sello de calidad de la metadata">Sello</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Código</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nombre Variable</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Definición</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Unidad</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Tipo</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider" title="Sello de calidad de la metadata">Sello</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-slate-200">
                         {% for variable in indicador.conjunto_datos.variables.all %}
-                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="toggleVariableDetails({{ variable.id }})">
-                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ variable.codigo_variable }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-900">{{ variable.nombre_variable }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-700">{{ variable.definicion_conceptual|truncatewords:15 }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ variable.unidad_medida|default:"-" }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ variable.tipo_variable_estadistica|default:"-" }}</td>
+                        <tr class="hover:bg-slate-50 cursor-pointer" onclick="toggleVariableDetails({{ variable.id }})">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{{ variable.codigo_variable }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-900">{{ variable.nombre_variable }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-700">{{ variable.definicion_conceptual|truncatewords:15 }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{{ variable.unidad_medida|default:"-" }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{{ variable.tipo_variable_estadistica|default:"-" }}</td>
                             <td class="px-4 py-3 text-center">{% include 'indicadores/_sello_badge.html' with sello=variable.sello_calidad size='sm' titulo=variable.get_sello_calidad_display %}</td>
                         </tr>
                         <tr id="details-{{ variable.id }}" class="hidden bg-blue-50">
                             <td colspan="6" class="px-4 py-4">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                     <div>
-                                        <p class="font-semibold text-gray-700">Definición Completa:</p>
-                                        <p class="text-gray-600">{{ variable.definicion_conceptual }}</p>
+                                        <p class="font-semibold text-slate-700">Definición Completa:</p>
+                                        <p class="text-slate-600">{{ variable.definicion_conceptual }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-gray-700">Población Objetivo:</p>
-                                        <p class="text-gray-600">{{ variable.poblacion_objetivo|default:"-" }}</p>
+                                        <p class="font-semibold text-slate-700">Población Objetivo:</p>
+                                        <p class="text-slate-600">{{ variable.poblacion_objetivo|default:"-" }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-gray-700">Cobertura Geográfica:</p>
-                                        <p class="text-gray-600">{{ variable.cobertura_geografica|default:"-" }}</p>
+                                        <p class="font-semibold text-slate-700">Cobertura Geográfica:</p>
+                                        <p class="text-slate-600">{{ variable.cobertura_geografica|default:"-" }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-gray-700">Tipo de Dato:</p>
-                                        <p class="text-gray-600">{{ variable.tipo_dato|default:"-" }}</p>
+                                        <p class="font-semibold text-slate-700">Tipo de Dato:</p>
+                                        <p class="text-slate-600">{{ variable.tipo_dato|default:"-" }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-gray-700">Dominio del Dato:</p>
-                                        <p class="text-gray-600">{{ variable.dominio_dato|default:"-" }}</p>
+                                        <p class="font-semibold text-slate-700">Dominio del Dato:</p>
+                                        <p class="text-slate-600">{{ variable.dominio_dato|default:"-" }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-gray-700">Fuente de Datos:</p>
-                                        <p class="text-gray-600">{{ variable.fuente_datos|default:"-" }}</p>
+                                        <p class="font-semibold text-slate-700">Fuente de Datos:</p>
+                                        <p class="text-slate-600">{{ variable.fuente_datos|default:"-" }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-gray-700">Periodicidad:</p>
-                                        <p class="text-gray-600">{{ variable.periodicidad|default:"-" }}</p>
+                                        <p class="font-semibold text-slate-700">Periodicidad:</p>
+                                        <p class="text-slate-600">{{ variable.periodicidad|default:"-" }}</p>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-gray-700">Organismo Productor:</p>
-                                        <p class="text-gray-600">{{ variable.organismo_productor|default:"-" }}</p>
+                                        <p class="font-semibold text-slate-700">Organismo Productor:</p>
+                                        <p class="text-slate-600">{{ variable.organismo_productor|default:"-" }}</p>
                                     </div>
                                     {% if variable.observaciones %}
                                     <div class="md:col-span-2">
-                                        <p class="font-semibold text-gray-700">Observaciones:</p>
-                                        <p class="text-gray-600">{{ variable.observaciones }}</p>
+                                        <p class="font-semibold text-slate-700">Observaciones:</p>
+                                        <p class="text-slate-600">{{ variable.observaciones }}</p>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -526,10 +526,10 @@
         <div class="text-center py-12">
             <div class="max-w-md mx-auto">
                 <div class="mb-4">
-                    <i class="fas fa-database text-6xl text-gray-300"></i>
+                    <i class="fas fa-database text-6xl text-slate-300"></i>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">No hay conjunto de datos disponible</h2>
-                <p class="text-gray-600 mb-6">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4">No hay conjunto de datos disponible</h2>
+                <p class="text-slate-600 mb-6">
                     El indicador "{{ indicador.nombre }}" no tiene conjunto de datos asociado para análisis.
                 </p>
                 <div class="space-x-4">

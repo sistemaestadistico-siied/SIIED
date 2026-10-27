@@ -1,0 +1,289 @@
+@startuml Maquila_3D
+title LA MAQUILA DE DATOS — grafo capilar de la presentación 3D\nTopología real: flujos paralelos (bandas) + nodos de encuentro (garita, torre, almacenes, salas)\nCada nodo lleva sus rutas/estados/modelos reales — fusión del grafo 3D con el mapa de 391 rutas
+
+left to right direction
+
+skinparam component {
+  BackgroundColor #ffffff
+  BorderColor #334155
+  FontName "Inter"
+  FontSize 11
+}
+skinparam package {
+  BorderColor #64748b
+  BackgroundColor #f8fafc
+  FontStyle bold
+}
+skinparam arrow {
+  Color #334155
+  FontSize 9
+}
+skinparam note {
+  BackgroundColor #f0f9ff
+  BorderColor #0891b2
+  FontSize 9
+}
+
+' =====================================================================
+'  ACCESO — el portal de entrada (único punto de login por rol)
+' =====================================================================
+[PORTAL /acceso-modulos/\n7 accesos internos:\ndelegado · recolección · validación\nreportes · editorial · analítica · admin\n+ home público] as acceso
+
+' =====================================================================
+'  ORÍGENES — pilas de insumo (este de la escena)
+' =====================================================================
+package "ORÍGENES — pilas de insumo" #E8F5E9 {
+  [OBSERVATORIO\norganismos observando\na la ciudadanía\n→ surte a camRec] as obs
+  [COMITÉ DE GESTIÓN DE LA\nINFORMACIÓN ESTADÍSTICA\ndelegados de todos los organismos\n→ dossier a camDel, conjuntos a camEdi] as comite
+  [DESPACHO DE ALCALDÍA\njunta de gabinete · decisión final\n→ operaciones a camEdi] as despacho
+  [CIUDADANÍA\nla ciudad que el SIIED sirve] as ciudad
+}
+
+' =====================================================================
+'  MUELLES — tres roles, tres camiones (rutas reales del template)
+' =====================================================================
+package "MUELLES — roles de carga" #FFF3E0 {
+
+  [camRec · RECOLECCIÓN\nequipo técnico SIIED\n───\n/recoleccion/login/ + dashboard\n/cargar-serie/ + inline + metadata\n+ variables\n/cargar-masiva/ → revisar →\nconfigurar gráficos → confirmar\n/cargar-conjuntos-datos/\ndeconstruir tabla + metadata\ngenerar-ia\n6 plantillas xlsx\nreportes internos + historial\ninstrucciones + manual\ndashboard-cargas/ CSV datos+metadata\n───\nruta: observatorio → muelle oeste] as camRec
+
+  [camDel · DELEGADO\ncada organismo por su portal\n───\n/delegado/login/ + dashboard\n+ mis indicadores\ncargar serie (xlsx o inline)\nmetadata-form + variables-form\ncargar conjunto de datos\nactualizar existente\ncompletar borrador /completar/\ndeconstruir tabla · plantillas\nenviar a validación\nhistorial + seguimiento\n/delegado/ficed/ (5 equipos:\nETUAG_PSP ETOBS ETPP ETSGC ETGIE)\n───\nruta: comité → garita → banda C\n→ rodea taller → banda D] as camDel
+
+  [camEdi · EDITORIAL\nvoz pública — AUTÓNOMA\n───\n/editorial/login/ + dashboard + manual\nproductos académicos:\nwizard → secciones (nueva/editar/\neliminar/mover) → gráficos\n→ preview → publicar\nnoticias: crear → generar-ia →\neditar → preview → eliminar\neventos + calendario\ncalendario de difusión\n(listado/crear/editar/exportar)\nsistemas de información + categorías\nproyectos de información + categorías\ndocumentos CRUD\ninfraestructura: áreas→categorías→\nsubcategorías→grupos (12 rutas)\ngráficos editoriales + api\nbuscar-graficos\ncatálogo de consulta CRUD\nDon Datico /ia/dondatico/\n───\n68 rutas · NO pasa por validación] as camEdi
+}
+
+' =====================================================================
+'  NODO DE ENCUENTRO 1 — garita: validación del organismo
+' =====================================================================
+[GARITA — validador del organismo\nrevisa carga [en_revision]\n→ PREVALIDAR [prevalidado]\n→ o SOLICITAR CORRECCIONES\n[correcciones_solicitadas]\nloop → regresa al delegado] as garita
+
+' =====================================================================
+'  BANDA D — generación de datos (GSBPM, z=4)
+' =====================================================================
+package "BANDA D — generación de datos (GSBPM)" #E3F2FD {
+
+  [TALLER DE GESTIÓN DE DATOS · DADII\narranque de año (ENE)\n───\n/taller/ landing + cartel público\nwizard 16 pasos: identificacion →\nfuente-general → fuente-actualizacion\n→ fuente-rol → fuente-proposito →\nfuente-variables → fuente-calidad →\nfuente-diccionario → reto-definicion\n→ reto-unidades → reto-fuentes →\nreto-tratamiento → seguridad-datos →\nseguridad-uso → seguridad-divulgacion\n→ seguridad-valoracion\nconfirmación de inscripción\ndashboard: casos F2, informe,\npresentación\necosistema de fuentes (gexf/svg,\nmetodología, modelo de datos)\nexportar CSV/Excel/variables\n───\nmodelos: InscripcionTaller, FuenteDatos,\nVariableFuente, RetoAnalisis,\nEvaluacionSeguridad, AvanceFormalizacion] as taller
+
+  [01 · OPERACIONES ESTADÍSTICAS\ninventario distrital\n+ operacion_detalle\n+ enlace al ADDA\n8 fases Ley 2335: necesidades →\ndiseño → construcción → recolección →\nprocesamiento → análisis → difusión →\nevaluación] as stOP
+
+  [02 · INGESTA DE CONJUNTOS\ndocumentación DDI completa:\nidentificación, universo, cobertura,\nmétodo, condiciones de uso] as stING
+
+  [04 · CONTROL DE CALIDAD\n+ DESAGREGACIÓN\nNTC PE 1000:2020\ndominios declarados, totales\nverificados, bitácora de cambios] as stCAL
+
+  [05 · SERIES DE INDICADORES\nobjetivo, método, fórmula,\nvariables por indicador] as stSER
+
+  [06 · REPORTES Y AUDITORÍA\n/reportes/: indicadores → datos CSV\n(+masivo) → metadata CSV (+masivo)\nconjuntos → datos + metadata variables\ntrazabilidad de cargas + exportar Excel\noperaciones · producción mensual\nvisitas PageVisit + exportar] as stREP
+
+  [07 · EXTRACCIÓN\nel admin define por indicador:\ncolumnas fuente, fórmula,\norden de desagregaciones] as stEXT
+
+  [08 · METADATOS · FICHA TÉCNICA\nMSD del DANE + secciones SDMX:\nfuente, unidad, periodicidad,\ndesagregaciones, referencias APA,\nresponsable de validación] as stMSD
+
+  [09 · DIFUSIÓN DEL DATO\ngráficos · calendario de difusión\n· API abierta\npublicación programada] as stDIF
+}
+
+' =====================================================================
+'  BANDA C — capacidad estadística (z=-10.5)
+' =====================================================================
+package "BANDA C — capacidad estadística" #FCE4EC {
+
+  [EVAL. ESTRATÉGICA\nentorno institucional y\ncapacidad de decisión] as capEst
+
+  [SATISFACCIÓN CIUDADANA\npública: formulario + rápida\n+ gracias, por organismo/equipo\n2 preguntas ref + 7 satisfacción\n+ 1 abierta\nInforme trimestral al ciudadano] as capSat
+
+  [EVAL. TÁCTICA Y OPERATIVA\ninfraestructura y operación\nestadística en detalle] as capTac
+
+  [FICED — formulario ICED\nfin de año (DIC)\n───\nwizard 11 pasos: identificacion →\nentorno → infraestructura_c1/c2/c3 →\nmetodologia_d1/d2/d3/d4 →\naccesibilidad → revision\nguardar-parcial (ajax) · retomar\nresultado + chat asistente\n+ exportar-csv\npúblico: /iced/ + /iced/equipo/\n+ /iced/modulo/\n───\nestados: borrador → enviado →\nvalidado / devuelto / rechazado\nICED = ponderado módulos B–E] as capFICED
+
+  [MÓDULO DE VALIDACIÓN\n/validacion/login + dashboard\npendientes — 4 colas:\nseries · conjuntos · fuentes taller\n· formularios ICED\ndecisión: aprobar / corregir /\nrechazar → [procesado]\n───\ncrear-grafico/<indicador_id>\nsellos de calidad /sellos/otorgar\nconciliación ICED por\norganismo+período\nconciliación de fuentes\n(manual/equivalencias/preview/aplicar)\nnormalización de identidad\n(buscar/actualizar-codigo/importar)\ngestión catálogo de variables\n(variables+valores+5 tablas ref)\nhistorial + manual] as capVAL
+}
+
+' =====================================================================
+'  NODO T + LÍNEAS E + analítica del taller
+' =====================================================================
+[NODO T\nviraje a catálogo\n(el conjunto que NO es\nindicador sale de la banda)] as nodoT
+
+package "LÍNEAS DE SERVICIO + analítica taller" #F3E5F5 {
+  [E1 · LÍNEA EDITORIAL\nnoticias · portada\n· calendario de eventos] as lnE1
+  [E2 · LÍNEA DE APRENDIZAJE\nproductos académicos\ny educativos (quiz, progreso,\nlogros) con gráficos de\nlos propios indicadores] as lnE2
+  [E3 · LÍNEA DE AGENDA\ncalendario de difusión\nestadística + agenda pública] as lnE3
+  [ANALÍTICA DEL TALLER\n22 rutas /analitica/taller/:\nreportes, ecosistema, catalogo,\nfuentes (conciliar/detalle/accion),\nretos (detalle/accion), organismos,\nseguridad, exportar csv/excel/\nvariables/informe, casos-f2,\npresentacion, modelo-datos] as anTaller
+}
+[CATÁLOGO DE CONSULTA\nlistados del anuario Cali en Cifras\nmetadatos DDI — 14 capítulos,\n527 indicadores migrados\n(lo gestiona editorial,\nningún rol los trae)] as stCAT
+
+' =====================================================================
+'  TORRE DE CONTROL — admin cruza TODAS las bandas por ductos
+' =====================================================================
+[TORRE DEL ADMIN\nMÓDULO DE ADMINISTRACIÓN\n───\n/admin/ Django + index dashboard\ncustom · 76 modelos del dominio\nwizard admin unificado /wizard/\n+ diagnostico-ajax + regla-ia\n+ dashboard\nmonitoreo /monitoring/ + APIs:\nsystem, cache, data-quality,\nperformance, page-visits\nprocesos en vivo /admin/procesos/\n+ /<id>/ + status + logs\nconfig chat /chat-config/\n+ contextos + sugerencias\n+ update-embeddings\nsatisfacción admin: dashboard\n+ organismos + exportar CSV\nrestart services · workspace\n───\n5 consolas: extracción y cálculo ·\nvalidación de cargas · capas\ngeoestadísticas · variables y\ndesagregaciones · Don Datico\n───\nDUCTOS: nada se publica\nsin pasar por este módulo] as torre
+
+' =====================================================================
+'  ALMACENES DE DESTINO
+' =====================================================================
+package "ALMACENES" #ECEFF1 {
+  [almOP · INVENTARIO DE\nOPERACIONES ESTADÍSTICAS\nciclo IOE · ficha + ADDA\n(edi: lo gestiona editorial)] as almOP
+  [almCAT · CATÁLOGO\nlistados de consulta del anuario] as almCAT
+  [almHALL · HOJA DE VIDA\nDE LOS ORGANISMOS\nICED + ecosistema + satisfacción\nexpediente completo] as almHALL
+  [ESTANTERÍA · CONJUNTOS\nDE INDICADORES\n3 marcos: ODS · Cali en Cifras\n· Dominios del Comité\nMARIAE: dominio→tema→subtema\n→indicador\n(85 indicadores batería ODS Cali)] as almIND
+}
+
+' =====================================================================
+'  AUDIENCIA — pared de pantallas = portal público (~130 rutas)
+' =====================================================================
+package "PARED DE PANTALLAS — indicadores.cali.gov.co" #ECFDF5 {
+  [HOME /\nhero, buscador semántico,\nherramientas, conjuntos,\nconectividad, instrumentos,\ndestacados, noticias, eventos] as paredTV
+  [DOMINIOS\n/dominio/ → tema → subtema\n→ /3d/ + libro digital\ndominios-3d (3 niveles)] as auDOM
+  [CONJUNTOS ABIERTOS\n/conjuntos/ + explorer + detalle\nAPIs: datasets/hierarchical/\nrows/headers · csv + ficha técnica] as auCJT
+  [VISORES\nvisor-comparativo · mapas\ninteractivos · gráficos] as auVIS
+  [CATÁLOGOS PÚBLICOS\ncatálogo datos taller + ficha\n+ api fuentes · catálogo variables:\ngeografías/dominios/conjuntos/\necosistema/fuente/campo/ficha\nsistemas + proyectos + catalogos\n+ catalogo-consulta · infraestructura\nárbol 5 niveles · inventario\n+ operacion_detalle · hall-capacidad\n+ organismo detalle] as auCAT
+  [CHAT DON DATICO\n/chat/: message · stream\n· suggestions + TTS\nlenguaje natural sobre\nindicadores y documentos] as auCHAT
+  [LABORATORIO\ngenerar/guardar tableros IA\n+ quiz-indicador] as auLAB
+  [API ABIERTA — 43 endpoints\nget_dominios/temas/subtemas/\nindicadores · get_graficos\nget_desagregaciones\nget_mapa + geojson + valores_geo\nget_datos_indicadores\nbuscar semántico\ncatalogo-consulta list/detail\nconjuntos-datos csv+ficha\neducativos progreso/quiz\nprocesos status/logs en vivo\n+ api-documentation\n+ MCP-instructivo\n+ skill-api-abierta] as auAPI
+  [ANALÍTICA PÚBLICA\nSIIED BI /bi/<dashboard_id>/\nvisor comparativo] as auBI
+}
+[VENTANILLA PQRS\natención al ciudadano\nencuestas → tubo neumático\na satisfacción] as ventanilla
+
+' =====================================================================
+'  NIVEL ESTRATÉGICO — salas de juntas (la cámara entra y gira)
+' =====================================================================
+package "NIVEL ESTRATÉGICO — salas" #FFF8E1 {
+  [REUNIÓN TÉCNICA\nDAPD · DADII · DATIC · CDO\nvitrina de expedientes ICED\n+ tablero FICED\n+ TVs de monitoreo\n───\nevalúa: qué produjo la banda D,\nqué midió la banda C,\nqué sale por las líneas E] as reunion
+  [EVALUACIÓN ESTRATÉGICA\nconsejo de don Daticos\ndelibera expedientes ICED\necosistema entero en pantalla] as evalSala
+}
+
+[MURO DE MEMORIA\npasillo antes de la fábrica\n1986 Cali en Cifras → 2012 SIS\n→ 2016 Decreto 0516 + Ley 2335\n+ PGIE → 2025 SIIED] as memoria
+
+package "ACTORES EN MOVIMIENTO" {
+  [Don Datico verde\nacompañante efímero\n+ marcador del DATO PROTAGONISTA\n(proyecciones DANE →\npirámide por comuna)] as datico
+  [Mensajeros Don Datico\n+ supervisor en riel\n+ planta de operarios\n(trabajan → bailan al final)] as actores
+}
+
+' =====================================================================
+'  FLUJOS
+' =====================================================================
+
+' --- login: el portal alimenta los 3 muelles + validación + admin ---
+acceso --> camRec : login técnico
+acceso --> camDel : login organismo
+acceso --> camEdi : login editorial
+acceso --> capVAL : login validación
+acceso --> torre : login admin
+acceso --> stREP : login reportes
+
+' --- orígenes surten los camiones ---
+obs --> camRec : insumo crudo (texCrudo)
+comite --> camDel : dossier (texDeleg)
+comite --> camEdi : conjuntos (texCjto)
+despacho --> camEdi : operaciones (texOp)
+
+' --- camiones entran a las bandas ---
+camRec --> stOP : descarga directa\nen la banda
+camDel --> garita : lo detiene el\npunto de validación
+garita --> taller : pre-aprobado\nentra al sistema
+camEdi --> lnE1 : autónoma
+camEdi --> lnE2
+camEdi --> lnE3
+camEdi --> stCAT : gestiona catálogo\n+ infraestructura
+camEdi --> almOP : publica el inventario\n(sin validación)
+
+' --- banda D: la cadena ---
+taller --> capEst : el censo ordena\nqué organismo entra primero\n→ arranca banda C
+taller --> stOP
+stOP --> stING --> stCAL --> stSER --> stREP --> stEXT --> stMSD --> stDIF
+stDIF --> almIND : mediana aterriza →\nbarra crece
+stOP --> almOP : ficha + ADDA
+nodoT --> stCAT --> almCAT
+stING ..> nodoT : conjunto que no es\nindicador vira al catálogo
+taller --> anTaller : vista analítica\npropia del módulo
+
+' --- banda C: capacidad ---
+capEst --> capSat --> capTac --> capFICED --> capVAL
+garita --> capVAL : expediente\ndel delegado
+capVAL --> almHALL : hoja de vida\naprobada
+capVAL ..> camDel : devuelto con\nobservaciones\n(correcciones_solicitadas)
+capVAL ..> taller : rechazado/observado\n→ corrige y reenvía
+
+' --- líneas E → público (sin validación) ---
+lnE1 --> paredTV
+lnE2 --> paredTV
+lnE3 --> paredTV
+stDIF --> paredTV : publicación\nprogramada
+almOP --> paredTV
+almCAT --> paredTV
+almIND --> paredTV
+
+' --- audiencia: submódulos del portal ---
+paredTV --> auDOM
+paredTV --> auCJT
+paredTV --> auVIS
+paredTV --> auCAT
+paredTV --> auCHAT
+paredTV --> auLAB
+paredTV --> auAPI
+paredTV --> auBI
+
+' --- el ciclo se cierra ---
+paredTV --> ciudad : todo termina\nfrente a una persona
+ciudad --> ventanilla : pregunta PQRS
+ventanilla ..> capSat : encuestas por\ntubo neumático
+ciudad --> obs : la observan\n(círculo completo)
+
+' --- nivel estratégico ---
+almHALL --> reunion : expedientes ICED
+almIND --> reunion : producción
+capVAL --> evalSala
+evalSala --> reunion
+reunion --> despacho : información\nestratégica para la decisión
+
+' --- ductos de la torre (control transversal) ---
+torre ..> stCAL : validación de cargas
+torre ..> stEXT : reglas de extracción
+torre ..> stMSD : fichas MSD + dominios
+torre ..> capVAL : autoriza/devuelve
+torre ..> garita : criterio de control
+torre ..> paredTV : nada sale sin\npasar por aquí
+torre ..> auCHAT : entrena Don Datico\ncon lo publicado
+
+' --- memoria y actores ---
+memoria ..> taller : el pasillo\nantes de entrar
+datico ..> auCHAT : es el asistente\ndel portal
+actores ..> paredTV : confeti de difusión
+
+' =====================================================================
+note as N1 #FEF9C3
+  <b>Estados del paquete en la escena</b>
+  caida (camión/chute → banda) → ride →
+  estaciones: eval (pausa) · crece (engorda)
+  · transformaciones → vuelo al almacén
+  Sellos visibles al pasar puntos de control.
+
+  <b>Estados de carga (modelo)</b>
+  borrador → enviado → en_revision →
+  prevalidado → aprobado → procesado
+  (+ correcciones_solicitadas · rechazado)
+
+  <b>FICED/ICED</b>
+  borrador → enviado → validado /
+  devuelto / rechazado
+end note
+
+note as N2 #F0FDF4
+  <b>El dato protagonista</b>
+  Proyecciones de población DANE →
+  operación distrital: población por año ×
+  edad × sexo × 22 comunas + 15
+  corregimientos → pirámide por comuna →
+  inventario Cali en Cifras → llega al
+  despacho: ¿dónde el próximo colegio?
+  El ciclo: el dato sale de la gente
+  y vuelve a la gente.
+end note
+
+legend bottom right
+  <b>Leyenda</b>
+  ─── flujo físico (camión, banda, chute)
+  ╌╌╌ control · decisión · canal virtual
+  camRec/camDel/camEdi = camiones-muelle
+  Bandas: D datos · C capacidad · T catálogo
+        · E1-E3 servicio editorial
+  Ciclo: ciudad→ventanilla→satisfacción
+        →observatorio→camRec
+endlegend
+@enduml

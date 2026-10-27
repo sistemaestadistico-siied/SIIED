@@ -9,8 +9,8 @@
 {% block content %}
 <div class="max-w-3xl mx-auto">
   <div class="bg-white shadow rounded-lg p-6 my-12">
-    <h1 class="text-2xl font-bold text-gray-800">Visualizador de Conjuntos de datos eliminado</h1>
-    <p class="text-gray-600 mt-2">Esta página ha sido retirada del sistema. Si llegaste aquí por un enlace antiguo, por favor vuelve al <a href="/" class="text-primary-600 underline">inicio</a>.</p>
+    <h1 class="text-2xl font-bold text-slate-800">Visualizador de Conjuntos de datos eliminado</h1>
+    <p class="text-slate-600 mt-2">Esta página ha sido retirada del sistema. Si llegaste aquí por un enlace antiguo, por favor vuelve al <a href="/" class="text-primary-600 underline">inicio</a>.</p>
   </div>
 </div>
 {% endblock %}
@@ -169,7 +169,7 @@
     table.className = 'min-w-full text-xs border';
     const thead = document.createElement('thead');
     const trh = document.createElement('tr');
-    cols.forEach(c=>{ const th=document.createElement('th'); th.className='border px-2 py-1 text-left bg-gray-50'; th.textContent=c; trh.appendChild(th); });
+    cols.forEach(c=>{ const th=document.createElement('th'); th.className='border px-2 py-1 text-left bg-slate-50'; th.textContent=c; trh.appendChild(th); });
     thead.appendChild(trh);
     table.appendChild(thead);
     const tbody = document.createElement('tbody');
@@ -186,7 +186,7 @@
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
-    $out.append('<div class="text-sm text-gray-600 mb-2">Vista previa (máx 50 filas, 12 columnas). Pulsa "Construir Pivot" para la tabla dinámica.</div>');
+    $out.append('<div class="text-sm text-slate-600 mb-2">Vista previa (máx 50 filas, 12 columnas). Pulsa "Construir Pivot" para la tabla dinámica.</div>');
     $out.append(table);
   }
 
@@ -456,7 +456,7 @@
     headers = cols || [];
     $list.empty();
     if(!headers.length){
-      $list.append('<div class="text-gray-500">(Sin columnas detectadas)</div>');
+      $list.append('<div class="text-slate-500">(Sin columnas detectadas)</div>');
     } else {
       headers.forEach(c=>{
         const id = 'col_'+c.replace(/[^a-zA-Z0-9_-]/g,'_');

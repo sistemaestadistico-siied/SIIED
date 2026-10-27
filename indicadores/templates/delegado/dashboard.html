@@ -3,16 +3,16 @@
 {% block delegado_content %}
 
 <!-- Hero del dashboard -->
-<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200 mb-8">
+<div class="bg-slate-50 border-b border-slate-200 mb-8">
     <div class="container mx-auto px-6 py-8">
         <div class="flex items-center gap-4 mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl shadow-lg flex items-center justify-center">
+            <div class="w-12 h-12 bg-emerald-500 rounded-xl shadow-lg flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                 </svg>
             </div>
             <div>
-                <h1 class="text-3xl font-serif font-bold text-slate-900">Bienvenido/a, {{ user.get_full_name|default:user.username }}</h1>
+                <h1 class="text-3xl font-bold text-slate-900">Bienvenido/a, {{ user.get_full_name|default:user.username }}</h1>
                 {% if organismo %}
                 <p class="text-slate-600 mt-1">
                     <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@
 </div>
 
 <!-- Acceso rápido al manual -->
-<div class="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-3xl shadow-lg p-8 text-white mb-8">
+<div class="bg-emerald-500 rounded-2xl shadow-lg p-8 text-white mb-8">
     <div class="flex items-center justify-between">
         <div class="flex-1">
             <div class="flex items-center gap-4 mb-3">
@@ -38,7 +38,7 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-2xl font-serif font-bold">¿Primera vez aquí?</h3>
+                    <h3 class="text-2xl font-bold">¿Primera vez aquí?</h3>
                     <p class="text-emerald-100 text-sm">Consulta el manual de uso paso a paso</p>
                 </div>
             </div>
@@ -110,7 +110,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
@@ -123,7 +123,7 @@
     
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-slate-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -136,7 +136,7 @@
     
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -149,7 +149,7 @@
     
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-slate-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -164,7 +164,7 @@
 <!-- FICED — Formulario de Capacidad Estadística -->
 <div class="mb-10">
     <a href="{% url 'indicadores:delegado_ficed_equipo' %}" 
-       class="block bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-3xl p-8 shadow-sm hover:shadow-md transition-all duration-200 group">
+       class="block bg-slate-600 hover:bg-slate-800 text-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-200 group">
         <div class="flex items-start gap-6">
             <div class="w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,7 +173,7 @@
             </div>
             <div class="flex-1">
                 <div class="flex items-center gap-3 mb-2">
-                    <h3 class="font-serif font-bold text-xl">Formulario FICED — Índice de Capacidad Estadística</h3>
+                    <h3 class=" font-bold text-xl">Formulario FICED — Índice de Capacidad Estadística</h3>
                     {% if ficed %}
                         {% if ficed.estado == 'enviado' %}
                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
@@ -260,62 +260,62 @@
 <!-- Acciones rápidas -->
 <div class="grid md:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
     <a href="{% url 'indicadores:delegado_cargar_serie' %}"
-       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+       class="bg-emerald-500 hover:bg-emerald-700 text-white rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
         <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
             <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
             </svg>
         </div>
         <div>
-            <h3 class="font-serif font-bold text-lg mb-1">Cargar Serie</h3>
+            <h3 class=" font-bold text-lg mb-1">Cargar Serie</h3>
             <p class="text-emerald-100 text-xs">Subir datos de indicador (Excel)</p>
         </div>
     </a>
     <a href="{% url 'indicadores:delegado_cargar_conjunto_datos' %}"
-       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+       class="bg-emerald-500 hover:bg-emerald-700 text-white rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
         <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
             <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
             </svg>
         </div>
         <div>
-            <h3 class="font-serif font-bold text-lg mb-1">Cargar Conjuntos de datos</h3>
+            <h3 class=" font-bold text-lg mb-1">Cargar Conjuntos de datos</h3>
             <p class="text-emerald-100 text-xs">Subir conjuntos de datos (Excel)</p>
         </div>
     </a>
     <a href="{% url 'indicadores:delegado_cargar_serie_inline' %}"
-       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+       class="bg-emerald-500 hover:bg-emerald-700 text-white rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
         <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
             <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18M10 3v18M14 3v18"/>
             </svg>
         </div>
         <div>
-            <h3 class="font-serif font-bold text-lg mb-1">Datos Inline</h3>
+            <h3 class=" font-bold text-lg mb-1">Datos Inline</h3>
             <p class="text-emerald-100 text-xs">Ingresar datos sin Excel</p>
         </div>
     </a>
     <a href="{% url 'indicadores:delegado_cargar_metadata_form' %}"
-       class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+       class="bg-emerald-500 hover:bg-emerald-700 text-white rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
         <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
             <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
         </div>
         <div>
-            <h3 class="font-serif font-bold text-lg mb-1">Metadata</h3>
+            <h3 class=" font-bold text-lg mb-1">Metadata</h3>
             <p class="text-emerald-100 text-xs">Completar metadata web</p>
         </div>
     </a>
     <a href="{% url 'indicadores:delegado_actualizar_existente' %}"
-       class="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white rounded-3xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
+       class="bg-slate-600 hover:bg-slate-800 text-white rounded-2xl p-6 flex flex-col gap-4 transition-all duration-200 shadow-sm hover:shadow-md group">
         <div class="w-14 h-14 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center flex-shrink-0">
             <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
         </div>
         <div>
-            <h3 class="font-serif font-bold text-lg mb-1">Actualizar</h3>
+            <h3 class=" font-bold text-lg mb-1">Actualizar</h3>
             <p class="text-slate-100 text-xs">Buscar y editar existentes</p>
         </div>
     </a>
@@ -325,10 +325,10 @@
 <div class="grid lg:grid-cols-2 gap-8">
 
     <!-- Series recientes -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-slate-600 px-8 py-6">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-serif font-bold text-white">Últimas series cargadas</h2>
+                <h2 class="text-xl font-bold text-white">Últimas series cargadas</h2>
                 <a href="{% url 'indicadores:delegado_historial' %}?tipo=series" class="text-sm text-slate-300 hover:text-white transition-colors">Ver todo</a>
             </div>
         </div>
@@ -338,7 +338,7 @@
             {% for carga in ultimas_series %}
             <div class="flex items-center justify-between py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors -mx-4 px-4 rounded-lg">
                 <div>
-                    <p class="text-sm font-medium text-gray-700">
+                    <p class="text-sm font-medium text-slate-700">
                         {{ carga.indicador.nombre|truncatewords:5|default:"Sin indicador" }}
                     </p>
                     <p class="text-xs text-slate-400 mt-0.5">
@@ -362,25 +362,25 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-sm text-gray-400 text-center py-6">Aún no has subido series de datos.</p>
+        <p class="text-sm text-slate-400 text-center py-6">Aún no has subido series de datos.</p>
         {% endif %}
     </div>
 
     <!-- Conjunto de datos reciente -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="font-semibold text-gray-800">Últimas cargas de conjuntos de datos</h2>
+            <h2 class="font-semibold text-slate-800">Últimas cargas de conjuntos de datos</h2>
             <a href="{% url 'indicadores:delegado_historial' %}?tipo=conjunto de datos" class="text-sm text-slate-600 hover:underline">Ver todo</a>
         </div>
         {% if ultimos_conjuntos_datos %}
         <div class="space-y-3">
             {% for carga in ultimos_conjuntos_datos %}
-            <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+            <div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0">
                 <div>
-                    <p class="text-sm font-medium text-gray-700">
+                    <p class="text-sm font-medium text-slate-700">
                         {{ carga.conjunto_datos.nombre|truncatewords:5|default:"Sin conjunto_datos" }}
                     </p>
-                    <p class="text-xs text-gray-400">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
+                    <p class="text-xs text-slate-400">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
                 </div>
                 <div class="flex items-center space-x-2">
                     <span class="px-2 py-1 rounded-full text-xs font-medium estado-{{ carga.estado }}">
@@ -397,7 +397,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p class="text-sm text-gray-400 text-center py-6">Aún no has subido conjuntos de datos.</p>
+        <p class="text-sm text-slate-400 text-center py-6">Aún no has subido conjuntos de datos.</p>
         {% endif %}
     </div>
 </div>

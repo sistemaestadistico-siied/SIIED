@@ -20,11 +20,13 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db import connection, transaction
 from django.shortcuts import redirect, render
 
-from .models import DominioDesagregacion, Desagregacion
+from .models import DominioDesagregacion, Desagregacion, Indicador
 
 
 _TMPL_DEF = 'indicadores/normalizacion/'
 _DOM_URL_DEF = 'normalizacion:wizard_normalizacion_dominio'
+_IND_URL_DEF = 'normalizacion:wizard_normalizacion_indicador'
+_LIST_URL_DEF = 'normalizacion:wizard_normalizacion'
 
 
 def _td(request):
@@ -36,6 +38,16 @@ def _td(request):
 def _dom_url(request):
     """URL name del detalle de dominio según el módulo que monta el wizard."""
     return getattr(request, '_nz_dom_url', _DOM_URL_DEF)
+
+
+def _ind_url(request):
+    """URL name del detalle de indicador según el módulo que monta el wizard."""
+    return getattr(request, '_nz_ind_url', _IND_URL_DEF)
+
+
+def _list_url(request):
+    """URL name del listado del wizard según el módulo que lo monta."""
+    return getattr(request, '_nz_list_url', _LIST_URL_DEF)
 
 
 def _normaliza(s):
@@ -130,11 +142,16 @@ def _repuntar_desag(cur, src_id, dst_id):
             ON CONFLICT DO NOTHING;
             DELETE FROM {tabla} WHERE desagregacion_id=%s;
         """, [dst_id, src_id, src_id])
-    # hijas (padre jerárquico)
+    # hijas (padre jerárquico): repuntar al destino. Si el propio destino
+    # colgaba del origen, hereda el padre del origen — sin esto quedaría
+    # apuntando a sí mismo (auto-ciclo) al borrar el origen.
     cur.execute("""
         UPDATE indicadores_desagregacion SET desagregacion_padre_id=%s
-        WHERE desagregacion_padre_id=%s;
-    """, [dst_id, src_id])
+        WHERE desagregacion_padre_id=%s AND id != %s;
+        UPDATE indicadores_desagregacion d SET desagregacion_padre_id = s.desagregacion_padre_id
+        FROM indicadores_desagregacion s
+        WHERE d.id=%s AND s.id=%s AND d.desagregacion_padre_id=%s;
+    """, [dst_id, src_id, dst_id, dst_id, src_id, src_id])
     # capa_geo: si el origen tenía y el destino no, transferir
     cur.execute("""
         UPDATE indicadores_desagregacion dst SET capa_geo_id = src.capa_geo_id
@@ -405,13 +422,22 @@ def wizard_aplicar(request):
         return wizard_normalizacion.__wrapped__(request)
     destino_id = int(request.POST['destino'])
     origenes = [int(i) for i in request.POST['origen_ids'].split(',') if i]
+    origenes = [i for i in origenes if i != destino_id]
     mapping = {int(k[4:]): v for k, v in json.loads(request.POST['payload']).items()
                if k.startswith('map_') and k[4:].isdigit()}
 
-    stats = {'equiv': 0, 'movidas': 0, 'descartadas': 0, 'dominios': 0}
+    stats = {'equiv': 0, 'movidas': 0, 'descartadas': 0, 'dominios': 0,
+             'subs': 0, 'padre': None}
     try:
         with transaction.atomic():
             with connection.cursor() as cur:
+                # Jerarquía previa: padre del destino y de los orígenes, para
+                # heredarla tras la absorción en vez de perderla (SET_NULL).
+                cur.execute(
+                    "SELECT id, dominio_padre_id FROM indicadores_dominiodesagregacion "
+                    "WHERE id=%s OR id IN %s", [destino_id, tuple(origenes)])
+                padres_prev = dict(cur.fetchall())
+                dest_padre = padres_prev.get(destino_id)
                 for src_id in origenes:
                     desags = list(Desagregacion.objects.filter(dominio_id=src_id))
                     for d in desags:
@@ -431,10 +457,70 @@ def wizard_aplicar(request):
                     _mover_links_dominio(cur, src_id, destino_id)
                     cur.execute("DELETE FROM indicadores_dominiodesagregacion WHERE id=%s", [src_id])
                     stats['dominios'] += 1
+
+                # ---- herencia de jerarquía entre dominios ----
+                # a) los subdominios de los absorbidos cuelgan del destino
+                cur.execute(
+                    "UPDATE indicadores_dominiodesagregacion SET dominio_padre_id=%s "
+                    "WHERE dominio_padre_id IN %s", [destino_id, tuple(origenes)])
+                stats['subs'] = cur.rowcount
+
+                # b) el destino ocupa el lugar de los absorbidos en la cadena:
+                #    si su padre fue absorbido, sube al primer ancestro que
+                #    sobrevive; si no tenía padre, hereda el del absorbido.
+                def _asc(pid):
+                    """Sube la cadena de padres absorbidos hasta el primer
+                    dominio que sobrevive (o None). Guarda anti-ciclos."""
+                    seen = set()
+                    while pid in padres_prev and pid not in seen:
+                        seen.add(pid)
+                        pid = padres_prev.get(pid)
+                    return pid
+
+                def _desciende_de(dom_id, ancestro):
+                    """True si `ancestro` es antecesor de `dom_id` caminando
+                    la cadena dominio_padre en BD (post-repoint). Evita
+                    asignar como padre a un descendiente del destino (ciclo)."""
+                    seen, p = set(), dom_id
+                    while p is not None and p not in seen:
+                        if p == ancestro:
+                            return True
+                        seen.add(p)
+                        cur.execute(
+                            "SELECT dominio_padre_id FROM indicadores_dominiodesagregacion "
+                            "WHERE id=%s", [p])
+                        row = cur.fetchone()
+                        p = row[0] if row else None
+                    return False
+
+                def _padre_ok(pid):
+                    return (pid is not None and pid != destino_id
+                            and not _desciende_de(pid, destino_id))
+
+                if dest_padre in origenes:
+                    np = _asc(padres_prev.get(dest_padre))
+                    nuevo = np if _padre_ok(np) else None
+                elif dest_padre is None:
+                    nuevo = None
+                    for src in origenes:
+                        np = _asc(padres_prev.get(src))
+                        if _padre_ok(np):
+                            nuevo = np
+                            break
+                else:
+                    nuevo = dest_padre
+                if nuevo != dest_padre:
+                    cur.execute(
+                        "UPDATE indicadores_dominiodesagregacion SET dominio_padre_id=%s "
+                        "WHERE id=%s", [nuevo, destino_id])
+                    stats['padre'] = nuevo
+
                 _resync_fks_legacy(cur)
             _audit('wizard', 'conciliacion', stats['dominios'],
                    stats['movidas'] + stats['equiv'],
-                   f"→ dominio {destino_id}; equiv={stats['equiv']} movidas={stats['movidas']} descartadas={stats['descartadas']}")
+                   f"→ dominio {destino_id}; equiv={stats['equiv']} movidas={stats['movidas']} "
+                   f"descartadas={stats['descartadas']}; subdominios_repadres={stats['subs']} "
+                   f"padre_heredado={stats['padre']}")
     except Exception as e:
         messages.error(request, f'Error en conciliación (rollback aplicado): {e}')
         return wizard_normalizacion.__wrapped__(request)
@@ -510,6 +596,9 @@ def wizard_dominio_detalle(request, dominio_id):
     desagregaciones con conteo de referencias, subdominios y renombrado."""
     dom = DominioDesagregacion.objects.get(pk=dominio_id)
 
+    if request.method == 'POST' and request.POST.get('accion') == 'conciliar_desags':
+        return _conciliar_desags_dominio(request, dom)
+
     if request.method == 'POST' and request.POST.get('accion') == 'renombrar':
         nuevo = (request.POST.get('nuevo_nombre') or '').strip()
         if not nuevo or nuevo == dom.nombre:
@@ -543,4 +632,72 @@ def wizard_dominio_detalle(request, dominio_id):
         'dominio': dom, 'desags': desags, 'stats': stats,
         'subdominios': subdominios, 'tot': tot,
         'padre': dom.dominio_padre,
+        'ind_url': _ind_url(request),
+    })
+
+
+def _conciliar_desags_dominio(request, dom):
+    """Conciliación intra-dominio: N desags origen → 1 desag destino.
+
+    Reutiliza _repuntar_desag para heredar TODAS las referencias (datos,
+    series M2M, FKs legacy, predeterminadas, hijas y capa geo) y luego
+    elimina las filas origen. Todo dentro del mismo dominio."""
+    dest_raw = (request.POST.get('desag_destino') or '').strip()
+    origenes = [int(i) for i in request.POST.getlist('desags') if i.isdigit()]
+    if not dest_raw.isdigit():
+        messages.error(request, 'Elige la desagregación destino.')
+        return redirect(_dom_url(request), dominio_id=dom.id)
+    dest_id = int(dest_raw)
+
+    # Solo desags de ESTE dominio (defensa contra ids de otros dominios)
+    validas = set(Desagregacion.objects.filter(
+        dominio_id=dom.id, pk__in=[dest_id, *origenes]).values_list('id', flat=True))
+    if dest_id not in validas:
+        messages.error(request, 'La destino no pertenece a este dominio.')
+        return redirect(_dom_url(request), dominio_id=dom.id)
+    origenes = [i for i in origenes if i in validas and i != dest_id]
+    if not origenes:
+        messages.error(request,
+            'Selecciona al menos una desagregación origen distinta del destino.')
+        return redirect(_dom_url(request), dominio_id=dom.id)
+
+    try:
+        with transaction.atomic():
+            with connection.cursor() as cur:
+                for src in origenes:
+                    _repuntar_desag(cur, src, dest_id)
+                cur.execute(
+                    "DELETE FROM indicadores_desagregacion WHERE id IN %s",
+                    [tuple(origenes)])
+                _resync_fks_legacy(cur)
+            _audit(dom.nombre, 'conciliacion-desags', 0, len(origenes),
+                   f'{len(origenes)} desags → {dest_id} dentro del dominio {dom.id} '
+                   f'por {request.user.username}')
+    except Exception as e:
+        messages.error(request, f'Error conciliando desagregaciones: {e}')
+        return redirect(_dom_url(request), dominio_id=dom.id)
+
+    dest_nombre = Desagregacion.objects.get(pk=dest_id).nombre
+    messages.success(request,
+        f'{len(origenes)} desagregación(es) conciliadas dentro del dominio; '
+        f'las referencias quedaron en "{dest_nombre}".')
+    return redirect(_dom_url(request), dominio_id=dom.id)
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# DETALLE de indicador: dominios de desagregación relacionados
+# ──────────────────────────────────────────────────────────────────────────
+
+@staff_member_required
+def wizard_indicador_detalle(request, indicador_id):
+    """Ficha del indicador dentro del wizard: dominios de desagregación
+    vinculados (temáticos y geográficos), cada uno enlazado a su detalle
+    para seguir navegando el grafo dominio ↔ indicador."""
+    ind = Indicador.objects.get(pk=indicador_id)
+    return render(request, _td(request) + 'indicador.html', {
+        'indicador': ind,
+        'dominios_tem': ind.dominios_desagregacion_tematica.all().order_by('nombre'),
+        'dominios_geo': ind.dominios_desagregacion_geografica.all().order_by('nombre'),
+        'dom_url': _dom_url(request),
+        'volver': _list_url(request),
     })

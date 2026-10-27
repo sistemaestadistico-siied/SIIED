@@ -5,12 +5,12 @@
 <div class="max-w-3xl mx-auto">
 
   <div class="mb-6">
-    <h1 class="text-2xl font-serif font-bold text-slate-900">Plantillas y formatos oficiales</h1>
+    <h1 class="text-2xl font-bold text-slate-900">Plantillas y formatos oficiales</h1>
     <p class="text-slate-500 mt-1">Descarga las plantillas Excel que debes usar para entregar tus datos. No uses otros formatos.</p>
   </div>
 
   <!-- Aviso importante -->
-  <div class="bg-red-50 border border-red-200 rounded-3xl p-4 mb-8">
+  <div class="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8">
     <div class="flex items-start gap-3">
       <svg class="w-5 h-5 text-red-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -31,7 +31,7 @@
 
   <!-- Grupo 1: Serie de indicador -->
   <div class="mb-8">
-    <h2 class="text-base font-serif font-bold text-slate-700 mb-3 flex items-center gap-2">
+    <h2 class="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
       <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
@@ -41,7 +41,7 @@
     <div class="space-y-4">
 
       <!-- Plantilla 1: Datos de serie -->
-      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
@@ -51,7 +51,7 @@
             </div>
             <p class="text-sm text-slate-600 mb-3">Registra los valores numéricos del indicador por año y desagregación.</p>
             <!-- Preview columnas reales -->
-            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3 overflow-x-auto">
+            <div class="bg-slate-50 rounded-2xl p-3 text-xs font-mono mb-3 overflow-x-auto">
               <div class="grid gap-1" style="grid-template-columns: repeat(7, minmax(0, 1fr)); min-width: 560px;">
                 <span class="font-bold text-slate-800 truncate">Codigo_Indicador</span>
                 <span class="font-bold text-slate-800 truncate">Nombre_Indicador</span>
@@ -94,7 +94,7 @@
             </details>
           </div>
           <a href="{% url 'indicadores:descargar_plantilla_serie_datos' %}"
-             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+             class="shrink-0 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
@@ -104,7 +104,7 @@
       </div>
 
       <!-- Plantilla 2: Metadata del indicador -->
-      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
@@ -114,7 +114,7 @@
             </div>
             <p class="text-sm text-slate-600 mb-3">Describe el indicador: qué mide, cómo se calcula, fuentes, periodicidad, etc. Una sola fila por indicador.</p>
             <!-- Preview columnas reales (formato vertical campo-valor) -->
-            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3">
+            <div class="bg-slate-50 rounded-2xl p-3 text-xs font-mono mb-3">
               <div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
                 <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Campo</span>
                 <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Ejemplo</span>
@@ -166,7 +166,7 @@
             </details>
           </div>
           <a href="{% url 'indicadores:descargar_plantilla_metadata_indicador' %}"
-             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+             class="shrink-0 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
@@ -179,7 +179,7 @@
 
   <!-- Grupo 2: Conjunto de datos -->
   <div class="mb-8">
-    <h2 class="text-base font-serif font-bold text-slate-700 mb-3 flex items-center gap-2">
+    <h2 class="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
       <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4-8 4m0 0c0 2.21 3.582 4 8 4"/>
       </svg>
@@ -189,7 +189,7 @@
     <div class="space-y-4">
 
       <!-- Plantilla 3: Conjuntos de datos -->
-      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
@@ -201,7 +201,7 @@
 
             <!-- Formato Largo -->
             <p class="text-xs font-semibold text-slate-700 mb-1">Formato Largo — desagregaciones en columnas (datos con pocas categorías)</p>
-            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3 overflow-x-auto">
+            <div class="bg-slate-50 rounded-2xl p-3 text-xs font-mono mb-3 overflow-x-auto">
               <div class="grid gap-1 min-w-max" style="grid-template-columns: auto auto auto auto;">
                 <span class="font-bold text-slate-800 pr-4">Año</span>
                 <span class="font-bold text-slate-800 pr-4">Grupos de edad</span>
@@ -218,7 +218,7 @@
 
             <!-- Formato Ancho -->
             <p class="text-xs font-semibold text-slate-700 mb-1">Formato Ancho — desagregaciones en encabezados (tablas demográficas, muchas categorías)</p>
-            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3 overflow-x-auto">
+            <div class="bg-slate-50 rounded-2xl p-3 text-xs font-mono mb-3 overflow-x-auto">
               <div class="grid gap-1 min-w-max" style="grid-template-columns: auto auto auto auto auto auto auto;">
                 <span class="font-bold text-slate-800 pr-3">AÑO</span>
                 <span class="font-bold text-slate-800 pr-3">ÁREA GEOGRÁFICA</span>
@@ -243,7 +243,7 @@
             </details>
           </div>
           <a href="{% url 'indicadores:descargar_plantilla_conjunto_datos' %}"
-             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+             class="shrink-0 flex items-center gap-2 bg-slate-600 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
@@ -253,7 +253,7 @@
       </div>
 
       <!-- Plantilla 4: Metadata de variables -->
-      <div class="bg-white border border-slate-200 rounded-3xl p-5">
+      <div class="bg-white border border-slate-200 rounded-2xl p-5">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
@@ -262,7 +262,7 @@
               <span class="text-xs bg-violet-100 text-slate-700 px-2 py-0.5 rounded-full font-medium">Si hay conjuntos de datos</span>
             </div>
             <p class="text-sm text-slate-600 mb-3">Describe cada variable del archivo de conjuntos de datos: qué representa, su tipo, unidad de medida y fuente. Una fila por variable.</p>
-            <div class="bg-slate-50 rounded-3xl p-3 text-xs font-mono mb-3">
+            <div class="bg-slate-50 rounded-2xl p-3 text-xs font-mono mb-3">
               <div class="grid grid-cols-2 gap-x-4 gap-y-0.5">
                 <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Campo</span>
                 <span class="font-bold text-slate-800 border-b pb-0.5 mb-0.5">Ejemplo</span>
@@ -299,7 +299,7 @@
             </details>
           </div>
           <a href="{% url 'indicadores:descargar_plantilla_metadata_variables' %}"
-             class="shrink-0 flex items-center gap-2 bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+             class="shrink-0 flex items-center gap-2 bg-slate-600 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
@@ -311,7 +311,7 @@
   </div>
 
   <!-- Enlace al manual -->
-  <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-4 flex items-center justify-between">
+  <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
     <div>
       <p class="font-semibold text-emerald-800 text-sm flex items-center">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

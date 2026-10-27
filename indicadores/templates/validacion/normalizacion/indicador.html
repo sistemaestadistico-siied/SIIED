@@ -1,0 +1,71 @@
+{% extends "validacion/base_validacion.html" %}
+{% load i18n %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  .norm-wrap { max-width: 1200px; margin: 0 auto; }
+  .metric-row { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.25rem 0; }
+  .metric { flex: 1; min-width: 130px; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; text-align: center; }
+  .metric .val { font-size: 1.6rem; font-weight: 700; }
+  .metric .lbl { font-size: .78rem; color: #64748b; }
+  .norm-badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .75rem; font-weight: 600; }
+  .badge-tematica { background: rgba(79,70,229,.12); color: #4f46e5; }
+  .badge-geografica { background: rgba(16,185,129,.12); color: #10b981; }
+  .norm-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .norm-table th, .norm-table td { padding: 5px 8px; border: 1px solid #e2e8f0; text-align: left; }
+  .norm-table th { background: #f1f5f9; }
+  .norm-table td a { font-weight: 600; text-decoration: none; }
+  .norm-table td a:hover { text-decoration: underline; }
+  .norm-help { color: #64748b; font-size: .85rem; }
+</style>
+{% endblock %}
+
+{% block validacion_content %}
+<div class="norm-wrap">
+  <p><a href="{% url volver %}">← Volver al listado</a></p>
+  <h1 class="text-xl font-bold text-slate-900">{{ indicador.nombre }}
+    <small style="font-weight:400;color:#64748b;">id {{ indicador.id }}</small>
+  </h1>
+  <p class="norm-help">Dominios de desagregación relacionados con este indicador. Haz clic en uno para ver su detalle.</p>
+
+  <div class="metric-row">
+    <div class="metric"><div class="val">{{ dominios_tem|length }}</div><div class="lbl">Dominios temáticos</div></div>
+    <div class="metric"><div class="val">{{ dominios_geo|length }}</div><div class="lbl">Dominios geográficos</div></div>
+  </div>
+
+  <h3>Temáticos ({{ dominios_tem|length }})</h3>
+  <table class="norm-table">
+    <thead><tr><th>ID</th><th>Nombre</th><th>Desagregaciones</th><th>Catálogo</th></tr></thead>
+    <tbody>
+    {% for d in dominios_tem %}
+      <tr>
+        <td>{{ d.id }}</td>
+        <td><a href="{% url dom_url d.id %}">{{ d.nombre }}</a></td>
+        <td>{{ d.desagregaciones.count }}</td>
+        <td>{% if d.en_catalogo %}oficial{% else %}pendiente{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="norm-help">Sin dominios temáticos.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Geográficos ({{ dominios_geo|length }})</h3>
+  <table class="norm-table">
+    <thead><tr><th>ID</th><th>Nombre</th><th>Desagregaciones</th><th>Catálogo</th></tr></thead>
+    <tbody>
+    {% for d in dominios_geo %}
+      <tr>
+        <td>{{ d.id }}</td>
+        <td><a href="{% url dom_url d.id %}">{{ d.nombre }}</a></td>
+        <td>{{ d.desagregaciones.count }}</td>
+        <td>{% if d.en_catalogo %}oficial{% else %}pendiente{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="norm-help">Sin dominios geográficos.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

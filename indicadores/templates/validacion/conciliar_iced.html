@@ -5,7 +5,7 @@
 
 <div class="mb-6">
     <a href="{% url 'indicadores:validacion_dashboard' %}" class="text-sm text-emerald-600 hover:text-emerald-700 hover:underline">← Volver al dashboard</a>
-    <h1 class="text-2xl font-serif font-bold text-slate-900 mt-2">
+    <h1 class="text-2xl font-bold text-slate-900 mt-2">
         Conciliación FICED por equipos
         <span class="text-lg font-normal text-slate-400">— {{ organismo.nombre }} · {{ periodo }}</span>
     </h1>
@@ -27,7 +27,7 @@
 </div>
 
 <!-- Estado de los equipos -->
-<div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 mb-6">
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
     <h2 class="font-semibold text-slate-800 mb-3">Formularios del organismo</h2>
     <div class="flex flex-wrap gap-3">
         {% for f in formularios %}
@@ -120,7 +120,7 @@
 
     <div class="sticky bottom-4 mt-8 flex justify-end">
         <button type="submit"
-                class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md transition-all">
+                class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md transition-all">
             Consolidar respuestas oficiales
         </button>
     </div>

@@ -8,7 +8,7 @@
 
     <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
-            <h2 class="text-2xl font-serif font-bold text-slate-900">Seguridad de la Información (F3)</h2>
+            <h2 class="text-2xl font-bold text-slate-900">Seguridad de la Información (F3)</h2>
             <p class="text-sm text-slate-500 mt-1">Valoración de los activos de información reportados en el taller</p>
         </div>
         <form method="get" class="flex items-center gap-2">
@@ -68,7 +68,7 @@
             <div class="mb-2.5">
                 <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ c.label }}</span><span class="font-bold text-fuchsia-700">{{ c.total }}</span></div>
                 <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-fuchsia-400 to-fuchsia-600 rounded-full" style="width: {% widthratio c.total evals.count 100 %}%"></div>
+                    <div class="h-full bg-fuchsia-400 rounded-full" style="width: {% widthratio c.total evals.count 100 %}%"></div>
                 </div>
             </div>
             {% endfor %}
@@ -81,7 +81,7 @@
             <div class="mb-2.5">
                 <div class="flex justify-between text-xs font-medium text-slate-700 mb-0.5"><span>{{ nombre|truncatechars:45 }}</span><span class="font-bold text-fuchsia-700">{{ total }}</span></div>
                 <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-slate-400 to-slate-600 rounded-full" style="width: {% widthratio total evals.count 100 %}%"></div>
+                    <div class="h-full bg-slate-400 rounded-full" style="width: {% widthratio total evals.count 100 %}%"></div>
                 </div>
             </div>
             {% empty %}

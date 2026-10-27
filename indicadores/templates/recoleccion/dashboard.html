@@ -5,11 +5,11 @@
 
 {% block recoleccion_content %}
 <!-- Hero del dashboard -->
-<div class="bg-gradient-to-br from-slate-50 to-slate-100 border-b border-slate-200 mb-8">
+<div class="bg-slate-50 border-b border-slate-200 mb-8">
     <div class="container mx-auto px-6 py-12">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-3xl font-serif font-bold text-slate-900">Dashboard de Recolección</h1>
+                <h1 class="text-3xl font-bold text-slate-900">Dashboard de Recolección</h1>
                 <p class="text-slate-600 mt-1">Bienvenido, <span class="font-semibold">{{ user.get_full_name|default:user.username }}</span></p>
             </div>
             <div class="text-right">
@@ -24,7 +24,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                 </svg>
@@ -37,7 +37,7 @@
 
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -50,7 +50,7 @@
 
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-slate-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
                 </svg>
@@ -63,7 +63,7 @@
 
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                 </svg>
@@ -77,27 +77,27 @@
 
 <!-- Acciones rápidas -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-6">
-            <h2 class="text-xl font-serif font-bold text-white">Cargar Datos</h2>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-emerald-500 px-8 py-6">
+            <h2 class="text-xl font-bold text-white">Cargar Datos</h2>
         </div>
         <div class="p-8 space-y-4">
             <a href="{% url 'indicadores:cargar_serie_indicador' %}"
-               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+               class="block w-full bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
                 Cargar Serie de Indicador
             </a>
             <a href="{% url 'indicadores:cargar_masiva_series' %}"
-               class="block w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+               class="block w-full bg-teal-500 hover:bg-teal-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                 </svg>
                 Cargar Masiva de Series
             </a>
             <a href="{% url 'indicadores:cargar_conjunto_datos' %}"
-               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+               class="block w-full bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
                 </svg>
@@ -139,20 +139,20 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-6">
-            <h2 class="text-xl font-serif font-bold text-white">Generar Reportes</h2>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-emerald-500 px-8 py-6">
+            <h2 class="text-xl font-bold text-white">Generar Reportes</h2>
         </div>
         <div class="p-8 space-y-4">
             <a href="{% url 'indicadores:reportes_indicadores' %}" 
-               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+               class="block w-full bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v1a1 1 0 001 1h4a1 1 0 001-1v-1m3-2V8a2 2 0 00-2-2H8a2 2 0 00-2 2v8m5-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 Reportes de Indicadores
             </a>
             <a href="{% url 'indicadores:reportes_conjuntos_datos' %}" 
-               class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
+               class="block w-full bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-200 text-center shadow-sm hover:shadow-md">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                 </svg>
@@ -247,9 +247,9 @@
 <!-- Últimas Cargas -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <!-- Últimas Cargas de Series -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-slate-600 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -263,13 +263,13 @@
                         <div class="block bg-slate-50 hover:bg-slate-100 rounded-lg p-4 transition duration-200 border border-slate-200">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="font-semibold text-gray-800">{{ carga.codigo_evidencia }}</p>
+                                    <p class="font-semibold text-slate-800">{{ carga.codigo_evidencia }}</p>
                                     {% if carga.indicador %}
                                     <p class="text-xs text-slate-500 mt-0.5">
                                         {% if carga.indicador.codigo_indicador %}<span class="font-mono">{{ carga.indicador.codigo_indicador }}</span> · {% endif %}{{ carga.indicador.nombre|truncatewords:5 }}
                                     </p>
                                     {% endif %}
-                                    <p class="text-sm text-gray-500">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
+                                    <p class="text-sm text-slate-500">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     {% if carga.estado == 'exitoso' %}
@@ -301,8 +301,8 @@
                 </div>
             {% else %}
                 <div class="text-center py-8">
-                    <i class="fas fa-inbox text-gray-300 text-5xl mb-3"></i>
-                    <p class="text-gray-500">No hay cargas registradas</p>
+                    <i class="fas fa-inbox text-slate-300 text-5xl mb-3"></i>
+                    <p class="text-slate-500">No hay cargas registradas</p>
                     <a href="{% url 'indicadores:cargar_serie_indicador' %}" 
                        class="inline-block mt-3 text-sky-600 hover:text-sky-800 font-medium">
                         <i class="fas fa-upload mr-1"></i>Realizar Primera Carga
@@ -313,9 +313,9 @@
     </div>
 
     <!-- Últimas Cargas de Conjunto de datos -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-slate-600 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
@@ -329,8 +329,8 @@
                         <div class="block bg-slate-50 hover:bg-slate-100 rounded-lg p-4 transition duration-200 border border-slate-200">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <p class="font-semibold text-gray-800">{{ carga.codigo_evidencia }}</p>
-                                    <p class="text-sm text-gray-500">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
+                                    <p class="font-semibold text-slate-800">{{ carga.codigo_evidencia }}</p>
+                                    <p class="text-sm text-slate-500">{{ carga.fecha_carga|date:"d/m/Y H:i" }}</p>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     {% if carga.estado == 'exitoso' %}
@@ -361,8 +361,8 @@
                 </div>
             {% else %}
                 <div class="text-center py-8">
-                    <i class="fas fa-inbox text-gray-300 text-5xl mb-3"></i>
-                    <p class="text-gray-500">No hay cargas registradas</p>
+                    <i class="fas fa-inbox text-slate-300 text-5xl mb-3"></i>
+                    <p class="text-slate-500">No hay cargas registradas</p>
                     <a href="{% url 'indicadores:cargar_conjunto_datos' %}" 
                        class="inline-block mt-3 text-sky-600 hover:text-sky-800 font-medium">
                         <i class="fas fa-upload mr-1"></i>Realizar Primera Carga
@@ -375,9 +375,9 @@
 
 <!-- Indicadores pendientes de carga -->
 {% if indicadores_pendientes %}
-<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mt-6">
-    <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-6">
-        <h3 class="text-xl font-serif font-bold text-white">
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+    <div class="bg-amber-500 px-8 py-6">
+        <h3 class="text-xl font-bold text-white">
             <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
             </svg>

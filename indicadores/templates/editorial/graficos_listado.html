@@ -46,7 +46,7 @@
     <div class="space-y-6">
         {% for indicador in indicadores %}
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="p-6 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-white">
+            <div class="p-6 border-b border-slate-100 bg-violet-50 to-white">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-700 mb-2">
@@ -147,7 +147,7 @@
                 data.jerarquia.forEach(dominio => {
                     const domDiv = document.createElement('div');
                     domDiv.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden';
-                    let html = `<div class="p-4 border-b border-slate-100 bg-gradient-to-r from-sky-50 to-white"><h3 class="text-lg font-bold text-slate-900"><i class="fas fa-folder-open text-sky-500 mr-2"></i>${dominio.nombre}</h3></div><div class="p-4 space-y-4">`;
+                    let html = `<div class="p-4 border-b border-slate-100 bg-sky-50 to-white"><h3 class="text-lg font-bold text-slate-900"><i class="fas fa-folder-open text-sky-500 mr-2"></i>${dominio.nombre}</h3></div><div class="p-4 space-y-4">`;
                     dominio.temas.forEach(tema => {
                         html += `<div class="border-l-4 border-sky-200 pl-4"><h4 class="text-sm font-bold text-slate-700 mb-2">${tema.nombre}</h4>`;
                         tema.subtemas.forEach(subtema => {

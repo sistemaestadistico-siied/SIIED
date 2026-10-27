@@ -6,13 +6,13 @@
 <div class="max-w-6xl mx-auto">
     <!-- Header -->
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-serif font-bold text-slate-900">
+        <h1 class="text-3xl font-bold text-slate-900">
             <svg class="w-6 h-6 inline mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
             </svg>Evidencia de Carga de Conjunto de datos
         </h1>
         <a href="{% url 'indicadores:historial_cargas_conjuntos_datos' %}" 
-           class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
+           class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
             <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
             </svg>Volver al Historial
@@ -20,9 +20,9 @@
     </div>
 
     <!-- Información Principal -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 px-8 py-6">
-            <h2 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-emerald-500 px-8 py-6">
+            <h2 class="text-xl font-bold text-white">
                 Código de Evidencia: {{ carga.codigo_evidencia }}
             </h2>
         </div>
@@ -83,13 +83,13 @@
     </div>
 
     {% if carga.conjunto_datos %}
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-violet-500 to-violet-600 px-8 py-4">
-            <h3 class="text-lg font-serif font-bold text-white">Actualizar conjunto de datos existente</h3>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-violet-500 px-8 py-4">
+            <h3 class="text-lg font-bold text-white">Actualizar conjunto de datos existente</h3>
         </div>
         <div class="p-6 flex flex-wrap gap-3">
             <a href="{% url 'indicadores:cargar_variables_form' %}?conjunto_datos_id={{ carga.conjunto_datos.id }}"
-               class="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition">
+               class="inline-flex items-center gap-2 bg-violet-500 hover:bg-violet-700 text-white text-sm font-semibold px-5 py-2 rounded-lg transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 Actualizar variables
             </a>
@@ -98,9 +98,9 @@
     {% endif %}
 
     <!-- Archivos -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-slate-600 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>Archivos
@@ -189,9 +189,9 @@
 
     <!-- Log de Procesamiento -->
     {% if carga.log_procesamiento %}
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-6">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6">
+        <div class="bg-slate-600 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                 </svg>Log de Procesamiento
@@ -205,9 +205,9 @@
 
     <!-- Mensaje de Error -->
     {% if carga.mensaje_error %}
-    <div class="bg-white rounded-3xl border-2 border-red-500 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-red-500 to-red-600 px-8 py-6">
-            <h3 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border-2 border-red-500 shadow-sm overflow-hidden">
+        <div class="bg-red-500 px-8 py-6">
+            <h3 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                 </svg>Error

@@ -4,10 +4,10 @@
 
 {% block recoleccion_content %}
 <div class="max-w-4xl mx-auto">
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-indigo-500 to-violet-600 px-8 py-6">
-            <h1 class="text-2xl font-serif font-bold text-white">Deconstruir Tabla Dinámica</h1>
+        <div class="bg-indigo-500 px-8 py-6">
+            <h1 class="text-2xl font-bold text-white">Deconstruir Tabla Dinámica</h1>
             <p class="text-indigo-100 mt-1">Convierte tablas dinámicas con grupos de desagregación al formato plano requerido.</p>
         </div>
 
@@ -112,7 +112,7 @@
                     <a href="{% url 'indicadores:recoleccion_dashboard' %}" class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors">
                         Cancelar
                     </a>
-                    <button type="submit" class="px-8 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all">
+                    <button type="submit" class="px-8 py-3 bg-indigo-500 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all">
                         Analizar archivo
                     </button>
                 </div>
@@ -220,7 +220,7 @@
                     <a href="{% url 'indicadores:deconstruir_tabla' %}?reset=1" class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors">
                         Volver
                     </a>
-                    <button type="submit" class="px-8 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all">
+                    <button type="submit" class="px-8 py-3 bg-indigo-500 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all">
                         {% if modo == 'masivo' and current_sheet_idx < total_sheets %}
                             Siguiente hoja →
                         {% else %}
@@ -275,7 +275,7 @@
                 <form method="post" class="flex flex-col sm:flex-row gap-3 justify-center">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="generate">
-                    <button type="submit" class="px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all">
+                    <button type="submit" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all">
                         <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>

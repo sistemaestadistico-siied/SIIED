@@ -629,20 +629,20 @@
     /* Variables CSS para fácil personalización */
     :root {
         --primary-color: #0ea5e9;
-        --primary-dark: #0284c7;
+        --primary- #0284c7;
         --secondary-color: #667eea;
         --background-color: #f8fafc;
         --white: #ffffff;
-        --gray-50: #f8fafc;
-        --gray-100: #f1f5f9;
-        --gray-200: #e2e8f0;
-        --gray-300: #cbd5e1;
-        --gray-400: #94a3b8;
-        --gray-500: #64748b;
-        --gray-600: #475569;
-        --gray-700: #334155;
-        --gray-800: #1e293b;
-        --gray-900: #0f172a;
+        --slate-50: #f8fafc;
+        --slate-100: #f1f5f9;
+        --slate-200: #e2e8f0;
+        --slate-300: #cbd5e1;
+        --slate-400: #94a3b8;
+        --slate-500: #64748b;
+        --slate-600: #475569;
+        --slate-700: #334155;
+        --slate-800: #1e293b;
+        --slate-900: #0f172a;
         --blue-50: #eff6ff;
         --blue-500: #3b82f6;
         --blue-600: #2563eb;
@@ -650,11 +650,11 @@
         --red-500: #ef4444;
         --yellow-400: #fbbf24;
         --border-radius: 16px;
-        --border-radius-sm: 12px;
-        --border-radius-lg: 20px;
+        --border-radius- 12px;
+        --border-radius- 20px;
         --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow- 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow- 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         --transition: color 0.2s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out, outline-color 0.2s ease-out, opacity 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out, fill 0.2s ease-out, stroke 0.2s ease-out;
     }
 
@@ -1011,8 +1011,8 @@
 
     .message.assistant-message .message-content {
         background: white;
-        border: 1px solid var(--gray-200);
-        color: var(--gray-800);
+        border: 1px solid var(--slate-200);
+        color: var(--slate-800);
         border-bottom-left-radius: 6px;
         box-shadow: var(--shadow);
     }
@@ -1039,7 +1039,7 @@
 
     .message-time {
         font-size: 0.75rem;
-        color: var(--gray-500);
+        color: var(--slate-500);
         margin-top: 0.25rem;
         text-align: right;
     }
@@ -1054,10 +1054,10 @@
         align-items: center;
         gap: 0.5rem;
         padding: 0.75rem 1.5rem;
-        background: var(--gray-50);
-        border-top: 1px solid var(--gray-200);
+        background: var(--slate-50);
+        border-top: 1px solid var(--slate-200);
         font-size: 0.875rem;
-        color: var(--gray-600);
+        color: var(--slate-600);
     }
 
     .typing-indicator.show {
@@ -1077,7 +1077,7 @@
     /* Área de entrada */
     .chat-input-container {
         background: white;
-        border-top: 1px solid var(--gray-200);
+        border-top: 1px solid var(--slate-200);
         padding: 1rem 1.5rem;
         position: sticky;
         bottom: 0;
@@ -1132,8 +1132,8 @@
         display: flex;
         align-items: flex-end;
         gap: 0.75rem;
-        background: var(--gray-50);
-        border: 2px solid var(--gray-200);
+        background: var(--slate-50);
+        border: 2px solid var(--slate-200);
         border-radius: var(--border-radius-lg);
         padding: 0.5rem;
         transition: var(--transition);
@@ -1181,7 +1181,7 @@
     }
 
     .send-button:disabled {
-        background: var(--gray-400);
+        background: var(--slate-400);
         cursor: not-allowed;
         transform: none;
     }
@@ -1423,20 +1423,20 @@
 
     .message-content.markdown-rendered th,
     .message-content.markdown-rendered td {
-        border: 1px solid var(--gray-300);
+        border: 1px solid var(--slate-300);
         padding: 0.5rem 0.75rem;
         text-align: left;
         vertical-align: top;
     }
 
     .message-content.markdown-rendered th {
-        background: var(--gray-100);
+        background: var(--slate-100);
         font-weight: 600;
     }
 
     .message-content.markdown-rendered pre {
-        background: var(--gray-900);
-        color: var(--gray-100);
+        background: var(--slate-900);
+        color: var(--slate-100);
         padding: 1rem;
         border-radius: var(--border-radius-sm);
         overflow-x: auto;
@@ -1445,7 +1445,7 @@
     }
 
     .message-content.markdown-rendered code:not(pre code) {
-        background: var(--gray-100);
+        background: var(--slate-100);
         color: var(--red-500);
         padding: 0.125rem 0.25rem;
         border-radius: 4px;
@@ -1458,16 +1458,16 @@
     }
 
     .chat-messages::-webkit-scrollbar-track {
-        background: var(--gray-100);
+        background: var(--slate-100);
     }
 
     .chat-messages::-webkit-scrollbar-thumb {
-        background: var(--gray-300);
+        background: var(--slate-300);
         border-radius: 3px;
     }
 
     .chat-messages::-webkit-scrollbar-thumb:hover {
-        background: var(--gray-400);
+        background: var(--slate-400);
     }
 
     /* Responsive Design */
@@ -1586,7 +1586,7 @@
             position: sticky;
             bottom: 0;
             background: white;
-            border-top: 1px solid var(--gray-200);
+            border-top: 1px solid var(--slate-200);
             z-index: 10;
             margin-top: auto;
             /* Soporte para safe area en iOS */
@@ -1707,7 +1707,7 @@
             position: sticky;
             bottom: 0;
             background: white;
-            border-top: 1px solid var(--gray-200);
+            border-top: 1px solid var(--slate-200);
             z-index: 10;
             margin-top: auto;
             padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
@@ -4660,7 +4660,7 @@ const sttStyles = `
 }
     .mic-button {
         order: 2; /* Después de los botones TTS */
-        background: var(--gray-200);
+        background: var(--slate-200);
         border: none;
         border-radius: 50%;
         width: 40px;
@@ -4675,7 +4675,7 @@ const sttStyles = `
     }
 
     .mic-button:hover {
-        background: var(--gray-300);
+        background: var(--slate-300);
         transform: scale(1.05);
     }
 
@@ -4758,7 +4758,7 @@ const sttStyles = `
     /* Botón TTS toggle mejorado */
     .tts-toggle-btn {
         order: 0; /* Primero en orden */
-        background: var(--gray-200);
+        background: var(--slate-200);
         border: none;
         border-radius: 50%;
         width: 40px;
@@ -4774,7 +4774,7 @@ const sttStyles = `
     }
 
     .tts-toggle-btn:hover {
-        background: var(--gray-300);
+        background: var(--slate-300);
         transform: scale(1.05);
     }
 
@@ -4799,7 +4799,7 @@ const sttStyles = `
     /* Botón compacto de velocidad TTS */
     .tts-speed-btn {
         order: 1; /* Segundo en orden, después del toggle */
-        background: var(--gray-200);
+        background: var(--slate-200);
         border: none;
         border-radius: 50%;
         width: 40px;
@@ -4825,20 +4825,20 @@ const sttStyles = `
     }
 
     .tts-speed-btn:hover {
-        background: var(--gray-300);
+        background: var(--slate-300);
         transform: scale(1.05);
     }
 
     .tts-speed-btn i {
         font-size: 14px;
-        color: var(--gray-600);
+        color: var(--slate-600);
         margin-right: 2px;
     }
 
     .speed-current {
         font-size: 10px;
         font-weight: 700;
-        color: var(--gray-700);
+        color: var(--slate-700);
         position: absolute;
         bottom: 2px;
         right: 2px;
@@ -4855,7 +4855,7 @@ const sttStyles = `
         bottom: calc(100% + 10px);
         left: 0;
         background: white;
-        border: 1px solid var(--gray-300);
+        border: 1px solid var(--slate-300);
         border-radius: 12px;
         padding: 12px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -4885,19 +4885,19 @@ const sttStyles = `
         align-items: center;
         margin-bottom: 12px;
         padding-bottom: 8px;
-        border-bottom: 1px solid var(--gray-200);
+        border-bottom: 1px solid var(--slate-200);
     }
 
     .speed-dropdown-header span {
         font-size: 13px;
         font-weight: 600;
-        color: var(--gray-700);
+        color: var(--slate-700);
     }
 
     .speed-close {
         background: none;
         border: none;
-        color: var(--gray-500);
+        color: var(--slate-500);
         cursor: pointer;
         padding: 4px;
         display: flex;
@@ -4908,8 +4908,8 @@ const sttStyles = `
     }
 
     .speed-close:hover {
-        background: var(--gray-100);
-        color: var(--gray-700);
+        background: var(--slate-100);
+        color: var(--slate-700);
     }
 
     .speed-slider-container {
@@ -4979,10 +4979,10 @@ const sttStyles = `
 
     .speed-preset {
         padding: 6px 8px;
-        background: var(--gray-50);
-        border: 1px solid var(--gray-300);
+        background: var(--slate-50);
+        border: 1px solid var(--slate-300);
         border-radius: 6px;
-        color: var(--gray-700);
+        color: var(--slate-700);
         font-size: 11px;
         font-weight: 600;
         cursor: pointer;

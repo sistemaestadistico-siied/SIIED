@@ -14,7 +14,7 @@
     
     <div class="container mx-auto px-4 py-6 relative z-10">
         <!-- Encabezado de historia -->
-        <div class="storybook-panel rounded-[26px] shadow-xl p-5 lg:p-7 mb-6">
+        <div class="storybook-panel rounded-[26px] shadow-lg p-5 lg:p-7 mb-6">
             <div class="flex items-center gap-4">
                 <div class="bg-white rounded-2xl p-4 border border-cyan-100">
                     <svg class="w-12 h-12 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
@@ -43,9 +43,9 @@
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
         <!-- Sidebar de indicadores - estilo índice de libro -->
         <aside class="lg:col-span-1">
-            <div class="bg-white rounded-3xl shadow-xl p-5 border border-cyan-100 sticky top-8">
+            <div class="bg-white rounded-2xl shadow-lg p-5 border border-cyan-100 sticky top-8">
                 <div class="text-center mb-4">
-                    <div class="w-24 h-24 rounded-[24px] bg-gradient-to-br from-cyan-400 to-sky-500 mx-auto flex items-center justify-center">
+                    <div class="w-24 h-24 rounded-[24px] bg-cyan-400 mx-auto flex items-center justify-center">
                         {% if subtema_actual.imagen_url %}
                             <img src="{{ subtema_actual.imagen_url }}" alt="{{ subtema_actual.nombre }}" class="h-16 w-16 object-contain">
                         {% elif subtema_actual.icono %}
@@ -61,17 +61,17 @@
                 <nav id="indicadores-nav" class="flex flex-col space-y-1 text-left">
                         {% for indicador in indicadores %}
                             <a href="#" data-indicador-id="{{ indicador.id }}" data-indicador-nombre="{{ indicador.nombre }}" data-mostrar-mapa="{{ indicador.mostrar_mapa|yesno:'true,false' }}"
-                               class="indicador-link px-2 py-2 rounded-lg text-xs font-bold transition-all transform hover:translate-x-2 hover:scale-105 bg-gradient-to-r from-yellow-50 to-orange-50 text-gray-700 hover:from-cyan-100 hover:to-teal-100 border-2 border-amber-300"
+                               class="indicador-link px-2 py-2 rounded-lg text-xs font-bold transition-all transform hover:translate-x-2 hover:scale-105 bg-yellow-50 text-slate-700 hover:bg-cyan-200 border-2 border-amber-300"
                                style="font-family: 'Comic Sans MS', cursive;">
                                 <span>{{ indicador.nombre }}</span>
                             </a>
                         {% empty %}
-                            <p class="text-xs text-gray-500 px-2 py-2" style="font-family: 'Comic Sans MS', cursive;">No hay datos disponibles.</p>
+                            <p class="text-xs text-slate-500 px-2 py-2" style="font-family: 'Comic Sans MS', cursive;">No hay datos disponibles.</p>
                         {% endfor %}
                     </nav>
                     
                     <!-- Esquina doblada -->
-                    <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[20px] border-l-transparent border-b-[20px] border-b-gray-300"></div>
+                    <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[20px] border-l-transparent border-b-[20px] border-b-slate-300"></div>
                 </div>
             </div>
         </aside>
@@ -80,7 +80,7 @@
         <main class="lg:col-span-4">
             <div class="relative">
                 <!-- Sombra de página -->
-                <div class="absolute -inset-1 bg-gray-400 rounded-2xl transform translate-x-2 translate-y-2"></div>
+                <div class="absolute -inset-1 bg-slate-400 rounded-2xl transform translate-x-2 translate-y-2"></div>
                 
                 <!-- Página principal con gráfico -->
                 <div class="relative bg-white rounded-2xl shadow-2xl p-4 lg:p-6 border-4 border-cyan-700" style="box-shadow: inset 0 2px 8px rgba(0,0,0,0.1);">
@@ -94,38 +94,38 @@
 
                         <!-- Filtros de Desagregaciones - estilo cuadro de colores (colapsable) -->
                         <button id="toggle-filtros-globales" type="button"
-                                class="mb-3 px-4 py-2 bg-gradient-to-r from-amber-300 to-orange-300 text-amber-900 rounded-full font-black shadow-md hover:scale-105 transition-all text-sm"
+                                class="mb-3 px-4 py-2 bg-amber-300 text-amber-900 rounded-full font-black shadow-md hover:scale-105 transition-all text-sm"
                                 style="font-family: 'Comic Sans MS', cursive;">
                             🎨 Filtros Mágicos <span id="toggle-filtros-icon">▼</span>
                         </button>
-                        <div id="filtros-globales-panel" class="hidden mb-4 p-3 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl shadow-inner border-3 border-yellow-400">
+                        <div id="filtros-globales-panel" class="hidden mb-4 p-3 bg-yellow-50 rounded-xl shadow-inner border-3 border-yellow-400">
                             <!-- Un control de filtro por cada dominio de desagregación -->
                             <div id="filtro-dominios" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div id="filtro-desagregaciones-geograficas">
-                                    <label class="block text-xs font-black text-gray-700 mb-1" style="font-family: 'Comic Sans MS', cursive;">🗺️ Lugares</label>
+                                    <label class="block text-xs font-black text-slate-700 mb-1" style="font-family: 'Comic Sans MS', cursive;">🗺️ Lugares</label>
                                     <select id="desagregaciones-geograficas" multiple class="w-full p-2 border-2 border-blue-400 rounded-lg shadow-md focus:ring-2 focus:ring-blue-400 bg-white text-sm" style="font-family: 'Comic Sans MS', cursive;"></select>
                                 </div>
                                 <div id="filtro-desagregaciones-tematicas">
-                                    <label class="block text-xs font-black text-gray-700 mb-1" style="font-family: 'Comic Sans MS', cursive;">🎯 Categorías</label>
+                                    <label class="block text-xs font-black text-slate-700 mb-1" style="font-family: 'Comic Sans MS', cursive;">🎯 Categorías</label>
                                     <select id="desagregaciones-tematicas" multiple class="w-full p-2 border-2 border-purple-400 rounded-lg shadow-md focus:ring-2 focus:ring-purple-400 bg-white text-sm" style="font-family: 'Comic Sans MS', cursive;"></select>
                                 </div>
                             </div>
 
                             <div class="mt-3 flex flex-wrap gap-2">
-                                <button id="aplicar-filtros" class="px-4 py-2 bg-gradient-to-r from-green-400 to-blue-400 text-white rounded-full hover:from-green-500 hover:to-blue-500 font-black shadow-lg transform hover:scale-110 transition-all text-sm" style="font-family: 'Comic Sans MS', cursive;">
+                                <button id="aplicar-filtros" class="px-4 py-2 bg-green-400 text-white rounded-full hover:bg-green-600 font-black shadow-lg transform hover:scale-110 transition-all text-sm" style="font-family: 'Comic Sans MS', cursive;">
                                     ✅ Aplicar
                                 </button>
-                                <button id="limpiar-filtros" class="px-4 py-2 bg-gradient-to-r from-red-400 to-pink-400 text-white rounded-full hover:from-red-500 hover:to-pink-500 font-black shadow-lg transform hover:scale-110 transition-all text-sm" style="font-family: 'Comic Sans MS', cursive;">
+                                <button id="limpiar-filtros" class="px-4 py-2 bg-red-400 text-white rounded-full hover:bg-red-600 font-black shadow-lg transform hover:scale-110 transition-all text-sm" style="font-family: 'Comic Sans MS', cursive;">
                                     🗑️ Limpiar
                                 </button>
                             </div>
                         </div>
 
                         <!-- Contenedor para los gráficos 3D - MÁS GRANDE Y PROMINENTE -->
-                        <div class="mt-4 p-4 bg-gradient-to-br from-cyan-50 to-teal-50 rounded-2xl shadow-2xl border-4 border-cyan-400">
+                        <div class="mt-4 p-4 bg-cyan-50 rounded-2xl shadow-2xl border-4 border-cyan-400">
                             <div class="flex items-center gap-2 mb-3">
-                                <div class="bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full p-2">
+                                <div class="bg-cyan-500 rounded-full p-2">
                                     <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z"></path>
                                         <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z"></path>
@@ -139,14 +139,14 @@
                         </div>
 
                         <!-- Controles de años (se crean dinámicamente) -->
-                        <div id="controles-anos" class="mt-4 p-3 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl shadow-md border-3 border-pink-400"></div>
+                        <div id="controles-anos" class="mt-4 p-3 bg-pink-50 rounded-xl shadow-md border-3 border-pink-400"></div>
 
                         <!-- Metadatos -->
                         <div id="metadatos-container" class="mt-4"></div>
                     </div>
                     
                     <!-- Esquina doblada -->
-                    <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[30px] border-l-transparent border-b-[30px] border-b-gray-300"></div>
+                    <div class="absolute bottom-0 right-0 w-0 h-0 border-l-[30px] border-l-transparent border-b-[30px] border-b-slate-300"></div>
                 </div>
             </div>
         </main>
@@ -154,7 +154,7 @@
     
     <!-- Decoración inferior -->
     <div class="mt-8 text-center pb-6">
-        <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-xl border-3 border-cyan-600">
+        <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-lg border-3 border-cyan-600">
             <span class="text-3xl">🎪</span>
             <p class="text-base font-bold text-cyan-900" style="font-family: 'Comic Sans MS', cursive;">
                 ¡Explora la ciudad de datos en 3D!
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const wrap = document.createElement('div');
             if (dom.dominio_padre) wrap.className = 'pl-3 border-l-2 border-amber-300';
             const label = document.createElement('label');
-            label.className = 'block text-xs font-black text-gray-700 mb-1';
+            label.className = 'block text-xs font-black text-slate-700 mb-1';
             label.style.fontFamily = "'Comic Sans MS', cursive";
             label.textContent = dom.nombre;
             wrap.appendChild(label);
@@ -636,8 +636,8 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     soundButton.id = 'sound-toggle';
     // En móviles: arriba-izquierda, en desktop: abajo-derecha
     const soundButtonClass = esMobil 
-        ? 'absolute top-4 left-4 z-10 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-full p-3 shadow-xl transition-all transform hover:scale-110'
-        : 'absolute bottom-4 right-4 z-10 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-full p-3 shadow-xl transition-all transform hover:scale-110';
+        ? 'absolute top-4 left-4 z-10 bg-blue-500 hover:bg-blue-700 rounded-full p-3 shadow-lg transition-all transform hover:scale-110'
+        : 'absolute bottom-4 right-4 z-10 bg-blue-500 hover:bg-blue-700 rounded-full p-3 shadow-lg transition-all transform hover:scale-110';
     soundButton.className = soundButtonClass;
     soundButton.innerHTML = `
         <svg id="sound-on-icon" class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -2883,7 +2883,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         const lerp = (cur, obj, k) => cur + (obj - cur) * Math.min(1, k * dt);
 
         // ---------- Modelo GLB: vuelo estacionario / aleteo ----------
-        // hover: cuerpo erguido, bajada al frente / subida atrás;
+        // cuerpo erguido, bajada al frente / subida atrás;
         // flap: planeo boca abajo, batida arriba/abajo.
         if (rig.mixer) {
             const prox = (o.moviendose ? rig.accionFlap : rig.accionHover)
@@ -3921,19 +3921,19 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             const n = Number(v);
             return Number.isNaN(n) ? String(v) : n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
         };
-        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-gray-200 text-sm">';
+        let html = '<div class="overflow-x-auto"><table class="min-w-full bg-white border border-slate-200 text-sm">';
 
         if (grafico.tipo_grafico === 'tabla_dinamica') {
             // Pivotada: series como filas, años como columnas
             const anosSet = new Set();
             (grafico.series || []).forEach(s => (s.x || []).forEach(x => anosSet.add(x)));
             const anos = Array.from(anosSet).sort();
-            html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
+            html += '<thead><tr class="bg-slate-100"><th class="py-2 px-4 border-b text-left">Categoría</th>';
             anos.forEach(a => { html += `<th class="py-2 px-4 border-b text-right">${a}</th>`; });
             html += '</tr></thead><tbody>';
             (grafico.series || []).forEach(s => {
                 const mapa = {}; (s.x || []).forEach((x, i) => { mapa[x] = (s.y || [])[i]; });
-                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
+                html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${s.name || 'Serie'}</td>`;
                 anos.forEach(a => {
                     const v = mapa[a] !== undefined ? mapa[a] : 'N/A';
                     html += `<td class="py-2 px-4 border-b text-right">${fmt(v)}</td>`;
@@ -3942,14 +3942,14 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
             });
         } else {
             // sin_grafico: tabla plana Año | Serie1 | Serie2 ...
-            html += '<thead><tr class="bg-gray-100"><th class="py-2 px-4 border-b text-left">Año</th>';
+            html += '<thead><tr class="bg-slate-100"><th class="py-2 px-4 border-b text-left">Año</th>';
             (grafico.series || []).forEach(s => { html += `<th class="py-2 px-4 border-b text-left">${s.name || 'Serie'}</th>`; });
             html += '</tr></thead><tbody>';
             let maxP = 0;
             (grafico.series || []).forEach(s => { if ((s.x || []).length > maxP) maxP = s.x.length; });
             for (let i = 0; i < maxP; i++) {
                 const cat = grafico.series[0] && grafico.series[0].x && grafico.series[0].x[i] !== undefined ? grafico.series[0].x[i] : 'N/A';
-                html += `<tr class="hover:bg-gray-50"><td class="py-2 px-4 border-b">${cat}</td>`;
+                html += `<tr class="hover:bg-slate-50"><td class="py-2 px-4 border-b">${cat}</td>`;
                 (grafico.series || []).forEach(s => {
                     const v = s.y && s.y[i] !== undefined ? s.y[i] : 'N/A';
                     html += `<td class="py-2 px-4 border-b">${fmt(v)}</td>`;
@@ -3989,7 +3989,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
 
         // UI: título y estado
         indicadorTitulo.textContent = indicadorNombre;
-        graficosContainer.innerHTML = `<div class="text-center p-8"><p class="text-gray-600">Cargando gráfico 3D...</p></div>`;
+        graficosContainer.innerHTML = `<div class="text-center p-8"><p class="text-slate-600">Cargando gráfico 3D...</p></div>`;
 
         // Cargar metadatos (misma llamada)
         cargarMetadatosIndicador(indicadorId);
@@ -4040,20 +4040,20 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
 
     // --- Cargar metadatos (idéntico al flujo original: petición a tu API) ---
     function cargarMetadatosIndicador(indicadorId) {
-        metadatosContainer.innerHTML = `<div class="text-sm text-gray-500">Cargando metadatos...</div>`;
+        metadatosContainer.innerHTML = `<div class="text-sm text-slate-500">Cargando metadatos...</div>`;
         prefetchQuizIndicador(indicadorId);
         fetch(`{% url 'indicadores:get_indicadores_simple' %}?indicador_id=${indicadorId}`)
             .then(r => r.ok ? r.json() : Promise.reject(r))
             .then(data => {
                 if (data.length > 0) {
                     const meta = data[0];
-                    metadatosContainer.innerHTML = `<div class="p-4 bg-gray-50 rounded"><strong>Fuente:</strong> ${meta.fuente || '—'} &nbsp; <strong>Definición:</strong> ${meta.definicion || '—'}</div>`;
+                    metadatosContainer.innerHTML = `<div class="p-4 bg-slate-50 rounded"><strong>Fuente:</strong> ${meta.fuente || '—'} &nbsp; <strong>Definición:</strong> ${meta.definicion || '—'}</div>`;
                 } else {
-                    metadatosContainer.innerHTML = `<div class="text-sm text-gray-500">No se encontraron metadatos.</div>`;
+                    metadatosContainer.innerHTML = `<div class="text-sm text-slate-500">No se encontraron metadatos.</div>`;
                 }
             })
             .catch(e => {
-                metadatosContainer.innerHTML = `<div class="text-sm text-gray-500">No se pudieron cargar metadatos.</div>`;
+                metadatosContainer.innerHTML = `<div class="text-sm text-slate-500">No se pudieron cargar metadatos.</div>`;
             });
     }
 
@@ -4123,11 +4123,11 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         controlesAniosContainer.innerHTML = '';
         const wrap = document.createElement('div');
         wrap.innerHTML = `
-            <label class="block text-sm font-medium text-gray-700 mb-2">Rango de años: <span id="ano-min-display">${rango.min}</span> — <span id="ano-max-display">${rango.max}</span></label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Rango de años: <span id="ano-min-display">${rango.min}</span> — <span id="ano-max-display">${rango.max}</span></label>
             <div class="flex items-center space-x-2">
                 <input id="rango-anios-min" type="range" min="${rango.min_disponible || rango.min}" max="${rango.max_disponible || rango.max}" value="${rango.min}" />
                 <input id="rango-anios-max" type="range" min="${rango.min_disponible || rango.min}" max="${rango.max_disponible || rango.max}" value="${rango.max}" />
-                <button id="restablecer-anios" class="px-3 py-1 bg-gray-200 rounded">Restablecer</button>
+                <button id="restablecer-anios" class="px-3 py-1 bg-slate-200 rounded">Restablecer</button>
             </div>
         `;
         controlesAniosContainer.appendChild(wrap);
@@ -4166,10 +4166,10 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
         controlesAniosContainer.innerHTML = '';
         const wrap = document.createElement('div');
         wrap.innerHTML = `
-            <label class="block text-sm font-medium text-gray-700 mb-2">Año: <span id="ano-unico-display">${anoSeleccionadoUnico}</span></label>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Año: <span id="ano-unico-display">${anoSeleccionadoUnico}</span></label>
             <div class="flex items-center space-x-2">
                 <input id="ano-unico-slider" type="range" min="${rango.min_disponible || rango.min}" max="${rango.max_disponible || rango.max}" value="${anoSeleccionadoUnico}" />
-                <button id="restablecer-ano-unico" class="px-3 py-1 bg-gray-200 rounded">Último año</button>
+                <button id="restablecer-ano-unico" class="px-3 py-1 bg-slate-200 rounded">Último año</button>
             </div>
         `;
         controlesAniosContainer.appendChild(wrap);
@@ -4242,7 +4242,7 @@ function iniciarExperiencia3D(container, containerId, grafico, esMobil) {
     if (primerIndicador) {
         cargarDesagregacionesYGrafico(primerIndicador);
     } else {
-        graficosContainer.innerHTML = `<div class="p-8 text-gray-500">No hay indicadores para mostrar.</div>`;
+        graficosContainer.innerHTML = `<div class="p-8 text-slate-500">No hay indicadores para mostrar.</div>`;
     }
 
     // Mensaje informativo removido según solicitud del usuario

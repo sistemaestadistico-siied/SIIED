@@ -1,0 +1,150 @@
+/* ============================================================
+   SIIED THEME — sistema de estilo normalizado
+   Fuente de verdad: lenguaje visual del home (.hcard, acentos
+   acidos, chips, pills). Todos los templates deben componer con
+   estas clases en lugar de inventar patrones ad hoc.
+   ============================================================ */
+
+:root {
+    /* Tokens de superficie */
+    --siied-border: #e7ecec;
+    --siied-radius-card: 1.25rem;
+    --siied-radius-ico: 1rem;
+    --siied-radius-pill: 9999px;
+    --siied-text: #1e293b;        /* slate-800 */
+    --siied-text-soft: #64748b;   /* slate-500 */
+    --siied-text-mute: #94a3b8;   /* slate-400 */
+    --siied-focus: #06b6d4;       /* cyan-500 */
+    --siied-shadow-card:
+        0 16px 32px -12px rgba(var(--hacc-rgb, 163, 230, 53), .30),
+        0 8px 16px -8px rgba(15, 23, 42, .10);
+}
+
+/* ---------- Acentos por tema (bg pastel + fg profundo) ---------- */
+.acc-lime    { background:#ecfccb; color:#4d7c0f; }
+.acc-cyan    { background:#cffafe; color:#0e7490; }
+.acc-emerald { background:#d1fae5; color:#047857; }
+.acc-fuchsia { background:#fae8ff; color:#a21caf; }
+.acc-amber   { background:#fef3c7; color:#b45309; }
+.acc-slate   { background:#f1f5f9; color:#475569; }
+.acc-sky     { background:#e0f2fe; color:#0369a1; }
+.acc-blue    { background:#dbeafe; color:#1d4ed8; }
+.acc-rose    { background:#ffe4e6; color:#be123c; }
+.acc-indigo  { background:#e0e7ff; color:#4338ca; }
+.acc-violet  { background:#ede9fe; color:#6d28d9; }
+
+/* ---------- Lienzo claro de pagina (disponible en cualquier template) ---------- */
+.page-canvas {
+    background: linear-gradient(180deg,
+        #ffffff 0%,
+        #fafdfe 40%,
+        #f2fafd 70%,
+        #e9f5fb 100%);
+    min-height: 60vh;
+}
+
+/* ---------- Tarjeta unificada ---------- */
+.hcard {
+    --hacc: #a3e635;                    /* lime-400 */
+    --hacc-rgb: 163, 230, 53;
+    --hacc-cta: #0d9488;                /* teal-600 */
+    --hacc-cta-h: #65a30d;              /* lime-600 */
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid var(--siied-border);
+    border-radius: var(--siied-radius-card);
+    padding: 1.5rem;
+    transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+}
+.hcard:hover {
+    transform: translateY(-4px);
+    border-color: var(--hacc);
+    box-shadow: var(--siied-shadow-card);
+}
+/* Variante cian: zonas cercanas a la marca azul del sistema */
+.hcard.hcyan {
+    --hacc: #22d3ee;
+    --hacc-rgb: 34, 211, 238;
+    --hacc-cta: #0e7490;
+    --hacc-cta-h: #0891b2;
+}
+.hcard-ico {
+    width: 3.25rem; height: 3.25rem;
+    border-radius: var(--siied-radius-ico);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem; font-size: 1.35rem;
+}
+.hcard-img { height: 5.5rem; width: 100%; object-fit: contain; }
+.hcard-cta {
+    color: var(--hacc-cta);
+    font-weight: 600; font-size: .875rem;
+    margin-top: auto; padding-top: .9rem;
+}
+.hcard:hover .hcard-cta { color: var(--hacc-cta-h); }
+.hcard-cta i { transition: transform .25s ease; }
+.hcard:hover .hcard-cta i.fa-arrow-right,
+.hcard:hover .hcard-cta i.fa-arrow-circle-right { transform: translateX(3px); }
+
+/* ---------- Tarjeta de estadistica ---------- */
+.stat-card {
+    background: #fff; border-radius: .75rem;
+    padding: .75rem 1rem; border: 1px solid #f1f5f9;
+}
+.stat-num { font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
+@media (min-width: 768px) { .stat-num { font-size: 1.875rem; } }
+
+/* ---------- Encabezado de seccion ---------- */
+.eyebrow {
+    display: inline-block;
+    padding: .25rem .75rem;
+    border-radius: var(--siied-radius-pill);
+    font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: .75rem;
+}
+.sect-head { max-width: 42rem; margin-bottom: 2.5rem; }
+.sect-head--center { max-width: none; margin-inline: auto; text-align: center; }
+.sect-head--center .sect-sub { margin-inline: auto; }
+.sect-title { font-size: 1.875rem; font-weight: 800; color: var(--siied-text); }
+@media (min-width: 1024px) { .sect-title { font-size: 2.25rem; } }
+.sect-sub { color: var(--siied-text-soft); margin-top: .5rem; }
+
+/* ---------- Botones pill normalizados ---------- */
+.sbtn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .625rem 1.25rem;
+    border-radius: var(--siied-radius-pill);
+    font-size: .875rem; font-weight: 700;
+    border: 1px solid transparent;
+    transition: color .2s ease, background-color .2s ease,
+                border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.sbtn-solid {
+    background: #22d3ee; color: #083344;   /* cyan-400 / cyan-950 */
+    box-shadow: 0 1px 2px rgba(8, 51, 68, .12);
+}
+.sbtn-solid:hover { background: #67e8f9; } /* cyan-300 */
+.sbtn-outline {
+    background: #fff; color: #334155;      /* slate-700 */
+    border-color: #e2e8f0;                 /* slate-200 */
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+}
+.sbtn-outline:hover { border-color: #22d3ee; color: #155e75; }
+.sbtn-lg { padding: .875rem 2rem; font-size: 1rem; }
+
+/* ---------- Chip / etiqueta ---------- */
+.schip {
+    display: inline-flex; align-items: center;
+    padding: .25rem .75rem;
+    border-radius: var(--siied-radius-pill);
+    font-size: .75rem; font-weight: 600;
+}
+
+/* ---------- Foco visible (Fundamentos: feedback) ---------- */
+a:focus-visible, button:focus-visible, summary:focus-visible,
+[role="button"]:focus-visible, .hcard:focus-visible, .sbtn:focus-visible {
+    outline: 2px solid var(--siied-focus);
+    outline-offset: 2px;
+    border-radius: .375rem;
+}

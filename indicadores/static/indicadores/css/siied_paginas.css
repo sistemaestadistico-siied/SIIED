@@ -1,7 +1,9 @@
 /* ============================================================
    SIIED — Sistema visual de paginas internas
-   Identico lenguaje del home: blanco, cian/azul priorizados,
-   acentos acidos suaves, tarjetas limpias.
+   Variante de siied_theme.css para paginas de catalogo/detalle:
+   consume los tokens compartidos (--siied-*) y replica el
+   lenguaje del home con API p-*. Requiere siied_theme.css
+   cargado antes (viene en indicadores/base.html).
    ============================================================ */
 
 /* Lienzo continuo: blanco arriba, cian muy tenue hacia el pie */
@@ -17,10 +19,10 @@
 /* ---------- Cabecera de pagina ---------- */
 .pchip {
     display: inline-flex; align-items: center; gap: .45rem;
-    padding: .28rem .9rem; border-radius: 9999px;
+    padding: .25rem .75rem; border-radius: var(--siied-radius-pill);
     background: #cffafe; color: #155e75;
-    font-size: .7rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .07em;
+    font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
 }
 
 .ptitle {
@@ -48,14 +50,15 @@
 /* ---------- Tarjetas ---------- */
 .pcard {
     display: block; background: #fff;
-    border: 1px solid #e2e8f0; border-radius: 1.1rem;
+    border: 1px solid var(--siied-border); border-radius: var(--siied-radius-card);
     box-shadow: 0 1px 3px rgba(2, 6, 23, .05);
     transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
 }
 .pcard:hover {
     transform: translateY(-4px);
-    border-color: #67e8f9;
-    box-shadow: 0 14px 28px -10px rgba(8, 145, 178, .22);
+    border-color: #22d3ee;
+    box-shadow: 0 16px 32px -12px rgba(34, 211, 238, .30),
+                0 8px 16px -8px rgba(15, 23, 42, .10);
 }
 .pcard-soft:hover { border-color: #bae6fd; box-shadow: 0 12px 24px -10px rgba(37, 99, 235, .16); }
 
@@ -127,8 +130,8 @@ a:hover .pcta, .group:hover .pcta { color: #65a30d; }
 
 /* ---------- Panel lateral / caja blanca ---------- */
 .pbox {
-    background: #fff; border: 1px solid #e2e8f0;
-    border-radius: 1.1rem; box-shadow: 0 1px 3px rgba(2,6,23,.05);
+    background: #fff; border: 1px solid var(--siied-border);
+    border-radius: var(--siied-radius-card); box-shadow: 0 1px 3px rgba(2,6,23,.05);
 }
 
 /* ---------- Banner de ayuda/CTA ---------- */
@@ -138,13 +141,16 @@ a:hover .pcta, .group:hover .pcta { color: #65a30d; }
 }
 .pbtn {
     display: inline-flex; align-items: center; gap: .5rem;
-    padding: .7rem 1.5rem; border-radius: 9999px;
-    font-weight: 700; font-size: .9rem;
-    background: #06b6d4; color: #083344;
+    padding: .625rem 1.25rem; border-radius: var(--siied-radius-pill);
+    font-weight: 700; font-size: .875rem;
+    background: #22d3ee; color: #083344;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 2px rgba(8, 51, 68, .12);
     transition: color .2s, background-color .2s, border-color .2s, outline-color .2s, opacity .2s, box-shadow .2s, transform .2s, fill .2s, stroke .2s;
 }
-.pbtn:hover { background: #22d3ee; transform: translateY(-2px); box-shadow: 0 8px 18px -6px rgba(6,182,212,.4); }
+.pbtn:hover { background: #67e8f9; }
 .pbtn-outline {
-    background: #fff; color: #0369a1; border: 2px solid #7dd3fc;
+    background: #fff; color: #334155; border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
 }
-.pbtn-outline:hover { background: #f0f9ff; border-color: #38bdf8; box-shadow: 0 8px 18px -6px rgba(56,189,248,.35); }
+.pbtn-outline:hover { border-color: #22d3ee; color: #155e75; }

@@ -3,7 +3,7 @@
 {% block content %}
 
 <!-- Hero Section with Emerald/Teal Theme -->
-<div class="relative bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 overflow-hidden">
+<div class="relative bg-emerald-600 overflow-hidden">
     <!-- Patrón de fondo -->
     <div class="absolute inset-0 opacity-10">
         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"40\" height=\"40\" viewBox=\"0 0 40 40\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.1\"%3E%3Cpath d=\"M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\"/%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -75,9 +75,9 @@
                             <div>
                                 <label class="block text-sm font-medium text-emerald-200 mb-2">Organismo</label>
                                 <select name="organismo" id="organismo-select" class="w-full bg-white/10 border border-emerald-400/30 rounded-lg px-4 py-3 text-white placeholder-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent">
-                                    <option value="" class="text-gray-800">Todos los organismos</option>
+                                    <option value="" class="text-slate-800">Todos los organismos</option>
                                     {% for organismo, suborganismos in organismos_data.items %}
-                                        <option value="{{ organismo }}" {% if organismo == organismo_filter %}selected{% endif %} class="text-gray-800">{{ organismo }}</option>
+                                        <option value="{{ organismo }}" {% if organismo == organismo_filter %}selected{% endif %} class="text-slate-800">{{ organismo }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -86,7 +86,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-emerald-200 mb-2">Suborganismo</label>
                                 <select name="suborganismo" id="suborganismo-select" class="w-full bg-white/10 border border-emerald-400/30 rounded-lg px-4 py-3 text-white placeholder-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent">
-                                    <option value="" class="text-gray-800">Todos los suborganismos</option>
+                                    <option value="" class="text-slate-800">Todos los suborganismos</option>
                                     <!-- Las opciones se llenarán dinámicamente -->
                                 </select>
                             </div>
@@ -100,7 +100,7 @@
                         </div>
 
                         <div class="flex flex-col sm:flex-row gap-3 pt-4">
-                            <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-6 py-3 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                            <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg px-6 py-3 transition-all duration-300 shadow-lg hover:shadow-lg transform hover:-translate-y-1">
                                 <i class="fas fa-search mr-2"></i>Aplicar Filtros
                             </button>
                             <a href="{% url 'indicadores:inventario_operaciones' %}" class="text-emerald-200 hover:text-white transition-colors duration-300 underline">
@@ -114,7 +114,7 @@
 
         <!-- Línea decorativa inferior -->
         <div class="mt-12 flex justify-center">
-            <div class="w-48 h-1 bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent rounded-full"></div>
+            <div class="w-48 h-1 from-transparent to-transparent rounded-full"></div>
         </div>
     </div>
 </div>
@@ -131,7 +131,7 @@
 
   <!-- Resumen -->
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-    <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg px-4 py-3 shadow-sm">
+    <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 shadow-sm">
       <div class="text-emerald-800 font-medium">Total registros: <span class="font-bold text-emerald-900">{{ total }}</span></div>
     </div>
   </div>
@@ -148,9 +148,9 @@
   </div>
   
   <!-- Tabla de operaciones -->
-  <div class="overflow-x-auto bg-white rounded-xl shadow-xl border border-emerald-100">
+  <div class="overflow-x-auto bg-white rounded-xl shadow-lg border border-emerald-100">
     <table class="min-w-full divide-y divide-emerald-100">
-      <thead class="bg-gradient-to-r from-emerald-600 to-teal-600">
+      <thead class="bg-emerald-600">
         <tr>
           <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Organismo</th>
           <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Suborganismo</th>
@@ -165,22 +165,22 @@
       </thead>
       <tbody class="bg-white divide-y divide-emerald-50">
         {% for op in operaciones %}
-        <tr class="hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition-colors duration-200">
-          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-900 font-medium">{{ op.organismo|default:'-' }}</td>
-          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.suborganismo|default:'-' }}</td>
+        <tr class=" hover:bg-emerald-150 transition-colors duration-200">
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-slate-900 font-medium">{{ op.organismo|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-slate-700">{{ op.suborganismo|default:'-' }}</td>
           <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-emerald-700 font-semibold">
             <a href="{% url 'indicadores:operacion_detalle' op.pk %}" class="hover:text-emerald-800 hover:underline transition-colors duration-300">{{ op.nombre }}</a>
           </td>
-          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.area_tem|default:'-' }}</td>
-          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.tema|default:'-' }}</td>
-          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700">{{ op.tipo_oe_i|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-slate-700">{{ op.area_tem|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-slate-700">{{ op.tema|default:'-' }}</td>
+          <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-slate-700">{{ op.tipo_oe_i|default:'-' }}</td>
           <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm">
             {% if op.sicode %}
               <span class="inline-flex items-center gap-1 lg:gap-2 px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs">
                 <span class="h-1.5 w-1.5 lg:h-2 lg:w-2 bg-emerald-500 rounded-full animate-pulse"></span>{{ op.sicode }}
               </span>
             {% else %}
-              <span class="text-gray-400">—</span>
+              <span class="text-slate-400">—</span>
             {% endif %}
           </td>
           <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm">
@@ -189,23 +189,23 @@
                 <i class="fas fa-external-link-alt text-xs"></i><span class="hidden lg:inline">Ver</span>
               </a>
             {% else %}
-              <span class="text-gray-400">—</span>
+              <span class="text-slate-400">—</span>
             {% endif %}
           </td>
           <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm">
             <a href="{% url 'indicadores:operacion_detalle' op.pk %}"
-               class="inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-1 lg:py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-xs">
+               class="inline-flex items-center gap-1 lg:gap-2 px-2 lg:px-4 py-1 lg:py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-xs">
               <i class="fas fa-eye text-xs"></i><span class="hidden lg:inline">Ver Detalle</span>
             </a>
           </td>
         </tr>
         {% empty %}
         <tr>
-          <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+          <td colspan="9" class="px-6 py-8 text-center text-slate-500">
             <div class="flex flex-col items-center space-y-3">
               <i class="fas fa-search text-4xl text-emerald-300"></i>
               <p class="text-lg font-medium">No se encontraron operaciones con los criterios de búsqueda.</p>
-              <p class="text-sm text-gray-400">Intente ajustar los filtros o la búsqueda.</p>
+              <p class="text-sm text-slate-400">Intente ajustar los filtros o la búsqueda.</p>
             </div>
           </td>
         </tr>
@@ -224,8 +224,8 @@
 
   <!-- Diccionario de datos -->
   <div class="mt-12">
-    <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-4">
-      <div class="w-12 h-12 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+    <h2 class="text-3xl font-bold text-slate-800 mb-6 flex items-center gap-4">
+      <div class="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
         <i class="fas fa-book text-white text-xl"></i>
       </div>
       Diccionario de datos del inventario
@@ -242,9 +242,9 @@
       </div>
     </div>
     
-    <div class="overflow-x-auto bg-white rounded-xl shadow-xl border border-emerald-100">
+    <div class="overflow-x-auto bg-white rounded-xl shadow-lg border border-emerald-100">
       <table class="min-w-full divide-y divide-emerald-100">
-        <thead class="bg-gradient-to-r from-emerald-600 to-teal-600">
+        <thead class="bg-emerald-600">
           <tr>
             <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">Variable</th>
             <th class="px-3 lg:px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[300px]">Descripción</th>
@@ -252,16 +252,16 @@
         </thead>
         <tbody class="bg-white divide-y divide-emerald-50">
           {% for item in diccionario %}
-          <tr class="hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition-colors duration-200">
+          <tr class=" hover:bg-emerald-150 transition-colors duration-200">
             <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm font-bold text-emerald-800">{{ item.variable }}</td>
-            <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-gray-700 whitespace-pre-line leading-relaxed">{{ item.descripcion }}</td>
+            <td class="px-3 lg:px-6 py-4 text-xs lg:text-sm text-slate-700 whitespace-pre-line leading-relaxed">{{ item.descripcion }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-8 text-center">
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-8 text-center">
         <div class="flex flex-col items-center space-y-4">
           <i class="fas fa-database text-5xl text-emerald-400"></i>
           <div>
@@ -290,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const organismoSeleccionado = organismoSelect.value;
 
         // Limpiar opciones actuales
-        suborganismoSelect.innerHTML = '<option value="" class="text-gray-800">Todos los suborganismos</option>';
+        suborganismoSelect.innerHTML = '<option value="" class="text-slate-800">Todos los suborganismos</option>';
 
         if (organismoSeleccionado && organismosData[organismoSeleccionado]) {
             // Agregar suborganismos del organismo seleccionado
@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const option = document.createElement('option');
                 option.value = suborganismo;
                 option.textContent = suborganismo;
-                option.className = 'text-gray-800'; // Aplicar clase para texto oscuro
+                option.className = 'text-slate-800'; // Aplicar clase para texto oscuro
 
                 // Mantener selección si coincide con filtro actual
                 if (suborganismo === '{{ suborganismo_filter }}') {

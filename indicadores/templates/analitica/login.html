@@ -4,61 +4,76 @@
 {% block title %}Ingreso — Analítica e Inteligencia Artificial SIIED{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-fuchsia-50 via-white to-violet-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+<div class="page-canvas flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="w-full max-w-md">
         <div class="text-center mb-8">
-            <div class="w-16 h-16 mx-auto rounded-2xl shadow-lg flex items-center justify-center mb-4" style="background:linear-gradient(135deg,#a21caf,#7c3aed);">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                </svg>
-            </div>
-            <h1 class="text-3xl font-bold text-slate-900">Analítica e IA</h1>
-            <p class="text-slate-600 text-sm mt-1">Administración de Don Datico y futuros tableros Superset</p>
+            <div class="hcard-ico acc-violet !mb-4 mx-auto" style="width:3.5rem;height:3.5rem;font-size:1.5rem;"><i class="fas fa-brain"></i></div>
+            <h1 class="sect-title">Analítica e IA</h1>
+            <p class="sect-sub text-sm">Administración de Don Datico y tableros Superset</p>
         </div>
 
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
-            <div class="px-8 py-6 text-center" style="background:linear-gradient(90deg,#a21caf,#7c3aed);">
-                <h2 class="text-xl font-bold text-white mb-1">Ingresa como analista</h2>
-                <p class="text-fuchsia-100 text-sm">Solo el equipo de analítica del SIIED tiene acceso</p>
-            </div>
-
+        <div class="bg-white border border-slate-200 shadow-sm overflow-hidden" style="border-radius:1.25rem;">
             <div class="p-8">
                 {% if messages %}
                 <div class="mb-6 space-y-3">
                     {% for msg in messages %}
-                    <div class="p-4 rounded-lg text-sm
-                        {% if msg.tags == 'error' %}bg-red-50 text-red-700 border border-red-200
-                        {% elif msg.tags == 'success' %}bg-green-50 text-green-700 border border-green-200
-                        {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                    <div class="p-4 rounded-xl text-sm border-l-4
+                        {% if msg.tags == 'error' %}bg-rose-50 text-rose-800 border-rose-400
+                        {% elif msg.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-400
+                        {% elif msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-400
+                        {% else %}bg-sky-50 text-sky-800 border-sky-400{% endif %}">
                         {{ msg }}
                     </div>
                     {% endfor %}
                 </div>
                 {% endif %}
 
-                <form method="post" class="space-y-6">
+                <form method="post" class="space-y-5">
                     {% csrf_token %}
                     <div>
-                        <label for="username" class="block text-sm font-medium text-slate-700 mb-2">Usuario</label>
-                        <input type="text" name="username" id="username" required autofocus
-                               class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent transition">
+                        <label for="username" class="block text-sm font-semibold text-slate-700 mb-2">Usuario</label>
+                        <input type="text" id="username" name="username" required autofocus
+                               class="block w-full px-4 py-3 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-colors placeholder-slate-400"
+                               placeholder="Tu nombre de usuario">
                     </div>
                     <div>
-                        <label for="password" class="block text-sm font-medium text-slate-700 mb-2">Contraseña</label>
-                        <input type="password" name="password" id="password" required
-                               class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:border-transparent transition">
+                        <label for="password" class="block text-sm font-semibold text-slate-700 mb-2">Contraseña</label>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required
+                                   class="block w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-colors placeholder-slate-400"
+                                   placeholder="Tu contraseña">
+                            <button type="button" onclick="togglePassword()"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                                    tabindex="-1" title="Mostrar/ocultar contraseña">
+                                <i id="eyeIcon" class="fas fa-eye"></i>
+                                <i id="eyeOffIcon" class="fas fa-eye-slash hidden"></i>
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit"
-                            class="w-full py-3 px-4 rounded-xl text-white font-semibold shadow-lg transition-all hover:opacity-90"
-                            style="background:linear-gradient(90deg,#a21caf,#7c3aed);">
-                        Ingresar
+                    <button type="submit" class="sbtn sbtn-solid w-full justify-center">
+                        <i class="fas fa-right-to-bracket"></i> Ingresar
                     </button>
                 </form>
 
+                <script>
+                function togglePassword() {
+                    const input = document.getElementById('password');
+                    const eyeIcon = document.getElementById('eyeIcon');
+                    const eyeOffIcon = document.getElementById('eyeOffIcon');
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        eyeIcon.classList.add('hidden');
+                        eyeOffIcon.classList.remove('hidden');
+                    } else {
+                        input.type = 'password';
+                        eyeIcon.classList.remove('hidden');
+                        eyeOffIcon.classList.add('hidden');
+                    }
+                }
+                </script>
+
                 <div class="mt-6 text-center">
-                    <a href="{% url 'indicadores:acceso_modulos' %}" class="text-sm text-fuchsia-600 hover:text-fuchsia-800 font-medium">
-                        ← Volver a Acceso a Módulos
-                    </a>
+                    <a href="{% url 'indicadores:acceso_modulos' %}" class="text-cyan-700 hover:text-cyan-800 font-medium text-sm">← Volver a Acceso a Módulos</a>
                 </div>
             </div>
         </div>

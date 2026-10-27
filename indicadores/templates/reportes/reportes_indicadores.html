@@ -12,14 +12,14 @@
     </a>
 </div>
 
-<h1 class="text-2xl font-serif font-bold text-slate-900 mb-6">Reportes de Indicadores</h1>
+<h1 class="text-2xl font-bold text-slate-900 mb-6">Reportes de Indicadores</h1>
 
 <!-- Sección de Descargas Masivas e Información -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
     <!-- Descargas Masivas -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6">
-            <h2 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-emerald-600 px-8 py-6">
+            <h2 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>Descargas Masivas
@@ -31,13 +31,13 @@
             </p>
             <div class="space-y-3">
                 <a href="{% url 'indicadores:reportes_descargar_datos_indicador_masivo' %}" 
-                   class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
+                   class="block w-full bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
                     <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>Descargar Todos los Datos
                 </a>
                 <a href="{% url 'indicadores:reportes_descargar_metadata_indicador_masivo' %}" 
-                   class="block w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
+                   class="block w-full bg-emerald-500 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-105 text-center">
                     <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>Descargar Toda la Metadata
@@ -47,9 +47,9 @@
     </div>
 
     <!-- Información -->
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-            <h2 class="text-xl font-serif font-bold text-white">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="bg-slate-600 px-8 py-6">
+            <h2 class="text-xl font-bold text-white">
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>Información
@@ -82,9 +82,9 @@
 </div>
 
 <!-- Lista de Indicadores -->
-<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-    <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-8 py-6">
-        <h2 class="text-xl font-serif font-bold text-white">
+<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="bg-slate-600 px-8 py-6">
+        <h2 class="text-xl font-bold text-white">
             <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
             </svg>Indicadores Disponibles

@@ -10,8 +10,12 @@ import json
 
 
 def producto_educativo(request, slug):
-    """Vista principal del producto educativo (infantil o adolescente)"""
-    producto = get_object_or_404(ProductoEducativo, slug=slug, estado='publicado')
+    """Vista principal del producto educativo (infantil o adolescente).
+    Público solo ve publicados; staff puede previsualizar cualquier estado."""
+    if request.user.is_authenticated and request.user.is_staff:
+        producto = get_object_or_404(ProductoEducativo, slug=slug)
+    else:
+        producto = get_object_or_404(ProductoEducativo, slug=slug, estado='publicado')
     secciones = producto.secciones.all().order_by('numero_orden')
     
     # Seleccionar template según público
@@ -20,9 +24,17 @@ def producto_educativo(request, slug):
     else:  # adolescente
         template = 'indicadores/producto_educativo_adolescente.html'
     
+    # Menú propio compartido: los productos educativos (infantil y
+    # adolescente) se enlazan entre sí, separados de los académicos.
+    otros_qs = ProductoEducativo.objects.exclude(pk=producto.pk)
+    if not (request.user.is_authenticated and request.user.is_staff):
+        otros_qs = otros_qs.filter(estado='publicado')
+    otros_educativos = otros_qs.order_by('publico', 'titulo')
+
     context = {
         'producto': producto,
         'secciones': secciones,
+        'otros_educativos': otros_educativos,
         'page': 'educativos',
     }
     

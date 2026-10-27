@@ -586,6 +586,8 @@ def _nz_cfg(request):
     sus URLs internas con los nombres de validación."""
     request._nz_tmpl = 'validacion/normalizacion/'
     request._nz_dom_url = 'indicadores:validacion_conciliacion_dominio'
+    request._nz_ind_url = 'indicadores:validacion_conciliacion_indicador'
+    request._nz_list_url = 'indicadores:validacion_conciliacion'
 
 
 @validador_sistema_required
@@ -628,6 +630,12 @@ def validacion_conciliacion_eliminar(request):
 def validacion_conciliacion_dominio(request, dominio_id):
     _nz_cfg(request)
     return _nz.wizard_dominio_detalle.__wrapped__(request, dominio_id)
+
+
+@validador_sistema_required
+def validacion_conciliacion_indicador(request, indicador_id):
+    _nz_cfg(request)
+    return _nz.wizard_indicador_detalle.__wrapped__(request, indicador_id)
 
 
 @validador_required

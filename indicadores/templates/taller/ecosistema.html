@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
+body { overflow: hidden; font-family: 'Inter', sans-serif; }
 #eco-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
 
 /* --- Panel superior --- */
@@ -30,16 +30,16 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
     background: rgba(255,255,255,0.95); border-radius: 10px; padding: 12px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.12); width: 180px;
 }
-.eco-controls h3 { font-size: 10px; font-weight: 800; color: #004b87; text-transform: uppercase; margin-bottom: 8px; }
+.eco-controls h3 { font-size: 10px; font-weight: 800; color: #155e75; text-transform: uppercase; margin-bottom: 8px; }
 .eco-controls button, .eco-controls a {
     display: block; width: 100%; padding: 7px; margin-bottom: 5px; border: 1px solid #e2e8f0;
     border-radius: 6px; background: #f8fafc; color: #2d3748; font-size: 11px;
     font-weight: 600; cursor: pointer; transition: color 0.2s, background-color 0.2s, border-color 0.2s, outline-color 0.2s, opacity 0.2s, box-shadow 0.2s, transform 0.2s, fill 0.2s, stroke 0.2s;
-    font-family: 'Montserrat', sans-serif; text-decoration: none; text-align: center;
+    font-family: 'Inter', sans-serif; text-decoration: none; text-align: center;
     box-sizing: border-box;
 }
-.eco-controls button:hover, .eco-controls a:hover { background: #e6f7ff; border-color: #007bb5; color: #004b87; }
-.eco-controls button.activo { background: #004b87; color: #fff; border-color: #004b87; }
+.eco-controls button:hover, .eco-controls a:hover { background: #e6f7ff; border-color: #0891b2; color: #155e75; }
+.eco-controls button.activo { background: #155e75; color: #fff; border-color: #155e75; }
 
 /* --- Panel de filtros (sup. izquierdo) --- */
 .eco-filtros {
@@ -48,12 +48,12 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
     box-shadow: 0 4px 16px rgba(0,0,0,0.12); width: 240px;
     max-height: calc(100vh - 140px); overflow-y: auto;
 }
-.eco-filtros h3 { font-size: 10px; font-weight: 800; color: #004b87; text-transform: uppercase; margin-bottom: 8px; }
+.eco-filtros h3 { font-size: 10px; font-weight: 800; color: #155e75; text-transform: uppercase; margin-bottom: 8px; }
 .eco-filtros .eco-search {
     width: 100%; padding: 8px 10px; border: 2px solid #e2e8f0; border-radius: 6px;
-    font-size: 12px; margin-bottom: 10px; font-family: 'Montserrat', sans-serif;
+    font-size: 12px; margin-bottom: 10px; font-family: 'Inter', sans-serif;
 }
-.eco-filtros .eco-search:focus { outline: none; border-color: #007bb5; }
+.eco-filtros .eco-search:focus { outline: none; border-color: #0891b2; }
 .eco-filtros .eco-filtro-grupo { margin-bottom: 10px; }
 .eco-filtros .eco-filtro-grupo h4 {
     font-size: 10px; font-weight: 700; color: #4a5568; text-transform: uppercase;
@@ -63,7 +63,7 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
     display: flex; align-items: center; gap: 6px; font-size: 11px;
     color: #2d3748; padding: 3px 0; cursor: pointer; font-weight: 600;
 }
-.eco-filtros input[type="checkbox"] { accent-color: #004b87; width: 14px; height: 14px; }
+.eco-filtros input[type="checkbox"] { accent-color: #155e75; width: 14px; height: 14px; }
 .eco-filtros .eco-count {
     font-size: 10px; color: #718096; font-weight: 600; margin-top: 6px;
     padding-top: 6px; border-top: 1px solid #e2e8f0;
@@ -87,14 +87,14 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
     font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
     padding: 2px 10px; border-radius: 10px; border: 1px solid; display: inline-block; margin-bottom: 8px;
 }
-.eco-info h2 { font-size: 15px; font-weight: 800; color: #004b87; margin-bottom: 6px; line-height: 1.3; }
+.eco-info h2 { font-size: 15px; font-weight: 800; color: #155e75; margin-bottom: 6px; line-height: 1.3; }
 .eco-info .eco-info-org { font-size: 11px; color: #718096; font-weight: 600; margin-bottom: 10px; }
 .eco-info .eco-info-row {
     display: flex; gap: 8px; margin-bottom: 6px; padding-bottom: 5px;
     border-bottom: 1px solid #f0f4f8; font-size: 11px; line-height: 1.4;
 }
 .eco-info .eco-info-row:last-child { border-bottom: none; }
-.eco-info .eco-info-label { font-weight: 700; color: #004b87; min-width: 90px; flex-shrink: 0; }
+.eco-info .eco-info-label { font-weight: 700; color: #155e75; min-width: 90px; flex-shrink: 0; }
 .eco-info .eco-info-val { color: #2d3748; flex: 1; }
 
 /* --- Leyenda (inf. izquierdo) --- */
@@ -103,7 +103,7 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
     background: rgba(255,255,255,0.95); border-radius: 10px; padding: 10px 14px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.12); font-size: 10px;
 }
-.eco-leyenda h3 { font-size: 9px; font-weight: 800; color: #004b87; text-transform: uppercase; margin-bottom: 6px; }
+.eco-leyenda h3 { font-size: 9px; font-weight: 800; color: #155e75; text-transform: uppercase; margin-bottom: 6px; }
 .eco-leyenda .eco-leyenda-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
 .eco-leyenda .eco-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .eco-leyenda .eco-line { width: 20px; height: 2px; flex-shrink: 0; }
@@ -124,11 +124,11 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
 }
 .eco-loading .spinner {
     width: 40px; height: 40px; border: 4px solid #e2e8f0;
-    border-top-color: #004b87; border-radius: 50%;
+    border-top-color: #155e75; border-radius: 50%;
     margin: 0 auto 12px; animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.eco-loading p { font-size: 13px; color: #004b87; font-weight: 700; }
+.eco-loading p { font-size: 13px; color: #155e75; font-weight: 700; }
 
 /* --- Resumen accesible (alternativa textual al canvas 3D) --- */
 .eco-resumen {
@@ -137,7 +137,7 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
     box-shadow: 0 4px 16px rgba(0,0,0,0.12); font-size: 11px; max-width: 300px;
     max-height: 40vh; overflow-y: auto;
 }
-.eco-resumen summary { font-size: 10px; font-weight: 800; color: #004b87; text-transform: uppercase; cursor: pointer; }
+.eco-resumen summary { font-size: 10px; font-weight: 800; color: #155e75; text-transform: uppercase; cursor: pointer; }
 .eco-resumen ul { margin: 8px 0 0 16px; color: #2d3748; }
 .eco-resumen li { margin-bottom: 2px; }
 
@@ -226,7 +226,7 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
 <div class="eco-leyenda">
     <h3>Leyenda</h3>
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:#ffd700;box-shadow:0 0 8px #ffd700;"></div> Capa Gold (Sol)</div>
-    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#007bb5;"></div> Base catálogo</div>
+    <div class="eco-leyenda-item"><div class="eco-dot" style="background:#0891b2;"></div> Base catálogo</div>
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:#f5a86b;"></div> Organismo (planeta)</div>
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:#a78bfa;"></div> Suborganismo (luna)</div>
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:#4fc3f7;box-shadow:0 0 6px #4fc3f7;"></div> Equipo (estación)</div>
@@ -235,7 +235,7 @@ body { overflow: hidden; font-family: 'Montserrat', sans-serif; }
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:#ef92c4;"></div> Fuente de información</div>
     <div class="eco-leyenda-item" style="margin-top:6px;font-size:9px;color:#718096;">Jerarquía: Organismo → Suborganismo → Equipo → Conjunto</div>
     <div class="eco-leyenda-item" style="font-size:9px;color:#718096;">Altura: retos arriba · conjuntos abajo · externas bajo el plano</div>
-    <div class="eco-leyenda-item" style="margin-top:4px;font-size:9px;font-weight:800;color:#004b87;">Criticidad F3 (anillo):</div>
+    <div class="eco-leyenda-item" style="margin-top:4px;font-size:9px;font-weight:800;color:#155e75;">Criticidad F3 (anillo):</div>
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:transparent;border:3px solid #e53e3e;width:8px;height:8px;"></div> Rojo — crítico</div>
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:transparent;border:3px solid #f6ad55;width:8px;height:8px;"></div> Amarillo — moderado</div>
     <div class="eco-leyenda-item"><div class="eco-dot" style="background:transparent;border:3px solid #38a169;width:8px;height:8px;"></div> Verde — público</div>

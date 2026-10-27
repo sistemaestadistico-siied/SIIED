@@ -47,7 +47,7 @@
 
         <div class="space-y-6 mb-10" id="niveles">
             {% for nivel in niveles %}
-            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="px-7 py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
                     <div>
                         <h2 class="font-bold text-slate-800 text-lg"><i class="fas fa-map-marked-alt text-cyan-600 mr-2"></i>{{ nivel.nombre }}</h2>
@@ -80,7 +80,7 @@
         </div>
 
         {% if capa_sel %}
-        <div class="bg-white rounded-3xl border border-cyan-200 shadow-sm overflow-hidden mb-8" id="elementos">
+        <div class="bg-white rounded-2xl border border-cyan-200 shadow-sm overflow-hidden mb-8" id="elementos">
             <div class="px-7 py-5 border-b border-slate-100 bg-cyan-50/50">
                 <p class="text-xs font-bold text-cyan-700 uppercase tracking-wider mb-1">Elementos de la capa</p>
                 <h2 class="font-bold text-slate-800">{{ capa_sel.nombre }}

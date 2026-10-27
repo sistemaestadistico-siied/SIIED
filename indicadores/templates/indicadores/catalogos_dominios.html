@@ -5,8 +5,8 @@
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="text-center mb-12">
-        <h1 class="text-4xl font-bold text-gray-900 mb-4">Catálogos de Datos</h1>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold text-slate-900 mb-4">Catálogos de Datos</h1>
+        <p class="text-xl text-slate-600 max-w-3xl mx-auto">
             Directorios y listados de referencia organizados por dominio de desagregación
             (hospitales, teatros, colegios, comunas, etc.).
         </p>
@@ -17,22 +17,22 @@
         <div class="mb-10">
             <h2 class="text-2xl font-bold text-primary-800 mb-4 border-b-2 border-primary-200 pb-2">
                 {{ item.dominio.nombre }}
-                <span class="text-sm font-normal text-gray-500 ml-2">({{ item.dominio.get_tipo_display }})</span>
+                <span class="text-sm font-normal text-slate-500 ml-2">({{ item.dominio.get_tipo_display }})</span>
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for catalogo in item.catalogos %}
                 <a href="{% url 'indicadores:catalogo_detalle' catalogo.pk %}"
-                   class="block bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 p-6 border border-gray-200 hover:border-primary-400">
+                   class="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 border border-slate-200 hover:border-primary-400">
                     <div class="flex items-start gap-4">
                         <div class="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0">
                             <i class="fas fa-table text-primary-600 text-xl"></i>
                         </div>
                         <div class="min-w-0">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ catalogo.nombre }}</h3>
+                            <h3 class="text-lg font-semibold text-slate-900 mb-1">{{ catalogo.nombre }}</h3>
                             {% if catalogo.descripcion %}
-                            <p class="text-sm text-gray-600 line-clamp-2">{{ catalogo.descripcion }}</p>
+                            <p class="text-sm text-slate-600 line-clamp-2">{{ catalogo.descripcion }}</p>
                             {% endif %}
-                            <p class="text-xs text-gray-400 mt-2">
+                            <p class="text-xs text-slate-400 mt-2">
                                 {% if catalogo.extension == 'csv' %}<i class="fas fa-file-csv mr-1"></i>{% else %}<i class="fas fa-file-excel mr-1"></i>{% endif %}
                                 {{ catalogo.extension|upper }} · Actualizado {{ catalogo.fecha_actualizacion|date:"d/m/Y" }}
                             </p>
@@ -44,9 +44,9 @@
         </div>
         {% endfor %}
     {% else %}
-        <div class="text-center py-16 bg-gray-50 rounded-lg">
-            <i class="fas fa-folder-open text-5xl text-gray-300 mb-4"></i>
-            <p class="text-gray-500 text-lg">Aún no hay catálogos de datos publicados.</p>
+        <div class="text-center py-16 bg-slate-50 rounded-lg">
+            <i class="fas fa-folder-open text-5xl text-slate-300 mb-4"></i>
+            <p class="text-slate-500 text-lg">Aún no hay catálogos de datos publicados.</p>
         </div>
     {% endif %}
 </div>

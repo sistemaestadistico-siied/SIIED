@@ -137,7 +137,7 @@
                         <input type="radio" name="plantilla" value="{{ plantilla.id }}"
                                {% if wizard_data.plantilla == plantilla.id %}checked{% endif %}
                                required class="hidden peer">
-                        <div class="bg-white border-2 border-slate-200 rounded-2xl p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg peer-checked:border-indigo-600 peer-checked:bg-gradient-to-b peer-checked:from-indigo-50/50 peer-checked:to-white">
+                        <div class="bg-white border-2 border-slate-200 rounded-2xl p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg peer-checked:border-indigo-600 peer-checked: peer-checked:to-white">
                             <div class="text-5xl mb-4">
                                 {% if plantilla.id == 'censo' %}📊{% elif plantilla.id == 'paper' %}📄{% elif plantilla.id == 'informe' %}📋{% elif plantilla.id == 'infantil' %}🎨{% else %}🔬{% endif %}
                             </div>

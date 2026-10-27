@@ -1,0 +1,348 @@
+@startuml Flujos_SIIED
+title SIIED — Mapa integral de flujos (391 rutas)\nCiclos paralelos por módulo — cada lane arranca y cierra de forma independiente\nConvergencias: |3|→|4|→|5| · |2|,|6|,|10|→|5| · |5|,|7|,|8|,|10|→|11| · |12| gobierna todo
+
+skinparam activity {
+  BackgroundColor #ffffff
+  BorderColor #155e75
+  FontName "Inter"
+  FontSize 11
+}
+skinparam note {
+  BackgroundColor #f0f9ff
+  BorderColor #0891b2
+  FontSize 10
+}
+skinparam partition {
+  FontColor #164e63
+  FontStyle bold
+}
+
+|1#E6F2F7|Acceso a Módulos
+start
+:Portal /acceso-modulos/\n7 accesos internos + home;
+note right
+  Punto de partida de TODOS los
+  ciclos: delegado, validación,
+  recolección, reportes,
+  editorial, analítica, admin.
+  Cada lane abajo es un ciclo
+  paralelo con su propio login.
+end note
+stop
+
+|2#FEF3C7|Taller Gestión de Datos (INICIO DE AÑO)
+start
+:Landing /taller/ + cartel público;
+:Wizard inscripción — 16 pasos;
+note right
+  identificacion → fuente-general →
+  fuente-actualizacion → fuente-rol →
+  fuente-proposito → fuente-variables →
+  fuente-calidad → fuente-diccionario →
+  reto-definicion → reto-unidades →
+  reto-fuentes → reto-tratamiento →
+  seguridad-datos → seguridad-uso →
+  seguridad-divulgacion → seguridad-valoracion
+  Modelos: InscripcionTaller, FuenteDatos,
+  VariableFuente, RetoAnalisis,
+  EvaluacionSeguridad, AvanceFormalizacion
+end note
+:Confirmación de inscripción;
+note bottom
+  ENTREGA → lane 5: las fuentes declaradas
+  entran a la cola validacion/fuentes-taller
+end note
+fork
+  :Dashboard taller\n(casos F2, informe, presentación);
+  :Ecosistema de fuentes\n(gexf/svg, metodología, modelo de datos);
+  :Exportar CSV/Excel/variables;
+end fork
+stop
+
+|3#FFEDD5|Portal de Organismos — Delegado
+start
+:Login /delegado/login/;
+:Dashboard + Mis indicadores;
+fork
+  :Cargar SERIE indicador\n(archivo xlsx o datos inline);
+  :Metadata + Variables\n(metadata-form, variables-form);
+  :Cargar CONJUNTO DE DATOS\n(fuente tabular completa);
+  :Actualizar existente\nDeconstruir tabla · Plantillas;
+end fork
+if (¿Carga incompleta?) then (borrador)
+  :Completar serie/conjunto después\n[/completar/];
+endif
+:Enviar a validación;
+note right
+  Estados del ciclo:
+  borrador → enviado → en_revision →
+  prevalidado → aprobado → procesado
+  (+ rechazado, correcciones_solicitadas)
+  Modelos: CargaSerieIndicador,
+  CargaConjuntoDatos
+  ENTREGA → lane 4 (prevalidación org)
+  → luego lane 5 (colas serie/conjunto)
+end note
+:Historial + seguimiento;
+if (¿Fin de año?) then (sí → FICED)
+  :/delegado/ficed/\n(equipo ETUAG_PSP/ETOBS/ETPP/ETSGC/ETGIE);
+  :Redirige a lane 10\n(iced/formulario);
+endif
+stop
+
+|4#FEF9C3|Validador del Organismo
+start
+:Recibe cargas del lane 3\n[estado en_revision];
+:Revisar carga en_revision;
+if (¿Cumple requisitos?) then (sí)
+  :PREVALIDAR\n[prevalidado];
+  note bottom
+    ENTREGA → lane 5:
+    la carga prevalidada pasa
+    a las colas del panel SIIED
+  end note
+else (no)
+  :Solicitar correcciones\n[correcciones_solicitadas];
+  note bottom: LOOP → regresa a lane 3 (delegado)
+endif
+stop
+
+|5#FECACA|Panel de Validación SIIED
+start
+:Login /validacion/login/;
+:Dashboard de pendientes;
+note right
+  RECIBE de 4 lanes:
+  |3| series/conjuntos delegado
+  |6| cargas internas recolección
+  |2| fuentes declaradas taller
+  |10| formularios ICED/FICED
+end note
+fork
+  :Revisar SERIE\n/serie/<id>/ → /decidir/;
+  :Revisar CONJUNTO DE DATOS\n/conjuntos-datos/<id>/ → /decidir/;
+  :Revisar FUENTES DE TALLER\n/fuentes-taller/<pk>/ → /decidir/;
+  :Revisar ICED\n/iced/<id>/ → calcular → decidir;
+end fork
+if (¿Decisión?) then (aprobar)
+  :Aprobar\n[aprobado];
+elseif (corregir) then
+  :Correcciones\n[correcciones_solicitadas];
+  note bottom: LOOP → regresa a lane 3 / lane 6
+else (rechazar)
+  :Rechazar\n[rechazado];
+endif
+:Procesar e integrar\n[procesado];
+note bottom
+  ENTREGA → lane 11: lo procesado
+  se publica en el sitio de audiencia
+end note
+fork
+  :Crear gráfico simplificado\n/crear-grafico/<indicador_id>/;
+  :Sellos de calidad\n/sellos/otorgar/<tipo>/<pk>/;
+  :Conciliación ICED por organismo+período;
+  :Conciliación de fuentes\n(manual/equivalencias/preview/aplicar);
+  :Normalización de identidad\n(buscar/actualizar-codigo/importar/conciliar);
+  :Gestión Catálogo de Variables\n(variables + valores + 5 tablas referencia);
+  :Historial + Manual;
+end fork
+stop
+
+|6#EDE9FE|Recolección (equipo interno SIIED)
+start
+:Login /recoleccion/login/;
+:Dashboard;
+note bottom: ENTREGA → lane 5: sus cargas entran\na validación igual que las del delegado
+fork
+  :Cargar SERIE\n/cargar-serie/ + inline + metadata + variables;
+  :Carga MASIVA\n/cargar-masiva/ → revisar →\nconfigurar gráficos → confirmar;
+  :Cargar CONJUNTO DE DATOS\n/cargar-conjuntos-datos/;
+end fork
+:Herramientas de apoyo;
+note right
+  dashboard-cargas/: descarga CSV de
+  datos y metadata de cada carga
+end note
+fork
+  :Deconstruir tabla\n+ metadata generar-ia;
+  :Plantillas xlsx\n(6 tipos: serie, metadata, masiva datos,\nmasiva metadata, conjuntos, variables);
+  :Reportes internos\n(datos/metadata por indicador y conjunto);
+  :Historial series + conjuntos;
+  :Instrucciones + Manual;
+end fork
+stop
+
+|7#DBEAFE|Editorial
+start
+:Login /editorial/login/;
+:Dashboard + Manual;
+fork
+  :PRODUCTOS ACADÉMICOS\n/productos/ → wizard → secciones\n(nueva/editar/eliminar/mover)\n→ gráficos → preview → publicar;
+  :NOTICIAS\nlistado → crear → generar-ia →\neditar → preview → eliminar;
+  :EVENTOS + Calendario;
+  :CALENDARIO DE DIFUSIÓN\nlistado/crear/editar/exportar;
+  :SISTEMAS DE INFORMACIÓN\nlistado/crear/editar/eliminar + categorías;
+  :PROYECTOS DE INFORMACIÓN\nlistado/crear/editar/eliminar + categorías;
+  :DOCUMENTOS\nlistado/crear/editar/eliminar;
+  :INFRAESTRUCTURA ESTADÍSTICA\nárbol: áreas→categorías→subcategorías→grupos\n(12 rutas CRUD anidadas);
+  :GRÁFICOS EDITORIALES\nlistado → crear → editar → eliminar\n+ api buscar-graficos;
+  :CATÁLOGO DE CONSULTA\nlistado/crear/editar/eliminar;
+  :Don Datico IA editorial\n/ia/dondatico/;
+end fork
+:Publicar en el sitio público;
+note bottom
+  ENTREGA → lane 11
+  Modelos: ProductoAcademico, SeccionPaper,
+  EstadisticaNoticia, Evento, SistemaInformacion,
+  ProyectoInformacion, DocumentoInfraestructura,
+  CalendarioDifusion, CatalogoConsulta
+end note
+stop
+
+|8#D1FAE5|Analítica e IA
+start
+:Login /analitica/login/;
+:Dashboard + Configuración\n+ Contextos + Sugerencias;
+fork
+  :SIIED BI — Superset\n/superset/: crear, subir-csv,\nsincronizar, explorar,\ndashboard/<id>, manual;
+  :DON DATICO analítica\n/superset/dondatico/:\nconsultar, analizar, generar;
+  :BI público\n/bi/<dashboard_id>/;
+end fork
+note bottom: ENTREGA → lane 11: dashboards BI\ny chat público de Don Datico
+:Vista analítica del TALLER\n(22 rutas /analitica/taller/);
+note right
+  reportes, ecosistema, catalogo,
+  fuentes (+conciliar, detalle, accion),
+  retos (detalle, accion), organismos,
+  seguridad, exportar csv/excel/variables/
+  informe, casos-f2, presentacion,
+  modelo-datos
+end note
+stop
+
+|9#E0E7FF|Reportes
+start
+:Login /reportes/login/;
+:Dashboard;
+note right
+  RECIBE datos de:
+  |5| trazabilidad de cargas
+  |10| resultados ICED
+  |11| visitas PageVisit
+end note
+fork
+  :Indicadores\n/indicadores/ → datos CSV\n(+masivo) → metadata CSV (+masivo);
+  :Conjuntos de datos\n→ datos CSV + metadata variables;
+  :Trazabilidad de cargas\n/trazabilidad/ + exportar Excel;
+  :Operaciones estadísticas;
+  :Producción mensual\n+ exportar Excel;
+  :Visitas (PageVisit)\n+ exportar Excel;
+end fork
+stop
+
+|10#FCE7F3|ICED / FICED (FIN DE AÑO)
+start
+:Landing /iced/ + /iced/equipo/\n+ /iced/modulo/ público;
+note right
+  Entrada doble: landing pública
+  o redirigido desde lane 3
+  (/delegado/ficed/)
+end note
+:Formulario wizard — 11 pasos;
+note right
+  identificacion(A) → entorno(B) →
+  infraestructura_c1 → infraestructura_c2 →
+  infraestructura_c3 → metodologia_d1 →
+  metodologia_d2 → metodologia_d3 →
+  metodologia_d4 → accesibilidad(E) →
+  revision → enviar
+  Modelos: ICEDFormulario (borrador→enviado→
+  validado/devuelto/rechazado), ICEDRecursoHumano,
+  ICEDPersonaContacto, ICEDMacroProceso,
+  ICEDProceso, ICEDSubproceso, ICEDProcedimiento,
+  ICEDPreguntaEquipo
+end note
+:guardar-parcial (ajax)\nretomar por formulario_id;
+:Confirmación → Resultado\n+ chat asistente + exportar-csv;
+note bottom
+  ENTREGA → lane 5 (validacion/iced/\n<id>/calcular/decidir + conciliar)\n→ alimenta lane 9 y el hall público de lane 11
+end note
+stop
+
+|11#ECFDF5|AUDIENCIA — Home y accesos públicos
+start
+:Home /\n(hero, buscador semántico,\nherramientas, conjuntos, conectividad,\ninstrumentos, destacados, noticias, eventos);
+note right
+  DESTINO FINAL — recibe de:
+  |5| indicadores/conjuntos procesados
+  |7| contenido editorial publicado
+  |8| dashboards BI + chat
+  |10| hall de capacidad ICED
+  APIs públicas clave:
+  get_dominios/temas/subtemas/indicadores,
+  get_graficos, get_desagregaciones,
+  get_mapa + geojson + valores_geo,
+  get_datos_indicadores, buscar semántico,
+  catalogo-consulta list/detail,
+  conjuntos-datos csv + ficha técnica,
+  educativos progreso/quiz,
+  procesos status/logs en vivo
+end note
+fork
+  :DOMINIOS → /dominio/\n→ tema → subtema → /3d/\nlibro digital dominios-3d (3 niveles);
+  :CONJUNTOS DE DATOS\n/conjuntos/ + explorer + detalle\n+ APIs datasets/hierarchical/rows/headers;
+  :VISOR COMPARATIVO\n/visor-comparativo/;
+  :CATÁLOGO DE DATOS (taller)\n/catalogo/ + ficha + api fuentes;
+  :CATÁLOGO DE VARIABLES\n/catalogo-variables/: geografías,\ndominios, conjuntos, ecosistema,\nfuente/campo, ficha por id;
+  :SISTEMAS DE INFORMACIÓN\n+ proyectos + catalogos + catalogo-consulta;
+  :INFRAESTRUCTURA pública\nárbol 5 niveles hasta documento;
+  :INVENTARIO DE OPERACIONES\n+ operacion_detalle;
+  :HALL DE CAPACIDAD\n/hall-capacidad/ + organismo detalle;
+  :PRODUCTOS ACADÉMICOS\n+ EDUCATIVOS (quiz, progreso, logros);
+  :NOTICIAS + EVENTOS + ALIADOS\n+ CALENDARIO DIFUSIÓN + ICED módulo;
+  :CHAT DON DATICO\n/chat/: message, stream,\nsuggestions + TTS;
+  :LABORATORIO\ngenerar/guardar tableros IA\n+ quiz-indicador;
+  :API ABIERTA (43 endpoints)\n+ api-documentation + MCP-instructivo\n+ skill-api-abierta;
+  :SATISFACCIÓN pública\nformulario + rápida + gracias\npor organismo/equipo;
+end fork
+stop
+
+|12#F3E8FF|Administración (ÚLTIMO)
+start
+:Login /admin/ (Django);
+:Index dashboard custom;
+note right
+  Gobierna TODOS los lanes:
+  76 modelos del dominio,
+  monitoreo de los ciclos,
+  config del chat, satisfacción
+end note
+fork
+  :Modelos del dominio\n(76 modelos registrados);
+  :Wizard admin unificado\n/wizard/ + diagnostico-ajax\n+ regla-ia + dashboard;
+  :Monitoreo\n/monitoring/ + APIs stats:\nsystem, cache, data-quality,\nperformance, page-visits;
+  :Procesos en vivo\n/admin/procesos/ + /procesos/<id>/\n+ status + logs;
+  :Config chat\n/chat-config/ + contextos\n+ sugerencias + update-embeddings;
+  :Satisfacción admin\ndashboard + organismos\n+ exportar (rapidas/completas CSV);
+  :Restart services;
+  :Workspace /workspace/;
+end fork
+stop
+
+legend right
+  |= Color ||= Ciclo paralelo |
+  |<#E6F2F7>| Acceso |
+  |<#FEF3C7>| Taller (ene) |
+  |<#FFEDD5>| Delegado |
+  |<#FEF9C3>| Validador org. |
+  |<#FECACA>| Validación SIIED |
+  |<#EDE9FE>| Recolección |
+  |<#DBEAFE>| Editorial |
+  |<#D1FAE5>| Analítica |
+  |<#E0E7FF>| Reportes |
+  |<#FCE7F3>| ICED/FICED (dic) |
+  |<#ECFDF5>| Audiencia |
+  |<#F3E8FF>| Administración |
+endlegend
+
+@enduml

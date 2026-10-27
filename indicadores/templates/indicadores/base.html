@@ -53,8 +53,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'indicadores/css/siied_theme.css' %}">
     <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css">
+    <script>
+        // Escala coroplética oficial SIIED (azul secuencial, mínimo visible sobre fondo blanco).
+        // Única fuente de verdad: todos los mapas del sitio la referencian.
+        window.SIIED_COLORSCALE = [
+            [0, '#9fc9ea'],
+            [0.2, '#63b3ed'],
+            [0.4, '#4299e1'],
+            [0.6, '#3182ce'],
+            [0.8, '#2c5aa0'],
+            [1, '#1a365d']
+        ];
+    </script>
     <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
     <style>
         body {
@@ -197,7 +210,7 @@
     
     {% block extra_css %}{% endblock %}
 </head>
-<body class="bg-gray-50">
+<body class="bg-slate-50">
     {% block floating_chat %}
     <div class="floating-chat">
         <a href="{% url 'indicadores:chat' %}" title="Chatea con Don Datico">
@@ -206,7 +219,7 @@
     </div>
     {% endblock %}
     <!-- Header con diseño moderno -->
-    <header class="bg-white text-white shadow-xl relative z-[100]">
+    <header class="bg-white text-white shadow-lg relative z-[100]">
         <div class="md:h-20 bg-gov-100 w-full items-center">
             <div class="grid grid-cols-2 container mx-auto px-4 py-2 items-center">
                 <div class="place-self-start py-2">
@@ -217,9 +230,9 @@
                     </a>
                 </div>
                 <div class="place-self-end py-2 flex items-center gap-2 md:gap-4">
-                <a class="text-white text-lg md:text-2xl font-bold hover:text-gray-200 transition duration-200" href="https://www.cali.gov.co/participacion/publicaciones/43/oficina-de-atencin-al-ciudadano/">PQRSD</a>
+                <a class="text-white text-lg md:text-2xl font-bold hover:text-slate-200 transition duration-200" href="https://www.cali.gov.co/participacion/publicaciones/43/oficina-de-atencin-al-ciudadano/">PQRSD</a>
                 <div class="h-6 md:h-8 w-px bg-white opacity-50"></div>
-                <a class="text-white text-lg md:text-2xl hover:text-gray-200 transition duration-200" href="{% url 'indicadores:acceso_modulos' %}" title="Acceso a Módulos">
+                <a class="text-white text-lg md:text-2xl hover:text-slate-200 transition duration-200" href="{% url 'indicadores:acceso_modulos' %}" title="Acceso a Módulos">
                     <i class="fas fa-sign-in-alt"></i>
                 </a>
             </div>
@@ -257,7 +270,7 @@
                             <i class="fas fa-magic text-sky-500"></i>
                         </div>
                         <input type="text" id="header-semantic-search-input" 
-                               class="w-full pl-10 pr-12 py-2.5 rounded-full border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm shadow-sm bg-gray-50 text-gray-800 transition-all" 
+                               class="w-full pl-10 pr-12 py-2.5 rounded-full border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm shadow-sm bg-slate-50 text-slate-800 transition-all" 
                                placeholder="Buscador Inteligente de Indicadores...">
                         <button id="header-semantic-search-btn" class="absolute right-1 top-1/2 -translate-y-1/2 bg-sky-600 hover:bg-sky-700 text-white w-8 h-8 rounded-full flex items-center justify-center transition-colors">
                             <i class="fas fa-search text-sm"></i>
@@ -265,13 +278,13 @@
                     </div>
 
                     <!-- Contenedor de Resultados (Flotante) -->
-                    <div id="header-semantic-search-results" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-100 hidden z-[9999] max-h-[80vh] overflow-hidden flex-col" style="transform: translateZ(0);">
-                        <div class="p-3 border-b bg-gray-50 flex justify-between items-center text-gray-800">
+                    <div id="header-semantic-search-results" class="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 hidden z-[9999] max-h-[80vh] overflow-hidden flex-col" style="transform: translateZ(0);">
+                        <div class="p-3 border-b bg-slate-50 flex justify-between items-center text-slate-800">
                             <h4 class="font-semibold text-sm">Resultados IA</h4>
-                            <span id="header-search-status" class="text-xs text-gray-500"></span>
-                            <button id="header-search-close" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                            <span id="header-search-status" class="text-xs text-slate-500"></span>
+                            <button id="header-search-close" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
                         </div>
-                        <div id="header-results-container" class="overflow-y-auto p-2 space-y-2 text-gray-800 text-sm max-h-[60vh] custom-scrollbar">
+                        <div id="header-results-container" class="overflow-y-auto p-2 space-y-2 text-slate-800 text-sm max-h-[60vh] custom-scrollbar">
                             <!-- Resultados aquí -->
                         </div>
                     </div>
@@ -286,34 +299,34 @@
             <ul class="flex flex-wrap justify-around md:justify-center space-x-0 md:space-x-8">
                 <!-- Siempre visibles (también en móvil) -->
                 <li class="py-4">
-                    <a href="{% url 'indicadores:home' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'inicio' %}text-primary-600 active{% endif %}">
+                    <a href="{% url 'indicadores:home' %}" class="nav-link px-3 py-2 text-slate-700 hover:text-primary-600 font-medium {% if page == 'inicio' %}text-primary-600 active{% endif %}">
                         Inicio
                     </a>
                 </li>
                 <li class="py-4">
-                    <a href="{% url 'indicadores:conjuntos_indicadores' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'conjuntos' %}text-primary-600 active{% endif %}">
+                    <a href="{% url 'indicadores:conjuntos_indicadores' %}" class="nav-link px-3 py-2 text-slate-700 hover:text-primary-600 font-medium {% if page == 'conjuntos' %}text-primary-600 active{% endif %}">
                         Indicadores
                     </a>
                 </li>
                 <!-- Solo escritorio / desplegable en móvil -->
                 <li class="py-4 nav-extra hidden md:block">
-                    <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page == 'catalogo_consulta' %}text-primary-600 active{% endif %}">
+                    <a href="{% url 'indicadores:catalogo_consulta_listado' %}" class="nav-link px-3 py-2 text-slate-700 hover:text-primary-600 font-medium {% if page == 'catalogo_consulta' %}text-primary-600 active{% endif %}">
                         Catálogos
                     </a>
                 </li>
                 <li class="py-4">
-                    <a href="{% url 'indicadores:sistemas_informacion' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'sistemas' %}text-primary-600 active{% endif %}">
+                    <a href="{% url 'indicadores:sistemas_informacion' %}" class="nav-link px-3 py-2 text-slate-700 hover:text-primary-600 font-medium {% if page_context == 'sistemas' %}text-primary-600 active{% endif %}">
                         Sistemas de Consulta
                     </a>
                 </li>
                 <li class="py-4 nav-extra hidden md:block">
-                    <a href="{% url 'indicadores:infraestructura_index' %}" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium {% if page_context == 'infraestructura' %}text-primary-600 active{% endif %}">
+                    <a href="{% url 'indicadores:infraestructura_index' %}" class="nav-link px-3 py-2 text-slate-700 hover:text-primary-600 font-medium {% if page_context == 'infraestructura' %}text-primary-600 active{% endif %}">
                         Infraestructura
                     </a>
                 </li>
                 <!-- Botón 'Más': solo móvil, despliega los nav-extra -->
                 <li class="py-4 md:hidden">
-                    <button type="button" onclick="toggleNavExtra()" class="nav-link px-3 py-2 text-gray-700 hover:text-primary-600 font-medium" aria-label="Mostrar más opciones del menú">
+                    <button type="button" onclick="toggleNavExtra()" class="nav-link px-3 py-2 text-slate-700 hover:text-primary-600 font-medium" aria-label="Mostrar más opciones del menú">
                         Más <i id="nav-more-icon" class="fas fa-chevron-down ml-1 text-xs"></i>
                     </button>
                 </li>
@@ -391,7 +404,7 @@
 
 
     <!-- Footer moderno con gradiente y efecto de onda -->
-    <footer class="bg-gradient-to-r from-primary-700 to-primary-800 text-white py-12 relative overflow-hidden">
+    <footer class="bg-primary-700 text-white py-12 relative overflow-hidden">
         <div class="absolute inset-0 bg-footer-wave opacity-10"></div>
         <div class="container mx-auto px-4 relative z-10">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -475,7 +488,7 @@
                 headerSearchBtn.disabled = true;
                 headerSearchBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
                 headerResultsContainer.classList.remove('hidden');
-                headerResultsList.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-magic fa-spin text-xl mb-2 text-sky-500"></i><p class="text-xs">Consultando a la Inteligencia Artificial...</p></div>';
+                headerResultsList.innerHTML = '<div class="text-center py-4 text-slate-500"><i class="fas fa-magic fa-spin text-xl mb-2 text-sky-500"></i><p class="text-xs">Consultando a la Inteligencia Artificial...</p></div>';
                 headerSearchStatus.textContent = '';
 
                 fetch(`{% url 'indicadores:api_buscar_indicadores' %}?q=${encodeURIComponent(query)}`)
@@ -485,8 +498,8 @@
                         
                         if (!data.success || !data.resultados || data.resultados.length === 0) {
                             headerResultsList.innerHTML = `
-                                <div class="text-center py-4 text-gray-500">
-                                    <i class="fas fa-search-minus text-2xl mb-2 text-gray-300"></i>
+                                <div class="text-center py-4 text-slate-500">
+                                    <i class="fas fa-search-minus text-2xl mb-2 text-slate-300"></i>
                                     <p class="text-xs">No encontramos indicadores para esta búsqueda.</p>
                                 </div>`;
                             headerSearchStatus.textContent = '0 resultados';
@@ -507,7 +520,7 @@
                                 .replace('SUB_SLUG', ind.subtema_slug);
 
                             // Determinar el color de relevancia
-                            let relevanceColor = 'bg-gray-100 text-gray-600';
+                            let relevanceColor = 'bg-slate-100 text-slate-600';
                             let relevanceText = 'Relacionado';
                             
                             if (ind.similitud > 0.75) {
@@ -519,17 +532,17 @@
                             }
 
                             const resultHtml = `
-                                <div class="p-3 border-b border-gray-50 hover:bg-gray-50 transition-colors group">
+                                <div class="p-3 border-b border-slate-50 hover:bg-slate-50 transition-colors group">
                                     <div class="flex justify-between items-start mb-1">
-                                        <h5 class="text-sm font-bold text-gray-800 group-hover:text-sky-700 transition-colors">${ind.nombre}</h5>
+                                        <h5 class="text-sm font-bold text-slate-800 group-hover:text-sky-700 transition-colors">${ind.nombre}</h5>
                                         <span class="px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ml-2 ${relevanceColor}">${relevanceText}</span>
                                     </div>
-                                    <div class="text-[11px] text-gray-500 mb-2 flex items-center flex-wrap gap-1">
-                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100"><i class="fas fa-layer-group mr-1"></i>${ind.dominio_nombre}</span>
-                                        <i class="fas fa-chevron-right text-gray-300 text-[8px]"></i>
-                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100">${ind.tema_nombre}</span>
-                                        <i class="fas fa-chevron-right text-gray-300 text-[8px]"></i>
-                                        <span class="bg-white px-1.5 py-0.5 rounded border border-gray-100">${ind.subtema_nombre}</span>
+                                    <div class="text-[11px] text-slate-500 mb-2 flex items-center flex-wrap gap-1">
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-slate-100"><i class="fas fa-layer-group mr-1"></i>${ind.dominio_nombre}</span>
+                                        <i class="fas fa-chevron-right text-slate-300 text-[8px]"></i>
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-slate-100">${ind.tema_nombre}</span>
+                                        <i class="fas fa-chevron-right text-slate-300 text-[8px]"></i>
+                                        <span class="bg-white px-1.5 py-0.5 rounded border border-slate-100">${ind.subtema_nombre}</span>
                                     </div>
                                     <div class="flex gap-2">
                                         <a href="${urlEstandar}" class="inline-flex items-center px-2 py-1 bg-sky-50 text-sky-700 hover:bg-sky-600 hover:text-white rounded text-xs font-medium transition-colors">

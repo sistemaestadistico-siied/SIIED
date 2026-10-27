@@ -5,7 +5,7 @@
 
 {% block content %}
 <!-- Hero Section del Evento -->
-<div class="relative bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white overflow-hidden">
+<div class="relative bg-primary-600 text-white overflow-hidden">
     <!-- Background Pattern -->
     <div class="absolute inset-0 bg-black/10">
         <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fill-rule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fill-opacity=\"0.05\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -32,7 +32,7 @@
                         En curso
                     </span>
                     {% elif evento.es_evento_pasado %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-600 border border-slate-200">
                         <i class="fas fa-check mr-2"></i>
                         Finalizado
                     </span>
@@ -88,7 +88,7 @@
                     {% if evento.url_externa %}
                     <a href="{{ evento.url_externa }}" 
                        target="_blank"
-                       class="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-xl">
+                       class="inline-flex items-center px-6 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-primary-50 transition-all duration-300 shadow-lg hover:shadow-lg">
                         <i class="fas fa-external-link-alt mr-3"></i>
                         Más información
                     </a>
@@ -107,7 +107,7 @@
                 {% if evento.imagen_url %}
                 <div class="relative rounded-2xl overflow-hidden shadow-2xl">
                     <img src="{{ evento.imagen_url }}" alt="{{ evento.nombre }}" class="w-full h-96 object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                    <div class="absolute inset-0 from-black/20 to-transparent"></div>
                 </div>
                 {% else %}
                 <div class="relative bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 shadow-2xl h-96 flex items-center justify-center">
@@ -126,10 +126,10 @@
             <!-- Descripción principal -->
             <div class="lg:col-span-2 space-y-8">
                 <div>
-                    <h2 class="text-3xl font-bold text-gray-800 mb-6">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-6">
                         Descripción del Evento
                     </h2>
-                    <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed">
+                    <div class="prose prose-lg max-w-none text-slate-700 leading-relaxed">
                         {{ evento.descripcion|safe }}
                     </div>
                 </div>
@@ -166,8 +166,8 @@
             <!-- Sidebar con información del evento -->
             <div class="space-y-8">
                 <!-- Detalles del evento -->
-                <div class="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                    <h3 class="text-xl font-bold text-gray-800 mb-6">
+                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                    <h3 class="text-xl font-bold text-slate-800 mb-6">
                         <i class="fas fa-calendar-alt mr-2 text-primary-600"></i>
                         Detalles del Evento
                     </h3>
@@ -177,8 +177,8 @@
                         <div class="flex items-start space-x-3">
                             <i class="fas fa-calendar text-primary-500 mt-1"></i>
                             <div>
-                                <div class="font-medium text-gray-800">{{ evento.fecha_inicio|date:"l, d F Y" }}</div>
-                                <div class="text-sm text-gray-600">
+                                <div class="font-medium text-slate-800">{{ evento.fecha_inicio|date:"l, d F Y" }}</div>
+                                <div class="text-sm text-slate-600">
                                     {{ evento.fecha_inicio|date:"H:i" }}
                                     {% if evento.fecha_fin %}
                                         - {{ evento.fecha_fin|date:"H:i" }}
@@ -191,8 +191,8 @@
                         <div class="flex items-start space-x-3">
                             <i class="fas fa-map-marker-alt text-primary-500 mt-1"></i>
                             <div>
-                                <div class="font-medium text-gray-800">Ubicación</div>
-                                <div class="text-sm text-gray-600">{{ evento.lugar }}</div>
+                                <div class="font-medium text-slate-800">Ubicación</div>
+                                <div class="text-sm text-slate-600">{{ evento.lugar }}</div>
                             </div>
                         </div>
                         
@@ -201,15 +201,15 @@
                         <div class="flex items-start space-x-3">
                             <i class="fas fa-clock text-primary-500 mt-1"></i>
                             <div>
-                                <div class="font-medium text-gray-800">Duración</div>
-                                <div class="text-sm text-gray-600">{{ evento.duracion_horas }} horas</div>
+                                <div class="font-medium text-slate-800">Duración</div>
+                                <div class="text-sm text-slate-600">{{ evento.duracion_horas }} horas</div>
                             </div>
                         </div>
                         {% endif %}
                     </div>
                     
                     {% if evento.url_externa %}
-                    <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="mt-6 pt-6 border-t border-slate-200">
                         <a href="{{ evento.url_externa }}" 
                            target="_blank"
                            class="w-full inline-flex items-center justify-center px-4 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors duration-200">
@@ -222,21 +222,21 @@
                 
                 <!-- Eventos relacionados -->
                 {% if eventos_relacionados %}
-                <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-lg">
-                    <h3 class="text-xl font-bold text-gray-800 mb-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
+                    <h3 class="text-xl font-bold text-slate-800 mb-6">
                         <i class="fas fa-calendar-plus mr-2 text-primary-600"></i>
                         Próximos Eventos
                     </h3>
                     
                     <div class="space-y-4">
                         {% for evento_relacionado in eventos_relacionados %}
-                        <div class="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors duration-200">
-                            <h4 class="font-medium text-gray-800 mb-2">
+                        <div class="border border-slate-100 rounded-lg p-4 hover:bg-slate-50 transition-colors duration-200">
+                            <h4 class="font-medium text-slate-800 mb-2">
                                 <a href="{% url 'indicadores:evento_detalle' slug=evento_relacionado.slug %}" class="hover:text-primary-600 transition-colors">
                                     {{ evento_relacionado.nombre|truncatechars:40 }}
                                 </a>
                             </h4>
-                            <div class="text-sm text-gray-600 space-y-1">
+                            <div class="text-sm text-slate-600 space-y-1">
                                 <div class="flex items-center space-x-2">
                                     <i class="fas fa-calendar text-xs"></i>
                                     <span>{{ evento_relacionado.fecha_inicio|date:"d M Y" }}</span>
@@ -250,7 +250,7 @@
                         {% endfor %}
                     </div>
                     
-                    <div class="mt-6 pt-6 border-t border-gray-200">
+                    <div class="mt-6 pt-6 border-t border-slate-200">
                         <a href="{% url 'indicadores:eventos' %}" 
                            class="w-full inline-flex items-center justify-center px-4 py-2 text-primary-600 font-medium text-sm hover:text-primary-700 transition-colors duration-200">
                             Ver todos los eventos
