@@ -210,6 +210,29 @@ class ElementoGeo(models.Model):
         verbose_name_plural = "Elementos Geográficos"
 
 
+class CapaGeoJSON(models.Model):
+    """Geometrías en GeoJSON materializadas para consumo externo (Superset).
+
+    No es la fuente canónica: se regenera desde ElementoGeo.geom_wkt con
+    `manage.py export_geojson_superset`. Superset hace JOIN contra esta
+    tabla (por codigo o por nombre) para construir mapas coropléticos.
+    """
+    capa_geo = models.ForeignKey(CapaGeo, on_delete=models.CASCADE,
+                                 related_name='geojson_export')
+    codigo = models.CharField(max_length=100, db_index=True)
+    nombre = models.CharField(max_length=255, db_index=True)
+    geojson = models.TextField(help_text="Geometría serializada como GeoJSON")
+    actualizado = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.capa_geo.nombre} / {self.codigo} - {self.nombre}"
+
+    class Meta:
+        verbose_name = "GeoJSON exportado (Superset)"
+        verbose_name_plural = "GeoJSON exportados (Superset)"
+        unique_together = [('capa_geo', 'codigo')]
+
+
 class DominioDesagregacion(models.Model):
     TIPO_CHOICES = [
         ('tematica', 'Temática'),

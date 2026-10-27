@@ -198,6 +198,46 @@ python manage.py check
 # Login SIIED como analista_organismo → /analitica/superset/ lista solo datasets visibles
 ```
 
+## 9. Mapas coropléticos con capas geográficas SIIED
+
+Las geometrías (comunas, corregimientos, etc.) viven en `ElementoGeo.geom_wkt`
+(WKT texto). Superset no puede subir archivos GeoJSON — los datasets vienen de
+tablas/vistas de BD — así que se materializa una tabla puente:
+
+```bash
+python manage.py export_geojson_superset            # todas las capas
+python manage.py export_geojson_superset --capa-id 7 --dry-run
+```
+
+Genera `indicadores_capageojson` (`capa_geo_id, codigo, nombre, geojson`),
+idempotente por `(capa_geo, codigo)`. Re-correr tras recargar geometrías.
+
+**En Superset** (la conexión `SIIED - Indicadores` debe apuntar a la BD de
+Django para que vea la tabla):
+
+1. Subir el Excel de la dependencia como dataset físico.
+2. Crear **dataset virtual** (SQL Lab → guardar como dataset) uniendo métricas
+   con geometría:
+
+   ```sql
+   SELECT d.*, g.geojson
+   FROM <tabla_excel> d
+   JOIN indicadores_capageojson g
+     ON lpad(d.codigo_comuna::text, 2, '0') = lpad(g.codigo, 2, '0')
+   WHERE g.capa_geo_id IN (SELECT id FROM indicadores_capageo
+                           WHERE nombre LIKE 'Comuna %')
+   ```
+
+   Si el Excel trae nombre de comuna en vez de código, el join es
+   `UPPER(g.nombre) = UPPER(d.comuna)` — normalizar tildes/mayúsculas antes.
+3. Crear gráfico **deck.gl Polygon**: columna geojson = `geojson`, métrica =
+   `sum(valor)`, tooltip = nombre + valor. Esa es la coropleta.
+4. Armar el dashboard → embeber en SIIED vía guest token (sección 5).
+
+> Nota: `wkt_to_geojson` aplica una aproximación lineal UTM→WGS84 para Cali
+> (la misma que usan los mapas del portal). Si se requiere precisión
+> cartográfica en Superset, habilitar PostGIS y usar `ST_AsGeoJSON`.
+
 ---
 
 *Última actualización: rebranding + modelo de acceso seguro (guest tokens,

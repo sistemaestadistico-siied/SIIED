@@ -55,6 +55,7 @@ from .models import (
     ProductoAcademico, SeccionPaper, CatalogoDominio, CatalogoConsulta, Organismo
 )
 from .search import SemanticSearch
+from .utils_geo import wkt_to_geojson
 from collections import defaultdict as _dd
 from django.db.models import Sum, Q, Max, Case, When, IntegerField, Value, Count, F, FloatField
 from decimal import Decimal, InvalidOperation
@@ -2141,129 +2142,8 @@ def geojson_indicador(request, indicador_id):
             }
         })
 
-    # Conversor muy simple de WKT -> GeoJSON (POLYGON/MULTIPOLYGON/LINESTRING/POINT)
-    def _coords_from_ring(txt):
-        pts = []
-        for pair in txt.split(','):
-            pair = pair.strip()
-            if not pair:
-                continue
-            parts = pair.split()
-            if len(parts) < 2:
-                continue
-            try:
-                x = float(parts[0])
-                y = float(parts[1])
-                
-                # Transform projected coordinates to geographic (lat/lng)
-                # Assuming UTM Zone 18N (EPSG:32618) to WGS84 (EPSG:4326)
-                # Simple approximation for Cali, Colombia area
-                if x > 180 or y > 90:  # Detect projected coordinates
-                    # Convert UTM to approximate lat/lng for Cali area
-                    # UTM Zone 18N false easting: 500000, false northing: 0
-                    # Cali is approximately at 3.4°N, 76.5°W
-                    
-                    # Simple linear transformation (approximation)
-                    # This is a rough conversion - for production use proper coordinate transformation
-                    lng = -76.5 + (x - 1000000) / 111320  # Rough conversion
-                    lat = 3.4 + (y - 900000) / 110540    # Rough conversion
-                    
-                    # Clamp to valid ranges
-                    lng = max(-180, min(180, lng))
-                    lat = max(-90, min(90, lat))
-                    
-                    pts.append([lng, lat])
-                else:
-                    pts.append([x, y])
-            except Exception:
-                continue
-        return pts
-
-    def wkt_to_geo(geom_wkt):
-        if not geom_wkt or not isinstance(geom_wkt, str):
-            return None
-        txt = geom_wkt.strip()
-        if not txt:
-            return None
-        upper = txt.upper()
-        try:
-            if upper.startswith('MULTIPOLYGON'):
-                inner = txt[len('MULTIPOLYGON'):].strip()
-                # Espera formato: (( (x y, ...), (hole...) ), ( ( ... ) ))
-                # Quitamos el primer y último paréntesis
-                if inner.startswith('(') and inner.endswith(')'):
-                    inner = inner[1:-1]
-                polys = []
-                depth = 0
-                cur = ''
-                # Particionar por polígonos de primer nivel
-                for ch in inner:
-                    if ch == '(':
-                        depth += 1
-                    if ch == ')':
-                        depth -= 1
-                    cur += ch
-                    if depth == 0 and cur.strip():
-                        poly_txt = cur.strip()
-                        if poly_txt.startswith('(') and poly_txt.endswith(')'):
-                            poly_txt = poly_txt[1:-1]
-                        # Ahora poly_txt contiene: (ring1),(ring2)...
-                        rings = []
-                        ring_depth = 0
-                        ring_cur = ''
-                        for ch2 in poly_txt:
-                            if ch2 == '(':
-                                ring_depth += 1
-                            if ch2 == ')':
-                                ring_depth -= 1
-                            ring_cur += ch2
-                            if ring_depth == 0 and ring_cur.strip():
-                                ring_txt = ring_cur.strip()
-                                if ring_txt.startswith('(') and ring_txt.endswith(')'):
-                                    ring_txt = ring_txt[1:-1]
-                                rings.append(_coords_from_ring(ring_txt))
-                                ring_cur = ''
-                        polys.append(rings)
-                        cur = ''
-                return {'type': 'MultiPolygon', 'coordinates': polys}
-
-            if upper.startswith('POLYGON'):
-                inner = txt[len('POLYGON'):].strip()
-                if inner.startswith('(') and inner.endswith(')'):
-                    inner = inner[1:-1]
-                rings = []
-                depth = 0
-                cur = ''
-                for ch in inner:
-                    if ch == '(':
-                        depth += 1
-                    if ch == ')':
-                        depth -= 1
-                    cur += ch
-                    if depth == 0 and cur.strip():
-                        ring_txt = cur.strip()
-                        if ring_txt.startswith('(') and ring_txt.endswith(')'):
-                            ring_txt = ring_txt[1:-1]
-                        rings.append(_coords_from_ring(ring_txt))
-                        cur = ''
-                return {'type': 'Polygon', 'coordinates': rings}
-
-            if upper.startswith('LINESTRING'):
-                inner = txt[len('LINESTRING'):].strip()
-                if inner.startswith('(') and inner.endswith(')'):
-                    inner = inner[1:-1]
-                return {'type': 'LineString', 'coordinates': _coords_from_ring(inner)}
-
-            if upper.startswith('POINT'):
-                inner = txt[len('POINT'):].strip()
-                if inner.startswith('(') and inner.endswith(')'):
-                    inner = inner[1:-1]
-                parts = [p for p in inner.replace(',', ' ').split() if p]
-                if len(parts) >= 2:
-                    return {'type': 'Point', 'coordinates': [float(parts[0]), float(parts[1])]}
-        except Exception:
-            return None
-        return None
+    # Conversor WKT -> GeoJSON vive en indicadores/utils_geo.py (wkt_to_geojson)
+    wkt_to_geo = wkt_to_geojson
 
     # Helpers para detectar lon/lat y aplicar transformación de coordenadas
     def _iter_coords(geom):
