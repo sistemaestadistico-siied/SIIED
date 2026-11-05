@@ -371,7 +371,7 @@
             </tr>
             <tr>
                 <th>Diligenciado por</th>
-                <td>{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username|default:"—" }}</td>
+                <td>{% if formulario.usuario_diligencia %}{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username }}{% else %}—{% endif %}</td>
             </tr>
             <tr>
                 <th>Fecha de envío</th>
