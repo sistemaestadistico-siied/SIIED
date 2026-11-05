@@ -3,7 +3,7 @@
 **Periodo:** viernes 24 de octubre → miércoles 5 de noviembre de 2026
 **Proyecto:** Sistema Integrado de Información Estadística Distrital (SIIED)
 **Repositorio:** [sistemaestadistico-siied/SIIED](https://github.com/sistemaestadistico-siied/SIIED)
-**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`ebe07bb`](https://github.com/sistemaestadistico-siied/SIIED/commit/ebe07bb) (6 commits funcionales)
+**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`5822cca`](https://github.com/sistemaestadistico-siied/SIIED/commit/5822cca) (10 commits funcionales)
 
 ---
 
