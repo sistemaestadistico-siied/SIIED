@@ -178,6 +178,10 @@ de la analítica y el ciclo de validación del FICED.
 - Reparado `})` huérfano en `views.documentacion` (SyntaxError que tumbaba el
   servidor de desarrollo) y nombre correcto de la dependencia en el login
   delegado («Departamento Administrativo de Planeación»).
+- Cierre de sesión universal `/logout/` (`auth_logout_global`): item «Cerrar
+  sesión» en el navbar global visible solo con sesión activa — queda expuesto
+  en acceso a módulos, todo el módulo ICED, histórico y demás páginas que
+  extienden `base.html`.
 
 *Carga de datos FICED*
 
