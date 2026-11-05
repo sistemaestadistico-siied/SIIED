@@ -28,6 +28,7 @@ from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassifica
 from django.apps import apps
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.core.paginator import Paginator
@@ -237,6 +238,15 @@ def acceso_modulos(request):
     los links lo llevan al login de cada módulo. Las restricciones reales
     se aplican en las vistas internas mediante los decoradores."""
     return render(request, 'indicadores/acceso_modulos.html')
+
+
+def auth_logout_global(request):
+    """Cierre de sesión universal.
+
+    Todos los módulos autentican con la sesión estándar de Django; un
+    solo logout los cubre. Redirige a acceso a módulos."""
+    auth_logout(request)
+    return redirect('indicadores:acceso_modulos')
 
 
 def home(request):

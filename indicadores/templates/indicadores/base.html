@@ -330,6 +330,13 @@
                         Más <i id="nav-more-icon" class="fas fa-chevron-down ml-1 text-xs"></i>
                     </button>
                 </li>
+                {% if user.is_authenticated %}
+                <li class="py-4">
+                    <a href="{% url 'indicadores:logout' %}" class="nav-link px-3 py-2 text-red-600 hover:text-red-700 font-medium" title="Cerrar sesión">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Cerrar sesión
+                    </a>
+                </li>
+                {% endif %}
             </ul>
         </div>
     </nav>

@@ -38,6 +38,7 @@ app_name = 'indicadores'
 urlpatterns = [
     path('', views.home, name='home'),
     path('acceso-modulos/', views.acceso_modulos, name='acceso_modulos'),
+    path('logout/', views.auth_logout_global, name='logout'),
     path('dominio/', views.dominios, name='dominios'),
     path('modelo/', views.modelo_datos, name='modelo_datos'),
     path('presentacion/', views.presentacion, name='presentacion'),
