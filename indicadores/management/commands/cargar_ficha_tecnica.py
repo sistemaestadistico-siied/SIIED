@@ -110,12 +110,9 @@ class Command(BaseCommand):
                 # Si 'Nombre_Indicador' del CSV tiene contenido descriptivo adicional,
                 # se puede agregar a definiciones_conceptos
                 indicador.descripcion_indicador = row.get('Descripcion_Indicador', row.get('Definiciones_Conceptos', '')).strip()
-                indicador.objetivo = row.get('Objetivo', '').strip()
                                 
                 # Metodología
                 indicador.metodo_medicion = row.get('Metodo_Medicion', '').strip()
-                indicador.formula_ficha = row.get('Formula', '').strip()
-                indicador.variables = row.get('Variables', '').strip()
                 
                 # Unidades y referencias
                 indicador.unidad_medida = row.get('Unidad_Medida', '').strip()

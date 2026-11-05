@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producto de cumplimiento — FICED {{ formulario.periodo }}</title>
+    <style>
+        :root { color-scheme: light; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: #e2e8f0; color: #1e293b;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 2rem 1rem; min-height: 100vh;
+        }
+        .doc {
+            background: #fff; width: 100%; max-width: 720px;
+            border-radius: 12px; box-shadow: 0 10px 40px rgba(15, 23, 42, .12);
+            padding: 3rem 3.5rem; position: relative;
+        }
+        .doc::before {
+            content: ''; position: absolute; inset: 10px;
+            border: 2px solid #cbd5e1; border-radius: 8px;
+            pointer-events: none;
+        }
+        .sello {
+            width: 56px; height: 56px; border-radius: 50%;
+            {% if tipo == 'siied' %}background: #059669;{% else %}background: #7c3aed;{% endif %}
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 26px; margin: 0 auto 1rem;
+        }
+        h1 {
+            text-align: center; font-size: 1.35rem; letter-spacing: .5px;
+            text-transform: uppercase; color: #0f172a; margin-bottom: .35rem;
+        }
+        .sub {
+            text-align: center; font-size: .8rem; color: #64748b;
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2rem;
+        }
+        .cuerpo { font-size: .95rem; line-height: 1.8; text-align: justify; }
+        .cuerpo strong { color: #0f172a; }
+        .datos {
+            margin: 1.75rem 0; border: 1px solid #e2e8f0; border-radius: 10px;
+            overflow: hidden;
+        }
+        .datos .fila {
+            display: flex; justify-content: space-between; gap: 1rem;
+            padding: .6rem 1rem; font-size: .85rem;
+        }
+        .datos .fila:nth-child(odd) { background: #f8fafc; }
+        .datos .k { color: #64748b; font-weight: 600; }
+        .datos .v { color: #0f172a; font-weight: 600; text-align: right; }
+        .puntaje {
+            text-align: center; margin: 1.5rem 0; padding: 1rem;
+            background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px;
+        }
+        .puntaje .n { font-size: 2rem; font-weight: 800; color: #047857; }
+        .puntaje .t { font-size: .75rem; color: #065f46; text-transform: uppercase; letter-spacing: 1px; }
+        .firma {
+            margin-top: 2.5rem; display: flex; justify-content: space-between; gap: 2rem;
+        }
+        .firma .b {
+            flex: 1; border-top: 1px solid #94a3b8; padding-top: .5rem;
+            font-size: .72rem; color: #475569; text-align: center;
+        }
+        .nota {
+            margin-top: 2rem; font-size: .72rem; color: #94a3b8;
+            text-align: center; line-height: 1.6;
+        }
+        .acciones { margin-top: 1.5rem; display: flex; gap: .75rem; }
+        .acciones a, .acciones button {
+            border: none; cursor: pointer; text-decoration: none;
+            font-weight: 600; font-size: .85rem; padding: .7rem 1.4rem;
+            border-radius: 10px; color: #fff; background: #4f46e5;
+        }
+        .acciones a.volver { background: #64748b; }
+        @media print {
+            body { background: #fff; padding: 0; }
+            .acciones { display: none; }
+            .doc { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="doc">
+        <div class="sello">✓</div>
+        <h1>Producto de cumplimiento</h1>
+        <p class="sub">
+            {% if tipo == 'siied' %}
+            Validación final — Equipo técnico SIIED
+            {% else %}
+            Diligenciamiento y conciliación — Organismo
+            {% endif %}
+        </p>
+
+        <div class="cuerpo">
+            {% if tipo == 'siied' %}
+            <p>
+                El equipo técnico del <strong>SIIED</strong> deja constancia de que el
+                <strong>FICED {{ formulario.periodo }}</strong> del organismo
+                <strong>{{ organismo.nombre }}</strong> completó el proceso de
+                <strong>validación final</strong>, incluida la revisión y corrección
+                de respuestas sobre el consolidado, con puntaje ICED oficial calculado.
+            </p>
+            {% else %}
+            <p>
+                Se deja constancia de que <strong>{{ organismo.nombre }}</strong>
+                cumplió con la tarea de diligenciar el
+                <strong>FICED {{ formulario.periodo }}</strong>: sus equipos técnicos
+                enviaron sus respuestas y el validador del organismo realizó la
+                <strong>conciliación y pre-validación</strong> del formulario
+                consolidado, que quedó en la cola de validación final del SIIED.
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="datos">
+            <div class="fila">
+                <span class="k">Organismo</span>
+                <span class="v">{{ organismo.nombre }}</span>
+            </div>
+            <div class="fila">
+                <span class="k">Vigencia FICED</span>
+                <span class="v">{{ formulario.periodo }}</span>
+            </div>
+            <div class="fila">
+                <span class="k">Fecha de envío</span>
+                <span class="v">{{ formulario.fecha_envio|date:"d/m/Y H:i"|default:"—" }}</span>
+            </div>
+            {% if tipo == 'siied' %}
+            <div class="fila">
+                <span class="k">Fecha de validación final</span>
+                <span class="v">{{ formulario.fecha_validacion|date:"d/m/Y H:i"|default:"—" }}</span>
+            </div>
+            {% else %}
+            <div class="fila">
+                <span class="k">Fecha de pre-validación</span>
+                <span class="v">{{ formulario.fecha_prevalidacion|date:"d/m/Y H:i"|default:"—" }}</span>
+            </div>
+            <div class="fila">
+                <span class="k">Pre-validado por</span>
+                <span class="v">{{ formulario.prevalidado_por.get_full_name|default:formulario.prevalidado_por.username|default:"—" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if tipo == 'siied' and puntaje_pct is not None %}
+        <div class="puntaje">
+            <div class="n">{{ puntaje_pct|floatformat:1 }}%</div>
+            <div class="t">ICED {{ formulario.periodo }} · {{ nivel }}</div>
+        </div>
+        {% endif %}
+
+        <div class="firma">
+            <div class="b">
+                {% if tipo == 'siied' %}
+                Equipo técnico SIIED<br>Validación final
+                {% else %}
+                {{ organismo.nombre }}<br>Validador del organismo
+                {% endif %}
+            </div>
+        </div>
+
+        <p class="nota">
+            Documento generado por la plataforma SIIED — FICED
+            (Formulario de Capacidad Estadística Distrital).<br>
+            Este producto de cumplimiento no constituye un certificado ni una
+            certificación oficial.
+        </p>
+    </div>
+
+    <div class="acciones">
+        <button onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+        <a class="volver" href="{% url 'indicadores:validacion_revisar_iced' formulario.pk %}">← Volver a la revisión</a>
+    </div>
+</body>
+</html>

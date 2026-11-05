@@ -8,11 +8,14 @@ Usado por el wizard de carga de capas (views_capas.py) y por el comando
 import csv
 import io
 import json
+import logging
 import re
 import unicodedata
 import zipfile
 import xml.etree.ElementTree as ET
 from typing import List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 try:
     import shapefile  # pyshp
@@ -402,6 +405,11 @@ def _coords_from_ring(txt: str) -> List[List[float]]:
             # Assuming UTM Zone 18N (EPSG:32618) to WGS84 (EPSG:4326)
             # Simple approximation for Cali, Colombia area
             if x > 180 or y > 90:  # Detect projected coordinates
+                logger.warning(
+                    'geom_wkt en coordenadas proyectadas (x=%s y=%s): la '
+                    'aproximación local desplaza los polígonos ~20 km. '
+                    'Recargar la capa con .prj/pyproj o correr '
+                    '`manage.py reproyectar_geom_wkt --apply`.', x, y)
                 # Convert UTM to approximate lat/lng for Cali area
                 # UTM Zone 18N false easting: 500000, false northing: 0
                 # Cali is approximately at 3.4°N, 76.5°W

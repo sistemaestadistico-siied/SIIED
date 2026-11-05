@@ -776,8 +776,6 @@ def descargar_metadata_indicador(request, indicador_id=None):
                 'Correo electrónico del responsable técnico del indicador': ind.correo_responsable_validacion or '',
                 'Celular responsable técnico de validación': ind.celular_responsable_validacion or '',
                 # Extras internos (fuera del estándar) — roundtrip completo:
-                'Formula': ind.formula_ficha or '',
-                'Variables': ind.variables or '',
                 'Nombre_Conjunto_Datos': ind.nombre_conjunto_datos or '',
                 'Telefono_Contacto': ind.telefono_contacto or '',
                 'Fecha_Publicacion_Metadatos': str(ind.fecha_publicacion_metadatos) if ind.fecha_publicacion_metadatos else '',
@@ -1664,7 +1662,10 @@ def wizard_diagnostico_ajax(request):
 
         # Datos de la regla desde el POST
         columna_fecha = request.POST.get('columna_fecha', '').strip()
-        columnas_fuente = request.POST.get('columnas_fuente', '').strip()
+        # Lista real: verificar_columnas_fuente espera una lista; el input
+        # llega como texto separado por ';' (o ',' en datos previos).
+        from .wizard_admin_unificado import _split_columnas_fuente
+        columnas_fuente = _split_columnas_fuente(request.POST.get('columnas_fuente', ''))
         formula = request.POST.get('formula', '').strip()
         filtros_json_str = request.POST.get('filtros_json', '').strip()
         orden_desagregaciones = request.POST.get('orden_desagregaciones', '').strip()
@@ -1876,7 +1877,7 @@ def _generar_xlsx_metadata_indicador(data):
         'Fecha_Publicacion_Metadatos',
         # Sección 2: Características del Indicador
         'Descripcion_Indicador',
-        'Metodo_Medicion', 'Formula', 'Variables',
+        'Metodo_Medicion',
         'Unidad_Medida',
         'Nomenclaturas_Clasificaciones',
         'Alcance_Tematico', 'Poblacion_Objetivo',
@@ -2096,8 +2097,6 @@ def cargar_metadata_form(request):
                 'Descripcion_Indicador': i.descripcion_indicador or '',
                 'Justificacion': '',  # campo legacy eliminado
                 'Metodo_Medicion': i.metodo_medicion or '',
-                'Formula': i.formula_ficha or '',
-                'Variables': i.variables or '',
                 'Unidad_Medida': i.unidad_medida or '',
                 'Valores_Referencia': '',  # campo legacy eliminado
                 'Nomenclaturas_Clasificaciones': i.nomenclaturas_clasificaciones or '',
@@ -2162,7 +2161,7 @@ def cargar_metadata_form(request):
             'Grupo_Indicador', 'Dominio', 'Tema', 'Subtema',
             'Codigo_Indicador', 'Nombre_Indicador', 'Sigla',
             'Descripcion_Indicador',
-            'Metodo_Medicion', 'Formula', 'Variables',
+            'Metodo_Medicion',
             'Unidad_Medida',
             'Nomenclaturas_Clasificaciones',
             'Alcance_Tematico', 'Poblacion_Objetivo',
@@ -2209,20 +2208,24 @@ def cargar_metadata_form(request):
                     id=organismo_id_post, activo=True
                 )
             except Organismo.DoesNotExist:
-                pass
+                messages.warning(
+                    request,
+                    '⚠️ El organismo seleccionado no existe o está '
+                    'inactivo; el campo quedó sin cambios.')
         if suborganismo_id_post:
             try:
                 indicador.suborganismo = Suborganismo.objects.get(
                     id=suborganismo_id_post, organismo=indicador.organismo_responsable, activo=True
                 )
             except Suborganismo.DoesNotExist:
-                pass
+                messages.warning(
+                    request,
+                    '⚠️ El suborganismo seleccionado no pertenece al '
+                    'organismo o no existe; el campo quedó sin cambios.')
 
         # Actualizar indicador con campos MSD
-        indicador.variables = data.get('Variables', '')
         indicador.descripcion_indicador = data.get('Descripcion_Indicador', '')
         indicador.metodo_medicion = data.get('Metodo_Medicion', '')
-        indicador.formula_ficha = data.get('Formula', '')
         indicador.unidad_medida = data.get('Unidad_Medida', '')
         indicador.fuente_datos = data.get('Fuente_Datos', '')
         indicador.nomenclaturas_clasificaciones = data.get('Nomenclaturas_Clasificaciones', '')
@@ -2258,8 +2261,17 @@ def cargar_metadata_form(request):
             if indicador.suborganismo_id:
                 eq_qs = eq_qs.filter(suborganismo_id=indicador.suborganismo_id)
             eq = eq_qs.first()
+            if not eq and indicador.suborganismo_id:
+                # Fallback: el equipo puede existir bajo otro suborganismo
+                eq = EquipoOrganismo.objects.filter(
+                    nombre__iexact=equipo_txt, activo=True).first()
             if eq:
                 indicador.equipo_responsable = eq
+            else:
+                messages.warning(
+                    request,
+                    f'⚠️ No se encontró el equipo «{equipo_txt}» en el '
+                    'catálogo; regístrelo en el suborganismo y reintente.')
         elif 'Equipo_Responsable' in data:
             indicador.equipo_responsable = None
         indicador.correo_contacto = data.get('Correo_Contacto', '')
@@ -2280,6 +2292,12 @@ def cargar_metadata_form(request):
                 op = OperacionEstadistica.objects.filter(nombre__icontains=operacion_txt).first()
             if op:
                 indicador.operacion = op
+            else:
+                messages.warning(
+                    request,
+                    f'⚠️ La operación estadística «{operacion_txt}» no '
+                    'existe en el catálogo; el campo quedó sin cambios. '
+                    'Escriba el nombre exacto del catálogo.')
         elif 'Operacion_Estadistica' in data:
             indicador.operacion = None
 
@@ -2289,6 +2307,11 @@ def cargar_metadata_form(request):
             valor = data.get(clave, '')
             if valor:
                 setattr(indicador, campo_fecha, valor)
+        # fecha_actualizacion_ficha es automática en cada guardado;
+        # fecha_elaboracion se sella la primera vez si quedó vacía.
+        indicador.fecha_actualizacion_ficha = timezone.now().date()
+        if not indicador.fecha_elaboracion:
+            indicador.fecha_elaboracion = timezone.now().date()
 
         indicador.save()
         _crear_o_actualizar_conjunto_datos_desde_variables(indicador)
@@ -2334,6 +2357,10 @@ def cargar_metadata_form(request):
         .distinct().order_by('unidad_medida')
     )
 
+    operaciones_existentes = list(
+        OperacionEstadistica.objects.filter(activo=True)
+        .values_list('nombre', flat=True).order_by('nombre'))
+
     return render(request, 'recoleccion/cargar_metadata_form.html', {
         'indicadores': indicadores,
         'cargas_pendientes': cargas_pendientes,
@@ -2343,6 +2370,7 @@ def cargar_metadata_form(request):
         'suborganismos_pre': suborganismos_pre,
         'carga_delegada_activa': carga_delegada_activa,
         'unidades_existentes': unidades_existentes,
+        'operaciones_existentes': operaciones_existentes,
     })
 
 
@@ -2779,15 +2807,10 @@ _COLUMNAS_METADATA_ALIAS = {
     'descripcion': 'descripcion_indicador',
     'definiciones_conceptos': 'descripcion_indicador',
     'definiciones_y_conceptos': 'descripcion_indicador',
-    'objetivo': 'objetivo',
-    'justificacion': 'objetivo',
     'calculo_del_indicador_metodo_de_medicion': 'metodo_medicion',
     'calculo_del_indicador': 'metodo_medicion',
     'metodo_de_medicion': 'metodo_medicion',
     'metodo_medicion': 'metodo_medicion',
-    'formula': 'formula_ficha',
-    'formula_ficha': 'formula_ficha',
-    'variables': 'variables',
     'unidad_de_medida': 'unidad_medida',
     'unidad_medida': 'unidad_medida',
     'fuente_de_la_informacion': 'fuente_datos',
@@ -3080,10 +3103,7 @@ def _actualizar_metadata_indicador_masiva(indicador, fila):
         'grupo_indicador': 'grupo_indicador',
         # Sección 2
         'descripcion_indicador': 'descripcion_indicador',
-        'objetivo': 'objetivo',
         'metodo_medicion': 'metodo_medicion',
-        'formula': 'formula_ficha',
-        'variables': 'variables',
         'unidad_medida': 'unidad_medida',
         'nombre_conjunto_datos': 'nombre_conjunto_datos',
         'nomenclaturas_clasificaciones': 'nomenclaturas_clasificaciones',
@@ -3276,51 +3296,34 @@ def _actualizar_metadata_indicador_masiva(indicador, fila):
 
 def _crear_o_actualizar_conjunto_datos_desde_variables(indicador):
     """
-    A partir del campo 'variables' del indicador, crea o actualiza el objeto
-    conjunto_datos asociado y sus VariableConjuntoDatos.
-    Si el indicador tiene 'nombre_conjunto_datos', se usa para buscar o
-    crear la conjunto_datos, permitiendo que varios indicadores compartan la misma.
-    Se asume que las variables están separadas por comas.
+    Crea o enlaza el ConjuntoDatos del indicador a partir de
+    'nombre_conjunto_datos'. Si coincide con un conjunto existente se
+    reutiliza, permitiendo que varios indicadores lo compartan.
+
+    Nota: el campo Indicador.variables fue retirado del estándar; la
+    metadata de variables se gestiona con el formulario de variables
+    del conjunto (VariableConjuntoDatos).
     """
-    from django.utils.html import strip_tags
-    from .models import ConjuntoDatos, VariableConjuntoDatos
+    from .models import ConjuntoDatos
 
-    texto_variables = indicador.variables
-    if not texto_variables:
-        return
-
-    # Limpiar HTML si viene de CKEditor
-    texto_limpio = strip_tags(str(texto_variables)).strip()
-    if not texto_limpio:
-        return
-
-    # Determinar nombre del conjunto de datos
     nombre_conjunto = (
         indicador.nombre_conjunto_datos.strip()
         if indicador.nombre_conjunto_datos
         else None
     )
+    if not nombre_conjunto:
+        return
 
     # Crear o reutilizar conjunto_datos
     conjunto_datos = indicador.conjunto_datos
     if not conjunto_datos:
-        if nombre_conjunto:
-            # Buscar conjunto_datos existente con el mismo nombre
-            conjunto_datos_existente = ConjuntoDatos.objects.filter(nombre=nombre_conjunto).first()
-            if conjunto_datos_existente:
-                conjunto_datos = conjunto_datos_existente
-            else:
-                conjunto_datos = ConjuntoDatos.objects.create(
-                    nombre=nombre_conjunto,
-                    descripcion=(
-                        f"conjunto_datos generada automáticamente desde metadata del indicador "
-                        f"{indicador.codigo_indicador or indicador.nombre}"
-                    ),
-                )
+        conjunto_datos_existente = ConjuntoDatos.objects.filter(
+            nombre=nombre_conjunto).first()
+        if conjunto_datos_existente:
+            conjunto_datos = conjunto_datos_existente
         else:
-            # Fallback: nombre por defecto
             conjunto_datos = ConjuntoDatos.objects.create(
-                nombre=f"conjunto de datos - {indicador.nombre}",
+                nombre=nombre_conjunto,
                 descripcion=(
                     f"conjunto_datos generada automáticamente desde metadata del indicador "
                     f"{indicador.codigo_indicador or indicador.nombre}"
@@ -3328,29 +3331,6 @@ def _crear_o_actualizar_conjunto_datos_desde_variables(indicador):
             )
         indicador.conjunto_datos = conjunto_datos
         indicador.save(update_fields=['conjunto_datos'])
-
-    # Parsear nombres de variables (separadas por comas)
-    nombres = [v.strip() for v in texto_limpio.split(',') if v.strip()]
-
-    # Crear/actualizar variables
-    codigos_existentes = set()
-    for i, nombre in enumerate(nombres, start=1):
-        codigo = f"V{i}"
-        VariableConjuntoDatos.objects.update_or_create(
-            conjunto_datos=conjunto_datos,
-            codigo_variable=codigo,
-            defaults={
-                'nombre_variable': nombre,
-                'definicion_conceptual': f"Variable {nombre} del indicador {indicador.nombre}",
-                'orden': i,
-            }
-        )
-        codigos_existentes.add(codigo)
-
-    # Eliminar variables que ya no están en la lista
-    VariableConjuntoDatos.objects.filter(conjunto_datos=conjunto_datos).exclude(
-        codigo_variable__in=codigos_existentes
-    ).delete()
 
 
 def _crear_carga_individual(carga_masiva, indicador, grupo_df):
@@ -3835,10 +3815,7 @@ def _descargar_plantilla_masiva_metadata_generada(request):
             'fecha_publicacion_metadatos': ['2025-09-16', '2025-09-16'],
             # 2. Características del Indicador (MSD)
             'descripcion_indicador': ['Cuantifica la relación de las muertes...', 'Mide la cobertura del sistema educativo...'],
-            'objetivo': ['Evaluar salud infantil', 'Evaluar cobertura educativa'],
             'metodo_medicion': ['Registros civiles', 'Censo educativo'],
-            'formula': ['TMM5 = (V₁ / V₂) × 1.000', 'TNE = (Matriculados / Población en edad escolar) × 100'],
-            'variables': ['V₁: Defunciones menores 5; V₂: Nacidos vivos', 'Matriculados: total inscritos'],
             'unidad_medida': ['Muertes por 1.000 nacidos vivos', 'Porcentaje (%)'],
             'nomenclaturas_clasificaciones': ['CIE-10', 'Clasificación ISCED'],
             'alcance_tematico': ['Grupo de edad, Sexo', 'Nivel educativo'],
@@ -3888,8 +3865,8 @@ def _descargar_plantilla_masiva_metadata_generada(request):
                     'correo_contacto, telefono_contacto, fecha_publicacion_metadatos',
                     '',
                     'CAMPOS MSD — SECCION 2: CARACTERISTICAS DEL INDICADOR',
-                    'descripcion_indicador, objetivo, metodo_medicion, formula,',
-                    'variables, unidad_medida, nomenclaturas_clasificaciones,',
+                    'descripcion_indicador, metodo_medicion,',
+                    'unidad_medida, nomenclaturas_clasificaciones,',
                     'alcance_tematico, poblacion_objetivo, cobertura_geografica,',
                     'periodo_referencia, periodo_base',
                     '',

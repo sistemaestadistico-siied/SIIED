@@ -135,12 +135,6 @@
           <textarea name="Descripcion_Indicador" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
         <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Cálculo del indicador</label>
           <textarea name="Metodo_Medicion" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Fórmula del indicador</label>
-          <input type="text" name="Formula" placeholder="ej. TMM5 = (V₁ / V₂) × 1.000"
-                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
-        <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Variables</label>
-          <textarea name="Variables" rows="2" placeholder="edad, triage salud, comuna"
-                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
         <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Nombre del conjunto de datos</label>
           <input type="text" name="Nombre_Conjunto_conjunto_datos" placeholder="Ej: Encuesta Calidad de Vida 2024"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -151,8 +145,11 @@
         <div><label class="block text-xs text-slate-500 mb-1">Fuente de la información</label>
           <input type="text" name="Fuente_Datos" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
         <div><label class="block text-xs text-slate-500 mb-1">Nombre de la operación estadística</label>
-          <input type="text" name="Operacion_Estadistica" placeholder="Ej: Encuesta de Calidad de Vida"
-                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+          <input type="text" name="Operacion_Estadistica" placeholder="Ej: Encuesta de Calidad de Vida" list="lista-operaciones"
+                 class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <datalist id="lista-operaciones">
+            {% for op in operaciones_existentes %}<option value="{{ op }}">{% endfor %}
+          </datalist></div>
         <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Nomenclatura y clasificaciones estadísticas</label>
           <textarea name="Nomenclaturas_Clasificaciones" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
         <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Alcance temático</label>

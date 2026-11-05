@@ -65,12 +65,12 @@ class RespuestaSatisfaccionCompletaForm(forms.ModelForm):
         
         labels = {
             'fecha_respuesta_solicitud': 'Fecha en la cual realizó la solicitud de información',
-            'utilidad_tiempo_respuesta': 'Tiempo de respuesta al requerimiento de información estadística adecuado, teniendo en cuenta sus necesidades',
-            'utilidad_claridad': 'Claridad, precisión y facilidad de uso de la información estadística recibida',
-            'relevancia_periodicidad': 'Correspondencia entre la periodicidad de la información estadística entregada y la solicitada',
-            'relevancia_concordancia': 'Concordancia entre la solicitud de información estadística realizada y la entregada',
-            'accesibilidad_canal': 'Canal utilizado para realizar la solicitud de información estadística. <em>Considere aspectos como facilidad de acceso, rapidez y atención recibida.</em>',
-            'accesibilidad_formato': 'Formato en el que se le suministró la información estadística',
+            'utilidad_tiempo_respuesta': 'Tiempo de respuesta al requerimiento de información estadística y/o geográfica adecuado, teniendo en cuenta sus necesidades',
+            'utilidad_claridad': 'Claridad, precisión y facilidad de uso de la información estadística y/o geográfica recibida',
+            'relevancia_periodicidad': 'Correspondencia entre la periodicidad de la información estadística y/o geográfica entregada y la solicitada',
+            'relevancia_concordancia': 'Concordancia entre la solicitud de información estadística y/o geográfica realizada y la entregada',
+            'accesibilidad_canal': 'Canal utilizado para realizar la solicitud de información estadística y/o geográfica. <em>Considere aspectos como facilidad de acceso, rapidez y atención recibida.</em>',
+            'accesibilidad_formato': 'Formato en el que se le suministró la información estadística y/o geográfica',
             'razon_insatisfaccion': 'Si en los ítems evaluados anteriormente, usted seleccionó Muy Insatisfecho, Insatisfecho o Neutral, por favor, indique la razón principal de su valoración',
         }
     

@@ -125,7 +125,17 @@
         id: "{{ embed_uuid }}",
         supersetDomain: "{{ superset_domain }}",
         mountPoint: document.getElementById("superset-embed"),
-        fetchGuestToken: function() { return "{{ guest_token }}"; },
+        fetchGuestToken: function() {
+            {% if guest_token_url %}
+            // Token fresco por request — el quemado expira en ~5 min
+            return fetch("{{ guest_token_url }}", { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { return d.token || "{{ guest_token }}"; })
+                .catch(function() { return "{{ guest_token }}"; });
+            {% else %}
+            return "{{ guest_token }}";
+            {% endif %}
+        },
         dashboardUiConfig: {
             hideTitle: false,
             hideTab: false,

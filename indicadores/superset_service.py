@@ -4,10 +4,15 @@ Maneja autenticación, consulta de dashboards, subida de CSV y gestión de datas
 """
 import logging
 import os
+import re
 import requests
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+# Identificador de tabla válido para DROP TABLE (defensa en profundidad:
+# el caller ya filtra por es_base_siied, pero el nombre viaja a SQL).
+_RE_TABLA = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]{0,62}$')
 
 
 class SupersetService:
@@ -655,6 +660,120 @@ class SupersetService:
                              or (data or {}).get('_error')
                              or 'error actualizando dashboard'}
         return {'ok': True, 'error': None}
+
+    # ========================================================================
+    # ELIMINACIÓN DE ACTIVOS
+    # ========================================================================
+
+    def charts_de_dashboard(self, dashboard_id):
+        """IDs de los charts asociados a un dashboard.
+
+        GET dashboard/{id} devuelve result.charts como lista de STRINGS
+        (títulos); el endpoint dashboard/{id}/charts sí devuelve los
+        objetos chart con su id.
+        """
+        data = self._api_request(
+            'GET', f'dashboard/{int(dashboard_id)}/charts')
+        if not data:
+            return []
+        return [c.get('id') for c in (data.get('result') or [])
+                if isinstance(c, dict) and c.get('id') is not None]
+
+    def charts_de_dataset(self, dataset_id):
+        """Charts que referencian un dataset (bloquean su eliminación)."""
+        data = self._api_request(
+            'GET', 'chart/',
+            params={'q': (
+                '(filters:!((col:datasource_id,opr:eq,value:%s)),'
+                'columns:!(id,slice_name))' % int(dataset_id))})
+        if not data:
+            return []
+        return [{'id': c.get('id'), 'nombre': c.get('slice_name', '')}
+                for c in data.get('result', [])]
+
+    def chart_en_dashboard(self, chart_id):
+        """True si el chart sigue asociado a algún dashboard."""
+        data = self._api_request('GET', f'chart/{int(chart_id)}')
+        if not data:
+            return True  # prudente: sin certeza no se borra
+        return bool(data.get('result', {}).get('dashboards'))
+
+    def eliminar_chart(self, chart_id):
+        """Elimina un chart (slice). Retorna True si quedó eliminado."""
+        data = self._write_request('DELETE', f'chart/{int(chart_id)}', None)
+        return data is not None and not (
+            isinstance(data, dict) and '_error' in data)
+
+    def eliminar_dashboard(self, dashboard_id, con_charts=True):
+        """Elimina el dashboard en Superset.
+
+        Con ``con_charts=True`` elimina además los charts que quedaron
+        huérfanos (no asociados a otro dashboard). Superset NO borra los
+        charts con el dashboard y después siguen bloqueando el borrado
+        de los datasets.
+        """
+        chart_ids = (self.charts_de_dashboard(dashboard_id)
+                     if con_charts else [])
+        data = self._write_request(
+            'DELETE', f'dashboard/{int(dashboard_id)}', None)
+        if data is None or (isinstance(data, dict) and '_error' in data):
+            return {'ok': False,
+                    'error': ((data or {}).get('_detalle')
+                              or (data or {}).get('_error')
+                              or 'Superset no respondió')}
+        huerfanos = 0
+        for cid in chart_ids:
+            if not self.chart_en_dashboard(cid) \
+                    and self.eliminar_chart(cid):
+                huerfanos += 1
+        return {'ok': True, 'charts_eliminados': huerfanos}
+
+    def eliminar_dataset(self, dataset_id):
+        """Elimina el dataset en Superset.
+
+        Superset rechaza el DELETE mientras existan charts que lo
+        referencien — 'charts_bloquean' permite informar cuáles faltan
+        por borrar primero.
+        """
+        data = self._write_request(
+            'DELETE', f'dataset/{int(dataset_id)}', None)
+        if data is None:
+            return {'ok': False, 'error': 'Superset no respondió',
+                    'charts_bloquean': []}
+        if isinstance(data, dict) and '_error' in data:
+            return {'ok': False,
+                    'error': str(data.get('_detalle')
+                                 or data.get('_error'))[:300],
+                    'charts_bloquean': self.charts_de_dataset(dataset_id)}
+        return {'ok': True, 'charts_bloquean': []}
+
+    def eliminar_tabla_fisica(self, nombre_tabla):
+        """DROP TABLE de la copia física que deja el upload de CSV.
+
+        Superset solo borra el dataset (metadato): la tabla subida por
+        CSV queda en el esquema public de la BD del SIIED. Solo debe
+        invocarse para datasets registrados como subidos por usuarios
+        (es_base_siied=False) — nunca sobre tablas del modelo SIIED ni
+        datasets virtuales. Retorna True si la eliminó.
+        """
+        if not _RE_TABLA.match(nombre_tabla or ''):
+            return False
+        try:
+            from django.db import connection
+            with connection.cursor() as cur:
+                cur.execute(
+                    "SELECT table_type FROM information_schema.tables "
+                    "WHERE table_schema='public' AND table_name=%s",
+                    [nombre_tabla])
+                row = cur.fetchone()
+                if not row or row[0] != 'BASE TABLE':
+                    return False
+                cur.execute('DROP TABLE IF EXISTS "%s"' % nombre_tabla)
+            return True
+        except Exception:
+            logger.exception(
+                'Superset: no se pudo eliminar la tabla %s', nombre_tabla)
+            return False
 
     # ========================================================================
     # HEALTH CHECK

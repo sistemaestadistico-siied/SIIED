@@ -98,12 +98,6 @@ class Command(BaseCommand):
                                 def_limpio = def_limpio[:200] + "..." if len(def_limpio) > 200 else def_limpio
                                 contenido_parts.append(f"Definiciones: {def_limpio}")
                             
-                            # Objetivo (sin HTML tags si es CKEditor)
-                            if indicador.objetivo:
-                                # Remover tags HTML básicos
-                                objetivo_limpio = re.sub(r'<[^>]+>', '', str(indicador.objetivo))
-                                objetivo_limpio = objetivo_limpio[:150] + "..." if len(objetivo_limpio) > 150 else objetivo_limpio
-                                contenido_parts.append(f"Objetivo: {objetivo_limpio}")
                             
                             # Justificación (sin HTML tags)
                             if indicador.comentarios_adicionales:

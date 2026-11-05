@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ page_title|default:"SIIED BI" }} — SIIED</title>
+<style>
+    html, body { margin: 0; height: 100%; background: #fff; }
+    #superset-embed { width: 100%; height: 100%; }
+    /* El SDK inyecta un <iframe> sin tamaño (default 300x150 de HTML). */
+    #superset-embed iframe {
+        width: 100% !important;
+        height: 100% !important;
+        border: 0;
+        display: block;
+    }
+    .embed-msg {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: .5rem;
+        font-family: system-ui, -apple-system, sans-serif;
+        color: #475569;
+        text-align: center;
+        padding: 2rem;
+    }
+    .embed-msg .titulo { font-weight: 600; color: #334155; }
+</style>
+</head>
+<body>
+{% if acceso_denegado %}
+<div class="embed-msg">
+    <p class="titulo">Sin acceso</p>
+    <p>No tiene permiso para ver este tablero.</p>
+</div>
+{% elif embed_uuid %}
+<div id="superset-embed"></div>
+<!-- SDK oficial de embedding (vendored: @superset-ui/embedded-sdk@0.4.0).
+     El guest token se pide y refresca contra el endpoint JSON del portal —
+     dura ~5 min, por eso no puede ir quemado en el snippet copiado. -->
+<script src="{% static 'vendor/superset-embedded-sdk.js' %}"></script>
+<script>
+(function() {
+    var mount = document.getElementById('superset-embed');
+    if (typeof supersetEmbeddedSdk === 'undefined') {
+        mount.innerHTML =
+            '<div class="embed-msg"><p class="titulo">Error</p>' +
+            '<p>No se pudo cargar el visor de SIIED BI.</p></div>';
+        return;
+    }
+    supersetEmbeddedSdk.embedDashboard({
+        id: "{{ embed_uuid }}",
+        supersetDomain: "{{ superset_domain }}",
+        mountPoint: mount,
+        fetchGuestToken: function() {
+            return fetch("{{ guest_token_url }}", { credentials: 'same-origin' })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { return d.token || "{{ guest_token }}"; })
+                .catch(function() { return "{{ guest_token }}"; });
+        },
+        dashboardUiConfig: {
+            hideTitle: false,
+            hideTab: false,
+            hideChartControls: false,
+            filters: { visible: true, expanded: false }
+        }
+    });
+})();
+</script>
+{% else %}
+<div class="embed-msg">
+    <p class="titulo">No disponible</p>
+    <p>El tablero no está disponible en este momento.</p>
+</div>
+{% endif %}
+</body>
+</html>

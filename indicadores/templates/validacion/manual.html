@@ -45,7 +45,7 @@
       <ul class="list-disc list-inside space-y-1 ml-2">
         <li><strong>Series pendientes:</strong> cargas de datos de indicadores enviadas por recolectores o delegados.</li>
         <li><strong>Conjunto de datos pendientes:</strong> cargas de conjuntos de conjuntos de datos con sus variables.</li>
-        <li><strong>ICED pendientes:</strong> formularios de capacidad estadística enviados por organismos (nuevo).</li>
+        <li><strong>ICED pendientes:</strong> formularios FICED según tu rol. Si eres <strong>validador del organismo</strong> ves los de tu organismo por conciliar y pre-validar; si eres <strong>validador SIIED</strong> ves los consolidados enviados y pre-validados de todos los organismos.</li>
       </ul>
       <p>En la parte superior verás <strong>estadísticas rápidas</strong>: total de cargas pendientes, tus revisiones recientes y un resumen de ICED.</p>
       <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 mt-2">
@@ -163,13 +163,31 @@
       Cómo revisar un formulario ICED
     </h2>
     <div class="bg-white border border-slate-200 rounded-2xl p-5 text-sm text-slate-700 space-y-3">
-      <p>Los formularios ICED (Índice de Capacidad Estadística y de Datos) se validan desde el mismo Dashboard:</p>
+      <p>El FICED (Formulario de Índice de Capacidad Estadística Distrital) se valida en <strong>dos etapas</strong>:</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="bg-violet-50 border border-violet-200 rounded-xl p-3">
+          <p class="font-semibold text-violet-800 mb-1">1. Validador del organismo</p>
+          <ul class="list-disc list-inside text-violet-700 text-xs space-y-1">
+            <li>Revisa las respuestas de los equipos de su organismo <strong>sin ver puntajes</strong>.</li>
+            <li><strong>Concilia</strong> los formularios: en preguntas de selección única elige la respuesta oficial; las de selección múltiple se unen y los textos/tablas se fusionan automáticamente.</li>
+            <li><strong>Pre-valida</strong> el consolidado — pasa a la cola SIIED.</li>
+            <li>Puede descargar el <strong>producto de cumplimiento del organismo</strong> desde la pre-validación.</li>
+          </ul>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <p class="font-semibold text-emerald-800 mb-1">2. Validador SIIED</p>
+          <ul class="list-disc list-inside text-emerald-700 text-xs space-y-1">
+            <li>Ve los <strong>puntajes</strong> (global, por dimensión y por pregunta) en todo momento.</li>
+            <li>Puede <strong>revisar y corregir cualquier respuesta</strong> del consolidado con "✏️ Revisar y corregir respuestas" — el formulario <strong>no se devuelve</strong> al organismo.</li>
+            <li>Decide la calificación final: <strong>Aprobar</strong> (calcula y guarda los puntajes) o <strong>Rechazar</strong>.</li>
+            <li>Puede descargar el <strong>producto de cumplimiento SIIED</strong> cuando el FICED queda validado.</li>
+          </ul>
+        </div>
+      </div>
       <ol class="list-decimal list-inside space-y-2 ml-2">
         <li>En el Dashboard, busca la sección <strong>"ICED Pendientes"</strong> (color índigo).</li>
-        <li>Haz clic en <strong>"Revisar ICED"</strong> del organismo correspondiente.</li>
-        <li>Revisa las respuestas del formulario y verifica que estén completas.</li>
-        <li>Usa el botón <strong>"Calcular Puntajes"</strong> para previsualizar los resultados antes de persistirlos.</li>
-        <li>Decide: <strong>Aprobar</strong> (los puntajes se guardan y el organismo queda evaluado), <strong>Devolver</strong> (con observaciones para corrección) o <strong>Rechazar</strong>.</li>
+        <li>Haz clic en <strong>"Revisar ICED"</strong> o en <strong>"⇄ Conciliar equipos"</strong> según corresponda a tu etapa.</li>
+        <li>Verifica las respuestas del consolidado y actúa según tu rol.</li>
       </ol>
       <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
         <p class="text-emerald-800 font-semibold flex items-center">
@@ -177,7 +195,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>Consejo:
         </p>
-        <p class="text-emerald-700">Si no estás seguro de una respuesta, puedes devolver el formulario con comentarios. El delegado del organismo podrá corregir y reenviar.</p>
+        <p class="text-emerald-700">Como validador SIIED corrige directamente las respuestas incorrectas en el consolidado en vez de devolver el formulario: los cambios conservan el estado y la fecha de envío, y puedes recalcular los puntajes antes de aprobar.</p>
       </div>
     </div>
   </section>

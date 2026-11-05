@@ -40,9 +40,9 @@ from .superset_service import SupersetService
 
 logger = logging.getLogger(__name__)
 
-_MAX_CONSULTA_CHARS = 3000
+_MAX_CONSULTA_CHARS = 12000
 _MAX_CONSULTAS_SPEC = 3
-_MAX_CHARTS = 6
+_MAX_CHARTS = 12
 _CACHE_KEY_DATASETS = 'ddss_datasets_ctx'
 _CACHE_TTL = 600
 
@@ -336,7 +336,7 @@ def _markdown_header(titulo, consulta, spec, creados):
     descripcion = str(spec.get('descripcion') or '').strip()[:400]
     fuentes = sorted({c.get('dataset') for c in creados if c.get('dataset')})
     partes = [
-        '<img src="/static/assets/images/logo_dondatico_bi.png" '
+        '<img src="/superset/static/assets/images/logo_dondatico_bi.png" '
         'alt="Don Datico BI" height="30" align="right">',
         f'### {titulo}',
     ]
@@ -574,6 +574,7 @@ def dondatico_home(request):
         'superset_disponible': disponible,
         'datasets': datasets,
         'tableros_ia': tableros_ia,
+        'visibilidades_tablero': TableroBI.VISIBILIDAD_CHOICES,
     })
 
 
@@ -596,7 +597,8 @@ def _consulta_o_analisis(request, modo):
     consulta = str((body or {}).get('consulta') or '').strip()
     if not 5 <= len(consulta) <= _MAX_CONSULTA_CHARS:
         return JsonResponse(
-            {'error': 'La consulta debe tener entre 5 y 3000 caracteres'},
+            {'error': f'La consulta debe tener entre 5 y '
+                      f'{_MAX_CONSULTA_CHARS} caracteres'},
             status=400)
 
     service = SupersetService()
@@ -673,7 +675,8 @@ def dondatico_generar(request):
     consulta = str((body or {}).get('consulta') or '').strip()
     if not 5 <= len(consulta) <= _MAX_CONSULTA_CHARS:
         return JsonResponse(
-            {'error': 'La descripción debe tener entre 5 y 3000 caracteres'},
+            {'error': f'La descripción debe tener entre 5 y '
+                      f'{_MAX_CONSULTA_CHARS} caracteres'},
             status=400)
 
     service = SupersetService()

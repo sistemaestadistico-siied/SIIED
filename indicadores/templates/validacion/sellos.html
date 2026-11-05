@@ -162,55 +162,43 @@
                         <p class="text-slate-600 whitespace-pre-line">{{ ind.descripcion_indicador|default_if_none:''|striptags|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.3 Objetivo</p>
-                        <p class="text-slate-600 whitespace-pre-line">{{ ind.objetivo|default_if_none:''|striptags|default:'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.4 Cálculo / Método de medición</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.3 Cálculo / Método de medición</p>
                         <p class="text-slate-600 whitespace-pre-line">{{ ind.metodo_medicion|default_if_none:''|striptags|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.5 Fórmula</p>
-                        <p class="text-slate-600 whitespace-pre-line">{{ ind.formula_ficha|default:'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.6 Variables de la fórmula</p>
-                        <p class="text-slate-600 whitespace-pre-line">{{ ind.variables|default_if_none:''|striptags|default:'N/A' }}</p>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.7 Unidad de medida</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.4 Unidad de medida</p>
                         <p class="text-slate-600">{{ ind.unidad_medida|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.8 Fuente de la información</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.5 Fuente de la información</p>
                         <p class="text-slate-600">{{ ind.fuente_datos|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.9 Operación estadística</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.6 Operación estadística</p>
                         <p class="text-slate-600">{{ ind.operacion.nombre|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.10 Nombre del conjunto de datos</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.7 Nombre del conjunto de datos</p>
                         <p class="text-slate-600">{{ ind.nombre_conjunto_datos|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.11 Nomenclaturas y clasificaciones</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.8 Nomenclaturas y clasificaciones</p>
                         <p class="text-slate-600 whitespace-pre-line">{{ ind.nomenclaturas_clasificaciones|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.12 Alcance temático</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.9 Alcance temático</p>
                         <p class="text-slate-600">{{ ind.alcance_tematico|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.13 Población objetivo</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.10 Población objetivo</p>
                         <p class="text-slate-600 whitespace-pre-line">{{ ind.poblacion_objetivo|default_if_none:''|striptags|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.14 Cobertura geográfica</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.11 Cobertura geográfica</p>
                         <p class="text-slate-600">{{ ind.cobertura_geografica|default:'N/A' }}</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.15 Período de referencia · 2.16 Período base</p>
+                        <p class="font-semibold text-slate-700 text-xs uppercase tracking-wide">2.12 Período de referencia · 2.13 Período base</p>
                         <p class="text-slate-600">{{ ind.periodo_referencia|default:'N/A' }} · {{ ind.periodo_base|default:'N/A' }}</p>
                     </div>
                     <p class="md:col-span-2 text-[11px] font-bold uppercase tracking-wider text-teal-800 border-b border-teal-200 pb-1">3 · Difusión</p>

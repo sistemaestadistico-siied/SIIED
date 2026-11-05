@@ -289,15 +289,30 @@
             container.innerHTML = '';
             const table = el('table', { class: 'iced-widget-table' });
 
+            // Ancho mínimo por tipo de columna: evita el truncado en tablas
+            // anchas (p. ej. P23 con ~10 columnas); el wrapper aplica scroll-x.
+            const COL_MIN_WIDTH = {
+                'booleano': '115px',
+                'fecha': '150px',
+                'numero': '110px',
+                'texto': '170px',
+                'textarea': '210px',
+                'select': '220px',
+                'organismo': '210px',
+                'url': '230px',
+            };
+
             // Header
             const thead = el('thead', {}, [
                 el('tr', {}, [
-                    el('th', { style: 'width: 40px;' }, ['#']),
-                    ...columnas.map(c => el('th', {}, [
+                    el('th', { style: 'width: 40px; min-width: 40px;' }, ['#']),
+                    ...columnas.map(c => el('th', {
+                        style: 'min-width: ' + (COL_MIN_WIDTH[c.tipo] || '150px') + ';'
+                    }, [
                         c.label,
                         c.requerido ? el('span', { style: 'color:#dc2626; margin-left:2px;' }, ['*']) : ''
                     ])),
-                    el('th', { style: 'width: 50px;' }, [''])
+                    el('th', { style: 'width: 50px; min-width: 50px;' }, [''])
                 ])
             ]);
             table.appendChild(thead);

@@ -407,28 +407,22 @@ class Indicador(models.Model):
                                       help_text="Grupo al que pertenece (ICET/SIIET)")
     
     # Campos descriptivos y conceptuales (MSD)
-    objetivo = CKEditor5Field(blank=True, null=True,
-                             verbose_name="2.3 Objetivo",
-                             help_text="Objetivo del indicador (2.3 MSD)")
+    # NOTA estándar: Objetivo, Fórmula y Variables fueron retirados del
+    # estándar de metadatos (antes 2.3, 2.5 y 2.6). La metadata de
+    # variables vive ahora en VariableConjuntoDatos / ConjuntoDatos.
 
     # Metodología y cálculo
     metodo_medicion = CKEditor5Field(blank=True, null=True,
-                                    verbose_name="2.4 Cálculo del Indicador / Método de Medición",
-                                    help_text="Descripción del método de medición y cálculo (2.4 MSD)")
-    formula_ficha = models.TextField(blank=True, null=True,
-                                    verbose_name="2.5 Fórmula",
-                                    help_text="Fórmula matemática del indicador para la ficha técnica")
-    variables = CKEditor5Field(blank=True, null=True,
-                              verbose_name="2.6 Variables",
-                              help_text="Descripción de las variables utilizadas en la fórmula")
+                                    verbose_name="2.3 Cálculo del Indicador / Método de Medición",
+                                    help_text="Descripción del método de medición y cálculo (2.3 MSD)")
 
     # Unidades y fuente
     unidad_medida = models.CharField(max_length=100, blank=True, null=True,
-        verbose_name="2.7 Unidad de Medida",
-        help_text="Unidad de medida del indicador (2.7 MSD)")
+        verbose_name="2.4 Unidad de Medida",
+        help_text="Unidad de medida del indicador (2.4 MSD)")
     fuente_datos = models.CharField(max_length=255, blank=True, null=True,
-        verbose_name="2.8 Fuente de la Información",
-        help_text="Fuente de datos del indicador (2.8 MSD)")
+        verbose_name="2.5 Fuente de la Información",
+        help_text="Fuente de datos del indicador (2.5 MSD)")
     notas = models.TextField(blank=True, null=True,
                             verbose_name="Notas internas",
                             help_text="Notas de uso interno (no se muestran en ficha técnica)")
@@ -493,35 +487,35 @@ class Indicador(models.Model):
     )
     nomenclaturas_clasificaciones = models.TextField(
         blank=True, null=True,
-        verbose_name="2.11 Nomenclaturas y Clasificaciones",
-        help_text="Clasificaciones o nomenclaturas utilizadas para la producción del indicador (2.11 MSD)"
+        verbose_name="2.8 Nomenclaturas y Clasificaciones",
+        help_text="Clasificaciones o nomenclaturas utilizadas para la producción del indicador (2.8 MSD)"
     )
     poblacion_objetivo = CKEditor5Field(
         blank=True, null=True,
-        verbose_name="2.13 Población Objetivo",
-        help_text="Población objetivo del conjunto de datos (2.13 MSD)"
+        verbose_name="2.10 Población Objetivo",
+        help_text="Población objetivo del conjunto de datos (2.10 MSD)"
     )
     alcance_tematico = models.TextField(
         blank=True, null=True,
-        verbose_name="2.12 Alcance Temático",
-        help_text="Sectores o temas cubiertos por el conjunto de datos estadísticos (2.12 MSD). "
+        verbose_name="2.9 Alcance Temático",
+        help_text="Sectores o temas cubiertos por el conjunto de datos estadísticos (2.9 MSD). "
                   "Reemplaza 'Desagregación temática (texto)' en la ficha."
     )
     cobertura_geografica = models.TextField(
         blank=True, null=True,
-        verbose_name="2.14 Cobertura Geográfica",
-        help_text="Extensión territorial del indicador (2.14 MSD). "
+        verbose_name="2.11 Cobertura Geográfica",
+        help_text="Extensión territorial del indicador (2.11 MSD). "
                   "Reemplaza 'Desagregación geográfica (texto)' en la ficha."
     )
     periodo_referencia = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name="2.15 Período de Referencia",
-        help_text="Período de tiempo al que se refiere la observación medida (2.15 MSD)"
+        verbose_name="2.12 Período de Referencia",
+        help_text="Período de tiempo al que se refiere la observación medida (2.12 MSD)"
     )
     periodo_base = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name="2.16 Período Base",
-        help_text="Período base de un índice o serie constante (2.16 MSD)"
+        verbose_name="2.13 Período Base",
+        help_text="Período base de un índice o serie constante (2.13 MSD)"
     )
 
     # Sección 3: Difusión
@@ -595,7 +589,7 @@ class Indicador(models.Model):
     # ConjuntoDatos con ese nombre, se reutiliza en lugar de crear uno nuevo.
     nombre_conjunto_datos = models.CharField(
         max_length=255, blank=True, null=True,
-        verbose_name="2.10 Nombre del Conjunto de Datos",
+        verbose_name="2.7 Nombre del Conjunto de Datos",
         help_text="Nombre del conjunto de datos al que pertenecen las variables. "
                   "Si coincide con un conjunto de datos existente, se asocia automáticamente. "
                   "No aparece en la ficha técnica pública."
@@ -643,7 +637,7 @@ class Indicador(models.Model):
 
     operacion = models.ForeignKey(OperacionEstadistica, on_delete=models.CASCADE,
                                 related_name='indicadores', blank=True, null=True,
-                                verbose_name="2.9 Nombre de la Operación Estadística")
+                                verbose_name="2.6 Nombre de la Operación Estadística")
     # Organismo responsable — llave oficial a la tabla Organismo
     # (metadato MSD 1.1 "Entidad o Institución Responsable" / 6.1)
     organismo_responsable = models.ForeignKey(
@@ -794,11 +788,18 @@ class Indicador(models.Model):
 
     @classmethod
     def campos_metadatos_estandar(cls):
-        """Campos del modelo con numeración del estándar MSD/SDMX."""
+        """Campos del modelo con numeración del estándar MSD/SDMX.
+
+        Se excluyen los campos marcados como 'legado' en el verbose_name
+        (p. ej. entidad_responsable_legado, que duplicaría el metadato
+        1.1 junto a organismo_responsable).
+        """
         campos = []
         for f in cls._meta.fields:
-            token = str(f.verbose_name or '').split(' ', 1)[0]
-            if token and '.' in token and token.replace('.', '').isdigit():
+            verbose = str(f.verbose_name or '')
+            token = verbose.split(' ', 1)[0]
+            if token and '.' in token and token.replace('.', '').isdigit() \
+                    and 'legado' not in verbose.lower():
                 campos.append(f)
         return campos
 

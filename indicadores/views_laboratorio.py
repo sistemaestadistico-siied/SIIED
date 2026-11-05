@@ -72,7 +72,6 @@ def api_quiz_indicador(request, indicador_id):
         if getattr(sub.tema, 'dominio', None):
             meta_lineas.append(f'Dominio: {sub.tema.dominio.nombre}')
     for campo, etiqueta in (
-        ('objetivo', 'Objetivo'),
         ('descripcion_indicador', 'Descripción'),
         ('metodo_medicion', 'Método de medición'),
     ):

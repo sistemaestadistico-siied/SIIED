@@ -491,10 +491,7 @@ class AplicadorMetadata:
             # MSD + aliases legacy (archivos antiguos siguen importando)
             'Descripcion_Indicador': 'descripcion_indicador',
             'Definiciones_Conceptos': 'descripcion_indicador',
-            'Objetivo': 'objetivo',
             'Metodo_Medicion': 'metodo_medicion',
-            'Formula': 'formula_ficha',
-            'Variables': 'variables',
             'Unidad_Medida': 'unidad_medida',
             'Alcance_Tematico': 'alcance_tematico',
             'Desagregacion_Tematica': 'alcance_tematico',

@@ -526,7 +526,7 @@ def _generar_banner_v3(organismo, etiqueta, url_formulario):
 
                             <!-- Subtexto -->
                             <p style="color: #dfe3f5; margin: 0 0 20px 0; font-size: 14px; line-height: 1.5;">
-                                Ahora queremos conocer tu satisfacción con la información estadística recibida.
+                                Ahora queremos conocer tu satisfacción con la información estadística y/o geográfica recibida.
                             </p>
 
                             <!-- CTA único -->

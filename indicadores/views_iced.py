@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 from .models_iced import (
     ICEDFormulario, ICEDRecursoHumano,
     ICEDMacroProceso, ICEDProceso, ICEDSubproceso, ICEDProcedimiento,
+    equipo_desde_username,
 )
 from .models import OperacionEstadistica, Organismo
 from .templatetags.iced_tags import iced_field_label
@@ -72,6 +73,19 @@ class ICEDWizardView(SessionWizardView):
 
     # Estados en los que el formulario aún puede editarse
     ESTADOS_EDITABLES = ('borrador', 'devuelto')
+    # El validador SIIED corrige respuestas directamente sobre el
+    # consolidado (no hay devolución al organismo): puede editarlo aunque
+    # ya esté enviado o pre-validado por el organismo.
+    ESTADOS_EDITABLES_SIIED = ('enviado', 'prevalidado')
+
+    @staticmethod
+    def _es_validador_sistema(user):
+        """Validador SIIED (staff, 'validador' o 'analista'): puede corregir
+        cualquier respuesta del consolidado, sin importar el subrol/equipo."""
+        if getattr(user, 'is_staff', False):
+            return True
+        perfil = getattr(user, 'perfil_recolector', None)
+        return bool(perfil and perfil.es_validador_sistema())
 
     def dispatch(self, request, *args, **kwargs):
         """Validar propiedad del formulario y estado editable antes de entrar al wizard."""
@@ -88,25 +102,33 @@ class ICEDWizardView(SessionWizardView):
                 )
         if formulario_id:
             formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
+            es_sistema = self._es_validador_sistema(request.user)
             organismo = _get_user_organismo(request.user)
             es_propio = organismo and formulario.organismo_id == organismo.id
-            if not es_propio and not request.user.is_staff:
+            if not es_propio and not es_sistema:
                 messages.error(request, 'No tiene permiso para acceder a este formulario.')
                 return redirect('indicadores:iced_landing')
             # El formulario pertenece a un equipo técnico: solo ese equipo
             # puede editarlo (equipo='' = consolidado/completo, que tampoco
-            # es editable por delegados de equipos).
+            # es editable por delegados de equipos). El validador SIIED es
+            # la excepción: corrige el consolidado de cualquier organismo.
             equipo_user = _get_user_equipo(request.user)
-            if (not request.user.is_staff
+            if (not es_sistema
                     and formulario.equipo != equipo_user):
                 messages.error(request, 'Este formulario pertenece a otro equipo técnico.')
                 return redirect('indicadores:iced_landing')
-            if formulario.estado not in self.ESTADOS_EDITABLES:
+            estados = self.ESTADOS_EDITABLES
+            if es_sistema:
+                estados = estados + self.ESTADOS_EDITABLES_SIIED
+            if formulario.estado not in estados:
                 messages.info(
                     request,
                     f'Este formulario está en estado '
                     f'"{formulario.get_estado_display()}" y no puede editarse.'
                 )
+                if es_sistema:
+                    return redirect('indicadores:validacion_revisar_iced',
+                                    formulario_id=formulario.pk)
                 return redirect('indicadores:iced_resultado', formulario_id=formulario.pk)
         return super().dispatch(request, *args, **kwargs)
 
@@ -482,26 +504,33 @@ class ICEDWizardView(SessionWizardView):
 
         # Obtener o crear formulario
         formulario_id = self.kwargs.get('formulario_id')
+        es_sistema = self._es_validador_sistema(self.request.user)
         if formulario_id:
             formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
             # Verificación de seguridad: propiedad (organismo del USUARIO),
             # equipo técnico y estado editable
             organismo_usuario = _get_user_organismo(self.request.user)
             es_propio = organismo_usuario and formulario.organismo_id == organismo_usuario.id
-            if not es_propio and not self.request.user.is_staff:
+            if not es_propio and not es_sistema:
                 messages.error(self.request, 'No tiene permiso para modificar este formulario.')
                 return redirect('indicadores:iced_landing')
             equipo_user = _get_user_equipo(self.request.user)
-            if (not self.request.user.is_staff
+            if (not es_sistema
                     and formulario.equipo != equipo_user):
                 messages.error(self.request, 'Este formulario pertenece a otro equipo técnico.')
                 return redirect('indicadores:iced_landing')
-            if formulario.estado not in self.ESTADOS_EDITABLES:
+            estados = self.ESTADOS_EDITABLES
+            if es_sistema:
+                estados = estados + self.ESTADOS_EDITABLES_SIIED
+            if formulario.estado not in estados:
                 messages.error(
                     self.request,
                     f'Este formulario está en estado '
                     f'"{formulario.get_estado_display()}" y no puede modificarse.'
                 )
+                if es_sistema:
+                    return redirect('indicadores:validacion_revisar_iced',
+                                    formulario_id=formulario.pk)
                 return redirect('indicadores:iced_resultado', formulario_id=formulario.pk)
         else:
             equipo_user = _get_user_equipo(self.request.user)
@@ -564,10 +593,17 @@ class ICEDWizardView(SessionWizardView):
             if respuestas:  # Solo guardar si hay datos
                 setattr(formulario, field_name, respuestas)
 
-        # Marcar como enviado
-        formulario.estado = 'enviado'
-        formulario.fecha_envio = timezone.now()
-        formulario.usuario_diligencia = self.request.user
+        # Corrección del validador SIIED sobre el consolidado: conserva
+        # su lugar en la cola (estado y fecha de envío del organismo);
+        # no se devuelve al organismo ni se re-notifica un envío nuevo.
+        edicion_siied = (
+            es_sistema and formulario_id
+            and formulario.estado in self.ESTADOS_EDITABLES_SIIED)
+        if not edicion_siied:
+            # Marcar como enviado
+            formulario.estado = 'enviado'
+            formulario.fecha_envio = timezone.now()
+            formulario.usuario_diligencia = self.request.user
         formulario.paso_actual = 'completado'
         formulario.save()
 
@@ -576,6 +612,15 @@ class ICEDWizardView(SessionWizardView):
         
         # Materializar registros de RRHH (P19) desde el JSON de respuestas_c
         self._materializar_rrhh(formulario)
+
+        if edicion_siied:
+            messages.success(
+                self.request,
+                'Respuestas del consolidado actualizadas por el equipo '
+                'SIIED. Recalcule los puntajes y complete la validación.'
+            )
+            return redirect('indicadores:validacion_revisar_iced',
+                            formulario_id=formulario.pk)
 
         # Notificar por correo a validadores/admins (no bloquea el envío si falla)
         try:
@@ -819,12 +864,25 @@ def iced_landing(request):
     if request.user.is_staff and not organismo:
         formularios = ICEDFormulario.objects.all().order_by('-periodo', 'organismo__nombre')
 
+    # Usuario con subrol fijado en el username: solo responde un FICED por
+    # año (el de su equipo). Una vez existe el del período actual, se oculta
+    # el botón de "nuevo formulario"; reaparece cuando cambia el año.
+    equipo_fijo = equipo_desde_username(request.user.username)
+    ocultar_nuevo = bool(
+        equipo_fijo and organismo and ICEDFormulario.objects.filter(
+            organismo=organismo,
+            periodo=str(timezone.now().year),
+            equipo=equipo_fijo,
+        ).exists()
+    )
+
     return render(request, 'indicadores/iced/landing.html', {
         'page': 'iced',
         'organismo': organismo,
         'formularios': formularios,
         'equipo_user': equipo_user,
         'periodo_actual': str(timezone.now().year),
+        'ocultar_nuevo': ocultar_nuevo,
     })
 
 
@@ -849,6 +907,17 @@ def iced_equipo(request):
     equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
     validos = {e for e, _ in equipos}
     destino = request.POST.get('next') or request.GET.get('next') or ''
+
+    # Subrol fijado en el username ('DAP_ETPP'): no se le ofrece elegir
+    # equipo; se persiste en el perfil y va directo a su destino.
+    equipo_fijo = equipo_desde_username(request.user.username)
+    if equipo_fijo:
+        if perfil and perfil.subrol_ficed != equipo_fijo:
+            perfil.subrol_ficed = equipo_fijo
+            perfil.save(update_fields=['subrol_ficed'])
+        if destino == 'formulario':
+            return redirect('indicadores:iced_formulario_nuevo')
+        return redirect('indicadores:iced_landing')
 
     if request.method == 'POST':
         equipo = request.POST.get('equipo', '')
@@ -917,16 +986,23 @@ def iced_resultado(request, formulario_id):
         return redirect('indicadores:iced_landing')
     resultado = calcular_iced(formulario)
 
+    # Los puntajes solo se publican cuando el FICED quedó validado por el
+    # equipo SIIED (calificación final). En enviado/prevalidado el organismo
+    # ve el estado del trámite, no puntajes parciales ni oficiales.
+    mostrar_puntaje = formulario.estado == 'validado'
+
     # Serializar dimensiones para JS (solo puntaje numérico)
     dims_json = {}
-    for k, puntaje in resultado.get('dimensiones', {}).items():
-        dims_json[k] = {'puntaje': float(puntaje)}
+    if mostrar_puntaje:
+        for k, puntaje in resultado.get('dimensiones', {}).items():
+            dims_json[k] = {'puntaje': float(puntaje)}
 
     return render(request, 'indicadores/iced/resultado.html', {
         'page': 'iced',
         'formulario': formulario,
         'resultado': resultado,
         'resultado_json': _json.dumps(dims_json),
+        'mostrar_puntaje': mostrar_puntaje,
     })
 
 
@@ -951,7 +1027,8 @@ def iced_guardar_parcial(request):
         return JsonResponse({'error': 'El campo paso es requerido'}, status=400)
 
     organismo = _get_user_organismo(request.user)
-    if not organismo:
+    es_sistema = ICEDWizardView._es_validador_sistema(request.user)
+    if not organismo and not es_sistema:
         return JsonResponse({
             'error': 'No se pudo determinar el organismo del usuario',
             'detail': 'El usuario no tiene un organismo asignado en su perfil'
@@ -959,19 +1036,28 @@ def iced_guardar_parcial(request):
 
     if formulario_id:
         formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
-        # Verificar propiedad (staff puede editar cualquier borrador)
-        if not request.user.is_staff and formulario.organismo_id != organismo.id:
+        # Verificar propiedad: el equipo SIIED corrige el consolidado de
+        # cualquier organismo; el resto solo edita lo suyo.
+        if not es_sistema and (
+                not organismo or formulario.organismo_id != organismo.id):
             return JsonResponse({'error': 'No tiene permiso sobre este formulario'}, status=403)
         equipo_user = _get_user_equipo(request.user)
-        if (not request.user.is_staff
+        if (not es_sistema
                 and formulario.equipo != equipo_user):
             return JsonResponse({'error': 'Este formulario pertenece a otro equipo técnico'}, status=403)
-        if formulario.estado not in ('borrador', 'devuelto'):
+        estados = ICEDWizardView.ESTADOS_EDITABLES
+        if es_sistema:
+            estados = estados + ICEDWizardView.ESTADOS_EDITABLES_SIIED
+        if formulario.estado not in estados:
             return JsonResponse({
                 'error': f'El formulario está en estado '
                          f'"{formulario.get_estado_display()}" y no puede modificarse'
             }, status=400)
     else:
+        if not organismo:
+            return JsonResponse({
+                'error': 'No se pudo determinar el organismo del usuario'
+            }, status=400)
         equipo_user = _get_user_equipo(request.user)
         if not request.user.is_staff and not equipo_user:
             return JsonResponse({
@@ -1170,7 +1256,14 @@ GUÍA DE ESTA SECCIÓN:
 
 
 def _get_user_equipo(user):
-    """Equipo técnico FICED del usuario (subrol); '' = formulario completo."""
+    """Equipo técnico FICED del usuario (subrol); '' = formulario completo.
+
+    Si el username contiene un código de equipo ('DAP_ETPP'), ese código
+    manda sobre el subrol_ficed del perfil y no puede cambiarse desde la UI.
+    """
+    fijo = equipo_desde_username(getattr(user, 'username', ''))
+    if fijo:
+        return fijo
     perfil = getattr(user, 'perfil_recolector', None)
     return (getattr(perfil, 'subrol_ficed', '') or '') if perfil else ''
 

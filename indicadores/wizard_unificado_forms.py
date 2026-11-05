@@ -564,9 +564,9 @@ class FormReglaExtraccion(forms.Form):
     )
     
     columnas_fuente = forms.CharField(
-        widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ej: poblacion, nacimientos, defunciones'}),
-        label="Columnas Fuente (separadas por comas)",
-        help_text="Columnas del CSV que se usarán en la fórmula"
+        widget=forms.Textarea(attrs={'rows': 2, 'placeholder': 'Ej: poblacion; nacimientos; defunciones'}),
+        label="Columnas Fuente (separadas por punto y coma)",
+        help_text="Columnas del CSV que se usarán en la fórmula. Use ';' como separador — es obligatorio si algún nombre de columna contiene comas."
     )
     
     formula = forms.CharField(

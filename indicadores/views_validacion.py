@@ -173,10 +173,36 @@ def validacion_dashboard(request):
     iced_devueltos = []
     iced_validados_recientes = []
     iced_count = 0
-    if not es_org:
+    if es_org:
+        # El validador del organismo concilia y pre-valida los FICED de SU
+        # organismo: ve los enviados por sus equipos (para conciliar) y el
+        # consolidado enviado (para pre-validar). No ve los de otros
+        # organismos ni los que ya pre-validó.
+        org = _organismo_perfil(request)
+        if org:
+            from collections import Counter
+            iced_pendientes = list(
+                ICEDFormulario.objects.filter(
+                    organismo=org,
+                    estado__in=('enviado', 'prevalidado'))
+                .select_related('organismo', 'usuario_diligencia')
+                .order_by('-periodo', 'equipo')
+            )
+            cnt = Counter(
+                ICEDFormulario.objects
+                .filter(organismo=org).exclude(equipo='')
+                .values_list('periodo', flat=True))
+            for f in iced_pendientes:
+                f.n_equipos_org = cnt.get(f.periodo, 0)
+            # Los pre-validados siguen listados (acceso al producto de
+            # cumplimiento) pero ya no cuentan como pendientes.
+            iced_count = sum(
+                1 for f in iced_pendientes if f.estado == 'enviado')
+    else:
       try:
         iced_pendientes = list(
-            ICEDFormulario.objects.filter(estado='enviado')
+            ICEDFormulario.objects.filter(
+                estado__in=('enviado', 'prevalidado'))
             .select_related('organismo', 'usuario_diligencia')
             .order_by('organismo__nombre', '-periodo', 'equipo')
         )
@@ -978,16 +1004,36 @@ def _campo_captura_dato(field):
 DIM_POR_MODULO = {'b': '1', 'c': '2', 'd': '3', 'e': '4'}
 
 
-@validador_sistema_required
+@validador_required
 def validacion_revisar_iced(request, formulario_id):
     """
-    Revisar un formulario ICED: puntajes calculados en preview,
-    respuestas reales por pregunta, y acciones (aprobar/devolver).
+    Revisar un formulario ICED.
+
+    - Validador del organismo: revisa las respuestas de SU organismo sin
+      ver puntajes (solo respuestas); sobre el consolidado puede
+      pre-validarlo para la cola SIIED.
+    - Validador SIIED: puntajes en preview, respuestas reales por
+      pregunta, edición de respuestas y decisión final (aprobar/rechazar).
     """
     formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
 
-    # Calcular puntajes en preview (sin persistir)
-    resultado = calcular_iced(formulario)
+    es_org = _es_validador_organismo(request)
+    if es_org:
+        org_perfil = _organismo_perfil(request)
+        if not org_perfil or formulario.organismo_id != org_perfil.id:
+            messages.error(
+                request,
+                'Solo puedes revisar formularios de tu organismo.')
+            return redirect('indicadores:validacion_dashboard')
+        # Los puntajes solo se muestran desde la validación SIIED.
+        resultado = None
+        detalle = {}
+        indicadores = {}
+    else:
+        # Calcular puntajes en preview (sin persistir)
+        resultado = calcular_iced(formulario)
+        detalle = resultado.get('detalle', {})
+        indicadores = resultado.get('indicadores', {})
 
     # Respuestas normalizadas por módulo (para mostrar al validador)
     resp_a = _normalizar_respuestas(formulario.respuestas_a)
@@ -998,8 +1044,7 @@ def validacion_revisar_iced(request, formulario_id):
     modulos = {'b': resp_b, 'c': resp_c, 'd': resp_d, 'e': resp_e}
 
     # Enriquecer el detalle con indicadores individuales y respuestas reales
-    detalle = resultado.get('detalle', {})
-    indicadores = resultado.get('indicadores', {})
+    # (vacío para el validador del organismo: no ve puntajes)
     # Tracking de respuestas compartidas: un mismo campo puede alimentar
     # indicadores de varias dimensiones (ej. P23 -> 3.1.x y 4.1.4)
     ocurrencias = {}
@@ -1162,12 +1207,35 @@ def validacion_revisar_iced(request, formulario_id):
         periodo=formulario.periodo,
     ).exclude(pk=formulario.pk).order_by('equipo')
 
+    es_sistema = _es_validador_sistema(request)
+    es_consolidado = not formulario.equipo
     context = {
         'formulario': formulario,
         'resultado': resultado,
         'organismo': organismo,
         'respuestas_modulo_display': respuestas_modulo_display,
         'hermanos': hermanos,
+        'es_validador_organismo': es_org,
+        'es_validador_sistema': es_sistema,
+        # El validador del organismo pre-valida el consolidado enviado.
+        'puede_prevalidar': (
+            es_org and es_consolidado and formulario.estado == 'enviado'),
+        # El SIIED decide y corrige sobre el consolidado enviado o
+        # pre-validado; nunca devuelve al organismo.
+        'puede_decidir': (
+            es_sistema and es_consolidado
+            and formulario.estado in ('enviado', 'prevalidado')),
+        'puede_editar_respuestas': (
+            es_sistema and es_consolidado
+            and formulario.estado in ('enviado', 'prevalidado')),
+        # Producto de cumplimiento: el del organismo existe desde la
+        # pre-validación; el del SIIED solo tras la validación final.
+        'puede_producto_org': (
+            es_consolidado
+            and formulario.estado in ('prevalidado', 'validado')),
+        'puede_producto_siied': (
+            es_sistema and es_consolidado
+            and formulario.estado == 'validado'),
     }
     return render(request, 'validacion/revisar_iced.html', context)
 
@@ -1191,7 +1259,7 @@ def validacion_calcular_iced(request, formulario_id):
         return redirect('indicadores:validacion_conciliar_iced',
                         organismo_id=formulario.organismo_id,
                         periodo=formulario.periodo)
-    if formulario.estado not in ('enviado', 'validado'):
+    if formulario.estado not in ('enviado', 'prevalidado', 'validado'):
         messages.error(request, 'Solo se pueden calcular puntajes de formularios enviados.')
         return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
     resultado = aplicar_puntajes(formulario)
@@ -1204,15 +1272,75 @@ def validacion_calcular_iced(request, formulario_id):
     return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
 
 
-@validador_sistema_required
+@validador_required
 def validacion_decidir_iced(request, formulario_id):
-    """Procesa la decisión del validador sobre un formulario ICED."""
+    """Procesa la decisión sobre un formulario ICED.
+
+    - 'prevalidar' (validador del organismo, solo sobre su consolidado
+      enviado): marca el FICED como conciliado/pre-validado del organismo.
+    - 'aprobar'/'rechazar' (validador SIIED, sobre enviado o prevalidado):
+      decisión final. El SIIED corrige respuestas directamente; no hay
+      devolución al organismo.
+    """
     if request.method != 'POST':
         return redirect('indicadores:validacion_dashboard')
 
     formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
     accion = request.POST.get('accion')
     observaciones = request.POST.get('observaciones', '').strip()
+
+    es_org = _es_validador_organismo(request)
+    es_sistema = _es_validador_sistema(request)
+
+    # El validador del organismo solo actúa sobre el consolidado de SU
+    # organismo; el SIIED sobre cualquier consolidado.
+    if es_org:
+        org_perfil = _organismo_perfil(request)
+        if not org_perfil or formulario.organismo_id != org_perfil.id:
+            messages.error(
+                request,
+                'Solo puedes decidir sobre formularios de tu organismo.')
+            return redirect('indicadores:validacion_dashboard')
+
+    if accion == 'prevalidar':
+        if not es_org:
+            messages.error(
+                request,
+                'La pre-validación corresponde al validador del organismo.')
+            return redirect('indicadores:validacion_revisar_iced',
+                            formulario_id=formulario.pk)
+        if formulario.equipo:
+            messages.warning(
+                request,
+                'La pre-validación se hace sobre el consolidado: '
+                'concilie primero las respuestas de los equipos.')
+            return redirect('indicadores:validacion_conciliar_iced',
+                            organismo_id=formulario.organismo_id,
+                            periodo=formulario.periodo)
+        if formulario.estado != 'enviado':
+            messages.error(
+                request,
+                'Solo se puede pre-validar un consolidado en estado "Enviado".')
+            return redirect('indicadores:validacion_revisar_iced',
+                            formulario_id=formulario.pk)
+        formulario.estado = 'prevalidado'
+        formulario.prevalidado_por = request.user
+        formulario.fecha_prevalidacion = timezone.now()
+        formulario.observaciones_prevalidador = observaciones
+        formulario.save(update_fields=[
+            'estado', 'prevalidado_por', 'fecha_prevalidacion',
+            'observaciones_prevalidador'])
+        messages.success(
+            request,
+            f'FICED de {formulario.organismo.nombre} pre-validado. '
+            f'El equipo SIIED hará la validación final.')
+        return redirect('indicadores:validacion_dashboard')
+
+    if not es_sistema:
+        messages.error(
+            request,
+            'La decisión final corresponde al equipo validador del SIIED.')
+        return redirect('indicadores:validacion_dashboard')
 
     # Los formularios por equipo son parciales: aprobarlos publicaría un
     # ICED incompleto. La decisión se toma sobre el consolidado.
@@ -1227,13 +1355,13 @@ def validacion_decidir_iced(request, formulario_id):
                         organismo_id=formulario.organismo_id,
                         periodo=formulario.periodo)
 
-    # Solo se puede decidir sobre formularios en estado 'enviado':
-    # evita aprobar borradores o re-decidir formularios ya resueltos.
-    if formulario.estado != 'enviado':
+    # Solo se puede decidir sobre formularios enviados o pre-validados
+    # por el organismo: evita aprobar borradores o re-decidir resueltos.
+    if formulario.estado not in ('enviado', 'prevalidado'):
         messages.error(
             request,
             f'No se puede procesar la decisión: el formulario está en estado '
-            f'"{formulario.get_estado_display()}", no "Enviado".'
+            f'"{formulario.get_estado_display()}", no "Enviado" o "Pre-validado".'
         )
         return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
 
@@ -1308,6 +1436,71 @@ def validacion_decidir_iced(request, formulario_id):
     return redirect('indicadores:validacion_dashboard')
 
 
+@validador_required
+def validacion_producto_iced(request, formulario_id, tipo):
+    """Producto de cumplimiento del FICED (documento imprimible/descargable).
+
+    - tipo='organismo': el organismo cumplió el diligenciamiento y su
+      validador concilió/pre-validó — disponible desde 'prevalidado'.
+    - tipo='siied': el equipo técnico SIIED completó la validación final —
+      disponible desde 'validado', incluye el puntaje oficial.
+
+    Lo descarga el validador del organismo (su propio consolidado) o el
+    equipo SIIED; no es un certificado ni publica puntajes al organismo.
+    """
+    formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
+    es_org = _es_validador_organismo(request)
+    es_sistema = _es_validador_sistema(request)
+
+    if tipo not in ('organismo', 'siied'):
+        from django.http import Http404
+        raise Http404
+    if not formulario.equipo == '':
+        messages.error(
+            request,
+            'El producto de cumplimiento se emite sobre el consolidado '
+            'del organismo.')
+        return redirect('indicadores:validacion_dashboard')
+    if es_org:
+        org_perfil = _organismo_perfil(request)
+        if not org_perfil or formulario.organismo_id != org_perfil.id:
+            messages.error(
+                request,
+                'Solo puedes descargar el producto de tu organismo.')
+            return redirect('indicadores:validacion_dashboard')
+    if tipo == 'organismo' and formulario.estado not in (
+            'prevalidado', 'validado'):
+        messages.error(
+            request,
+            'El producto del organismo está disponible una vez el '
+            'consolidado ha sido pre-validado.')
+        return redirect('indicadores:validacion_revisar_iced',
+                        formulario_id=formulario.pk)
+    if tipo == 'siied':
+        if not es_sistema:
+            messages.error(
+                request,
+                'El producto de validación final es del equipo SIIED.')
+            return redirect('indicadores:validacion_dashboard')
+        if formulario.estado != 'validado':
+            messages.error(
+                request,
+                'El producto SIIED se emite cuando el FICED queda '
+                'validado definitivamente.')
+            return redirect('indicadores:validacion_revisar_iced',
+                            formulario_id=formulario.pk)
+
+    return render(request, 'validacion/producto_iced.html', {
+        'formulario': formulario,
+        'organismo': formulario.organismo,
+        'tipo': tipo,
+        'puntaje_pct': (
+            round(float(formulario.puntaje_global) * 100, 1)
+            if formulario.puntaje_global is not None else None),
+        'nivel': formulario.nivel_global_display,
+    })
+
+
 # ============================================================================
 # CONCILIACIÓN FICED POR EQUIPOS TÉCNICOS
 # ============================================================================
@@ -1375,6 +1568,30 @@ def _es_campo_decision(field_name):
         (forms.RadioSelect, forms.Select, forms.CheckboxSelectMultiple))
 
 
+def _es_campo_multiple(field_name):
+    """True si el campo es de selección múltiple (CheckboxSelectMultiple).
+
+    En conciliación estas respuestas se UNEN entre equipos (todas las
+    opciones marcadas son válidas y se suman), a diferencia de los campos
+    de selección única donde el validador elige una sola respuesta.
+    """
+    fld = _FIELD_DEFS.get(field_name)
+    return fld is not None and isinstance(
+        fld.widget, forms.CheckboxSelectMultiple)
+
+
+def _union_opciones(valores):
+    """Une las opciones marcadas por varios equipos en un campo
+    multi-selección, conservando el orden de aparición y sin duplicar."""
+    union = []
+    for v in valores:
+        items = v if isinstance(v, list) else ([] if _vacio(v) else [v])
+        for it in items:
+            if it not in union:
+                union.append(it)
+    return union
+
+
 def _fusionar_valores(valores):
     """Fusiona valores no-decisión de varios equipos en uno solo.
 
@@ -1410,7 +1627,7 @@ def _fusionar_valores(valores):
     return ' - '.join(dict.fromkeys(str(v) for v in vals))
 
 
-@validador_sistema_required
+@validador_required
 def validacion_conciliar_iced(request, organismo_id, periodo):
     """
     Concilia las respuestas FICED de un organismo entre sus equipos técnicos.
@@ -1418,14 +1635,27 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
     Cada equipo responde solo sus preguntas asignadas; las preguntas
     asignadas a varios equipos reciben respuestas independientes. Aquí el
     validador compara las respuestas por equipo, elige la canónica para las
-    divergentes y genera/actualiza el formulario consolidado (equipo=''),
-    que es el que pasa por cálculo y decisión.
+    divergentes de selección única (las de selección múltiple se unen) y
+    genera/actualiza el formulario consolidado (equipo=''), que es el que
+    pasa por validación final SIIED.
+
+    La conciliación la hace el validador DEL ORGANISMO (acotado a su
+    organismo); el validador SIIED conserva acceso como contingencia.
     """
     import json as _json
     from .models_iced import ICEDPreguntaEquipo
     from .models import Organismo
 
     organismo = get_object_or_404(Organismo, pk=organismo_id)
+
+    # El validador del organismo solo concilia los FICED de SU organismo.
+    if _es_validador_organismo(request):
+        org_perfil = _organismo_perfil(request)
+        if not org_perfil or org_perfil.id != organismo.id:
+            messages.error(
+                request,
+                'Solo puedes conciliar los formularios de tu organismo.')
+            return redirect('indicadores:validacion_dashboard')
     formularios = list(
         ICEDFormulario.objects.filter(organismo=organismo, periodo=periodo)
         .exclude(equipo='')
@@ -1495,20 +1725,64 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         # Preguntas sin asignación en la matriz: participan los equipos
         # que de hecho respondieron.
         respondieron = sorted(e for e, r in por_equipo.items() if r)
+        # Campos en orden de declaración del cuestionario: primero los
+        # del wizard, al final cualquier respuesta huérfana.
+        campos_vistos = {k for r in por_equipo.values() for k in r}
+        campos_orden = [k for k in _FIELD_DEFS if k in campos_vistos]
+        campos_orden += sorted(campos_vistos - set(campos_orden))
+        decision_orden = [k for k in campos_orden if _es_campo_decision(k)]
+        comp_orden = [k for k in campos_orden if not _es_campo_decision(k)]
+
+        # Texto de la pregunta (una sola vez, en el encabezado): label del
+        # primer campo de decisión, sin el prefijo numérico "18. ".
+        campo_principal = (
+            decision_orden[0] if decision_orden
+            else (campos_orden[0] if campos_orden else ''))
+        pregunta_texto = (
+            re.sub(r'^\s*\d+\.\s*', '', iced_field_label(campo_principal))
+            if campo_principal else '')
+
         preguntas.append({
             'codigo': codigo,
             'label': label_de(codigo),
+            'pregunta_texto': pregunta_texto,
             'asignados': sorted(asignaciones.get(codigo) or respondieron),
             'por_equipo': por_equipo,
-            'por_equipo_items': {
+            # Tarjetas: solo la opción seleccionada por cada equipo.
+            'tiene_decision': bool(decision_orden),
+            'decision_items': {
                 eq: [{
                     'field_key': k,
-                    'label': iced_field_label(k),
                     'respuesta': v,
-                } for k, v in resp.items() if not _vacio(v)]
+                } for k in decision_orden
+                    for v in [resp.get(k)] if not _vacio(v)]
                 for eq, resp in por_equipo.items()
             },
+            # Campos complementarios (actividades, ¿cuál?, otros, tablas):
+            # agrupados por campo, con el contenido de cada equipo.
+            'complementarios': [{
+                'field_key': k,
+                'label': iced_field_label(k),
+                'por_equipo': {
+                    eq: {'field_key': k, 'respuesta': resp[k]}
+                    for eq, resp in por_equipo.items()
+                    if not _vacio(resp.get(k))
+                },
+            } for k in comp_orden
+                if any(not _vacio(resp.get(k)) for resp in por_equipo.values())],
             'divergente': len(snapshots) > 1,
+            # Solo requiere elegir equipo ganador si tiene al menos un
+            # campo de decisión de SELECCIÓN ÚNICA; las preguntas cuyos
+            # campos de decisión son todas multi-selección se concilian
+            # por unión automática y no necesitan elección.
+            'requiere_ganador': any(
+                _es_campo_decision(k) and not _es_campo_multiple(k)
+                for resp in por_equipo.values() for k in resp
+            ),
+            'tiene_multiple': any(
+                _es_campo_multiple(k)
+                for resp in por_equipo.values() for k in resp
+            ),
         })
 
     if request.method == 'POST':
@@ -1532,8 +1806,17 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
                 campos.update(r)
             for k in campos:
                 attr = _FIELD_ATTR.get(k) or attr_de.get(k) or 'respuestas_a'
-                if _es_campo_decision(k):
-                    # La opción seleccionada es la del equipo elegido
+                if _es_campo_multiple(k):
+                    # Selección múltiple: unión de las opciones marcadas
+                    # por TODOS los equipos — todas son válidas y se suman,
+                    # independientemente del equipo ganador elegido.
+                    v = _union_opciones(
+                        [p['por_equipo'][e].get(k) for e in equipos_resp])
+                    if v:
+                        nuevos[attr][k] = v
+                elif _es_campo_decision(k):
+                    # Selección única: la opción seleccionada es la del
+                    # equipo elegido por el validador.
                     v = resp_ganador.get(k)
                     if not _vacio(v):
                         nuevos[attr][k] = v
@@ -1559,16 +1842,32 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
 
         for attr in _CAMPOS_RESP:
             setattr(consolidado, attr, nuevos[attr])
-        consolidado.estado = 'enviado'
-        consolidado.fecha_envio = timezone.now()
         consolidado.usuario_diligencia = request.user
+        consolidado.fecha_envio = consolidado.fecha_envio or timezone.now()
+        if _es_validador_organismo(request):
+            # El validador del organismo concilia Y pre-valida: el
+            # consolidado pasa directo a la cola de validación final SIIED.
+            consolidado.estado = 'prevalidado'
+            consolidado.prevalidado_por = request.user
+            consolidado.fecha_prevalidacion = timezone.now()
+        else:
+            # Fallback: lo concilió el equipo SIIED (organismo sin
+            # validador propio) — queda enviado en la cola del SIIED.
+            consolidado.estado = 'enviado'
         consolidado.save()
 
-        messages.success(
-            request,
-            f'Consolidado generado con {conciliadas} preguntas de '
-            f'{len(formularios)} equipo(s). Ya puede revisarlo y calcular el ICED.'
-        )
+        if _es_validador_organismo(request):
+            msg = (
+                f'Consolidado pre-validado con {conciliadas} preguntas de '
+                f'{len(formularios)} equipo(s). El equipo SIIED hará la '
+                f'validación final.'
+            )
+        else:
+            msg = (
+                f'Consolidado generado con {conciliadas} preguntas de '
+                f'{len(formularios)} equipo(s). Ya puede revisarlo y calcular el ICED.'
+            )
+        messages.success(request, msg)
         return redirect('indicadores:validacion_revisar_iced',
                         formulario_id=consolidado.pk)
 
@@ -1649,10 +1948,7 @@ CAMPOS_CONCILIABLES = [
     ('sigla', 'Sigla'),
     ('grupo_indicador', 'Grupo de indicador'),
     ('descripcion_indicador', 'Descripción'),
-    ('objetivo', 'Objetivo'),
     ('metodo_medicion', 'Método de medición'),
-    ('formula_ficha', 'Fórmula de ficha'),
-    ('variables', 'Variables'),
     ('unidad_medida', 'Unidad de medida'),
     ('fuente_datos', 'Fuente de datos'),
     ('notas', 'Notas'),

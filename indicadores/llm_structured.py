@@ -155,18 +155,6 @@ METADATA_SCHEMA = {
                            'obtiene el numerador y denominador, agregaciones '
                            'y tratamiento de datos',
         },
-        'Formula': {
-            'type': 'string',
-            'description': 'Fórmula matemática del indicador si se infiere '
-                           '(ej. "TMI = (defunciones <1 año / nacidos vivos) '
-                           '× 1.000"). Vacío si no aplica',
-        },
-        'Variables': {
-            'type': 'string',
-            'description': 'Variables o desagregaciones que componen el '
-                           'indicador, separadas por coma (ej. "edad, sexo, '
-                           'comuna")',
-        },
         'Nombre_Conjunto_conjunto_datos': {
             'type': 'string',
             'description': 'Nombre sugerido del conjunto de datos '
@@ -1068,7 +1056,7 @@ SUPERSET_TABLERO_SCHEMA = {
         },
         'charts': {
             'type': 'array',
-            'description': 'Graficos del tablero (1-6)',
+            'description': 'Graficos del tablero (1-12)',
             'items': {
                 'type': 'object',
                 'properties': {
@@ -1218,7 +1206,7 @@ SUPERSET_TABLERO_PROMPT = (
     '- metrica: SUM(col)/AVG(col)/COUNT(*)/MAX(col)/MIN(col). Para '
     'indicadores, SUM(valor_dato) o AVG(valor_dato).\n'
     '- filtros: columnas exactas, valores literales (anio como numero).\n'
-    '- 1-6 charts ordenados de lo general (cifra/serie) a lo detallado '
+    '- 1-12 charts ordenados de lo general (cifra/serie) a lo detallado '
     '(tabla/desagregaciones).\n'
     '- indicadores: lista los indicadores del SIIED que alimentan el '
     'tablero por nombre — el usuario necesita saberlos con claridad.\n'

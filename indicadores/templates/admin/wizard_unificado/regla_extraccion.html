@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 const r = data.regla || {};
                 setField('columna_fecha', r.columna_fecha || '');
-                setField('columnas_fuente', (r.columnas_fuente || []).join(', '));
+                setField('columnas_fuente', (r.columnas_fuente || []).join('; '));
                 setField('formula', r.formula || '');
                 const filtros = r.filtros || {};
                 setField('filtros_json',

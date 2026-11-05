@@ -26,6 +26,7 @@ class ICEDFormulario(models.Model):
     ESTADO_CHOICES = [
         ('borrador', 'Borrador'),
         ('enviado', 'Enviado'),
+        ('prevalidado', 'Pre-validado por el organismo (conciliado)'),
         ('validado', 'Validado'),
         ('devuelto', 'Devuelto para corrección'),
         ('rechazado', 'Rechazado'),
@@ -142,6 +143,21 @@ class ICEDFormulario(models.Model):
     observaciones_validador = models.TextField(
         blank=True, default='',
         help_text="Observaciones del validador al devolver o aprobar"
+    )
+    prevalidado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='formularios_iced_prevalidados',
+        help_text="Validador del organismo que concilió y pre-validó"
+    )
+    fecha_prevalidacion = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Fecha de pre-validación (conciliación) del organismo"
+    )
+    observaciones_prevalidador = models.TextField(
+        blank=True, default='',
+        help_text="Observaciones del validador del organismo al pre-validar"
     )
 
     class Meta:
@@ -522,3 +538,26 @@ class ICEDPreguntaEquipo(models.Model):
             return True  # campos auxiliares (json internos, display) → siempre
         asignados = cls.equipos_de_pregunta(codigo)
         return not asignados or equipo in asignados
+
+
+def equipo_desde_username(username):
+    """
+    Código de equipo técnico FICED embebido en un nombre de usuario.
+
+    Los usuarios creados por equipo llevan el código en el username
+    (p. ej. 'DAP_ETPP', 'DAP_ETUAG_PSP'). El código debe quedar delimitado
+    por '_' o por los extremos del nombre para evitar falsos positivos.
+
+    Retorna el código ('ETPP', 'ETUAG_PSP', ...) o '' si el nombre no
+    contiene ninguno.
+    """
+    import re
+    uname = (username or '').upper()
+    if not uname:
+        return ''
+    for code, _label in ICEDFormulario.EQUIPO_CHOICES:
+        if not code:
+            continue
+        if re.search(r'(?:^|_)' + re.escape(code) + r'(?:_|$)', uname):
+            return code
+    return ''

@@ -170,9 +170,9 @@ def delegado_dashboard(request):
     # equipos del organismo tienen los suyos y se concilian en validación.
     ficed = None
     if organismo:
-        from .models_iced import ICEDFormulario
+        from .models_iced import ICEDFormulario, equipo_desde_username
         periodo_actual = str(timezone.now().year)
-        equipo_user = getattr(
+        equipo_user = equipo_desde_username(request.user.username) or getattr(
             getattr(request.user, 'perfil_recolector', None),
             'subrol_ficed', ''
         ) or ''
@@ -1123,8 +1123,6 @@ def delegado_cargar_metadata_form(request):
                 'Descripcion_Indicador': i.descripcion_indicador or '',
                 'Justificacion': '',  # campo legacy eliminado
                 'Metodo_Medicion': i.metodo_medicion or '',
-                'Formula': i.formula_ficha or '',
-                'Variables': i.variables or '',
                 'Unidad_Medida': i.unidad_medida or '',
                 'Valores_Referencia': '',  # campo legacy eliminado
                 'Nomenclaturas_Clasificaciones': i.nomenclaturas_clasificaciones or '',
@@ -1186,7 +1184,7 @@ def delegado_cargar_metadata_form(request):
             'Grupo_Indicador', 'Dominio', 'Tema', 'Subtema',
             'Codigo_Indicador', 'Nombre_Indicador', 'Sigla',
             'Descripcion_Indicador',
-            'Metodo_Medicion', 'Formula', 'Variables',
+            'Metodo_Medicion',
             'Unidad_Medida',
             'Nomenclaturas_Clasificaciones',
             'Alcance_Tematico', 'Poblacion_Objetivo',
@@ -1227,17 +1225,18 @@ def delegado_cargar_metadata_form(request):
                     id=suborganismo_id_post, organismo=organismo, activo=True
                 )
             except Suborganismo.DoesNotExist:
-                pass
+                messages.warning(
+                    request,
+                    '⚠️ El suborganismo seleccionado no es válido para su '
+                    'organismo; el campo quedó sin cambios.')
 
         # Actualizar organismo si aún no tiene
         if organismo and not indicador.organismo_responsable:
             indicador.organismo_responsable = organismo
 
         # Actualizar indicador con campos MSD
-        indicador.variables = data.get('Variables', '')
         indicador.descripcion_indicador = data.get('Descripcion_Indicador', '')
         indicador.metodo_medicion = data.get('Metodo_Medicion', '')
-        indicador.formula_ficha = data.get('Formula', '')
         indicador.unidad_medida = data.get('Unidad_Medida', '')
         indicador.fuente_datos = data.get('Fuente_Datos', '')
         indicador.nomenclaturas_clasificaciones = data.get('Nomenclaturas_Clasificaciones', '')
@@ -1272,6 +1271,20 @@ def delegado_cargar_metadata_form(request):
             eq_qs = EquipoOrganismo.objects.filter(nombre__iexact=equipo_txt, activo=True)
             if indicador.suborganismo_id:
                 eq_qs = eq_qs.filter(suborganismo_id=indicador.suborganismo_id)
+            eq = eq_qs.first()
+            if not eq and indicador.suborganismo_id:
+                # Fallback: el equipo puede existir bajo otro suborganismo
+                eq = EquipoOrganismo.objects.filter(
+                    nombre__iexact=equipo_txt, activo=True).first()
+            if eq:
+                indicador.equipo_responsable = eq
+            else:
+                messages.warning(
+                    request,
+                    f'⚠️ No se encontró el equipo «{equipo_txt}» en el '
+                    'catálogo; regístrelo en el suborganismo y reintente.')
+        elif 'Equipo_Responsable' in data:
+            indicador.equipo_responsable = None
         indicador.correo_contacto = data.get('Correo_Contacto', '')
         indicador.telefono_contacto = data.get('Telefono_Contacto', '')
         indicador.nombre_conjunto_datos = data.get('Nombre_Conjunto_conjunto_datos', '')
@@ -1293,6 +1306,12 @@ def delegado_cargar_metadata_form(request):
                 op = OperacionEstadistica.objects.filter(nombre__icontains=operacion_txt).first()
             if op:
                 indicador.operacion = op
+            else:
+                messages.warning(
+                    request,
+                    f'⚠️ La operación estadística «{operacion_txt}» no '
+                    'existe en el catálogo; el campo quedó sin cambios. '
+                    'Escriba el nombre exacto del catálogo.')
         elif 'Operacion_Estadistica' in data:
             indicador.operacion = None
 
@@ -1302,6 +1321,11 @@ def delegado_cargar_metadata_form(request):
             valor = data.get(clave, '')
             if valor:
                 setattr(indicador, campo_fecha, valor)
+        # fecha_actualizacion_ficha es automática en cada guardado;
+        # fecha_elaboracion se sella la primera vez si quedó vacía.
+        indicador.fecha_actualizacion_ficha = timezone.now().date()
+        if not indicador.fecha_elaboracion:
+            indicador.fecha_elaboracion = timezone.now().date()
 
         indicador.save()
         _crear_o_actualizar_conjunto_datos_desde_variables(indicador)
@@ -1352,6 +1376,10 @@ def delegado_cargar_metadata_form(request):
         .distinct().order_by('unidad_medida')
     )
 
+    operaciones_existentes = list(
+        OperacionEstadistica.objects.filter(activo=True)
+        .values_list('nombre', flat=True).order_by('nombre'))
+
     return render(request, 'delegado/cargar_metadata_form.html', {
         'indicadores': indicadores,
         'organismo': organismo,
@@ -1360,6 +1388,7 @@ def delegado_cargar_metadata_form(request):
         'metadata_pre': metadata_pre,
         'suborganismos_pre': suborganismos_pre,
         'unidades_existentes': unidades_existentes,
+        'operaciones_existentes': operaciones_existentes,
     })
 
 
@@ -1526,14 +1555,21 @@ def delegado_ficed(request):
         messages.error(request, 'No tienes un organismo asignado.')
         return redirect('indicadores:delegado_dashboard')
 
-    from .models_iced import ICEDFormulario
+    from .models_iced import ICEDFormulario, equipo_desde_username
     periodo_actual = str(timezone.now().year)
 
     # Un FICED por equipo técnico (subrol_ficed). Si el delegado no tiene
     # equipo asignado, lo elige él mismo la primera vez que entra.
-    equipo = getattr(
-        getattr(request.user, 'perfil_recolector', None), 'subrol_ficed', ''
-    ) or ''
+    # Si el código del equipo va en el username ('DAP_ETPP'), queda fijado
+    # a ese equipo — se persiste en el perfil y no puede cambiarlo.
+    perfil = getattr(request.user, 'perfil_recolector', None)
+    equipo = equipo_desde_username(request.user.username)
+    if equipo:
+        if perfil and perfil.subrol_ficed != equipo:
+            perfil.subrol_ficed = equipo
+            perfil.save(update_fields=['subrol_ficed'])
+    else:
+        equipo = getattr(perfil, 'subrol_ficed', '') or ''
 
     if not equipo:
         return redirect('indicadores:delegado_ficed_equipo')
@@ -1572,8 +1608,17 @@ def delegado_ficed_equipo(request):
         messages.error(request, 'No tienes un organismo asignado.')
         return redirect('indicadores:delegado_dashboard')
 
-    from .models_iced import ICEDFormulario
+    from .models_iced import ICEDFormulario, equipo_desde_username
     perfil = getattr(request.user, 'perfil_recolector', None)
+
+    # Subrol fijado en el username ('DAP_ETPP'): no puede elegir otro
+    # equipo; se fija en el perfil y va directo al FICED.
+    equipo_fijo = equipo_desde_username(request.user.username)
+    if equipo_fijo:
+        if perfil and perfil.subrol_ficed != equipo_fijo:
+            perfil.subrol_ficed = equipo_fijo
+            perfil.save(update_fields=['subrol_ficed'])
+        return redirect('indicadores:delegado_ficed')
 
     equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
     validos = {e for e, _ in equipos}

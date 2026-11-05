@@ -3164,11 +3164,8 @@ def api_indicador_metadata(request):
             'Nombre_Indicador': i.nombre or '',
             'Sigla': i.sigla or '',
             'Descripcion_Indicador': i.descripcion_indicador or '',
-            'Objetivo': i.objetivo or '',
             'Justificacion': '',  # Campo legacy eliminado (mergeado en Comentarios_Adicionales)
             'Metodo_Medicion': i.metodo_medicion or '',
-            'Formula': i.formula_ficha or '',
-            'Variables': i.variables or '',
             'Unidad_Medida': i.unidad_medida or '',
             'Valores_Referencia': '',  # Campo legacy eliminado
             'Nomenclaturas_Clasificaciones': i.nomenclaturas_clasificaciones or '',
@@ -3701,11 +3698,8 @@ def get_indicadores_simple(request):
                     'fecha_publicacion_metadatos': indicador.fecha_publicacion_metadatos.strftime('%Y-%m-%d') if indicador.fecha_publicacion_metadatos else None,
                     # Descripción y características (MSD)
                     'descripcion_indicador': indicador.descripcion_indicador,
-                    'objetivo': indicador.objetivo,
                     'justificacion': None,  # Campo legacy eliminado
                     'metodo_medicion': indicador.metodo_medicion,
-                    'formula_ficha': indicador.formula_ficha,
-                    'variables': indicador.variables,
                     'unidad_medida': indicador.unidad_medida,
                     'valores_referencia': None,  # Campo legacy eliminado
                     'nomenclaturas_clasificaciones': indicador.nomenclaturas_clasificaciones,

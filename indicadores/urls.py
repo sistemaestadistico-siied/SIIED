@@ -411,6 +411,7 @@ urlpatterns = [
     path('validacion/iced/<int:formulario_id>/calcular/', views_validacion.validacion_calcular_iced, name='validacion_calcular_iced'),
     path('validacion/iced/<int:formulario_id>/decidir/', views_validacion.validacion_decidir_iced, name='validacion_decidir_iced'),
     path('validacion/iced/conciliar/<int:organismo_id>/<str:periodo>/', views_validacion.validacion_conciliar_iced, name='validacion_conciliar_iced'),
+    path('validacion/iced/producto/<int:formulario_id>/<str:tipo>/', views_validacion.validacion_producto_iced, name='validacion_producto_iced'),
 
     # Catálogo de variables — gestión (solo equipo SIIED)
     path('validacion/catalogo-variables/', views_catalogo_variables.gestion_catalogo_variables, name='gestion_catalogo_variables'),
@@ -467,10 +468,19 @@ urlpatterns = [
     path('analitica/superset/explorar/', views_analitica.analitica_superset_explorar, name='analitica_superset_explorar'),
     path('analitica/superset/manual/', views_analitica.analitica_superset_manual, name='analitica_superset_manual'),
     path('analitica/superset/dashboard/<int:dashboard_id>/', views_analitica.analitica_superset_detalle, name='analitica_superset_detalle'),
+    path('analitica/superset/dashboard/<int:dashboard_id>/visibilidad/', views_analitica.analitica_tablero_visibilidad, name='analitica_tablero_visibilidad'),
+    path('analitica/superset/dashboard/<int:dashboard_id>/eliminar/', views_analitica.analitica_tablero_eliminar, name='analitica_tablero_eliminar'),
+    path('analitica/superset/dataset/<int:dataset_id>/visibilidad/', views_analitica.analitica_dataset_visibilidad, name='analitica_dataset_visibilidad'),
+    path('analitica/superset/dataset/<int:dataset_id>/eliminar/', views_analitica.analitica_dataset_eliminar, name='analitica_dataset_eliminar'),
     path('analitica/superset/geo/', views_analitica.analitica_geo_descargas, name='analitica_geo_descargas'),
     path('analitica/superset/geo/<int:nivel_id>/<str:formato>/', views_analitica.analitica_geo_exportar, name='analitica_geo_exportar'),
     # Tableros BI por visibilidad (guest token): público/autenticado/organismo/interno
     path('bi/<int:dashboard_id>/', views_analitica.bi_tablero, name='bi_tablero'),
+    path('bi/<int:dashboard_id>/embed/', views_analitica.bi_tablero_embed, name='bi_tablero_embed'),
+    path('bi/<int:dashboard_id>/guest-token/', views_analitica.bi_guest_token, name='bi_guest_token'),
+    # Enlace público firmado: página SIIED que renderiza el tablero sin login
+    path('bi/<int:dashboard_id>/p/<str:token>/', views_analitica.bi_tablero_publico, name='bi_tablero_publico'),
+    path('bi/<int:dashboard_id>/p/<str:token>/guest-token/', views_analitica.bi_guest_token_publico, name='bi_guest_token_publico'),
     # Submódulo: Don Datico × Superset (consulta, análisis y tableros asistidos)
     path('analitica/superset/dondatico/', views_analitica_dondatico.dondatico_home, name='analitica_dondatico'),
     path('analitica/superset/dondatico/consultar/', views_analitica_dondatico.dondatico_consultar, name='analitica_dondatico_consultar'),

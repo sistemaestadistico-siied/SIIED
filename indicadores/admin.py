@@ -843,18 +843,13 @@ class IndicadorAdminForm(forms.ModelForm):
         # el cálculo del indicador los integra en un solo metadato.
         labels = {
             'metodo_medicion': 'Cálculo del indicador (fórmula + método de medición)',
-            'formula_ficha': 'Fórmula del indicador',
-            'objetivo': 'Objetivo (legado — fuera de la plantilla oficial)',
         }
         # Especificar widgets Textarea para TODOS los campos de texto (sin CKEditor)
         widgets = {
             # Campos descriptivos (MSD)
             'descripcion_indicador': forms.Textarea(attrs={'rows': 4, 'cols': 80}),
-            'objetivo': forms.Textarea(attrs={'rows': 4, 'cols': 80}),
             # Metodología
             'metodo_medicion': forms.Textarea(attrs={'rows': 4, 'cols': 80}),
-            'formula_ficha': forms.Textarea(attrs={'rows': 3, 'cols': 80}),
-            'variables': forms.Textarea(attrs={'rows': 4, 'cols': 80}),
             # Cobertura (MSD)
             'alcance_tematico': forms.Textarea(attrs={'rows': 3, 'cols': 80}),
             'cobertura_geografica': forms.Textarea(attrs={'rows': 3, 'cols': 80}),
@@ -874,15 +869,25 @@ class IndicadorAdminForm(forms.ModelForm):
             if conjunto_datos.archivo_csv:
                 import os
                 filename = os.path.basename(conjunto_datos.archivo_csv.name)
-                size_mb = conjunto_datos.archivo_csv.size / (1024 * 1024)
-                # Formatear el tamaño antes de pasarlo a format_html
-                size_formatted = f"{size_mb:.2f}"
+                try:
+                    size_mb = conjunto_datos.archivo_csv.size / (1024 * 1024)
+                    size_formatted = f"{size_mb:.2f} MB"
+                    estilo = ('background: #e8f5e9; border-left: 4px solid #4caf50;'
+                              ' color: #1b5e20;')
+                    icono = '📄'
+                except (OSError, ValueError):
+                    # La BD conserva la ruta pero el archivo ya no está en
+                    # disco (borrado/manual/restore incompleto): avisar en
+                    # vez de romper el change_view completo.
+                    size_formatted = '⚠ archivo no encontrado en disco'
+                    estilo = ('background: #fff3e0; border-left: 4px solid #ef6c00;'
+                              ' color: #e65100;')
+                    icono = '⚠️'
                 help_text = format_html(
-                    '<div style="margin-top: 10px; padding: 10px; background: #e8f5e9; border-left: 4px solid #4caf50; border-radius: 4px; color: #1b5e20;">'
-                    '<strong style="color: #1b5e20;">📄 Archivo actual:</strong> {}<br>'
-                    '<strong style="color: #1b5e20;">📊 Tamaño:</strong> {} MB</div>',
-                    filename,
-                    size_formatted
+                    '<div style="margin-top: 10px; padding: 10px; {}; border-radius: 4px;">'
+                    '<strong>{} Archivo actual:</strong> {}<br>'
+                    '<strong>📊 Tamaño:</strong> {}</div>',
+                    estilo, icono, filename, size_formatted
                 )
                 self.fields['conjunto_datos'].help_text = help_text
 
@@ -926,21 +931,14 @@ class IndicadorAdmin(admin.ModelAdmin):
             'description': 'Campos 1.1–1.6 del estándar MSD.'
         }),
         ('2. Características del Indicador (MSD)', {
-            'fields': ('descripcion_indicador', 'metodo_medicion', 'formula_ficha',
-                      'variables', 'unidad_medida', 'fuente_datos', 'operacion',
+            'fields': ('descripcion_indicador', 'metodo_medicion',
+                      'unidad_medida', 'fuente_datos', 'operacion',
                       'nombre_conjunto_datos',
                       'nomenclaturas_clasificaciones', 'alcance_tematico', 'poblacion_objetivo',
                       'cobertura_geografica', 'periodo_referencia', 'periodo_base'),
             'description': 'Campos de la plantilla oficial de metadatos '
                           '(Metadatos_SDMX). En esa plantilla el "Cálculo del '
                           'indicador" integra fórmula y método de medición.'
-        }),
-        ('Campos del estándar anterior (legado)', {
-            'fields': ('objetivo',),
-            'classes': ('collapse',),
-            'description': 'La plantilla oficial ya no incluye "Objetivo" como '
-                          'metadato: se conserva por compatibilidad con datos '
-                          'históricos, pero no se usa en fichas nuevas.'
         }),
         ('3. Difusión (MSD)', {
             'fields': ('serie_historica_disponible', 'frecuencia_difusion', 'medios_difusion'),
@@ -1061,7 +1059,7 @@ class IndicadorAdmin(admin.ModelAdmin):
                 campos_track = [
                     'nombre', 'codigo_indicador', 'sigla', 'subtema_id',
                     'fuente_datos', 'entidad_responsable',
-                    'frecuencia_difusion', 'unidad_medida', 'objetivo', 'formula_ficha',
+                    'frecuencia_difusion', 'unidad_medida',
                     'descripcion_indicador', 'comentarios_adicionales',
                     'conjunto_datos_id', 'organismo_responsable_id',
                     'referencias', 'equipo_responsable_id',
@@ -2579,6 +2577,37 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
                 'Superset puede no estar disponible.'
             )
 
+def _superset_eliminar_activo(request, obj, tipo):
+    """Borra el activo asociado en Superset al eliminar el registro SIIED.
+
+    El registro local ya no queda desacoplado del recurso: si Superset
+    falla, se avisa pero el borrado local continúa (el activo podrá
+    eliminarse manualmente desde la UI de Superset).
+    """
+    try:
+        from .superset_service import SupersetService
+        service = SupersetService()
+        if tipo == 'tablero':
+            res = service.eliminar_dashboard(obj.dashboard_id)
+        else:
+            ds_id = obj.dataset_id
+            if not ds_id:
+                ds_id = next(
+                    (d['id'] for d in service.listar_datasets()
+                     if d.get('table_name') == obj.nombre_tabla), None)
+            res = (service.eliminar_dataset(ds_id)
+                   if ds_id else {'ok': True})
+        if not res.get('ok'):
+            messages.warning(
+                request,
+                'El registro se eliminó, pero Superset no pudo borrar '
+                f'el activo: {res.get("error")}')
+    except Exception as e:
+        messages.warning(
+            request,
+            f'El registro se eliminó, pero Superset no respondió: {e}')
+
+
 @admin.register(DatasetBI)
 class DatasetBIAdmin(admin.ModelAdmin):
     list_display = ('nombre_tabla', 'dataset_id', 'visibilidad',
@@ -2587,6 +2616,15 @@ class DatasetBIAdmin(admin.ModelAdmin):
     list_filter = ('visibilidad', 'es_base_siied', 'activo', 'organismo')
     search_fields = ('nombre_tabla', 'usuario__username')
     autocomplete_fields = ['usuario', 'organismo']
+
+    def delete_model(self, request, obj):
+        _superset_eliminar_activo(request, obj, 'dataset')
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            _superset_eliminar_activo(request, obj, 'dataset')
+        super().delete_queryset(request, queryset)
 
 
 @admin.register(TableroBI)
@@ -2597,6 +2635,15 @@ class TableroBIAdmin(admin.ModelAdmin):
     search_fields = ('titulo', 'creado_por__username')
     autocomplete_fields = ['creado_por', 'organismo']
     readonly_fields = ('link_publico',)
+
+    def delete_model(self, request, obj):
+        _superset_eliminar_activo(request, obj, 'tablero')
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        for obj in queryset:
+            _superset_eliminar_activo(request, obj, 'tablero')
+        super().delete_queryset(request, queryset)
 
     def link_publico(self, obj):
         if not obj.pk:

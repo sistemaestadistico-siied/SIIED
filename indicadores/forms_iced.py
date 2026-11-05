@@ -2379,3 +2379,33 @@ ICED_STEP_LABELS = {
     'accesibilidad': 'E. Accesibilidad y Uso',
     'revision': 'Revisión y Envío',
 }
+
+
+def _enumerar_opciones_respuesta():
+    """Numera las opciones de los campos de selección única (radio/select).
+
+    El instrumento enumera las opciones ("1.", "2.", ...) pero algunas
+    preguntas se definieron sin ese prefijo (p. ej. P18). Se normalizan
+    todas las etiquetas para que el delegado y los validadores vean la
+    misma numeración: las ya numeradas se respetan y el número usado es la
+    posición de la opción dentro del campo. Las opciones de selección
+    múltiple conservan su texto original.
+    """
+    for _step, form_cls in ICED_WIZARD_FORMS:
+        for field in form_cls.base_fields.values():
+            if (not isinstance(field, forms.ChoiceField)
+                    or isinstance(field, forms.MultipleChoiceField)):
+                continue
+            nuevas = []
+            for i, (valor, texto) in enumerate(field.choices, start=1):
+                if valor == '' or not texto:
+                    nuevas.append((valor, texto))
+                    continue
+                if re.match(r'^\s*\d+\s*[.)]', str(texto)):
+                    nuevas.append((valor, texto))
+                else:
+                    nuevas.append((valor, f'{i}. {texto}'))
+            field.choices = nuevas
+
+
+_enumerar_opciones_respuesta()

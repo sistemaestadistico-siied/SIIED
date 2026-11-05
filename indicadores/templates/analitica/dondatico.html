@@ -57,8 +57,9 @@
                 Pregunte por datos concretos integrados en Superset. Don Datico ejecuta la consulta
                 sobre los datasets y responde con la cifra, la tabla de resultados y las fuentes usadas.
             </p>
-            <textarea id="in-consulta" rows="2" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+            <textarea id="in-consulta" rows="5" maxlength="12000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-y"
                       placeholder='Ej: "¿Cuál fue la matrícula oficial por año? ¿Y por sector en 2024?"'></textarea>
+            <p class="text-right text-[11px] text-slate-400 mt-1"><span id="cnt-consulta">0</span>/12000</p>
             <button id="btn-consulta" class="mt-3 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50">
                 <i class="fas fa-paper-plane mr-1"></i> Consultar
             </button>
@@ -73,8 +74,9 @@
                 Pida una lectura interpretativa: tendencias, comparaciones, anomalías. Don Datico
                 extrae la evidencia de Superset y escribe el análisis con las cifras reales.
             </p>
-            <textarea id="in-analisis" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+            <textarea id="in-analisis" rows="7" maxlength="12000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-y"
                       placeholder='Ej: "Analiza la evolución de la cobertura educativa en la última década y compara los últimos dos años"'></textarea>
+            <p class="text-right text-[11px] text-slate-400 mt-1"><span id="cnt-analisis">0</span>/12000</p>
             <button id="btn-analisis" class="mt-3 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50">
                 <i class="fas fa-brain mr-1"></i> Analizar
             </button>
@@ -89,8 +91,9 @@
                 Describa el tablero de control que necesita. Don Datico crea en Superset el dashboard
                 con sus gráficos ya dispuestos — usted solo lo revisa y publica.
             </p>
-            <textarea id="in-tablero" rows="3" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-none"
+            <textarea id="in-tablero" rows="8" maxlength="12000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 resize-y"
                       placeholder='Ej: "Tablero de educación: matrícula por año en línea, KPI de matrícula total 2024, barras por nivel y tabla por zona"'></textarea>
+            <p class="text-right text-[11px] text-slate-400 mt-1"><span id="cnt-tablero">0</span>/12000</p>
             <button id="btn-tablero" class="mt-3 px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50">
                 <i class="fas fa-wand-magic-sparkles mr-1"></i> Generar tablero
             </button>
@@ -112,25 +115,48 @@
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {% for t in tableros_ia %}
-            <a href="{{ t.url_publica }}"
-               class="bg-white rounded-xl border border-emerald-100 hover:border-emerald-300 hover:shadow-md transition p-4 block group">
-                <div class="flex items-start justify-between gap-2">
-                    <h3 class="font-semibold text-slate-800 text-sm truncate group-hover:text-emerald-800">
-                        {{ t.titulo }}
-                    </h3>
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0
-                                 {% if t.visibilidad == 'publico' %}bg-emerald-100 text-emerald-700
-                                 {% else %}bg-amber-100 text-amber-700{% endif %}">
-                        {{ t.get_visibilidad_display }}
+            <div class="bg-white rounded-xl border border-emerald-100 hover:border-emerald-300 hover:shadow-md transition p-4 group">
+                <a href="{{ t.url_publica }}" class="block">
+                    <div class="flex items-start justify-between gap-2">
+                        <h3 class="font-semibold text-slate-800 text-sm truncate group-hover:text-emerald-800">
+                            {{ t.titulo }}
+                        </h3>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0
+                                     {% if t.visibilidad == 'publico' %}bg-emerald-100 text-emerald-700
+                                     {% else %}bg-amber-100 text-amber-700{% endif %}">
+                            {{ t.get_visibilidad_display }}
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1">
+                        <i class="fas fa-clock mr-1"></i>{{ t.fecha_creacion|date:"d/m/Y H:i" }}
+                    </p>
+                    <span class="text-xs text-emerald-700 font-medium mt-2 inline-flex items-center">
+                        Abrir tablero <i class="fas fa-arrow-right ml-1 group-hover:translate-x-0.5 transition-transform"></i>
                     </span>
+                </a>
+                <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+                    <form method="post"
+                          action="{% url 'indicadores:analitica_tablero_visibilidad' t.dashboard_id %}?volver=dondatico"
+                          class="flex-1" title="Quién puede ver este tablero vía SIIED/embed">
+                        {% csrf_token %}
+                        <select name="visibilidad" onchange="this.form.submit()"
+                                class="w-full text-[11px] border border-slate-200 rounded px-1.5 py-1 text-slate-600">
+                            {% for val, label in visibilidades_tablero %}
+                            <option value="{{ val }}" {% if t.visibilidad == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    <form method="post"
+                          action="{% url 'indicadores:analitica_tablero_eliminar' t.dashboard_id %}?volver=dondatico"
+                          onsubmit="return confirm('¿Eliminar este tablero de Superset? Los gráficos que no estén en otros tableros también se borrarán.');">
+                        {% csrf_token %}
+                        <button type="submit" title="Eliminar tablero de Superset"
+                                class="px-2 py-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </form>
                 </div>
-                <p class="text-[11px] text-slate-400 mt-1">
-                    <i class="fas fa-clock mr-1"></i>{{ t.fecha_creacion|date:"d/m/Y H:i" }}
-                </p>
-                <span class="text-xs text-emerald-700 font-medium mt-2 inline-flex items-center">
-                    Abrir tablero <i class="fas fa-arrow-right ml-1 group-hover:translate-x-0.5 transition-transform"></i>
-                </span>
-            </a>
+            </div>
             {% endfor %}
         </div>
     </div>
@@ -332,6 +358,15 @@
         () => enviar('tablero', 'in-tablero', 'btn-tablero', 'out-tablero'));
     document.getElementById('in-consulta').addEventListener('keydown', e => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('btn-consulta').click(); }
+    });
+
+    // Contador de caracteres en los tres cuadros de entrada
+    ['consulta', 'analisis', 'tablero'].forEach(function(k) {
+        var ta = document.getElementById('in-' + k);
+        var cnt = document.getElementById('cnt-' + k);
+        if (ta && cnt) ta.addEventListener('input', function() {
+            cnt.textContent = ta.value.length.toLocaleString('es-CO');
+        });
     });
 })();
 </script>

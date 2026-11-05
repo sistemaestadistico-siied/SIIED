@@ -77,6 +77,7 @@
             </dl>
         </div>
 
+        {% if not es_validador_organismo %}
         <!-- Puntaje ICED -->
         <div class="bg-white rounded-2xl shadow-sm border border-indigo-200 p-5 text-center">
             <p class="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-2">Puntaje ICED (Preview, 0-100)</p>
@@ -116,6 +117,7 @@
                 {% endfor %}
             </div>
         </div>
+        {% endif %}{# fin bloque puntajes (solo SIIED) #}
 
         {% if formulario.equipo %}
         <!-- Formulario parcial de equipo: el ICED oficial se decide sobre el consolidado -->
@@ -136,9 +138,24 @@
         {% else %}
         <!-- Panel de decisión -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-            <h2 class="font-semibold text-slate-800 mb-4">Tu decisión</h2>
+            <h2 class="font-semibold text-slate-800 mb-4">
+                {% if es_validador_organismo %}Validación del organismo{% else %}Tu decisión{% endif %}
+            </h2>
 
-            {% if formulario.estado == 'enviado' %}
+            {% if puede_editar_respuestas %}
+            <div class="mb-4">
+                <a href="{% url 'indicadores:iced_formulario_retomar' formulario.pk %}"
+                   class="block w-full text-center bg-indigo-500 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition text-sm">
+                    ✏️ Revisar y corregir respuestas del consolidado
+                </a>
+                <p class="text-[11px] text-slate-400 mt-2">
+                    Como validador SIIED puedes corregir directamente cualquier respuesta
+                    del consolidado; el formulario no se devuelve al organismo.
+                </p>
+            </div>
+            {% endif %}
+
+            {% if puede_prevalidar or puede_decidir %}
             <form method="post"
                   action="{% url 'indicadores:validacion_decidir_iced' formulario_id=formulario.pk %}"
                   id="form-decision">
@@ -146,13 +163,14 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-slate-700 mb-2">
-                        Observaciones <span class="text-slate-400 text-xs">(requeridas para devolver/rechazar)</span>
+                        Observaciones <span class="text-slate-400 text-xs">(requeridas para rechazar)</span>
                     </label>
                     <textarea name="observaciones" rows="5" id="txt-obs"
                               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                               placeholder="Describe las observaciones para el organismo..."></textarea>
                 </div>
 
+                {% if puede_decidir %}
                 <p class="text-[11px] text-slate-400 mb-2">
                     Al aprobar, los puntajes del preview se calculan y guardan automáticamente.
                 </p>
@@ -161,17 +179,41 @@
                             class="w-full bg-emerald-600 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Aprobar y publicar ICED
                     </button>
-                    <button type="button" onclick="decidir('devolver')"
-                            class="w-full bg-amber-500 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
-                        Devolver para correcciones
-                    </button>
                     <button type="button" onclick="decidir('rechazar')"
                             class="w-full bg-red-600 hover:bg-red-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Rechazar formulario
                     </button>
                 </div>
+                {% endif %}
+                {% if puede_prevalidar %}
+                <p class="text-[11px] text-slate-400 mb-2">
+                    Al pre-validar, el consolidado pasa a la cola del equipo SIIED,
+                    que realiza la revisión y validación final con puntajes.
+                </p>
+                <div class="space-y-2">
+                    <button type="button" onclick="decidir('prevalidar')"
+                            class="w-full bg-violet-600 hover:bg-violet-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        Pre-validar y enviar al SIIED
+                    </button>
+                </div>
+                {% endif %}
                 <input type="hidden" name="accion" id="inp-accion" value="">
             </form>
+            {% endif %}
+
+            {% if formulario.estado == 'prevalidado' %}
+            <div class="p-4 bg-violet-50 border border-violet-200 rounded-lg">
+                <p class="text-sm text-violet-800 font-semibold">
+                    ⏳ Pre-validado por el organismo — pendiente validación final SIIED
+                </p>
+                {% if formulario.observaciones_prevalidador %}
+                <p class="text-xs text-violet-700 mt-2">
+                    <strong>Observaciones del organismo:</strong> {{ formulario.observaciones_prevalidador }}
+                </p>
+                {% endif %}
+            </div>
+
+            {% elif formulario.estado == 'validado' %}
 
             <!-- Guía de criterios -->
             <div class="mt-4 p-3 bg-slate-50 rounded-lg">
@@ -221,7 +263,42 @@
                 {% endif %}
             </div>
             {% endif %}
+
+            {% if puede_decidir %}
+            <!-- Guía de criterios -->
+            <div class="mt-4 p-3 bg-slate-50 rounded-lg">
+                <p class="text-xs text-slate-600 font-semibold mb-1">Criterios de revisión ICED:</p>
+                <ul class="text-xs text-slate-500 space-y-0.5 list-disc list-inside">
+                    <li>Respuestas coherentes y completas en los 5 módulos</li>
+                    <li>Documentos soporte referenciados (URLs, códigos MOP)</li>
+                    <li>Datos de RRHH (P19) verificables y razonables</li>
+                    <li>Operaciones estadísticas con NTC PE 1000:2020 referenciadas</li>
+                    <li>Productos de difusión con URLs funcionales</li>
+                </ul>
+            </div>
+            {% endif %}
         </div>
+
+        {% if puede_producto_org or puede_producto_siied %}
+        <!-- Productos de cumplimiento -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <h2 class="font-semibold text-slate-800 mb-3 text-sm">Productos de cumplimiento</h2>
+            <div class="space-y-2">
+                {% if puede_producto_org %}
+                <a href="{% url 'indicadores:validacion_producto_iced' formulario.pk 'organismo' %}"
+                   class="block w-full text-center border border-violet-300 text-violet-700 hover:bg-violet-50 font-semibold py-2.5 rounded-lg transition text-sm">
+                    📄 Diligenciamiento del organismo
+                </a>
+                {% endif %}
+                {% if puede_producto_siied %}
+                <a href="{% url 'indicadores:validacion_producto_iced' formulario.pk 'siied' %}"
+                   class="block w-full text-center border border-emerald-300 text-emerald-700 hover:bg-emerald-50 font-semibold py-2.5 rounded-lg transition text-sm">
+                    📄 Validación final SIIED
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
     </div>
 

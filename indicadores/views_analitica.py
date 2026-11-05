@@ -20,7 +20,10 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib import messages
 from django.conf import settings
 from django.core.cache import cache
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse, Http404
+from django.core.signing import Signer, BadSignature
+from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.http import require_POST
 from django.db.models import Count
 
 from .decorators import analista_required, bi_required
@@ -380,15 +383,47 @@ def analitica_superset(request):
         dashboards = service.listar_dashboards()
         status = service.get_status()
         datasets = service.listar_datasets()
-        # Origen de cada tablero según el registro SIIED (ia/manual)
-        origenes = dict(
+
+        # Reconciliar: lo borrado directamente en Superset deja de estar
+        # activo en el registro local (evita tableros/datasets fantasma).
+        _reconciliar_registros_bi(dashboards, datasets)
+
+        # Registrar TableroBI para dashboards creados a mano en Superset:
+        # sin fila no hay visibilidad configurable ni acceso embed.
+        ya = set(
             TableroBI.objects.filter(
+                dashboard_id__in=[d['id'] for d in dashboards]
+            ).values_list('dashboard_id', flat=True))
+        TableroBI.objects.bulk_create([
+            TableroBI(dashboard_id=d['id'],
+                      titulo=(d.get('title') or 'Tablero')[:250],
+                      visibilidad='interno', origen='manual')
+            for d in dashboards if d['id'] not in ya
+        ], ignore_conflicts=True)
+
+        # Metadata local (origen/visibilidad/registro) sobre los activos.
+        tableros = {
+            t.dashboard_id: t for t in TableroBI.objects.filter(
                 dashboard_id__in=[d['id'] for d in dashboards],
-                activo=True,
-            ).values_list('dashboard_id', 'origen'))
-        for d in dashboards:
-            d['origen'] = origenes.get(d['id'], 'manual')
+                activo=True)}
+        datasets_reg = {
+            r.nombre_tabla: r for r in DatasetBI.objects.filter(
+                nombre_tabla__in=[d.get('table_name') for d in datasets],
+                activo=True)}
         perfil = getattr(request.user, 'perfil_recolector', None)
+        for d in dashboards:
+            t = tableros.get(d['id'])
+            d['origen'] = t.origen if t else 'manual'
+            d['tablero'] = t
+            d['puede_gestionar'] = _puede_gestionar_bi(
+                request, t.creado_por if t else None)
+            # Link público por enlace (firma del dashboard_id): solo se
+            # expone a quien gestiona el tablero — cualquiera con ese
+            # link accede sin login, por fuera de la visibilidad.
+            if d['puede_gestionar']:
+                d['link_publico'] = request.build_absolute_uri(
+                    reverse('indicadores:bi_tablero_publico',
+                            args=[d['id'], _bi_firma_link(d['id'])]))
         if (perfil and perfil.rol == 'analista_organismo'
                 and not request.user.is_staff):
             # El analista BI del organismo solo ve los datasets visibles
@@ -398,6 +433,17 @@ def analitica_superset(request):
                 .values_list('nombre_tabla', flat=True))
             datasets = [d for d in datasets
                         if d.get('table_name') in visibles]
+        _ICONOS_VIS = {'propio': 'fa-user-lock',
+                       'organismo': 'fa-building', 'publico': 'fa-globe'}
+        for d in datasets:
+            r = datasets_reg.get(d.get('table_name'))
+            d['datasetbi'] = r
+            d['visibilidad'] = r.visibilidad if r else ''
+            d['icono_vis'] = _ICONOS_VIS.get(r.visibilidad) if r else ''
+            d['visibilidad_label'] = (r.get_visibilidad_display()
+                                      if r else '')
+            d['puede_gestionar'] = _puede_gestionar_bi(
+                request, r.usuario if r else None)
     else:
         messages.warning(
             request,
@@ -434,6 +480,8 @@ def analitica_superset(request):
         'superset_public_url': getattr(
             settings, 'SUPERSET_PUBLIC_URL',
             'http://127.0.0.1:8088').rstrip('/'),
+        'visibilidades_dataset': DatasetBI.VISIBILIDAD_CHOICES,
+        'visibilidades_tablero': TableroBI.VISIBILIDAD_CHOICES,
     }
     return render(request, 'analitica/superset.html', context)
 
@@ -451,12 +499,11 @@ def _superset_embed_view(request, target_path, page_title='SIIED BI',
     superset_url = getattr(
         settings, 'SUPERSET_PUBLIC_URL', 'http://127.0.0.1:8088').rstrip('/')
 
-    # SUPERSET_PUBLIC_URL ya incluye el prefijo /superset (el app sirve
-    # bajo esa ruta tras el proxy). Si el target_path lo repite quedaría
-    # /superset/superset/... — el proxy externo lo niega con 403.
-    if (superset_url.endswith('/superset')
-            and target_path.startswith('/superset/')):
-        target_path = target_path[len('/superset'):]
+    # El target_path lleva el mount interno de la app (/superset/...).
+    # En producción SUPERSET_PUBLIC_URL es el prefijo del proxy externo
+    # (…gov.co/superset) y hay que conservar ambos: la URL pública real
+    # es /superset (proxy) + /superset/... (app) = /superset/superset/...
+    # — quitar el prefijo interno producía /superset/welcome → 404.
 
     # Hint de credenciales: la clave compartida SOLO funciona en cuentas
     # Alpha/Gamma creadas por el sync del admin. Cuentas Admin (p.ej. la
@@ -493,7 +540,7 @@ def analitica_superset_crear(request):
     """Interfaz de Superset embebida para crear/gestionar dashboards."""
     return _superset_embed_view(
         request,
-        '/dashboard/list/',
+        '/superset/dashboard/list/',
         page_title='SIIED BI · Gestionar Tableros',
         icon='th-large')
 
@@ -542,6 +589,189 @@ def analitica_superset_detalle(request, dashboard_id):
         f"usando iframe directo")
     return _superset_embed_view(request, path, page_title=title,
                                 icon='chart-area')
+
+
+def _puede_gestionar_bi(request, dueno=None):
+    """staff/'analista' gestionan todo; 'analista_organismo' solo lo suyo."""
+    perfil = getattr(request.user, 'perfil_recolector', None)
+    if request.user.is_staff or (perfil and perfil.rol == 'analista'):
+        return True
+    return bool(dueno and dueno == request.user)
+
+
+def _reconciliar_registros_bi(dashboards, datasets):
+    """Desactiva los registros BI cuyo activo ya no existe en Superset.
+
+    Cubre los borrados hechos directamente en la UI de Superset: sin esto
+    el tablero/dataset seguía activo en SIIED BI / Don Datico BI / admin.
+    """
+    ids = [d.get('id') for d in dashboards]
+    TableroBI.objects.filter(activo=True).exclude(
+        dashboard_id__in=ids).update(activo=False)
+    nombres = [d.get('table_name') for d in datasets]
+    DatasetBI.objects.filter(activo=True).exclude(
+        nombre_tabla__in=nombres).update(activo=False)
+
+
+def _volver_superset(request):
+    """Redirige al panel de BI o a Don Datico BI según ?volver=."""
+    if request.GET.get('volver') == 'dondatico':
+        return redirect('indicadores:analitica_dondatico')
+    return redirect('indicadores:analitica_superset')
+
+
+@bi_required
+@require_POST
+def analitica_tablero_visibilidad(request, dashboard_id):
+    """Cambia la visibilidad SIIED del tablero (guest token / embed)."""
+    visibilidad = request.POST.get('visibilidad', '')
+    if visibilidad not in dict(TableroBI.VISIBILIDAD_CHOICES):
+        messages.error(request, 'Visibilidad no válida.')
+        return _volver_superset(request)
+    tablero = TableroBI.objects.filter(
+        dashboard_id=dashboard_id, activo=True).first()
+    if not _puede_gestionar_bi(
+            request, tablero.creado_por if tablero else None):
+        messages.error(request, 'No tiene permisos para gestionar '
+                                'este tablero.')
+        return _volver_superset(request)
+    perfil = getattr(request.user, 'perfil_recolector', None)
+    TableroBI.objects.update_or_create(
+        dashboard_id=dashboard_id,
+        defaults={
+            'titulo': (tablero.titulo if tablero
+                       else f'Dashboard {dashboard_id}')[:250],
+            'visibilidad': visibilidad,
+            'origen': tablero.origen if tablero else 'manual',
+            'organismo': (tablero.organismo if tablero
+                          else (perfil.organismo if perfil else None)),
+            'creado_por': (tablero.creado_por if tablero
+                           else request.user),
+            'activo': True,
+        })
+    messages.success(request, 'Visibilidad del tablero actualizada.')
+    return _volver_superset(request)
+
+
+@bi_required
+@require_POST
+def analitica_tablero_eliminar(request, dashboard_id):
+    """Elimina el dashboard en Superset y desactiva su registro local.
+
+    También elimina los charts que quedan huérfanos: Superset no los
+    borra con el dashboard y luego bloquean el borrado de los datasets.
+    """
+    tablero = TableroBI.objects.filter(
+        dashboard_id=dashboard_id, activo=True).first()
+    if not _puede_gestionar_bi(
+            request, tablero.creado_por if tablero else None):
+        messages.error(request, 'No tiene permisos para eliminar '
+                                'este tablero.')
+        return _volver_superset(request)
+    res = SupersetService().eliminar_dashboard(
+        dashboard_id, con_charts=True)
+    if res.get('ok'):
+        if tablero:
+            tablero.activo = False
+            tablero.save(update_fields=['activo'])
+        extra = (f" ({res['charts_eliminados']} gráfico(s) huérfano(s) "
+                 'también eliminados)'
+                 if res.get('charts_eliminados') else '')
+        messages.success(request, f'Tablero eliminado de Superset{extra}.')
+    else:
+        messages.error(
+            request,
+            f'No se pudo eliminar el tablero: {res.get("error")}')
+    return _volver_superset(request)
+
+
+@bi_required
+@require_POST
+def analitica_dataset_visibilidad(request, dataset_id):
+    """Cambia la visibilidad de un dataset (quién puede consumirlo)."""
+    visibilidad = request.POST.get('visibilidad', '')
+    if visibilidad not in dict(DatasetBI.VISIBILIDAD_CHOICES):
+        messages.error(request, 'Visibilidad no válida.')
+        return _volver_superset(request)
+    service = SupersetService()
+    info = service.info_dataset(dataset_id)
+    if not info:
+        messages.error(request, 'Dataset no encontrado en Superset.')
+        return _volver_superset(request)
+    nombre = info['table_name']
+    reg = DatasetBI.objects.filter(
+        nombre_tabla=nombre, activo=True).first()
+    if not _puede_gestionar_bi(request, reg.usuario if reg else None):
+        messages.error(request, 'No tiene permisos para gestionar '
+                                'este dataset.')
+        return _volver_superset(request)
+    DatasetBI.objects.update_or_create(
+        nombre_tabla=nombre,
+        defaults={
+            'dataset_id': dataset_id,
+            'usuario': reg.usuario if reg else request.user,
+            'organismo': (reg.organismo if reg else getattr(
+                getattr(request.user, 'perfil_recolector', None),
+                'organismo', None)),
+            'visibilidad': visibilidad,
+            'activo': True,
+        })
+    messages.success(request, f'Visibilidad de «{nombre}» actualizada.')
+    return _volver_superset(request)
+
+
+@bi_required
+@require_POST
+def analitica_dataset_eliminar(request, dataset_id):
+    """Elimina el dataset en Superset, su tabla física y su registro.
+
+    Superset rechaza el DELETE mientras haya charts que lo usen: primero
+    se eliminan los que no están en ningún tablero; los que quedan en
+    tableros se informan como bloqueantes.
+    """
+    service = SupersetService()
+    info = service.info_dataset(dataset_id)
+    if not info:
+        messages.error(request, 'Dataset no encontrado en Superset.')
+        return _volver_superset(request)
+    nombre = info['table_name']
+    reg = DatasetBI.objects.filter(
+        nombre_tabla=nombre, activo=True).first()
+    if not _puede_gestionar_bi(request, reg.usuario if reg else None):
+        messages.error(request, 'No tiene permisos para eliminar '
+                                'este dataset.')
+        return _volver_superset(request)
+
+    for chart in service.charts_de_dataset(dataset_id):
+        if not service.chart_en_dashboard(chart['id']):
+            service.eliminar_chart(chart['id'])
+
+    res = service.eliminar_dataset(dataset_id)
+    if res.get('ok'):
+        # La tabla física del upload queda fuera de Superset: solo se
+        # elimina si el registro dice que la subió un usuario (nunca las
+        # tablas base del SIIED ni datasets virtuales).
+        drop_ok = bool(reg and not reg.es_base_siied
+                       and service.eliminar_tabla_fisica(nombre))
+        if reg:
+            reg.activo = False
+            reg.save(update_fields=['activo'])
+        extra = ' y su tabla de datos eliminada' if drop_ok else ''
+        messages.success(
+            request,
+            f'Dataset «{nombre}» eliminado de Superset{extra}.')
+    else:
+        bloquean = res.get('charts_bloquean') or []
+        extra = ''
+        if bloquean:
+            nombres = ', '.join(
+                c['nombre'] or f"#{c['id']}" for c in bloquean[:5])
+            extra = (f' Sigue en uso por: {nombres} — elimine primero '
+                     'esos gráficos o su tablero.')
+        messages.error(
+            request,
+            f'No se pudo eliminar «{nombre}»: {res.get("error")}.{extra}')
+    return _volver_superset(request)
 
 
 @bi_required
@@ -631,12 +861,18 @@ def analitica_superset_subir_csv(request):
             if visibilidad not in dict(
                     DatasetBI.VISIBILIDAD_CHOICES):
                 visibilidad = 'propio'
+            # Id del dataset en Superset: permite eliminarlo después.
+            ds_id = next(
+                (d['id'] for d in service.listar_datasets()
+                 if d.get('table_name') == nombre_tabla), None)
             DatasetBI.objects.update_or_create(
                 nombre_tabla=nombre_tabla,
                 defaults={
                     'usuario': request.user,
                     'organismo': organismo_perfil,
                     'visibilidad': visibilidad,
+                    'dataset_id': ds_id,
+                    'activo': True,
                 })
             messages.success(
                 request,
@@ -1043,6 +1279,21 @@ def _sincronizar_datasets_siied(service):
             'ok': bool(res.get('success') or res.get('exists')),
             'skip': False, 'error': res.get('error')})
 
+    # Registrar los datasets base en DatasetBI (es_base_siied=True):
+    # sin fila el analista_organismo no los ve — visibles_para solo
+    # admite base SIIED, públicos y propios.
+    gestionadas = {'vista_indicadores_datos'}
+    gestionadas |= {r['tabla'] for r in resultados if r.get('ok')}
+    gestionadas |= {
+        n for n in existentes
+        if n and n.startswith(('conjunto_', 'catalogo_', 'dominio_',
+                               'ficed_', 'taller_', 'satisf_'))}
+    for tabla in gestionadas:
+        DatasetBI.objects.update_or_create(
+            nombre_tabla=tabla,
+            defaults={'es_base_siied': True, 'visibilidad': 'publico',
+                      'activo': True})
+
     return resultados
 
 
@@ -1220,6 +1471,7 @@ def analitica_geo_exportar(request, nivel_id, formato):
 # TABLEROS PÚBLICOS — guest token por visibilidad (TableroBI)
 # ============================================================================
 
+@xframe_options_exempt
 def bi_tablero(request, dashboard_id):
     """Embed de un TableroBI según su nivel de visibilidad.
 
@@ -1241,15 +1493,57 @@ def bi_tablero(request, dashboard_id):
             f"{reverse('indicadores:delegado_login')}"
             f"?next={request.get_full_path()}")
 
+    acceso = _bi_tablero_auth(request, tablero)
+    if acceso is None:
+        messages.error(
+            request, 'Este tablero es exclusivo de otro organismo.')
+        return redirect('indicadores:index')
+
+    embed_uuid, guest_token = _bi_mint_tablero(tablero, *acceso)
+
+    if not (embed_uuid and guest_token):
+        logger.warning(
+            f"bi_tablero: guest token no disponible para dashboard "
+            f"{dashboard_id} (embed_uuid={embed_uuid})")
+        messages.error(
+            request,
+            'El tablero no está disponible en este momento.')
+        return redirect('indicadores:index')
+
+    return render(request, 'analitica/superset_embed.html', {
+        'embed_uuid': embed_uuid,
+        'guest_token': guest_token,
+        'guest_token_url': reverse(
+            'indicadores:bi_guest_token', args=[dashboard_id]),
+        'superset_domain': getattr(
+            settings, 'SUPERSET_PUBLIC_URL', '').rstrip('/'),
+        'page_title': tablero.titulo,
+        'icon': 'chart-area',
+        'login_ok': True,
+    })
+
+
+def _bi_tablero_auth(request, tablero):
+    """(identidad, rls) si el request puede ver el tablero; None si no.
+
+    `identidad` alimenta el claim `user` del guest token y `rls` sus
+    cláusulas de row-level security. Es la misma política de visibilidad
+    que aplica bi_tablero, compartida con bi_tablero_embed y
+    bi_guest_token (la vista HTML añade redirecciones/mensajes propios).
+    """
+    if tablero.visibilidad == 'interno' and not _es_bi(request):
+        return None
+    if tablero.visibilidad in ('autenticado', 'organismo', 'interno') \
+            and not request.user.is_authenticated:
+        return None
+
     rls = []
     if tablero.visibilidad == 'organismo':
         perfil = getattr(request.user, 'perfil_recolector', None)
         org_user = perfil.organismo if perfil else None
         if not request.user.is_staff \
                 and org_user != tablero.organismo:
-            messages.error(
-                request, 'Este tablero es exclusivo de otro organismo.')
-            return redirect('indicadores:index')
+            return None
         if tablero.rls_clause:
             rls = [{'clause': tablero.rls_clause}]
         elif org_user:
@@ -1264,28 +1558,145 @@ def bi_tablero(request, dashboard_id):
         if request.user.is_authenticated
         else {'username': 'anonimo_ciudadano',
               'first_name': 'Ciudadano', 'last_name': ''})
+    return identidad, rls
 
+
+def _bi_mint_tablero(tablero, identidad, rls):
+    """Retorna (embed_uuid, guest_token); (None, None) si el minteo falla."""
     service = SupersetService()
-    embed_uuid = service.get_or_create_embed_id(dashboard_id)
-    guest_token = (
-        service.get_guest_token(embed_uuid, rls=rls, **identidad)
-        if embed_uuid else None)
+    embed_uuid = service.get_or_create_embed_id(tablero.dashboard_id)
+    if not embed_uuid:
+        return None, None
+    return embed_uuid, service.get_guest_token(
+        embed_uuid, rls=rls, **identidad)
 
+
+@xframe_options_exempt
+def bi_tablero_embed(request, dashboard_id):
+    """Versión 'bare' del embed: solo el tablero, sin chrome del portal.
+
+    Es el destino del <iframe> copiable desde el listado de tableros.
+    El guest token se refresca vía bi_guest_token (expira en ~5 min).
+    Sin acceso, responde 403 dentro del iframe en vez de redirigir.
+    """
+    tablero = get_object_or_404(
+        TableroBI, dashboard_id=dashboard_id, activo=True)
+
+    acceso = _bi_tablero_auth(request, tablero)
+    if acceso is None:
+        return render(
+            request, 'analitica/superset_embed_bare.html',
+            {'acceso_denegado': True, 'page_title': tablero.titulo},
+            status=403)
+
+    embed_uuid, guest_token = _bi_mint_tablero(tablero, *acceso)
     if not (embed_uuid and guest_token):
         logger.warning(
-            f"bi_tablero: guest token no disponible para dashboard "
+            f"bi_tablero_embed: guest token no disponible para dashboard "
             f"{dashboard_id} (embed_uuid={embed_uuid})")
-        messages.error(
-            request,
-            'El tablero no está disponible en este momento.')
-        return redirect('indicadores:index')
 
-    return render(request, 'analitica/superset_embed.html', {
-        'embed_uuid': embed_uuid,
-        'guest_token': guest_token,
+    return render(request, 'analitica/superset_embed_bare.html', {
+        'embed_uuid': embed_uuid or '',
+        'guest_token': guest_token or '',
+        'guest_token_url': reverse(
+            'indicadores:bi_guest_token', args=[dashboard_id]),
         'superset_domain': getattr(
             settings, 'SUPERSET_PUBLIC_URL', '').rstrip('/'),
         'page_title': tablero.titulo,
-        'icon': 'chart-area',
-        'login_ok': True,
+        'acceso_denegado': False,
     })
+
+
+def bi_guest_token(request, dashboard_id):
+    """JSON {"token": ...}: refresco del guest token para el embedded-sdk.
+
+    Aplica la misma visibilidad de bi_tablero; sin acceso responde 403.
+    """
+    tablero = get_object_or_404(
+        TableroBI, dashboard_id=dashboard_id, activo=True)
+    acceso = _bi_tablero_auth(request, tablero)
+    if acceso is None:
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    _, guest_token = _bi_mint_tablero(tablero, *acceso)
+    if not guest_token:
+        return JsonResponse({'error': 'unavailable'}, status=503)
+    return JsonResponse({'token': guest_token})
+
+
+# ============================================================================
+# LINK PÚBLICO POR ENLACE — URL firmada, sin login SIIED ni Superset
+# ============================================================================
+
+_BI_FIRMA_SALT = 'siied.bi.compartir'
+
+
+def _bi_firma_link(dashboard_id):
+    """Token firmado del dashboard_id para el link público por enlace.
+
+    La firma usa SECRET_KEY: rotarla invalida los enlaces emitidos.
+    """
+    return Signer(salt=_BI_FIRMA_SALT).sign(str(dashboard_id))
+
+
+def _bi_firma_ok(dashboard_id, token):
+    try:
+        return Signer(salt=_BI_FIRMA_SALT).unsign(token) \
+            == str(dashboard_id)
+    except BadSignature:
+        return False
+
+
+def _bi_acceso_enlace(tablero):
+    """(identidad, rls) para acceso por enlace firmado: anónimo + RLS fija."""
+    identidad = {'username': 'anonimo_enlace',
+                 'first_name': 'Enlace', 'last_name': 'SIIED'}
+    rls = [{'clause': tablero.rls_clause}] if tablero.rls_clause else []
+    return identidad, rls
+
+
+@xframe_options_exempt
+def bi_tablero_publico(request, dashboard_id, token):
+    """Página pública por enlace firmado: quien tenga el link ve el tablero
+    sin sesión SIIED ni Superset (guest token anónimo).
+
+    El token es la firma del dashboard_id — no es enumerable ni
+    falsificable, y solo lo genera quien gestiona el tablero desde
+    Analítica. Un link inválido responde 404 para no filtrar existencia.
+    """
+    if not _bi_firma_ok(dashboard_id, token):
+        raise Http404
+    tablero = get_object_or_404(
+        TableroBI, dashboard_id=dashboard_id, activo=True)
+    embed_uuid, guest_token = _bi_mint_tablero(
+        tablero, *_bi_acceso_enlace(tablero))
+    if not (embed_uuid and guest_token):
+        logger.warning(
+            f"bi_tablero_publico: guest token no disponible para "
+            f"dashboard {dashboard_id} (embed_uuid={embed_uuid})")
+    return render(request, 'analitica/superset_embed_bare.html', {
+        'embed_uuid': embed_uuid or '',
+        'guest_token': guest_token or '',
+        'guest_token_url': reverse(
+            'indicadores:bi_guest_token_publico',
+            args=[dashboard_id, token]),
+        'superset_domain': getattr(
+            settings, 'SUPERSET_PUBLIC_URL', '').rstrip('/'),
+        'page_title': tablero.titulo,
+        'acceso_denegado': False,
+    })
+
+
+def bi_guest_token_publico(request, dashboard_id, token):
+    """Refresco del guest token para el enlace firmado (sin sesión).
+
+    Misma firma que bi_tablero_publico: sin ella, 403.
+    """
+    if not _bi_firma_ok(dashboard_id, token):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    tablero = get_object_or_404(
+        TableroBI, dashboard_id=dashboard_id, activo=True)
+    _, guest_token = _bi_mint_tablero(
+        tablero, *_bi_acceso_enlace(tablero))
+    if not guest_token:
+        return JsonResponse({'error': 'unavailable'}, status=503)
+    return JsonResponse({'token': guest_token})

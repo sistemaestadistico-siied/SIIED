@@ -1,0 +1,55 @@
+{% comment %}
+Chip de dataset en el panel SIIED BI.
+Uso: {% include 'analitica/_dataset_chip.html' with color='sky' %}
+
+El icono junto al nombre resume la visibilidad (candado=propio,
+edificio=organismo, globo=público). Si el usuario puede gestionar el
+dataset (dueño o equipo SIIED), el botón ⋮ abre un menú con el selector
+de visibilidad y la eliminación en Superset — no solo del registro local.
+{% endcomment %}
+{% if d.puede_gestionar %}
+<div class="ds-chip relative flex items-center gap-0.5 mb-1 mr-1" data-name="{{ d.table_name|lower }}">
+    <span title="{{ d.table_name }}"
+          class="font-mono text-xs bg-{{ color }}-50 text-{{ color }}-700 border border-{{ color }}-100 rounded px-2 py-1 break-all flex-1">{{ d.table_name }}</span>
+    {% if d.icono_vis %}
+    <i class="fas {{ d.icono_vis }} text-[10px] text-{{ color }}-400 shrink-0 w-3.5 text-center"
+       title="{{ d.visibilidad_label }}"></i>
+    {% endif %}
+    <button type="button" onclick="siiedDsMenu(this, event)" title="Gestionar dataset"
+            class="shrink-0 w-6 h-6 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors">
+        <i class="fas fa-ellipsis-v text-[10px]"></i>
+    </button>
+    <div class="ds-menu hidden absolute right-0 top-full mt-1 z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-3 w-52">
+        <form method="post"
+              action="{% url 'indicadores:analitica_dataset_visibilidad' d.id %}">
+            {% csrf_token %}
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+                Quién puede usarlo
+            </label>
+            <select name="visibilidad" onchange="this.form.submit()"
+                    class="w-full text-xs border border-slate-200 rounded px-1.5 py-1.5 text-slate-600">
+                {% for val, label in visibilidades_dataset %}
+                <option value="{{ val }}" {% if d.visibilidad == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        <form method="post"
+              action="{% url 'indicadores:analitica_dataset_eliminar' d.id %}"
+              class="mt-2 pt-2 border-t border-slate-100"
+              onsubmit="return confirm('¿Eliminar «{{ d.table_name }}» de Superset? También se borrará su tabla de datos y los gráficos que no estén en tableros.');">
+            {% csrf_token %}
+            <button type="submit"
+                    class="w-full text-left text-xs text-rose-600 hover:bg-rose-50 rounded px-2 py-1.5 transition-colors">
+                <i class="fas fa-trash-alt mr-1.5"></i> Eliminar de Superset
+            </button>
+        </form>
+    </div>
+</div>
+{% else %}
+<span class="ds-chip inline-flex items-center gap-1.5 font-mono text-xs bg-{{ color }}-50 text-{{ color }}-700 border border-{{ color }}-100 rounded px-2 py-1 mb-1 mr-1 break-all"
+      data-name="{{ d.table_name|lower }}" title="{{ d.table_name }}">{{ d.table_name }}
+    {% if d.icono_vis %}
+    <i class="fas {{ d.icono_vis }} text-[9px] text-{{ color }}-400" title="{{ d.visibilidad_label }}"></i>
+    {% endif %}
+</span>
+{% endif %}

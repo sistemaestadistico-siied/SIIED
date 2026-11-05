@@ -38,6 +38,20 @@ def _leer_csv_auto_sep(path_or_buffer):
     return mejor_df if mejor_df is not None else pd.read_csv(path_or_buffer)
 
 
+def _split_columnas_fuente(s):
+    """'a; b' → ['a', 'b']. Acepta también 'a, b' (valores ingresados antes
+    del cambio de separador).
+
+    El separador oficial es ';' porque los nombres de columna pueden contener
+    comas (p. ej. un organismo 'Secretaría de X, Y' usado como encabezado) y
+    coincide con el sep=';' de los CSV que el sistema genera internamente.
+    """
+    if not s:
+        return []
+    sep = ';' if ';' in s else ','
+    return [c.strip() for c in s.split(sep) if c.strip()]
+
+
 def _limpiar_valor_numerico(valor):
     """
     Limpia un valor para conversión numérica.
@@ -1099,7 +1113,7 @@ class WizardAdminUnificado(SessionWizardView):
                         
                         # Parsear columnas fuente
                         columnas_fuente_str = paso_7_data.get('columnas_fuente', '')
-                        columnas_fuente = [c.strip() for c in columnas_fuente_str.split(',') if c.strip()]
+                        columnas_fuente = _split_columnas_fuente(columnas_fuente_str)
                         
                         # Obtener dominios del paso anterior
                         paso_desag_data = self.get_cleaned_data_for_step(self.PASO_VERIFICAR_DESAG_A) or {}
@@ -1303,7 +1317,7 @@ class WizardAdminUnificado(SessionWizardView):
                     _archivo_csv = _cm.archivo_microdata_csv.path if _cm.archivo_microdata_csv else None
                     if _archivo_csv:
                         diagnostico = DiagnosticoConjuntoDatos(_archivo_csv)
-                        columnas_fuente = [c.strip() for c in paso_regla_data.get('columnas_fuente', '').split(',') if c.strip()]
+                        columnas_fuente = _split_columnas_fuente(paso_regla_data.get('columnas_fuente', ''))
                         
                         # Obtener dominios del paso anterior
                         from .models import DominioDesagregacion
@@ -1630,7 +1644,7 @@ class WizardAdminUnificado(SessionWizardView):
                 
                 # Parsear columnas fuente
                 columnas_fuente_str = paso_7_data['columnas_fuente']
-                columnas_fuente = [c.strip() for c in columnas_fuente_str.split(',')]
+                columnas_fuente = _split_columnas_fuente(columnas_fuente_str)
                 
                 # Parsear orden de desagregaciones
                 orden_desag_str = paso_7_data.get('orden_desagregaciones', '')
@@ -2348,7 +2362,7 @@ class WizardAdminUnificado(SessionWizardView):
                     import json
 
                     columnas_fuente_str = paso_7_data['columnas_fuente']
-                    columnas_fuente = [c.strip() for c in columnas_fuente_str.split(',')]
+                    columnas_fuente = _split_columnas_fuente(columnas_fuente_str)
                     orden_desag_str = paso_7_data.get('orden_desagregaciones', '')
                     orden_desag = [d.strip() for d in orden_desag_str.split(',') if d.strip()]
 
@@ -2700,10 +2714,7 @@ class WizardAdminUnificado(SessionWizardView):
             # MSD + aliases legacy (archivos antiguos siguen importando)
             'Descripcion_Indicador': 'descripcion_indicador',
             'Definiciones_Conceptos': 'descripcion_indicador',
-            'Objetivo': 'objetivo',
             'Metodo_Medicion': 'metodo_medicion',
-            'Formula': 'formula_ficha',
-            'Variables': 'variables',
             'Unidad_Medida': 'unidad_medida',
             'Alcance_Tematico': 'alcance_tematico',
             'Desagregacion_Tematica': 'alcance_tematico',

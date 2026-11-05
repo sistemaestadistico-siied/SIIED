@@ -112,93 +112,134 @@
     <!-- Datasets disponibles -->
     {% if superset_disponible %}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 class="text-lg font-bold text-slate-800">
                 <i class="fas fa-database text-sky-500 mr-2"></i>
                 Datasets disponibles
             </h2>
-            <a href="{% url 'indicadores:analitica_superset_manual' %}#datasets"
-               class="text-xs text-sky-600 hover:text-sky-800 font-medium">
-                ¿Cómo explorarlos? <i class="fas fa-arrow-right ml-1"></i>
-            </a>
+            <div class="flex items-center gap-3">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+                    <input id="ds-filtro" type="text" placeholder="Filtrar datasets…"
+                           oninput="siiedFiltrarDatasets(this.value)"
+                           class="text-xs border border-slate-200 rounded-lg pl-7 pr-3 py-1.5 w-48 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-300">
+                </div>
+                <a href="{% url 'indicadores:analitica_superset_manual' %}#datasets"
+                   class="text-xs text-sky-600 hover:text-sky-800 font-medium whitespace-nowrap">
+                    ¿Cómo explorarlos? <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
         </div>
+        <style>
+            .ds-cat summary::-webkit-details-marker { display: none; }
+            .ds-cat[open] .ds-cat-chevron { transform: rotate(180deg); }
+        </style>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-            <div>
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <i class="fas fa-chart-line text-sky-500 mr-1"></i> Indicadores y datos
-                </p>
+            <details class="ds-cat border border-slate-200 rounded-xl bg-slate-50/50 self-start">
+                <summary class="text-xs font-bold text-slate-500 uppercase tracking-wide px-3 py-2.5 cursor-pointer list-none select-none flex items-center justify-between gap-2">
+                    <span><i class="fas fa-chart-line text-sky-500 mr-1"></i> Indicadores y datos
+                        <span class="text-slate-400 font-normal">({{ dataset_familias.indicadores|length }})</span>
+                    </span>
+                    <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3">
                 {% for d in dataset_familias.indicadores %}
-                <span title="{{ d.table_name }}" class="inline-block font-mono text-xs bg-sky-50 text-sky-700 border border-sky-100 rounded px-2 py-1 mb-1 mr-1 break-all">{{ d.table_name }}</span>
+                {% include 'analitica/_dataset_chip.html' with color='sky' %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Sin dataset de indicadores</p>
                 {% endfor %}
-            </div>
-            <div>
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <i class="fas fa-table text-emerald-500 mr-1"></i> Conjuntos de Datos
-                    <span class="text-slate-400 font-normal">({{ dataset_familias.conjuntos|length }})</span>
-                </p>
+                </div>
+            </details>
+            <details class="ds-cat border border-slate-200 rounded-xl bg-slate-50/50 self-start">
+                <summary class="text-xs font-bold text-slate-500 uppercase tracking-wide px-3 py-2.5 cursor-pointer list-none select-none flex items-center justify-between gap-2">
+                    <span><i class="fas fa-table text-emerald-500 mr-1"></i> Conjuntos de Datos
+                        <span class="text-slate-400 font-normal">({{ dataset_familias.conjuntos|length }})</span>
+                    </span>
+                    <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3">
                 {% for d in dataset_familias.conjuntos %}
-                <span title="{{ d.table_name }}" class="inline-block font-mono text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 rounded px-2 py-1 mb-1 mr-1 break-all">{{ d.table_name }}</span>
+                {% include 'analitica/_dataset_chip.html' with color='emerald' %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Use «Sincronizar SIIED» para crearlos</p>
                 {% endfor %}
-            </div>
-            <div>
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <i class="fas fa-book text-slate-500 mr-1"></i> Catálogos de consulta
-                    <span class="text-slate-400 font-normal">({{ dataset_familias.catalogos|length }})</span>
-                </p>
+                </div>
+            </details>
+            <details class="ds-cat border border-slate-200 rounded-xl bg-slate-50/50 self-start">
+                <summary class="text-xs font-bold text-slate-500 uppercase tracking-wide px-3 py-2.5 cursor-pointer list-none select-none flex items-center justify-between gap-2">
+                    <span><i class="fas fa-book text-slate-500 mr-1"></i> Catálogos de consulta
+                        <span class="text-slate-400 font-normal">({{ dataset_familias.catalogos|length }})</span>
+                    </span>
+                    <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3">
                 {% for d in dataset_familias.catalogos %}
-                <span title="{{ d.table_name }}" class="inline-block font-mono text-xs bg-slate-50 text-slate-600 border border-slate-200 rounded px-2 py-1 mb-1 mr-1 break-all">{{ d.table_name }}</span>
+                {% include 'analitica/_dataset_chip.html' with color='slate' %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Use «Sincronizar SIIED» para crearlos</p>
                 {% endfor %}
-            </div>
-            <div>
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <i class="fas fa-clipboard-check text-rose-500 mr-1"></i> FICED
-                    <span class="text-slate-400 font-normal">({{ dataset_familias.ficed|length }})</span>
-                </p>
+                </div>
+            </details>
+            <details class="ds-cat border border-slate-200 rounded-xl bg-slate-50/50 self-start">
+                <summary class="text-xs font-bold text-slate-500 uppercase tracking-wide px-3 py-2.5 cursor-pointer list-none select-none flex items-center justify-between gap-2">
+                    <span><i class="fas fa-clipboard-check text-rose-500 mr-1"></i> FICED
+                        <span class="text-slate-400 font-normal">({{ dataset_familias.ficed|length }})</span>
+                    </span>
+                    <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3">
                 {% for d in dataset_familias.ficed %}
-                <span title="{{ d.table_name }}" class="inline-block font-mono text-xs bg-rose-50 text-rose-700 border border-rose-100 rounded px-2 py-1 mb-1 mr-1 break-all">{{ d.table_name }}</span>
+                {% include 'analitica/_dataset_chip.html' with color='rose' %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Use «Sincronizar SIIED» para crearlos</p>
                 {% endfor %}
-            </div>
-            <div>
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <i class="fas fa-tools text-cyan-500 mr-1"></i> Taller gestión de datos
-                    <span class="text-slate-400 font-normal">({{ dataset_familias.taller|length }})</span>
-                </p>
+                </div>
+            </details>
+            <details class="ds-cat border border-slate-200 rounded-xl bg-slate-50/50 self-start">
+                <summary class="text-xs font-bold text-slate-500 uppercase tracking-wide px-3 py-2.5 cursor-pointer list-none select-none flex items-center justify-between gap-2">
+                    <span><i class="fas fa-tools text-cyan-500 mr-1"></i> Taller gestión de datos
+                        <span class="text-slate-400 font-normal">({{ dataset_familias.taller|length }})</span>
+                    </span>
+                    <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3">
                 {% for d in dataset_familias.taller %}
-                <span title="{{ d.table_name }}" class="inline-block font-mono text-xs bg-cyan-50 text-cyan-700 border border-cyan-100 rounded px-2 py-1 mb-1 mr-1 break-all">{{ d.table_name }}</span>
+                {% include 'analitica/_dataset_chip.html' with color='cyan' %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Use «Sincronizar SIIED» para crearlos</p>
                 {% endfor %}
-            </div>
-            <div>
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <i class="fas fa-star text-pink-500 mr-1"></i> Satisfacción
-                    <span class="text-slate-400 font-normal">({{ dataset_familias.satisf|length }})</span>
-                </p>
+                </div>
+            </details>
+            <details class="ds-cat border border-slate-200 rounded-xl bg-slate-50/50 self-start">
+                <summary class="text-xs font-bold text-slate-500 uppercase tracking-wide px-3 py-2.5 cursor-pointer list-none select-none flex items-center justify-between gap-2">
+                    <span><i class="fas fa-star text-pink-500 mr-1"></i> Satisfacción
+                        <span class="text-slate-400 font-normal">({{ dataset_familias.satisf|length }})</span>
+                    </span>
+                    <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3">
                 {% for d in dataset_familias.satisf %}
-                <span title="{{ d.table_name }}" class="inline-block font-mono text-xs bg-pink-50 text-pink-700 border border-pink-100 rounded px-2 py-1 mb-1 mr-1 break-all">{{ d.table_name }}</span>
+                {% include 'analitica/_dataset_chip.html' with color='pink' %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Use «Sincronizar SIIED» para crearlos</p>
                 {% endfor %}
-            </div>
-            <div>
-                <p class="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">
-                    <i class="fas fa-file-upload text-amber-500 mr-1"></i> Archivos propios
-                    <span class="text-slate-400 font-normal">({{ dataset_familias.propios|length }})</span>
-                </p>
+                </div>
+            </details>
+            <details class="ds-cat border border-slate-200 rounded-xl bg-slate-50/50 self-start">
+                <summary class="text-xs font-bold text-slate-500 uppercase tracking-wide px-3 py-2.5 cursor-pointer list-none select-none flex items-center justify-between gap-2">
+                    <span><i class="fas fa-file-upload text-amber-500 mr-1"></i> Archivos propios
+                        <span class="text-slate-400 font-normal">({{ dataset_familias.propios|length }})</span>
+                    </span>
+                    <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
+                </summary>
+                <div class="px-3 pb-3">
                 {% for d in dataset_familias.propios %}
-                <span title="{{ d.table_name }}" class="inline-block font-mono text-xs bg-amber-50 text-amber-700 border border-amber-100 rounded px-2 py-1 mb-1 mr-1 break-all">{{ d.table_name }}</span>
+                {% include 'analitica/_dataset_chip.html' with color='amber' %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Suba un CSV desde «Subir CSV»</p>
                 {% endfor %}
-            </div>
+                </div>
+            </details>
         </div>
     </div>
     {% endif %}
@@ -253,11 +294,52 @@
                        class="flex-1 text-center px-3 py-2 bg-sky-50 text-sky-700 rounded-lg text-sm font-medium hover:bg-sky-100 transition-colors">
                         <i class="fas fa-eye mr-1"></i> Ver detalle
                     </a>
-                    <a href="{{ superset_public_url }}/dashboard/{{ d.id }}/" target="_blank"
-                       class="px-3 py-2 bg-slate-50 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors">
+                    <a href="{{ superset_public_url }}/superset/dashboard/{{ d.id }}/" target="_blank"
+                       class="px-3 py-2 bg-slate-50 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-100 transition-colors"
+                       title="Abrir en Superset">
                         <i class="fas fa-external-link-alt"></i>
                     </a>
+                    <button type="button"
+                            onclick="siiedCopiarEmbed(this, {{ d.id }})"
+                            class="px-3 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors"
+                            title="Copiar iframe para embeber este tablero">
+                        <i class="fas fa-code"></i>
+                    </button>
+                    {% if d.link_publico %}
+                    <button type="button"
+                            onclick="siiedCopiarLink(this, '{{ d.link_publico }}')"
+                            class="px-3 py-2 bg-violet-50 text-violet-600 rounded-lg text-sm font-medium hover:bg-violet-100 transition-colors"
+                            title="Copiar enlace público: página del SIIED que renderiza el tablero sin login — solo accede quien tenga el link">
+                        <i class="fas fa-link"></i>
+                    </button>
+                    {% endif %}
                 </div>
+                {% if d.puede_gestionar %}
+                <div class="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                    <form method="post"
+                          action="{% url 'indicadores:analitica_tablero_visibilidad' d.id %}"
+                          class="flex items-center gap-1 flex-1"
+                          title="Quién puede ver este tablero vía SIIED/embed">
+                        {% csrf_token %}
+                        <label class="text-[11px] text-slate-400 whitespace-nowrap">Acceso:</label>
+                        <select name="visibilidad" onchange="this.form.submit()"
+                                class="flex-1 text-xs border border-slate-200 rounded px-1.5 py-1 text-slate-600">
+                            {% for val, label in visibilidades_tablero %}
+                            <option value="{{ val }}" {% if d.tablero.visibilidad == val %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                    <form method="post"
+                          action="{% url 'indicadores:analitica_tablero_eliminar' d.id %}"
+                          onsubmit="return confirm('¿Eliminar este tablero de Superset? Los gráficos que no estén en otros tableros también se borrarán.');">
+                        {% csrf_token %}
+                        <button type="submit" title="Eliminar tablero de Superset"
+                                class="px-2 py-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -300,14 +382,106 @@
                 <p class="font-semibold mb-1">Sobre SIIED BI</p>
                 <p>SIIED BI está impulsado por <strong>Apache Superset</strong>,
                 una plataforma de inteligencia de negocios que reemplaza la necesidad de licencias
-                de Looker Studio o Power BI. Puede crear dashboards interactivos, gráficos y tablas
+                de Looker Studio o Power BI. Puede crear dashboards interactivos, gráficos, mapas y tablas
                 dinámicas desde los datos del sistema o archivos CSV propios.</p>
                 <p class="mt-1">Si prefiere no usar la interfaz del BI, pruebe
                 <a href="{% url 'indicadores:analitica_dondatico' %}" class="font-semibold underline">«Don Datico BI»</a>:
-                describa el tablero en lenguaje natural y el asistente lo construye en Superset.</p>
+                describa el tablero en lenguaje natural y el asistente lo construye en SIIED BI.</p>
             </div>
         </div>
     </div>
 </div>
 </div>
+
+<script>
+function siiedCopiarEmbed(btn, dashboardId) {
+    // El iframe apunta a la vista 'bare' del portal — el guest token se
+    // refresca solo dentro de ella (dura ~5 min, no puede ir quemado).
+    var embedUrl = window.location.origin
+        + "{% url 'indicadores:bi_tablero_embed' 0 %}".replace('/bi/0/', '/bi/' + dashboardId + '/');
+    var snippet = '<iframe src="' + embedUrl
+        + '" width="100%" height="800" style="border:0"></iframe>';
+
+    function feedback() {
+        var icon = btn.querySelector('i');
+        icon.className = 'fas fa-check';
+        btn.title = 'Iframe copiado';
+        setTimeout(function() {
+            icon.className = 'fas fa-code';
+            btn.title = 'Copiar iframe para embeber este tablero';
+        }, 1800);
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(snippet).then(feedback);
+    } else {
+        var ta = document.createElement('textarea');
+        ta.value = snippet;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        feedback();
+    }
+}
+
+function siiedCopiarLink(btn, url) {
+    // URL pública firmada (/bi/<id>/p/<token>/): página del SIIED que
+    // renderiza el tablero sin login — solo accede quien tenga el link.
+    function feedback() {
+        var icon = btn.querySelector('i');
+        icon.className = 'fas fa-check';
+        btn.title = 'Enlace público copiado';
+        setTimeout(function() {
+            icon.className = 'fas fa-link';
+            btn.title = 'Copiar enlace público';
+        }, 1800);
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(feedback);
+    } else {
+        var ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        feedback();
+    }
+}
+
+function siiedDsMenu(btn, evt) {
+    // Menú ⋮ del chip de dataset: abre/cierra y excluye los demás.
+    if (evt) evt.stopPropagation();
+    var menu = btn.parentElement.querySelector('.ds-menu');
+    var estabaAbierto = menu && !menu.classList.contains('hidden');
+    document.querySelectorAll('.ds-menu').forEach(function(m) {
+        m.classList.add('hidden');
+    });
+    if (menu && !estabaAbierto) menu.classList.remove('hidden');
+}
+
+document.addEventListener('click', function(evt) {
+    if (!evt.target.closest('.ds-chip')) {
+        document.querySelectorAll('.ds-menu').forEach(function(m) {
+            m.classList.add('hidden');
+        });
+    }
+});
+
+function siiedFiltrarDatasets(q) {
+    q = (q || '').trim().toLowerCase();
+    document.querySelectorAll('.ds-chip').forEach(function(el) {
+        var nombre = el.getAttribute('data-name') || '';
+        var match = !q || nombre.indexOf(q) !== -1;
+        el.style.display = match ? '' : 'none';
+        // Al filtrar, despliega automáticamente la categoría del resultado.
+        if (q && match) {
+            var cat = el.closest('details');
+            if (cat) cat.open = true;
+        }
+    });
+}
+</script>
 {% endblock %}

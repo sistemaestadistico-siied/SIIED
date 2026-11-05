@@ -275,14 +275,22 @@
             </div>
         </div>
         <div class="iced-score-big">
+            {% if mostrar_puntaje %}
             <div class="score-value">{{ resultado.puntaje_global|floatformat:1 }}</div>
             <div class="score-label">ICED (0-100)</div>
             <div class="iced-nivel-badge {{ resultado.nivel_codigo }}">
                 {{ resultado.nivel_nombre }}
             </div>
+            {% else %}
+            <div class="score-label">ICED {{ formulario.periodo }}</div>
+            <div class="iced-nivel-badge">
+                {{ formulario.get_estado_display }}
+            </div>
+            {% endif %}
         </div>
     </div>
 
+    {% if mostrar_puntaje %}
     <!-- Escala de niveles -->
     <div class="iced-niveles">
         <div class="iced-nivel-card bajo {% if resultado.nivel_codigo == 'bajo' %}active{% endif %}">
@@ -327,6 +335,23 @@
             <strong>ICED = {{ resultado.puntaje_global|floatformat:1 }}</strong>
         </div>
     </div>
+    {% else %}
+    <div class="iced-info-card" style="text-align:center; padding:2rem;">
+        <p style="color: var(--iced-muted); font-size: .95rem;">
+            {% if formulario.estado == 'prevalidado' %}
+            Tu FICED fue conciliado y pre-validado por el organismo.<br>
+            El equipo técnico SIIED está realizando la <strong>validación final</strong>;
+            el puntaje se publicará cuando el proceso termine.
+            {% elif formulario.estado == 'enviado' %}
+            Tu FICED fue enviado y está en revisión.<br>
+            El puntaje se publicará cuando el equipo SIIED complete la
+            <strong>validación final</strong>.
+            {% else %}
+            Este formulario aún no tiene puntaje publicado.
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
 
     <!-- Info del formulario -->
     <div class="iced-info-card">
