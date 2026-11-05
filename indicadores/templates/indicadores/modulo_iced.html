@@ -7,404 +7,393 @@
 
 {% block extra_css %}
 <style>
-    /* Paleta ICED: azul marino + verde bosque */
     :root {
-        --iced-navy: #1e3a5f;
-        --iced-navy-light: #2a4a73;
-        --iced-navy- #152a45;
+        --iced-navy: #1d3557;
+        --iced-navy-dark: #152a45;
         --iced-green: #2d7d46;
-        --iced-green-light: #3a9e5a;
-        --iced-green- #1f5c33;
-        --iced-bg: #f0f4f8;
-        --iced-card: #ffffff;
-        --iced-border: #d1d5db;
+        --iced-green-dark: #1f5c33;
+        --iced-ink: #1d1d1f;
+        --iced-muted: #6e6e73;
+        --iced-border: #d2d2d7;
+        --iced-surface: #f5f5f7;
     }
 
-    .iced-header {
-        background: linear-gradient(135deg, var(--iced-navy) 0%, var(--iced-navy-light) 50%, var(--iced-green-dark) 100%);
-        position: relative;
-        overflow: hidden;
+    .iced-page {
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
     }
 
-    .iced-header::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 200px;
-        height: 3px;
-        background: linear-gradient(to right, transparent, var(--iced-green-light), transparent);
+    /* ---- Header ---- */
+    .iced-hero {
+        background: var(--iced-navy-dark);
+        color: #fff;
     }
+    .iced-hero .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .3rem .8rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,.25);
+        font-size: .78rem;
+        color: #d7dde8;
+    }
+    .iced-hero .chip i { color: #7ee2a8; }
 
-    .iced-stat-box {
-        background: var(--iced-card);
+    /* ---- Selector de periodo ---- */
+    .periodo-pill {
+        display: inline-block;
+        padding: .45rem 1.1rem;
+        border-radius: 999px;
         border: 1px solid var(--iced-border);
-        border-radius: 12px;
-        padding: 1.5rem;
+        background: #fff;
+        color: var(--iced-ink);
+        font-size: .82rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .periodo-pill:hover { border-color: var(--iced-navy); color: var(--iced-navy); }
+    .periodo-pill.active {
+        background: var(--iced-navy-dark);
+        border-color: var(--iced-navy-dark);
+        color: #fff;
+    }
+
+    /* ---- Stats ---- */
+    .stat-card {
+        background: #fff;
+        border: 1px solid var(--iced-border);
+        border-radius: 18px;
+        padding: 1.4rem 1rem;
         text-align: center;
-        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, outline-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
     }
-
-    .iced-stat-box:hover {
-        border-color: var(--iced-green);
-        box-shadow: 0 4px 12px -2px rgba(45, 125, 70, 0.15);
-    }
-
-    .iced-stat-number {
-        font-family: 'Georgia', 'Times New Roman', serif;
-        font-size: 2rem;
+    .stat-card .num {
+        font-size: 2.1rem;
         font-weight: 700;
-        color: var(--iced-navy);
+        color: var(--iced-ink);
+        letter-spacing: -0.03em;
         line-height: 1;
     }
-
-    .iced-stat-label {
-        font-size: 0.875rem;
-        color: #64748b;
-        margin-top: 0.5rem;
+    .stat-card .lbl {
+        margin-top: .45rem;
+        font-size: .72rem;
+        font-weight: 600;
+        letter-spacing: .08em;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        color: var(--iced-muted);
     }
 
-    .iced-accordion {
-        background: var(--iced-card);
+    .card-iced {
+        background: #fff;
+        border: 1px solid var(--iced-border);
+        border-radius: 18px;
+        padding: 1.6rem;
+    }
+
+    /* ---- Acordeones de organismo ---- */
+    .org-acc {
+        background: #fff;
         border: 1px solid var(--iced-border);
         border-radius: 16px;
         overflow: hidden;
-        transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, outline-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+        transition: box-shadow .2s ease, border-color .2s ease;
     }
-
-    .iced-accordion:hover {
-        border-color: var(--iced-navy-light);
-        box-shadow: 0 8px 24px -4px rgba(30, 58, 95, 0.12);
+    .org-acc[open], .org-acc:hover {
+        border-color: #a8a8ad;
+        box-shadow: 0 4px 16px rgba(0,0,0,.06);
     }
-
-    .iced-accordion summary {
-        padding: 1.25rem 1.5rem;
-        cursor: pointer;
+    .org-acc summary {
         list-style: none;
+        cursor: pointer;
+        padding: 1.1rem 1.4rem;
         display: flex;
         align-items: center;
         gap: 1rem;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        transition: background 0.2s ease;
     }
+    .org-acc summary::-webkit-details-marker { display: none; }
 
-    .iced-accordion summary:hover {
-        background: linear-gradient(135deg, #eef2f7 0%, #e8ecf1 100%);
-    }
-
-    .iced-accordion summary::-webkit-details-marker {
-        display: none;
-    }
-
-    .iced-accordion .organismo-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 12px;
-        background: linear-gradient(135deg, var(--iced-navy) 0%, var(--iced-green) 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.25rem;
+    .rank-badge {
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        background: var(--iced-surface);
+        color: var(--iced-muted);
+        font-size: .78rem; font-weight: 700;
+        display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
     }
 
-    .iced-progress-track {
-        background: #e2e8f0;
-        border-radius: 9999px;
-        height: 8px;
+    .track {
+        background: #e8e8ed;
+        border-radius: 999px;
+        height: 6px;
         overflow: hidden;
     }
+    .fill { height: 100%; border-radius: 999px; }
 
-    .iced-progress-fill {
-        height: 100%;
-        border-radius: 9999px;
-        transition: width 0.6s ease;
-        background: linear-gradient(90deg, var(--iced-navy) 0%, var(--iced-green) 100%);
+    .nivel-tag {
+        display: inline-block;
+        padding: .2rem .7rem;
+        border-radius: 999px;
+        font-size: .72rem;
+        font-weight: 700;
     }
+    .lvl-alto  { color: #0f7b3d; background: #e3f5ea; }
+    .lvl-medio { color: #9a6700; background: #fdf0d3; }
+    .lvl-bajo  { color: #c62828; background: #fdeaea; }
+    .txt-alto  { color: #0f7b3d; }
+    .txt-medio { color: #9a6700; }
+    .txt-bajo  { color: #c62828; }
+    .bar-alto  { background: #34c759; }
+    .bar-medio { background: #f5a623; }
+    .bar-bajo  { background: #ff3b30; }
 
-    .iced-dimension-card {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 1rem;
-        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, outline-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
-    }
-
-    .iced-dimension-card:hover {
-        border-color: var(--iced-navy-light);
-        background: #ffffff;
-    }
-
-    .section-card-iced {
-        background: var(--iced-card);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    /* ---- Detalle de dimensiones ---- */
+    .dim-acc {
         border: 1px solid var(--iced-border);
+        border-radius: 14px;
+        overflow: hidden;
     }
+    .dim-acc summary {
+        list-style: none;
+        cursor: pointer;
+        padding: .9rem 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+        background: var(--iced-surface);
+    }
+    .dim-acc summary::-webkit-details-marker { display: none; }
+    .dim-acc summary:hover { background: #ececf0; }
+
+    .sub-acc { border: 1px solid #e5e5ea; border-radius: 12px; overflow: hidden; }
+    .sub-acc summary {
+        list-style: none; cursor: pointer;
+        padding: .7rem 1rem;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .sub-acc summary::-webkit-details-marker { display: none; }
+    .sub-acc summary:hover { background: var(--iced-surface); }
+
+    .ind-chip {
+        display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+        padding: .55rem .8rem;
+        border: 1px solid #e5e5ea;
+        border-radius: 10px;
+        background: #fff;
+    }
+
+    .chev { transition: transform .2s ease; }
+    details[open] > summary .chev { transform: rotate(180deg); }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Header Institucional ICED -->
-<div class="iced-header py-12">
-    <div class="container mx-auto px-4 max-w-7xl">
-        <div class="flex flex-col lg:flex-row gap-8 items-center">
-            <!-- Logo ICED -->
-            <div class="flex-shrink-0">
-                <div class="w-48 h-48 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 p-4 flex items-center justify-center">
-                    <img src="https://planestadistico.cali.gov.co/amda/files/thumbnails/thumbnail-s1261.png"
-                         alt="Logo ICED"
-                         class="w-full h-full object-contain"
-                         onerror="this.onerror=null; this.src='{% static 'indicadores/images/logo_sin_fondo.png' %}'">
-                </div>
-            </div>
+<div class="iced-page">
 
-            <!-- Información del módulo -->
-            <div class="flex-1 space-y-4 text-center lg:text-left">
-                <div>
-                    <h1 class="text-4xl lg:text-5xl font-bold text-white">
+    <!-- Header -->
+    <section class="iced-hero">
+        <div class="container mx-auto px-4 max-w-7xl py-14">
+            <div class="flex flex-col lg:flex-row items-center gap-10">
+                <img src="https://planestadistico.cali.gov.co/amda/files/thumbnails/thumbnail-s1261.png"
+                     alt="Logo ICED" class="w-36 h-36 object-contain rounded-2xl bg-white p-3"
+                     onerror="this.onerror=null; this.src='{% static 'indicadores/images/logo_sin_fondo.png' %}'">
+                <div class="flex-1 text-center lg:text-left">
+                    <h1 class="text-4xl lg:text-5xl font-bold tracking-tight">
                         Índice de Capacidad <span class="text-emerald-300">Estadística Distrital</span>
                     </h1>
-                </div>
-
-                <p class="text-lg text-blue-100 leading-relaxed max-w-3xl">
-                    Evaluación integral de la capacidad estadística de los organismos de la Administración Distrital.
-                    Conozca qué entidades producen datos de calidad y cuáles necesitan fortalecer sus procesos.
-                </p>
-
-                <div class="flex flex-wrap gap-2 pt-2 justify-center lg:justify-start">
-                    <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-sm">
-                        <i class="fas fa-chart-bar mr-2 text-emerald-300"></i>
-                        4 Dimensiones
-                    </span>
-                    <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-sm">
-                        <i class="fas fa-layer-group mr-2 text-emerald-300"></i>
-                        9 Subdimensiones
-                    </span>
-                    <span class="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-sm">
-                        <i class="fas fa-check-circle mr-2 text-emerald-300"></i>
-                        36 Indicadores
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Estadísticas Globales ICED -->
-<div class="bg-white border-b border-slate-200">
-    <div class="container mx-auto px-4 max-w-7xl py-8">
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div class="iced-stat-box">
-                <div class="iced-stat-number">{{ stats_globales.total_organismos }}</div>
-                <div class="iced-stat-label">Organismos evaluados</div>
-            </div>
-            <div class="iced-stat-box">
-                <div class="iced-stat-number">{{ stats_globales.promedio_global }}%</div>
-                <div class="iced-stat-label">Promedio global</div>
-            </div>
-            <div class="iced-stat-box">
-                <div class="iced-stat-number text-emerald-600">{{ stats_globales.organismos_alto }}</div>
-                <div class="iced-stat-label">Nivel alto</div>
-            </div>
-            <div class="iced-stat-box">
-                <div class="iced-stat-number text-amber-600">{{ stats_globales.organismos_medio }}</div>
-                <div class="iced-stat-label">Nivel medio</div>
-            </div>
-            <div class="iced-stat-box">
-                <div class="iced-stat-number text-red-600">{{ stats_globales.organismos_bajo }}</div>
-                <div class="iced-stat-label">Nivel bajo</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Gráfico de Barras por Organismo -->
-<div class="container mx-auto px-4 max-w-7xl py-12">
-    <div class="section-card-iced mb-8">
-        <h2 class="text-2xl font-bold text-slate-900 mb-2">
-            <i class="fas fa-chart-bar text-[#1e3a5f] mr-2"></i>
-            Puntaje ICED por Organismo
-        </h2>
-        <p class="text-slate-600 mb-6">Comparación de la capacidad estadística general de cada organismo evaluado</p>
-        <div class="w-full" style="max-height: 400px;">
-            <canvas id="organismosBarChart"></canvas>
-        </div>
-    </div>
-
-    <!-- Listado de Organismos con Macrodesplegables -->
-    <h2 class="text-2xl font-bold text-slate-900 mb-6">
-        <i class="fas fa-building text-[#1e3a5f] mr-2"></i>
-        Resultados detallados por organismo
-    </h2>
-
-    {% if organismos %}
-    <div class="space-y-4">
-        {% for organismo in organismos %}
-        <details class="iced-accordion group">
-            <summary class="flex items-center gap-4">
-                <div class="organismo-icon">
-                    <i class="fas fa-building"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex justify-between items-center mb-1">
-                        <h3 class="text-lg font-bold text-slate-900">{{ organismo.nombre }}</h3>
-                        <div class="flex items-center gap-3">
-                            <span class="text-sm text-slate-500">{{ organismo.periodo }}</span>
-                            <span class="text-2xl font-black
-                                {% if organismo.puntaje_global_pct >= 75 %}text-emerald-600
-                                {% elif organismo.puntaje_global_pct >= 60 %}text-amber-600
-                                {% else %}text-red-600{% endif %}">{{ organismo.puntaje_global_pct }}%</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <div class="flex-1 iced-progress-track">
-                            <div class="iced-progress-fill" style="width: {{ organismo.puntaje_global_pct }}%;"></div>
-                        </div>
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold
-                            {% if organismo.puntaje_global_pct >= 75 %}bg-emerald-100 text-emerald-700
-                            {% elif organismo.puntaje_global_pct >= 60 %}bg-amber-100 text-amber-700
-                            {% else %}bg-red-100 text-red-700{% endif %}">
-                            {{ organismo.nivel_global_display }}
-                        </span>
+                    <p class="mt-4 text-base text-slate-300 max-w-2xl leading-relaxed">
+                        Evaluación integral de la capacidad estadística de los organismos de la
+                        Administración Distrital.
+                    </p>
+                    <div class="mt-5 flex flex-wrap gap-2 justify-center lg:justify-start">
+                        <span class="chip"><i class="fas fa-chart-bar"></i> 4 Dimensiones</span>
+                        <span class="chip"><i class="fas fa-layer-group"></i> 9 Subdimensiones</span>
+                        <span class="chip"><i class="fas fa-check-circle"></i> 36 Indicadores</span>
                     </div>
                 </div>
-                <svg class="w-6 h-6 text-slate-500 group-open:rotate-180 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-            </summary>
 
-            <div class="p-6 bg-white">
-                <!-- Hero Score Card -->
-                <div class="section-card-iced mb-6" style="background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%); border: 2px solid #1e3a5f;">
-                    <div class="grid lg:grid-cols-3 gap-6 items-center">
-                        <div class="flex flex-col items-center justify-center">
-                            <div class="relative w-44 h-44">
-                                <svg viewBox="0 0 36 36" class="w-44 h-44 drop-shadow-sm">
+                {% if periodos|length > 1 %}
+                <div class="text-center lg:text-right">
+                    <div class="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Periodo</div>
+                    <div class="flex gap-2 justify-center lg:justify-end">
+                        {% for p in periodos %}
+                        <a class="periodo-pill {% if p == periodo_sel %}active{% endif %}"
+                           href="?periodo={{ p }}">{{ p }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="bg-[var(--iced-surface)] border-b border-[var(--iced-border)]">
+        <div class="container mx-auto px-4 max-w-7xl py-8">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="stat-card">
+                    <div class="num">{{ stats_globales.total_organismos }}</div>
+                    <div class="lbl">Organismos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num">{{ stats_globales.promedio_global }}%</div>
+                    <div class="lbl">Promedio {{ periodo_sel }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num txt-alto">{{ stats_globales.organismos_alto }}</div>
+                    <div class="lbl">Nivel alto</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num txt-medio">{{ stats_globales.organismos_medio }}</div>
+                    <div class="lbl">Nivel medio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="num txt-bajo">{{ stats_globales.organismos_bajo }}</div>
+                    <div class="lbl">Nivel bajo</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="container mx-auto px-4 max-w-7xl py-10">
+
+        {% if organismos %}
+        <!-- Ranking general -->
+        <div class="card-iced mb-10">
+            <div class="flex flex-wrap items-end justify-between gap-2 mb-5">
+                <div>
+                    <h2 class="text-xl font-bold text-[var(--iced-ink)]">Puntaje ICED por organismo — {{ periodo_sel }}</h2>
+                    <p class="text-sm text-[var(--iced-muted)]">Ordenado de mayor a menor capacidad estadística</p>
+                </div>
+                <div class="flex gap-3 text-xs font-semibold text-[var(--iced-muted)]">
+                    <span><i class="fas fa-square txt-alto"></i> Alto ≥75</span>
+                    <span><i class="fas fa-square txt-medio"></i> Medio ≥60</span>
+                    <span><i class="fas fa-square txt-bajo"></i> Bajo &lt;60</span>
+                </div>
+            </div>
+            <div id="chart-wrap" style="height: 300px;">
+                <canvas id="organismosBarChart"></canvas>
+            </div>
+        </div>
+
+        <h2 class="text-xl font-bold text-[var(--iced-ink)] mb-5">Resultados detallados</h2>
+
+        <div class="space-y-3">
+            {% for organismo in organismos %}
+            <details class="org-acc group">
+                <summary>
+                    <div class="rank-badge">{{ forloop.counter }}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline gap-3 mb-1.5">
+                            <h3 class="font-semibold text-[var(--iced-ink)] truncate">{{ organismo.nombre }}</h3>
+                            <span class="text-xl font-bold flex-shrink-0
+                                {% if organismo.puntaje_global_pct >= 75 %}txt-alto
+                                {% elif organismo.puntaje_global_pct >= 60 %}txt-medio
+                                {% else %}txt-bajo{% endif %}">{{ organismo.puntaje_global_pct }}%</span>
+                        </div>
+                        <div class="track">
+                            <div class="fill {% if organismo.puntaje_global_pct >= 75 %}bar-alto{% elif organismo.puntaje_global_pct >= 60 %}bar-medio{% else %}bar-bajo{% endif %}"
+                                 style="width: {{ organismo.puntaje_global_pct }}%;"></div>
+                        </div>
+                    </div>
+                    <span class="nivel-tag {% if organismo.puntaje_global_pct >= 75 %}lvl-alto{% elif organismo.puntaje_global_pct >= 60 %}lvl-medio{% else %}lvl-bajo{% endif %}">
+                        {{ organismo.nivel_global_display }}
+                    </span>
+                    <svg class="chev w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </summary>
+
+                <div class="px-6 pb-6 pt-2 border-t border-[var(--iced-border)]">
+                    <!-- Score + donut -->
+                    <div class="grid lg:grid-cols-4 gap-6 items-center py-5">
+                        <div class="flex flex-col items-center">
+                            <div class="relative w-36 h-36">
+                                <svg viewBox="0 0 36 36" class="w-36 h-36">
                                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                          fill="none" stroke="#d1d5db" stroke-width="3"></path>
+                                          fill="none" stroke="#e8e8ed" stroke-width="3.4"/>
                                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none"
-                                          stroke="{% if organismo.puntaje_global_pct >= 75 %}#10b981{% elif organismo.puntaje_global_pct >= 60 %}#f59e0b{% else %}#ef4444{% endif %}"
-                                          stroke-width="3" stroke-linecap="round"
-                                          stroke-dasharray="{{ organismo.puntaje_global_pct }},100"></path>
+                                          stroke="{% if organismo.puntaje_global_pct >= 75 %}#34c759{% elif organismo.puntaje_global_pct >= 60 %}#f5a623{% else %}#ff3b30{% endif %}"
+                                          stroke-width="3.4" stroke-linecap="round"
+                                          stroke-dasharray="{{ organismo.puntaje_global_pct }},100"/>
                                 </svg>
                                 <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span class="text-5xl font-black text-slate-900">{{ organismo.puntaje_global_pct }}%</span>
-                                    <span class="text-sm font-bold text-[#1e3a5f] mt-1">ICED {{ organismo.periodo }}</span>
+                                    <span class="text-3xl font-bold text-[var(--iced-ink)]">{{ organismo.puntaje_global_pct }}%</span>
+                                    <span class="text-xs font-semibold text-[var(--iced-muted)]">ICED {{ organismo.periodo }}</span>
                                 </div>
                             </div>
                         </div>
-                        <div class="lg:col-span-2">
-                            <div class="flex items-center gap-3 mb-3 flex-wrap">
-                                <span class="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold
-                                    {% if organismo.puntaje_global_pct >= 75 %}bg-emerald-600 text-white
-                                    {% elif organismo.puntaje_global_pct >= 60 %}bg-amber-500 text-white
-                                    {% else %}bg-red-500 text-white{% endif %}">
-                                    Nivel {{ organismo.nivel_global_display }}
-                                </span>
-                            </div>
-                            <h3 class="text-xl font-black text-slate-900 mb-2">
-                                Capacidad estadística de {{ organismo.nombre }}
-                            </h3>
-                            <p class="text-slate-700 text-sm leading-relaxed mb-3">
-                                El ICED mide la capacidad de este organismo para <strong>producir, gestionar y publicar información estadística de calidad</strong>.
+                        <div class="lg:col-span-3">
+                            <span class="nivel-tag {% if organismo.puntaje_global_pct >= 75 %}lvl-alto{% elif organismo.puntaje_global_pct >= 60 %}lvl-medio{% else %}lvl-bajo{% endif %} mb-2">
+                                Nivel {{ organismo.nivel_global_display }}
+                            </span>
+                            <h3 class="text-lg font-bold text-[var(--iced-ink)]">Capacidad estadística — {{ organismo.nombre }}</h3>
+                            <p class="text-sm text-[var(--iced-muted)] mt-1">
+                                El ICED mide la capacidad del organismo para producir, gestionar y publicar información estadística de calidad.
                             </p>
-                            <div class="flex flex-wrap gap-2 text-xs font-bold">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border-2 border-emerald-400 shadow-sm">
-                                    <span class="w-3 h-3 rounded-full bg-emerald-500"></span> Alto ≥ 75%
-                                </span>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border-2 border-amber-400 shadow-sm">
-                                    <span class="w-3 h-3 rounded-full bg-amber-500"></span> Medio ≥ 60%
-                                </span>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-lg border-2 border-red-400 shadow-sm">
-                                    <span class="w-3 h-3 rounded-full bg-red-500"></span> Bajo &lt; 60%
-                                </span>
-                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Gráfico por dimensión -->
-                <div class="section-card-iced mb-6">
-                    <h3 class="text-lg font-black text-slate-900 mb-4">Puntaje por dimensión</h3>
-                    <div class="w-full" style="max-height: 320px;">
-                        <canvas id="icedBarChart{{ forloop.counter }}"></canvas>
+                    <!-- Barras por dimensión -->
+                    <div class="card-iced mb-6" style="padding: 1.2rem;">
+                        <h4 class="text-sm font-bold text-[var(--iced-ink)] mb-3">Puntaje por dimensión</h4>
+                        <div style="height: 240px;">
+                            <canvas id="icedBarChart{{ forloop.counter }}"></canvas>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Dimensiones -->
-                <div class="space-y-4">
-                    {% for dim_key, dim_data in organismo.puntajes_detalle.detalle.items %}
-                    <details class="dimension-accordion group/dim rounded-2xl overflow-hidden border
-                        {% if dim_key == '1' %}border-[#1e3a5f]/20{% elif dim_key == '2' %}border-[#2a4a73]/20{% elif dim_key == '3' %}border-[#2d7d46]/20{% else %}border-[#1f5c33]/20{% endif %}"
-                        {% if forloop.first %}open{% endif %}>
-                        <summary class="flex items-center gap-4 p-5 cursor-pointer list-none select-none transition-colors rounded-2xl
-                            {% if dim_key == '1' %}bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10{% elif dim_key == '2' %}bg-[#2a4a73]/5 hover:bg-[#2a4a73]/10{% elif dim_key == '3' %}bg-[#2d7d46]/5 hover:bg-[#2d7d46]/10{% else %}bg-[#1f5c33]/5 hover:bg-[#1f5c33]/10{% endif %}">
-                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
-                                {% if dim_key == '1' %}bg-[#1e3a5f] text-white{% elif dim_key == '2' %}bg-[#2a4a73] text-white{% elif dim_key == '3' %}bg-[#2d7d46] text-white{% else %}bg-[#1f5c33] text-white{% endif %}">
-                                <i class="fas {% if dim_key == '1' %}fa-landmark{% elif dim_key == '2' %}fa-microchip{% elif dim_key == '3' %}fa-chart-line{% else %}fa-globe{% endif %} text-lg"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex justify-between items-center mb-1">
-                                    <h4 class="text-lg font-black text-slate-900">{{ dim_data.nombre }}</h4>
-                                    <span class="text-2xl font-black
-                                        {% if dim_data.puntaje >= 75 %}text-emerald-600{% elif dim_data.puntaje >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ dim_data.puntaje }}%</span>
+                    <!-- Dimensiones -->
+                    <div class="space-y-3">
+                        {% for dim_key, dim_data in organismo.puntajes_detalle.detalle.items %}
+                        <details class="dim-acc">
+                            <summary>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex justify-between items-baseline mb-1">
+                                        <h4 class="font-semibold text-[var(--iced-ink)]">{{ dim_data.nombre }}</h4>
+                                        <span class="font-bold
+                                            {% if dim_data.puntaje >= 75 %}txt-alto{% elif dim_data.puntaje >= 60 %}txt-medio{% else %}txt-bajo{% endif %}">{{ dim_data.puntaje }}%</span>
+                                    </div>
+                                    <div class="track">
+                                        <div class="fill {% if dim_data.puntaje >= 75 %}bar-alto{% elif dim_data.puntaje >= 60 %}bar-medio{% else %}bar-bajo{% endif %}"
+                                             style="width: {{ dim_data.puntaje }}%;"></div>
+                                    </div>
                                 </div>
-                                <div class="progress-track h-2.5">
-                                    <div class="progress-fill h-2.5" style="width: {{ dim_data.puntaje }}%; background: {% if dim_key == '1' %}#1e3a5f{% elif dim_key == '2' %}#2a4a73{% elif dim_key == '3' %}#2d7d46{% else %}#1f5c33{% endif %};"></div>
-                                </div>
-                            </div>
-                            <svg class="w-6 h-6 text-slate-500 group-open/dim:rotate-180 transition-transform flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </summary>
-
-                        <div class="p-5 bg-white">
-                            <p class="text-sm text-slate-600 mb-4">
-                                {% if dim_key == '1' %}Mide si el organismo tiene normas, planes y coordinación para producir y usar datos de forma sostenida.
-                                {% elif dim_key == '2' %}Evalúa si cuenta con las herramientas tecnológicas, el personal capacitado y los recursos necesarios.
-                                {% elif dim_key == '3' %}Indica si sigue estándares estadísticos y produce información confiable y oportuna.
-                                {% else %}Revisa si sus datos están disponibles, son fáciles de entender y los usa la ciudadanía.{% endif %}
-                            </p>
-
-                            <!-- Subdimensions -->
-                            <div class="space-y-3">
+                                <svg class="chev w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </summary>
+                            <div class="p-4 space-y-2">
                                 {% for sub_key, sub_data in dim_data.subdimensiones.items %}
-                                <details class="sub-accordion group/sub rounded-xl overflow-hidden border border-slate-200">
-                                    <summary class="flex items-center justify-between p-4 cursor-pointer list-none select-none hover:bg-slate-50 transition-colors">
-                                        <div class="flex items-center gap-3">
-                                            <span class="text-sm font-bold text-slate-400">{{ sub_key }}</span>
-                                            <span class="font-bold text-slate-800">{{ sub_data.nombre }}</span>
-                                        </div>
-                                        <div class="flex items-center gap-3">
-                                            <span class="text-lg font-black
-                                                {% if sub_data.puntaje >= 75 %}text-emerald-600{% elif sub_data.puntaje >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ sub_data.puntaje }}%</span>
-                                            <svg class="w-5 h-5 text-slate-400 group-open/sub:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                <details class="sub-acc">
+                                    <summary>
+                                        <span class="text-sm font-semibold text-[var(--iced-ink)]">
+                                            <span class="text-[var(--iced-muted)] font-bold mr-1">{{ sub_key }}</span>{{ sub_data.nombre }}
+                                        </span>
+                                        <span class="flex items-center gap-2">
+                                            <span class="font-bold
+                                                {% if sub_data.puntaje >= 75 %}txt-alto{% elif sub_data.puntaje >= 60 %}txt-medio{% else %}txt-bajo{% endif %}">{{ sub_data.puntaje }}%</span>
+                                            <svg class="chev w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                                             </svg>
-                                        </div>
+                                        </span>
                                     </summary>
                                     <div class="px-4 pb-4">
-                                        <div class="progress-track h-2 mb-3">
-                                            <div class="progress-fill h-2 rounded-full" style="width: {{ sub_data.puntaje }}%; background: linear-gradient(90deg, #1e3a5f, #2d7d46);"></div>
+                                        <div class="track mb-3">
+                                            <div class="fill {% if sub_data.puntaje >= 75 %}bar-alto{% elif sub_data.puntaje >= 60 %}bar-medio{% else %}bar-bajo{% endif %}"
+                                                 style="width: {{ sub_data.puntaje }}%;"></div>
                                         </div>
-                                        <!-- Indicators -->
                                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                             {% with prefix=sub_key|add:"." %}
                                             {% for ind_key, ind_val in organismo.puntajes_detalle.indicadores.items %}
                                             {% if ind_key|slice:":4" == prefix %}
-                                            <div class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg bg-white border border-slate-200">
+                                            <div class="ind-chip">
                                                 <div class="min-w-0">
-                                                    <span class="block text-[10px] font-bold text-slate-400 leading-none">{{ ind_key }}</span>
-                                                    <span class="block text-xs font-semibold text-slate-700 leading-tight mt-0.5">{{ iced_indicador_labels|get_item:ind_key|default:ind_key }}</span>
+                                                    <span class="block text-[10px] font-bold text-[var(--iced-muted)]">{{ ind_key }}</span>
+                                                    <span class="block text-xs font-medium text-[var(--iced-ink)] leading-tight">{{ iced_indicador_labels|get_item:ind_key|default:ind_key }}</span>
                                                 </div>
-                                                <span class="text-sm font-black flex-shrink-0
-                                                    {% if ind_val >= 75 %}text-emerald-600{% elif ind_val >= 60 %}text-amber-600{% else %}text-red-600{% endif %}">{{ ind_val }}%</span>
+                                                <span class="text-sm font-bold flex-shrink-0
+                                                    {% if ind_val >= 75 %}txt-alto{% elif ind_val >= 60 %}txt-medio{% else %}txt-bajo{% endif %}">{{ ind_val }}%</span>
                                             </div>
                                             {% endif %}
                                             {% endfor %}
@@ -414,9 +403,9 @@
                                 </details>
                                 {% endfor %}
                             </div>
-                        </div>
-                    </details>
-                    {% endfor %}
+                        </details>
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <script>
@@ -426,20 +415,18 @@
                     new Chart(ctx, {
                         type: 'bar',
                         data: {
-                            labels: ['Entorno Institucional', 'Infraestructura', 'Metodología Estadística', 'Accesibilidad y Uso'],
+                            labels: ['Entorno institucional', 'Infraestructura', 'Metodología estadística', 'Accesibilidad y uso'],
                             datasets: [{
-                                label: 'Puntaje (%)',
                                 data: [
                                     {{ organismo.puntajes_detalle.dimensiones.1|default:0 }},
                                     {{ organismo.puntajes_detalle.dimensiones.2|default:0 }},
                                     {{ organismo.puntajes_detalle.dimensiones.3|default:0 }},
                                     {{ organismo.puntajes_detalle.dimensiones.4|default:0 }}
                                 ],
-                                backgroundColor: ['#1e3a5f', '#2a4a73', '#2d7d46', '#1f5c33'],
-                                borderColor: ['#152a45', '#1e3a5f', '#1f5c33', '#152a33'],
-                                borderWidth: 2,
+                                backgroundColor: ['#1d3557', '#2a4a73', '#2d7d46', '#3a9e5a'],
                                 borderRadius: 8,
-                                borderSkipped: false
+                                borderSkipped: false,
+                                maxBarThickness: 48
                             }]
                         },
                         options: {
@@ -447,61 +434,103 @@
                             maintainAspectRatio: false,
                             plugins: {
                                 legend: { display: false },
-                                tooltip: { callbacks: { label: function(c){return c.parsed.y+'%';} } }
+                                tooltip: { callbacks: { label: function(c){ return c.parsed.y + '%'; } } }
                             },
                             scales: {
-                                y: { beginAtZero: true, max: 100, ticks: { callback: function(v){return v+'%';}, font: {weight:'bold'} }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                                x: { ticks: { font: { weight: 'bold', size: 11 } }, grid: { display: false } }
+                                y: { beginAtZero: true, max: 100, ticks: { callback: function(v){ return v + '%'; } }, grid: { color: 'rgba(0,0,0,.05)' } },
+                                x: { ticks: { font: { size: 11 } }, grid: { display: false } }
                             }
                         }
                     });
                 });
                 </script>
-            </div>
-        </details>
-        {% endfor %}
+            </details>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="card-iced text-center py-16">
+            <div class="text-5xl mb-4 text-slate-300"><i class="far fa-clipboard"></i></div>
+            <h3 class="text-lg font-bold text-[var(--iced-ink)] mb-1">Sin mediciones ICED{% if periodo_sel %} para {{ periodo_sel }}{% endif %}</h3>
+            <p class="text-sm text-[var(--iced-muted)]">Los organismos están en proceso de evaluación.</p>
+        </div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="section-card-iced text-center py-12">
-        <div class="text-6xl mb-4 text-[#1e3a5f]/30"><i class="far fa-clipboard"></i></div>
-        <h3 class="text-xl font-black text-slate-800 mb-2">Aún no hay mediciones ICED</h3>
-        <p class="text-slate-500 max-w-md mx-auto">Los organismos están en proceso de evaluación. Pronto podrá ver los resultados aquí.</p>
-    </div>
-    {% endif %}
 </div>
 
-<!-- Chart.js — barras por organismo -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var ctx = document.getElementById('organismosBarChart');
     if (!ctx || typeof Chart === 'undefined') return;
 
+    // Nombre corto para etiquetas del eje Y
+    function shortName(n) {
+        return n.replace('Departamento Administrativo de ', 'DA ')
+                .replace('Departamento Administrativo ', 'DA ')
+                .replace('Secretaría de ', 'S. ')
+                .replace('Secretaría del ', 'S. ')
+                .replace('Unidad Administrativa Especial de ', 'UAE ')
+                .replace('Unidad Administrativa Especial ', 'UAE ');
+    }
+
+    var names = [{% for o in organismos %}'{{ o.nombre|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    // Altura dinámica: ~34px por barra
+    var wrap = ctx.parentElement;
+    wrap.style.height = Math.max(300, names.length * 34 + 40) + 'px';
+
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: [{% for o in organismos %}'{{ o.nombre|escapejs }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            labels: names.map(shortName),
             datasets: [{
-                label: 'Puntaje ICED (%)',
                 data: [{% for o in organismos %}{{ o.puntaje_global_pct }}{% if not forloop.last %},{% endif %}{% endfor %}],
-                backgroundColor: [{% for o in organismos %}'{% if o.puntaje_global_pct >= 75 %}#10b981{% elif o.puntaje_global_pct >= 60 %}#f59e0b{% else %}#ef4444{% endif %}'{% if not forloop.last %},{% endif %}{% endfor %}],
-                borderColor: [{% for o in organismos %}'{% if o.puntaje_global_pct >= 75 %}#059669{% elif o.puntaje_global_pct >= 60 %}#d97706{% else %}#dc2626{% endif %}'{% if not forloop.last %},{% endif %}{% endfor %}],
-                borderWidth: 2,
-                borderRadius: 8,
-                borderSkipped: false
+                backgroundColor: [{% for o in organismos %}'{% if o.puntaje_global_pct >= 75 %}#34c759{% elif o.puntaje_global_pct >= 60 %}#f5a623{% else %}#ff3b30{% endif %}'{% if not forloop.last %},{% endif %}{% endfor %}],
+                borderRadius: 6,
+                borderSkipped: false,
+                maxBarThickness: 22
             }]
         },
         options: {
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { right: 46 } },
             plugins: {
                 legend: { display: false },
-                tooltip: { callbacks: { label: function(c){return c.parsed.y+'%';} } }
+                tooltip: {
+                    callbacks: {
+                        title: function(items){ return names[items[0].dataIndex]; },
+                        label: function(c){ return c.parsed.x + '%'; }
+                    }
+                }
             },
             scales: {
-                y: { beginAtZero: true, max: 100, ticks: { callback: function(v){return v+'%';}, font: {weight:'bold'} }, grid: { color: 'rgba(0,0,0,0.05)' } },
-                x: { ticks: { font: { weight: 'bold', size: 10 }, maxRotation: 45 }, grid: { display: false } }
+                x: {
+                    beginAtZero: true, max: 100,
+                    ticks: { callback: function(v){ return v + '%'; }, font: { size: 11 } },
+                    grid: { color: 'rgba(0,0,0,.05)' }
+                },
+                y: {
+                    ticks: { font: { size: 12, weight: '500' }, autoSkip: false },
+                    grid: { display: false }
+                }
             }
-        }
+        },
+        plugins: [{
+            id: 'barValue',
+            afterDatasetsDraw: function(chart) {
+                var c = chart.ctx;
+                c.save();
+                c.font = '600 11px -apple-system, sans-serif';
+                c.fillStyle = '#1d1d1f';
+                chart.data.datasets[0].data.forEach(function(v, i) {
+                    var bar = chart.getDatasetMeta(0).data[i];
+                    c.fillText(v + '%', bar.x + 6, bar.y + 4);
+                });
+                c.restore();
+            }
+        }]
     });
 });
 </script>

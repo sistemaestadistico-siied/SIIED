@@ -18,6 +18,7 @@ register = template.Library()
 _ESCALAS = {}
 _OPCIONES_CAMPO = {}
 _FIELD_LABELS = {}
+_TABLA_COLUMNAS = {}  # field_key -> [{'name','label'}] desde data-config del widget
 
 
 def _build_field_maps():
@@ -64,6 +65,13 @@ def _build_field_maps():
                         str(o.get('codigo')): str(o.get('texto'))
                         for o in opciones if isinstance(o, dict) and o.get('codigo')
                     }
+                columnas = cfg.get('columnas') if isinstance(cfg, dict) else None
+                if columnas:
+                    _TABLA_COLUMNAS[name] = [
+                        {'name': str(c.get('name')),
+                         'label': str(c.get('label') or c.get('name'))}
+                        for c in columnas if isinstance(c, dict) and c.get('name')
+                    ]
 
 
 @register.filter(name='iced_field_label')
@@ -227,7 +235,7 @@ def _render_lista(value, field_key=None):
     return '<br>'.join(items) if items else '<span class="text-slate-400 italic">Vacío</span>'
 
 
-def _render_tabla(value, max_rows=10):
+def _render_tabla(value, max_rows=10, field_key=None):
     """Renderiza tablas tipo [{"campo": "valor"}, ...] como tabla HTML."""
     data = _parse_json(value)
     if isinstance(data, dict):
@@ -252,8 +260,29 @@ def _render_tabla(value, max_rows=10):
     # fusionan en su columna padre ("Otro: <texto>") en lugar de mostrarse
     # como columna aparte.
     if isinstance(data[0], dict):
-        cols = [c for c in data[0].keys() if not c.endswith('_otro')]
-        header = ''.join(f'<th class="px-2 py-1 text-left bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">{escape(c.replace("_", " ").title())}</th>' for c in cols)
+        conf_cols = _TABLA_COLUMNAS.get(field_key) if field_key else None
+        if conf_cols:
+            # Columnas declaradas en el widget: el encabezado no depende de
+            # qué llaves quedaron guardadas en el JSON (p. ej. un equipo que
+            # solo tiene la precarga de nombre_oe debe mostrar todas las
+            # columnas de la tabla, como las demás respuestas).
+            cols = [c['name'] for c in conf_cols]
+            labels = {c['name']: c['label'] for c in conf_cols}
+            for row in data:
+                for k in row.keys():
+                    if k not in labels and not k.endswith('_otro'):
+                        cols.append(k)
+                        labels[k] = k
+            header = ''.join(f'<th class="px-2 py-1 text-left bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">{escape(labels[c])}</th>' for c in cols)
+        else:
+            # Sin config: unión de llaves de todas las filas (la primera
+            # puede venir con menos llaves que el resto).
+            cols = []
+            for row in data:
+                if isinstance(row, dict):
+                    cols += [k for k in row.keys()
+                             if not k.endswith('_otro') and k not in cols]
+            header = ''.join(f'<th class="px-2 py-1 text-left bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">{escape(c.replace("_", " ").title())}</th>' for c in cols)
         rows = []
         for row in data[:max_rows]:
             cells = ''
@@ -364,7 +393,7 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
                      'p23_operaciones_estadisticas', 'p30_tabla_alcaldia',
                      'p34_info_observatorios', 'p35_documentacion_observatorio',
                      'p41_2_matriz_satisfaccion'):
-        return mark_safe(_render_tabla(resp))
+        return mark_safe(_render_tabla(resp, field_key=field_key))
 
     # Fallback genérico por estructura JSON (campos no clasificados arriba):
     # - dict con entradas {seleccion: ...}  -> checkbox-tabla
@@ -374,12 +403,12 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
     if isinstance(parsed, dict):
         if any(isinstance(v, dict) and 'seleccion' in v for v in parsed.values()):
             return mark_safe(_render_checkbox_tabla(parsed, field_key))
-        tabla = _render_tabla(parsed)
+        tabla = _render_tabla(parsed, field_key=field_key)
         if tabla and tabla != escape(str(resp)):
             return mark_safe(tabla)
     elif isinstance(parsed, list):
         if parsed and all(isinstance(v, dict) for v in parsed):
-            return mark_safe(_render_tabla(parsed))
+            return mark_safe(_render_tabla(parsed, field_key=field_key))
         return mark_safe(_render_lista(parsed, field_key))
 
     # Texto libre / fallback

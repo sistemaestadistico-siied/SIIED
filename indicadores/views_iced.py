@@ -11,6 +11,7 @@ Endpoints:
 
 import json
 import logging
+import re
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -91,15 +92,18 @@ class ICEDWizardView(SessionWizardView):
         """Validar propiedad del formulario y estado editable antes de entrar al wizard."""
         formulario_id = kwargs.get('formulario_id')
         if not formulario_id:
-            # Formulario nuevo: el usuario debe declarar su equipo técnico
-            # primero — cada equipo tiene su propio FICED que luego se
-            # concilia en validación. Sin equipo, caería en el formulario
-            # '' (consolidado) de otro usuario.
+            # Formulario nuevo: el equipo técnico se define en el perfil de
+            # usuario (subrol_ficed) o en el username — no se elige en la UI.
+            # Sin equipo no puede crear un FICED: equipo='' es el consolidado
+            # de validación, no un formulario de respuesta.
             if not request.user.is_staff and _get_user_organismo(request.user) \
                     and not _get_user_equipo(request.user):
-                return redirect(
-                    reverse('indicadores:iced_equipo') + '?next=formulario'
+                messages.error(
+                    request,
+                    'Tu usuario no tiene un equipo técnico asignado. '
+                    'El administrador del SIIED debe definirlo en tu perfil de usuario.'
                 )
+                return redirect('indicadores:iced_landing')
         if formulario_id:
             formulario = get_object_or_404(ICEDFormulario, pk=formulario_id)
             es_sistema = self._es_validador_sistema(request.user)
@@ -113,6 +117,15 @@ class ICEDWizardView(SessionWizardView):
             # es editable por delegados de equipos). El validador SIIED es
             # la excepción: corrige el consolidado de cualquier organismo.
             equipo_user = _get_user_equipo(request.user)
+            if not es_sistema and not equipo_user:
+                # Sin equipo en perfil: no puede editar nada (tampoco el
+                # consolidado equipo='').
+                messages.error(
+                    request,
+                    'Tu usuario no tiene un equipo técnico asignado. '
+                    'El administrador del SIIED debe definirlo en tu perfil de usuario.'
+                )
+                return redirect('indicadores:iced_landing')
             if (not es_sistema
                     and formulario.equipo != equipo_user):
                 messages.error(request, 'Este formulario pertenece a otro equipo técnico.')
@@ -535,9 +548,12 @@ class ICEDWizardView(SessionWizardView):
         else:
             equipo_user = _get_user_equipo(self.request.user)
             if not self.request.user.is_staff and not equipo_user:
-                return redirect(
-                    reverse('indicadores:iced_equipo') + '?next=formulario'
+                messages.error(
+                    self.request,
+                    'Tu usuario no tiene un equipo técnico asignado. '
+                    'El administrador del SIIED debe definirlo en tu perfil de usuario.'
                 )
+                return redirect('indicadores:iced_landing')
             formulario, _ = ICEDFormulario.objects.get_or_create(
                 organismo=organismo,
                 periodo=str(timezone.now().year),
@@ -778,12 +794,20 @@ class ICEDWizardView(SessionWizardView):
                 usuario = f.usuario_diligencia
                 quien = (usuario.get_full_name() or usuario.username
                          ) if usuario else ''
+                mapa_idx = _mapa_campos_iced()
                 for cod, campos in por_codigo.items():
+                    # Orden del wizard (declaración del campo), no del JSON:
+                    # la pregunta principal (p10_participacion) debe salir
+                    # antes que sub-campos (p10_actividades).
+                    ordenados = sorted(
+                        campos.items(),
+                        key=lambda kv: mapa_idx.get(kv[0], {}).get('idx', 9999))
+                    campos = dict(ordenados)
                     items = [{
                         'field_key': fname,
                         'label': iced_field_label(fname),
                         'respuesta': v,
-                    } for fname, v in campos.items()]
+                    } for fname, v in ordenados]
                     cache.setdefault(cod, []).append({
                         'equipo': f.equipo,
                         'quien': quien,
@@ -881,6 +905,10 @@ def iced_landing(request):
         'organismo': organismo,
         'formularios': formularios,
         'equipo_user': equipo_user,
+        'equipo_user_label': (
+            dict(ICEDFormulario.EQUIPO_CHOICES).get(equipo_user, equipo_user)
+            if equipo_user else ''
+        ),
         'periodo_actual': str(timezone.now().year),
         'ocultar_nuevo': ocultar_nuevo,
     })
@@ -889,13 +917,10 @@ def iced_landing(request):
 @login_required
 def iced_equipo(request):
     """
-    Selector de equipo técnico FICED para usuarios del módulo /iced/.
-
-    El FICED se diligencia por equipos: cada equipo tiene su propio
-    formulario (organismo+periodo+equipo) que luego se concilia en
-    validación. Antes de iniciar un formulario nuevo, el usuario debe
-    declarar a qué equipo pertenece; se guarda en subrol_ficed del
-    perfil y el administrador puede corregirlo luego.
+    Ruta heredada — ya no se elige equipo en la UI. El equipo técnico se
+    define en el perfil de usuario (subrol_ficed) o va fijado en el
+    username (p. ej. 'DAP_ETPP'). Esta vista solo sincroniza el equipo
+    del username con el perfil y redirige al destino pedido.
     """
     organismo = _get_user_organismo(request.user)
     if not organismo:
@@ -903,61 +928,24 @@ def iced_equipo(request):
         return redirect('indicadores:iced_landing')
 
     perfil = getattr(request.user, 'perfil_recolector', None)
-
-    equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
-    validos = {e for e, _ in equipos}
     destino = request.POST.get('next') or request.GET.get('next') or ''
 
-    # Subrol fijado en el username ('DAP_ETPP'): no se le ofrece elegir
-    # equipo; se persiste en el perfil y va directo a su destino.
     equipo_fijo = equipo_desde_username(request.user.username)
-    if equipo_fijo:
-        if perfil and perfil.subrol_ficed != equipo_fijo:
-            perfil.subrol_ficed = equipo_fijo
-            perfil.save(update_fields=['subrol_ficed'])
-        if destino == 'formulario':
-            return redirect('indicadores:iced_formulario_nuevo')
+    if equipo_fijo and perfil and perfil.subrol_ficed != equipo_fijo:
+        perfil.subrol_ficed = equipo_fijo
+        perfil.save(update_fields=['subrol_ficed'])
+
+    if not _get_user_equipo(request.user):
+        messages.error(
+            request,
+            'Tu usuario no tiene un equipo técnico asignado. '
+            'El administrador del SIIED debe definirlo en tu perfil de usuario.'
+        )
         return redirect('indicadores:iced_landing')
 
-    if request.method == 'POST':
-        equipo = request.POST.get('equipo', '')
-        if equipo not in validos:
-            messages.error(request, 'Selecciona un equipo válido.')
-        elif not perfil:
-            messages.error(
-                request,
-                'Tu usuario no tiene perfil de recolector; '
-                'contacta al administrador para asignar tu equipo.'
-            )
-        else:
-            perfil.subrol_ficed = equipo
-            perfil.save(update_fields=['subrol_ficed'])
-            messages.success(
-                request,
-                f'Equipo {equipo} asignado. Solo verás las preguntas de tu equipo.'
-            )
-            if destino == 'formulario':
-                return redirect('indicadores:iced_formulario_nuevo')
-            return redirect('indicadores:iced_landing')
-
-    # Equipos que ya tienen formulario en curso en este período
-    periodo = str(timezone.now().year)
-    ocupados = set(
-        ICEDFormulario.objects
-        .filter(organismo=organismo, periodo=periodo)
-        .exclude(equipo='')
-        .values_list('equipo', flat=True)
-    )
-
-    return render(request, 'indicadores/iced/equipo.html', {
-        'page': 'iced',
-        'organismo': organismo,
-        'equipos': equipos,
-        'ocupados': ocupados,
-        'sin_perfil': perfil is None,
-        'next': destino,
-        'actual': (perfil.subrol_ficed if perfil else ''),
-    })
+    if destino == 'formulario':
+        return redirect('indicadores:iced_formulario_nuevo')
+    return redirect('indicadores:iced_landing')
 
 
 @login_required
@@ -1185,11 +1173,14 @@ def iced_chat(request):
                 f"RESPUESTAS YA GUARDADAS del FICED {formulario.periodo} "
                 f"(equipo {formulario.equipo or 'general'}, "
                 f"estado {formulario.estado}):\n" + '\n'.join(partes[:60]))
-
-    # Formularios de años anteriores del mismo organismo
+    # Formularios de años anteriores: consolidado (equipo='') o el del
+    # propio equipo; solo estados con contenido diligenciado real.
     resp_previos = []
     for f_prev in (ICEDFormulario.objects
-                   .filter(organismo=organismo)
+                   .filter(organismo=organismo,
+                           estado__in=['validado', 'enviado', 'prevalidado',
+                                       'devuelto'])
+                   .filter(Q(equipo='') | Q(equipo=equipo_user))
                    .exclude(periodo=periodo_actual)
                    .order_by('-periodo')[:3]):
         partes = []
@@ -1210,6 +1201,11 @@ FORMATOS ESTRICTOS QUE DEBES RECORDAR AL USUARIO:
 - Fechas "inicio de participación": MM/AAAA (ej: 03/2024). Fechas de widgets: selector de calendario AAAA-MM-DD.
 - P21: porcentajes 0-100 cuya suma no pase de 100. Años de experiencia: número entero.
 - URLs: completas https://…, varias separadas por coma. Códigos BP: números/códigos separados por coma.
+
+EVIDENCIA VERIFICABLE: si citas lo que el organismo respondió en años anteriores,
+termina tu respuesta con el enlace para que el usuario lo verifique por sí mismo:
+/iced/historico/?q=N (reemplaza N por el número de la pregunta, ej: /iced/historico/?q=8).
+Escribe el enlace tal cual, en una línea sola.
 
 SECCIÓN ACTUAL DEL USUARIO: {seccion}
 
@@ -1253,6 +1249,152 @@ GUÍA DE ESTA SECCIÓN:
     if not texto:
         texto = 'No pude generar una respuesta. Reformula tu pregunta.'
     return JsonResponse({'respuesta': texto})
+
+
+# =============================================================================
+# HISTÓRICO FICED — respuestas de años anteriores (evidencia del chat)
+# =============================================================================
+
+_MODULOS_JSON = ('respuestas_a', 'respuestas_b', 'respuestas_c',
+                 'respuestas_d', 'respuestas_e')
+_ESTADO_RANK = {'validado': 0, 'enviado': 1, 'prevalidado': 2,
+                'devuelto': 3, 'borrador': 4, 'rechazado': 5}
+_MAPA_CAMPOS = None
+
+
+def _mapa_campos_iced():
+    """{campo: {'label', 'modulo'}} desde las clases del wizard (perezoso)."""
+    global _MAPA_CAMPOS
+    if _MAPA_CAMPOS is not None:
+        return _MAPA_CAMPOS
+    from .forms_iced import (
+        ICEDModuloAForm, ICEDModuloBForm,
+        ICEDModuloC1Form, ICEDModuloC2Form, ICEDModuloC3Form,
+        ICEDModuloD1Form, ICEDModuloD2Form, ICEDModuloD3Form,
+        ICEDModuloD4Form, ICEDModuloEForm,
+    )
+    mapa = {}
+    idx = 0
+    for modulo, clases in (
+        ('a', (ICEDModuloAForm,)),
+        ('b', (ICEDModuloBForm,)),
+        ('c', (ICEDModuloC1Form, ICEDModuloC2Form, ICEDModuloC3Form)),
+        ('d', (ICEDModuloD1Form, ICEDModuloD2Form, ICEDModuloD3Form,
+               ICEDModuloD4Form)),
+        ('e', (ICEDModuloEForm,)),
+    ):
+        for cls in clases:
+            for nombre, campo in cls.declared_fields.items():
+                idx += 1
+                if nombre not in mapa:
+                    mapa[nombre] = {
+                        'label': campo.label or nombre,
+                        'modulo': modulo,
+                        'idx': idx,
+                    }
+    _MAPA_CAMPOS = mapa
+    return mapa
+
+
+def _num_pregunta_iced(nombre, label=''):
+    """Número de pregunta desde el nombre del campo (p8_…) o el label (8. …)."""
+    m = re.match(r'p(\d+)', nombre or '')
+    if m:
+        return int(m.group(1))
+    m = re.match(r'\s*(\d+)\.', label or '')
+    return int(m.group(1)) if m else 999
+
+
+@login_required
+def iced_historico(request):
+    """Respuestas FICED de años anteriores del organismo del usuario.
+
+    Una fila por pregunta; una columna por período (formulario del equipo
+    del usuario si existe, si no el consolidado). Don Datico la referencia
+    con /iced/historico/?q=N para que el delegado verifique la evidencia.
+    """
+    organismo = _get_user_organismo(request.user)
+    if not organismo:
+        if not request.user.is_staff:
+            messages.error(request, 'No tiene organismo asignado.')
+            return redirect('indicadores:iced_landing')
+        org_id = request.GET.get('organismo')
+        organismo = Organismo.objects.filter(pk=org_id).first() if org_id else None
+        if not organismo:
+            return render(request, 'indicadores/iced/historico_respuestas.html', {
+                'page': 'iced',
+                'organismo': None,
+                'organismos': Organismo.objects.filter(activo=True).order_by('nombre'),
+                'columnas': [], 'filas': [], 'q': '', 'modulo_sel': '',
+            })
+    equipo = _get_user_equipo(request.user)
+
+    # Un formulario por período: el del equipo del usuario si existe,
+    # si no el consolidado; en empate, el de mejor estado.
+    por_p = {}
+    for f in (ICEDFormulario.objects.filter(organismo=organismo)
+              .order_by('periodo', 'equipo')):
+        por_p.setdefault(f.periodo, []).append(f)
+    columnas = []
+    for p in sorted(por_p):
+        fs = por_p[p]
+        pref = ([f for f in fs if f.equipo == equipo]
+                or [f for f in fs if f.equipo == ''] or fs)
+        columnas.append({'periodo': p,
+                         'form': min(pref, key=lambda f: _ESTADO_RANK.get(f.estado, 9))})
+
+    mapa = _mapa_campos_iced()
+
+    def _valor(form, nombre):
+        for cj in _MODULOS_JSON:
+            resp = getattr(form, cj) or {}
+            if nombre in resp:
+                return resp[nombre]
+        return None
+
+    def _bonito(v):
+        if v in (None, '', [], {}):
+            return ''
+        if isinstance(v, str):
+            return v
+        return json.dumps(v, ensure_ascii=False)
+
+    claves = set()
+    for col in columnas:
+        for cj in _MODULOS_JSON:
+            claves.update((getattr(col['form'], cj) or {}).keys())
+
+    q_filtro = (request.GET.get('q') or '').strip().lstrip('pP')
+    mod_filtro = (request.GET.get('modulo') or '').strip().lower()
+    orden_mod = {m: i for i, m in enumerate('abcde')}
+    filas = []
+    for nombre in claves:
+        info = mapa.get(nombre)
+        label = info['label'] if info else nombre
+        modulo = info['modulo'] if info else 'z'
+        num = _num_pregunta_iced(nombre, label)
+        if q_filtro and str(num) != q_filtro:
+            continue
+        if mod_filtro and modulo != mod_filtro:
+            continue
+        valores = [_bonito(_valor(c['form'], nombre)) for c in columnas]
+        if not any(valores):
+            continue
+        filas.append({
+            'campo': nombre, 'label': label, 'num': num,
+            'modulo': modulo, 'valores': valores,
+        })
+    filas.sort(key=lambda r: (orden_mod.get(r['modulo'], 9), r['num'], r['campo']))
+
+    return render(request, 'indicadores/iced/historico_respuestas.html', {
+        'page': 'iced',
+        'organismo': organismo,
+        'columnas': columnas,
+        'filas': filas,
+        'q': request.GET.get('q', ''),
+        'modulo_sel': mod_filtro,
+        'equipo': equipo,
+    })
 
 
 def _get_user_equipo(user):

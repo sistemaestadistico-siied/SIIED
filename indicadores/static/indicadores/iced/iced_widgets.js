@@ -88,6 +88,74 @@
         return err;
     }
 
+    // Campo URL múltiple: una pila de inputs URL + botón '+' para añadir.
+    // Persiste como string único separado por ';' (compatible con datos
+    // guardados de un solo enlace). get() lee el string, set(str) lo escribe.
+    // Expone .value/.disabled vía defineProperty para que el código de
+    // filas fijas y control_bloqueo lo trate como un input normal.
+    function campoUrlMulti(get, set, placeholder) {
+        const wrap = el('div', { class: 'iced-multiurl' });
+        wrap._esMultiUrl = true;
+
+        const join = () =>
+            [...wrap.querySelectorAll('input')].map(i => i.value.trim())
+                .filter(Boolean).join('; ');
+
+        const btnMas = el('button', {
+            type: 'button',
+            style: 'border:1px dashed #94a3b8; background:#f8fafc; color:#2563eb; border-radius:8px; font-size:0.75rem; font-weight:600; padding:2px 10px; cursor:pointer;'
+        }, ['+ Agregar URL']);
+
+        const addRow = (valor) => {
+            const rowEl = el('div', { style: 'display:flex; gap:6px; align-items:flex-start; margin-bottom:4px;' });
+            const inpWrap = el('div', { style: 'flex:1; min-width:0;' });
+            const inp = el('input', {
+                type: 'url', class: 'iced-widget-input',
+                placeholder: placeholder || 'https://...', style: 'width:100%;'
+            });
+            inp.value = valor || '';
+            inp.addEventListener('input', () => set(join()));
+            inpWrap.appendChild(inp);
+            inpWrap.appendChild(attachUrlValidation(inp));
+            const btnX = el('button', {
+                type: 'button', title: 'Quitar URL',
+                style: 'border:none; background:none; color:#dc2626; font-size:1.1rem; line-height:1; padding:4px 2px; cursor:pointer;'
+            }, ['×']);
+            btnX.addEventListener('click', () => { rowEl.remove(); set(join()); });
+            rowEl.appendChild(inpWrap);
+            rowEl.appendChild(btnX);
+            wrap.insertBefore(rowEl, btnMas);
+            return inp;
+        };
+
+        btnMas.addEventListener('click', () => addRow('').focus());
+        wrap.appendChild(btnMas);
+
+        const rebuild = () => {
+            wrap.querySelectorAll('div').forEach(d => d.remove());
+            const partes = String(get() || '').split(';').map(p => p.trim()).filter(Boolean);
+            if (!partes.length) partes.push('');
+            partes.forEach(addRow);
+        };
+        rebuild();
+
+        let deshab = false;
+        Object.defineProperty(wrap, 'value', {
+            get: () => join(),
+            set: v => { set(String(v || '')); rebuild(); },
+        });
+        Object.defineProperty(wrap, 'disabled', {
+            get: () => deshab,
+            set: v => {
+                deshab = !!v;
+                wrap.querySelectorAll('input').forEach(i => { i.disabled = deshab; });
+                btnMas.disabled = deshab;
+                btnMas.style.opacity = deshab ? '0.4' : '1';
+            },
+        });
+        return wrap;
+    }
+
     // Evita que la rueda del mouse cambie el valor de inputs numéricos enfocados
     // (ej: porcentajes de P21). Al hacer wheel sobre un input[type=number] se
     // desenfoca, así el valor no cambia y la página sigue desplazándose.
@@ -209,21 +277,37 @@
             } else {
                 // Columnas de detalle (solo editable si está seleccionada)
                 columnas.forEach(col => {
-                    const input = el('input', {
-                        type: col.tipo === 'url' ? 'url' : 'text',
-                        class: 'iced-widget-input',
-                        placeholder: col.placeholder || '',
-                        disabled: row.seleccion ? null : 'disabled',
-                    });
-                    input.value = row[col.name] || '';
-                    input.addEventListener('input', () => {
-                        const current = readJson(targetName, {});
-                        if (!current[opt.codigo]) current[opt.codigo] = {};
-                        current[opt.codigo][col.name] = input.value;
-                        writeJson(targetName, current);
-                    });
-                    const tdChildren = [input];
-                    if (col.tipo === 'url') tdChildren.push(attachUrlValidation(input));
+                    let tdChildren;
+                    if (col.tipo === 'url') {
+                        // Multi-URL: botón '+' para añadir más enlaces; se guarda
+                        // un solo string separado por ';' (compatible con backend)
+                        const multi = campoUrlMulti(
+                            () => (readJson(targetName, {})[opt.codigo] || {})[col.name] || '',
+                            v => {
+                                const current = readJson(targetName, {});
+                                if (!current[opt.codigo]) current[opt.codigo] = {};
+                                current[opt.codigo][col.name] = v;
+                                writeJson(targetName, current);
+                            },
+                            col.placeholder);
+                        multi.disabled = !row.seleccion;
+                        tdChildren = [multi];
+                    } else {
+                        const input = el('input', {
+                            type: 'text',
+                            class: 'iced-widget-input',
+                            placeholder: col.placeholder || '',
+                            disabled: row.seleccion ? null : 'disabled',
+                        });
+                        input.value = row[col.name] || '';
+                        input.addEventListener('input', () => {
+                            const current = readJson(targetName, {});
+                            if (!current[opt.codigo]) current[opt.codigo] = {};
+                            current[opt.codigo][col.name] = input.value;
+                            writeJson(targetName, current);
+                        });
+                        tdChildren = [input];
+                    }
                     tr.appendChild(el('td', {}, tdChildren));
                 });
             }
@@ -393,6 +477,21 @@
                             )
                         ]);
                         input.value = fila[col.name] || '';
+                        // campo_derivado: guarda el texto de la opción tras el '|'
+                        // (p. ej. P30 → descripcion del lineamiento desde el código MOP)
+                        if (col.campo_derivado) {
+                            const derivar = () => {
+                                const opt = col.opciones.find(o =>
+                                    (typeof o === 'string' ? o : o.valor) === input.value);
+                                const txt = opt ? (typeof opt === 'string' ? opt : opt.texto) : '';
+                                const partes = txt.split('|');
+                                filas[i][col.campo_derivado] = partes.length > 1
+                                    ? partes.slice(1).join('|').trim()
+                                    : (input.value ? txt.trim() : '');
+                            };
+                            input.addEventListener('change', () => { derivar(); sync(); });
+                            if (fila[col.name] && !fila[col.campo_derivado]) derivar();
+                        }
                     } else if (col.tipo === 'textarea') {
                         input = el('textarea', {
                             class: 'iced-widget-input',
@@ -401,23 +500,32 @@
                             style: 'resize: vertical; min-height: 60px;'
                         });
                         input.value = fila[col.name] || '';
+                    } else if (col.tipo === 'url') {
+                        // Multi-URL: '+' para añadir enlaces; el wrapper expone
+                        // .value/.disabled para funcionar con filas fijas y control_bloqueo
+                        input = campoUrlMulti(
+                            () => filas[i][col.name] || '',
+                            v => { filas[i][col.name] = v; sync(); },
+                            col.placeholder);
                     } else {
                         input = el('input', {
-                            type: col.tipo === 'url' ? 'url' : 'text',
+                            type: 'text',
                             class: 'iced-widget-input',
                             placeholder: col.placeholder || '',
                         });
                         input.value = fila[col.name] || '';
                     }
 
-                    input.addEventListener('input', () => {
-                        filas[i][col.name] = input.value;
-                        sync();
-                    });
-                    input.addEventListener('change', () => {
-                        filas[i][col.name] = input.value;
-                        sync();
-                    });
+                    if (!input._esMultiUrl) {
+                        input.addEventListener('input', () => {
+                            filas[i][col.name] = input.value;
+                            sync();
+                        });
+                        input.addEventListener('change', () => {
+                            filas[i][col.name] = input.value;
+                            sync();
+                        });
+                    }
 
                     // Filas fijas: ciertos campos van deshabilitados
                     if (esFilaFija && filaFijaCampos.indexOf(col.name) !== -1) {
@@ -426,7 +534,7 @@
                     inputsFila[col.name] = input;
                     const tdChildren = [input];
                     if (input._extraCelda) tdChildren.push(input._extraCelda);
-                    if (col.tipo === 'url') tdChildren.push(attachUrlValidation(input));
+                    if (col.tipo === 'url' && !input._esMultiUrl) tdChildren.push(attachUrlValidation(input));
                     tr.appendChild(el('td', {}, tdChildren));
                 });
 

@@ -1,0 +1,179 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Histórico FICED{% if organismo %} — {{ organismo.nombre }}{% endif %} — SIIED{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --ink: #1d1d1f; --muted: #6e6e73; --border: #d2d2d7;
+        --surface: #f5f5f7; --card: #ffffff; --accent: #0071e3; --navy: #000866;
+        --ok: #34c759; --warn: #ff9500; --bad: #ff3b30; --radius: 14px;
+    }
+    .hv { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--ink); background: var(--surface); min-height: 70vh; }
+
+    .hv-hero { background: var(--navy); color: #fff; padding: 2.5rem 0 2rem; }
+    .hv-hero .crumb a { color: rgba(255,255,255,.75); font-size: .85rem; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; gap: .4rem; }
+    .hv-hero .crumb a:hover { color: #fff; }
+    .hv-hero h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -.02em; margin: .8rem 0 .3rem; }
+    .hv-hero .sub { color: rgba(255,255,255,.75); font-size: .92rem; max-width: 66ch; }
+
+    .hv-body { max-width: 1180px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
+
+    .hv-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem 1.5rem; margin-bottom: 1.25rem; }
+    .hv-card h2 { font-size: 1.02rem; font-weight: 700; margin-bottom: .9rem; }
+
+    .hv-filters { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: 1.25rem; }
+    .hv-filters input {
+        font: inherit; font-size: .9rem; padding: .5rem .9rem; width: 240px;
+        border: 1px solid var(--border); border-radius: 10px; background: #fff; color: var(--ink);
+    }
+    .hv-filters input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+    .hv-per { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .hv-per a {
+        border: 1px solid var(--border); border-radius: 99px; padding: .3rem .85rem;
+        font-size: .78rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: all .15s ease;
+    }
+    .hv-per a:hover { border-color: var(--accent); color: var(--accent); }
+    .hv-per a.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    .hv-badge { display: inline-block; font-size: .7rem; font-weight: 700; padding: .18rem .6rem; border-radius: 99px; }
+    .hv-badge.b-ok { background: #e8f8ec; color: #1e7b32; }
+    .hv-badge.b-warn { background: #fff4e0; color: #9a5b00; }
+    .hv-badge.b-bad { background: #ffecea; color: #c81e1e; }
+    .hv-badge.b-dim { background: #ececf0; color: var(--muted); }
+
+    .hv-tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+    .hv-table { width: 100%; border-collapse: collapse; font-size: .85rem; min-width: 640px; }
+    .hv-table th {
+        text-align: left; font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
+        color: var(--muted); font-weight: 600; padding: .65rem .8rem;
+        border-bottom: 1px solid var(--border); background: #fafafa; white-space: nowrap;
+    }
+    .hv-table td { padding: .7rem .8rem; border-bottom: 1px solid #ececf0; vertical-align: top; }
+    .hv-table tr:last-child td { border-bottom: none; }
+    .hv-table td.q {
+        position: sticky; left: 0; background: #fff; min-width: 260px; max-width: 340px;
+        font-size: .8rem; border-right: 1px solid #ececf0;
+    }
+    .hv-table td.q .n { font-weight: 700; color: var(--accent); font-size: .75rem; letter-spacing: .03em; }
+    .hv-table td.val { min-width: 200px; max-width: 380px; }
+    .hv-table td.val .empty { color: #b6b6bb; font-style: italic; }
+    .hv-table details { font-size: .82rem; }
+    .hv-table details summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: .75rem; }
+    .hv-table .long { display: block; max-height: 4.5em; overflow: hidden; }
+
+    .hv-empty { text-align: center; padding: 2.5rem 1rem; color: var(--muted); }
+    .hv-note { font-size: .78rem; color: var(--muted); margin-top: .8rem; }
+    .hv-orglist { display: flex; flex-direction: column; gap: .4rem; }
+    .hv-orglist a { color: var(--accent); font-weight: 600; text-decoration: none; font-size: .9rem; }
+    .hv-orglist a:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hv">
+    <div class="hv-hero">
+        <div class="container mx-auto px-4 max-w-6xl">
+            <div class="crumb mb-2">
+                <a href="{% url 'indicadores:iced_landing' %}">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    Volver al ICED
+                </a>
+            </div>
+            <h1>Histórico de respuestas FICED</h1>
+            {% if organismo %}
+                <p class="sub">Respuestas por pregunta en los formularios anteriores de <strong>{{ organismo.nombre }}</strong>. Use esta página para verificar la evidencia citada por Don Datico.</p>
+            {% else %}
+                <p class="sub">Seleccione un organismo para ver su histórico de respuestas.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="hv-body">
+    {% if not organismo %}
+        <div class="hv-card">
+            <h2>Organismos activos</h2>
+            <div class="hv-orglist">
+                {% for o in organismos %}
+                    <a href="?organismo={{ o.id }}">{{ o.nombre }}</a>
+                {% endfor %}
+            </div>
+        </div>
+    {% elif not columnas %}
+        <div class="hv-card">
+            <div class="hv-empty">
+                <div style="font-size:2.2rem; margin-bottom:.5rem;">🗂️</div>
+                No hay formularios FICED registrados para este organismo.
+            </div>
+        </div>
+    {% else %}
+        <div class="hv-filters">
+            <form method="get" style="display:flex; gap:.5rem; align-items:center;">
+                {% if request.GET.organismo %}<input type="hidden" name="organismo" value="{{ request.GET.organismo }}">{% endif %}
+                <input type="text" name="q" value="{{ q }}" placeholder="Número de pregunta (ej: 8 o p8)">
+            </form>
+            <div class="hv-per">
+                <a href="?q={{ q }}{% if request.GET.organismo %}&organismo={{ request.GET.organismo }}{% endif %}" class="{% if not modulo_sel %}on{% endif %}">Todos</a>
+                <a href="?q={{ q }}&modulo=b{% if request.GET.organismo %}&organismo={{ request.GET.organismo }}{% endif %}" class="{% if modulo_sel == 'b' %}on{% endif %}">B · Entorno</a>
+                <a href="?q={{ q }}&modulo=c{% if request.GET.organismo %}&organismo={{ request.GET.organismo }}{% endif %}" class="{% if modulo_sel == 'c' %}on{% endif %}">C · Infraestructura</a>
+                <a href="?q={{ q }}&modulo=d{% if request.GET.organismo %}&organismo={{ request.GET.organismo }}{% endif %}" class="{% if modulo_sel == 'd' %}on{% endif %}">D · Metodología</a>
+                <a href="?q={{ q }}&modulo=e{% if request.GET.organismo %}&organismo={{ request.GET.organismo }}{% endif %}" class="{% if modulo_sel == 'e' %}on{% endif %}">E · Accesibilidad</a>
+            </div>
+        </div>
+
+        <div class="hv-tablewrap">
+            <table class="hv-table">
+                <thead>
+                    <tr>
+                        <th>Pregunta</th>
+                        {% for col in columnas %}
+                            <th>
+                                {{ col.periodo }}
+                                <div style="margin-top:.2rem;">
+                                    <span class="hv-badge {% if col.form.estado == 'validado' %}b-ok{% elif col.form.estado == 'enviado' %}b-warn{% elif col.form.estado == 'devuelto' %}b-bad{% else %}b-dim{% endif %}">
+                                        {{ col.form.get_estado_display }}
+                                    </span>
+                                    {% if col.form.equipo %}<span class="hv-badge b-dim">{{ col.form.equipo }}</span>{% endif %}
+                                </div>
+                            </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in filas %}
+                        <tr id="q{{ fila.num }}">
+                            <td class="q">
+                                <div class="n">P{{ fila.num }} · Módulo {{ fila.modulo|upper }}</div>
+                                {{ fila.label }}
+                            </td>
+                            {% for v in fila.valores %}
+                                <td class="val">
+                                    {% if v %}
+                                        {% if v|length > 160 %}
+                                            <details>
+                                                <summary>{{ v|truncatechars:110 }}</summary>
+                                                <div style="white-space: pre-wrap; margin-top:.4rem;">{{ v }}</div>
+                                            </details>
+                                        {% else %}
+                                            {{ v }}
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="empty">sin respuesta</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="hv-note">
+            Mostrando {{ filas|length }} campo{{ filas|length|pluralize }} con respuesta en alguno de los períodos.
+            {% if q %}Filtro activo: pregunta {{ q }}. <a href="?{% if request.GET.organismo %}organismo={{ request.GET.organismo }}{% endif %}" style="color:var(--accent);">Quitar filtro</a>{% endif %}
+            Los valores estructurados (tablas, listas) se muestran en JSON.
+        </p>
+    {% endif %}
+    </div>
+</div>
+{% endblock %}

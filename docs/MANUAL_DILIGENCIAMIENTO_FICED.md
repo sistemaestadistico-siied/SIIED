@@ -53,15 +53,18 @@ preguntas asignadas a su equipo:
 | `ETSGC` | Equipo de soporte y gestión de calidad |
 | `ETGIE` | Equipo de gestión de información estadística |
 
-**Cómo se define tu equipo:**
+**Cómo se define tu equipo** — siempre desde tu usuario, **no se elige en
+el portal**:
 
+- El **equipo SIIED** asigna tu equipo técnico en tu perfil de usuario
+  (campo *Subrol FICED*). Al entrar al FICED verás tu nombre y tu equipo
+  resaltados en el panel.
 - Si tu nombre de usuario contiene el código del subrol (p. ej.
-  `delegado_dap_etpp`), el sistema lo detecta automáticamente y te lleva
-  directo a las preguntas de tu equipo.
-- Si no, al entrar al FICED el portal te pide seleccionar tu equipo técnico
-  una sola vez; queda registrado en tu perfil.
-- Si tu organismo **no** trabaja por equipos, un solo delegado responde el
-  formulario completo y este es a la vez el consolidado.
+  `delegado_dap_etpp`), el sistema lo detecta automáticamente y tiene
+  prioridad sobre el perfil.
+- Si no tienes equipo asignado, el portal muestra **"Sin equipo asignado"**
+  y no podrás iniciar el formulario: contacta al equipo SIIED para que lo
+  defina en tu perfil.
 
 > La asignación pregunta ↔ equipo la define la matriz del instrumento.
 > Las preguntas sin asignación las puede responder cualquier equipo.
@@ -74,8 +77,9 @@ preguntas asignadas a su equipo:
 
 1. Inicia sesión en el portal de organismos.
 2. En el dashboard haz clic en el banner **"Formulario FICED"**.
-3. Si tu organismo tiene varios equipos, confirma tu subrol cuando se solicite
-   (si tu usuario ya lo trae, entras directo).
+3. El portal muestra tu nombre y tu equipo técnico resaltados; entras
+   directo a las preguntas asignadas a tu equipo. Si ves **"Sin equipo
+   asignado"**, pide al equipo SIIED que lo configure en tu perfil.
 
 ### 4.2 Módulos del formulario
 

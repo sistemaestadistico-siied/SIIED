@@ -1145,6 +1145,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/`([^`\n]+)`/g, '<code>$1</code>')
             .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
             .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+            .replace(/(https?:\/\/[^\s<]+|\/iced\/historico\/[^\s<]*)/g,
+                     '<a href="$1" target="_blank" rel="noopener" style="color:#0071e3; font-weight:600;">$1</a>')
             .replace(/^- /gm, '• ');
     }
 

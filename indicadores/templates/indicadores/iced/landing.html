@@ -208,10 +208,12 @@
             <div class="iced-stat-label">Organismo</div>
         </div>
         <div class="iced-stat-card">
-            <div class="iced-stat-value">{% if equipo_user %}{{ equipo_user }}{% else %}—{% endif %}</div>
+            <div class="iced-stat-value">{% if equipo_user %}{{ equipo_user_label }}{% else %}—{% endif %}</div>
             <div class="iced-stat-label">
-                {% if equipo_user %}Tu equipo{% else %}
-                    <a href="{% url 'indicadores:iced_equipo' %}" style="color: var(--iced-accent);">Elige tu equipo</a>
+                {% if equipo_user %}
+                    Tu equipo — {{ request.user.get_full_name|default:request.user.username }}
+                {% else %}
+                    Sin equipo asignado — {{ request.user.get_full_name|default:request.user.username }}
                 {% endif %}
             </div>
         </div>
@@ -280,7 +282,7 @@
     {% if organismo %}
     {% if not ocultar_nuevo %}
     <div style="margin-top: 2rem; text-align: center;">
-        <a href="{% url 'indicadores:iced_equipo' %}?next=formulario" class="iced-btn iced-btn-primary" style="padding: 0.9rem 2rem; font-size: 1rem;">
+        <a href="{% url 'indicadores:iced_formulario_nuevo' %}" class="iced-btn iced-btn-primary" style="padding: 0.9rem 2rem; font-size: 1rem;">
             + Iniciar nuevo formulario ICED {{ periodo_actual }}
         </a>
     </div>

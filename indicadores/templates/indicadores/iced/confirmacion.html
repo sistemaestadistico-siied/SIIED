@@ -165,9 +165,12 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
-            <a href="{% url 'indicadores:iced_landing' %}" class="iced-btn iced-btn-primary">
-                Volver al inicio ICED
+        <div style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 2rem;">
+            <a href="{% url 'indicadores:delegado_dashboard' %}" class="iced-btn iced-btn-outline" style="font-size: 0.82rem; padding: 0.55rem 1.1rem;">
+                ← Volver al módulo del organismo
+            </a>
+            <a href="{% url 'indicadores:modulo_iced' %}" class="iced-btn iced-btn-primary" style="font-size: 1rem; padding: 0.85rem 2rem;">
+                Ver resultados ICED →
             </a>
         </div>
     </div>

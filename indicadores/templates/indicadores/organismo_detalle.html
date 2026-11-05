@@ -2,741 +2,601 @@
 {% load static %}
 {% load humanize %}
 
-{% block title %}{{ organismo.nombre }} - Módulo de Capacidad Estadística - SIIED{% endblock %}
+{% block title %}{{ organismo.nombre }} — Módulo de Capacidad Estadística — SIIED{% endblock %}
 
 {% block extra_css %}
 <style>
     :root {
-        --slate-50: #f8fafc;
-        --slate-100: #f1f5f9;
-        --slate-200: #e2e8f0;
-        --slate-500: #64748b;
-        --slate-800: #0f172a;
-        --gold: #d97706;
-        --teal: #0d9488;
-        --blue: #2563eb;
+        --ink: #1d1d1f;
+        --muted: #6e6e73;
+        --border: #d2d2d7;
+        --surface: #f5f5f7;
+        --card: #ffffff;
+        --accent: #0071e3;
+        --navy: #000866;
+        --ok: #34c759;
+        --warn: #ff9500;
+        --bad: #ff3b30;
+        --radius: 14px;
     }
 
-    .module-hero {
-        background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
-        border-bottom: 1px solid var(--slate-200);
-        padding: 3rem 0;
-    }
+    .ov { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--ink); background: var(--surface); }
 
-    .module-breadcrumb a {
-        color: var(--slate-500);
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
+    /* ---------- Hero ---------- */
+    .ov-hero {
+        background: var(--navy);
+        color: #fff;
+        padding: 2.75rem 0 2.25rem;
     }
+    .ov-hero .crumb a {
+        color: rgba(255,255,255,.75); font-size: .85rem; font-weight: 500;
+        display: inline-flex; align-items: center; gap: .4rem; text-decoration: none;
+    }
+    .ov-hero .crumb a:hover { color: #fff; }
+    .ov-hero h1 { font-size: 2.1rem; font-weight: 700; letter-spacing: -.02em; margin: .9rem 0 .35rem; }
+    .ov-hero .sub { color: rgba(255,255,255,.78); font-size: .95rem; max-width: 62ch; }
+    .ov-hero .resp { color: rgba(255,255,255,.6); font-size: .83rem; margin-top: .4rem; }
 
-    .module-breadcrumb a:hover {
-        color: var(--gold);
+    .ov-stats {
+        display: grid; gap: .9rem; margin-top: 1.75rem;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     }
+    .ov-stat {
+        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+        border-radius: var(--radius); padding: .9rem 1.1rem; backdrop-filter: blur(6px);
+    }
+    .ov-stat .k { font-size: .68rem; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,255,255,.65); }
+    .ov-stat .v { font-size: 1.75rem; font-weight: 700; margin-top: .15rem; }
+    .ov-stat .v small { font-size: .8rem; font-weight: 500; color: rgba(255,255,255,.6); }
 
-    .module-title {
-        font-family: 'Merriweather', 'Georgia', serif;
-        color: var(--slate-800);
-        font-size: 2.25rem;
-        margin-bottom: 0.5rem;
-    }
+    /* ---------- Layout ---------- */
+    .ov-body { max-width: 1120px; margin: 0 auto; padding: 1.75rem 1rem 3rem; }
 
-    .module-summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1rem;
+    .ov-tabs {
+        display: inline-flex; gap: .25rem; background: #e8e8ed; border-radius: 12px;
+        padding: .25rem; margin-bottom: 1.5rem; flex-wrap: wrap;
     }
+    .ov-tabs button {
+        border: none; background: transparent; border-radius: 9px; cursor: pointer;
+        font: inherit; font-size: .85rem; font-weight: 600; color: var(--muted);
+        padding: .45rem .95rem; transition: background .15s ease, color .15s ease;
+    }
+    .ov-tabs button:hover { color: var(--ink); }
+    .ov-tabs button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 
-    .summary-card {
-        background: #fff;
-        border: 1px solid var(--slate-200);
-        border-radius: 0.75rem;
-        padding: 1rem 1.25rem;
-        transition: border-color 0.2s ease;
-    }
+    .ov-panel { display: none; }
+    .ov-panel.on { display: block; animation: ovFade .18s ease; }
+    @keyframes ovFade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
 
-    .summary-card:hover {
-        border-color: var(--gold);
+    .ov-card {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 1.4rem 1.5rem; margin-bottom: 1.25rem;
     }
+    .ov-card h2 { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; margin-bottom: 1rem; }
+    .ov-card h2 small { display: block; font-size: .78rem; font-weight: 500; color: var(--muted); margin-top: .15rem; }
+    .ov-grid2 { display: grid; gap: 1.25rem; grid-template-columns: 1fr; }
+    @media (min-width: 900px) { .ov-grid2 { grid-template-columns: 1fr 1fr; } }
 
-    .summary-label {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--slate-500);
-        margin-bottom: 0.35rem;
+    /* ---------- Métricas pequeñas ---------- */
+    .ov-pills { display: grid; gap: .8rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .ov-pill {
+        border: 1px solid var(--border); border-radius: 12px; padding: .8rem .95rem; background: #fafafa;
     }
+    .ov-pill .k { font-size: .78rem; color: var(--muted); }
+    .ov-pill .v { font-size: 1.35rem; font-weight: 700; margin-top: .1rem; }
+    .ov-pill .h { font-size: .7rem; color: var(--muted); margin-top: .15rem; }
 
-    .summary-value {
-        font-family: 'Merriweather', 'Georgia', serif;
-        font-size: 1.8rem;
-        color: var(--slate-800);
-    }
+    /* ---------- Donut ---------- */
+    .ov-donut { position: relative; width: 128px; height: 128px; flex-shrink: 0; }
+    .ov-donut svg { transform: rotate(-90deg); }
+    .ov-donut .lbl { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ov-donut .num { font-size: 1.7rem; font-weight: 700; }
+    .ov-donut .cap { font-size: .68rem; color: var(--muted); }
 
-    .module-tags span {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.4rem 0.9rem;
-        border-radius: 999px;
-        font-size: 0.8rem;
-        border: 1px solid var(--slate-200);
-        background: white;
-        color: var(--slate-500);
-    }
+    /* ---------- Barras ---------- */
+    .ov-bar { display: flex; flex-direction: column; gap: .3rem; }
+    .ov-bar .t { display: flex; justify-content: space-between; font-size: .83rem; }
+    .ov-bar .t .n { color: var(--muted); }
+    .ov-bar .t .v { font-weight: 600; }
+    .ov-track { height: 7px; border-radius: 99px; background: #ececf0; overflow: hidden; }
+    .ov-fill { height: 100%; border-radius: 99px; }
 
-    .module-tabs {
-        margin-top: 2.5rem;
-        border-bottom: 1px solid var(--slate-200);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
+    /* ---------- Pills de periodo ---------- */
+    .ov-per { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .ov-per a {
+        border: 1px solid var(--border); border-radius: 99px; padding: .32rem .9rem;
+        font-size: .8rem; font-weight: 600; color: var(--muted); text-decoration: none;
+        transition: all .15s ease;
     }
+    .ov-per a:hover { border-color: var(--accent); color: var(--accent); }
+    .ov-per a.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-    .module-tab-btn {
-        padding: 0.65rem 1.5rem;
-        border-radius: 999px;
-        border: 1px solid transparent;
-        background: transparent;
-        font-weight: 600;
-        color: var(--slate-500);
-        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, outline-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
+    /* ---------- Badges ---------- */
+    .ov-badge {
+        display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .02em;
+        padding: .22rem .7rem; border-radius: 99px;
     }
+    .ov-badge.b-ok { background: #e8f8ec; color: #1e7b32; }
+    .ov-badge.b-warn { background: #fff4e0; color: #9a5b00; }
+    .ov-badge.b-bad { background: #ffecea; color: #c81e1e; }
+    .ov-badge.b-dim { background: #ececf0; color: var(--muted); }
 
-    .module-tab-btn.active {
-        background: var(--slate-800);
-        color: white;
-        border-color: var(--slate-800);
+    /* ---------- Tabla ---------- */
+    .ov-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .ov-table th {
+        text-align: left; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase;
+        color: var(--muted); font-weight: 600; padding: .55rem .6rem; border-bottom: 1px solid var(--border);
     }
+    .ov-table td { padding: .55rem .6rem; border-bottom: 1px solid #ececf0; vertical-align: top; }
+    .ov-table tr:last-child td { border-bottom: none; }
+    .ov-table .num { text-align: center; font-variant-numeric: tabular-nums; }
 
-    .module-tab-btn.upcoming {
-        opacity: 0.6;
-        cursor: not-allowed;
-        border-color: var(--slate-200);
-        color: var(--slate-500);
+    /* ---------- Timeline ---------- */
+    .ov-tl { display: flex; flex-direction: column; gap: .8rem; }
+    .ov-tl .e {
+        border-left: 3px solid var(--border); padding: .1rem 0 .1rem .9rem;
     }
+    .ov-tl .e .n { font-weight: 600; font-size: .9rem; }
+    .ov-tl .e .m { font-size: .78rem; color: var(--muted); }
 
-    .tab-panel {
-        display: none;
-        padding-top: 2rem;
+    .ov-empty {
+        text-align: center; padding: 2.5rem 1rem; color: var(--muted); font-size: .9rem;
     }
+    .ov-empty .ic { font-size: 2.4rem; margin-bottom: .6rem; }
 
-    .tab-panel.active {
-        display: block;
+    .ov-item {
+        border: 1px solid var(--border); border-radius: 12px; padding: .9rem 1.1rem;
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem;
     }
+    .ov-item + .ov-item { margin-top: .6rem; }
+    .ov-item .n { font-weight: 600; font-size: .9rem; }
+    .ov-item .m { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
 
-    .section-card {
-        border: 1px solid var(--slate-200);
-        border-radius: 1rem;
-        background: white;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+    .ov-hist { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .ov-hist .h {
+        border: 1px solid var(--border); border-radius: 10px; padding: .45rem .8rem;
+        font-size: .78rem; display: flex; flex-direction: column; gap: .1rem; min-width: 96px;
     }
+    .ov-hist .h b { font-size: .95rem; }
+    .ov-hist .h.cur { border-color: var(--accent); background: #f0f7ff; }
+    .ov-hist .h .e { font-size: .68rem; color: var(--muted); }
 
-    .section-title {
-        font-family: 'Merriweather', 'Georgia', serif;
-        color: var(--slate-800);
-        font-size: 1.5rem;
-        margin-bottom: 1.25rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid var(--slate-200);
-    }
-
-    .metric-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1rem;
-    }
-
-    .metric-pill {
-        border: 1px solid var(--slate-200);
-        border-radius: 0.75rem;
-        padding: 1rem;
-        background: var(--slate-50);
-    }
-
-    .progress-track {
-        background: var(--slate-100);
-        border-radius: 999px;
-        height: 6px;
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        height: 100%;
-        border-radius: 999px;
-        transition: width 0.5s ease;
-    }
-
-    .timeline {
-        border-left: 2px solid var(--slate-200);
-        padding-left: 1.5rem;
-    }
-
-    .timeline-entry {
-        position: relative;
-        margin-bottom: 1.5rem;
-    }
-
-    .timeline-entry::before {
-        content: '';
-        position: absolute;
-        left: -1.8rem;
-        top: 0.4rem;
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-        background: var(--slate-800);
-    }
-
-    .data-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .data-table th,
-    .data-table td {
-        padding: 0.75rem 0.5rem;
-        border-bottom: 1px solid var(--slate-100);
-        font-size: 0.875rem;
-    }
-
-    .data-table th {
-        text-align: left;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--slate-500);
-        font-weight: 600;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 2rem 1rem;
-        border: 1px dashed var(--slate-200);
-        border-radius: 0.75rem;
-        color: var(--slate-500);
-    }
-
-    .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.3rem 0.75rem;
-        border-radius: 999px;
-        background: var(--slate-100);
-        font-size: 0.75rem;
-        color: var(--slate-500);
-    }
+    .text-muted { color: var(--muted); }
+    .c-ok { color: var(--ok); } .c-warn { color: var(--warn); } .c-bad { color: var(--bad); }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="module-hero">
-    <div class="container mx-auto px-4 max-w-6xl">
-        <div class="module-breadcrumb mb-4">
-            <a href="{% url 'indicadores:hall_capacidad_estadistica' %}">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Volver al módulo
-            </a>
-        </div>
+<div class="ov">
 
-        <h1 class="module-title">{{ organismo.nombre }}</h1>
-        {% if organismo.descripcion %}
-            <p class="text-lg text-slate-600 mb-2">{{ organismo.descripcion }}</p>
-        {% endif %}
-        {% if organismo.responsable %}
-            <p class="text-sm text-slate-500">Responsable institucional: <span class="font-semibold">{{ organismo.responsable }}</span></p>
-        {% endif %}
+    <!-- ============ HERO ============ -->
+    <div class="ov-hero">
+        <div class="container mx-auto px-4 max-w-6xl">
+            <div class="crumb mb-3">
+                <a href="{% url 'indicadores:hall_capacidad_estadistica' %}">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Volver al módulo
+                </a>
+            </div>
+            <h1>{{ organismo.nombre }}</h1>
+            {% if organismo.descripcion %}<p class="sub">{{ organismo.descripcion }}</p>{% endif %}
+            {% if organismo.responsable %}<p class="resp">Responsable institucional: <strong>{{ organismo.responsable }}</strong></p>{% endif %}
 
-        <div class="module-tags flex flex-wrap gap-2 mt-4">
-            <span><span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>Ecosistema de Datos</span>
-            <span><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>Satisfacción Ciudadana</span>
-            <span><span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Indicadores Producción</span>
-        </div>
-
-        <div class="module-summary mt-8">
-            <div class="summary-card">
-                <div class="summary-label">Indicadores</div>
-                <div class="summary-value">{{ metricas.total_indicadores }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Inscripciones taller</div>
-                <div class="summary-value">{{ metricas.total_sesiones }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Evaluaciones</div>
-                <div class="summary-value">{{ metricas.total_respuestas_rapidas|add:metricas.total_respuestas_completas }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Satisfacción (prom.)</div>
-                <div class="summary-value">{{ metricas.promedio_satisfaccion_rapida|floatformat:1 }}/5</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Madurez ecosistema</div>
-                <div class="summary-value">{{ metricas.indice_madurez_ecosistema|floatformat:1 }}</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">ICED {{ metricas.ficed.periodo|default:"" }}</div>
-                {% if metricas.ficed %}
-                    <div class="summary-value">{{ metricas.ficed.puntaje_global|floatformat:1 }}</div>
-                {% else %}
-                    <div class="summary-value text-slate-400">—</div>
-                {% endif %}
+            <div class="ov-stats">
+                <div class="ov-stat">
+                    <div class="k">Indicadores</div>
+                    <div class="v">{{ metricas.total_indicadores }}</div>
+                </div>
+                <div class="ov-stat">
+                    <div class="k">Inscripciones taller</div>
+                    <div class="v">{{ metricas.total_sesiones }}</div>
+                </div>
+                <div class="ov-stat">
+                    <div class="k">Evaluaciones</div>
+                    <div class="v">{{ metricas.total_respuestas_rapidas|add:metricas.total_respuestas_completas }}</div>
+                </div>
+                <div class="ov-stat">
+                    <div class="k">Satisfacción prom.</div>
+                    <div class="v">{{ metricas.promedio_satisfaccion_rapida|floatformat:1 }}<small>/5</small></div>
+                </div>
+                <div class="ov-stat">
+                    <div class="k">Madurez ecosistema</div>
+                    <div class="v">{{ metricas.indice_madurez_ecosistema|floatformat:1 }}</div>
+                </div>
+                <div class="ov-stat">
+                    <div class="k">ICED {{ metricas.ficed.periodo|default:"" }}</div>
+                    {% if metricas.ficed_pct %}
+                        <div class="v">{{ metricas.ficed_pct.puntaje_global|floatformat:1 }}</div>
+                    {% else %}
+                        <div class="v" style="color: rgba(255,255,255,.45);">—</div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="container mx-auto px-4 max-w-6xl py-8">
-    <div class="module-tabs">
-        <button class="module-tab-btn active" data-tab="ecosistema">Ecosistema de Datos</button>
-        <button class="module-tab-btn" data-tab="satisfaccion">Satisfacción Ciudadana</button>
-        <button class="module-tab-btn" data-tab="produccion">Producción Estadística</button>
-        <button class="module-tab-btn" data-tab="ficed">Capacidad ICED</button>
-    </div>
+    <!-- ============ BODY ============ -->
+    <div class="ov-body">
 
-    <!-- Ecosistema -->
-    <div class="tab-panel active" data-panel="ecosistema">
-        <div class="section-card">
-            <h2 class="section-title">Índice de Madurez del Ecosistema</h2>
-            <div class="grid lg:grid-cols-2 gap-6">
-                <div>
-                    <p class="text-sm text-slate-500 mb-2">Resultado compuesto de inscripciones completadas, fuentes caracterizadas, retos de análisis y evaluaciones de seguridad.</p>
-                    <div class="flex items-center gap-4">
-                        <div class="relative w-32 h-32">
-                            <svg viewBox="0 0 36 36" class="w-32 h-32">
-                                <path d="M18 2.0845
-                                    a 15.9155 15.9155 0 0 1 0 31.831
-                                    a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--slate-100)" stroke-width="2"></path>
-                                <path d="M18 2.0845
-                                    a 15.9155 15.9155 0 0 1 0 31.831" fill="none"
-                                    stroke="var(--teal)" stroke-width="2"
-                                    stroke-dasharray="{{ metricas.indice_madurez_ecosistema }},100"></path>
+        <div class="ov-tabs" role="tablist">
+            <button class="on" data-tab="ecosistema" type="button">Ecosistema de Datos</button>
+            <button data-tab="satisfaccion" type="button">Satisfacción Ciudadana</button>
+            <button data-tab="produccion" type="button">Producción Estadística</button>
+            <button data-tab="ficed" type="button">Capacidad ICED</button>
+        </div>
+
+        <!-- ========== ECOSISTEMA ========== -->
+        <div class="ov-panel on" data-panel="ecosistema">
+
+            <div class="ov-card">
+                <h2>Índice de Madurez del Ecosistema
+                    <small>Compuesto de inscripciones completadas, fuentes caracterizadas, retos de análisis y evaluaciones de seguridad</small>
+                </h2>
+                <div class="ov-grid2">
+                    <div style="display:flex; align-items:center; gap:1.5rem;">
+                        <div class="ov-donut">
+                            <svg viewBox="0 0 36 36" width="128" height="128">
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      fill="none" stroke="#ececf0" stroke-width="2.6"/>
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none"
+                                      stroke="{% if metricas.indice_madurez_ecosistema >= 75 %}#34c759{% elif metricas.indice_madurez_ecosistema >= 50 %}#ff9500{% else %}#ff3b30{% endif %}"
+                                      stroke-width="2.6" stroke-linecap="round"
+                                      stroke-dasharray="{{ metricas.indice_madurez_ecosistema }},100"/>
                             </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-3xl font-semibold text-slate-800">{{ metricas.indice_madurez_ecosistema|floatformat:1 }}</span>
-                                <span class="text-xs text-slate-500">Índice 0-100</span>
+                            <div class="lbl">
+                                <span class="num">{{ metricas.indice_madurez_ecosistema|floatformat:1 }}</span>
+                                <span class="cap">índice 0–100</span>
                             </div>
                         </div>
-                        <div class="flex-1 space-y-3">
-                            <div>
-                                <div class="flex justify-between text-sm text-slate-500">
-                                    <span>Meta institucional</span>
-                                    <span>100 pts</span>
-                                </div>
-                                <div class="progress-track">
-                                    {% widthratio metricas.indice_madurez_ecosistema 100 100 as porcentaje_madurez %}
-                                    <div class="progress-fill" style="width: {{ porcentaje_madurez }}%; background: linear-gradient(90deg, #0ea5e9, #2563eb);"></div>
+                        <div>
+                            <div class="ov-bar" style="max-width:280px;">
+                                <div class="t"><span class="n">Meta institucional</span><span class="v">100 pts</span></div>
+                                <div class="ov-track">
+                                    <div class="ov-fill" style="width:{{ metricas.indice_madurez_ecosistema }}%; background:var(--accent);"></div>
                                 </div>
                             </div>
-                            <p class="text-sm text-slate-600">Última actualización derivada del taller de gestión de datos institucionales.</p>
+                            <p class="text-muted" style="font-size:.8rem; margin-top:.7rem;">Última actualización derivada del taller de gestión de datos institucionales.</p>
                         </div>
                     </div>
-                </div>
-                <div class="metric-grid">
-                    <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Fuentes caracterizadas</div>
-                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.fuentes_caracterizadas }}</div>
-                        <p class="text-xs text-slate-500 mt-1">F1 · caracterización del taller</p>
-                    </div>
-                    <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Fuentes con origen declarado</div>
-                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.densidad_red|floatformat:1 }}%</div>
-                        <p class="text-xs text-slate-500 mt-1">Trazabilidad del origen de los datos</p>
-                    </div>
-                    <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Evaluaciones de seguridad</div>
-                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.diversidad_datos.verde|add:metricas.diversidad_datos.amarillo|add:metricas.diversidad_datos.rojo }}</div>
-                        <p class="text-xs text-slate-500 mt-1">F3 · criticidad verde/amarillo/rojo</p>
-                    </div>
-                    <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Orígenes externos</div>
-                        <div class="text-2xl font-semibold text-slate-800">{{ metricas.flujos_externos }}</div>
-                        <p class="text-xs text-slate-500 mt-1">Fuentes producidas por otros organismos</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid lg:grid-cols-2 gap-6">
-            <div class="section-card">
-                <h2 class="section-title">Flujos y Participación</h2>
-                <div class="metric-grid">
-                    <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Fuentes que consume</div>
-                        <div class="text-xl font-semibold text-slate-800">{{ metricas.total_flujos_entrada }}</div>
-                    </div>
-                    <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Fuentes que produce</div>
-                        <div class="text-xl font-semibold text-slate-800">{{ metricas.total_flujos_salida }}</div>
-                    </div>
-                    <div class="metric-pill">
-                        <div class="text-sm text-slate-500">Diligenciamientos del taller</div>
-                        <div class="text-xl font-semibold text-slate-800">{{ metricas.total_participantes }}</div>
+                    <div class="ov-pills">
+                        <div class="ov-pill">
+                            <div class="k">Fuentes caracterizadas</div>
+                            <div class="v">{{ metricas.fuentes_caracterizadas }}</div>
+                            <div class="h">F1 · caracterización del taller</div>
+                        </div>
+                        <div class="ov-pill">
+                            <div class="k">Con origen declarado</div>
+                            <div class="v">{{ metricas.fuentes_origen_declaradas }}</div>
+                            <div class="h">Trazabilidad del origen de datos</div>
+                        </div>
+                        <div class="ov-pill">
+                            <div class="k">Evaluaciones de seguridad</div>
+                            <div class="v">{{ metricas.diversidad_datos.verde|add:metricas.diversidad_datos.amarillo|add:metricas.diversidad_datos.rojo }}</div>
+                            <div class="h">F3 · criticidad verde/amarillo/rojo</div>
+                        </div>
+                        <div class="ov-pill">
+                            <div class="k">Orígenes externos</div>
+                            <div class="v">{{ metricas.flujos_externos }}</div>
+                            <div class="h">Fuentes de otros organismos</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="section-card">
-                <h2 class="section-title">Inscripciones al Taller de Gestión de Datos Institucionales</h2>
-                {% if sesiones %}
-                    <div class="timeline">
-                        {% for sesion in sesiones %}
-                            <div class="timeline-entry">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="font-medium text-slate-800">{{ sesion.nombre_completo }}</p>
-                                        <p class="text-sm text-slate-500">{{ sesion.equipo.nombre|default:sesion.equipo_responsable|default:"Sin equipo" }} · {{ sesion.creado|date:"d \d\e F \d\e Y" }}</p>
+            <div class="ov-grid2">
+                <div class="ov-card">
+                    <h2>Flujos y Participación</h2>
+                    <div class="ov-pills">
+                        <div class="ov-pill">
+                            <div class="k">Fuentes que consume</div>
+                            <div class="v">{{ metricas.total_flujos_entrada }}</div>
+                        </div>
+                        <div class="ov-pill">
+                            <div class="k">Fuentes que produce</div>
+                            <div class="v">{{ metricas.total_flujos_salida }}</div>
+                        </div>
+                        <div class="ov-pill">
+                            <div class="k">Diligenciamientos taller</div>
+                            <div class="v">{{ metricas.total_participantes }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ov-card">
+                    <h2>Inscripciones al Taller de Gestión de Datos</h2>
+                    {% if sesiones %}
+                        <div class="ov-tl">
+                            {% for sesion in sesiones %}
+                                <div class="e">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:.6rem;">
+                                        <div>
+                                            <div class="n">Inscripción {{ forloop.counter }}</div>
+                                            <div class="m">{{ sesion.equipo.nombre|default:sesion.equipo_responsable|default:"Sin equipo" }} · {{ sesion.creado|date:"d/m/Y" }}</div>
+                                        </div>
+                                        <span class="ov-badge b-dim">{{ sesion.get_estado_display }}</span>
                                     </div>
-                                    <span class="pill">{{ sesion.get_estado_display }}</span>
+                                    <div class="m" style="margin-top:.15rem;">{{ sesion.num_fuentes }} fuente{{ sesion.num_fuentes|pluralize }} caracterizada{{ sesion.num_fuentes|pluralize:"s" }}</div>
                                 </div>
-                                <p class="text-sm text-slate-500 mt-1">{{ sesion.num_fuentes }} fuente{{ sesion.num_fuentes|pluralize }} caracterizada{{ sesion.num_fuentes|pluralize:"s" }}</p>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="empty-state">Sin inscripciones al taller registradas.</div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Satisfacción -->
-    <div class="tab-panel" data-panel="satisfaccion">
-        
-        <!-- INDICADOR 3: Índice Neto de Satisfacción Global (INSG) -->
-        {% if indicador_insg %}
-        <div class="section-card" style="margin-bottom: 2rem;">
-            <h2 class="section-title" style="color: #000866; display: flex; align-items: center; gap: 0.75rem;">
-                <i class="fas fa-chart-line"></i> Índice Neto de Satisfacción Global (INSG)
-            </h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
-                <div style="text-align: center; padding: 1rem; background: #f9fafb; border-radius: 8px;">
-                    <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">INSG</div>
-                    <div style="font-size: 2rem; font-weight: 700; color: #000866;">{{ indicador_insg.insg }}%</div>
-                </div>
-                <div style="text-align: center; padding: 1rem; background: #f9fafb; border-radius: 8px;">
-                    <div style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">Percepción</div>
-                    <div style="font-size: 1.25rem; font-weight: 600;">
-                        {% if indicador_insg.percepcion == 'positiva' %}
-                            <span style="color: #059669;">✓ Positiva</span>
-                        {% elif indicador_insg.percepcion == 'negativa' %}
-                            <span style="color: #dc2626;">✗ Negativa</span>
-                        {% else %}
-                            <span style="color: #6b7280;">— Neutral</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div style="text-align: center; padding: 1rem; background: #d1fae5; border-radius: 8px;">
-                    <div style="font-size: 0.85rem; color: #065f46; margin-bottom: 0.5rem;">Satisfechas (4-5)</div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #065f46;">{{ indicador_insg.satisfechas }}</div>
-                </div>
-                <div style="text-align: center; padding: 1rem; background: #fee2e2; border-radius: 8px;">
-                    <div style="font-size: 0.85rem; color: #991b1b; margin-bottom: 0.5rem;">No Satisfechas (1-3)</div>
-                    <div style="font-size: 1.5rem; font-weight: 700; color: #991b1b;">{{ indicador_insg.no_satisfechas }}</div>
-                </div>
-            </div>
-            <div style="font-size: 0.9rem; color: #6b7280; text-align: center;">
-                Total de respuestas evaluadas: <strong>{{ indicador_insg.total }}</strong> | 
-                Diferencia: <strong>{{ indicador_insg.diferencia }}</strong>
-            </div>
-        </div>
-        {% else %}
-        <div class="section-card">
-            <div class="empty-state">No hay respuestas completas registradas para calcular el INSG.</div>
-        </div>
-        {% endif %}
-        
-        <!-- INDICADOR 2: Índice Neto de Satisfacción por Dimensión (INSD) -->
-        {% if indicador_insd %}
-        <div class="section-card" style="margin-bottom: 2rem;">
-            <h2 class="section-title" style="color: #000866; display: flex; align-items: center; gap: 0.75rem;">
-                <i class="fas fa-layer-group"></i> Índice Neto de Satisfacción por Dimensión (INSD)
-            </h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-                {% for dimension, datos in indicador_insd.items %}
-                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
-                    <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #000866;">{{ dimension }}</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                        <div style="text-align: center; padding: 0.75rem; background: #f9fafb; border-radius: 6px;">
-                            <div style="font-size: 0.8rem; color: #6b7280;">INSD</div>
-                            <div style="font-size: 1.5rem; font-weight: 700; color: #000866;">{{ datos.insd }}%</div>
+                            {% endfor %}
                         </div>
-                        <div style="text-align: center; padding: 0.75rem; background: #f9fafb; border-radius: 6px;">
-                            <div style="font-size: 0.8rem; color: #6b7280;">Percepción</div>
-                            <div style="font-size: 1rem; font-weight: 600;">
-                                {% if datos.percepcion == 'positiva' %}
-                                    <span style="color: #059669;">✓ Positiva</span>
-                                {% elif datos.percepcion == 'negativa' %}
-                                    <span style="color: #dc2626;">✗ Negativa</span>
-                                {% else %}
-                                    <span style="color: #6b7280;">— Neutral</span>
-                                {% endif %}
-                            </div>
+                    {% else %}
+                        <div class="ov-empty"><div class="ic">📭</div>Sin inscripciones al taller registradas.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== SATISFACCIÓN ========== -->
+        <div class="ov-panel" data-panel="satisfaccion">
+
+            {% if indicador_insg %}
+            <div class="ov-card">
+                <h2>Índice Neto de Satisfacción Global (INSG)</h2>
+                <div class="ov-pills">
+                    <div class="ov-pill" style="text-align:center;">
+                        <div class="k">INSG</div>
+                        <div class="v" style="font-size:1.9rem; color:var(--navy);">{{ indicador_insg.insg }}%</div>
+                    </div>
+                    <div class="ov-pill" style="text-align:center;">
+                        <div class="k">Percepción</div>
+                        <div class="v" style="font-size:1.1rem; margin-top:.35rem;">
+                            {% if indicador_insg.percepcion == 'positiva' %}
+                                <span class="c-ok">✓ Positiva</span>
+                            {% elif indicador_insg.percepcion == 'negativa' %}
+                                <span class="c-bad">✗ Negativa</span>
+                            {% else %}
+                                <span class="text-muted">— Neutral</span>
+                            {% endif %}
                         </div>
                     </div>
-                    <div style="font-size: 0.85rem; color: #6b7280;">
-                        <div style="margin-bottom: 0.25rem;"><span style="color: #059669;">●</span> Satisfechas: <strong>{{ datos.satisfechas }}</strong></div>
-                        <div style="margin-bottom: 0.25rem;"><span style="color: #dc2626;">●</span> No Satisfechas: <strong>{{ datos.no_satisfechas }}</strong></div>
-                        <div><span style="color: #6b7280;">●</span> Total: <strong>{{ datos.total }}</strong></div>
+                    <div class="ov-pill" style="text-align:center; background:#e8f8ec; border-color:#c8eccf;">
+                        <div class="k" style="color:#1e7b32;">Satisfechas (4–5)</div>
+                        <div class="v" style="color:#1e7b32;">{{ indicador_insg.satisfechas }}</div>
+                    </div>
+                    <div class="ov-pill" style="text-align:center; background:#ffecea; border-color:#f5cfc9;">
+                        <div class="k" style="color:#c81e1e;">No satisfechas (1–3)</div>
+                        <div class="v" style="color:#c81e1e;">{{ indicador_insg.no_satisfechas }}</div>
                     </div>
                 </div>
-                {% endfor %}
+                <p class="text-muted" style="font-size:.82rem; text-align:center; margin-top:1rem;">
+                    Total de respuestas evaluadas: <strong>{{ indicador_insg.total }}</strong> · Diferencia: <strong>{{ indicador_insg.diferencia }}</strong>
+                </p>
             </div>
-        </div>
-        {% endif %}
-        
-        <!-- INDICADOR 1: Porcentaje de Satisfacción por Variable (SV) -->
-        {% if indicador_sv %}
-        <div class="section-card">
-            <h2 class="section-title" style="color: #000866; display: flex; align-items: center; gap: 0.75rem;">
-                <i class="fas fa-percentage"></i> Porcentaje de Satisfacción por Variable (SV)
-            </h2>
-            <div class="overflow-x-auto">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Variable</th>
-                            <th style="text-align: center; width: 100px;">Total</th>
-                            <th style="text-align: center; width: 120px;">Muy Insatisfecho (1)</th>
-                            <th style="text-align: center; width: 120px;">Insatisfecho (2)</th>
-                            <th style="text-align: center; width: 100px;">Neutral (3)</th>
-                            <th style="text-align: center; width: 120px;">Satisfecho (4)</th>
-                            <th style="text-align: center; width: 140px;">Muy Satisfecho (5)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for campo, datos in indicador_sv.items %}
-                        <tr>
-                            <td><strong>{{ datos.nombre }}</strong></td>
-                            <td style="text-align: center; font-weight: 600;">{{ datos.total }}</td>
-                            <td style="text-align: center;">
-                                <div style="font-weight: 600; color: #dc2626;">{{ datos.distribucion.1.porcentaje }}%</div>
-                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.1.count }})</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <div style="font-weight: 600; color: #ea580c;">{{ datos.distribucion.2.porcentaje }}%</div>
-                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.2.count }})</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <div style="font-weight: 600; color: #ca8a04;">{{ datos.distribucion.3.porcentaje }}%</div>
-                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.3.count }})</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <div style="font-weight: 600; color: #16a34a;">{{ datos.distribucion.4.porcentaje }}%</div>
-                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.4.count }})</div>
-                            </td>
-                            <td style="text-align: center;">
-                                <div style="font-weight: 600; color: #059669;">{{ datos.distribucion.5.porcentaje }}%</div>
-                                <div style="font-size: 0.8rem; color: #6b7280;">({{ datos.distribucion.5.count }})</div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% else %}
-        <div class="section-card">
-            <div class="empty-state">No hay respuestas completas registradas para este organismo.</div>
-        </div>
-        {% endif %}
-        
-    </div>
+            {% else %}
+            <div class="ov-card"><div class="ov-empty">No hay respuestas completas registradas para calcular el INSG.</div></div>
+            {% endif %}
 
-    <!-- Producción -->
-    <div class="tab-panel" data-panel="produccion">
-        <div class="section-card">
-            <h2 class="section-title">Indicadores y operaciones</h2>
-            {% if indicadores %}
-                <div class="space-y-4">
+            {% if indicador_insd %}
+            <div class="ov-card">
+                <h2>Satisfacción por Dimensión (INSD)</h2>
+                <div class="ov-grid2">
+                    {% for dimension, datos in indicador_insd.items %}
+                    <div class="ov-pill" style="background:#fff;">
+                        <div style="font-weight:700; font-size:.92rem; margin-bottom:.7rem;">{{ dimension }}</div>
+                        <div style="display:flex; gap:1rem; margin-bottom:.7rem;">
+                            <div style="flex:1; text-align:center; background:#fafafa; border-radius:8px; padding:.6rem;">
+                                <div class="k">INSD</div>
+                                <div class="v" style="color:var(--navy);">{{ datos.insd }}%</div>
+                            </div>
+                            <div style="flex:1; text-align:center; background:#fafafa; border-radius:8px; padding:.6rem;">
+                                <div class="k">Percepción</div>
+                                <div class="v" style="font-size:.9rem;">
+                                    {% if datos.percepcion == 'positiva' %}<span class="c-ok">✓ Positiva</span>
+                                    {% elif datos.percepcion == 'negativa' %}<span class="c-bad">✗ Negativa</span>
+                                    {% else %}<span class="text-muted">— Neutral</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="font-size:.8rem; color:var(--muted);">
+                            <div><span class="c-ok">●</span> Satisfechas: <strong>{{ datos.satisfechas }}</strong></div>
+                            <div><span class="c-bad">●</span> No satisfechas: <strong>{{ datos.no_satisfechas }}</strong></div>
+                            <div><span>●</span> Total: <strong>{{ datos.total }}</strong></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if indicador_sv %}
+            <div class="ov-card">
+                <h2>Porcentaje de Satisfacción por Variable (SV)</h2>
+                <div style="overflow-x:auto;">
+                    <table class="ov-table">
+                        <thead>
+                            <tr>
+                                <th>Variable</th>
+                                <th class="num">Total</th>
+                                <th class="num">Muy insat. (1)</th>
+                                <th class="num">Insatisfecho (2)</th>
+                                <th class="num">Neutral (3)</th>
+                                <th class="num">Satisfecho (4)</th>
+                                <th class="num">Muy satis. (5)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for campo, datos in indicador_sv.items %}
+                            <tr>
+                                <td><strong>{{ datos.nombre }}</strong></td>
+                                <td class="num"><strong>{{ datos.total }}</strong></td>
+                                <td class="num"><span class="c-bad" style="font-weight:600;">{{ datos.distribucion.1.porcentaje }}%</span><br><span class="text-muted" style="font-size:.75rem;">({{ datos.distribucion.1.count }})</span></td>
+                                <td class="num"><span class="c-warn" style="font-weight:600;">{{ datos.distribucion.2.porcentaje }}%</span><br><span class="text-muted" style="font-size:.75rem;">({{ datos.distribucion.2.count }})</span></td>
+                                <td class="num"><span style="color:#a16207; font-weight:600;">{{ datos.distribucion.3.porcentaje }}%</span><br><span class="text-muted" style="font-size:.75rem;">({{ datos.distribucion.3.count }})</span></td>
+                                <td class="num"><span style="color:#16a34a; font-weight:600;">{{ datos.distribucion.4.porcentaje }}%</span><br><span class="text-muted" style="font-size:.75rem;">({{ datos.distribucion.4.count }})</span></td>
+                                <td class="num"><span class="c-ok" style="font-weight:600;">{{ datos.distribucion.5.porcentaje }}%</span><br><span class="text-muted" style="font-size:.75rem;">({{ datos.distribucion.5.count }})</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="ov-card"><div class="ov-empty">No hay respuestas completas registradas para este organismo.</div></div>
+            {% endif %}
+        </div>
+
+        <!-- ========== PRODUCCIÓN ========== -->
+        <div class="ov-panel" data-panel="produccion">
+            <div class="ov-card">
+                <h2>Indicadores y Operaciones</h2>
+                {% if indicadores %}
                     {% for indicador in indicadores %}
-                        <div class="border border-slate-200 rounded-lg p-4">
-                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                                <div>
-                                    <p class="font-semibold text-slate-800">{{ indicador.nombre }}</p>
-                                    {% if indicador.operacion %}
-                                        <p class="text-sm text-slate-500">{{ indicador.operacion.nombre }}</p>
-                                    {% endif %}
-                                </div>
-                                <div class="flex gap-2 text-xs">
-                                    {% if indicador.frecuencia_difusion %}
-                                        <span class="pill">{{ indicador.frecuencia_difusion }}</span>
-                                    {% endif %}
-                                    <span class="pill">Actualizado hace {{ indicador.fecha_publicacion_metadatos|timesince }}</span>
-                                </div>
+                        <div class="ov-item">
+                            <div>
+                                <div class="n">{{ indicador.nombre }}</div>
+                                {% if indicador.operacion %}<div class="m">{{ indicador.operacion.nombre }}</div>{% endif %}
+                            </div>
+                            <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+                                {% if indicador.frecuencia_difusion %}<span class="ov-badge b-dim">{{ indicador.frecuencia_difusion }}</span>{% endif %}
+                                <span class="ov-badge b-dim">Actualizado hace {{ indicador.fecha_publicacion_metadatos|timesince }}</span>
                             </div>
                         </div>
                     {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">Sin indicadores registrados.</div>
-            {% endif %}
-        </div>
+                {% else %}
+                    <div class="ov-empty"><div class="ic">📊</div>Sin indicadores registrados.</div>
+                {% endif %}
+            </div>
 
-        <div class="section-card">
-            <h2 class="section-title">Flujos institucionales</h2>
-            <div class="metric-grid">
-                <div class="metric-pill">
-                    <div class="text-sm text-slate-500">Flujos recibe (detalle)</div>
-                    <div class="text-2xl font-semibold text-slate-800">{{ flujos_recibe|length }}</div>
-                </div>
-                <div class="metric-pill">
-                    <div class="text-sm text-slate-500">Flujos envía (detalle)</div>
-                    <div class="text-2xl font-semibold text-slate-800">{{ flujos_envia|length }}</div>
+            <div class="ov-card">
+                <h2>Flujos Institucionales</h2>
+                <div class="ov-pills">
+                    <div class="ov-pill">
+                        <div class="k">Flujos recibe (detalle)</div>
+                        <div class="v">{{ flujos_recibe|length }}</div>
+                    </div>
+                    <div class="ov-pill">
+                        <div class="k">Flujos envía (detalle)</div>
+                        <div class="v">{{ flujos_envia|length }}</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-    </div>
+        <!-- ========== FICED / ICED ========== -->
+        <div class="ov-panel" data-panel="ficed">
+            <div class="ov-card">
+                <h2>Formulario de Capacidad Estadística Distrital (FICED)
+                    <small>Índice de Capacidad Estadística y de Datos — seleccione el período</small>
+                </h2>
 
-    <!-- FICED / ICED -->
-    <div class="tab-panel" data-panel="ficed">
-        <div class="section-card">
-            <h2 class="section-title">Formulario de Capacidad Estadística Distrital (FICED)</h2>
-            
-            {% if metricas.ficed %}
-                <div class="grid lg:grid-cols-2 gap-6 mb-6">
-                    <div>
-                        <p class="text-sm text-slate-500 mb-4">
-                            Índice de Capacidad Estadística y de Datos (ICED) — 
-                            <span class="font-semibold text-slate-700">Período {{ metricas.ficed.periodo }}</span>
-                        </p>
-                        
-                        <!-- Puntaje Global -->
-                        <div class="flex items-center gap-4 mb-6">
-                            <div class="relative w-32 h-32">
-                                <svg viewBox="0 0 36 36" class="w-32 h-32">
-                                    <path d="M18 2.0845
-                                        a 15.9155 15.9155 0 0 1 0 31.831
-                                        a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="2"></path>
-                                    <path d="M18 2.0845
-                                        a 15.9155 15.9155 0 0 1 0 31.831" fill="none"
-                                        stroke="{% if metricas.ficed.puntaje_global >= 75 %}#059669{% elif metricas.ficed.puntaje_global >= 60 %}#d97706{% else %}#dc2626{% endif %}" 
-                                        stroke-width="2"
-                                        stroke-dasharray="{{ metricas.ficed.puntaje_global }},100"></path>
-                                </svg>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span class="text-3xl font-semibold text-slate-800">{{ metricas.ficed.puntaje_global|floatformat:1 }}</span>
-                                    <span class="text-xs text-slate-500">Puntaje 0-100</span>
-                                </div>
-                            </div>
-                            <div class="flex-1">
-                                <div class="text-lg font-semibold text-slate-800 mb-1">
-                                    Nivel: {{ metricas.ficed.nivel_global_display }}
-                                </div>
-                                <p class="text-sm text-slate-600">
-                                    El puntaje global resulta del promedio ponderado de las cuatro dimensiones evaluadas.
-                                </p>
-                                <div class="mt-2 text-sm">
-                                    <span class="inline-block px-2 py-1 rounded bg-slate-100 text-slate-600">
-                                        Estado: {{ metricas.ficed.get_estado_display }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Dimensiones -->
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-semibold text-slate-700">Desglose por Dimensión</h3>
-                        
-                        <div class="space-y-3">
-                            <!-- Dimensión B -->
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="text-slate-600">B. Entorno Institucional (25%)</span>
-                                    <span class="font-semibold text-slate-800">{{ metricas.ficed.puntaje_b|floatformat:1 }}</span>
-                                </div>
-                                <div class="progress-track h-2">
-                                    <div class="progress-fill h-2" style="width: {{ metricas.ficed.puntaje_b }}%;"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Dimensión C -->
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="text-slate-600">C. Infraestructura (25%)</span>
-                                    <span class="font-semibold text-slate-800">{{ metricas.ficed.puntaje_c|floatformat:1 }}</span>
-                                </div>
-                                <div class="progress-track h-2">
-                                    <div class="progress-fill h-2" style="width: {{ metricas.ficed.puntaje_c }}%; background: #8b5cf6;"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Dimensión D -->
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="text-slate-600">D. Metodología Estadística (30%)</span>
-                                    <span class="font-semibold text-slate-800">{{ metricas.ficed.puntaje_d|floatformat:1 }}</span>
-                                </div>
-                                <div class="progress-track h-2">
-                                    <div class="progress-fill h-2" style="width: {{ metricas.ficed.puntaje_d }}%; background: #0ea5e9;"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Dimensión E -->
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="text-slate-600">E. Accesibilidad y Uso (20%)</span>
-                                    <span class="font-semibold text-slate-800">{{ metricas.ficed.puntaje_e|floatformat:1 }}</span>
-                                </div>
-                                <div class="progress-track h-2">
-                                    <div class="progress-fill h-2" style="width: {{ metricas.ficed.puntaje_e }}%; background: #f59e0b;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {% if metricas.ficed.fecha_envio %}
-                <div class="mt-4 pt-4 border-t border-slate-200">
-                    <p class="text-sm text-slate-500">
-                        Formulario enviado el {{ metricas.ficed.fecha_envio|date:"d/m/Y" }}
-                        {% if metricas.ficed.usuario_diligencia %}
-                            por {{ metricas.ficed.usuario_diligencia.get_full_name|default:metricas.ficed.usuario_diligencia.username }}
-                        {% endif %}
-                    </p>
+                {% if metricas.periodos_disponibles %}
+                <div class="ov-per">
+                    {% for p in metricas.periodos_disponibles %}
+                        <a href="?periodo={{ p }}#ficed" class="{% if p == metricas.ficed.periodo %}on{% endif %}">{{ p }}</a>
+                    {% endfor %}
                 </div>
                 {% endif %}
-                
-            {% else %}
-                <div class="text-center py-8">
-                    <div class="text-6xl mb-4">📋</div>
-                    <h3 class="text-lg font-semibold text-slate-700 mb-2">No hay registro ICED</h3>
-                    <p class="text-slate-500 mb-4">
-                        Este organismo aún no ha completado el Formulario de Capacidad Estadística Distrital (FICED) para el período actual.
+
+                {% if metricas.ficed %}
+                    <div class="ov-grid2">
+                        <!-- Puntaje global -->
+                        <div style="display:flex; align-items:center; gap:1.5rem;">
+                            <div class="ov-donut">
+                                <svg viewBox="0 0 36 36" width="128" height="128">
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                          fill="none" stroke="#ececf0" stroke-width="2.6"/>
+                                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831" fill="none"
+                                          stroke="{% if metricas.ficed_pct.puntaje_global >= 75 %}#34c759{% elif metricas.ficed_pct.puntaje_global >= 60 %}#ff9500{% else %}#ff3b30{% endif %}"
+                                          stroke-width="2.6" stroke-linecap="round"
+                                          stroke-dasharray="{{ metricas.ficed_pct.puntaje_global }},100"/>
+                                </svg>
+                                <div class="lbl">
+                                    <span class="num">{{ metricas.ficed_pct.puntaje_global|floatformat:1 }}</span>
+                                    <span class="cap">puntaje 0–100</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-size:1.05rem; font-weight:700; margin-bottom:.3rem;">
+                                    Nivel {{ metricas.ficed.nivel_global_display }}
+                                </div>
+                                <p class="text-muted" style="font-size:.83rem; margin:0 0 .6rem;">
+                                    Promedio ponderado de las cuatro dimensiones evaluadas.
+                                </p>
+                                <span class="ov-badge {% if metricas.ficed.estado == 'validado' %}b-ok{% elif metricas.ficed.estado == 'enviado' %}b-warn{% else %}b-dim{% endif %}">
+                                    {{ metricas.ficed.get_estado_display }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Dimensiones -->
+                        <div>
+                            <div style="font-size:.82rem; font-weight:600; margin-bottom:.7rem;">Desglose por dimensión</div>
+                            <div style="display:flex; flex-direction:column; gap:.75rem;">
+                                <div class="ov-bar">
+                                    <div class="t"><span class="n">B · Entorno Institucional (25%)</span><span class="v">{{ metricas.ficed_pct.puntaje_b|floatformat:1 }}</span></div>
+                                    <div class="ov-track"><div class="ov-fill" style="width:{{ metricas.ficed_pct.puntaje_b }}%; background:#0071e3;"></div></div>
+                                </div>
+                                <div class="ov-bar">
+                                    <div class="t"><span class="n">C · Infraestructura (25%)</span><span class="v">{{ metricas.ficed_pct.puntaje_c|floatformat:1 }}</span></div>
+                                    <div class="ov-track"><div class="ov-fill" style="width:{{ metricas.ficed_pct.puntaje_c }}%; background:#8b5cf6;"></div></div>
+                                </div>
+                                <div class="ov-bar">
+                                    <div class="t"><span class="n">D · Metodología Estadística (30%)</span><span class="v">{{ metricas.ficed_pct.puntaje_d|floatformat:1 }}</span></div>
+                                    <div class="ov-track"><div class="ov-fill" style="width:{{ metricas.ficed_pct.puntaje_d }}%; background:#0ea5e9;"></div></div>
+                                </div>
+                                <div class="ov-bar">
+                                    <div class="t"><span class="n">E · Accesibilidad y Uso (20%)</span><span class="v">{{ metricas.ficed_pct.puntaje_e|floatformat:1 }}</span></div>
+                                    <div class="ov-track"><div class="ov-fill" style="width:{{ metricas.ficed_pct.puntaje_e }}%; background:#f59e0b;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Histórico -->
+                    {% if metricas.ficed_hist_pct|length > 1 %}
+                    <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid #ececf0;">
+                        <div style="font-size:.82rem; font-weight:600; margin-bottom:.7rem;">Histórico por período</div>
+                        <div class="ov-hist">
+                            {% for h in metricas.ficed_hist_pct %}
+                                <div class="h {% if h.periodo == metricas.ficed.periodo %}cur{% endif %}">
+                                    <span class="e">{{ h.periodo }} · {{ h.estado }}</span>
+                                    <b>{{ h.pct|floatformat:1 }}</b>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if metricas.ficed.fecha_envio %}
+                    <p class="text-muted" style="font-size:.78rem; margin-top:1.25rem; padding-top:1rem; border-top:1px solid #ececf0;">
+                        Formulario enviado el {{ metricas.ficed.fecha_envio|date:"d/m/Y" }}
                     </p>
-                    <p class="text-sm text-slate-400">
-                        El FICED evalúa cuatro dimensiones clave: Entorno Institucional, Infraestructura, Metodología Estadística y Accesibilidad/Uso.
-                    </p>
-                </div>
-            {% endif %}
+                    {% endif %}
+                {% else %}
+                    <div class="ov-empty">
+                        <div class="ic">📋</div>
+                        <div style="font-weight:600; color:var(--ink); margin-bottom:.35rem;">No hay registro ICED</div>
+                        Este organismo aún no ha completado el FICED para el período seleccionado.
+                    </div>
+                {% endif %}
+            </div>
         </div>
+
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const buttons = document.querySelectorAll('.module-tab-btn');
-        const panels = document.querySelectorAll('.tab-panel');
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelectorAll('.ov-tabs button');
+    const panels = document.querySelectorAll('.ov-panel');
 
-        buttons.forEach((btn) => {
-            btn.addEventListener('click', () => {
-                buttons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+    function activate(name) {
+        tabs.forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+        panels.forEach(p => p.classList.toggle('on', p.dataset.panel === name));
+    }
 
-                panels.forEach(panel => {
-                    panel.classList.toggle('active', panel.dataset.panel === btn.dataset.tab);
-                });
-            });
-        });
-    });
+    tabs.forEach(btn => btn.addEventListener('click', () => {
+        history.replaceState(null, '', '#' + btn.dataset.tab);
+        activate(btn.dataset.tab);
+    }));
+
+    // Soporte de #hash directo (ej: ?periodo=2025#ficed vuelve al tab FICED)
+    const h = location.hash.replace('#', '');
+    if (h && document.querySelector(`.ov-panel[data-panel="${h}"]`)) activate(h);
+});
 </script>
 {% endblock %}

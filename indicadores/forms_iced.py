@@ -88,7 +88,7 @@ def _validar_urls_json(valor):
 
     invalidas = []
     for u in urls:
-        for parte in u.split(','):
+        for parte in re.split(r'[;,]', u):
             parte = parte.strip()
             if not parte:
                 continue
@@ -188,8 +188,8 @@ def _err_aaaa(valor):
 
 
 def _err_urls_multi(valor):
-    """URLs separadas por coma."""
-    malas = [p.strip() for p in valor.split(',')
+    """URLs separadas por coma o punto y coma."""
+    malas = [p.strip() for p in re.split(r'[;,]', valor)
              if p.strip() and not _es_url_valida(p.strip())]
     if malas:
         return ("Formato de URL inválido: " + ', '.join(malas[:3]) +
@@ -201,7 +201,7 @@ def _err_codigos_bp(valor):
     if not re.fullmatch(
             r'[\w\-]+(\s*[,;]\s*[\w\-]+)*', valor.strip()):
         return ("Códigos BP separados por coma "
-                "(ej: 2023100012345, 2024100067890)")
+                "(ej: 2024001, 2024002)")
     return None
 
 
@@ -257,6 +257,9 @@ _CLAVES_TIPO = [
 # Reglas explícitas para campos escalares (texto plano del wizard)
 REGLAS_CAMPOS_FICED = {
     'p25_proyectos_bp': 'codigos_bp',
+    # Banner de ayuda (readonly) con URL embebida — es texto, no URL;
+    # sin esta regla, la inferencia por nombre ('link'→url_multi) lo rechaza
+    'p25_proyectos_bp_link': 'texto',
 }
 
 
@@ -340,7 +343,16 @@ class ICEDBaseForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         for name, valor in list(cleaned.items()):
-            if name not in self.fields or valor in (None, '', [], {}):
+            if name not in self.fields:
+                continue
+            # Campos condicionales (data-show-if='campo=v1,v2 campo2=v3'):
+            # si la condición no se cumple, el campo está oculto en el
+            # formulario — descartar su valor y no validarlo.
+            cond = self.fields[name].widget.attrs.get('data-show-if')
+            if cond and not self._condicion_visible(cleaned, cond):
+                cleaned[name] = ''
+                continue
+            if valor in (None, '', [], {}):
                 continue
             if isinstance(valor, str) and valor[:1] in '[{':
                 for err in _validar_filas_json(valor, name)[:6]:
@@ -353,6 +365,25 @@ class ICEDBaseForm(forms.Form):
                 if err:
                     self.add_error(name, err)
         return cleaned
+
+    def _condicion_visible(self, cleaned, cond):
+        """'campo=v1,v2 campo2=v3' → True si TODAS las condiciones cumplen.
+
+        Dentro de una condición, los valores separados por coma son OR
+        (válido para campos multi-selección y de opción única)."""
+        for regla in (cond or '').split():
+            if '=' not in regla:
+                continue
+            campo, esperados = regla.split('=', 1)
+            esperados = [e for e in esperados.split(',') if e]
+            actual = cleaned.get(campo)
+            if isinstance(actual, (list, tuple)):
+                cumple = any(e in actual for e in esperados)
+            else:
+                cumple = str(actual) in esperados
+            if not cumple:
+                return False
+        return True
 
 
 # =============================================================================
@@ -585,7 +616,7 @@ class ICEDModuloBForm(ICEDBaseForm):
             ],
         }),
         label="9. Señale dentro de cuáles herramientas de planificación se incluyen actividades específicas para el mejoramiento o fortalecimiento de la información estadística",
-        help_text="Misma estructura que P8"
+        help_text="Para cada herramienta seleccionada, indique el documento y la sección o actividad específica"
     )
 
     # P10: Participación en actividades de fortalecimiento
@@ -1199,7 +1230,7 @@ class ICEDModuloD1Form(ICEDBaseForm):
                 {'name': 'manual_operativo', 'label': 'Manual operativo', 'tipo': 'booleano'},
                 {'name': 'diccionario_datos', 'label': 'Diccionario de datos', 'tipo': 'booleano'},
                 {'name': 'doc_consistencia', 'label': 'Documento consistencia y validación', 'tipo': 'booleano'},
-                {'name': 'acciones_fortalecimiento', 'label': 'Acciones de fortalecimiento', 'tipo': 'texto'},
+                {'name': 'acciones_fortalecimiento', 'label': 'Acciones de fortalecimiento', 'tipo': 'booleano'},
                 {'name': 'publicado_sicode', 'label': 'Publicado en SICODE', 'tipo': 'booleano'},
                 {'name': 'url_evidencia', 'label': 'URL de evidencia', 'tipo': 'url',
                  'placeholder': 'https://... (documentos, ficha, publicación)'},
@@ -1679,9 +1710,11 @@ class ICEDModuloD2Form(ICEDBaseForm):
                     {'valor': 'MEDE01.07.01.18.P05.F02', 'texto': 'MEDE01.07.01.18.P05.F02 | Ficha Técnica de Formulación de Indicadores'},
                     {'valor': 'MEDE01.07.01.18.P05.F04', 'texto': 'MEDE01.07.01.18.P05.F04 | Ficha Técnica de Seguimiento de Indicadores de Trámite'},
                     {'valor': 'MEDE01.07.01.18.P05.F05', 'texto': 'MEDE01.07.01.18.P05.F05 | Ficha Técnica de Seguimiento de Indicadores'},
-                    {'valor': 'otro', 'texto': 'Otro (especificar código en la descripción)'},
-                ]},
-                {'name': 'descripcion', 'label': 'Descripción del lineamiento', 'tipo': 'texto', 'placeholder': 'Ej: Plan de trabajo por proceso'},
+                    {'valor': 'otro', 'texto': 'Otro'},
+                ],
+                # La descripción se deriva del texto de la opción ("CÓDIGO | nombre")
+                'campo_derivado': 'descripcion',
+            },
             ],
             'data-show-if': 'p30_lineamientos_metodologicos=alcaldia_cali',
         }),
@@ -1994,7 +2027,7 @@ class ICEDModuloD4Form(ICEDBaseForm):
             ],
         }),
         label="Observatorios seleccionados",
-        help_text="Hasta 3 observatorios desde tabla de referencia"
+        help_text="Seleccione hasta 3 observatorios del listado de referencia"
     )
 
     # P34: Tabla de información de observatorios

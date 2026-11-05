@@ -1572,7 +1572,12 @@ def delegado_ficed(request):
         equipo = getattr(perfil, 'subrol_ficed', '') or ''
 
     if not equipo:
-        return redirect('indicadores:delegado_ficed_equipo')
+        messages.error(
+            request,
+            'Tu usuario no tiene un equipo técnico asignado. '
+            'El administrador del SIIED debe definirlo en tu perfil de usuario.'
+        )
+        return redirect('indicadores:delegado_dashboard')
 
     # Buscar formulario existente del equipo
     ficed = ICEDFormulario.objects.filter(
@@ -1596,62 +1601,12 @@ def delegado_ficed(request):
 @delegado_required
 def delegado_ficed_equipo(request):
     """
-    Punto de entrada del FICED desde el portal del delegado.
-
-    Siempre pregunta primero por el equipo técnico: cada equipo tiene su
-    propio formulario (organismo+periodo+equipo) que luego se concilia en
-    validación. La elección se guarda en subrol_ficed del perfil (queda
-    pre-marcada si ya tenía uno) y el admin puede corregirla luego.
+    Ruta heredada — el equipo técnico ya no se elige en la UI: se define
+    en el perfil de usuario (subrol_ficed) o va fijado en el username
+    (p. ej. 'DAP_ETPP'). delegado_ficed resuelve el equipo y muestra el
+    mensaje correspondiente si el usuario no tiene uno asignado.
     """
-    organismo = _get_organismo(request)
-    if not organismo:
-        messages.error(request, 'No tienes un organismo asignado.')
-        return redirect('indicadores:delegado_dashboard')
-
-    from .models_iced import ICEDFormulario, equipo_desde_username
-    perfil = getattr(request.user, 'perfil_recolector', None)
-
-    # Subrol fijado en el username ('DAP_ETPP'): no puede elegir otro
-    # equipo; se fija en el perfil y va directo al FICED.
-    equipo_fijo = equipo_desde_username(request.user.username)
-    if equipo_fijo:
-        if perfil and perfil.subrol_ficed != equipo_fijo:
-            perfil.subrol_ficed = equipo_fijo
-            perfil.save(update_fields=['subrol_ficed'])
-        return redirect('indicadores:delegado_ficed')
-
-    equipos = ICEDFormulario.EQUIPO_CHOICES[1:]  # sin '' (consolidado)
-    validos = {e for e, _ in equipos}
-
-    if request.method == 'POST':
-        equipo = request.POST.get('equipo', '')
-        if equipo not in validos or not perfil:
-            messages.error(request, 'Selecciona un equipo válido.')
-        else:
-            perfil.subrol_ficed = equipo
-            perfil.save(update_fields=['subrol_ficed'])
-            messages.success(
-                request,
-                f'Equipo {equipo} asignado. Solo verás las preguntas de tu equipo.'
-            )
-            return redirect('indicadores:delegado_ficed')
-
-    # Formularios ya creados por equipo, para que el delegado vea cuáles
-    # ya están siendo diligenciados por otros compañeros
-    periodo = str(timezone.now().year)
-    ocupados = set(
-        ICEDFormulario.objects
-        .filter(organismo=organismo, periodo=periodo)
-        .exclude(equipo='')
-        .values_list('equipo', flat=True)
-    )
-
-    return render(request, 'delegado/ficed_equipo.html', {
-        'organismo': organismo,
-        'equipos': equipos,
-        'ocupados': ocupados,
-        'actual': (perfil.subrol_ficed if perfil else ''),
-    })
+    return redirect('indicadores:delegado_ficed')
 
 
 # ============================================================================

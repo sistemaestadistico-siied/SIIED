@@ -6121,6 +6121,25 @@ def organismo_detalle(request, codigo):
         'ficed_historico': ficed_historico,
         'periodos_disponibles': periodos_disponibles,
     }
+    # Los puntajes del modelo están en escala 0-1 (DecimalField); para el
+    # template se exponen también en porcentaje 0-100.
+    if ficed:
+        metricas['ficed_pct'] = {
+            clave: round((getattr(ficed, clave) or 0) * 100, 1)
+            for clave in ('puntaje_global', 'puntaje_b', 'puntaje_c',
+                          'puntaje_d', 'puntaje_e')
+        }
+    else:
+        metricas['ficed_pct'] = None
+    metricas['ficed_hist_pct'] = [
+        {
+            'periodo': h.periodo,
+            'pct': round((h.puntaje_global or 0) * 100, 1),
+            'estado': h.get_estado_display(),
+            'codigo_estado': h.estado,
+        }
+        for h in ficed_historico
+    ]
     # Nombres legibles de los 36 indicadores ICED
     from .calcular_iced import INDICADOR_LABELS
     metricas['iced_indicador_labels'] = INDICADOR_LABELS
@@ -6476,6 +6495,7 @@ def modulo_iced(request):
     Vista pública del módulo ICED.
     Muestra todos los organismos con su puntaje ICED en un gráfico de barras
     y permite desplegar los detalles de cada organismo.
+    Filtro por periodo vía ?periodo=YYYY (default: el más reciente disponible).
     """
     from django.db.models import Count
     from .models import Organismo
@@ -6486,28 +6506,58 @@ def modulo_iced(request):
         total_indicadores=Count('indicadores_responsables', distinct=True),
     ).order_by('nombre')
 
+    # Periodos con consolidados evaluados (para el selector)
+    from django.db.models import Count as _Cnt
+    periodos = [r['periodo'] for r in (
+        ICEDFormulario.objects
+        .filter(equipo='', estado__in=['validado', 'enviado'])
+        .values('periodo').annotate(n=_Cnt('id'))
+        .order_by('-periodo')
+    )]
+    # Default: periodo con más organismos evaluados (no el más reciente —
+    # un borrador/prueba futura ocultaría el año con datos reales).
+    periodo_default = None
+    if periodos:
+        periodo_default = (
+            ICEDFormulario.objects
+            .filter(equipo='', estado__in=['validado', 'enviado'])
+            .values('periodo').annotate(n=_Cnt('id'))
+            .order_by('-n', '-periodo').first()['periodo'])
+    periodo_sel = request.GET.get('periodo') or periodo_default
+    if periodos and periodo_sel not in periodos:
+        periodo_sel = periodo_default
+
     organismos_con_iced = []
     for organismo in organismos:
         # Solo consolidados: los formularios por equipo son parciales.
-        ficed = ICEDFormulario.objects.filter(
+        qs = ICEDFormulario.objects.filter(
             organismo=organismo,
             equipo='',
-            estado__in=['validado', 'enviado']
-        ).order_by('-periodo').first()
+            estado__in=['validado', 'enviado'])
+        if periodo_sel:
+            qs = qs.filter(periodo=periodo_sel)
+        ficed = qs.order_by('-periodo').first()
+        if not ficed:
+            continue
 
-        if ficed:
-            puntajes = calcular_iced(ficed)
-            organismo.ficed = ficed
-            # puntaje_global puede ser None si el formulario fue enviado sin
-            # recalcular; usar el valor calculado en vivo (escala 0-100)
-            if ficed.puntaje_global is not None:
-                organismo.puntaje_global_pct = int(ficed.puntaje_global * 100)
-            else:
-                organismo.puntaje_global_pct = int(puntajes['puntaje_global'])
-            organismo.nivel_global_display = ficed.nivel_global_display
-            organismo.periodo = ficed.periodo
-            organismo.puntajes_detalle = puntajes
-            organismos_con_iced.append(organismo)
+        organismo.ficed = ficed
+        organismo.periodo = ficed.periodo
+        organismo.nivel_global_display = ficed.nivel_global_display
+        # Preferir el detalle guardado (puntajes oficiales importados /
+        # recalculados al validar); calcular en vivo solo si falta.
+        detalle = ficed.puntajes_detalle or {}
+        if 'detalle' in detalle and 'indicadores' in detalle:
+            organismo.puntajes_detalle = detalle
+        else:
+            organismo.puntajes_detalle = calcular_iced(ficed)
+        if ficed.puntaje_global is not None:
+            organismo.puntaje_global_pct = round(float(ficed.puntaje_global) * 100, 1)
+        else:
+            organismo.puntaje_global_pct = round(
+                float(organismo.puntajes_detalle.get('puntaje_global', 0)), 1)
+        organismos_con_iced.append(organismo)
+
+    organismos_con_iced.sort(key=lambda o: -o.puntaje_global_pct)
 
     # Calcular estadísticas globales
     total_organismos = len(organismos_con_iced)
@@ -6529,6 +6579,8 @@ def modulo_iced(request):
         'organismos': organismos_con_iced,
         'stats_globales': stats_globales,
         'iced_indicador_labels': INDICADOR_LABELS,
+        'periodos': periodos,
+        'periodo_sel': periodo_sel,
     })
 
 
