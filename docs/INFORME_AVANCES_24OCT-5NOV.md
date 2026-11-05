@@ -182,6 +182,16 @@ de la analítica y el ciclo de validación del FICED.
   sesión» en el navbar global visible solo con sesión activa — queda expuesto
   en acceso a módulos, todo el módulo ICED, histórico y demás páginas que
   extienden `base.html`.
+- Hoja de vida — auditoría de métricas: «Orígenes externos» contaba **filas**
+  `FuenteOrigen` (una misma entidad repetida por cada fuente) y clasificaba
+  interno/externo con `nombre.split()[0]` (para DAP = «Departamento»,
+  cualquier productor con esa palabra entraba como interno). Ahora cuenta
+  **productores distintos normalizados** (sin tildes, comparación con nombre
+  completo/nombre_menu/código) y la UI muestra sus nombres — el número es
+  verificable. Pills de flujos usan totales reales (antes el largo de la
+  lista cortada a 10); indicadores muestran «N a cargo · mostrando M».
+- Logo de `/hall-capacidad/`: imagen remota i.ibb.co → `logo_hoja_vida.png`
+  local (el del card del home).
 
 *Carga de datos FICED*
 

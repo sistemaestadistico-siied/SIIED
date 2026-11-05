@@ -679,9 +679,9 @@
                             {% if otra.quien %}<span style="font-size: 0.75rem; color: #64748b;">({{ otra.quien }})</span>{% endif %}
                             <div style="margin-top: 0.4rem; display: grid; gap: 0.35rem;">
                                 {% for item in otra.items %}
-                                <div style="font-size: 0.8rem; color: #1e1b4b;">
+                                <div style="font-size: 0.8rem; color: #1e1b4b; min-width: 0;">
                                     <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 0.1rem;">{{ item.label }}</div>
-                                    <div>{{ item|render_iced_respuesta }}</div>
+                                    <div style="min-width: 0; overflow-x: auto;">{{ item|render_iced_respuesta }}</div>
                                 </div>
                                 {% endfor %}
                             </div>

@@ -287,7 +287,11 @@ def _render_tabla(value, max_rows=10, field_key=None):
         for row in data[:max_rows]:
             cells = ''
             for c in cols:
-                val = str(row.get(c, '') or '')
+                raw = row.get(c, '')
+                if isinstance(raw, (list, tuple)):
+                    val = ', '.join(str(x) for x in raw)
+                else:
+                    val = str(raw or '')
                 otro = str(row.get(c + '_otro', '') or '').strip()
                 if val == 'Otro' and otro:
                     val = f'Otro: {otro}'
