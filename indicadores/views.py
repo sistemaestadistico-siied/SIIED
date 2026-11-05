@@ -6058,7 +6058,7 @@ def organismo_detalle(request, codigo):
     # Indicadores bajo responsabilidad
     indicadores = Indicador.objects.filter(
         organismo_responsable=organismo
-    ).select_related('operacion').order_by('-fecha_actualizacion_ficha')[:10]
+    ).select_related('operacion').order_by('-fecha_actualizacion_ficha')[:20]
     
     # Inscripciones al taller de gestión de datos institucionales (instrumento F1/F2/F3)
     sesiones = InscripcionTaller.objects.filter(
@@ -6321,25 +6321,58 @@ def obtener_roles_identificados(organismo):
     return {r['rol']: r['count'] for r in roles}
 
 
-def obtener_flujos_internos(organismo):
-    """Fuentes con origen declarado dentro del mismo organismo."""
+def _norm_org_texto(txt):
+    """Normaliza texto de organismos: minúsculas, sin tildes, espacios simples."""
+    import unicodedata
+    s = unicodedata.normalize('NFD', txt or '')
+    s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+    return ' '.join(s.lower().split())
+
+
+def _es_productor_interno(productor_norm, organismo):
+    """El productor es 'interno' si se corresponde con el propio organismo
+    (nombre completo, nombre de menú o código) en cualquier dirección."""
+    refs = (
+        _norm_org_texto(organismo.nombre),
+        _norm_org_texto(getattr(organismo, 'nombre_menu', '') or ''),
+        _norm_org_texto(organismo.codigo),
+    )
+    return any(
+        ref and (ref in productor_norm or productor_norm in ref)
+        for ref in refs
+    )
+
+
+def _productores_distintos(organismo, internos):
+    """Productores distintos declarados como origen de las fuentes F1 del
+    organismo. internos=True → del propio organismo; False → de otros.
+
+    Devuelve {'count', 'nombres'}: el número debe ser de organismos
+    distintos, no de filas FuenteOrigen (una misma entidad puede aparecer
+    varias veces como origen de fuentes distintas)."""
     from .models_catalogo import FuenteOrigen
 
-    return FuenteOrigen.objects.filter(
-        fuente__inscripcion__organismo=organismo,
-        organismo_productor__icontains=organismo.nombre.split()[0],
-    ).count()
+    nombres = (FuenteOrigen.objects
+               .filter(fuente__inscripcion__organismo=organismo)
+               .values_list('organismo_productor', flat=True))
+    vistos = {}
+    for p in nombres:
+        norm = _norm_org_texto(p)
+        if norm and norm not in vistos:
+            vistos[norm] = p
+    sel = [v for k, v in vistos.items()
+           if _es_productor_interno(k, organismo) == internos]
+    return {'count': len(sel), 'nombres': sorted(sel)}
+
+
+def obtener_flujos_internos(organismo):
+    """Productores distintos del mismo organismo (F1)."""
+    return _productores_distintos(organismo, internos=True)
 
 
 def obtener_flujos_externos(organismo):
-    """Fuentes de origen externas declaradas por el organismo."""
-    from .models_catalogo import FuenteOrigen
-
-    return FuenteOrigen.objects.filter(
-        fuente__inscripcion__organismo=organismo
-    ).exclude(
-        organismo_productor__icontains=organismo.nombre.split()[0]
-    ).count()
+    """Productores distintos de otros organismos (F1)."""
+    return _productores_distintos(organismo, internos=False)
 
 
 def calcular_densidad_red(organismo):

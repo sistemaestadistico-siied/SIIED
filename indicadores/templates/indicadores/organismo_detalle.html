@@ -277,11 +277,36 @@
                             <div class="h">F3 · criticidad verde/amarillo/rojo</div>
                         </div>
                         <div class="ov-pill">
-                            <div class="k">Orígenes externos</div>
-                            <div class="v">{{ metricas.flujos_externos }}</div>
-                            <div class="h">Fuentes de otros organismos</div>
+                            <div class="k">Productores externos</div>
+                            <div class="v">{{ metricas.flujos_externos.count }}</div>
+                            <div class="h">Organismos distintos que le envían datos</div>
+                        </div>
+                        <div class="ov-pill">
+                            <div class="k">Productores internos</div>
+                            <div class="v">{{ metricas.flujos_internos.count }}</div>
+                            <div class="h">Orígenes dentro del mismo organismo</div>
                         </div>
                     </div>
+                    {% if metricas.flujos_externos.nombres %}
+                    <div style="margin-top:.9rem; font-size:.8rem;">
+                        <div class="m" style="font-weight:600; margin-bottom:.3rem;">Le envían datos:</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:.35rem;">
+                            {% for n in metricas.flujos_externos.nombres %}
+                                <span class="ov-badge b-dim">{{ n }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if metricas.flujos_internos.nombres %}
+                    <div style="margin-top:.6rem; font-size:.8rem;">
+                        <div class="m" style="font-weight:600; margin-bottom:.3rem;">Orígenes internos:</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:.35rem;">
+                            {% for n in metricas.flujos_internos.nombres %}
+                                <span class="ov-badge b-dim">{{ n }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -440,7 +465,9 @@
         <!-- ========== PRODUCCIÓN ========== -->
         <div class="ov-panel" data-panel="produccion">
             <div class="ov-card">
-                <h2>Indicadores y Operaciones</h2>
+                <h2>Indicadores y Operaciones
+                    {% if metricas.total_indicadores %}<small>{{ metricas.total_indicadores }} indicador{{ metricas.total_indicadores|pluralize:"es" }} a cargo · mostrando {{ indicadores|length }}</small>{% endif %}
+                </h2>
                 {% if indicadores %}
                     {% for indicador in indicadores %}
                         <div class="ov-item">
@@ -464,11 +491,11 @@
                 <div class="ov-pills">
                     <div class="ov-pill">
                         <div class="k">Flujos recibe (detalle)</div>
-                        <div class="v">{{ flujos_recibe|length }}</div>
+                        <div class="v">{{ metricas.total_flujos_entrada }}</div>
                     </div>
                     <div class="ov-pill">
                         <div class="k">Flujos envía (detalle)</div>
-                        <div class="v">{{ flujos_envia|length }}</div>
+                        <div class="v">{{ metricas.total_flujos_salida }}</div>
                     </div>
                 </div>
             </div>
