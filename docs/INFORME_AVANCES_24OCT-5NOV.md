@@ -192,6 +192,15 @@ de la analítica y el ciclo de validación del FICED.
   lista cortada a 10); indicadores muestran «N a cargo · mostrando M».
 - Logo de `/hall-capacidad/`: imagen remota i.ibb.co → `logo_hoja_vida.png`
   local (el del card del home).
+- P19 «Pregunta compartida»: la tabla RRHH de otros equipos desbordaba la
+  caja — el grid padre estiraba al ancho de la tabla (`min-width:auto`),
+  neutralizando el `overflow-x` interno. Fix: `min-width:0` + scroll propio
+  en el item. Celdas con listas se formatean `DN, D, C` (antes repr Python
+  `['DN','D','C']`).
+- Tarjeta «Indicadores y Operaciones»: deja de ser una pared plana de filas —
+  se agrupa por operación estadística con encabezado y conteo, cada fila es
+  enlace directo a la ficha del indicador (`conjunto_datos_detalle`) con
+  chevrón y hover, y el subtítulo muestra «N a cargo · mostrando M».
 
 *Carga de datos FICED*
 

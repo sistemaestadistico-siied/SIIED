@@ -151,6 +151,13 @@
     .ov-item + .ov-item { margin-top: .6rem; }
     .ov-item .n { font-weight: 600; font-size: .9rem; }
     .ov-item .m { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+    .ov-item-link { text-decoration: none; color: inherit; transition: border-color .15s ease, background .15s ease; }
+    .ov-item-link:hover { border-color: var(--accent); background: #f5f8ff; }
+    .ov-indgroup { margin-top: 1rem; }
+    .ov-indgroup-h {
+        font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+        color: var(--muted); margin-bottom: .5rem; display: flex; align-items: center; gap: .45rem;
+    }
 
     .ov-hist { display: flex; flex-wrap: wrap; gap: .5rem; }
     .ov-hist .h {
@@ -468,17 +475,26 @@
                 <h2>Indicadores y Operaciones
                     {% if metricas.total_indicadores %}<small>{{ metricas.total_indicadores }} indicador{{ metricas.total_indicadores|pluralize:"es" }} a cargo · mostrando {{ indicadores|length }}</small>{% endif %}
                 </h2>
-                {% if indicadores %}
-                    {% for indicador in indicadores %}
-                        <div class="ov-item">
-                            <div>
-                                <div class="n">{{ indicador.nombre }}</div>
-                                {% if indicador.operacion %}<div class="m">{{ indicador.operacion.nombre }}</div>{% endif %}
+                {% if grupos_indicadores %}
+                    {% for grupo in grupos_indicadores %}
+                        <div class="ov-indgroup">
+                            <div class="ov-indgroup-h">
+                                {{ grupo.nombre }}
+                                <span class="ov-badge b-dim">{{ grupo.items|length }}</span>
                             </div>
-                            <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
-                                {% if indicador.frecuencia_difusion %}<span class="ov-badge b-dim">{{ indicador.frecuencia_difusion }}</span>{% endif %}
-                                <span class="ov-badge b-dim">Actualizado hace {{ indicador.fecha_publicacion_metadatos|timesince }}</span>
-                            </div>
+                            {% for indicador in grupo.items %}
+                                <a class="ov-item ov-item-link" href="{% url 'indicadores:conjunto_datos_detalle' indicador.id %}">
+                                    <div>
+                                        <div class="n">{{ indicador.nombre }}</div>
+                                        {% if indicador.codigo_indicador %}<div class="m">{{ indicador.codigo_indicador }}</div>{% endif %}
+                                    </div>
+                                    <div style="display:flex; gap:.4rem; flex-wrap:wrap; align-items:center;">
+                                        {% if indicador.frecuencia_difusion %}<span class="ov-badge b-dim">{{ indicador.frecuencia_difusion }}</span>{% endif %}
+                                        <span class="ov-badge b-dim">Actualizado hace {{ indicador.fecha_publicacion_metadatos|timesince }}</span>
+                                        <i class="fas fa-chevron-right" style="color:#c7c7cc; font-size:.7rem;"></i>
+                                    </div>
+                                </a>
+                            {% endfor %}
                         </div>
                     {% endfor %}
                 {% else %}

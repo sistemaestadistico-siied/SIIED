@@ -6055,10 +6055,21 @@ def organismo_detalle(request, codigo):
     
     organismo = get_object_or_404(Organismo, codigo=codigo, activo=True)
     
-    # Indicadores bajo responsabilidad
-    indicadores = Indicador.objects.filter(
+    # Indicadores bajo responsabilidad, agrupados por operación estadística
+    ind_qs = Indicador.objects.filter(
         organismo_responsable=organismo
-    ).select_related('operacion').order_by('-fecha_actualizacion_ficha')[:20]
+    ).select_related('operacion').order_by('operacion__nombre', 'nombre')[:40]
+    grupos_indicadores = {}
+    for ind in ind_qs:
+        clave = ind.operacion.nombre if ind.operacion else '\uffff'
+        grupos_indicadores.setdefault(clave, []).append(ind)
+    indicadores = [i for i in ind_qs]  # compat: conteo en subtítulo
+    grupos_indicadores = [
+        {'nombre': 'Sin operación estadística' if k == '\uffff' else k,
+         'items': v}
+        for k, v in sorted(
+            grupos_indicadores.items(), key=lambda kv: kv[0])
+    ]
     
     # Inscripciones al taller de gestión de datos institucionales (instrumento F1/F2/F3)
     sesiones = InscripcionTaller.objects.filter(
@@ -6108,7 +6119,8 @@ def organismo_detalle(request, codigo):
     
     # Métricas calculadas
     metricas = {
-        'total_indicadores': indicadores.count(),
+        'total_indicadores': Indicador.objects.filter(
+            organismo_responsable=organismo).count(),
         'total_sesiones': sesiones.count(),
         'total_participantes': sesiones.count(),
         'total_respuestas_rapidas': respuestas_rapidas.count(),
@@ -6262,6 +6274,7 @@ def organismo_detalle(request, codigo):
         'page': 'hall_capacidad',
         'organismo': organismo,
         'indicadores': indicadores,
+        'grupos_indicadores': grupos_indicadores,
         'sesiones': sesiones,
         'respuestas_rapidas': respuestas_rapidas,
         'respuestas_completas': respuestas_completas,
