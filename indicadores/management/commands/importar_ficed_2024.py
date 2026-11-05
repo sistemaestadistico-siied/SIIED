@@ -790,6 +790,12 @@ class Command(BaseCommand):
             t = ''.join(c for c in t if unicodedata.category(c) != 'Mn')
             return re.sub(r'\s+', ' ', t.lower()).strip()
 
+        # --organismo <id> numérico → pk directo
+        if str(nombre).strip().isdigit():
+            org = Organismo.objects.filter(pk=int(nombre)).first()
+            if org:
+                return org
+
         objetivo = norm(nombre)
         orgs = list(Organismo.objects.all())
         # Exacto normalizado
