@@ -3,7 +3,7 @@
 **Periodo:** viernes 24 de octubre → miércoles 5 de noviembre de 2026
 **Proyecto:** Sistema Integrado de Información Estadística Distrital (SIIED)
 **Repositorio:** [sistemaestadistico-siied/SIIED](https://github.com/sistemaestadistico-siied/SIIED)
-**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`d42183a`](https://github.com/sistemaestadistico-siied/SIIED/commit/d42183a) (5 commits funcionales)
+**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`ebe07bb`](https://github.com/sistemaestadistico-siied/SIIED/commit/ebe07bb) (6 commits funcionales)
 
 ---
 
@@ -26,14 +26,19 @@ de la analítica y el ciclo de validación del FICED.
   wizard admite columnas con comas en el nombre (separador `;`), la tabla de
   operaciones estadísticas del FICED deja de truncarse y el catálogo de
   datasets de SIIED BI ahora agrupa sus 7 categorías en secciones plegables.
+- **5 de noviembre — QA de diligenciamiento FICED y trazabilidad**: ronda de
+  8 correcciones sobre el formulario (widgets, validaciones condicionales y
+  textos), nuevo histórico de respuestas por pregunta que Don Datico cita
+  como evidencia verificable, y rediseño visual del módulo público ICED y de
+  la hoja de vida de los organismos.
 
 ## 2. Métricas del periodo
 
 | Métrica | Valor |
 |---|---|
-| Commits funcionales | 5 |
-| Archivos tocados | ~230 |
-| Líneas añadidas / eliminadas | +8 313 / −3 252 |
+| Commits funcionales | 6 |
+| Archivos tocados | ~250 |
+| Líneas añadidas / eliminadas | +10 857 / −4 433 |
 | Migraciones nuevas | 2 (0134 quita `formula_ficha`; 0135 pre-validación FICED) |
 | Preguntas documentadas en manual FICED | 42 |
 | Métodos nuevos de API Superset (charts) | 4 |
@@ -125,19 +130,74 @@ de la analítica y el ciclo de validación del FICED.
   módulos y preguntas P1–P42 con instructivos, tipos de respuesta, campos
   condicionales, conciliación y roles.
 
+**5 de noviembre — QA de diligenciamiento, evidencia y rediseño**
+
+*FICED (8 correcciones)*
+
+- P23: «Acciones de fortalecimiento» pasa de texto libre a select Sí/No/NA,
+  alineado con las respuestas ya importadas.
+- P30: se retira la columna de descripción editable; el widget deriva el
+  texto de la opción MOP seleccionada (`campo_derivado`).
+- URLs múltiples: control «+» para agregar/quitar enlaces por celda, persistidos
+  con separador `;` (validación acepta `,` y `;`).
+- P9: `help_text` placeholder («Misma estructura que P8») reemplazado por la
+  instrucción real del instrumento.
+- «Pregunta compartida»: los campos de respuestas de otros equipos se ordenan
+  por posición de declaración en el wizard (la pregunta principal antes que
+  sus sub-campos), no por orden de inserción del JSON.
+- P25: el banner informativo readonly (`p25_proyectos_bp_link`) ya no se
+  valida como URL — regla explícita `texto` en `REGLAS_CAMPOS_FICED`.
+- Campos condicionales `data-show-if`: cuando la condición no se cumple se
+  descarta el valor y no se valida (antes un valor «stale» en un campo
+  oculto bloqueaba el avance del paso, p. ej. al desmarcar «proyectos»).
+- Confirmación post-envío con dos botones: volver al módulo delegado e ir al
+  módulo ICED.
+
+*Don Datico FICED y evidencia verificable*
+
+- El chat solo consulta formularios de años anteriores con contenido real
+  (`validado`, `enviado`, `prevalidado`, `devuelto`), prefiriendo el
+  consolidado del organismo o el del propio equipo del delegado.
+- Nueva vista `/iced/historico/`: respuestas por pregunta × período con
+  filtros `?q=N` y `?modulo=x`, etiquetas reales del instrumento y badges de
+  estado. El chat la referencia con el enlace exacto de la pregunta para que
+  el delegado verifique la evidencia citada (URLs linkificadas en `mdToHtml`).
+
+*Rediseño visual y privacidad*
+
+- `/iced/modulo/` y la hoja de vida `/hall-capacidad/<codigo>/` rediseñadas
+  con el sistema visual limpio (fuente de sistema, superficie clara, segmented
+  tabs, pills de período, badges semánticos).
+- Corrección de puntajes ICED: el modelo los guarda en escala 0–1 y la hoja
+  de vida los renderizaba crudos — donut y barras salían vacíos. La vista
+  expone ahora `ficed_pct`/`ficed_hist_pct` en porcentaje.
+- Correcciones de métricas: «fuentes con origen declarado» ya no muestra
+  `densidad_red`; `total_indicadores` cuenta el total real (antes cortado a 10).
+- Privacidad en página pública: se retiran nombres de inscritos al taller y
+  del usuario diligenciante del FICED.
+- Reparado `})` huérfano en `views.documentacion` (SyntaxError que tumbaba el
+  servidor de desarrollo) y nombre correcto de la dependencia en el login
+  delegado («Departamento Administrativo de Planeación»).
+
+*Carga de datos FICED*
+
+- `importar_ficed_2024` y `seed_iced_mop`: importados los 27 organismos del
+  FICED 2024 y 2025 con 472 filas de RRHH; DACDI reclasificada a «Instrucción».
+
 ## 4. Avances por eje
 
 | Eje | Entregable |
 |---|---|
 | FICED | Validación organismo→SIIED en dos etapas, conciliación por equipos, productos de cumplimiento |
+| FICED — QA | 8 correcciones de diligenciamiento, condicionales que no bloquean, histórico verificable por el chat |
 | Geo | GeoJSON materializado, descarga de capas por nivel, escala coroplética unificada |
 | Analítica/BI | Ciclo de vida de charts sincronizado con el admin; datasets plegables; embed bare |
 | Datos | `formula_ficha` retirado de todo el pipeline; `columnas_fuente` tolera comas en nombres |
-| UX | Acordeones con contadores, tabla P23 con scroll horizontal, manuales al día |
+| UX | Acordeones con contadores, tabla P23 con scroll horizontal, manuales al día; rediseño limpio de módulo ICED público y hoja de vida de organismos |
 
 ## 5. Estado actual
 
-- `main` sincronizado con `origin/main` (`d42183a`) — todo el trabajo pendiente empujado.
+- `main` sincronizado con `origin/main` (`ebe07bb`) — todo el trabajo pendiente empujado.
 - Migraciones 0134 y 0135 generadas; **pendiente aplicarlas en producción**.
 - `manage.py check`: 0 issues.
 
