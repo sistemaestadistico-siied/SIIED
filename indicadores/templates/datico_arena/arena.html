@@ -99,6 +99,11 @@ Click disparar · TAB marcador · Esc soltar mouse</div>
     <h1>⚡ DATICO ARENA</h1>
     <div class="sub">Team deathmatch — Daticos Verdes vs Daticos Morados</div>
     <input id="nick" maxlength="20" placeholder="Tu nombre de guerra" autocomplete="off">
+    <div style="margin-bottom:18px; font-size:14px; opacity:.85">
+      Bots en el arena: <input id="bots" type="number" min="0" max="10" value="5"
+      style="width:70px; padding:6px 8px; font-size:16px; margin:0">
+      <span style="font-size:11px; opacity:.6">(solo o cooperativo)</span>
+    </div>
     <button id="play">ENTRAR AL ARENA</button>
     <div class="err" id="lerr"></div>
     <div class="ctrl">WASD moverse · Shift sprint · Espacio saltar · Click disparar<br>
@@ -119,6 +124,10 @@ const WS_URL = qs.get('ws')
     : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.hostname}:8765/datico`;
 const TEAM_COLOR = { verde: 0x2Bd98b, morado: 0xa05cff };
 const TEAM_EMISSIVE = { verde: 0x1a8f57, morado: 0x6a2bb8 };
+// Clips del GLB: ajustables por URL (?idle=1&move=2) — anim[1] largo 17.6s,
+// anim[2] corto 3.7s. Afinar viendo el juego si las poses se ven raras.
+const ANIM_IDLE = parseInt(qs.get('idle') ?? '1');
+const ANIM_MOVE = parseInt(qs.get('move') ?? '2');
 const WALK = 7.5, SPRINT = 11.5, JUMP_V = 8.5, GRAV = -22, EYE = 1.62;
 const RADIUS = 0.45;
 
@@ -127,7 +136,7 @@ let ws = null, myId = null, myTeam = null, mapSpec = null;
 let names = {};                       // id -> {name,team,kills,deaths}
 let remotes = {};                     // id -> {group, model, label, hp, alive, posTgt, yawTgt}
 let hp = 100, alive = true, respawnAt = 0;
-let glbScene = null, glbReady = false;
+let glbScene = null, glbAnims = null, glbReady = false;
 const keys = {};
 const player = { pos: new THREE.Vector3(0, 0, 0), vy: 0, yaw: 0, pitch: 0, grounded: true };
 let boxes = [];                       // AABB del mapa
@@ -138,6 +147,8 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
 document.getElementById('game').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -153,6 +164,12 @@ sun.shadow.mapSize.setScalar(2048);
 sun.shadow.camera.left = sun.shadow.camera.bottom = -30;
 sun.shadow.camera.right = sun.shadow.camera.top = 30;
 scene.add(sun);
+// Luces de bando: verde al oeste, morado al este
+const lv = new THREE.PointLight(TEAM_COLOR.verde, 80, 55, 1.8);
+lv.position.set(-18, 7, 0);
+const lm = new THREE.PointLight(TEAM_COLOR.morado, 80, 55, 1.8);
+lm.position.set(18, 7, 0);
+scene.add(lv, lm);
 
 /* ================= Arena ================= */
 function buildMap(spec) {
@@ -224,6 +241,7 @@ function buildMap(spec) {
 /* ================= Modelo Don Datico ================= */
 new GLTFLoader().load(GLB_URL, (gltf) => {
     glbScene = gltf.scene;
+    glbAnims = gltf.animations;
     glbReady = true;
     Object.keys(remotes).forEach(id => attachModel(remotes[id]));
 });
@@ -271,6 +289,16 @@ function attachModel(r) {
     wrap.rotation.y = -Math.PI / 2;          // el GLB mira +x → alinear a +z
     r.group.add(wrap);
     r.model = m;
+    // Animaciones reales del rig: idle/move con crossfade según 'moving'
+    if (glbAnims && glbAnims.length) {
+        r.mixer = new THREE.AnimationMixer(m);
+        const clipIdle = glbAnims[Math.min(ANIM_IDLE, glbAnims.length - 1)];
+        const clipMove = glbAnims[Math.min(ANIM_MOVE, glbAnims.length - 1)];
+        r.actIdle = r.mixer.clipAction(clipIdle);
+        r.actMove = clipMove === clipIdle ? r.actIdle : r.mixer.clipAction(clipMove);
+        r.actIdle.play();
+        r.animState = 'idle';
+    }
     const label = nameLabel(r.name, r.team);
     label.position.y = 2.35;
     r.group.add(label);
@@ -369,6 +397,9 @@ const sfx = {
     respawn: () => { beep(300, 900, .25, 'sine', .18); beep(500, 1200, .2, 'sine', .12, .12); },
     join:    () => beep(600, 1000, .15, 'sine', .1),
     kill:    () => { [523, 659, 784].forEach((f, i) => beep(f, f, .12, 'square', .1, i * .08)); },
+    step:    () => beep(85 + Math.random() * 35, 55, .07, 'triangle', .05),
+    jump:    () => beep(180, 420, .14, 'sine', .08),
+    land:    () => beep(150, 65, .1, 'triangle', .1),
 };
 // Pad ambiental suave de fondo
 function ambient() {
@@ -441,16 +472,20 @@ function scoreboard(show) {
         .map(([id, n]) => `<tr>
             <td class="tm-${n.team}">${id == myId ? '▶ ' : ''}${n.name}</td>
             <td class="tm-${n.team}">${n.team === 'verde' ? '🟢' : '🟣'}</td>
-            <td>${n.kills}</td><td>${n.deaths}</td></tr>`).join('');
+            <td>${n.kills}</td><td>${n.deaths}</td>
+            <td>${n.bot ? '🤖' : '🧑'}</td></tr>`).join('');
     $('btable').innerHTML =
-        `<tr><th>Datico</th><th>Bando</th><th>K</th><th>D</th></tr>${rows}`;
+        `<tr><th>Datico</th><th>Bando</th><th>K</th><th>D</th><th></th></tr>${rows}`;
 }
 
 /* ================= Red ================= */
 function connect(nick) {
     $('conn').textContent = 'conectando…';
     ws = new WebSocket(WS_URL);
-    ws.onopen = () => ws.send(JSON.stringify({ t: 'join', name: nick }));
+    ws.onopen = () => ws.send(JSON.stringify({
+        t: 'join', name: nick,
+        bots: Math.max(0, Math.min(10, parseInt($('bots').value) || 0)),
+    }));
     ws.onclose = () => {
         $('conn').textContent = '✕ desconectado';
         $('lerr').textContent = 'Servidor de arena caído — ¿corre `python -m datico_arena.server`?';
@@ -490,6 +525,7 @@ function connect(nick) {
                     r.posTgt.set(p.p[0], p.p[1], p.p[2]);
                     r.yawTgt = p.ry;
                     r.hp = p.hp; r.alive = p.alive;
+                    r.moving = p.moving;
                 }
             },
             shot(m) {
@@ -556,7 +592,18 @@ function collide(p) {
     }
 }
 
-let lastSend = 0, lastMove = false;
+let lastSend = 0, lastMove = false, stepT = 0;
+// Altura del suelo bajo el jugador: tope de cualquier caja alcanzable (step ≤ .35m)
+function groundHeight(x, z, feet) {
+    let g = 0;
+    for (const b of boxes) {
+        if (x + RADIUS * .7 > b.min.x && x - RADIUS * .7 < b.max.x &&
+            z + RADIUS * .7 > b.min.z && z - RADIUS * .7 < b.max.z &&
+            b.max.y <= feet + .35)
+            g = Math.max(g, b.max.y);
+    }
+    return g;
+}
 function updateLocal(dt) {
     const speed = keys['ShiftLeft'] || keys['ShiftRight'] ? SPRINT : WALK;
     const f = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
@@ -572,10 +619,26 @@ function updateLocal(dt) {
 
     if (alive && keys['Space'] && player.grounded) {
         player.vy = JUMP_V; player.grounded = false;
+        sfx.jump();
     }
+    const wasAir = !player.grounded;
     player.vy += GRAV * dt;
     player.pos.y += player.vy * dt;
-    if (player.pos.y <= 0) { player.pos.y = 0; player.vy = 0; player.grounded = true; }
+    const gy = groundHeight(player.pos.x, player.pos.z, player.pos.y);
+    if (player.pos.y <= gy) {
+        player.pos.y = gy;
+        player.vy = 0;
+        if (!player.grounded && wasAir) sfx.land();
+        player.grounded = true;
+    } else if (player.pos.y > gy + .02) {
+        player.grounded = false;
+    }
+    // Pasos al caminar
+    stepT -= dt;
+    if (moving && player.grounded && stepT <= 0) {
+        sfx.step();
+        stepT = keys['ShiftLeft'] || keys['ShiftRight'] ? .22 : .3;
+    }
 
     collide(player.pos);
     const half = (mapSpec?.half || 22) - .6;
@@ -617,6 +680,18 @@ function updateRemotes(dt) {
             r.bobPhase += dt * (r.group.position.distanceToSquared(r.posTgt) > .002 ? 10 : 2);
             r.model.position.y = Math.abs(Math.sin(r.bobPhase)) * .12;
             r.model.rotation.x = Math.sin(r.bobPhase * .5) * .05;
+        }
+        // Mixer del GLB + crossfade idle ↔ move según el flag del server
+        if (r.mixer) {
+            const want = (r.alive && r.moving) ? 'move' : 'idle';
+            if (want !== r.animState && r.actMove !== r.actIdle) {
+                const inA = want === 'move' ? r.actMove : r.actIdle;
+                const outA = want === 'move' ? r.actIdle : r.actMove;
+                inA.reset().fadeIn(.18).play();
+                outA.fadeOut(.18);
+                r.animState = want;
+            }
+            r.mixer.update(dt);
         }
     }
 }
