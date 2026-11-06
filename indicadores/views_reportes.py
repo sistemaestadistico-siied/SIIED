@@ -1357,9 +1357,12 @@ def reportes_visitas_exportar_excel(request):
     )
     df_detalle.columns = ['Fecha/Hora', 'Categoria', 'Pagina', 'IP', 'Usuario', 'User Agent', 'Referer']
 
-    # Convertir datetimes timezone-aware a naive (Excel no soporta tz)
+    # Convertir datetimes tz-aware (UTC) a hora local y luego a naive —
+    # Excel no soporta tz. Sin tz_convert quedaban 5 h adelante de Bogotá.
     if not df_detalle.empty:
-        df_detalle['Fecha/Hora'] = pd.to_datetime(df_detalle['Fecha/Hora']).dt.tz_localize(None)
+        df_detalle['Fecha/Hora'] = (pd.to_datetime(df_detalle['Fecha/Hora'])
+                                    .dt.tz_convert(timezone.get_current_timezone())
+                                    .dt.tz_localize(None))
 
     # openpyxl rechaza caracteres de control en celdas (IllegalCharacterError).
     # Los paths/user_agents de escáneres los traen — limpiarlos antes de escribir.
