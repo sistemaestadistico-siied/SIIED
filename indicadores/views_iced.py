@@ -790,7 +790,7 @@ class ICEDWizardView(SessionWizardView):
                     cod = ICEDPreguntaEquipo.codigo_de_campo(fname)
                     if not cod or v in (None, '', [], {}, '[]', '{}'):
                         continue
-                    if fname.endswith('_intro') or fname.endswith('_display'):
+                    if fname.endswith(('_intro', '_display', '_link')):
                         continue
                     por_codigo.setdefault(cod, {})[fname] = v
                 usuario = f.usuario_diligencia
@@ -1087,6 +1087,13 @@ def iced_guardar_parcial(request):
         # del módulo al guardar borrador (IC-03).
         existente = getattr(formulario, campo) or {}
         existente.update(respuestas)
+        # Purgar claves de campos auxiliares display-only heredadas de
+        # versiones anteriores (p.ej. p25_proyectos_bp_link guardaba el
+        # texto del enlace como si fuera una respuesta).
+        for k in list(existente):
+            fname = k.split('-', 1)[1] if '-' in k else k
+            if fname.endswith(('_intro', '_display', '_link')):
+                del existente[k]
         setattr(formulario, campo, existente)
         formulario.paso_actual = paso
         formulario.save(update_fields=[campo, 'paso_actual', 'fecha_actualizacion'])

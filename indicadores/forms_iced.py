@@ -1412,18 +1412,6 @@ class ICEDModuloD1Form(ICEDBaseForm):
         required=False,
         label="25. ¿Cuáles mecanismos se utilizan en el organismo para la detección de necesidades misionales o estadísticas?"
     )
-    p25_proyectos_bp_link = forms.CharField(
-        max_length=500,
-        required=False,
-        initial='🔗 Consulte los BP asociados aquí: https://www.cali.gov.co/planeacion/publicaciones/115111/programas_proyectos_ejecucion_dapm/',
-        widget=forms.TextInput(attrs={
-            'class': 'iced-input iced-conditional',
-            'data-show-if': 'p25_mecanismos_necesidades=proyectos',
-            'readonly': 'readonly',
-            'style': 'background: #e0f2fe; border: 1px solid #0ea5e9; color: #0369a1; font-size: 0.85rem;'
-        }),
-        label=""
-    )
     p25_proyectos_bp = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
@@ -1432,7 +1420,12 @@ class ICEDModuloD1Form(ICEDBaseForm):
             'placeholder': 'Ej: 2024001, 2024002, 2024015'
         }),
         label="BP asociados",
-        help_text="Separe los números de BP por comas. Ejemplo: 2024001, 2024002, 2024015"
+        help_text=(
+            'Separe los números de BP por comas. Ejemplo: 2024001, 2024002, 2024015. '
+            '🔗 <a href="https://www.cali.gov.co/planeacion/publicaciones/115111/'
+            'programas_proyectos_ejecucion_dapm/" target="_blank" rel="noopener" '
+            'style="color:#0369a1;font-weight:600;">Consulte los BP asociados aquí</a>.'
+        )
     )
     p25_otro_especificar = forms.CharField(
         required=False,
