@@ -407,6 +407,39 @@ class SupersetService:
         return [r.get('name') for r in (result[0].get('roles') or [])
                 if r.get('name')]
 
+    def _obtener_usuario(self, username):
+        """Fila completa del usuario en Superset (result[0]) o None."""
+        data = self._api_request(
+            'GET', 'security/users/',
+            params={'q': f'(filters:!((col:username,opr:eq,value:{username})))'}
+        )
+        resultados = (data or {}).get('result') or []
+        return resultados[0] if resultados else None
+
+    def _actualizar_usuario(self, user_actual, cambios):
+        """PUT security/users/{id} con payload fusionado.
+
+        La API es estricta con el esquema (rechaza campos desconocidos y
+        roles que no sean IDs enteros), así que se envía la fila completa
+        con los cambios aplicados sobre los campos escriturables."""
+        payload = {
+            'username': user_actual.get('username'),
+            'email': user_actual.get('email') or '',
+            'first_name': user_actual.get('first_name') or '',
+            'last_name': user_actual.get('last_name') or '',
+            'active': bool(user_actual.get('active', True)),
+            'roles': [r.get('id') for r in (user_actual.get('roles') or [])
+                      if r.get('id')],
+        }
+        payload.update(cambios)
+        user_id = user_actual.get('id')
+        data = self._write_request('PUT', f'security/users/{user_id}', payload)
+        if data is None or '_error' in data:
+            return {'error': (data or {}).get('_detalle')
+                            or (data or {}).get('_error')
+                            or 'error actualizando usuario en Superset'}
+        return {'success': True}
+
     def obtener_rol_id(self, role_name):
         """ID interno de un rol Superset por nombre ('Alpha','Gamma',...) o None."""
         data = self._api_request('GET', 'security/roles/')
@@ -431,16 +464,32 @@ class SupersetService:
         if not shared_password:
             return {'error': 'SUPERSET_SHARED_PASSWORD no configurado en settings.py'}
 
-        if self.usuario_existe(username):
-            logger.info(f"Superset: usuario '{username}' ya existe")
-            return {'success': True, 'message': 'Usuario ya existe', 'username': username}
-
         # La API exige el ID entero del rol, no el nombre.
         rol_id = self.obtener_rol_id(role_name)
         if rol_id is None:
             disponibles = ', '.join(self.roles_disponibles()) or 'ninguno'
             return {'error': f"Rol Superset '{role_name}' no existe. "
                              f'Roles disponibles: {disponibles}'}
+
+        usuario_actual = self._obtener_usuario(username)
+        if usuario_actual:
+            # Ya existe: asegurar el rol correcto — el rol SIIED pudo
+            # cambiar (analista ↔ analista_organismo) desde la creación.
+            roles_actuales = [r.get('name') for r in
+                              (usuario_actual.get('roles') or [])]
+            if role_name in roles_actuales:
+                logger.info(f"Superset: usuario '{username}' ya existe")
+                return {'success': True, 'message': 'Usuario ya existe',
+                        'username': username}
+            r = self._actualizar_usuario(
+                usuario_actual, {'roles': [rol_id]})
+            if 'error' in r:
+                return r
+            logger.info(
+                f"Superset: rol de '{username}' actualizado a {role_name}")
+            return {'success': True,
+                    'message': f'Rol actualizado a {role_name}',
+                    'username': username}
 
         csrf_token = self._get_csrf_token()
         headers = self._get_headers()
@@ -490,15 +539,14 @@ class SupersetService:
 
         Se usa cuando el perfil SIIED pasa a activo=False o cambia a un
         rol sin acceso BI — evita cuentas Alpha/Gamma huérfanas."""
-        user_id = self.obtener_usuario_id(username)
-        if not user_id:
+        usuario_actual = self._obtener_usuario(username)
+        if not usuario_actual:
             return {'success': True, 'message': 'Usuario no existe en Superset'}
-        data = self._write_request(
-            'PUT', f'security/users/{user_id}', {'active': False})
-        if data is None or '_error' in data:
-            return {'error': (data or {}).get('_detalle')
-                            or (data or {}).get('_error')
-                            or 'error desactivando usuario'}
+        if not usuario_actual.get('active', True):
+            return {'success': True, 'message': 'Usuario ya estaba desactivado'}
+        r = self._actualizar_usuario(usuario_actual, {'active': False})
+        if 'error' in r:
+            return r
         logger.info(f"Superset: usuario '{username}' desactivado")
         return {'success': True, 'username': username}
 
