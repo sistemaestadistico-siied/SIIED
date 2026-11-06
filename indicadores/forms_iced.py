@@ -1198,7 +1198,7 @@ P28_2_CHOICES = [
 
 P29_CHOICES = [
     ('1', 'Coordinador líder y responsable de la implementación, facilitando la comunicación y articulación entre diferentes actores. — Pase a la pregunta 29.1'),
-    ('2', 'Co-ejecutor del plan de acción en la implementación de la política.'),
+    ('2', 'Co-ejecutor del plan de acción en la implementación de una política.'),
     ('3', 'No está involucrado con las políticas públicas actuales'),
     ('4', 'Otro rol en relación con las políticas públicas vigentes (especificar)'),
 ]
@@ -1556,10 +1556,11 @@ class ICEDModuloD2Form(ICEDBaseForm):
         label="Especifique otro modelo"
     )
 
-    # P29: Rol con políticas públicas
-    p29_rol_politicas = forms.ChoiceField(
+    # P29: Rol con políticas públicas (opción múltiple; las subpreguntas
+    # 29.1-29.4 y el 'especifique' se activan según las opciones marcadas)
+    p29_rol_politicas = forms.MultipleChoiceField(
         choices=P29_CHOICES,
-        widget=forms.RadioSelect(attrs={'class': 'iced-radio'}),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'iced-checkbox'}),
         label="29. ¿Cuál es el rol de su organismo con las políticas públicas vigentes aprobadas en la Alcaldía Distrital de Santiago de Cali y/o de orden nacional?"
     )
     p29_otro_especificar = forms.CharField(
@@ -1806,12 +1807,17 @@ class ICEDModuloD2Form(ICEDBaseForm):
             if 'otro' in p28_2 and not (cleaned.get('p28_2_especificar') or '').strip():
                 self._err('p28_2_especificar', 'Especifique el otro modelo.')
 
-        # --- P29: cadena de políticas públicas ---
-        p29 = cleaned.get('p29_rol_politicas')
-        if p29 == '4' and not (cleaned.get('p29_otro_especificar') or '').strip():
+        # --- P29: cadena de políticas públicas (opción múltiple: lista) ---
+        p29 = cleaned.get('p29_rol_politicas') or []
+        if '4' in p29 and not (cleaned.get('p29_otro_especificar') or '').strip():
             self._err('p29_otro_especificar', 'Especifique el otro rol.')
+        if '3' in p29 and len(p29) > 1:
+            self._err(
+                'p29_rol_politicas',
+                '"No está involucrado con las políticas públicas actuales" '
+                'no puede combinarse con otras opciones.')
 
-        if p29 == '1':
+        if '1' in p29:
             # P29.1 metodología (obligatoria + especificar si 'otro')
             if not cleaned.get('p29_1_metodologia'):
                 self._err('p29_1_metodologia',

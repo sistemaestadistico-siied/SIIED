@@ -383,6 +383,7 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
     # Listas checkbox simples
     if field_key in ('p25_mecanismos_necesidades',
                      'p26_estructura_analisis', 'p28_como_articulan',
+                     'p29_rol_politicas',
                      'p28_1_frecuencia_reuniones', 'p28_2_modelos_estadisticos',
                      'p29_1_metodologia', 'p29_2_frecuencia',
                      'p29_3_medios_divulgacion', 'p29_4_acciones',

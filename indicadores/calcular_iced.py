@@ -660,10 +660,16 @@ def _calcular_indicadores(resp_b, resp_c, resp_d, resp_e):
 
     ind['3.2.2'] = _promedio([p27, p28])
 
-    # P29 + subpreguntas
-    p29 = _escala_directa(resp_d.get('p29_rol_politicas'),
-                          {'1': 100, '2': 67, '4': 33, '3': 0})
-    if str(resp_d.get('p29_rol_politicas')) == '1':
+    # P29 + subpreguntas (opción múltiple: puntúa el rol más alto marcado;
+    # los datos importados de 2024 llegan como escalar)
+    p29_sel = resp_d.get('p29_rol_politicas')
+    if isinstance(p29_sel, str):
+        p29_sel = [p29_sel] if p29_sel else []
+    elif not isinstance(p29_sel, list):
+        p29_sel = []
+    p29 = max((_escala_directa(v, {'1': 100, '2': 67, '4': 33, '3': 0})
+               for v in p29_sel), default=0)
+    if '1' in p29_sel:
         sub_scores = [p29]
         if resp_d.get('p29_1_metodologia'):
             sub_scores.append(_proporcional_normalizada(resp_d.get('p29_1_metodologia'), None))
