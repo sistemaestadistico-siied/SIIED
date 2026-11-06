@@ -63,7 +63,6 @@
         <p class="text-sm text-slate-600 mt-1">Aprobadas hoy</p>
     </div>
     
-    {% if not es_validador_organismo %}
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <div class="flex items-center justify-between mb-4">
             <div class="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center">
@@ -76,9 +75,8 @@
         <div class="text-3xl font-bold {% if stats.iced_pendientes > 0 %}text-indigo-600{% else %}text-emerald-600{% endif %}">
             {{ stats.iced_pendientes }}
         </div>
-        <p class="text-sm text-slate-600 mt-1">Formularios ICED pendientes</p>
+        <p class="text-sm text-slate-600 mt-1">FICED {% if es_validador_organismo %}por pre-validar{% else %}pendientes{% endif %}</p>
     </div>
-    {% endif %}
 </div>
 
 <!-- Cola de Series pendientes -->
@@ -217,7 +215,6 @@
     {% endif %}
 </div>
 
-{% if not es_validador_organismo %}
 <!-- Cola de Formularios ICED pendientes -->
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
     <div class="bg-indigo-600 px-8 py-6">
@@ -226,7 +223,7 @@
                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
-                Formularios ICED — Pendientes de Validación
+                Formularios ICED — {% if es_validador_organismo %}Pendientes de conciliación / pre-validación{% else %}Pendientes de Validación SIIED{% endif %}
             </h2>
             <span class="text-sm text-indigo-200">{{ iced_pendientes|length }} en cola</span>
         </div>
@@ -292,7 +289,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
         </div>
-        <p class="text-slate-500">No hay formularios ICED pendientes de validación</p>
+        <p class="text-slate-500">{% if es_validador_organismo %}No hay FICED de su organismo pendientes de conciliación o pre-validación{% else %}No hay formularios ICED pendientes de validación{% endif %}</p>
     </div>
     {% endif %}
 </div>
@@ -328,7 +325,6 @@
         {% endfor %}
     </div>
 </div>
-{% endif %}
 {% endif %}
 
 <!-- Mis validaciones recientes -->

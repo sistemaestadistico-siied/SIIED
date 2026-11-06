@@ -198,6 +198,12 @@ def validacion_dashboard(request):
             # cumplimiento) pero ya no cuentan como pendientes.
             iced_count = sum(
                 1 for f in iced_pendientes if f.estado == 'enviado')
+            # Devueltos de SU organismo: los debe ver el prevalidador
+            # para coordinar las correcciones con sus equipos.
+            iced_devueltos = ICEDFormulario.objects.filter(
+                organismo=org, estado='devuelto'
+            ).select_related('organismo', 'usuario_diligencia').order_by(
+                '-fecha_actualizacion')[:10]
     else:
       try:
         iced_pendientes = list(
