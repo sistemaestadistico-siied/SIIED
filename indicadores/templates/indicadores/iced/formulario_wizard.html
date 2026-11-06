@@ -915,6 +915,13 @@ document.addEventListener('DOMContentLoaded', function() {
         ) {
             evaluateConditionals();
         }
+        // El error de validación no debe persistir visualmente cuando el
+        // usuario ya respondió el campo (era 'campo obligatorio' fantasma).
+        const campo = target.closest && target.closest('.iced-field');
+        if (campo) {
+            const err = campo.querySelector('.errorlist');
+            if (err) err.remove();
+        }
     });
     
     evaluateConditionals();
@@ -963,6 +970,12 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.iced-json-field').forEach(function(field) {
                 field.dispatchEvent(new Event('sync'));
             });
+
+            // El sync puede haber cambiado valores que muestran/ocultan
+            // campos (ej: P38 'ninguna' → P39-P41). Re-evaluar ANTES de
+            // limpiar: si el display quedó viejo, se borraba una respuesta
+            // válida (P41 llegaba vacío → 'campo obligatorio' fantasma).
+            evaluateConditionals();
 
             // Limpiar valores de campos condicionales que estén ocultos
             document.querySelectorAll('[data-conditional]').forEach(function(field) {
