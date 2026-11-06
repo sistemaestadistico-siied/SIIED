@@ -984,7 +984,7 @@ document.addEventListener('DOMContentLoaded', function() {
         i = (e.code === SEQ[i]) ? i + 1 : (e.code === SEQ[0] ? 1 : 0);
         if (i === SEQ.length) {
             i = 0;
-            location.href = "{% url 'datico_arena' %}";
+            location.href = "{% url 'indicadores:datico_arena' %}";
         }
     });
 })();
