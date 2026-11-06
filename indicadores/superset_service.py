@@ -385,11 +385,21 @@ class SupersetService:
     # GESTIÓN DE USUARIOS (para rol cientifico_de_datos)
     # ========================================================================
 
+    @staticmethod
+    def _q_username(username):
+        """Filtro rison por username con el valor entre comillas.
+
+        Sin comillas, un username con '@', '.' u otros caracteres
+        especiales rompe el parser de filtros de Superset y la búsqueda
+        retorna vacío (usuario fantasma: existe pero no se encuentra)."""
+        esc = username.replace('!', '!!').replace("'", "!'")
+        return f"(filters:!((col:username,opr:eq,value:'{esc}')))"
+
     def usuario_existe(self, username):
         """Verifica si un usuario ya existe en Superset"""
         data = self._api_request(
             'GET', 'security/users/',
-            params={'q': f'(filters:!((col:username,opr:eq,value:{username})))'}
+            params={'q': self._q_username(username)}
         )
         if not data:
             return False
@@ -399,7 +409,7 @@ class SupersetService:
         """Roles Superset del usuario (['Alpha','Admin',...]) o [] si no existe."""
         data = self._api_request(
             'GET', 'security/users/',
-            params={'q': f'(filters:!((col:username,opr:eq,value:{username})))'}
+            params={'q': self._q_username(username)}
         )
         result = (data or {}).get('result') or []
         if not result:
@@ -411,7 +421,7 @@ class SupersetService:
         """Fila completa del usuario en Superset (result[0]) o None."""
         data = self._api_request(
             'GET', 'security/users/',
-            params={'q': f'(filters:!((col:username,opr:eq,value:{username})))'}
+            params={'q': self._q_username(username)}
         )
         resultados = (data or {}).get('result') or []
         return resultados[0] if resultados else None
@@ -527,7 +537,7 @@ class SupersetService:
         """Retorna el ID interno del usuario en Superset (o None)."""
         data = self._api_request(
             'GET', 'security/users/',
-            params={'q': f'(filters:!((col:username,opr:eq,value:{username})))'}
+            params={'q': self._q_username(username)}
         )
         if not data:
             return None
