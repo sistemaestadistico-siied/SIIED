@@ -423,23 +423,25 @@ class ICEDWizardView(SessionWizardView):
         # Filtrar campos según el equipo técnico del formulario: solo se
         # muestran las preguntas asignadas a ese equipo ('' = todas).
         equipo = self._equipo_formulario()
+        from .models_iced import ICEDPreguntaEquipo
         if equipo:
-            from .models_iced import ICEDPreguntaEquipo
             for fname in list(form.fields.keys()):
                 if not ICEDPreguntaEquipo.campo_pertenece_a_equipo(fname, equipo):
                     del form.fields[fname]
 
-            # Anotar las preguntas compartidas con las respuestas que ya
-            # dieron otros equipos del mismo organismo (se muestran en el
-            # template como referencia antes de responder).
-            otras = self._respuestas_otros_equipos()
-            if otras:
-                anotados = set()
-                for fname, fld in form.fields.items():
-                    cod = ICEDPreguntaEquipo.codigo_de_campo(fname)
-                    if cod and cod in otras and cod not in anotados:
-                        fld.otras_respuestas = otras[cod]
-                        anotados.add(cod)
+        # Anotar las preguntas compartidas con las respuestas que ya
+        # dieron otros equipos del mismo organismo (se muestran en el
+        # template como referencia antes de responder). Va fuera de
+        # `if equipo`: el consolidado (equipo='') también debe ver lo que
+        # respondió cada subrol durante la conciliación.
+        otras = self._respuestas_otros_equipos()
+        if otras:
+            anotados = set()
+            for fname, fld in form.fields.items():
+                cod = ICEDPreguntaEquipo.codigo_de_campo(fname)
+                if cod and cod in otras and cod not in anotados:
+                    fld.otras_respuestas = otras[cod]
+                    anotados.add(cod)
 
         # P23: poblar el select de operaciones estadísticas desde el inventario
         if 'p23_operaciones_estadisticas' in form.fields:
