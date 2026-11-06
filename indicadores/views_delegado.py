@@ -1579,23 +1579,12 @@ def delegado_ficed(request):
         )
         return redirect('indicadores:delegado_dashboard')
 
-    # Buscar formulario existente del equipo
-    ficed = ICEDFormulario.objects.filter(
-        organismo=organismo,
-        periodo=periodo_actual,
-        equipo=equipo,
-    ).first()
-
-    if ficed:
-        if ficed.estado in ('enviado', 'validado'):
-            # Ya enviado o validado → mostrar resultado
-            return redirect('indicadores:iced_resultado', formulario_id=ficed.id)
-        else:
-            # En borrador → retomar
-            return redirect('indicadores:iced_formulario_retomar', formulario_id=ficed.id)
-    else:
-        # No existe → crear nuevo
-        return redirect('indicadores:iced_formulario_nuevo')
+    # Al hub del módulo /iced/: lista los FICEDs del equipo con acciones
+    # (Continuar borrador / Ver resultado si enviado o validado / Iniciar
+    # nuevo si no hay del período). Entrar directo al wizard dejaba al
+    # delegado sin contexto: "Volver al inicio" caía en una landing que
+    # no conocía.
+    return redirect('indicadores:iced_landing')
 
 
 @delegado_required
