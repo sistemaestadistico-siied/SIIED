@@ -31,10 +31,29 @@
         border-radius: 1.25rem;
         color: white;
     }
-    .iced-hero h1 {
-        font-family: Georgia, serif;
-        font-size: 2.25rem;
-        margin-bottom: 0.75rem;
+    /* El logo ya lleva el nombre del módulo: el h1 queda solo
+       para accesibilidad, no se muestra visualmente. */
+    .iced-hero h1.sr-only {
+        position: absolute;
+        width: 1px; height: 1px;
+        padding: 0; margin: -1px;
+        overflow: hidden; clip: rect(0 0 0 0);
+        white-space: nowrap; border: 0;
+    }
+    /* Chip claro: el logo PNG es oscuro y se perdía en el degradado */
+    .iced-hero-logo {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.97);
+        padding: 1.1rem 2.2rem;
+        border-radius: 1rem;
+        margin-bottom: 1.4rem;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+    }
+    .iced-hero-logo img {
+        display: block;
+        max-width: 300px;
+        width: 100%;
+        height: auto;
     }
     .iced-hero p {
         opacity: 0.85;
@@ -184,9 +203,11 @@
 
     <!-- Hero -->
     <div class="iced-hero">
-        <img src="{% static 'indicadores/images/logo_iced.png' %}" alt="ICED"
-             style="max-width: 190px; width: 100%; height: auto; margin: 0 auto 1.2rem; display: block;">
-        <h1>Índice de Capacidad Estadística Distrital</h1>
+        <div class="iced-hero-logo">
+            <img src="{% static 'indicadores/images/logo_iced.png' %}"
+                 alt="ICED — Índice de Capacidad Estadística Distrital">
+        </div>
+        <h1 class="sr-only">Índice de Capacidad Estadística Distrital</h1>
         <p>
             Instrumento oficial para evaluar la madurez de los organismos distritales 
             en la gestión de información estadística y datos. 
