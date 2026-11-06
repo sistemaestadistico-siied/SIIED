@@ -1606,7 +1606,9 @@ class ICEDModuloD2Form(ICEDBaseForm):
     # P29.2: Frecuencia de seguimiento (condicional: P29=1)
     P29_2_OPCIONES = [
         ('mensual', 'Mensual'),
+        ('bimensual', 'Bimensual'),
         ('trimestral', 'Trimestral'),
+        ('cuatrimestral', 'Cuatrimestral'),
         ('semestral', 'Semestral'),
         ('anual', 'Anual'),
     ]
