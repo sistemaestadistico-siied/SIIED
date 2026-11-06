@@ -123,7 +123,6 @@ const WS_URL = qs.get('ws')
     ? (qs.get('ws').startsWith('ws') ? qs.get('ws') : `ws://${qs.get('ws')}/datico`)
     : `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.hostname}:8765/datico`;
 const TEAM_COLOR = { verde: 0x2Bd98b, morado: 0xa05cff };
-const TEAM_EMISSIVE = { verde: 0x1a8f57, morado: 0x6a2bb8 };
 // Clips del GLB: ajustables por URL (?idle=1&move=2) — anim[1] largo 17.6s,
 // anim[2] corto 3.7s. Afinar viendo el juego si las poses se ven raras.
 const ANIM_IDLE = parseInt(qs.get('idle') ?? '1');
@@ -246,20 +245,13 @@ new GLTFLoader().load(GLB_URL, (gltf) => {
     Object.keys(remotes).forEach(id => attachModel(remotes[id]));
 });
 
-function tintModel(model, team) {
+// Conserva la skin original del GLB (como en la presentación 3D);
+// el bando se distingue por el halo bajo los pies y la etiqueta.
+function prepModel(model) {
     model.traverse(o => {
         if (o.isMesh || o.isSkinnedMesh) {
             o.castShadow = true;
-            o.frustumCulled = false;
-            const mats = Array.isArray(o.material) ? o.material : [o.material];
-            const clon = mats.map(m => {
-                const c = m.clone();
-                c.color = new THREE.Color(TEAM_COLOR[team]);
-                c.emissive = new THREE.Color(TEAM_EMISSIVE[team]);
-                c.emissiveIntensity = 0.35;
-                return c;
-            });
-            o.material = Array.isArray(o.material) ? clon : clon[0];
+            o.frustumCulled = false;   // bounds skinned no se actualizan
         }
     });
 }
@@ -282,11 +274,13 @@ function nameLabel(name, team) {
 function attachModel(r) {
     if (!glbReady || r.model) return;
     const m = SkeletonUtils.clone(glbScene);
-    tintModel(m, r.team);
+    prepModel(m);
     m.scale.setScalar(1.15);
     const wrap = new THREE.Group();
     wrap.add(m);
-    wrap.rotation.y = -Math.PI / 2;          // el GLB mira +x → alinear a +z
+    // El GLB mira +x de cara; la cámara con yaw=0 mira -z → +PI/2
+    // alinea el frente del modelo con la dirección de mirada.
+    wrap.rotation.y = Math.PI / 2;
     r.group.add(wrap);
     r.model = m;
     // Animaciones reales del rig: idle/move con crossfade según 'moving'
