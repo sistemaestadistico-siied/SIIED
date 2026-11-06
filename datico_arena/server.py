@@ -157,6 +157,7 @@ def _nuevo_jugador(name, team=None, bot=False, ws=None):
         'last_shot': 0.0,
         # estado de IA
         'wp': None, 'strafe': 1, 'strafe_t': 0.0, 'next_shot': 0.0,
+        'stuck': 0.0,
     }
     players[pid] = p
     return p
@@ -385,7 +386,8 @@ async def _shoot(shooter, o, d):
 
 async def _bot_step(b, dt):
     """Un paso de IA: enemigo visible → strafe + disparo; si no,
-    navegar por waypoints (priorizando acercarse al enemigo)."""
+    navegar por waypoints (priorizando acercarse al enemigo).
+    Incluye detector de atasco para esquinas y paredes."""
     eye = [b['p'][0], b['p'][1] + 1.5, b['p'][2]]
 
     # Enemigo vivo más cercano
@@ -402,10 +404,13 @@ async def _bot_step(b, dt):
 
     now = time.monotonic()
     b['moving'] = False
+    ox, oz = b['p'][0], b['p'][2]          # posición previa (anti-atasco)
+    engaged = False
 
     if target is not None:
         chest = [target['p'][0], target['p'][1] + 1.1, target['p'][2]]
         if _los(eye, chest):
+            engaged = True
             # Combate: mirar al objetivo, strafe perpendicular, disparar
             b['ry'] = math.atan2(-(chest[0] - eye[0]), -(chest[2] - eye[2]))
             if now > b['strafe_t']:
@@ -430,31 +435,47 @@ async def _bot_step(b, dt):
                 d = [c / dl + random.uniform(-BOT_SPREAD, BOT_SPREAD)
                      for c in d]
                 await _shoot(b, eye, d)
-            return
 
-    # Navegación por waypoints
-    wp = b['wp']
-    if (wp is None or
-            math.hypot(wp[0] - b['p'][0], wp[2] - b['p'][2]) < 1.2):
-        # Si el enemigo existe pero sin LOS, acercarse a su zona
-        if target is not None and random.random() < 0.4:
-            b['wp'] = [target['p'][0] + random.uniform(-4, 4), 0,
-                       target['p'][2] + random.uniform(-4, 4)]
-        else:
-            b['wp'] = list(random.choice(WAYPOINTS))
+    if not engaged:
+        # Navegación por waypoints
         wp = b['wp']
+        if (wp is None or
+                math.hypot(wp[0] - b['p'][0], wp[2] - b['p'][2]) < 1.2):
+            # Si el enemigo existe pero sin LOS, acercarse a su zona
+            if target is not None and random.random() < 0.4:
+                b['wp'] = [target['p'][0] + random.uniform(-4, 4), 0,
+                           target['p'][2] + random.uniform(-4, 4)]
+            else:
+                b['wp'] = list(random.choice(WAYPOINTS))
+            wp = b['wp']
 
-    dx, dz = wp[0] - b['p'][0], wp[2] - b['p'][2]
-    dl = math.hypot(dx, dz)
-    if dl > 1e-6:
-        b['p'][0] += dx / dl * BOT_SPEED * dt
-        b['p'][2] += dz / dl * BOT_SPEED * dt
-        b['ry'] = math.atan2(-dx, -dz)
-        b['moving'] = True
-    _collide_world(b['p'])
-    m = ARENA_HALF - 0.6
-    b['p'][0] = max(-m, min(m, b['p'][0]))
-    b['p'][2] = max(-m, min(m, b['p'][2]))
+        dx, dz = wp[0] - b['p'][0], wp[2] - b['p'][2]
+        dl = math.hypot(dx, dz)
+        if dl > 1e-6:
+            b['p'][0] += dx / dl * BOT_SPEED * dt
+            b['p'][2] += dz / dl * BOT_SPEED * dt
+            b['ry'] = math.atan2(-dx, -dz)
+            b['moving'] = True
+        _collide_world(b['p'])
+        m = ARENA_HALF - 0.6
+        b['p'][0] = max(-m, min(m, b['p'][0]))
+        b['p'][2] = max(-m, min(m, b['p'][2]))
+
+    # ---- Detector de atasco: si se mueve pero casi no avanza ----
+    moved = math.hypot(b['p'][0] - ox, b['p'][2] - oz)
+    if b['moving'] and moved < BOT_SPEED * dt * 0.3:
+        b['stuck'] += dt
+    else:
+        b['stuck'] = 0.0
+    if b['stuck'] > 0.7:
+        b['stuck'] = 0.0
+        b['wp'] = list(random.choice(WAYPOINTS))   # nuevo destino
+        b['strafe'] *= -1                          # invertir strafe
+        b['strafe_t'] = now + 0.8
+        ang = random.uniform(0, math.pi * 2)       # empujón de escape
+        b['p'][0] += math.cos(ang) * 0.5
+        b['p'][2] += math.sin(ang) * 0.5
+        _collide_world(b['p'])
 
 
 async def _bot_tick():
