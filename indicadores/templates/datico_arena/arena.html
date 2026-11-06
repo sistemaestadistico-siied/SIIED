@@ -132,7 +132,7 @@ const ANIM_IDLE = parseInt(qs.get('idle') ?? '1');
 const ANIM_MOVE = parseInt(qs.get('move') ?? '2');
 // El GLB mira +x; la cámara con yaw=0 mira -z. +PI/2 alinea; si el
 // modelo sale girado, ajustar con ?rot=<radianes adicionales>.
-const MODEL_YAW = Math.PI / 2 + parseFloat(qs.get('rot') ?? (Math.PI / 2));
+const MODEL_YAW = Math.PI / 2 + parseFloat(qs.get('rot') ?? '0');
 const WALK = 7.5, SPRINT = 11.5, JUMP_V = 8.5, GRAV = -22, EYE = 1.62;
 const RADIUS = 0.45;
 
