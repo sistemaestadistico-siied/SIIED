@@ -305,7 +305,7 @@ HERRAMIENTAS DISPONIBLES PARA EL MODELO LLM, NO OFRECER AL USUARIO:
 8. listar_variables_conjunto_datos: Variables disponibles en un conjunto de datos
 
 **Módulos extendidos de la plataforma:**
-9. consultar_iced: Índice de Capacidad Estadística y de Datos (puntajes por organismo, dimensiones, ranking)
+9. consultar_iced: Índice de Capacidad Estadística Distrital (puntajes por organismo, dimensiones, ranking)
 10. consultar_ecosistema_datos: Ecosistema de datos de un organismo (datos, flujos, clasificaciones — anonimizado)
 11. consultar_producto_academico: Papers e investigaciones publicados en el SIIED
 12. buscar_documentos_infraestructura: Normas, estándares, guías y documentación técnica

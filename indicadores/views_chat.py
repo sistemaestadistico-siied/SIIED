@@ -443,7 +443,7 @@ class CerebrasToolsService:
                 "type": "function",
                 "function": {
                     "name": "consultar_iced",
-                    "description": "Consulta el Índice de Capacidad Estadística y de Datos (ICED) de los organismos de la Alcaldía de Cali. El ICED mide la capacidad estadística en 4 dimensiones: Entorno Institucional, Infraestructura, Metodología Estadística y Accesibilidad. Cada dimensión pesa 25%. Escala 0-100%. Usar cuando pregunten por ICED, capacidad estadística, fortalezas/debilidades de un organismo, o comparaciones entre organismos.",
+                    "description": "Consulta el Índice de Capacidad Estadística Distrital (ICED) de los organismos de la Alcaldía de Cali. El ICED mide la capacidad estadística en 4 dimensiones: Entorno Institucional, Infraestructura, Metodología Estadística y Accesibilidad. Cada dimensión pesa 25%. Escala 0-100%. Usar cuando pregunten por ICED, capacidad estadística, fortalezas/debilidades de un organismo, o comparaciones entre organismos.",
                     "parameters": {
                         "type": "object",
                         "properties": {

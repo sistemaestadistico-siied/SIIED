@@ -534,7 +534,7 @@ urlpatterns = [
     path('iced/modulo/', views.modulo_iced, name='modulo_iced'),
 
     # ========================================================================
-    # MÓDULO ICED — Índice de Capacidad Estadística y de Datos
+    # MÓDULO ICED — Índice de Capacidad Estadística Distrital
     # ========================================================================
     path('iced/', views_iced.iced_landing, name='iced_landing'),
     path('iced/equipo/', views_iced.iced_equipo, name='iced_equipo'),

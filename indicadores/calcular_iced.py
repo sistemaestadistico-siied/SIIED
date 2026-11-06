@@ -1,5 +1,5 @@
 """
-Motor de cálculo del ICED — Índice de Capacidad Estadística y de Datos.
+Motor de cálculo del ICED — Índice de Capacidad Estadística Distrital.
 
 Estructura jerárquica oficial:
   36 indicadores individuales → 9 subdimensiones → 4 dimensiones → 1 puntaje global

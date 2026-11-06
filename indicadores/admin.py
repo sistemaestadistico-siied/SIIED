@@ -3227,7 +3227,7 @@ class CampoCatalogoAdmin(admin.ModelAdmin):
 
 
 # =============================================================================
-# MÓDULO ICED — Índice de Capacidad Estadística y de Datos v2
+# MÓDULO ICED — Índice de Capacidad Estadística Distrital v2
 # =============================================================================
 
 from .models_iced import (

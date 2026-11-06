@@ -7,8 +7,8 @@
 {% block extra_css %}
 <style>
     :root {
-        --iced-primary: #000866;
-        --iced-accent: #d97706;
+        --iced-primary: #14405D;
+        --iced-accent: #2B7D59;
         --iced-success: #059669;
         --iced-bg: #f8fafc;
         --iced-card: #ffffff;
@@ -149,7 +149,7 @@
     }
     .iced-puntaje-badge.muy_alto { background: #064e3b; color: white; }
     .iced-puntaje-badge.alto { background: #059669; color: white; }
-    .iced-puntaje-badge.medio { background: #d97706; color: white; }
+    .iced-puntaje-badge.medio { background: #b45309; color: white; }
     .iced-puntaje-badge.bajo { background: #dc2626; color: white; }
 
     .iced-empty-state {
@@ -184,7 +184,9 @@
 
     <!-- Hero -->
     <div class="iced-hero">
-        <h1>Índice de Capacidad Estadística y de Datos</h1>
+        <img src="{% static 'indicadores/images/logo_iced.png' %}" alt="ICED"
+             style="max-width: 190px; width: 100%; height: auto; margin: 0 auto 1.2rem; display: block;">
+        <h1>Índice de Capacidad Estadística Distrital</h1>
         <p>
             Instrumento oficial para evaluar la madurez de los organismos distritales 
             en la gestión de información estadística y datos. 

@@ -1,5 +1,5 @@
 """
-Modelos para el módulo ICED v2 — Índice de Capacidad Estadística y de Datos.
+Modelos para el módulo ICED v2 — Índice de Capacidad Estadística Distrital.
 
 Arquitectura simplificada (Torres 2026):
 - ICEDFormulario: 1 registro por organismo por período, respuestas en JSONField por módulo
