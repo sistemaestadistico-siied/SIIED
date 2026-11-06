@@ -3,7 +3,7 @@
 **Periodo:** viernes 24 de octubre → miércoles 5 de noviembre de 2026
 **Proyecto:** Sistema Integrado de Información Estadística Distrital (SIIED)
 **Repositorio:** [sistemaestadistico-siied/SIIED](https://github.com/sistemaestadistico-siied/SIIED)
-**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`5822cca`](https://github.com/sistemaestadistico-siied/SIIED/commit/5822cca) (10 commits funcionales)
+**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`11270fe`](https://github.com/sistemaestadistico-siied/SIIED/commit/11270fe) (15 commits funcionales)
 
 ---
 
@@ -31,14 +31,20 @@ de la analítica y el ciclo de validación del FICED.
   textos), nuevo histórico de respuestas por pregunta que Don Datico cita
   como evidencia verificable, y rediseño visual del módulo público ICED y de
   la hoja de vida de los organismos.
+- **5 de noviembre (tarde) — FICED operativo en producción**: con los FICED
+  2024 y 2025 cargados en el servidor se verificó el circuito completo de
+  consulta y se resolvieron los problemas que impedían explotar los datos:
+  los resultados de formularios importados ya abren, la evidencia que cita
+  el asistente es legible, la navegación del delegado es coherente y los
+  resultados validados quedaron consultables por todo el organismo.
 
 ## 2. Métricas del periodo
 
 | Métrica | Valor |
 |---|---|
-| Commits funcionales | 6 |
-| Archivos tocados | ~250 |
-| Líneas añadidas / eliminadas | +10 857 / −4 433 |
+| Commits funcionales | 15 |
+| Archivos tocados | 235 |
+| Líneas añadidas / eliminadas | +11 036 / −4 556 |
 | Migraciones nuevas | 2 (0134 quita `formula_ficha`; 0135 pre-validación FICED) |
 | Preguntas documentadas en manual FICED | 42 |
 | Métodos nuevos de API Superset (charts) | 4 |
@@ -207,12 +213,49 @@ de la analítica y el ciclo de validación del FICED.
 - `importar_ficed_2024` y `seed_iced_mop`: importados los 27 organismos del
   FICED 2024 y 2025 con 472 filas de RRHH; DACDI reclasificada a «Instrucción».
 
+**5 de noviembre (tarde) — el FICED ya funciona de extremo a extremo en producción**
+
+Cargados los formularios en el servidor se recorrió el circuito completo
+como lo vive el delegado —abrir el módulo, consultar resultados, verificar
+evidencia— y se resolvieron los cinco problemas que lo bloqueaban:
+
+- **Quedaron cargados los organismos que habían quedado por fuera**.
+  Algunos archivos no podían identificarse por nombre: DACDI aparece como
+  dos dependencias distintas y tres formularios venían con la celda de
+  identificación vacía. El importador ahora acepta indicar el organismo por
+  su ID, lo que permitió resolver manualmente esos casos y completar la
+  cobertura ([`ff4598d`](https://github.com/sistemaestadistico-siied/SIIED/commit/ff4598d)).
+- **Los resultados de los FICED importados ya se pueden consultar.**
+  «Ver resultado» fallaba con un error interno en todos los formularios
+  traídos de años anteriores (estos registros no tienen usuario
+  diligenciante asociado). Corregido el detalle de la ficha; los 54
+  resultados validados consultan sin error
+  ([`e72824a`](https://github.com/sistemaestadistico-siied/SIIED/commit/e72824a)).
+- **La evidencia que cita el asistente ahora es legible y real.**
+  El histórico mostraba las respuestas como texto técnico crudo (JSON) y,
+  al no interpretarlas, el asistente llegaba a reportar «sin registros» en
+  preguntas que sí tenían datos. Ahora muestra las opciones marcadas, las
+  tablas y los valores en el formato del instrumento, y el asistente
+  recibe las respuestas resumidas de forma entendible
+  ([`3a4274a`](https://github.com/sistemaestadistico-siied/SIIED/commit/3a4274a)).
+- **La navegación del delegado es coherente.** El botón FICED del panel
+  lleva ahora a la página del módulo —con el estado de sus formularios y
+  las acciones disponibles— en vez de entrar de frente al formulario, lo
+  que dejaba al usuario en una pantalla sin salida al volver
+  ([`2dd1281`](https://github.com/sistemaestadistico-siied/SIIED/commit/2dd1281)).
+- **Los resultados validados son consultables por todo el organismo.**
+  Cada equipo solo veía sus propios formularios; ahora la página del
+  módulo muestra además los FICED validados de cualquier equipo del
+  organismo. Lo enviado o en borrador de otros equipos sigue siendo
+  privado ([`11270fe`](https://github.com/sistemaestadistico-siied/SIIED/commit/11270fe)).
+
 ## 4. Avances por eje
 
 | Eje | Entregable |
 |---|---|
 | FICED | Validación organismo→SIIED en dos etapas, conciliación por equipos, productos de cumplimiento |
 | FICED — QA | 8 correcciones de diligenciamiento, condicionales que no bloquean, histórico verificable por el chat |
+| FICED — producción | Carga completa de organismos, resultados de importados consultables, evidencia legible, navegación del delegado y resultados validados compartidos por organismo |
 | Geo | GeoJSON materializado, descarga de capas por nivel, escala coroplética unificada |
 | Analítica/BI | Ciclo de vida de charts sincronizado con el admin; datasets plegables; embed bare |
 | Datos | `formula_ficha` retirado de todo el pipeline; `columnas_fuente` tolera comas en nombres |
@@ -220,8 +263,9 @@ de la analítica y el ciclo de validación del FICED.
 
 ## 5. Estado actual
 
-- `main` sincronizado con `origin/main` (`ebe07bb`) — todo el trabajo pendiente empujado.
+- `main` sincronizado con `origin/main` (`11270fe`) — todo el trabajo pendiente empujado.
 - Migraciones 0134 y 0135 generadas; **pendiente aplicarlas en producción**.
+- **Pendiente despliegue en producción**: actualizar el servidor (`git pull` + reinicio del servicio) para publicar los 5 commits posteriores a la carga de FICED (resultados consultables, histórico legible, hub del módulo y visibilidad de validados).
 - `manage.py check`: 0 issues.
 
 ## 6. Pantallazos sugeridos para anexar
@@ -231,10 +275,12 @@ de la analítica y el ciclo de validación del FICED.
 - Producto de cumplimiento del organismo (sin puntaje) y el de SIIED (con puntaje).
 - Catálogo de datasets de SIIED BI con categorías plegadas.
 - Tabla P23 del FICED con scroll horizontal.
+- Página del módulo `/iced/` mostrando formularios validados de distintos equipos del organismo.
+- Histórico `/iced/historico/` con las respuestas de años anteriores renderizadas (opciones marcadas, tablas).
 
 ## 7. Próximos pasos naturales
 
-- Aplicar migraciones 0134/0135 en producción y validar el flujo FICED de extremo a extremo con datos reales.
+- Desplegar en producción los commits publicados (`git pull` + reinicio), aplicar migraciones 0134/0135 y validar el flujo FICED de extremo a extremo con datos reales.
 - Verificar la publicación del enlace público de Superset sin login (`SUPERSET_PUBLIC_URL`, dominios permitidos del SDK embebido) y poner `TableroBI.visibilidad='publico'`.
 - Comunicar a los organismos el nuevo separador `;` en `columnas_fuente` del wizard.
 - Rotación de secretos y verificación del fix del logo del navbar.
