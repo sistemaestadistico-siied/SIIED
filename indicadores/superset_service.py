@@ -407,6 +407,21 @@ class SupersetService:
         return [r.get('name') for r in (result[0].get('roles') or [])
                 if r.get('name')]
 
+    def obtener_rol_id(self, role_name):
+        """ID interno de un rol Superset por nombre ('Alpha','Gamma',...) o None."""
+        data = self._api_request('GET', 'security/roles/')
+        result = (data or {}).get('result') or []
+        for r in result:
+            if (r.get('name') or '').lower() == role_name.lower():
+                return r.get('id')
+        return None
+
+    def roles_disponibles(self):
+        """Nombres de los roles existentes en la instancia (para mensajes de error)."""
+        data = self._api_request('GET', 'security/roles/')
+        return [r.get('name') for r in ((data or {}).get('result') or [])
+                if r.get('name')]
+
     def crear_usuario(self, username, email='', first_name='', last_name='', role_name='Alpha'):
         """
         Crea un usuario en Superset con la contraseña compartida.
@@ -419,6 +434,13 @@ class SupersetService:
         if self.usuario_existe(username):
             logger.info(f"Superset: usuario '{username}' ya existe")
             return {'success': True, 'message': 'Usuario ya existe', 'username': username}
+
+        # La API exige el ID entero del rol, no el nombre.
+        rol_id = self.obtener_rol_id(role_name)
+        if rol_id is None:
+            disponibles = ', '.join(self.roles_disponibles()) or 'ninguno'
+            return {'error': f"Rol Superset '{role_name}' no existe. "
+                             f'Roles disponibles: {disponibles}'}
 
         csrf_token = self._get_csrf_token()
         headers = self._get_headers()
@@ -435,8 +457,8 @@ class SupersetService:
             'first_name': first_name or username,
             'last_name': last_name or '',
             'password': shared_password,
-            'roles': [role_name],
-            'is_active': True,
+            'roles': [rol_id],
+            'active': True,
         }
 
         try:
