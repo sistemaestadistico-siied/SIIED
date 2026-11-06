@@ -259,8 +259,10 @@ _CLAVES_TIPO = [
 # Reglas explícitas para campos escalares (texto plano del wizard)
 REGLAS_CAMPOS_FICED = {
     'p25_proyectos_bp': 'codigos_bp',
-    # Banner de ayuda (readonly) con URL embebida — es texto, no URL;
-    # sin esta regla, la inferencia por nombre ('link'→url_multi) lo rechaza
+    # Campo eliminado (el link pasó a help_text de p25_proyectos_bp), pero
+    # la regla se conserva: respuestas de versiones anteriores aún la
+    # traen guardada y la inferencia por nombre ('link'→url_multi) la
+    # rechazaría al validar URLs.
     'p25_proyectos_bp_link': 'texto',
 }
 

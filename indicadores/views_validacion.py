@@ -1188,11 +1188,15 @@ def validacion_revisar_iced(request, formulario_id):
                 })
         # Campos no mapeados a ningún form: auxiliares generados por
         # widgets (displays, contactos) o respuestas huérfanas.
+        # Se omiten los display-only (_intro/_display/_link) para que
+        # claves viejas como p25_proyectos_bp_link no salgan crudas.
         resto = [{
             'label': pregunta_labels.get(k) or form_labels.get(k, k),
             'field_key': k,
             'respuesta': v,
-        } for k, v in respuestas.items() if k not in usados]
+        } for k, v in respuestas.items()
+            if k not in usados
+            and not k.split('-', 1)[-1].endswith(('_intro', '_display', '_link'))]
         if resto:
             pasos.append({'label': 'Otros campos del módulo', 'items': resto, 'faltantes': []})
         total = sum(len(p['items']) for p in pasos)

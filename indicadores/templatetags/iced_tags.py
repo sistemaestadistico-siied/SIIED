@@ -393,7 +393,9 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
             return mark_safe(_render_lista(parsed, field_key))
         if isinstance(parsed, dict):
             return mark_safe(_render_checkbox_tabla(parsed, field_key))
-        return mark_safe(escape(str(resp)))
+        # Escalar legacy (ej. p29_rol_politicas era radio → '1'):
+        # mostrar la etiqueta de la opción, no el código crudo.
+        return mark_safe(f'<span class="font-medium">{escape(_label(str(resp), field_key))}</span>')
 
     # Tablas JSON
     if field_key in ('p7_estructura_mop', 'p10_actividades',
