@@ -878,10 +878,14 @@ def iced_landing(request):
         formularios = ICEDFormulario.objects.filter(
             organismo=organismo
         )
-        # Cada delegado solo ve los formularios de su equipo técnico;
-        # staff con organismo asignado los ve todos.
+        # El delegado ve los formularios de su equipo técnico + los
+        # VALIDADOS de cualquier equipo del organismo (los resultados
+        # validados son públicos dentro del organismo — iced_resultado
+        # ya solo filtra por organismo, no por equipo). Los enviados o
+        # en borrador de otros equipos siguen siendo privados.
         if not request.user.is_staff:
-            formularios = formularios.filter(equipo=equipo_user)
+            formularios = formularios.filter(
+                Q(equipo=equipo_user) | Q(estado='validado'))
         formularios = formularios.order_by('-periodo')
 
     # Para staff: mostrar todos
