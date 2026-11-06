@@ -2,6 +2,7 @@ from django.urls import path, include, register_converter
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.decorators import login_required
+from django.views.generic import TemplateView
 
 from . import views
 from . import views_monitoring
@@ -648,5 +649,11 @@ urlpatterns = [
     path('laboratorio/guardar/', views_laboratorio.laboratorio_guardar, name='laboratorio_guardar'),
     path('laboratorio/tableros/', views_laboratorio.laboratorio_listar, name='laboratorio_listar'),
     path('laboratorio/tablero/<int:tablero_id>/', views_laboratorio.laboratorio_ver, name='laboratorio_ver'),
+
+    # ── Easter egg: Datico Arena (shooter multijugador Don Datico) ──
+    # Ruta oculta; también se activa con el código Konami en la home.
+    # Requiere `python -m datico_arena.server` corriendo (puerto 8765).
+    path('datico-arena/', login_required(TemplateView.as_view(
+        template_name='datico_arena/arena.html')), name='datico_arena'),
     path('editorial/catalogo-consulta/<int:pk>/eliminar/', views_editorial.catalogo_consulta_eliminar, name='editorial_catalogo_consulta_eliminar'),
 ]

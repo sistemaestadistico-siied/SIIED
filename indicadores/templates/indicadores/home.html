@@ -973,4 +973,21 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+<script>
+// ⚡ Easter egg — código Konami → Datico Arena
+(function () {
+    const SEQ = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown',
+                 'ArrowLeft','ArrowRight','ArrowLeft','ArrowRight',
+                 'KeyB','KeyA'];
+    let i = 0;
+    document.addEventListener('keydown', e => {
+        i = (e.code === SEQ[i]) ? i + 1 : (e.code === SEQ[0] ? 1 : 0);
+        if (i === SEQ.length) {
+            i = 0;
+            location.href = "{% url 'datico_arena' %}";
+        }
+    });
+})();
+</script>
+
 {% endblock %}
