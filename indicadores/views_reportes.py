@@ -1115,7 +1115,8 @@ def reportes_produccion_mensual_exportar_excel(request):
             fecha_carga__gte=inicio_12m,
             indicador__isnull=False
         ).annotate(mes=TruncMonth('fecha_carga')).values(
-            'mes', 'indicador__codigo_indicador', 'indicador__nombre', 'indicador__responsable'
+            'mes', 'indicador__codigo_indicador', 'indicador__nombre',
+            'indicador__organismo_responsable__nombre'
         ).annotate(
             cargas=Count('id'),
             registros_procesados=Sum('registros_procesados'),
@@ -1129,7 +1130,7 @@ def reportes_produccion_mensual_exportar_excel(request):
             'Mes': r['mes'].strftime('%Y-%m') if r['mes'] else '',
             'Codigo Indicador': r['indicador__codigo_indicador'] or 'SIN-CODIGO',
             'Nombre Indicador': r['indicador__nombre'],
-            '1.1 Entidad o Institucion Responsable': r['indicador__responsable'] or '',
+            '1.1 Entidad o Institucion Responsable': r['indicador__organismo_responsable__nombre'] or '',
             'Cargas': r['cargas'],
             'Registros Procesados': r['registros_procesados'] or 0,
             'Registros Exitosos': r['registros_exitosos'] or 0,
@@ -1359,6 +1360,19 @@ def reportes_visitas_exportar_excel(request):
     # Convertir datetimes timezone-aware a naive (Excel no soporta tz)
     if not df_detalle.empty:
         df_detalle['Fecha/Hora'] = pd.to_datetime(df_detalle['Fecha/Hora']).dt.tz_localize(None)
+
+    # openpyxl rechaza caracteres de control en celdas (IllegalCharacterError).
+    # Los paths/user_agents de escáneres los traen — limpiarlos antes de escribir.
+    from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+    def _limpiar(df):
+        for col in df.columns:
+            if df[col].dtype == object:
+                df[col] = df[col].map(
+                    lambda v: ILLEGAL_CHARACTERS_RE.sub('', v) if isinstance(v, str) else v)
+        return df
+    _limpiar(df_dia)
+    _limpiar(df_top)
+    _limpiar(df_detalle)
 
     # Generar Excel
     output = BytesIO()
