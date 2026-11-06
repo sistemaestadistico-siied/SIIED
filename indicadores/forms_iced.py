@@ -377,13 +377,42 @@ class ICEDBaseForm(forms.Form):
             campo, esperados = regla.split('=', 1)
             esperados = [e for e in esperados.split(',') if e]
             actual = cleaned.get(campo)
-            if isinstance(actual, (list, tuple)):
-                cumple = any(e in actual for e in esperados)
-            else:
-                cumple = str(actual) in esperados
+            cumple = self._valor_cumple(actual, esperados)
             if not cumple:
                 return False
         return True
+
+    @staticmethod
+    def _valor_cumple(actual, esperados):
+        """True si algún esperado está seleccionado en `actual`.
+
+        Soporta escalares, listas/tuplas y el JSON de los widgets
+        checkbox-tabla ({codigo: {seleccion: bool, ...}} o lista de
+        códigos), que es lo que guardan campos como
+        p24_lineamientos o p30_lineamientos_metodologicos."""
+        if isinstance(actual, (list, tuple)):
+            return any(e in actual for e in esperados)
+        if isinstance(actual, dict):
+            # {codigo: {...}} — opciones seleccionadas del checkbox-tabla
+            for e in esperados:
+                fila = actual.get(e)
+                if isinstance(fila, dict):
+                    if fila.get('seleccion'):
+                        return True
+                elif fila:
+                    return True
+            return False
+        if isinstance(actual, str):
+            s = actual.strip()
+            if s[:1] in '[{':
+                try:
+                    parsed = json.loads(s)
+                except (ValueError, TypeError):
+                    parsed = None
+                if isinstance(parsed, (dict, list)):
+                    return ICEDBaseForm._valor_cumple(parsed, esperados)
+            return s in esperados
+        return str(actual) in esperados
 
 
 # =============================================================================
