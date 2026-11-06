@@ -191,6 +191,9 @@ def _render_escala(value, field_key):
 def _render_checkbox_tabla(value, field_key=None):
     """Renderiza JSON tipo {"opcion": {"seleccion": true/false, ...}}"""
     data = _parse_json(value)
+    # Algunos registros envuelven el dict en una lista de un elemento
+    if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
+        data = data[0]
     if not isinstance(data, dict):
         return escape(str(value)) if value else '—'
 

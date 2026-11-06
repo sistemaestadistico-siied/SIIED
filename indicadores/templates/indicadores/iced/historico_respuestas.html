@@ -1,5 +1,5 @@
 {% extends 'indicadores/base.html' %}
-{% load static %}
+{% load static iced_tags %}
 
 {% block title %}Histórico FICED{% if organismo %} — {{ organismo.nombre }}{% endif %} — SIIED{% endblock %}
 
@@ -150,14 +150,7 @@
                             {% for v in fila.valores %}
                                 <td class="val">
                                     {% if v %}
-                                        {% if v|length > 160 %}
-                                            <details>
-                                                <summary>{{ v|truncatechars:110 }}</summary>
-                                                <div style="white-space: pre-wrap; margin-top:.4rem;">{{ v }}</div>
-                                            </details>
-                                        {% else %}
-                                            {{ v }}
-                                        {% endif %}
+                                        {{ v|render_iced_respuesta }}
                                     {% else %}
                                         <span class="empty">sin respuesta</span>
                                     {% endif %}

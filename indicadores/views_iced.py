@@ -1101,12 +1101,40 @@ def iced_guardar_parcial(request):
 # =============================================================================
 
 def _resumen_respuestas_iced(respuestas, max_items=25):
-    """'campo: valor' compacto de un dict de respuestas para el prompt."""
+    """'campo: valor' compacto de un dict de respuestas para el prompt.
+
+    Los valores suelen venir como STRINGS JSON (importador/wizard): se
+    parsean para que el LLM vea un resumen legible ('opciones: a, b',
+    'tabla con N filas') y no el JSON crudo ni un '[]' que leería como
+    'sin registros' aunque otros campos sí tengan datos."""
     partes = []
     for k, v in (respuestas or {}).items():
-        if v in (None, '', [], {}):
+        parsed = v
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+            except (ValueError, TypeError):
+                parsed = v
+        if parsed in (None, '', [], {}):
             continue
-        vs = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+        if isinstance(parsed, dict) and any(
+                isinstance(x, dict) and 'seleccion' in x
+                for x in parsed.values()):
+            sel = [c for c, x in parsed.items()
+                   if isinstance(x, dict) and x.get('seleccion')]
+            vs = ('opciones marcadas: ' + ', '.join(sel)) if sel \
+                else 'ninguna opción marcada'
+        elif isinstance(parsed, list):
+            if parsed and all(isinstance(x, dict) for x in parsed):
+                vs = f'tabla con {len(parsed)} fila(s): ' \
+                     + '; '.join(', '.join(f'{kk}={vv}' for kk, vv in x.items())
+                                 for x in parsed[:3])
+            else:
+                vs = ', '.join(str(x) for x in parsed)
+        elif isinstance(parsed, dict):
+            vs = json.dumps(parsed, ensure_ascii=False)
+        else:
+            vs = str(v)
         if len(vs) > 180:
             vs = vs[:180] + '…'
         partes.append(f'{k}: {vs}')
@@ -1352,12 +1380,16 @@ def iced_historico(request):
                 return resp[nombre]
         return None
 
-    def _bonito(v):
-        if v in (None, '', [], {}):
-            return ''
+    def _tiene_valor(v):
+        """Respuesta no vacía, tolerando strings JSON vacíos ('[]', '{}')."""
+        if v in (None, '', [], {}, '[]', '{}'):
+            return False
         if isinstance(v, str):
-            return v
-        return json.dumps(v, ensure_ascii=False)
+            try:
+                return json.loads(v) not in (None, '', [], {})
+            except (ValueError, TypeError):
+                return True
+        return True
 
     claves = set()
     for col in columnas:
@@ -1377,12 +1409,15 @@ def iced_historico(request):
             continue
         if mod_filtro and modulo != mod_filtro:
             continue
-        valores = [_bonito(_valor(c['form'], nombre)) for c in columnas]
-        if not any(valores):
+        valores = [_valor(c['form'], nombre) for c in columnas]
+        if not any(_tiene_valor(v) for v in valores):
             continue
         filas.append({
             'campo': nombre, 'label': label, 'num': num,
-            'modulo': modulo, 'valores': valores,
+            'modulo': modulo,
+            'valores': [{'respuesta': v, 'field_key': nombre}
+                        if _tiene_valor(v) else None
+                        for v in valores],
         })
     filas.sort(key=lambda r: (orden_mod.get(r['modulo'], 9), r['num'], r['campo']))
 
