@@ -88,7 +88,9 @@ def _validar_urls_json(valor):
 
     invalidas = []
     for u in urls:
-        for parte in re.split(r'[;,]', u):
+        # Separadores admitidos: coma, punto y coma o espacios/saltos —
+        # una URL válida nunca contiene whitespace.
+        for parte in re.split(r'[;,\s]+', u):
             parte = parte.strip()
             if not parte:
                 continue
