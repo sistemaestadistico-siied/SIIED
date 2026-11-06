@@ -790,11 +790,14 @@ def analitica_superset_subir_csv(request):
         and not request.user.is_staff)
     organismo_perfil = perfil.organismo if perfil else None
 
-    conjuntos = ConjuntoDatos.objects.order_by('-fecha_carga')[:50]
+    # El slice va después del filtro — filtrar un queryset sliceado lanza
+    # TypeError ("Cannot filter a query once a slice has been taken").
+    conjuntos = ConjuntoDatos.objects.order_by('-fecha_carga')
     if es_analista_organismo:
         conjuntos = conjuntos.filter(
             indicadores__organismo_responsable=organismo_perfil
         ).distinct()
+    conjuntos = conjuntos[:50]
 
     if request.method == 'POST':
         nombre_tabla = request.POST.get('nombre_tabla', '').strip()
