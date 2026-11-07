@@ -21,15 +21,38 @@ function bot(e, ctx, pos, cfg = {}) {
         nombre: cfg.nombre || NOMBRES_BOT[(Math.random() * NOMBRES_BOT.length) | 0],
         color: cfg.color ?? COLORES_BOT[(Math.random() * COLORES_BOT.length) | 0],
         hp: cfg.hp ?? 100, pos,
-        cfg: Object.assign({ waypoints: ctx.spec.wps || [] }, cfg),
+        cfg: Object.assign({ waypoints: ctx.wps || ctx.spec.wps || [] }, cfg),
     });
     e.scene.add(b.group);
     e.bots.push(b);
     return b;
 }
+
+/* Waypoints fuera de colliders (p.ej. el estadio del Barrio cubre algunos).
+ * Se cachean en ctx.wps para patrullas y spawns. */
+function wpsLibres(e, ctx) {
+    if (ctx.wps) return ctx.wps;
+    const l = (ctx.spec.wps || []).filter(p => !e.enSolido(p[0], p[1], .7));
+    ctx.wps = l.length ? l : (ctx.spec.wps || []);
+    return ctx.wps;
+}
+
+/* Si el punto cae dentro de un collider, busca un hueco en espiral.
+ * Devuelve [x,z] libre o null si no encontró. */
+function puntoLibre(e, x, z, pad = .6) {
+    if (!e.enSolido(x, z, pad)) return [x, z];
+    for (const r of [.9, 1.6, 2.4, 3.4, 4.5]) {
+        for (let a = 0; a < Math.PI * 2 - .01; a += Math.PI / 4) {
+            const nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r;
+            if (!e.enSolido(nx, nz, pad)) return [nx, nz];
+        }
+    }
+    return null;
+}
+
 function lejosJugador(e, pts, dist = 10) {
     const j = e.jugador.pos;
-    const libres = pts.filter(p => Math.hypot(p[0] - j.x, p[2] - j.z) > dist);
+    const libres = pts.filter(p => Math.hypot(p[0] - j.x, p[1] - j.z) > dist);
     const set = libres.length ? libres : pts;
     return set[(Math.random() * set.length) | 0];
 }
@@ -91,8 +114,11 @@ export function mBarrio(e, ctx) {
     for (let i = pts.length - 1; i > 0; i--) {
         const k = (Math.random() * (i + 1)) | 0; [pts[i], pts[k]] = [pts[k], pts[i]];
     }
-    pts.slice(0, TOTAL).forEach(([x, z], i) =>
-        pickups.push(new Pickup(e, { x, y: 0, z, color: 0xffb37a, nombre: `paquete-${i}` })));
+    pts.slice(0, TOTAL).forEach(([x, z], i) => {
+        const p = puntoLibre(e, x, z);   // casitas aleatorias pueden cubrir el punto
+        if (p) pickups.push(new Pickup(e, { x: p[0], y: 0, z: p[1], color: 0xffb37a, nombre: `paquete-${i}` }));
+    });
+    const totReal = pickups.length;
     const zona = new Zona(e, { x: ctx.spec.zonaKiosco[0], z: ctx.spec.zonaKiosco[1], r: 4, color: 0x46d98b, nombre: 'KIOSCO SIIED' });
 
     // Patrullas: en cuesta varían conteo y agresividad
@@ -101,7 +127,7 @@ export function mBarrio(e, ctx) {
         { n: 4, dano: 11, cadenciaMin: .8, cadenciaMax: 1.6, precision: .09, vision: 22 },
         { n: 5, dano: 13, cadenciaMin: .7, cadenciaMax: 1.4, precision: .07, vision: 26 },
     ][Math.min(ctx.dif, 2)];
-    const spawns = ctx.spec.wps;
+    const spawns = wpsLibres(e, ctx);
     for (let i = 0; i < cfgPat.n; i++) {
         const s = lejosJugador(e, spawns, 14);
         bot(e, ctx, [s[0], 0, s[1]], cfgPat);
@@ -109,7 +135,7 @@ export function mBarrio(e, ctx) {
 
     const M = {
         titulo: 'Barrio SIIED',
-        objetivo: `Recupera ${TOTAL} paquetes de datos y entrégalos en el Kiosco SIIED`,
+        objetivo: `Recupera ${totReal} paquetes de datos y entrégalos en el Kiosco SIIED`,
         lleva: 0, entregados: 0, fin: false,
         esc: false,
         iniciar() {
@@ -125,11 +151,11 @@ export function mBarrio(e, ctx) {
             const j = e.jugador;
             if (zona.contiene(j.pos) && this.lleva > 0) {
                 this.entregados += this.lleva;
-                e.emit('msg', `Entregados ${this.entregados}/${TOTAL} — ${Math.max(0, TOTAL - this.entregados)} restantes`);
+                e.emit('msg', `Entregados ${this.entregados}/${totReal} — ${Math.max(0, totReal - this.entregados)} restantes`);
                 this.lleva = 0;
                 e.sfx.deliver();
                 e.particulas.emit(zona.pos, 0x46d98b, 18, 4, .7, 1.6);
-                if (this.entregados >= TOTAL && !this.esc) {
+                if (this.entregados >= totReal && !this.esc) {
                     this.esc = true;
                     e.emit('msg', '¡Todos los datos! Refuerzos hostiles en camino — sobrevive 20s');
                     e.sfx.alert();
@@ -145,9 +171,9 @@ export function mBarrio(e, ctx) {
         },
         textoHud() {
             if (this.esc && this.escapeT > e.t) return `Sobrevive ${Math.ceil(this.escapeT - e.t)}s`;
-            if (this.lleva > 0) return `Entregar ${this.lleva} en el Kiosco (${this.entregados}/${TOTAL})`;
+            if (this.lleva > 0) return `Entregar ${this.lleva} en el Kiosco (${this.entregados}/${totReal})`;
             const quedan = pickups.filter(p => !p.recogido).length;
-            return `Paquetes: ${this.entregados}/${TOTAL} · quedan ${quedan}`;
+            return `Paquetes: ${this.entregados}/${totReal} · quedan ${quedan}`;
         },
     };
     return M;
@@ -176,7 +202,7 @@ export function mTorres(e, ctx) {
         { n: 4, dano: 11, cadenciaMin: .85, cadenciaMax: 1.6, precision: .09, vision: 20 },
         { n: 5, dano: 13, cadenciaMin: .7, cadenciaMax: 1.4, precision: .07, vision: 24 },
     ][Math.min(ctx.dif, 2)];
-    const spawns = ctx.spec.wps;
+    const spawns = wpsLibres(e, ctx);
     for (let i = 0; i < cfgPat.n; i++) {
         const s = lejosJugador(e, spawns, 14);
         bot(e, ctx, [s[0], 0, s[1]], cfgPat);
@@ -193,7 +219,9 @@ export function mTorres(e, ctx) {
             const j = e.jugador;
             for (const p of pads) {
                 p.aro.scale.setScalar(1 + Math.sin(t * 3) * .07);
-                if (j.grounded && Math.hypot(j.pos.x - p.x, j.pos.z - p.z) < 1.6) {
+                if (j.grounded && t > (j._padCd || 0) &&
+                    Math.hypot(j.pos.x - p.x, j.pos.z - p.z) < 1.6) {
+                    j._padCd = t + 1;                       // evita rebote en bucle AFK
                     j.vy = Math.sqrt(-2 * GRAV * (p.h + .9));   // impulso hasta la cima
                     j.grounded = false;
                     e.sfx.jump();
@@ -229,20 +257,22 @@ export function mPila(e, ctx) {
             const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 14;
             let x = Math.cos(a) * r, z = Math.sin(a) * r;
             x = THREE.MathUtils.clamp(x, -27, 27); z = THREE.MathUtils.clamp(z, -23, 23);
-            pickups.push(new Pickup(e, { x, y: 0, z, color: s.color, valor: si }));
+            const p = puntoLibre(e, x, z);   // puede caer dentro de coberturas
+            if (p) pickups.push(new Pickup(e, { x: p[0], y: 0, z: p[1], color: s.color, valor: si }));
         }
     });
     const zonas = ctx.spec.torres.map(t =>
         new Zona(e, { x: t.x, z: t.z, r: 3.4, color: t.serie.color, nombre: t.serie.nombre }));
-    const tot = POR_SERIE * SERIES.length;
-    const restantes = {}; SERIES.forEach(s => restantes[s.nombre] = POR_SERIE);
+    // Recuento real: si algún punto quedó sin hueco, no se exige
+    const tot = pickups.length;
+    const nSeg = {}; SERIES.forEach(s => nSeg[s.nombre] = 0);   // entregas por serie
 
     const cfgPat = [
         { n: 2, dano: 9, cadenciaMin: 1.1, cadenciaMax: 1.9, precision: .12, vision: 16 },
         { n: 3, dano: 10, cadenciaMin: .9, cadenciaMax: 1.7, precision: .09, vision: 20 },
         { n: 4, dano: 12, cadenciaMin: .8, cadenciaMax: 1.5, precision: .07, vision: 24 },
     ][Math.min(ctx.dif, 2)];
-    const spawns = ctx.spec.wps;
+    const spawns = wpsLibres(e, ctx);
     for (let i = 0; i < cfgPat.n; i++) {
         const s = lejosJugador(e, spawns, 14);
         bot(e, ctx, [s[0], 0, s[1]], cfgPat);
@@ -274,13 +304,12 @@ export function mPila(e, ctx) {
             if (zona.contiene(j.pos)) {
                 this.llevando.recogido = true;
                 this.entregados++;
-                restantes[s.nombre]--;
                 e.emit('msg', `Clasificado ${s.nombre} · ${this.entregados}/${tot}`);
                 e.sfx.deliver();
                 e.particulas.emit(zona.pos, s.color, 20, 4, .7, 1.6);
                 // La torre crece un slot
                 const torre = ctx.spec.torres[SERIES.indexOf(s)];
-                const idx = POR_SERIE - restantes[s.nombre];
+                const idx = ++nSeg[s.nombre];
                 const seg = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.1, 3.4),
                     new THREE.MeshStandardMaterial({ color: s.color, roughness: .5, emissive: s.color, emissiveIntensity: .25 }));
                 seg.position.set(torre.x, 1 + idx * 1.15, torre.z);

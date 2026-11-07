@@ -112,6 +112,20 @@ export class Bot extends Datico {
         }
     }
 
+    /* Waypoint nuevo: preferir puntos a >3 uds con línea de vista
+     * (evita elegir objetivos tras un muro y empujarlo en vano).
+     * Si ninguno es visible, se elige el más cercano para desatascar. */
+    _elegirWaypoint(wps) {
+        const ojo = this.posOjos(_o);
+        const visibles = wps.filter(p =>
+            Math.hypot(p[0] - this.pos.x, p[1] - this.pos.z) > 3 &&
+            this.engine.los(ojo, _v.set(p[0], this.pos.y + 1.2, p[1])));
+        if (visibles.length) return visibles[(Math.random() * visibles.length) | 0];
+        return wps.reduce((a, b) =>
+            Math.hypot(b[0] - this.pos.x, b[1] - this.pos.z) <
+            Math.hypot(a[0] - this.pos.x, a[1] - this.pos.z) ? b : a);
+    }
+
     tick(dt, t) {
         if (this.terminado) { this.muerto = true; return; }
         const e = this.engine, j = e.jugador;
@@ -194,10 +208,10 @@ export class Bot extends Datico {
                 }
                 const wps = this.cfg.waypoints || [];
                 if (wps.length) {
-                    if (!this.wp || Math.hypot(this.wp[0] - this.pos.x, this.wp[2] - this.pos.z) < 1.3) {
-                        this.wp = wps[(Math.random() * wps.length) | 0];
+                    if (!this.wp || Math.hypot(this.wp[0] - this.pos.x, this.wp[1] - this.pos.z) < 1.3) {
+                        this.wp = this._elegirWaypoint(wps);
                     }
-                    const dx = this.wp[0] - this.pos.x, dz = this.wp[2] - this.pos.z;
+                    const dx = this.wp[0] - this.pos.x, dz = this.wp[1] - this.pos.z;
                     this._avanzar(dx, dz, dt, this.cfg.vel * .65);
                     this.yaw = Math.atan2(-dx, -dz);
                     moviendo = true;

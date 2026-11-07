@@ -46,6 +46,7 @@ export function raySegment(o, d, a, b) {
 class Emitter {
     constructor() { this._h = {}; }
     on(ev, fn) { (this._h[ev] ??= []).push(fn); return this; }
+    off(ev) { delete this._h[ev]; return this; }
     emit(ev, ...a) { (this._h[ev] || []).forEach(f => f(...a)); }
 }
 
@@ -358,7 +359,13 @@ export class Engine extends Emitter {
                 }
             });
         }
+        // Bots: se añadieron con scene.add (el GLB comparte geometría
+        // entre clones — NO disponer); retirarlos de la escena.
+        for (const b of this.bots) this.scene.remove(b.group);
         this.cuerpos = []; this.boxes = []; this.ents = []; this.bots = [];
+        // Listeners de misión (pickup/antena) se re-registran en cada
+        // intento — hay que limpiarlos o se acumulan y duplican conteos.
+        this.off('pickup'); this.off('antena');
         this.scene.fog = null;
         this.mapa = null;
     }
@@ -385,8 +392,20 @@ export class Engine extends Emitter {
     }
     colisionCaja(min, max) { const b = { min, max }; this.boxes.push(b); return b; }
 
+    /* Punto (x,z) dentro de algún collider (+margen), en rango vertical */
+    enSolido(x, z, pad = .3, y0 = 0, y1 = 1.8) {
+        for (const b of this.boxes) {
+            if (x > b.min.x - pad && x < b.max.x + pad &&
+                z > b.min.z - pad && z < b.max.z + pad &&
+                b.max.y > y0 && b.min.y < y1) return true;
+        }
+        return false;
+    }
+
     /* ----- Física ----- */
     colisionar(p, radius = RADIUS, alto = ALTO) {
+        // Dos pasadas: empujar fuera de una caja puede meter en otra.
+        for (let pass = 0; pass < 2; pass++)
         for (const b of this.boxes) {
             if (p.x + radius > b.min.x && p.x - radius < b.max.x &&
                 p.z + radius > b.min.z && p.z - radius < b.max.z &&
@@ -548,7 +567,7 @@ export class Engine extends Emitter {
         setTimeout(() => this.armaOrb.material.color.setHex(0x46d98b), 50);
         this.sfx.shoot();
         if (victima) {
-            victima.recibir(this.dmg ?? 34, d, true);
+            if (victima.recibir(this.dmg ?? 34, d, true)) this.sfx.kill();
             this.particulas.emit(fin, 0xff8a5c, 10, 3, .35, 1.2);
             this.emit('acierto', victima);
         } else if (tv < Infinity) {
