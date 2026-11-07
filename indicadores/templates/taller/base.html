@@ -118,6 +118,10 @@
                 <a href="{% url 'indicadores:taller_dashboard' %}">Dashboard</a>
             {% endif %}
             {% if user.is_authenticated %}
+                <span style="font-size:12px; color:var(--texto-suave); font-weight:600; align-self:center; padding:0 4px;"
+                      title="Sesión activa">
+                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--azul-principal); margin-right:4px;"></span>{{ user.username }}
+                </span>
                 <form method="post" action="{% url 'indicadores:delegado_logout' %}" style="display:inline;">{% csrf_token %}
                     <button type="submit" class="btn" style="padding:7px 14px; font-size:12px; border-radius:15px;">Salir</button>
                 </form>

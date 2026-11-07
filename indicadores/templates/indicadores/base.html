@@ -332,6 +332,11 @@
                 </li>
                 {% if user.is_authenticated %}
                 <li class="py-4">
+                    <span class="px-3 py-2 text-slate-500 font-medium" title="{% if user.get_full_name %}{{ user.get_full_name }} — {% endif %}Sesión activa">
+                        <i class="fas fa-user-circle mr-1 text-sky-600"></i>{{ user.username }}
+                    </span>
+                </li>
+                <li class="py-4">
                     <a href="{% url 'indicadores:logout' %}" class="nav-link px-3 py-2 text-red-600 hover:text-red-700 font-medium" title="Cerrar sesión">
                         <i class="fas fa-sign-out-alt mr-1"></i>Cerrar sesión
                     </a>
