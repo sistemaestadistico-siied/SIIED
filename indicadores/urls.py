@@ -654,9 +654,9 @@ urlpatterns = [
     path('laboratorio/tableros/', views_laboratorio.laboratorio_listar, name='laboratorio_listar'),
     path('laboratorio/tablero/<int:tablero_id>/', views_laboratorio.laboratorio_ver, name='laboratorio_ver'),
 
-    # ── Easter egg: Datico Arena (shooter multijugador Don Datico) ──
+    # ── Easter egg: Datico Arena — misiones single-player de Don Datico ──
     # Ruta oculta; también se activa con el código Konami en la home.
-    # Requiere `python -m datico_arena.server` corriendo (puerto 8765).
+    # Todo corre en el navegador (Three.js local); sin servidor de juego.
     path('datico-arena/', login_required(TemplateView.as_view(
         template_name='datico_arena/arena.html')), name='datico_arena'),
     path('editorial/catalogo-consulta/<int:pk>/eliminar/', views_editorial.catalogo_consulta_eliminar, name='editorial_catalogo_consulta_eliminar'),
