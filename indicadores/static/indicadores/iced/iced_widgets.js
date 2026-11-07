@@ -1681,19 +1681,6 @@
             });
             container.appendChild(btnAdd);
 
-            // Link externo
-            const linkDiv = el('div', {
-                style: 'margin-top: 1rem; padding: 0.75rem; background: #f1f5f9; border-radius: 0.375rem; font-size: 0.85rem;'
-            }, [
-                'Si su respuesta es Sí, por favor diríjase a la ficha técnica de producción de información del organismo. ',
-                el('a', {
-                    href: 'https://docs.google.com/spreadsheets/d/1sGhiv9T4Q3iUGEjKnA20-jD6xyaTgd2mPwLqY7b6NIM/edit?gid=226015127',
-                    target: '_blank',
-                    style: 'color: #2563eb; text-decoration: underline;'
-                }, ['Consultar aquí'])
-            ]);
-            container.appendChild(linkDiv);
-
             // Mensaje de validación si es necesario
             if (filas.length < minFilas) {
                 const alert = el('div', {
