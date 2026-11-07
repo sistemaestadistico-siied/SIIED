@@ -344,7 +344,9 @@ class SupersetService:
                 'schema': 'public',
             }
             if tipo == 'csv':
-                form_data['delimiter'] = ','
+                ext = os.path.splitext(
+                    getattr(archivo, 'name', ''))[1].lower()
+                form_data['delimiter'] = '\t' if ext == '.tsv' else ','
             elif tipo == 'excel':
                 form_data['sheet_name'] = '0'
             resp = self._session.post(

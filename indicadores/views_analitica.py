@@ -833,8 +833,8 @@ def analitica_superset_subir_csv(request):
         if not archivo:
             messages.error(
                 request,
-                'Debe seleccionar un archivo CSV o un conjunto de datos '
-                'existente.')
+                'Debe seleccionar un archivo CSV, TSV o Excel, o un '
+                'conjunto de datos existente.')
             return render(request, 'analitica/superset_subir_csv.html', {
                 'conjuntos': conjuntos,
                 'superset_disponible': service.health_check(),

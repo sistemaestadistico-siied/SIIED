@@ -1,5 +1,5 @@
 {% extends 'analitica/base_analitica.html' %}
-{% block title %}Subir CSV a SIIED BI — Analítica e IA{% endblock %}
+{% block title %}Subir datos a SIIED BI — Analítica e IA{% endblock %}
 {% block analitica_content %}
 <div class="container mx-auto px-6 py-10">
 <div class="max-w-3xl mx-auto">
@@ -10,12 +10,12 @@
             <i class="fas fa-tachometer-alt mr-1"></i> SIIED BI
         </a>
         <i class="fas fa-chevron-right text-xs"></i>
-        <span class="text-slate-800 font-medium">Subir CSV</span>
+        <span class="text-slate-800 font-medium">Subir datos</span>
     </div>
 
     <div class="mb-8">
-        <h1 class="text-2xl font-bold text-slate-900">Subir datos CSV</h1>
-        <p class="text-slate-500 mt-1">Cree un nuevo dataset en Superset desde un archivo CSV o
+        <h1 class="text-2xl font-bold text-slate-900">Subir datos (CSV / Excel)</h1>
+        <p class="text-slate-500 mt-1">Cree un nuevo dataset en Superset desde un archivo CSV / TSV / Excel o
         desde un conjunto de datos existente del SIIED.</p>
     </div>
 
@@ -62,7 +62,7 @@
             <div class="flex border-b border-slate-200 mb-4" id="source-tabs">
                 <button type="button" onclick="showTab('archivo')" id="tab-archivo"
                         class="px-4 py-2 text-sm font-medium border-b-2 border-sky-600 text-sky-700 transition-colors">
-                    <i class="fas fa-file-csv mr-1"></i> Subir archivo CSV
+                    <i class="fas fa-file-excel mr-1"></i> Subir archivo CSV / Excel
                 </button>
                 <button type="button" onclick="showTab('conjunto')" id="tab-conjunto"
                         class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors ml-2">
@@ -74,7 +74,7 @@
             <div id="panel-archivo">
                 <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-sky-400 transition-colors">
                     <i class="fas fa-cloud-upload-alt text-slate-300 text-4xl mb-4"></i>
-                    <p class="text-slate-600 font-medium mb-2">Seleccione un archivo CSV</p>
+                    <p class="text-slate-600 font-medium mb-2">Seleccione un archivo CSV, TSV o Excel</p>
                     <p class="text-xs text-slate-400 mb-4">Formatos aceptados: .csv, .tsv, .xlsx, .xls (máx. 50MB)</p>
                     <input type="file" name="archivo_csv" accept=".csv,.tsv,.xlsx,.xls"
                            class="block mx-auto text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
@@ -158,7 +158,7 @@
             <i class="fas fa-lightbulb text-sky-500 text-lg mt-0.5"></i>
             <div class="text-sm text-sky-800">
                 <p class="font-semibold mb-1">Consejo</p>
-                <p>Una vez subido el CSV como dataset, podrá usarlo en Superset para crear gráficos,
+                <p>Una vez subido el archivo como dataset, podrá usarlo en Superset para crear gráficos,
                 tablas dinámicas y dashboards completos. Los datos del SIIED (indicadores, series,
                 conjuntos de datos) también están disponibles directamente como tablas de la base
                 de datos.</p>
