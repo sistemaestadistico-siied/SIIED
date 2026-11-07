@@ -804,6 +804,12 @@ def analitica_superset_subir_csv(request):
         archivo = request.FILES.get('archivo_csv')
         conjunto_id = request.POST.get('conjunto_id')
 
+        # Fuente Google Sheet: URL pública → dataset vivo vía shillelagh.
+        url_gsheet = request.POST.get('url_gsheet', '').strip()
+        if url_gsheet:
+            return _crear_dataset_gsheet_bi(
+                request, service, url_gsheet, organismo_perfil, conjuntos)
+
         # Si seleccionó un conjunto de datos existente, usar su archivo CSV
         if conjunto_id and not archivo:
             try:
@@ -893,6 +899,50 @@ def analitica_superset_subir_csv(request):
         'conjuntos': conjuntos,
         'superset_disponible': service.health_check(),
     })
+
+
+def _crear_dataset_gsheet_bi(request, service, url_gsheet,
+                             organismo_perfil, conjuntos):
+    """Dataset Superset sobre un Google Sheet público + registro DatasetBI.
+
+    El table_name es la URL completa (incluye #gid=N → pestaña elegida);
+    se guarda igual para que la reconciliación por nombre la encuentre."""
+    render_form = lambda: render(  # noqa: E731
+        request, 'analitica/superset_subir_csv.html', {
+            'conjuntos': conjuntos,
+            'superset_disponible': service.health_check(),
+        })
+    if len(url_gsheet) > 200:
+        messages.error(
+            request, 'La URL es demasiado larga (máx. 200 caracteres).')
+        return render_form()
+
+    resultado = service.crear_dataset_gsheet(url_gsheet)
+    if not resultado.get('success'):
+        messages.error(
+            request,
+            'Error creando dataset de Google Sheet: '
+            f'{resultado.get("error", "Error desconocido")}')
+        return render_form()
+
+    visibilidad = request.POST.get('visibilidad', 'propio')
+    if visibilidad not in dict(DatasetBI.VISIBILIDAD_CHOICES):
+        visibilidad = 'propio'
+    DatasetBI.objects.update_or_create(
+        nombre_tabla=url_gsheet,
+        defaults={
+            'usuario': request.user,
+            'organismo': organismo_perfil,
+            'visibilidad': visibilidad,
+            'dataset_id': resultado.get('dataset_id'),
+            'activo': True,
+        })
+    messages.success(
+        request,
+        'Dataset de Google Sheet creado en Superset '
+        f'(visibilidad: {visibilidad}). '
+        'Ya puede usarlo para crear gráficos y dashboards.')
+    return redirect('indicadores:analitica_superset')
 
 
 def _nombre_tabla_siied(prefijo, pk, nombre):

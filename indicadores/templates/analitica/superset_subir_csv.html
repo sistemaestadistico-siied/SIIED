@@ -68,6 +68,10 @@
                         class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors ml-2">
                     <i class="fas fa-table mr-1"></i> Desde Conjuntos de Datos SIIED
                 </button>
+                <button type="button" onclick="showTab('gsheet')" id="tab-gsheet"
+                        class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors ml-2">
+                    <i class="fab fa-google mr-1"></i> Google Sheet público
+                </button>
             </div>
 
             <!-- Panel: archivo -->
@@ -77,7 +81,20 @@
                     <p class="text-slate-600 font-medium mb-2">Seleccione un archivo CSV, TSV o Excel</p>
                     <p class="text-xs text-slate-400 mb-4">Formatos aceptados: .csv, .tsv, .xlsx, .xls (máx. 50MB)</p>
                     <input type="file" name="archivo_csv" accept=".csv,.tsv,.xlsx,.xls"
-                           class="block mx-auto text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                        Google Sheet -->
+            <div id="panel-gsheet" style="display: none;">
+                <p class="text-slate-600 font-medium mb-2">URL de la hoja de Google pública</p>
+                <p class="text-xs text-slate-400 mb-4">
+                    La hoja debe estar compartida como «cualquiera con el enlace puede ver».
+                    La pestaña indicada en el enlace (#gid=N) es la que se importa.
+                    El dataset consulta Google en vivo cada vez que se usa.
+                </p>
+                <input type="url" name="url_gsheet"
+                       placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0"
+                       class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+            </div>
+
+            <!-- Panel:    class="block mx-auto text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
                 </div>
             </div>
 
@@ -153,15 +170,13 @@
     </form>
 
     <!-- Info box -->
-    <div class="mt-8 bg-sky-50 border border-sky-200 rounded-2xl p-5">
-        <div class="flex items-start gap-3">
-            <i class="fas fa-lightbulb text-sky-500 text-lg mt-0.5"></i>
-            <div class="text-sm text-sky-800">
-                <p class="font-semibold mb-1">Consejo</p>
-                <p>Una vez subido el archivo como dataset, podrá usarlo en Superset para crear gráficos,
-                tablas dinámicas y dashboards completos. Los datos del SIIED (indicadores, series,
-                conjuntos de datos) también están disponibles directamente como tablas de la base
-                de datos.</p>
+    ['archivd', 'ionjvlao', 'ssh=-g5].forEa b(functodn (k) {
+        vnreon d-2 p-5"tb;
+        <div class="flex items-star' + 3            <i class="fas fa-lightbulb text-sky-500 text-lg mt-0.5"></i>
+                <div class="text-sm t- + t800">n
+                    <p class="font-semibold mb-1">Consejo</p> o+am s datoarshivII    ' :u' )lád')
+ic                 de datos.</p>' + (t === 'archivo' ? '' : ');
+    })
             </div>
         </div>
     </div>

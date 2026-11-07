@@ -369,6 +369,51 @@ class SupersetService:
             logger.error(f"Superset: error subiendo CSV: {e}")
             return {'error': str(e)}
 
+    def _get_gsheets_database_id(self):
+        """ID de la database gsheets:// registrada en Superset (o None).
+
+        El engine gsheets lo provee shillelagh; solo existe si alguien
+        agregó la conexión (Data → Databases → + gsheets://)."""
+        data = self._api_request('GET', 'database/')
+        for db in (data or {}).get('result', []):
+            uri = (db.get('sqlalchemy_uri') or '')
+            if db.get('engine') == 'gsheets' or uri.startswith('gsheets'):
+                return db.get('id')
+        return None
+
+    def crear_dataset_gsheet(self, url_sheet):
+        """Crea un dataset Superset sobre una hoja de Google (shillelagh).
+
+        El table_name del dataset ES la URL completa — así el engine
+        resuelve también la pestaña (#gid=N) incluida en el enlace.
+        La hoja debe ser pública ("cualquiera con el enlace") salvo que
+        la conexión gsheets tenga service account."""
+        if not re.match(
+                r'^https://docs\.google\.com/spreadsheets/d/[\w-]+',
+                url_sheet or ''):
+            return {'error': 'URL de Google Sheet inválida'}
+
+        db_id = self._get_gsheets_database_id()
+        if not db_id:
+            return {'error': 'No hay una base gsheets:// registrada en '
+                             'Superset (Data → Databases → + gsheets://)'}
+
+        data = self._write_request('POST', 'dataset/', {
+            'database': db_id,
+            'table_name': url_sheet,
+        })
+        if not data or '_error' in data:
+            detalle = ((data or {}).get('_detalle')
+                       or (data or {}).get('_error'))
+            return {'error': detalle or 'error creando dataset de Google Sheet'}
+
+        ds_id = data.get('id')
+        if ds_id is None:
+            ds_id = (data.get('result') or {}).get('id')
+        logger.info(f"Superset: dataset gsheets '{url_sheet}' creado (id={ds_id})")
+        return {'success': True, 'dataset_id': ds_id,
+                'table_name': url_sheet}
+
     def _get_siied_database_id(self):
         """Busca el ID de la base de datos del SIIED configurada en Superset"""
         db_name = getattr(settings, 'SUPERSET_DATABASE_NAME', 'SIIED - Indicadores')
