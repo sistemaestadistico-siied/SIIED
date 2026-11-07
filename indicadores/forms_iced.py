@@ -152,6 +152,7 @@ def _error_fecha_mmaaaa(fecha):
 _MAX_CELDA_JSON = 500     # caracteres máximos por celda de widget
 _MAX_FILAS_JSON = 50      # tope de filas por widget dinámico
 _MAX_TEXTO = 3000         # textos largos (descripciones, observaciones)
+_MAX_TEXTO_LARGO = 8000   # descripciones extendidas (p6_descripcion)
 _MAX_TEXTO_CORTO = 300    # campos "especifique" / respuestas cortas
 
 
@@ -242,6 +243,9 @@ _REGLAS = {
     'texto': lambda v: (
         f"Máximo {_MAX_TEXTO} caracteres"
         if len(v) > _MAX_TEXTO else None),
+    'texto_largo': lambda v: (
+        f"Máximo {_MAX_TEXTO_LARGO} caracteres"
+        if len(v) > _MAX_TEXTO_LARGO else None),
 }
 
 # Inferencia por nombre de clave/campo (orden importa: específico primero)
@@ -258,6 +262,7 @@ _CLAVES_TIPO = [
 
 # Reglas explícitas para campos escalares (texto plano del wizard)
 REGLAS_CAMPOS_FICED = {
+    'p6_descripcion': 'texto_largo',
     'p25_proyectos_bp': 'codigos_bp',
     # Campo eliminado (el link pasó a help_text de p25_proyectos_bp), pero
     # la regla se conserva: respuestas de versiones anteriores aún la
@@ -558,7 +563,7 @@ class ICEDModuloBForm(ICEDBaseForm):
         )
     )
     p6_descripcion = forms.CharField(
-        max_length=3000,
+        max_length=8000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea', 'rows': 3,
