@@ -472,7 +472,14 @@ export function buildTorres(e) {
 /* ============================================================
  * MAPA 4 — PATIO DE PILAS (día, clasificación por color)
  * ============================================================ */
-export function buildPila(e, series) {
+export const SERIES = [
+    { nombre: 'SERIE GEO', color: 0x46d98b },
+    { nombre: 'SERIE SOC', color: 0xffb37a },
+    { nombre: 'SERIE ECO', color: 0xc98bff },
+    { nombre: 'SERIE DEM', color: 0x7cd8ff },
+];
+
+export function buildPila(e) {
     e.scene.background = new THREE.Color(0x12333f);
     e.scene.fog = new THREE.Fog(0x16404f, 40, 140);
     e.bounds = { minX: -30, maxX: 30, minZ: -26, maxZ: 26 };
@@ -501,8 +508,8 @@ export function buildPila(e, series) {
 
     // Torres de series: una por color con slots fantasma
     const torres = [];
-    series.forEach((s, i) => {
-        const ang = i / series.length * Math.PI * 2 + Math.PI / 4;
+    SERIES.forEach((s, i) => {
+        const ang = i / SERIES.length * Math.PI * 2 + Math.PI / 4;
         const x = Math.cos(ang) * 16, z = Math.sin(ang) * 16;
         const mat = new THREE.MeshStandardMaterial({ color: s.color, roughness: .5,
             emissive: s.color, emissiveIntensity: .12 });

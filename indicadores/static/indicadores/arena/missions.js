@@ -5,6 +5,8 @@ import * as THREE from 'three';
 import { Bot } from './bot.js';
 import { Pickup, Zona, Antena, Botiquin } from './objetos.js';
 import { GRAV, basic } from './engine.js';
+import { SERIES } from './mapas.js';
+export { SERIES };
 
 const _pad = new THREE.Vector3();
 
@@ -242,12 +244,6 @@ export function mTorres(e, ctx) {
 }
 
 /* ============ Misión 4: Pila — clasifica por serie ============ */
-export const SERIES = [
-    { nombre: 'SERIE GEO', color: 0x46d98b },
-    { nombre: 'SERIE SOC', color: 0xffb37a },
-    { nombre: 'SERIE ECO', color: 0xc98bff },
-    { nombre: 'SERIE DEM', color: 0x7cd8ff },
-];
 export function mPila(e, ctx) {
     const POR_SERIE = ctx.dif >= 2 ? 4 : 3;
     const pickups = [];
