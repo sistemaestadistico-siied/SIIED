@@ -34,6 +34,7 @@ var gridHelper = null, starPoints = null, radioExtActual = 320;
 var hoveredNodo = null;
 var soloRelacionados = false;
 var pollErrores = 0;
+var animando = false;
 
 // Libera geometrías, materiales y texturas de un objeto y sus hijos.
 // Sin esto, cada reconstrucción de la escena acumula memoria de GPU.
@@ -126,8 +127,13 @@ function init() {
 
 function onResize() {
     var w = window.innerWidth, h = window.innerHeight;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
+    var asp = w / h;
+    camera3D.aspect = asp;
+    camera3D.updateProjectionMatrix();
+    // La ortográfica guarda su extensión vertical en .top
+    camera2D.left = -camera2D.top * asp;
+    camera2D.right = camera2D.top * asp;
+    camera2D.updateProjectionMatrix();
     renderer.setSize(w, h);
 }
 
@@ -873,7 +879,8 @@ function construirEscena(nodos, aristas) {
         var plasmaCloud = new THREE.Points(pGeo, pMat);
         plasmaCloud.userData = { radio: orb.r, velocidad: 0.0003 + Math.random() * 0.0002 };
         scene.add(plasmaCloud);
-        orbitasMeshes.push(plasmaCloud);
+        // orbitasSubMeshes los retira limpiarEscena al reconstruir
+        orbitasSubMeshes.push(plasmaCloud);
     });
 
     // Crear meshes de nodos
@@ -922,7 +929,7 @@ function construirEscena(nodos, aristas) {
     }
 
     actualizarConteo();
-    animate();
+    if (!animando) { animando = true; animate(); }
 }
 
 function getTamanoNodo(n) {
@@ -1090,7 +1097,7 @@ function mostrarInfo(n) {
     // Link a ficha completa para conjuntos
     if (n.tipo === 'conjunto' && n.fuente_id) {
         html += '<div style="margin-top:12px;padding-top:8px;border-top:2px solid #e2e8f0;">';
-        html += '<a href="/ficha-conjunto/' + n.fuente_id + '/" target="_blank" style="display:inline-block;background:#6fce8f;color:#fff;padding:8px 16px;border-radius:6px;font-size:0.85rem;font-weight:600;text-decoration:none;">📋 Ver ficha completa</a>';
+        html += '<a href="/catalogo/ficha/' + n.fuente_id + '/" target="_blank" style="display:inline-block;background:#6fce8f;color:#fff;padding:8px 16px;border-radius:6px;font-size:0.85rem;font-weight:600;text-decoration:none;">📋 Ver ficha completa</a>';
         html += '</div>';
     }
 
@@ -1292,7 +1299,7 @@ function downloadGEXF() {
     // Descarga el GEXF generado en el servidor (mismo archivo que el botón
     // del dashboard: atributos completos y viz:position con el layout
     // concéntrico), respetando el filtro activo
-    var url = '/ecosistema/gexf/';
+    var url = '{% url "indicadores:taller_ecosistema_gexf" %}';
     if (soloRelacionados) url += '?solo_relacionados=true';
     window.location.href = url;
 }
@@ -1300,7 +1307,7 @@ function downloadGEXF() {
 function downloadSVG() {
     // Descarga el SVG renderizado en el servidor (layout concéntrico, mismo
     // archivo que el botón del dashboard), respetando el filtro activo
-    var url = '/ecosistema/svg/';
+    var url = '{% url "indicadores:taller_ecosistema_svg" %}';
     if (soloRelacionados) url += '?solo_relacionados=true';
     window.location.href = url;
 }
