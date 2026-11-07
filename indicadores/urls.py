@@ -474,6 +474,10 @@ urlpatterns = [
     path('analitica/superset/dashboard/<int:dashboard_id>/eliminar/', views_analitica.analitica_tablero_eliminar, name='analitica_tablero_eliminar'),
     path('analitica/superset/dataset/<int:dataset_id>/visibilidad/', views_analitica.analitica_dataset_visibilidad, name='analitica_dataset_visibilidad'),
     path('analitica/superset/dataset/<int:dataset_id>/eliminar/', views_analitica.analitica_dataset_eliminar, name='analitica_dataset_eliminar'),
+    path('analitica/superset/conexiones/', views_analitica.analitica_superset_conexiones, name='analitica_superset_conexiones'),
+    path('analitica/superset/conexiones/<int:conexion_id>/eliminar/', views_analitica.analitica_superset_conexion_eliminar, name='analitica_superset_conexion_eliminar'),
+    path('analitica/superset/dataset-bd/', views_analitica.analitica_superset_dataset_db, name='analitica_superset_dataset_db'),
+    path('analitica/superset/conexion-meta/', views_analitica.analitica_conexion_meta, name='analitica_conexion_meta'),
     path('analitica/superset/geo/', views_analitica.analitica_geo_descargas, name='analitica_geo_descargas'),
     path('analitica/superset/geo/<int:nivel_id>/<str:formato>/', views_analitica.analitica_geo_exportar, name='analitica_geo_exportar'),
     # Tableros BI por visibilidad (guest token): público/autenticado/organismo/interno

@@ -13,6 +13,7 @@ import csv
 import io
 import logging
 import importlib
+from urllib.parse import quote_plus
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -30,7 +31,7 @@ from .decorators import analista_required, bi_required
 from .forms_chat_config import ChatConfigForm, ChatContextForm, ChatSuggestionsForm
 from . import chat_config
 from .models import (ConfiguracionSistema, ConjuntoDatos, CatalogoConsulta,
-                     MenuDominio, DatasetBI, TableroBI,
+                     MenuDominio, DatasetBI, ConexionBI, TableroBI,
                      NivelGeografico, ElementoGeo, CapaGeoJSON)
 from .superset_service import SupersetService
 from django.utils.text import slugify
@@ -482,6 +483,7 @@ def analitica_superset(request):
             'http://127.0.0.1:8088').rstrip('/'),
         'visibilidades_dataset': DatasetBI.VISIBILIDAD_CHOICES,
         'visibilidades_tablero': TableroBI.VISIBILIDAD_CHOICES,
+        'puede_conexiones': _es_analista_siied(request.user),
     }
     return render(request, 'analitica/superset.html', context)
 
@@ -943,6 +945,215 @@ def _crear_dataset_gsheet_bi(request, service, url_gsheet,
         f'(visibilidad: {visibilidad}). '
         'Ya puede usarlo para crear gráficos y dashboards.')
     return redirect('indicadores:analitica_superset')
+# ============================================================================
+# CONEXIONES A BASES DE DATOS EXTERNAS (equipo SIIED)
+# ============================================================================
+
+def _es_analista_siied(user):
+    """staff o rol 'analista' — quienes pueden gestionar conexiones BD.
+
+    Una conexión expone TODAS las tablas de la BD remota: el scoping por
+    DatasetBI no aplica ahí, así que analista_organismo queda fuera."""
+    perfil = getattr(user, 'perfil_recolector', None)
+    return bool(user.is_staff or (perfil and perfil.rol == 'analista'))
+
+
+def _build_sqlalchemy_uri(motor, host, puerto, base_datos, usuario, clave):
+    """URI con credenciales escapadas; nunca persistirla en SIIED."""
+    motor_uri = {
+        'postgresql': 'postgresql',
+    }.get(motor)
+    if not motor_uri:
+        return None
+    return (f'{motor_uri}://{quote_plus(usuario)}:{quote_plus(clave)}'
+            f'@{host}:{puerto}/{base_datos}')
+
+
+@bi_required
+def analitica_superset_conexiones(request):
+    """Lista y crea conexiones a BD externas en Superset.
+
+    Solo equipo SIIED. Prueba la URI con test_connection antes de
+    registrarla, así las credenciales malas nunca se guardan.
+    """
+    if not _es_analista_siied(request.user):
+        messages.error(
+            request, 'Solo el equipo SIIED puede gestionar conexiones.')
+        return redirect('indicadores:analitica_superset')
+
+    service = SupersetService()
+
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre', '').strip()
+        motor = request.POST.get('motor', 'postgresql')
+        host = request.POST.get('host', '').strip()
+        puerto = None
+        try:
+            puerto = int(request.POST.get('puerto') or 0)
+        except (TypeError, ValueError):
+            pass
+        base_datos = request.POST.get('base_datos', '').strip()
+        usuario_db = request.POST.get('usuario_db', '').strip()
+        clave = request.POST.get('clave', '')
+
+        errores = []
+        if not (nombre and host and base_datos and usuario_db and clave):
+            errores.append('Todos los campos son obligatorios.')
+        if host and not re.match(r'^[\w.-]+$', host):
+            errores.append('Host inválido.')
+        if not puerto or not 1 <= puerto <= 65535:
+            errores.append('Puerto inválido.')
+        if motor not in dict(ConexionBI.MOTOR_CHOICES):
+            errores.append('Motor no soportado.')
+
+        if errores:
+            for e in errores:
+                messages.error(request, e)
+        else:
+            uri = _build_sqlalchemy_uri(
+                motor, host, puerto, base_datos, usuario_db, clave)
+            prueba = service.test_conexion_db(uri)
+            if not prueba.get('success'):
+                messages.error(
+                    request,
+                    'La conexión no respondió: '
+                    f'{prueba.get("error")}')
+            else:
+                creada = service.crear_database(nombre, uri)
+                if not creada.get('success'):
+                    messages.error(
+                        request,
+                        'No se pudo registrar la conexión: '
+                        f'{creada.get("error")}')
+                else:
+                    perfil = getattr(
+                        request.user, 'perfil_recolector', None)
+                    ConexionBI.objects.create(
+                        nombre=nombre,
+                        motor=motor,
+                        superset_database_id=creada.get('database_id'),
+                        usuario=request.user,
+                        organismo=getattr(perfil, 'organismo', None))
+                    messages.success(
+                        request,
+                        f'Conexión "{nombre}" registrada. Ya puede '
+                        'crear datasets sobre sus tablas.')
+        return redirect('indicadores:analitica_superset_conexiones')
+
+    conexiones = ConexionBI.objects.filter(
+        activo=True).order_by('-fecha_creacion')
+    return render(request, 'analitica/superset_conexiones.html', {
+        'conexiones': conexiones,
+        'motores': ConexionBI.MOTOR_CHOICES,
+        'superset_disponible': service.health_check(),
+    })
+
+
+@require_POST
+@bi_required
+def analitica_superset_conexion_eliminar(request, conexion_id):
+    """Retira la conexión de Superset y la desactiva en SIIED."""
+    if not _es_analista_siied(request.user):
+        messages.error(
+            request, 'Solo el equipo SIIED puede gestionar conexiones.')
+        return redirect('indicadores:analitica_superset')
+
+    conexion = get_object_or_404(ConexionBI, id=conexion_id, activo=True)
+    service = SupersetService()
+    if conexion.superset_database_id:
+        res = service.eliminar_database(conexion.superset_database_id)
+        if not res.get('success'):
+            messages.error(
+                request,
+                f'No se pudo eliminar en Superset: {res.get("error")}')
+            return redirect('indicadores:analitica_superset_conexiones')
+    conexion.activo = False
+    conexion.save(update_fields=['activo'])
+    messages.success(request, f'Conexión "{conexion.nombre}" eliminada.')
+    return redirect('indicadores:analitica_superset_conexiones')
+
+
+@bi_required
+def analitica_superset_dataset_db(request):
+    """Crea un dataset apuntando a una tabla de una ConexionBI."""
+    if not _es_analista_siied(request.user):
+        messages.error(
+            request, 'Solo el equipo SIIED puede gestionar conexiones.')
+        return redirect('indicadores:analitica_superset')
+
+    service = SupersetService()
+    conexiones = ConexionBI.objects.filter(activo=True)
+
+    if request.method == 'POST':
+        conexion = get_object_or_404(
+            ConexionBI, id=request.POST.get('conexion'), activo=True)
+        schema = request.POST.get('schema', '').strip()
+        tabla = request.POST.get('tabla', '').strip()
+        if not tabla:
+            messages.error(request, 'Debe indicar la tabla.')
+            return redirect('indicadores:analitica_superset_dataset_db')
+        if DatasetBI.objects.filter(nombre_tabla=tabla).exists():
+            messages.error(
+                request,
+                f'Ya existe un dataset registrado como "{tabla}". '
+                'Use otro nombre de tabla o cree el dataset con SQL.')
+            return redirect('indicadores:analitica_superset_dataset_db')
+
+        resultado = service.crear_dataset_tabla(
+            conexion.superset_database_id, schema or None, tabla)
+        if resultado.get('success'):
+            visibilidad = request.POST.get('visibilidad', 'interno')
+            if visibilidad not in dict(DatasetBI.VISIBILIDAD_CHOICES):
+                visibilidad = 'interno'
+            perfil = getattr(request.user, 'perfil_recolector', None)
+            DatasetBI.objects.create(
+                nombre_tabla=tabla,
+                dataset_id=resultado.get('dataset_id'),
+                usuario=request.user,
+                organismo=getattr(perfil, 'organismo', None),
+                visibilidad=visibilidad)
+            messages.success(
+                request,
+                f'Dataset "{tabla}" creado sobre la conexión '
+                f'"{conexion.nombre}" (visibilidad: {visibilidad}). '
+                'Se consulta en vivo cada vez que se usa.')
+            return redirect('indicadores:analitica_superset')
+        messages.error(
+            request,
+            'Error creando dataset: '
+            f'{resultado.get("error", "Error desconocido")}')
+
+    return render(request, 'analitica/superset_dataset_db.html', {
+        'conexiones': conexiones,
+        'visibilidades_dataset': DatasetBI.VISIBILIDAD_CHOICES,
+        'superset_disponible': service.health_check(),
+    })
+
+
+@bi_required
+def analitica_conexion_meta(request):
+    """JSON: schemas (o tablas de un schema) de una ConexionBI.
+
+    Alimenta el picker conexión → schema → tabla del form
+    dataset-desde-conexión."""
+    if not _es_analista_siied(request.user):
+        return JsonResponse({'error': 'sin permiso'}, status=403)
+    conexion = get_object_or_404(
+        ConexionBI, id=request.GET.get('conexion'), activo=True)
+    if not conexion.superset_database_id:
+        return JsonResponse({'error': 'conexión sin ID en Superset'},
+                            status=400)
+    service = SupersetService()
+    schema = request.GET.get('schema', '').strip()
+    if schema:
+        return JsonResponse({
+            'tables': service.listar_tablas_db(
+                conexion.superset_database_id, schema)})
+    return JsonResponse({
+        'schemas': service.listar_esquemas_db(
+            conexion.superset_database_id)})
+
+
 
 
 def _nombre_tabla_siied(prefijo, pk, nombre):

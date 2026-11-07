@@ -1,0 +1,165 @@
+{% extends 'analitica/base_analitica.html' %}
+{% block title %}Dataset desde conexión — Analítica e IA{% endblock %}
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-10">
+<div class="max-w-3xl mx-auto">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+        <a href="{% url 'indicadores:analitica_superset' %}" class="hover:text-sky-600 transition-colors">
+            <i class="fas fa-tachometer-alt mr-1"></i> SIIED BI
+        </a>
+        <i class="fas fa-chevron-right text-xs"></i>
+        <a href="{% url 'indicadores:analitica_superset_conexiones' %}" class="hover:text-sky-600 transition-colors">Conexiones</a>
+        <i class="fas fa-chevron-right text-xs"></i>
+        <span class="text-slate-800 font-medium">Dataset desde conexión</span>
+    </div>
+
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-slate-900">Dataset desde conexión BD</h1>
+        <p class="text-slate-500 mt-1">Elija conexión, schema y tabla. El dataset consulta la
+        fuente en vivo — no copia datos.</p>
+    </div>
+
+    {% if not superset_disponible %}
+    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle text-rose-500 text-lg mt-0.5"></i>
+            <div class="text-sm text-rose-800">
+                <p class="font-semibold mb-1">SIIED BI no disponible</p>
+                <p>Apache Superset no está respondiendo. Contacte al administrador del sistema.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl border text-sm {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800{% elif message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-800{% else %}bg-sky-50 border-sky-200 text-sky-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not conexiones %}
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <p class="text-sm text-amber-800">
+            No hay conexiones registradas.
+            <a href="{% url 'indicadores:analitica_superset_conexiones' %}" class="font-medium underline">Cree una primero</a>.
+        </p>
+    </div>
+    {% else %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Conexión</label>
+                <select name="conexion" id="sel-conexion" required
+                        class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                    <option value="">— Seleccione —</option>
+                    {% for c in conexiones %}
+                    <option value="{{ c.id }}">{{ c.nombre }} ({{ c.get_motor_display }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Schema</label>
+                <select name="schema" id="sel-schema" disabled
+                        class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-slate-50 disabled:text-slate-400">
+                    <option value="">— Seleccione una conexión primero —</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Tabla</label>
+                <select name="tabla" id="sel-tabla" disabled required
+                        class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-slate-50 disabled:text-slate-400">
+                    <option value="">— Seleccione un schema primero —</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Visibilidad del dataset</label>
+                <select name="visibilidad"
+                        class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                    {% for valor, etiqueta in visibilidades_dataset %}
+                    <option value="{{ valor }}" {% if valor == 'interno' %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="mt-6">
+            <button type="submit"
+                    class="inline-flex items-center px-5 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium shadow-sm">
+                <i class="fas fa-table mr-2"></i> Crear dataset
+            </button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+</div>
+
+<script>
+var META_URL = "{% url 'indicadores:analitica_conexion_meta' %}";
+
+function rellenar(select, items, placeholder) {
+    select.innerHTML = '';
+    var opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = items.length ? placeholder : '— vacío —';
+    select.appendChild(opt);
+    items.forEach(function (v) {
+        var o = document.createElement('option');
+        o.value = v;
+        o.textContent = v;
+        select.appendChild(o);
+    });
+    select.disabled = !items.length;
+}
+
+document.getElementById('sel-conexion').addEventListener('change', function () {
+    var schemaSel = document.getElementById('sel-schema');
+    var tablaSel = document.getElementById('sel-tabla');
+    rellenar(tablaSel, [], '— Seleccione un schema primero —');
+    tablaSel.disabled = true;
+    if (!this.value) {
+        rellenar(schemaSel, [], '— Seleccione una conexión primero —');
+        schemaSel.disabled = true;
+        return;
+    }
+    rellenar(schemaSel, [], 'cargando…');
+    schemaSel.disabled = true;
+    fetch(META_URL + '?conexion=' + this.value)
+        .then(function (r) { return r.json(); })
+        .then(function (d) { rellenar(schemaSel, d.schemas || [], '— Seleccione schema —'); })
+        .catch(function () { rellenar(schemaSel, [], '— error consultando —'); });
+});
+
+document.getElementById('sel-schema').addEventListener('change', function () {
+    var tablaSel = document.getElementById('sel-tabla');
+    var conexion = document.getElementById('sel-conexion').value;
+    if (!this.value) {
+        rellenar(tablaSel, [], '— Seleccione un schema primero —');
+        tablaSel.disabled = true;
+        return;
+    }
+    rellenar(tablaSel, [], 'cargando…');
+    tablaSel.disabled = true;
+    fetch(META_URL + '?conexion=' + conexion + '&schema=' + encodeURIComponent(this.value))
+        .then(function (r) { return r.json(); })
+        .then(function (d) { rellenar(tablaSel, d.tables || [], '— Seleccione tabla —'); })
+        .catch(function () { rellenar(tablaSel, [], '— error consultando —'); });
+});
+
+// Preselección por ?conexion=N (viene de la lista de conexiones)
+(function () {
+    var params = new URLSearchParams(location.search);
+    var c = params.get('conexion');
+    if (c) {
+        var sel = document.getElementById('sel-conexion');
+        sel.value = c;
+        sel.dispatchEvent(new Event('change'));
+    }
+})();
+</script>
+{% endblock %}

@@ -26,6 +26,12 @@
                 <i class="fas fa-file-upload mr-2 text-sky-500"></i>
                 Subir CSV
             </a>
+            {% if puede_conexiones %}
+            <a href="{% url 'indicadores:analitica_superset_conexiones' %}" class="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm">
+                <i class="fas fa-plug mr-2 text-emerald-500"></i>
+                Conexiones BD
+            </a>
+            {% endif %}
             <a href="{% url 'indicadores:analitica_geo_descargas' %}" class="inline-flex items-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm">
                 <i class="fas fa-map-marked-alt mr-2 text-emerald-500"></i>
                 Capas geo

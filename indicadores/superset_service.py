@@ -414,6 +414,86 @@ class SupersetService:
         return {'success': True, 'dataset_id': ds_id,
                 'table_name': url_sheet}
 
+    # ========================================================================
+    # CONEXIONES A BASES DE DATOS EXTERNAS
+    # ========================================================================
+
+    def test_conexion_db(self, sqlalchemy_uri):
+        """Prueba una URI antes de registrarla (POST test_connection)."""
+        data = self._write_request('POST', 'database/test_connection', {
+            'database_name': 'prueba-siied',
+            'sqlalchemy_uri': sqlalchemy_uri,
+            'impersonate_user': False,
+            'server_cert': '',
+            'encrypted_extra': '',
+        })
+        if not data or '_error' in data:
+            detalle = ((data or {}).get('_detalle')
+                       or (data or {}).get('_error'))
+            return {'error': detalle or 'sin respuesta de Superset'}
+        return {'success': True}
+
+    def crear_database(self, nombre, sqlalchemy_uri):
+        """Registra una conexión de BD externa (POST database/).
+
+        Nunca loguear sqlalchemy_uri — contiene la contraseña."""
+        data = self._write_request('POST', 'database/', {
+            'database_name': nombre,
+            'sqlalchemy_uri': sqlalchemy_uri,
+            'expose_in_sqllab': False,
+        })
+        if not data or '_error' in data:
+            detalle = ((data or {}).get('_detalle')
+                       or (data or {}).get('_error'))
+            return {'error': detalle or 'error registrando conexión'}
+        db_id = data.get('id')
+        if db_id is None:
+            db_id = (data.get('result') or {}).get('id')
+        return {'success': True, 'database_id': db_id}
+
+    def eliminar_database(self, database_id):
+        """DELETE database/{id} — retira la conexión de Superset."""
+        data = self._write_request('DELETE', f'database/{database_id}', {})
+        if not data or '_error' in data:
+            detalle = ((data or {}).get('_detalle')
+                       or (data or {}).get('_error'))
+            return {'error': detalle or 'error eliminando conexión'}
+        return {'success': True}
+
+    def listar_esquemas_db(self, database_id):
+        """Schemas disponibles en una database registrada."""
+        data = self._api_request('GET', f'database/{database_id}/schemas/')
+        return (data or {}).get('result') or []
+
+    def listar_tablas_db(self, database_id, schema=None):
+        """Tablas de un schema (o todas si schema=None)."""
+        params = {'q': f'(schema_name:{schema})'} if schema else {}
+        data = self._api_request(
+            'GET', f'database/{database_id}/tables/', params=params)
+        result = (data or {}).get('result') or []
+        return [t.get('value') or t.get('label') for t in result
+                if isinstance(t, dict) and (t.get('value') or t.get('label'))]
+
+    def crear_dataset_tabla(self, database_id, schema, table_name):
+        """Dataset físico apuntando a una tabla de una conexión BD."""
+        data = self._write_request('POST', 'dataset/', {
+            'database': database_id,
+            'schema': schema or None,
+            'table_name': table_name,
+        })
+        if not data or '_error' in data:
+            detalle = ((data or {}).get('_detalle')
+                       or (data or {}).get('_error'))
+            return {'error': detalle or 'error creando dataset'}
+        ds_id = data.get('id')
+        if ds_id is None:
+            ds_id = (data.get('result') or {}).get('id')
+        logger.info(
+            f"Superset: dataset '{table_name}' creado sobre "
+            f"database_id={database_id} (id={ds_id})")
+        return {'success': True, 'dataset_id': ds_id,
+                'table_name': table_name}
+
     def _get_siied_database_id(self):
         """Busca el ID de la base de datos del SIIED configurada en Superset"""
         db_name = getattr(settings, 'SUPERSET_DATABASE_NAME', 'SIIED - Indicadores')

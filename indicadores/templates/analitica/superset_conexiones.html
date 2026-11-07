@@ -1,0 +1,166 @@
+{% extends 'analitica/base_analitica.html' %}
+{% block title %}Conexiones BD — Analítica e IA{% endblock %}
+{% block analitica_content %}
+<div class="container mx-auto px-6 py-10">
+<div class="max-w-4xl mx-auto">
+
+    <!-- Breadcrumb -->
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+        <a href="{% url 'indicadores:analitica_superset' %}" class="hover:text-sky-600 transition-colors">
+            <i class="fas fa-tachometer-alt mr-1"></i> SIIED BI
+        </a>
+        <i class="fas fa-chevron-right text-xs"></i>
+        <span class="text-slate-800 font-medium">Conexiones a bases de datos</span>
+    </div>
+
+    <div class="flex items-start justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Conexiones a bases de datos</h1>
+            <p class="text-slate-500 mt-1">Registre conexiones a BD externas en Superset. Los datasets
+            creados sobre ellas consultan la fuente en vivo.</p>
+        </div>
+        {% if conexiones %}
+        <a href="{% url 'indicadores:analitica_superset_dataset_db' %}"
+           class="inline-flex items-center px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium shadow-sm">
+            <i class="fas fa-table mr-2"></i> Dataset desde conexión
+        </a>
+        {% endif %}
+    </div>
+
+    {% if not superset_disponible %}
+    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 mb-6">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle text-rose-500 text-lg mt-0.5"></i>
+            <div class="text-sm text-rose-800">
+                <p class="font-semibold mb-1">SIIED BI no disponible</p>
+                <p>Apache Superset no está respondiendo. Contacte al administrador del sistema.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl border text-sm {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800{% elif message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-800{% else %}bg-sky-50 border-sky-200 text-sky-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Conexiones existentes -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-4">
+            <i class="fas fa-plug text-sky-500 mr-2"></i>
+            Conexiones registradas
+        </h2>
+        {% if conexiones %}
+        <div class="divide-y divide-slate-100">
+            {% for c in conexiones %}
+            <div class="py-3 flex items-center justify-between">
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-slate-800">{{ c.nombre }}</p>
+                    <p class="text-xs text-slate-400">
+                        {{ c.get_motor_display }}{% if c.organismo %} · {{ c.organismo.nombre }}{% endif %}
+                        · por {{ c.usuario.username|default:"—" }}
+                        · {{ c.fecha_creacion|date:"d/m/Y" }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 ml-4">
+                    <a href="{% url 'indicadores:analitica_superset_dataset_db' %}?conexion={{ c.id }}"
+                       class="text-xs px-3 py-1.5 bg-sky-50 text-sky-700 rounded-lg hover:bg-sky-100 transition-colors font-medium">
+                        <i class="fas fa-table mr-1"></i> Dataset
+                    </a>
+                    <form method="post" action="{% url 'indicadores:analitica_superset_conexion_eliminar' c.id %}"
+                          onsubmit="return confirm('¿Eliminar la conexión «{{ c.nombre }}» de Superset? Los datasets que la usen dejarán de responder.');">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="text-xs px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors font-medium">
+                            <i class="fas fa-trash mr-1"></i> Eliminar
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400">No hay conexiones registradas todavía.</p>
+        {% endif %}
+    </div>
+
+    <!-- Nueva conexión -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+        <h2 class="text-lg font-bold text-slate-800 mb-4">
+            <i class="fas fa-plus-circle text-sky-500 mr-2"></i>
+            Nueva conexión
+        </h2>
+        <form method="post" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% csrf_token %}
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de la conexión</label>
+                <input type="text" name="nombre" required maxlength="120"
+                       placeholder="Ej: BD Organismo X (solo lectura)"
+                       class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Motor</label>
+                <select name="motor"
+                        class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                    {% for valor, etiqueta in motores %}
+                    <option value="{{ valor }}">{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Puerto</label>
+                <input type="number" name="puerto" required min="1" max="65535" value="5432"
+                       class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Host</label>
+                <input type="text" name="host" required
+                       placeholder="servidor.ejemplo.gob.cr"
+                       class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Base de datos</label>
+                <input type="text" name="base_datos" required
+                       class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
+                <input type="text" name="usuario_db" required autocomplete="off"
+                       class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                <input type="password" name="clave" required autocomplete="new-password"
+                       class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                <p class="text-xs text-slate-400 mt-1">Se verifica con «test connection» antes de
+                guardarla y solo se almacena cifrada dentro de Superset — el SIIED no la guarda.</p>
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit"
+                        class="inline-flex items-center px-5 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium shadow-sm">
+                    <i class="fas fa-check mr-2"></i> Probar y registrar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info box -->
+    <div class="mt-6 bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-shield-alt text-amber-500 text-lg mt-0.5"></i>
+            <div class="text-sm text-amber-800">
+                <p class="font-semibold mb-1">Use credenciales de solo lectura</p>
+                <p>La cuenta de la BD remota debería tener únicamente permisos SELECT. Una conexión
+                expone todas las tablas accesibles por esa cuenta; la visibilidad por organismo se
+                controla luego a nivel dataset (DatasetBI) y con RLS en los tableros.</p>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

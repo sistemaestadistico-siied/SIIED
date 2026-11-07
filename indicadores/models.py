@@ -2372,6 +2372,41 @@ class DatasetBI(models.Model):
         return qs.filter(visibilidad='publico')
 
 
+class ConexionBI(models.Model):
+    """Conexión a base de datos externa registrada en Superset.
+
+    Solo la crean staff/analista (equipo SIIED): una conexión expone
+    TODAS las tablas de la BD remota, así que el scoping de DatasetBI
+    no aplica a nivel conexión. La contraseña NO se guarda aquí —
+    viaja dentro de la sqlalchemy_uri que Superset almacena cifrada.
+    """
+    MOTOR_CHOICES = [
+        ('postgresql', 'PostgreSQL'),
+    ]
+
+    nombre = models.CharField(max_length=120)
+    motor = models.CharField(
+        max_length=20, choices=MOTOR_CHOICES, default='postgresql')
+    superset_database_id = models.IntegerField(
+        null=True, blank=True,
+        help_text='ID de la database registrada en Superset')
+    usuario = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='conexiones_bi')
+    organismo = models.ForeignKey(
+        'Organismo', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='conexiones_bi')
+    activo = models.BooleanField(default=True)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Conexión BI'
+        verbose_name_plural = 'Conexiones BI'
+
+    def __str__(self):
+        return f'{self.nombre} [{self.get_motor_display()}]'
+
+
 class TableroBI(models.Model):
     """Tablero de Superset publicado a través del SIIED.
 
