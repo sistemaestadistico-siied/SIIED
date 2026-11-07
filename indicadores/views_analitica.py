@@ -752,8 +752,13 @@ def analitica_dataset_eliminar(request, dataset_id):
     if res.get('ok'):
         # La tabla física del upload queda fuera de Superset: solo se
         # elimina si el registro dice que la subió un usuario (nunca las
-        # tablas base del SIIED ni datasets virtuales).
-        drop_ok = bool(reg and not reg.es_base_siied
+        # tablas base del SIIED ni datasets virtuales) Y el dataset vive
+        # en la DB SIIED — uno de conexión externa o gsheets puede llamarse
+        # igual que una tabla del SIIED y el DROP la borraría.
+        en_db_siied = (info.get('database_id') is not None
+                       and info['database_id']
+                       == service._get_siied_database_id())
+        drop_ok = bool(reg and not reg.es_base_siied and en_db_siied
                        and service.eliminar_tabla_fisica(nombre))
         if reg:
             reg.activo = False
@@ -1001,6 +1006,8 @@ def analitica_superset_conexiones(request):
             errores.append('Todos los campos son obligatorios.')
         if host and not re.match(r'^[\w.-]+$', host):
             errores.append('Host inválido.')
+        if base_datos and not re.match(r'^[\w.-]+$', base_datos):
+            errores.append('Nombre de base de datos inválido.')
         if not puerto or not 1 <= puerto <= 65535:
             errores.append('Puerto inválido.')
         if motor not in dict(ConexionBI.MOTOR_CHOICES):
@@ -1085,8 +1092,12 @@ def analitica_superset_dataset_db(request):
     conexiones = ConexionBI.objects.filter(activo=True)
 
     if request.method == 'POST':
+        try:
+            conexion_id = int(request.POST.get('conexion') or 0)
+        except (TypeError, ValueError):
+            conexion_id = 0
         conexion = get_object_or_404(
-            ConexionBI, id=request.POST.get('conexion'), activo=True)
+            ConexionBI, id=conexion_id, activo=True)
         schema = request.POST.get('schema', '').strip()
         tabla = request.POST.get('tabla', '').strip()
         if not tabla:
@@ -1096,7 +1107,8 @@ def analitica_superset_dataset_db(request):
             messages.error(
                 request,
                 f'Ya existe un dataset registrado como "{tabla}". '
-                'Use otro nombre de tabla o cree el dataset con SQL.')
+                'Elimínelo primero o cree una vista con otro nombre en '
+                'la BD remota.')
             return redirect('indicadores:analitica_superset_dataset_db')
 
         resultado = service.crear_dataset_tabla(
@@ -1138,8 +1150,12 @@ def analitica_conexion_meta(request):
     dataset-desde-conexión."""
     if not _es_analista_siied(request.user):
         return JsonResponse({'error': 'sin permiso'}, status=403)
+    try:
+        conexion_id = int(request.GET.get('conexion') or 0)
+    except (TypeError, ValueError):
+        conexion_id = 0
     conexion = get_object_or_404(
-        ConexionBI, id=request.GET.get('conexion'), activo=True)
+        ConexionBI, id=conexion_id, activo=True)
     if not conexion.superset_database_id:
         return JsonResponse({'error': 'conexión sin ID en Superset'},
                             status=400)

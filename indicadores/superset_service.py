@@ -423,9 +423,6 @@ class SupersetService:
         data = self._write_request('POST', 'database/test_connection', {
             'database_name': 'prueba-siied',
             'sqlalchemy_uri': sqlalchemy_uri,
-            'impersonate_user': False,
-            'server_cert': '',
-            'encrypted_extra': '',
         })
         if not data or '_error' in data:
             detalle = ((data or {}).get('_detalle')
@@ -467,7 +464,10 @@ class SupersetService:
 
     def listar_tablas_db(self, database_id, schema=None):
         """Tablas de un schema (o todas si schema=None)."""
-        params = {'q': f'(schema_name:{schema})'} if schema else {}
+        params = {}
+        if schema:
+            esc = schema.replace('!', '!!').replace("'", "!'")
+            params['q'] = f"(schema_name:'{esc}')"
         data = self._api_request(
             'GET', f'database/{database_id}/tables/', params=params)
         result = (data or {}).get('result') or []
@@ -745,6 +745,7 @@ class SupersetService:
         return {
             'id': result.get('id'),
             'table_name': result.get('table_name', ''),
+            'database_id': (result.get('database') or {}).get('id'),
             'kind': result.get('kind', ''),
             'schema': result.get('schema', ''),
             'sql': result.get('sql') or '',

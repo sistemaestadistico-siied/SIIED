@@ -39,16 +39,6 @@
     </div>
     {% endif %}
 
-    {% if messages %}
-    <div class="mb-6 space-y-2">
-        {% for message in messages %}
-        <div class="p-4 rounded-xl border text-sm {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800{% elif message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-800{% else %}bg-sky-50 border-sky-200 text-sky-800{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
     <!-- Conexiones existentes -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
         <h2 class="text-lg font-bold text-slate-800 mb-4">
@@ -73,7 +63,7 @@
                         <i class="fas fa-table mr-1"></i> Dataset
                     </a>
                     <form method="post" action="{% url 'indicadores:analitica_superset_conexion_eliminar' c.id %}"
-                          onsubmit="return confirm('¿Eliminar la conexión «{{ c.nombre }}» de Superset? Los datasets que la usen dejarán de responder.');">
+                          onsubmit="return confirm('¿Eliminar la conexión «{{ c.nombre }}» de Superset? Si tiene datasets creados sobre ella, elimínelos primero — Superset no permite borrar una conexión en uso.');">
                         {% csrf_token %}
                         <button type="submit"
                                 class="text-xs px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors font-medium">
