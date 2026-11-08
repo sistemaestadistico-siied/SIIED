@@ -3,7 +3,8 @@ from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, FileExtensionValidator, URLValidator
+from django.core.exceptions import ValidationError
 from django_ckeditor_5.fields import CKEditor5Field
 
 import numpy as np
@@ -1507,6 +1508,18 @@ class CategoriaInformacion(models.Model):
         ordering = ['orden', 'nombre']
 
 
+def validar_url_o_ruta(valor):
+    """Acepta URLs absolutas (https://...) o rutas internas (/ruta/, #ancla)."""
+    if not valor:
+        return
+    v = valor.strip()
+    if v.startswith('/') or v.startswith('#'):
+        if any(ch.isspace() for ch in v):
+            raise ValidationError('La ruta interna no puede contener espacios.')
+        return
+    URLValidator(schemes=['http', 'https'])(v)
+
+
 class SistemaInformacion(models.Model):
     """Sistemas de consulta individuales dentro de cada categoría"""
     TIPO_ENLACE_CHOICES = [
@@ -1523,7 +1536,9 @@ class SistemaInformacion(models.Model):
     
     # Configuración del enlace
     tipo_enlace = models.CharField(max_length=20, choices=TIPO_ENLACE_CHOICES, default='interno')
-    url = models.URLField(max_length=500, help_text="URL completa o ruta relativa")
+    url = models.CharField(
+        max_length=500, validators=[validar_url_o_ruta],
+        help_text="URL completa (https://...) o ruta interna (/ruta/)")
     abrir_nueva_ventana = models.BooleanField(default=False, help_text="Abrir en nueva pestaña/ventana")
     
     # Metadatos
@@ -1590,7 +1605,9 @@ class ProyectoInformacion(models.Model):
     
     # Configuración del enlace
     tipo_enlace = models.CharField(max_length=20, choices=TIPO_ENLACE_CHOICES, default='externo')
-    url = models.URLField(max_length=500, help_text="URL completa o ruta relativa")
+    url = models.CharField(
+        max_length=500, validators=[validar_url_o_ruta],
+        help_text="URL completa (https://...) o ruta interna (/ruta/)")
     abrir_nueva_ventana = models.BooleanField(default=True, help_text="Abrir en nueva pestaña/ventana")
     
     # Metadatos del proyecto
