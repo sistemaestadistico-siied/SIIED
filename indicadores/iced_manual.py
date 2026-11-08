@@ -52,7 +52,9 @@ MANUAL_POR_PASO = {
             'P7 (procedimientos): el widget MOP muestra la estructura de '
             'Manuales de Operación conocidos; marque los que apliquen y '
             'complete la información solicitada.',
-            'Las descripciones tienen un máximo de 2000-3000 caracteres.',
+            'Las descripciones admiten textos largos (hasta 10.000 '
+            'caracteres según el campo); sea concreto y cite documentos '
+            'y secciones.',
         ],
         'errores_comunes': [
             'Marcar una herramienta en P8/P9 sin indicar documento '
@@ -100,8 +102,8 @@ MANUAL_POR_PASO = {
             'listas desplegables.',
             'Etapas del proceso: marque en cuáles participa la persona '
             '(puede ser varias).',
-            'Si no existe equipo dedicado (P18="No"), puede indicarlo '
-            'y la tabla queda vacía.',
+            'Si no existe persona ni grupo dedicado (P18 opción 4), la '
+            'tabla se oculta y el flujo pasa directo a la P20.',
         ],
         'errores_comunes': [
             'Inicio de participación en formatos distintos a MM/AAAA.',
@@ -173,8 +175,9 @@ MANUAL_POR_PASO = {
             'P29 (políticas públicas): si el organismo es líder '
             '(opción 1), responda metodología, frecuencia, medios de '
             'divulgación y acciones de seguimiento.',
-            'P30: seleccione los lineamientos MOP de la Alcaldía que '
-            'implementa y describa brevemente cada uno.',
+            'P30: si marca "Lineamientos de la Alcaldía", agregue en '
+            'la tabla una fila por lineamiento (máx. 10) eligiendo el '
+            'código MOP de la lista; la descripción se completa sola.',
         ],
         'errores_comunes': [
             'Marcar articulación en P27 pero dejar P28 vacío.',
@@ -216,9 +219,10 @@ MANUAL_POR_PASO = {
             'P34: una fila por observatorio — nombre, fecha de creación '
             '(selector de calendario), tema, área temática, si tiene '
             'documentos MOP y cuáles produce.',
-            'P35 (documentación): tipo, nombre, código MOP, URL y '
-            'descripción son obligatorios por fila que empiece a '
-            'diligenciar; la URL debe ser válida.',
+            'P35 (documentación): tipo, nombre y descripción son '
+            'obligatorios por fila que empiece a diligenciar; la '
+            'codificación MOP y la URL son opcionales (si pone URL, '
+            'debe ser válida).',
         ],
         'errores_comunes': [
             'Filas de P35 con URL inválida o campos vacíos.',
@@ -239,9 +243,9 @@ MANUAL_POR_PASO = {
             '(https://...).',
             'P38: si marca "Ninguna", las preguntas de difusión se '
             'omiten (y P41 no aplica).',
-            'P41.2 (matriz de satisfacción): por cada indicador marque '
-            'el nivel de satisfacción y pegue las URLs de las '
-            'mediciones.',
+            'P41.2 (matriz de satisfacción): por cada uno de los 3 '
+            'indicadores marque el nivel de satisfacción y relacione '
+            'hasta 2 URLs de las mediciones.',
             'P42 es de observaciones generales (máx. 4000 caracteres); '
             'úslelo para aclarar respuestas, no para repetirlas.',
         ],

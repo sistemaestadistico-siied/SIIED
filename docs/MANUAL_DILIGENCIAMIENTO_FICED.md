@@ -123,14 +123,16 @@ el portal**:
   evidencia clave.
 - **P9 — Herramientas de mejoramiento** (multi): misma estructura que P8;
   describe documento y sección por cada una.
-- **P10 — Participación en fortalecimiento** (radio, 3 opciones): si la
-  respuesta es "no", explica el **motivo**; si eliges las opciones 1–3, llena
-  la **tabla de actividades** (nombre, fecha, organismo encargado). Completa
+- **P10 — Participación en fortalecimiento** (radio, 4 opciones): si
+  respondes la opción 4 ("no participa"), explica el **motivo**; si eliges
+  las opciones 1–3, llena la **tabla de actividades** (actividad, fecha con
+  selector de calendario, organismo encargado — admite "Otro"). Completa
   esa tabla **solo** si elegiste opciones 1, 2 o 3.
 - **P11 — Instancias de coordinación** (multi): selecciona las instancias
   internas y externas en las que participa y especifica cuáles en cada caso.
-- **P12 — Trazabilidad** (radio): ¿tiene mecanismos de trazabilidad y
-  consistencia de la información? Si es Sí, **describe el mecanismo**.
+- **P12 — Trazabilidad** (radio, 3 opciones): mecanismo formal, mecanismos
+  informales o ninguno. Con las opciones 1 o 2 **describe el mecanismo**;
+  asegúrate de que la descripción coincida con el nivel elegido.
 
 #### C1. Herramientas tecnológicas (P13–P17)
 
@@ -163,10 +165,10 @@ el portal**:
 
 - **P21 — Presupuesto por rubros**: ⚠️ **Instructivo:** ingresa valores en
   **PORCENTAJE (%)** — `25.5` significa 25,5 % del presupuesto anual. Son
-  **14 rubros** en tres grupos:
+  **13 rubros** en tres grupos:
   - *Hardware (4)*: servidores, computadoras de alto rendimiento, móviles de
     campo, almacenamiento externo/nube.
-  - *Software (6)*: estadístico (SPSS, R, STATA, Python), bases de datos,
+  - *Software (5)*: estadístico (SPSS, R, STATA, Python), bases de datos,
     encuestas (CAPI/CATI/CAWI), visualización (Tableau, Power BI),
     ciberseguridad.
   - *Personal y capacitación (4)*: contratación de expertos, capacitación,
@@ -183,20 +185,22 @@ el portal**:
   con las operaciones estadísticas del Plan Estadístico Distrital. Por cada
   una marca: **Vigente**, **Documento metodológico**, **Ficha metodológica**,
   **Manual operativo**, **Diccionario de datos**, **Documento de consistencia
-  y validación**, **Publicado en SICODE**, **URL de evidencia** y
-  **Acciones de fortalecimiento** (texto).
+  y validación**, **Acciones de fortalecimiento**, **Publicado en SICODE**
+  (todas Sí/No/NA) y **URL de evidencia**.
   - **Instructivo:** si una operación **ya no se genera**, marca **NO en
     Vigente** — el resto de columnas quedan automáticamente en **NA**
     (excepto la URL, que se vacía).
   - La URL de evidencia debe apuntar al documento/ficha/publicación
     correspondiente.
 - **P24 — Nomenclaturas y lineamientos** (multi): normas, estándares y
-  lineamientos empleados (incluye la norma NTC PE 1000:2020). Especifica en
-  "Otra(s)" las nomenclaturas y clasificaciones usadas.
-- **P24.1 — Origen de conceptos** (aparece si aplica): ¿de dónde provienen
-  los conceptos estandarizados? DANE, organismos internacionales, otra
-  entidad nacional, leyes/decretos, creación propia u otra fuente
-  (especifica).
+  lineamientos empleados (incluye la norma NTC PE 1000:2020). Si marcas
+  "Nomenclaturas y clasificaciones", se despliega una **tabla con ~35
+  clasificaciones** (CIIU, CIE-10, CUOC, DPA...) — especifica en "Otra(s)"
+  las que falten.
+- **P24.1 — Origen de conceptos** (aparece solo si marcas "Conceptos
+  estandarizados" en P24): ¿de dónde provienen? DANE, organismos
+  internacionales, otra entidad nacional, leyes/decretos, creación propia u
+  otra fuente (especifica).
 - **P25 — Detección de necesidades** (multi): mecanismos usados + **BPs
   asociados** separados por comas (ej: `2024001, 2024002, 2024015`) +
   especificar "otro mecanismo" si aplica.
@@ -209,9 +213,10 @@ el portal**:
   organismos para hacer seguimiento a indicadores?
 - **P28 — Cómo se articulan** (multi) + **28.1 frecuencia de reuniones** +
   **28.2 modelos estadísticos/econométricos** usados (+ especificar otro).
-- **P29 — Rol con políticas públicas** (radio): rol del organismo frente a
-  las políticas de la Alcaldía (líder implementación, recopilador, etc.).
-  Si corresponde, completa:
+- **P29 — Rol con políticas públicas** (multi-selección): rol del organismo
+  frente a las políticas de la Alcaldía (líder implementación, co-ejecutor,
+  no involucrado, otro — "no involucrado" no se combina con las demás).
+  Si marcas la opción 1 (líder), completa:
   - **29.1** metodología de seguimiento (+ especificar),
   - **29.2** frecuencia del seguimiento,
   - **29.3** medios de divulgación de resultados (+ especificar),
@@ -222,24 +227,30 @@ el portal**:
 
 #### D3. Analítica (P31–P32)
 
-- **P31 — Tipo de analítica** (radio): modelos/analítica para optimizar
-  procesos de recolección y análisis + **descripción de los productos**
-  obtenidos + **URL de evidencia**.
-- **P31.1 — Frecuencia** (lista desplegable): con qué frecuencia se usan los
-  modelos avanzados para la toma de decisiones.
-- **P32 — Analítica DATIC** (radio): ¿conoce o usa las herramientas de
-  analítica avanzada de DATIC? Describe el **caso de uso** actual o
-  potencial.
+- **P31 — Tipo de analítica** (radio, 5 niveles): modelos/analítica para
+  optimizar procesos de recolección y análisis. Con las opciones 2–5 (de
+  descriptiva en adelante) se piden **descripción de los productos**
+  obtenidos y **URL de evidencia**.
+- **P31.1 — Frecuencia** (lista desplegable, aparece con opciones 2–5):
+  con qué frecuencia se usan los modelos para la toma de decisiones.
+- **P32 — Analítica DATIC** (radio, 6 opciones): ¿conoce o usa las
+  herramientas de analítica avanzada de DATIC? Describe el **caso de uso**
+  actual o potencial (el campo se muestra en todas las opciones salvo
+  "Desconoce la existencia").
 
 #### D4. Observatorios (P33–P35)
 
 - **P33 — ¿Cuenta con observatorio?** (radio). Si Sí, selecciona **hasta 3
-  observatorios** de la tabla de referencia.
-- **P34 — Información por observatorio** (tabla): para cada uno seleccionado
-  completa la información solicitada (nombre, objeto, población, cobertura,
-  periodicidad, URL, etc.).
-- **P35 — Documentación metodológica** (tabla): una fila por documento del
-  observatorio — **tipo, nombre y descripción** (URL y/o codificación).
+  observatorios** del listado de referencia o escribe otro en "Otro".
+- **P34 — Información por observatorio** (tabla, hasta 5 filas): por cada
+  observatorio que **lidera** el organismo: nombre (del listado u "Otro"),
+  **fecha de creación** (selector de calendario), **tema principal** (el
+  área temática se autocompleta), si tiene **documentación MOP**, si
+  **produce documentos/reportes** y **cuáles**.
+- **P35 — Documentación metodológica** (tabla, hasta 10 filas): una fila
+  por documento del observatorio. **Obligatorios: tipo, nombre y
+  descripción**; codificación MOP y URL son opcionales (la URL, si la
+  pones, debe ser válida).
 
 #### E. Accesibilidad y Uso (P36–P42)
 
@@ -248,17 +259,19 @@ el portal**:
 - **P37 — Usuarios** (multi): principales usuarios de la información
   estadística; especifica cuáles en la columna correspondiente.
 - **P38 — Productos de difusión** (multi): qué productos usa; especifica en
-  "Otro(s)".
+  "Otro(s)". ⚠️ Si marcas **"No se realiza difusión"** el módulo termina
+  aquí: P39, P40 y P41 no aplican.
 - **P39 — Medios de difusión** (multi): por qué medios difunde los
-  resultados; completa la información de cada medio (URL de redes, nombre
-  del canal, etc.).
+  resultados. Solo "Página web" y "Otro" piden detalle: especifica cuál y
+  pega la(s) URL(s) (varias, separadas por coma).
 - **P40 — Elementos en web** (multi): qué elementos se publican en la página
   web o micrositios; da la **URL de cada elemento** marcado.
 - **P41 — Medición de satisfacción** (radio): ¿indaga la satisfacción de los
   usuarios de sus canales?
   - **41.1** mecanismos usados (multi + ¿cuál?).
-  - **41.2** matriz de satisfacción: evalúa **3 indicadores × 5 niveles** y
-    relaciona los elementos a fortalecer.
+  - **41.2** matriz de satisfacción: evalúa **3 indicadores × 5 niveles**
+    (de muy satisfechos a muy insatisfechos) y relaciona **hasta 2 URLs**
+    de evidencia de las mediciones.
 - **P42 — Observaciones generales** (texto libre).
 
 #### Revisión y Envío
@@ -280,9 +293,10 @@ el portal**:
 
 ### 4.5 Guardar y retomar
 
-- El formulario **guarda automáticamente** tu avance (autosave) y cada módulo
-  se guarda de forma individual: puedes salir y continuar luego.
-- Mientras esté en **"Borrador"** puedes editar libremente.
+- Tu avance se guarda **al pasar de un módulo al siguiente** y con el botón
+  **"Guardar borrador"** de cada módulo: puedes salir y continuar luego.
+- Mientras esté en **"Borrador"** (o **"Devuelto"**) puedes editar
+  libremente.
 
 ### 4.6 Enviar
 
@@ -290,6 +304,8 @@ el portal**:
 - Al enviar, el formulario pasa a **"Enviado"** y ya **no puedes editarlo**.
 - Si olvidaste algo, avisa a tu validador del organismo — él decide en la
   conciliación qué respuesta queda consolidada.
+- Si el equipo SIIED **devuelve** el formulario con observaciones, queda en
+  **"Devuelto"**: vuelves a poder editarlo, corriges y reenvías.
 
 ### 4.7 Qué verás después de enviar
 
@@ -297,6 +313,7 @@ el portal**:
 |---|---|
 | **Borrador** | Estás diligenciando; aún puedes editar. |
 | **Enviado** | Entregado; tu validador del organismo lo revisa y concilia. |
+| **Devuelto** | El SIIED lo devolvió con observaciones: puedes corregir y reenviar. |
 | **Pre-validado** | Tu organismo ya concilió y pre-validó; el FICED está en la cola del equipo SIIED. |
 | **Validado** | El SIIED aprobó: **aquí se publica el puntaje ICED oficial**. |
 | **Rechazado** | Decisión definitiva del SIIED (con motivo en observaciones). |
@@ -388,12 +405,14 @@ constata que tu organismo cumplió la tarea de diligenciar el FICED —
   marcada (p. ej. si afirmas tener observatorio, describe su información en
   las preguntas siguientes).
 - **Envía completo**: las respuestas vacías cuentan en contra del organismo;
-  aprovecha el autosave para terminar todos tus módulos antes de enviar.
+  usa "Guardar borrador" para terminar todos tus módulos antes de enviar.
 
 ### Después del envío
 
-- El organismo **no recibe devoluciones**: lo que falte o esté impreciso lo
-  corrige el SIIED sobre el consolidado, con impacto en la calificación.
+- El equipo SIIED puede **devolver** el formulario para corrección (queda en
+  "Devuelto" con observaciones, editable de nuevo) o **rechazarlo** con
+  motivo; en la revisión final también puede corregir el consolidado, con
+  impacto en la calificación.
 - El puntaje se publica únicamente cuando el FICED queda **Validado**.
 
 ---
