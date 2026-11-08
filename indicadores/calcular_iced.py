@@ -409,23 +409,20 @@ def _seleccionadas(valor, exclusiva=None):
         except (ValueError, TypeError):
             return 0, False
     if isinstance(valor, (list, tuple)):
-        tiene_ex = exclusiva in valor if exclusiva else False
         k = len([v for v in valor if v != exclusiva]) if exclusiva else len(valor)
+        # La exclusiva solo anula si es la ÚNICA opción marcada: al unir
+        # respuestas de varios equipos puede quedar junto a opciones
+        # reales, y la presencia de opciones reales prevalece.
+        tiene_ex = bool(exclusiva and exclusiva in valor and k == 0)
         return k, tiene_ex
     if isinstance(valor, dict):
-        k = 0
-        tiene_ex = False
-        for codigo, datos in valor.items():
-            marcado = False
-            if isinstance(datos, dict) and datos.get('seleccion'):
-                marcado = True
-            elif datos is True:
-                marcado = True
-            if marcado:
-                if codigo == exclusiva:
-                    tiene_ex = True
-                else:
-                    k += 1
+        marcados = {
+            codigo for codigo, datos in valor.items()
+            if (isinstance(datos, dict) and datos.get('seleccion'))
+            or datos is True
+        }
+        k = len(marcados - {exclusiva}) if exclusiva else len(marcados)
+        tiene_ex = bool(exclusiva and exclusiva in marcados and k == 0)
         return k, tiene_ex
     return 0, False
 
@@ -447,26 +444,22 @@ def _distribuida_fija(valor, peso_por_opcion, exclusiva=None):
             valor = _cargar_json(valor)
         except (ValueError, TypeError):
             return 0
-    total = 0
     if isinstance(valor, (list, tuple)):
-        if exclusiva and exclusiva in valor:
+        opts = [v for v in valor if v != exclusiva]
+        if exclusiva and exclusiva in valor and not opts:
             return 0
-        for v in valor:
-            if v != exclusiva:
-                total += peso_por_opcion.get(v, 0)
-        return min(100, total)
+        return min(100, sum(peso_por_opcion.get(v, 0) for v in opts))
     if isinstance(valor, dict):
-        for codigo, datos in valor.items():
-            marcado = False
-            if isinstance(datos, dict) and datos.get('seleccion'):
-                marcado = True
-            elif datos is True:
-                marcado = True
-            if marcado:
-                if codigo == exclusiva:
-                    return 0
-                total += peso_por_opcion.get(codigo, 0)
-        return min(100, total)
+        marcados = {
+            codigo for codigo, datos in valor.items()
+            if (isinstance(datos, dict) and datos.get('seleccion'))
+            or datos is True
+        }
+        # La exclusiva solo anula si es la ÚNICA marcada (ver _seleccionadas)
+        if exclusiva and exclusiva in marcados and len(marcados) == 1:
+            return 0
+        return min(100, sum(peso_por_opcion.get(c, 0) for c in marcados
+                            if c != exclusiva))
     return 0
 
 
@@ -515,7 +508,8 @@ def _regla_p37(valor):
         except (ValueError, TypeError):
             return 0
     if isinstance(valor, (list, tuple)):
-        if 'ninguno' in valor:
+        # 'ninguno' solo anula si es la única opción marcada
+        if 'ninguno' in valor and len([v for v in valor if v != 'ninguno']) == 0:
             return 0
         tiene_37_1 = 'organismos_misma' in valor
         k2 = len([v for v in valor if v not in ('organismos_misma', 'ninguno')])
@@ -526,20 +520,16 @@ def _regla_p37(valor):
             total += 50
         return total
     if isinstance(valor, dict):
-        seleccionados = []
-        tiene_ex = False
-        for codigo, datos in valor.items():
-            marcado = False
-            if isinstance(datos, dict) and datos.get('seleccion'):
-                marcado = True
-            elif datos is True:
-                marcado = True
-            if marcado:
-                if codigo == 'ninguno':
-                    tiene_ex = True
-                else:
-                    seleccionados.append(codigo)
-        if tiene_ex:
+        seleccionados = [
+            codigo for codigo, datos in valor.items()
+            if codigo != 'ninguno'
+            and ((isinstance(datos, dict) and datos.get('seleccion'))
+                 or datos is True)
+        ]
+        ninguno_marcado = (
+            isinstance(valor.get('ninguno'), dict)
+            and valor['ninguno'].get('seleccion')) or valor.get('ninguno') is True
+        if ninguno_marcado and not seleccionados:
             return 0
         tiene_37_1 = 'organismos_misma' in seleccionados
         k2 = len([s for s in seleccionados if s != 'organismos_misma'])
@@ -562,15 +552,18 @@ def _p38_tiene_ninguna(resp_e):
             val = _cargar_json(val)
         except (ValueError, TypeError):
             return False
+    # 'ninguna' solo anula la dimensión 4.2 si es la ÚNICA opción marcada:
+    # al unir respuestas de varios equipos puede quedar junto a opciones
+    # reales, y la presencia de opciones reales prevalece.
     if isinstance(val, dict):
-        for codigo, datos in val.items():
-            marcado = False
-            if isinstance(datos, dict) and datos.get('seleccion'):
-                marcado = True
-            elif datos is True:
-                marcado = True
-            if marcado and codigo == 'ninguna':
-                return True
+        marcados = {
+            codigo for codigo, datos in val.items()
+            if (isinstance(datos, dict) and datos.get('seleccion'))
+            or datos is True
+        }
+        return 'ninguna' in marcados and len(marcados) == 1
+    if isinstance(val, (list, tuple)):
+        return 'ninguna' in val and len(val) == 1
     return False
 
 
@@ -715,12 +708,20 @@ def _calcular_indicadores(resp_b, resp_c, resp_d, resp_e):
     ind['3.2.2'] = _promedio([p27, p28])
 
     # P29 + subpreguntas (opción múltiple: puntúa el rol más alto marcado;
-    # los datos importados de 2024 llegan como escalar)
+    # los datos importados de 2024 llegan como escalar y las uniones del
+    # importador/conciliación pueden llegar como string JSON)
     p29_sel = resp_d.get('p29_rol_politicas')
     if isinstance(p29_sel, str):
-        p29_sel = [p29_sel] if p29_sel else []
-    elif not isinstance(p29_sel, list):
+        try:
+            p29_sel = _cargar_json(p29_sel)
+        except (ValueError, TypeError):
+            pass  # string plano → se envuelve como [p29_sel] abajo
+    if isinstance(p29_sel, (list, tuple)):
+        p29_sel = [str(v) for v in p29_sel]
+    elif p29_sel in (None, '', [], {}):
         p29_sel = []
+    else:
+        p29_sel = [str(p29_sel)]
     p29 = max((_escala_directa(v, {'1': 100, '2': 67, '4': 33, '3': 0})
                for v in p29_sel), default=0)
     if '1' in p29_sel:

@@ -1644,6 +1644,7 @@ def _union_opciones(valores):
     multi-selección, conservando el orden de aparición y sin duplicar."""
     union = []
     for v in valores:
+        v = _parse_json_valor(v)
         items = v if isinstance(v, list) else ([] if _vacio(v) else [v])
         for it in items:
             if it not in union:
@@ -1915,7 +1916,13 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
                     v = _fusionar_valores(
                         [p['por_equipo'][e].get(k) for e in equipos_resp])
                     if not _vacio(v):
-                        nuevos[attr][k] = v
+                        # Convención del wizard: los campos JSON se guardan
+                        # como STRING. Si el consolidado guarda dicts el
+                        # HiddenInput renderiza repr() de Python y
+                        # JSON.parse del widget falla al reabrirlo.
+                        nuevos[attr][k] = (
+                            _json.dumps(v, ensure_ascii=False)
+                            if isinstance(v, (dict, list)) else v)
             conciliadas += 1
 
         # Campos sin código de pregunta (personas de contacto, campos
