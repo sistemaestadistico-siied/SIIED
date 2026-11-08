@@ -43,6 +43,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-12">
             {% for categoria in categorias %}
+            {% if categoria.sistemas_activos %}
             <div class="syscat">
                 <div class="syscat-title">
                     <i class="{% if categoria.icono %}{{ categoria.icono }}{% else %}fas fa-folder{% endif %}"></i>
@@ -57,11 +58,10 @@
                             {{ sistema.nombre }}{% if sistema.abrir_nueva_ventana %} <i class="fas fa-arrow-up-right-from-square text-[0.65rem] align-baseline"></i>{% endif %}
                         </a>
                     </li>
-                    {% empty %}
-                    <li class="text-slate-400 text-sm">Sin ítems en esta categoría</li>
                     {% endfor %}
                 </ul>
             </div>
+            {% endif %}
             {% empty %}
             <div class="col-span-full pbox text-center py-12">
                 <i class="fas fa-folder-open text-5xl text-slate-300 mb-4 block"></i>
