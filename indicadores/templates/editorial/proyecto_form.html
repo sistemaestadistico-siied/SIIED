@@ -112,6 +112,7 @@
             <div>
                 <label class="block text-sm font-semibold text-slate-700 mb-2">Imagen URL</label>
                 {{ form.imagen_url }}
+                {% if form.imagen_url.errors %}<p class="mt-1 text-xs text-rose-500">{{ form.imagen_url.errors.0 }}</p>{% endif %}
             </div>
             
             <!-- Orden -->

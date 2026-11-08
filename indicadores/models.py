@@ -1543,7 +1543,9 @@ class SistemaInformacion(models.Model):
     
     # Metadatos
     icono = models.CharField(max_length=100, blank=True, null=True, help_text="Clase CSS del ícono")
-    imagen_url = models.URLField(blank=True, null=True, help_text="URL de la imagen representativa del sistema")
+    imagen_url = models.CharField(
+        max_length=500, blank=True, null=True, validators=[validar_url_o_ruta],
+        help_text="URL de la imagen (https://...) o ruta interna (/static/...)")
     orden = models.IntegerField(default=0, help_text="Orden dentro de la categoría")
     activo = models.BooleanField(default=True)
     
@@ -1612,7 +1614,9 @@ class ProyectoInformacion(models.Model):
     
     # Metadatos del proyecto
     icono = models.CharField(max_length=100, blank=True, null=True, help_text="Clase CSS del ícono")
-    imagen_url = models.URLField(blank=True, null=True, help_text="URL del logo o imagen del proyecto")
+    imagen_url = models.CharField(
+        max_length=500, blank=True, null=True, validators=[validar_url_o_ruta],
+        help_text="URL del logo (https://...) o ruta interna (/static/...)")
     orden = models.IntegerField(default=0, help_text="Orden dentro de la categoría")
     activo = models.BooleanField(default=True)
     
