@@ -1651,17 +1651,38 @@ def _union_opciones(valores):
     return union
 
 
+def _parse_json_valor(v):
+    """Parsea strings JSON ('{…}', '[…]') a su estructura.
+
+    Las respuestas del wizard se guardan como strings JSON por campo;
+    sin parsear, la fusión las concatenaba con ' - ' y quedaba un texto
+    no parseable que el cálculo leía como 0 (P8, P9, P11…).
+    """
+    if not isinstance(v, str):
+        return v
+    s = v.strip()
+    if s[:1] not in '{[':
+        return v
+    try:
+        return json.loads(s)
+    except (ValueError, TypeError):
+        return v
+
+
 def _fusionar_valores(valores):
     """Fusiona valores no-decisión de varios equipos en uno solo.
 
-    - listas/tablones: se concatenan sin duplicar filas idénticas;
+    - strings JSON: se parsean antes de fusionar;
     - dicts: se fusionan por clave recursivamente;
+    - booleanos (p.ej. 'seleccion' de checkbox-tabla): OR entre equipos;
+    - listas/tablones: se concatenan sin duplicar filas idénticas;
     - textos y escalares: se unen con ' - ' (orden de equipo), sin repetir
       valores idénticos; un solo valor no vacío se devuelve tal cual.
     """
     vals = [v for v in valores if not _vacio(v)]
     if not vals:
         return ''
+    vals = [_parse_json_valor(v) for v in vals]
     if all(isinstance(v, dict) for v in vals):
         claves = []
         for v in vals:
@@ -1670,6 +1691,9 @@ def _fusionar_valores(valores):
                     claves.append(k)
         return {k: _fusionar_valores([v.get(k) for v in vals])
                 for k in claves}
+    if all(isinstance(v, bool) for v in vals):
+        # Marcada si algún equipo la marcó (ej. 'seleccion').
+        return any(vals)
     if any(isinstance(v, list) for v in vals):
         out, vistos = [], set()
         for v in vals:

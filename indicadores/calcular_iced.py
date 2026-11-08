@@ -242,6 +242,60 @@ CSV_HEADERS = [
 ] + [f'{k}. {v}' for k, v in INDICADOR_LABELS.items()]
 
 
+def _fusionar_json_frag(fragmentos):
+    """Fusiona fragmentos JSON consecutivos de respuestas de varios
+    equipos: dicts por clave recursivamente, listas concatenadas,
+    booleanos con OR, último escalar no vacío gana."""
+    if all(isinstance(f, dict) for f in fragmentos):
+        out = {}
+        for f in fragmentos:
+            for k, v in f.items():
+                if k in out:
+                    out[k] = _fusionar_json_frag([out[k], v])
+                else:
+                    out[k] = v
+        return out
+    if all(isinstance(f, bool) for f in fragmentos):
+        return any(fragmentos)
+    if all(isinstance(f, list) for f in fragmentos):
+        out = []
+        for f in fragmentos:
+            out.extend(f)
+        return out
+    no_vacios = [f for f in fragmentos if f not in (None, '', [], {})]
+    return no_vacios[-1] if no_vacios else fragmentos[-1]
+
+
+def _cargar_json(valor):
+    """_json.loads tolerante.
+
+    Además del JSON válido acepta strings donde la fusión antigua de
+    conciliación concatenó respuestas JSON de varios equipos con
+    ' - ' ('{"a": {...}} - {"b": {...}}'): extrae los fragmentos
+    consecutivos y los fusiona. Lanza ValueError si no es parseable.
+    """
+    try:
+        return _json.loads(valor)
+    except (ValueError, TypeError):
+        pass
+    dec = _json.JSONDecoder()
+    fragmentos, idx, n = [], 0, len(valor)
+    while idx < n:
+        while idx < n and valor[idx] in ' \t\r\n-':
+            idx += 1
+        if idx >= n:
+            break
+        try:
+            obj, end = dec.raw_decode(valor, idx)
+        except (ValueError, TypeError):
+            raise ValueError('no es JSON ni fragmentos concatenados')
+        fragmentos.append(obj)
+        idx = end
+    if len(fragmentos) < 2:
+        raise ValueError('no es JSON ni fragmentos concatenados')
+    return _fusionar_json_frag(fragmentos)
+
+
 def determinar_nivel(puntaje):
     """Nivel de capacidad dado un puntaje 0-100."""
     p = float(puntaje) if puntaje is not None else 0
@@ -306,7 +360,7 @@ def _completitud_tabla(valor, max_filas=5):
         return 0
     if isinstance(valor, str):
         try:
-            valor = _json.loads(valor)
+            valor = _cargar_json(valor)
         except (ValueError, TypeError):
             return 0
     if isinstance(valor, dict):
@@ -351,7 +405,7 @@ def _seleccionadas(valor, exclusiva=None):
         return 0, False
     if isinstance(valor, str):
         try:
-            valor = _json.loads(valor)
+            valor = _cargar_json(valor)
         except (ValueError, TypeError):
             return 0, False
     if isinstance(valor, (list, tuple)):
@@ -390,7 +444,7 @@ def _distribuida_fija(valor, peso_por_opcion, exclusiva=None):
         return 0
     if isinstance(valor, str):
         try:
-            valor = _json.loads(valor)
+            valor = _cargar_json(valor)
         except (ValueError, TypeError):
             return 0
     total = 0
@@ -457,7 +511,7 @@ def _regla_p37(valor):
         return 0
     if isinstance(valor, str):
         try:
-            valor = _json.loads(valor)
+            valor = _cargar_json(valor)
         except (ValueError, TypeError):
             return 0
     if isinstance(valor, (list, tuple)):
@@ -505,7 +559,7 @@ def _p38_tiene_ninguna(resp_e):
         return False
     if isinstance(val, str):
         try:
-            val = _json.loads(val)
+            val = _cargar_json(val)
         except (ValueError, TypeError):
             return False
     if isinstance(val, dict):
@@ -580,7 +634,7 @@ def _calcular_indicadores(resp_b, resp_c, resp_d, resp_e):
     # P19
     p19_raw = resp_c.get('p19_rrhh_list', '')
     try:
-        personas = _json.loads(p19_raw) if isinstance(p19_raw, str) and p19_raw else (p19_raw or [])
+        personas = _cargar_json(p19_raw) if isinstance(p19_raw, str) and p19_raw else (p19_raw or [])
     except (ValueError, TypeError):
         personas = []
     if isinstance(personas, list) and personas:
@@ -754,7 +808,7 @@ def _parse_ooee(valor):
         return []
     if isinstance(valor, str):
         try:
-            valor = _json.loads(valor)
+            valor = _cargar_json(valor)
         except (ValueError, TypeError):
             return []
     if isinstance(valor, dict):
