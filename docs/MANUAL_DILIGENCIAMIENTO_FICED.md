@@ -304,8 +304,8 @@ el portal**:
 - Al enviar, el formulario pasa a **"Enviado"** y ya **no puedes editarlo**.
 - Si olvidaste algo, avisa a tu validador del organismo — él decide en la
   conciliación qué respuesta queda consolidada.
-- Si el equipo SIIED **devuelve** el formulario con observaciones, queda en
-  **"Devuelto"**: vuelves a poder editarlo, corriges y reenvías.
+- Si tu validador del organismo **devuelve** el formulario con observaciones,
+  queda en **"Devuelto"**: vuelves a poder editarlo, corriges y reenvías.
 
 ### 4.7 Qué verás después de enviar
 
@@ -313,7 +313,7 @@ el portal**:
 |---|---|
 | **Borrador** | Estás diligenciando; aún puedes editar. |
 | **Enviado** | Entregado; tu validador del organismo lo revisa y concilia. |
-| **Devuelto** | El SIIED lo devolvió con observaciones: puedes corregir y reenviar. |
+| **Devuelto** | Tu validador del organismo lo devolvió con observaciones: puedes corregir y reenviar. |
 | **Pre-validado** | Tu organismo ya concilió y pre-validó; el FICED está en la cola del equipo SIIED. |
 | **Validado** | El SIIED aprobó: **aquí se publica el puntaje ICED oficial**. |
 | **Rechazado** | Decisión definitiva del SIIED (con motivo en observaciones). |
@@ -409,10 +409,10 @@ constata que tu organismo cumplió la tarea de diligenciar el FICED —
 
 ### Después del envío
 
-- El equipo SIIED puede **devolver** el formulario para corrección (queda en
-  "Devuelto" con observaciones, editable de nuevo) o **rechazarlo** con
-  motivo; en la revisión final también puede corregir el consolidado, con
-  impacto en la calificación.
+- Tu validador del organismo puede **devolver** el formulario de tu equipo
+  para corrección (queda en "Devuelto" con observaciones, editable de
+  nuevo). El equipo SIIED no devuelve: corrige el consolidado directamente,
+  con impacto en la calificación, y **aprueba** o **rechaza**.
 - El puntaje se publica únicamente cuando el FICED queda **Validado**.
 
 ---

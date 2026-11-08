@@ -51,12 +51,14 @@
                         {% endfor %}
                     </dd>
                 </div>
+                {% if es_validador_organismo %}
                 <div>
                     <a href="{% url 'indicadores:validacion_conciliar_iced' formulario.organismo_id formulario.periodo %}"
                        class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
                         ⇄ Conciliar respuestas entre equipos
                     </a>
                 </div>
+                {% endif %}
                 {% endif %}
                 <div>
                     <dt class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Diligenciado por</dt>
@@ -125,16 +127,46 @@
             <h2 class="font-semibold text-amber-900 mb-2 text-sm">⚠ Formulario parcial — equipo {{ formulario.equipo }}</h2>
             <p class="text-xs text-amber-800 leading-relaxed mb-3">
                 Este formulario contiene solo las preguntas asignadas a este equipo
-                técnico: los puntajes mostrados son <strong>parciales</strong> y no
-                representan el ICED del organismo. La aprobación se toma sobre el
-                <strong>consolidado</strong> generado al conciliar las respuestas
-                de todos los equipos.
+                técnico. El ICED del organismo se decide sobre el
+                <strong>consolidado</strong> que genera el validador del organismo
+                al conciliar las respuestas de todos los equipos.
             </p>
+            {% if es_validador_organismo %}
             <a href="{% url 'indicadores:validacion_conciliar_iced' formulario.organismo_id formulario.periodo %}"
                class="inline-block w-full text-center bg-amber-500 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm">
                 ⇄ Conciliar respuestas entre equipos
             </a>
+            {% endif %}
         </div>
+
+        {% if puede_devolver %}
+        <!-- Devolver el formulario del equipo a corrección (validador del organismo) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <h2 class="font-semibold text-slate-800 mb-4">Devolver a corrección</h2>
+            <p class="text-[11px] text-slate-400 mb-3">
+                Devuelve este formulario al delegado del equipo para que corrija
+                las respuestas indicadas; vuelve a ser editable hasta su reenvío.
+            </p>
+            <form method="post"
+                  action="{% url 'indicadores:validacion_decidir_iced' formulario_id=formulario.pk %}"
+                  id="form-decision">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">
+                        Observaciones <span class="text-red-500 text-xs">(requeridas)</span>
+                    </label>
+                    <textarea name="observaciones" rows="4" id="txt-obs"
+                              class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                              placeholder="Indica qué debe corregir el equipo {{ formulario.equipo }}..."></textarea>
+                </div>
+                <button type="button" onclick="decidir('devolver')"
+                        class="w-full bg-amber-500 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                    🔄 Devolver a corrección
+                </button>
+                <input type="hidden" name="accion" id="inp-accion" value="">
+            </form>
+        </div>
+        {% endif %}
         {% else %}
         <!-- Panel de decisión -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">

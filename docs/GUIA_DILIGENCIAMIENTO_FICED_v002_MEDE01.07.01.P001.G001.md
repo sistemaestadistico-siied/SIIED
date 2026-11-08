@@ -218,12 +218,12 @@ Tabla 1. Roles que intervienen en el diligenciamiento del FICED.
 | Rol | Qué hace en el FICED |
 |---|---|
 | Delegado del organismo | Diligencia las preguntas asignadas a su equipo técnico (subrol) y envía su formulario. |
-| Validador del organismo | Revisa las respuestas de todos los equipos de su organismo sin ver puntajes, concilia los formularios en uno consolidado y lo pre-valida. Descarga el producto de cumplimiento del organismo. |
-| Facilitador del SIIED | Revisa el consolidado pre-validado, corrige o devuelve el formulario con observaciones, aprueba o rechaza y define la calificación final. |
+| Validador del organismo | Revisa las respuestas de todos los equipos de su organismo sin ver puntajes, devuelve a corrección los formularios por equipo enviados, concilia los formularios en uno consolidado y lo pre-valida. Descarga el producto de cumplimiento del organismo. |
+| Facilitador del SIIED | Revisa el consolidado pre-validado, corrige directamente las respuestas con impacto en la calificación (no devuelve el formulario ni concilia), aprueba o rechaza y define la calificación final calculando los resultados. |
 
 Fuente: elaboración propia.
 
-El flujo completo del trámite es el siguiente: los delegados envían sus formularios por equipo; el validador del organismo los revisa, los concilia en un consolidado y lo pre-valida; el facilitador del SIIED revisa el consolidado y lo aprueba, lo devuelve para corrección o lo rechaza. Cuando el formulario queda en estado "Validado", se publica el puntaje ICED oficial del organismo.
+El flujo completo del trámite es el siguiente: los delegados envían sus formularios por equipo; el validador del organismo los revisa —puede devolverlos a corrección—, los concilia en un consolidado y lo pre-valida; el facilitador del SIIED revisa el consolidado y lo aprueba o lo rechaza, sin devoluciones. Cuando el formulario queda en estado "Validado", se publica el puntaje ICED oficial del organismo.
 
 #### 4.1.2. Equipos técnicos y asignación de preguntas
 
@@ -249,7 +249,7 @@ Tres reglas operan sobre la asignación de preguntas a equipos:
 
 #### 4.1.3. Flujo del formulario y estados del trámite
 
-Cada formulario de equipo recorre un trámite con estados que el aplicativo muestra al delegado y al validador. Mientras el formulario está en Borrador, o fue devuelto por el equipo técnico SIIED, es editable; al enviarse queda bloqueado para el delegado y pasa a revisión. El puntaje ICED oficial nunca se muestra al organismo durante el trámite: solo se publica cuando el formulario queda en estado "Validado". La Tabla 3 describe cada estado.
+Cada formulario de equipo recorre un trámite con estados que el aplicativo muestra al delegado y al validador. Mientras el formulario está en Borrador, o fue devuelto por el validador del organismo a su equipo, es editable; al enviarse queda bloqueado para el delegado y pasa a revisión. El puntaje ICED oficial nunca se muestra al organismo durante el trámite: solo se publica cuando el formulario queda en estado "Validado". La Tabla 3 describe cada estado.
 
 Tabla 3. Estados del trámite del formulario.
 
@@ -257,7 +257,7 @@ Tabla 3. Estados del trámite del formulario.
 |---|---|
 | Borrador | El delegado está diligenciando; el formulario aún se puede editar. |
 | Enviado | El delegado entregó su formulario; el validador del organismo lo revisa y lo concilia con los demás equipos. |
-| Devuelto | El equipo técnico SIIED devolvió el formulario con observaciones; vuelve a ser editable para corrección y reenvío. |
+| Devuelto | El validador del organismo devolvió el formulario del equipo con observaciones; vuelve a ser editable para corrección y reenvío. |
 | Pre-validado | El validador del organismo ya concilió y pre-validó el consolidado; el FICED está en la cola de revisión del equipo técnico SIIED. |
 | Validado | El equipo técnico SIIED aprobó el consolidado; se publica el puntaje ICED oficial del organismo. |
 | Rechazado | Decisión definitiva del equipo técnico SIIED, con el motivo registrado en las observaciones. |
@@ -899,7 +899,7 @@ Fuente: aplicativo SIIED, 2026.
 
 El último paso del formulario, "Revisión y Envío", permite verificar el estado de diligenciamiento antes de entregarlo. En esta sección se describe qué muestra ese paso y qué ocurre al enviar.
 
-En el paso "Revisión y Envío" el aplicativo presenta el resumen de completitud por módulo y una casilla de confirmación con la que el delegado declara que la información diligenciada es correcta y autoriza el envío. El aplicativo solicita una confirmación explícita antes de entregar. Una vez enviado, el formulario pasa al estado "Enviado", queda bloqueado para edición y pasa a la revisión del validador del organismo. Si el equipo técnico SIIED devuelve posteriormente el formulario con observaciones, este vuelve al estado "Devuelto" y recupera su edición para la corrección y el reenvío.
+En el paso "Revisión y Envío" el aplicativo presenta el resumen de completitud por módulo y una casilla de confirmación con la que el delegado declara que la información diligenciada es correcta y autoriza el envío. El aplicativo solicita una confirmación explícita antes de entregar. Una vez enviado, el formulario pasa al estado "Enviado", queda bloqueado para edición y pasa a la revisión del validador del organismo. Si el validador del organismo devuelve posteriormente el formulario de un equipo con observaciones, este vuelve al estado "Devuelto" y recupera su edición para la corrección y el reenvío; las correcciones entran al consolidado en una nueva conciliación.
 
 Gráfica 17. Revisión y Envío con casilla de confirmación.
 [CAPTURA PENDIENTE: paso de revisión y envío con el resumen de completitud y la casilla de confirmación]
@@ -939,7 +939,7 @@ Fuente: aplicativo SIIED, 2026.
 
 #### 4.10.3. Pre-validación y envío al SIIED
 
-Con el consolidado creado, el validador lo abre con "Revisar ICED" y verifica las respuestas conciliadas sección por sección. Registra las observaciones que considere y presiona el botón "Pre-validar y enviar al SIIED". El consolidado pasa entonces al estado "Pre-validado" y entra a la cola de revisión del equipo técnico SIIED, que adelanta la revisión final: puede corregir respuestas con impacto en la calificación, devolver el formulario para corrección del organismo o rechazarlo con el motivo en observaciones.
+Con el consolidado creado, el validador lo abre con "Revisar ICED" y verifica las respuestas conciliadas sección por sección. Registra las observaciones que considere y presiona el botón "Pre-validar y enviar al SIIED". El consolidado pasa entonces al estado "Pre-validado" y entra a la cola de revisión del equipo técnico SIIED, que adelanta la revisión final: puede corregir respuestas con impacto en la calificación, aprobarlo (con el cálculo del puntaje) o rechazarlo con el motivo en observaciones; el equipo técnico SIIED no devuelve el formulario al organismo.
 
 Gráfica 20. Pre-validar y enviar al SIIED.
 [CAPTURA PENDIENTE: botón de pre-validación en la revisión del consolidado]
@@ -1015,7 +1015,7 @@ Esta tabla reúne todos los marcadores `[VERIFICAR]` y `[CAPTURA PENDIENTE]` dej
 |---|---|---|---|
 | `[VERIFICAR: descripción ETUAG_PSP]` | Tabla 2 | La descripción del subrol ETUAG_PSP está truncada en el manual del sistema ("Equipo de apoyo a la gestion y…"). | Definición del subrol en el perfil de usuario / equipo SIIED. |
 | `[CAPTURA PENDIENTE]` | Gráficas 2, 4, 9, 14, 17, 18, 19, 20, 21 | Nueve gráficas corresponden a pantallas no incluidas en el PDF de capturas (banner y panel de usuario, guía expandida, P19, D3–D4, revisión y envío, dashboard, conciliación, pre-validación y producto de cumplimiento). | Capturas nuevas del aplicativo con un usuario delegado y uno validador. |
-| Estado "Devuelto" | Tabla 3, 4.9, 4.10.3 | El aplicativo implementa el estado Devuelto y la acción "devolver" del equipo técnico SIIED, pero el manual del sistema afirma que el organismo "no recibe devoluciones". La guía documenta el comportamiento del aplicativo; confirmar si la devolución es el flujo acordado oficialmente. | Equipo SIIED / procedimiento de validación. |
+| Estado "Devuelto" | Tabla 3, 4.9, 4.10 | La devolución la realiza el validador del organismo sobre los formularios por equipo (vuelven editables al delegado); el equipo técnico SIIED no devuelve. Modelo confirmado con el desarrollador el 07/11/2026. | Equipo SIIED. |
 
 ## b) Observaciones al aplicativo para el desarrollador
 
@@ -1029,7 +1029,7 @@ Esta tabla reúne todos los marcadores `[VERIFICAR]` y `[CAPTURA PENDIENTE]` dej
 8. El nombre del subrol ETUAG_PSP aparece truncado en el manual del sistema generado por el aplicativo.
 9. Hay errores de digitación en nombres precargados de operaciones estadísticas del inventario del PED ("Estadísitcas", "Santiago de Cal"); son datos del inventario y no se corrigen en el formulario, pero conviene saneamiento en la fuente.
 10. La respuesta compartida de la pregunta 10 de la captura incluye una URL de Google Drive dentro del campo de actividad; se sugiere reforzar en pantalla que cada dato va en su columna.
-11. El manual del sistema afirma que el facilitador "no devuelve el formulario al organismo", pero el aplicativo sí tiene la acción de devolver con observaciones (estado Devuelto); alinear la documentación del sistema.
+11. El manual del sistema debe precisar que la devolución es del validador del organismo hacia los equipos del propio organismo (estado Devuelto, editable por el delegado); el facilitador del SIIED no devuelve: corrige el consolidado y decide.
 
 ## c) Texto sugerido para el control de cambios de la versión 002
 
