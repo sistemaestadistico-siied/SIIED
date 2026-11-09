@@ -2069,6 +2069,28 @@ def cargar_metadata_form(request):
     organismos = Organismo.objects.filter(activo=True).order_by('nombre')
     suborganismos_pre = []
 
+    # Catálogos de asistencia para el formulario (datalists). Se calculan
+    # una vez y se comparten entre el render normal y el render de error.
+    unidades_existentes = list(
+        Indicador.objects.exclude(unidad_medida__isnull=True)
+        .exclude(unidad_medida='')
+        .values_list('unidad_medida', flat=True)
+        .distinct().order_by('unidad_medida')
+    )
+    operaciones_existentes = list(
+        OperacionEstadistica.objects.filter(activo=True)
+        .values_list('nombre', flat=True).order_by('nombre'))
+    equipos_existentes = [
+        {'nombre': e.nombre, 'suborganismo': e.suborganismo.nombre}
+        for e in EquipoOrganismo.objects.filter(activo=True)
+        .select_related('suborganismo')
+        .order_by('suborganismo__nombre', 'nombre')
+    ]
+    conjuntos_existentes = list(
+        ConjuntoDatos.objects.order_by('nombre')
+        .values_list('nombre', flat=True).distinct()
+    )
+
     indicador_id_get = request.GET.get('indicador_id')
     indicador_pre = None
     metadata_pre = {}
@@ -2350,17 +2372,6 @@ def cargar_metadata_form(request):
         except Exception as e:
             messages.error(request, f'Error al guardar metadata: {str(e)}')
 
-    unidades_existentes = list(
-        Indicador.objects.exclude(unidad_medida__isnull=True)
-        .exclude(unidad_medida='')
-        .values_list('unidad_medida', flat=True)
-        .distinct().order_by('unidad_medida')
-    )
-
-    operaciones_existentes = list(
-        OperacionEstadistica.objects.filter(activo=True)
-        .values_list('nombre', flat=True).order_by('nombre'))
-
     return render(request, 'recoleccion/cargar_metadata_form.html', {
         'indicadores': indicadores,
         'cargas_pendientes': cargas_pendientes,
@@ -2371,6 +2382,8 @@ def cargar_metadata_form(request):
         'carga_delegada_activa': carga_delegada_activa,
         'unidades_existentes': unidades_existentes,
         'operaciones_existentes': operaciones_existentes,
+        'equipos_existentes': equipos_existentes,
+        'conjuntos_existentes': conjuntos_existentes,
     })
 
 
@@ -3762,30 +3775,157 @@ def descargar_plantilla_masiva_datos(request):
         return redirect('indicadores:cargar_masiva_series')
 
 
+def _enriquecer_plantilla_con_catalogos(wb):
+    """Agrega a la plantilla oficial una hoja 'Catálogos' con los valores
+    válidos del sistema y listas desplegables (validación de datos de
+    Excel) en las columnas que el procesador resuelve por nombre
+    (organismo, suborganismo, equipo, operación, taxonomía, unidad).
+
+    Así el usuario elige de una lista igual que en el formulario web, en
+    vez de escribir el nombre a mano y arriesgar errores de coincidencia.
+    """
+    from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.datavalidation import DataValidation
+    from openpyxl.workbook.defined_name import DefinedName
+    from openpyxl.styles import Font
+    from .models import (MenuDominio, MenuTema, MenuSubtema,
+                         normalizar_ascii)
+
+    def _nombres(qs):
+        return [n for n in qs if n]
+
+    if 'Catálogos' in wb.sheetnames:
+        wb.remove(wb['Catálogos'])
+
+    grupos = list(
+        Indicador.objects.exclude(grupo_indicador__isnull=True)
+        .exclude(grupo_indicador='')
+        .values_list('grupo_indicador', flat=True)
+        .distinct().order_by('grupo_indicador'))
+    for g in ('ICET', 'SIIET'):
+        if g not in grupos:
+            grupos.append(g)
+
+    catalogos = [
+        ('Grupo_indicador', grupos),
+        ('Dominio', _nombres(MenuDominio.objects.filter(
+            activo=True).order_by('nombre').values_list('nombre', flat=True))),
+        ('Tema', _nombres(MenuTema.objects.filter(
+            activo=True).order_by('nombre').values_list('nombre', flat=True))),
+        ('Subtema', _nombres(MenuSubtema.objects.filter(
+            activo=True).order_by('nombre').values_list('nombre', flat=True))),
+        ('Organismo', _nombres(Organismo.objects.filter(
+            activo=True).order_by('nombre').values_list('nombre', flat=True))),
+        ('Suborganismo', _nombres(Suborganismo.objects.filter(
+            activo=True).order_by('nombre').values_list('nombre', flat=True))),
+        ('Equipo', _nombres(EquipoOrganismo.objects.filter(
+            activo=True).order_by('nombre').values_list('nombre', flat=True))),
+        ('Operación estadística', _nombres(OperacionEstadistica.objects.filter(
+            activo=True).order_by('nombre').values_list('nombre', flat=True))),
+        ('Unidad de medida', _nombres(
+            Indicador.objects.exclude(unidad_medida__isnull=True)
+            .exclude(unidad_medida='')
+            .values_list('unidad_medida', flat=True)
+            .distinct().order_by('unidad_medida'))),
+        ('Frecuencia de difusión', [
+            'Diaria', 'Semanal', 'Mensual', 'Bimensual', 'Trimestral',
+            'Semestral', 'Anual', 'Bienal', 'Quinquenal', 'A demanda']),
+    ]
+
+    ws_cat = wb.create_sheet('Catálogos')
+    ws_cat.cell(
+        row=1, column=len(catalogos) + 2,
+        value='Catálogo de valores válidos del sistema. Elija los valores '
+              'con las listas desplegables de cada hoja o copie el nombre '
+              'exacto desde aquí.')
+
+    def _norm(s):
+        return ' '.join(
+            normalizar_ascii(str(s or '').strip().lower()).split())
+
+    nombres_ref = {}
+    for i, (titulo, valores) in enumerate(catalogos, start=1):
+        col = get_column_letter(i)
+        ws_cat.cell(row=1, column=i, value=titulo).font = Font(bold=True)
+        for j, valor in enumerate(valores, start=2):
+            ws_cat.cell(row=j, column=i, value=valor)
+        if not valores:
+            continue
+        ref = f"'{ws_cat.title}'!${col}$2:${col}${len(valores) + 1}"
+        nombre = f'Cat_{i}'
+        wb.defined_names[nombre] = DefinedName(nombre, attr_text=ref)
+        nombres_ref[_norm(titulo)] = nombre
+
+    # Encabezado normalizado de la plantilla → clave de catálogo
+    encabezado_a_catalogo = {
+        'grupo_indicador': 'grupo_indicador',
+        'dominio': 'dominio',
+        'tema': 'tema',
+        'subtema': 'subtema',
+        'organismo responsable': 'organismo',
+        'organismo o entidad productora': 'organismo',
+        'suborganismo responsable': 'suborganismo',
+        'equipo responsable': 'equipo',
+        'nombre de la operacion estadistica': 'operacion estadistica',
+        'unidad de medida': 'unidad de medida',
+        'frecuencia de difusion': 'frecuencia de difusion',
+        'periodicidad': 'frecuencia de difusion',
+    }
+
+    for nombre_hoja in ('Indicadores', 'Variables'):
+        if nombre_hoja not in wb.sheetnames:
+            continue
+        ws = wb[nombre_hoja]
+        for celda in ws[1]:
+            titulo = _norm(celda.value)
+            catalogo = encabezado_a_catalogo.get(titulo)
+            if not catalogo or catalogo not in nombres_ref:
+                continue
+            dv = DataValidation(
+                type='list',
+                formula1=nombres_ref[catalogo],
+                allow_blank=True,
+                showErrorMessage=False,
+            )
+            ws.add_data_validation(dv)
+            letra = celda.column_letter
+            dv.add(f'{letra}2:{letra}{max(ws.max_row, 200)}')
+
+
 def _servir_plantilla_oficial_metadatos(request, fallback_url):
-    """Sirve verbatim la plantilla oficial de metadatos de indicadores
+    """Sirve la plantilla oficial de metadatos de indicadores
     (hojas: 'Diccionario de datos', 'Indicadores', 'Variables').
 
     Es el archivo aprobado por el equipo: mismo orden de columnas y
-    nomenclatura. Todos los puntos de descarga (carga masiva, carga
-    individual y portal delegado) sirven este mismo archivo.
+    nomenclatura. Antes de servirlo se le inyecta una hoja 'Catálogos'
+    con los valores válidos del sistema y listas desplegables en las
+    columnas resueltas por nombre, para asistir el diligenciamiento.
     """
     import os
+    from io import BytesIO
     from django.conf import settings
-    from django.http import FileResponse
+    from django.http import HttpResponse
+    import openpyxl
 
     ruta = os.path.join(
         settings.BASE_DIR, 'indicadores', 'plantillas',
         'plantilla_metadatos_indicadores.xlsx')
     try:
-        return FileResponse(
-            open(ruta, 'rb'),
-            as_attachment=True,
-            filename='plantilla_metadatos_indicadores.xlsx',
-        )
+        wb = openpyxl.load_workbook(ruta)
     except FileNotFoundError:
         messages.error(request, 'La plantilla oficial no está instalada en el servidor.')
         return redirect(fallback_url)
+
+    _enriquecer_plantilla_con_catalogos(wb)
+    buf = BytesIO()
+    wb.save(buf)
+    response = HttpResponse(
+        buf.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = (
+        'attachment; filename="plantilla_metadatos_indicadores.xlsx"')
+    return response
 
 
 def descargar_plantilla_masiva_metadata(request):

@@ -12,7 +12,7 @@ forms_iced.py.
 
 MANUAL_POR_PASO = {
     'identificacion': {
-        'titulo': 'A. Identificación del organismo (P1-P5)',
+        'titulo': 'A. Identificación del organismo (P1 y contactos)',
         'resumen': (
             'Datos de contacto del organismo. El nombre se pre-llena '
             'automáticamente; aquí se registran las personas de contacto '
@@ -210,21 +210,26 @@ MANUAL_POR_PASO = {
     'metodologia_d4': {
         'titulo': 'D4. Observatorios (P33-P35)',
         'resumen': (
-            'Observatorios del organismo o en los que participa, su '
-            'información y documentación metodológica.'
+            'Observatorios que el organismo lidera, su información y su '
+            'documentación metodológica. P34 y P35 solo aparecen si en '
+            'P33 responde que SÍ cuenta con observatorio.'
         ),
         'tips': [
-            'P33: si tiene observatorio propio, selecciónelo de la lista '
-            'o escríbalo en "Otro".',
-            'P34: una fila por observatorio — nombre, fecha de creación '
-            '(selector de calendario), tema, área temática, si tiene '
-            'documentos MOP y cuáles produce.',
+            'P33: puede seleccionar hasta 3 observatorios del listado '
+            'de referencia del distrito, o escribir otro en el campo '
+            '"Otro". Si responde "No", la sección salta a la siguiente.',
+            'P34: una fila por observatorio QUE LIDERA (máx. 5). '
+            'Fecha de creación con el selector de calendario; al elegir '
+            'el tema principal el área temática se autocompleta; '
+            '"¿Cuáles?" solo es obligatorio si produce documentos.',
             'P35 (documentación): tipo, nombre y descripción son '
             'obligatorios por fila que empiece a diligenciar; la '
             'codificación MOP y la URL son opcionales (si pone URL, '
             'debe ser válida).',
         ],
         'errores_comunes': [
+            'Registrar en P34 observatorios en los que solo participa '
+            '(son solo los que lidera el organismo).',
             'Filas de P35 con URL inválida o campos vacíos.',
             'Fecha de creación escrita a mano en vez de usar el '
             'selector de calendario.',
@@ -238,20 +243,29 @@ MANUAL_POR_PASO = {
             'satisfacción.'
         ),
         'tips': [
-            'P36/P39/P40: las URLs de evidencia se validan una por una; '
-            'varias se separan por coma y deben ser completas '
-            '(https://...).',
-            'P38: si marca "Ninguna", las preguntas de difusión se '
-            'omiten (y P41 no aplica).',
+            'P36/P40: por cada opción marcada use el botón '
+            '"+ Agregar URL" para anexar una o más URLs de evidencia '
+            '(todas completas, https://...).',
+            'P37: la opción "No tiene ningún otro usuario de '
+            'información" es excluyente — no se combina con las demás.',
+            'P39: solo "Página web" y "Otro" piden detalle; ahí las '
+            'URLs sí se separan por coma.',
+            'P38: si marca "No se realiza difusión — continúe en la '
+            'pregunta 42", las preguntas 39, 40 y 41 se omiten por '
+            'completo.',
             'P41.2 (matriz de satisfacción): por cada uno de los 3 '
             'indicadores marque el nivel de satisfacción y relacione '
             'hasta 2 URLs de las mediciones.',
-            'P42 es de observaciones generales (máx. 4000 caracteres); '
-            'úslelo para aclarar respuestas, no para repetirlas.',
+            'P42 es de observaciones generales (máx. 4000 caracteres): '
+            'anteponer el número de la pregunta al comentario (ej: '
+            '"P10 — la capacitación fue en mayo"); si no hay '
+            'observaciones, se deja en blanco.',
         ],
         'errores_comunes': [
             'Pegar rutas internas o nombres de archivo en vez de URLs '
             'públicas.',
+            'Marcar "No se realiza difusión" junto con otros productos '
+            '(la opción es excluyente).',
             'Responder "indaga satisfacción = sí" sin completar la '
             'matriz P41.2.',
         ],
@@ -263,6 +277,9 @@ MANUAL_POR_PASO = {
             'validación. Revise cada sección desplegable.'
         ),
         'tips': [
+            'El formulario se guarda como borrador: "Guardar borrador" '
+            'lo registra en cualquier momento y al retomar el FICED se '
+            'reanuda en el paso donde quedó.',
             'Si una sección dice "no tiene respuestas diligenciadas", '
             'use «Anterior» para volver y completarla — los pasos vacíos '
             'pueden ser causa de devolución.',

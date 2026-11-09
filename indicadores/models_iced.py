@@ -68,7 +68,7 @@ class ICEDFormulario(models.Model):
     # =========================================================================
     respuestas_a = models.JSONField(
         default=dict, blank=True,
-        help_text="Módulo A: Identificación (P1-P5)"
+        help_text="Módulo A: Identificación (P1 y contactos)"
     )
     respuestas_b = models.JSONField(
         default=dict, blank=True,

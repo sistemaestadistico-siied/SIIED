@@ -70,6 +70,14 @@
         color: white;
         border-color: var(--iced-success);
     }
+    button.iced-step-pill {
+        font-family: inherit;
+        cursor: pointer;
+    }
+    button.iced-step-pill:hover {
+        filter: brightness(1.08);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
 
     /* Card de formulario */
     .iced-card {
@@ -412,9 +420,15 @@
         </div>
         <div class="iced-steps">
             {% for step in steps_info %}
-            <span class="iced-step-pill {% if step.is_current %}current{% elif step.is_done %}done{% endif %}">
-                {% if step.is_done %}✓ {% endif %}{{ step.label }}
+            {% if step.is_done %}
+            <button type="submit" form="iced-form" name="wizard_goto_step" value="{{ step.key }}"
+                    class="iced-step-pill done iced-step-link" formnovalidate
+                    title="Volver a {{ step.label }}">✓ {{ step.label }}</button>
+            {% else %}
+            <span class="iced-step-pill {% if step.is_current %}current{% endif %}">
+                {{ step.label }}
             </span>
+            {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -424,15 +438,25 @@
         <h2 class="iced-card-title">{{ current_step_label }}</h2>
         <p class="iced-card-subtitle">
             Paso {{ current_step_index|add:1 }} de {{ total_steps }}
-            {% if current_step_index == 0 %}
+            {% if wizard.steps.current == 'identificacion' %}
                 — Información básica del organismo y responsable. Este módulo no puntúa.
-            {% elif current_step_index == 1 %}
+            {% elif wizard.steps.current == 'entorno' %}
                 — Marco normativo y estructura organizacional para la información estadística.
-            {% elif current_step_index == 2 %}
-                — Herramientas tecnológicas, recurso humano y recursos financieros.
-            {% elif current_step_index == 3 %}
-                — Operaciones estadísticas, indicadores, analítica y observatorios.
-            {% elif current_step_index == 4 %}
+            {% elif wizard.steps.current == 'infraestructura_c1' %}
+                — Herramientas tecnológicas disponibles en el organismo.
+            {% elif wizard.steps.current == 'infraestructura_c2' %}
+                — Recurso humano dedicado a la operación estadística.
+            {% elif wizard.steps.current == 'infraestructura_c3' %}
+                — Recursos financieros asignados a la operación estadística.
+            {% elif wizard.steps.current == 'metodologia_d1' %}
+                — Operaciones estadísticas del organismo.
+            {% elif wizard.steps.current == 'metodologia_d2' %}
+                — Indicadores y articulación con otros organismos.
+            {% elif wizard.steps.current == 'metodologia_d3' %}
+                — Analítica y explotación de datos.
+            {% elif wizard.steps.current == 'metodologia_d4' %}
+                — Observatorios de información estadística.
+            {% elif wizard.steps.current == 'accesibilidad' %}
                 — Uso, difusión y satisfacción de usuarios de la información estadística.
             {% endif %}
         </p>
@@ -1099,8 +1123,29 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             // Solo interceptar si es el botón principal (Siguiente/Enviar)
             const submitter = e.submitter;
-            if (!submitter || submitter.type !== 'submit' || submitter.name) {
-                return; // Permitir submit normal para otros botones (Anterior)
+            if (!submitter || submitter.type !== 'submit') {
+                return;
+            }
+
+            // Navegación entre secciones (Anterior o pastillas de pasos):
+            // formtools descarta el POST del paso actual en un goto_step, así
+            // que se guarda borrador antes de saltar para no perder ediciones.
+            if (submitter.name === 'wizard_goto_step') {
+                e.preventDefault();
+                submitter.disabled = true;
+                guardarBorrador(true).finally(() => {
+                    const h = document.createElement('input');
+                    h.type = 'hidden';
+                    h.name = 'wizard_goto_step';
+                    h.value = submitter.value;
+                    form.appendChild(h);
+                    form.submit();
+                });
+                return;
+            }
+
+            if (submitter.name) {
+                return; // Permitir submit normal para otros botones nombrados
             }
             
             e.preventDefault();
@@ -1123,7 +1168,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         form.submit();
                     }
                 });
+
         });
+        // Autoguardado periódico: respaldo silencioso cada 2 minutos,
+        // complementario a "Guardar borrador" y al guardado al navegar.
+        setInterval(function () {
+            try { guardarBorrador(true); } catch (e) { /* sin acción */ }
+        }, 120000);
     }
 });
 </script>

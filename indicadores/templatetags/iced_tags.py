@@ -175,8 +175,11 @@ def _label(code, field_key=None):
 
 
 def _render_bool(value):
-    if str(value).lower() in ('si', 'sí', '1', 'true'):
+    v = str(value).lower()
+    if v in ('si', 'sí', '1', 'true'):
         return '<span class="text-emerald-700 font-semibold">✓ Sí</span>'
+    if v in ('na', 'n/a', 'no aplica'):
+        return '<span class="text-slate-500 font-semibold">— NA</span>'
     return '<span class="text-red-600 font-semibold">✗ No</span>'
 
 
@@ -298,6 +301,13 @@ def _render_tabla(value, max_rows=10, field_key=None):
                 otro = str(row.get(c + '_otro', '') or '').strip()
                 if val == 'Otro' and otro:
                     val = f'Otro: {otro}'
+                # Unificar presentación si/no/na con el instructivo (NO/NA)
+                if val.lower() in ('si', 'sí'):
+                    val = 'Sí'
+                elif val.lower() == 'no':
+                    val = 'No'
+                elif val.lower() in ('na', 'n/a'):
+                    val = 'NA'
                 if val.startswith('http'):
                     cell = f'<a href="{escape(val)}" target="_blank" class="text-indigo-600 underline break-all">{escape(val)}</a>'
                 else:

@@ -183,8 +183,11 @@
           <textarea name="Metodo_Medicion" rows="3"
                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
         <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Nombre del conjunto de datos</label>
-          <input type="text" name="Nombre_Conjunto_conjunto_datos" placeholder="Ej: Encuesta Calidad de Vida 2024"
+          <input type="text" name="Nombre_Conjunto_conjunto_datos" placeholder="Ej: Encuesta Calidad de Vida 2024" list="lista-conjuntos"
                  class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <datalist id="lista-conjuntos">
+            {% for cd in conjuntos_existentes %}<option value="{{ cd }}">{% endfor %}
+          </datalist>
           <p class="text-xs text-slate-400 mt-1">Si ya existe un conjunto de datos con este nombre, se asociará automáticamente.</p>
         </div>
         <div><label class="block text-xs text-slate-500 mb-1">Unidad de medida</label>
@@ -266,7 +269,12 @@
         <div class="md:col-span-2"><label class="block text-xs text-slate-500 mb-1">Referencias</label>
           <textarea name="Referencias" rows="3" placeholder="Fuentes bibliográficas, normativas y metodológicas con enlaces o DOI" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"></textarea></div>
         <div><label class="block text-xs text-slate-500 mb-1">Equipo responsable</label>
-          <input type="text" name="Equipo_Responsable" placeholder="Nombre del equipo del suborganismo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
+          <input type="text" name="Equipo_Responsable" placeholder="Nombre del equipo del suborganismo" list="lista-equipos" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <datalist id="lista-equipos">
+            {% for eq in equipos_existentes %}<option value="{{ eq.nombre }}">{{ eq.suborganismo }}</option>{% endfor %}
+          </datalist>
+          <p class="text-xs text-slate-400 mt-1">Debe existir en el catálogo de equipos del suborganismo.</p>
+        </div>
         <div><label class="block text-xs text-slate-500 mb-1">Nombre responsable técnico de validación</label>
           <input type="text" name="Nombre_Responsable_Validacion" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"></div>
         <div><label class="block text-xs text-slate-500 mb-1">Cargo responsable técnico de validación</label>

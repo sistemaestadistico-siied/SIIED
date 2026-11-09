@@ -461,6 +461,7 @@ class ICEDModuloAForm(ICEDBaseForm):
     )
     p1_nombre_organismo = forms.CharField(
         max_length=255,
+        label='1. Nombre del organismo',
         widget=forms.HiddenInput()
     )
     
@@ -696,7 +697,7 @@ class ICEDModuloBForm(ICEDBaseForm):
                 'columnas': [
                     {'name': 'actividad', 'label': 'Actividad / Curso / Taller', 'tipo': 'textarea',
                      'rows': 3, 'placeholder': 'Describa la actividad, curso o taller'},
-                    {'name': 'fecha', 'label': 'Fecha', 'tipo': 'fecha'},
+                    {'name': 'fecha', 'label': 'Fecha (AAAA-MM-DD)', 'tipo': 'fecha'},
                     # La entidad encargada puede ser cualquiera (DANE, universidad,
                     # cooperación...): la lista de organismos incluye 'Otro → ¿Cuál?'
                     # y excluye los que no aplican como organizadores.
@@ -708,7 +709,10 @@ class ICEDModuloBForm(ICEDBaseForm):
             'data-show-if': 'p10_participacion=1,2,3',
         }),
         label="Relacione las actividades en las que participó, la fecha y el organismo encargado de la actividad",
-        help_text="Complete esta tabla solo si seleccionó opciones 1, 2 o 3"
+        help_text=("Complete esta tabla solo si seleccionó opciones 1, 2 o 3. "
+                   "Cada dato va en su columna: describa la actividad en la primera "
+                   "(sin enlaces ni URLs), la fecha en formato AAAA-MM-DD y el "
+                   "organismo o entidad encargada en la última.")
     )
 
     # P11: Instancias de coordinación
@@ -950,7 +954,7 @@ class ICEDModuloC2Form(ICEDBaseForm):
                     {'valor': 'AS', 'texto': 'Asesor'},
                 ],
                 'categorias_contratista': [
-                    {'valor': 'AA', 'texto': 'Asistente Administrativo'},
+                    {'valor': 'AA', 'texto': 'Asistencial Administrativo'},
                     {'valor': 'T', 'texto': 'Técnico'},
                     {'valor': 'P', 'texto': 'Profesional'},
                     {'valor': 'PE', 'texto': 'Profesional Especializado'},
@@ -1036,7 +1040,7 @@ class ICEDModuloC3Form(ICEDBaseForm):
     # P21: Porcentaje de presupuesto ANUAL desglosado por rubros
     p21_intro = forms.CharField(
         required=False,
-        initial='⚠️ IMPORTANTE: Ingrese los valores en PORCENTAJE (%). Ejemplo: 25.5 significa 25.5% del presupuesto.',
+        initial='⚠️ IMPORTANTE: Ingrese los valores en PORCENTAJE (%) usando punto (.) para decimales. Ejemplo: escriba 25.5 para indicar 25,5% del presupuesto.',
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea',
             'readonly': 'readonly',
@@ -2253,7 +2257,7 @@ class ICEDModuloEForm(ICEDBaseForm):
                 {'codigo': 'mapas_sig', 'texto': 'Mapas estadísticos elaborados a través de sistemas de información geográfica para georreferenciar y difundir los datos (indicadores o estadísticas agregadas)'},
                 {'codigo': 'bases_interactivas', 'texto': 'Bases de datos interactivas que permite a los usuarios consultar, actualizar y manipular datos de manera dinámica'},
                 {'codigo': 'otro', 'texto': 'Otros productos'},
-                {'codigo': 'ninguna', 'texto': 'No se realiza difusión — ¡Fin del formulario! Pase a Registrar Respuesta'},
+                {'codigo': 'ninguna', 'texto': 'No se realiza difusión — continúe en la pregunta 42 (observaciones generales)'},
             ],
         }),
         label="38. ¿Cuáles productos utiliza para difundir los resultados estadísticos?",

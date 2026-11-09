@@ -1096,6 +1096,34 @@ def delegado_cargar_metadata_form(request):
         archivo_metadata_xlsx=''
     ).order_by('-fecha_carga')[:20]
 
+    # Catálogos de asistencia para el formulario (datalists). Se calculan
+    # una vez y se comparten entre el render normal y el render de error.
+    unidades_existentes = list(
+        Indicador.objects.exclude(unidad_medida__isnull=True)
+        .exclude(unidad_medida='')
+        .values_list('unidad_medida', flat=True)
+        .distinct().order_by('unidad_medida')
+    )
+    operaciones_existentes = list(
+        OperacionEstadistica.objects.filter(activo=True)
+        .values_list('nombre', flat=True).order_by('nombre'))
+    equipos_existentes = list(
+        EquipoOrganismo.objects.filter(activo=True)
+        .filter(
+            suborganismo__organismo=organismo
+        ) if organismo else EquipoOrganismo.objects.filter(activo=True)
+    )
+    equipos_existentes = [
+        {'nombre': e.nombre, 'suborganismo': e.suborganismo.nombre}
+        for e in equipos_existentes.select_related('suborganismo')
+        .order_by('suborganismo__nombre', 'nombre')
+    ]
+    conjuntos_existentes = list(
+        (ConjuntoDatos.objects.filter(organismo_productor=organismo)
+         if organismo else ConjuntoDatos.objects.all())
+        .order_by('nombre').values_list('nombre', flat=True).distinct()
+    )
+
     suborganismos_pre = []
     if organismo:
         suborganismos_pre = list(Suborganismo.objects.filter(
@@ -1165,18 +1193,15 @@ def delegado_cargar_metadata_form(request):
 
         if not indicador_id:
             messages.error(request, 'Debes seleccionar un indicador.')
-            unidades_existentes = list(
-                Indicador.objects.exclude(unidad_medida__isnull=True)
-                .exclude(unidad_medida='')
-                .values_list('unidad_medida', flat=True)
-                .distinct().order_by('unidad_medida')
-            )
             return render(request, 'delegado/cargar_metadata_form.html', {
                 'indicadores': indicadores, 'organismo': organismo,
                 'cargas_pendientes': cargas_pendientes,
                 'indicador_pre': indicador_pre, 'metadata_pre': metadata_pre,
                 'suborganismos_pre': suborganismos_pre,
                 'unidades_existentes': unidades_existentes,
+                'operaciones_existentes': operaciones_existentes,
+                'equipos_existentes': equipos_existentes,
+                'conjuntos_existentes': conjuntos_existentes,
             })
 
         indicador = get_object_or_404(Indicador, id=indicador_id)
@@ -1369,17 +1394,6 @@ def delegado_cargar_metadata_form(request):
         except Exception as e:
             messages.error(request, f'Error al guardar metadata: {str(e)}')
 
-    unidades_existentes = list(
-        Indicador.objects.exclude(unidad_medida__isnull=True)
-        .exclude(unidad_medida='')
-        .values_list('unidad_medida', flat=True)
-        .distinct().order_by('unidad_medida')
-    )
-
-    operaciones_existentes = list(
-        OperacionEstadistica.objects.filter(activo=True)
-        .values_list('nombre', flat=True).order_by('nombre'))
-
     return render(request, 'delegado/cargar_metadata_form.html', {
         'indicadores': indicadores,
         'organismo': organismo,
@@ -1389,7 +1403,10 @@ def delegado_cargar_metadata_form(request):
         'suborganismos_pre': suborganismos_pre,
         'unidades_existentes': unidades_existentes,
         'operaciones_existentes': operaciones_existentes,
+        'equipos_existentes': equipos_existentes,
+        'conjuntos_existentes': conjuntos_existentes,
     })
+
 
 
 @delegado_required

@@ -216,16 +216,39 @@ class ICEDWizardView(SessionWizardView):
         return json.dumps(nombres, ensure_ascii=False)
 
     def get(self, request, *args, **kwargs):
-        """Reanudar el wizard en el paso donde quedó el borrador (paso_actual)."""
+        """Reanudar el wizard en el paso donde quedó el borrador (paso_actual).
+
+        El get() base de WizardView hace storage.reset() + current_step=first,
+        así que fijar el paso antes de super().get() lo borraba: la
+        reanudación nunca funcionaba. Aquí se resetea primero y luego se
+        fija el paso guardado (solo si el equipo actual puede verlo).
+        """
+        self.storage.reset()
+        paso = self.steps.first
         formulario_id = kwargs.get('formulario_id')
-        if formulario_id and not self.storage.current_step:
+        if formulario_id:
             try:
-                paso = ICEDFormulario.objects.values_list('paso_actual', flat=True).get(pk=formulario_id)
-                if paso and paso in self.form_list:
-                    self.storage.current_step = paso
+                guardado = ICEDFormulario.objects.values_list(
+                    'paso_actual', flat=True).get(pk=formulario_id)
+                if guardado and guardado in self.get_form_list():
+                    paso = guardado
             except ICEDFormulario.DoesNotExist:
                 pass
-        return super().get(request, *args, **kwargs)
+        self.storage.current_step = paso
+        return self.render(self.get_form())
+
+    def render_revalidation_failure(self, failed_step, form, **kwargs):
+        """render_done re-valida todos los pasos contra la sesión del wizard.
+        Al reanudar un borrador en una sesión nueva la sesión está vacía, así
+        que el envío rebota al primer paso sin datos de sesión. Se explica al
+        usuario que debe re-avanzar (sus respuestas ya vienen precargadas)."""
+        messages.info(
+            self.request,
+            'Para enviar, el sistema revalida cada sección con los datos de '
+            'esta sesión. Sus respuestas guardadas ya están cargadas: revise '
+            'y avance con «Siguiente» hasta llegar de nuevo a Revisión y Envío.'
+        )
+        return super().render_revalidation_failure(failed_step, form, **kwargs)
 
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
