@@ -219,13 +219,13 @@
                 {% endif %}
                 {% if puede_prevalidar %}
                 <p class="text-[11px] text-slate-400 mb-2">
-                    Al pre-validar, el consolidado pasa a la cola del equipo SIIED,
-                    que realiza la revisión y validación final con puntajes.
+                    Al pre-validar, el consolidado pasa a la cola del facilitador
+                    del equipo SIIED, que realiza la revisión y validación final con puntajes.
                 </p>
                 <div class="space-y-2">
                     <button type="button" onclick="decidir('prevalidar')"
                             class="w-full bg-violet-600 hover:bg-violet-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
-                        Pre-validar y enviar al SIIED
+                        Pre-validar y enviar al facilitador SIIED
                     </button>
                 </div>
                 {% endif %}
@@ -236,7 +236,7 @@
             {% if formulario.estado == 'prevalidado' %}
             <div class="p-4 bg-violet-50 border border-violet-200 rounded-lg">
                 <p class="text-sm text-violet-800 font-semibold">
-                    ⏳ Pre-validado por el organismo — pendiente validación final SIIED
+                    ⏳ Pre-validado por el organismo — pendiente validación final del facilitador SIIED
                 </p>
                 {% if formulario.observaciones_prevalidador %}
                 <p class="text-xs text-violet-700 mt-2">
@@ -273,9 +273,18 @@
 
             {% elif formulario.estado == 'devuelto' %}
             <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                {% if formulario.equipo %}
                 <p class="text-sm text-amber-800 font-semibold">
                     🔄 Formulario devuelto para corrección
                 </p>
+                {% else %}
+                <p class="text-sm text-amber-800 font-semibold">
+                    🔄 Consolidado devuelto por el facilitador del equipo SIIED
+                </p>
+                <p class="text-xs text-amber-700 mt-1 font-semibold">
+                    ⏱ Tiene 3 días hábiles para corregir y reenviar el consolidado.
+                </p>
+                {% endif %}
                 {% if formulario.observaciones_validador %}
                 <p class="text-xs text-amber-700 mt-2">
                     <strong>Observaciones enviadas:</strong> {{ formulario.observaciones_validador }}

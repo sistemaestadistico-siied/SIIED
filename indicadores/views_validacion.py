@@ -1417,7 +1417,8 @@ def validacion_decidir_iced(request, formulario_id):
             messages.info(
                 request,
                 f'🔄 Consolidado de {formulario.organismo.nombre} '
-                f'devuelto al validador del organismo.')
+                f'devuelto al validador del organismo. Se le notificó '
+                f'por correo: tiene 3 días hábiles para responder.')
         try:
             from .notifications import notificar_delegado_iced
             notificar_delegado_iced(formulario, 'devuelto', observaciones)
@@ -1458,13 +1459,13 @@ def validacion_decidir_iced(request, formulario_id):
         messages.success(
             request,
             f'FICED de {formulario.organismo.nombre} pre-validado. '
-            f'El equipo SIIED hará la validación final.')
+            f'El facilitador del equipo SIIED hará la validación final.')
         return redirect('indicadores:validacion_dashboard')
 
     if not es_sistema:
         messages.error(
             request,
-            'La decisión final corresponde al equipo validador del SIIED.')
+            'La decisión final corresponde al facilitador del equipo SIIED.')
         return redirect('indicadores:validacion_dashboard')
 
     # Los formularios por equipo son parciales: aprobarlos publicaría un
@@ -1857,7 +1858,8 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         messages.info(
             request,
             f'El consolidado ya está {consolidado.get_estado_display().lower()}; '
-            'las correcciones las hace el validador SIIED sobre esa versión.')
+            'las correcciones las hace el facilitador del equipo SIIED '
+            'sobre esa versión.')
         return redirect('indicadores:validacion_revisar_iced',
                         formulario_id=consolidado.pk)
 
@@ -2057,8 +2059,8 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         if _es_validador_organismo(request):
             msg = (
                 f'Consolidado pre-validado con {conciliadas} preguntas de '
-                f'{len(formularios)} equipo(s). El equipo SIIED hará la '
-                f'validación final.'
+                f'{len(formularios)} equipo(s). El facilitador del equipo '
+                f'SIIED hará la validación final.'
             )
         else:
             msg = (

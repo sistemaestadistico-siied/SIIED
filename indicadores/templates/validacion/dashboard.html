@@ -311,6 +311,9 @@
                     <span class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-semibold">{{ f.equipo }}</span>
                     {% endif %}
                     <span class="text-xs text-slate-400">ICED {{ f.periodo }}</span>
+                    {% if not f.equipo %}
+                    <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-semibold">⏱ Plazo: 3 días hábiles</span>
+                    {% endif %}
                 </div>
                 {% if f.observaciones_validador %}
                 <p class="text-xs text-slate-500 truncate">{{ f.observaciones_validador }}</p>

@@ -713,7 +713,7 @@ def notificar_delegado_iced(formulario, accion, observaciones=""):
         color = "#16a34a"
         pct = round(float(formulario.puntaje_global) * 100) if formulario.puntaje_global else 0
         resumen = (
-            f"Su formulario ICED {formulario.periodo} fue aprobado por el equipo técnico del SIIED. "
+            f"Su formulario ICED {formulario.periodo} fue aprobado por el facilitador del equipo SIIED. "
             f"Puntaje global obtenido: <strong>{pct}%</strong> ({formulario.nivel_global_display})."
         )
         cta_url = f"{_get_site_url()}/iced/resultado/{formulario.pk}/"
@@ -736,10 +736,11 @@ def notificar_delegado_iced(formulario, accion, observaciones=""):
             # del organismo (re-conciliar y re-prevalidar).
             resumen = (
                 f"El consolidado ICED {formulario.periodo} de su "
-                "organismo fue devuelto por el equipo validador del "
+                "organismo fue devuelto por el facilitador del equipo "
                 "SIIED. Revise las observaciones, corrija las "
                 "respuestas conciliando de nuevo y reenvíe el "
-                "consolidado pre-validado."
+                "consolidado pre-validado. "
+                "<strong>Tiene 3 días hábiles para responder.</strong>"
             )
             cta_url = f"{_get_site_url()}/validacion/"
             cta_texto = "Ir al panel de validación"
@@ -747,7 +748,7 @@ def notificar_delegado_iced(formulario, accion, observaciones=""):
         estado_texto = "rechazado"
         color = "#dc2626"
         resumen = (
-            f"Su formulario ICED {formulario.periodo} fue rechazado por el equipo técnico del SIIED. "
+            f"Su formulario ICED {formulario.periodo} fue rechazado por el facilitador del equipo SIIED. "
             "Esta decisión es definitiva: el formulario queda cerrado y no puede "
             "corregirse ni reenviarse. Ante dudas, contacte al equipo SIIED."
         )

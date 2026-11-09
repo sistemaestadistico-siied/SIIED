@@ -137,7 +137,7 @@ def validador_sistema_required(view_func):
                 return view_func(request, *args, **kwargs)
         messages.error(
             request,
-            'Esta sección es solo para el equipo validador del SIIED.')
+            'Esta sección es solo para el facilitador del equipo SIIED.')
         return redirect('indicadores:validacion_dashboard')
     return wrapper
 

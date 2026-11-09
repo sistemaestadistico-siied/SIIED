@@ -266,8 +266,8 @@ MANUAL_POR_PASO = {
             'Si una sección dice "no tiene respuestas diligenciadas", '
             'use «Anterior» para volver y completarla — los pasos vacíos '
             'pueden ser causa de devolución.',
-            'Al confirmar el envío el formulario pasa al equipo '
-            'validador del SIIED; mientras esté enviado no se puede '
+            'Al confirmar el envío el formulario pasa al facilitador '
+            'del equipo SIIED; mientras esté enviado no se puede '
             'editar.',
             'Si el validador devuelve el formulario, sus observaciones '
             'aparecen al retomar el FICED.',

@@ -648,7 +648,7 @@ class ICEDWizardView(SessionWizardView):
 
         messages.success(
             self.request,
-            'Formulario ICED enviado exitosamente. Un validador del equipo técnico del SIIED '
+            'Formulario ICED enviado exitosamente. Un facilitador del equipo SIIED '
             'revisará sus respuestas y ejecutará el proceso de cálculo del índice. '
             'Se le notificará por correo electrónico cuando el proceso haya finalizado.'
         )
@@ -1239,7 +1239,7 @@ Tu ÚNICO propósito es guiar al delegado a responder el FICED correctamente. Re
 
 EQUIPO DEL USUARIO: {equipo_desc}. El delegado solo ve las preguntas asignadas a su equipo técnico (ETUAG_PSP, ETOBS, ETPP, ETSGC, ETGIE); si pregunta "¿por qué no veo la P#?", puede que esa pregunta no corresponda a su equipo (ej.: ETSGC no responde la P23 y salta de P22 a observaciones). Si ve un bloque "Pregunta compartida" con respuestas de otros equipos, es solo referencia: debe responder desde su propio equipo.
 
-FLUJO Y ESTADOS: borrador (editable) → enviado (el validador del organismo concilia) → pre-validado → validado (puntaje oficial). No hay rechazo: las devoluciones van en cadena — el SIIED devuelve el consolidado al validador del organismo y este devuelve el formulario de un equipo ("devuelto"), que vuelve a ser editable con las observaciones; el SIIED también puede corregir directamente el consolidado y aprobar. El guardado es al avanzar de módulo o con el botón "Guardar borrador".
+FLUJO Y ESTADOS: borrador (editable) → enviado (el validador del organismo concilia) → pre-validado → validado (puntaje oficial). No hay rechazo: las devoluciones van en cadena — el facilitador del equipo SIIED devuelve el consolidado al validador del organismo y este devuelve el formulario de un equipo ("devuelto"), que vuelve a ser editable con las observaciones; el facilitador también puede corregir directamente el consolidado y aprobar. El guardado es al avanzar de módulo o con el botón "Guardar borrador".
 
 FORMATOS ESTRICTOS QUE DEBES RECORDAR AL USUARIO:
 - Correos: nombre@dominio.com. Teléfonos: máx. 10 dígitos o +57 + 10 (sin letras ni extensión).
