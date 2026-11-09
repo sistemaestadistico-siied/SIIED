@@ -634,8 +634,7 @@ class ICEDWizardView(SessionWizardView):
         if edicion_siied:
             messages.success(
                 self.request,
-                'Respuestas del consolidado actualizadas por el equipo '
-                'SIIED. Recalcule los puntajes y complete la validación.'
+                'Respuestas del consolidado actualizadas por el equipo SIIED.'
             )
             return redirect('indicadores:validacion_revisar_iced',
                             formulario_id=formulario.pk)
