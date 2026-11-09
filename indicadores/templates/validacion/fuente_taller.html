@@ -12,7 +12,7 @@
             {{ fuente.inscripcion.organismo.nombre }}
             {% if fuente.inscripcion.suborganismo %}· {{ fuente.inscripcion.suborganismo.nombre }}{% endif %}
             · Taller {{ fuente.inscripcion.edicion }} · prevalidada por
-            <b>{{ fuente.prevalidada_por.get_full_name|default:'—' }}</b>
+            <b>{{ fuente.prevalidada_por.get_full_name|default:fuente.prevalidada_por.username|default:'—' }}</b>
             {% if fuente.fecha_prevalidacion %}el {{ fuente.fecha_prevalidacion|date:'d/m/Y' }}{% endif %}
         </p>
     </div>
