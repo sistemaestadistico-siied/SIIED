@@ -7,6 +7,38 @@ import { lambert, basic, sprite } from './engine.js';
 const G = THREE.BoxGeometry;
 const cyl = (r1, r2, h, n = 10) => new THREE.CylinderGeometry(r1, r2, h, n);
 
+/* Logos institucionales en el mundo */
+const _tl = new THREE.TextureLoader();
+const IMG = (window.DD_STATIC || '/static/') + 'indicadores/images/';
+export const LOGOS = {
+    siied: { url: IMG + 'unnamed.png', ar: 342 / 394 },        // vertical, sin nombre
+    plan:  { url: IMG + 'planeaci%C3%B3n.png', ar: 1251 / 967 }, // horizontal, con nombre
+};
+/* Cartel luminoso: panel oscuro + marco emisivo + logo */
+function cartel(e, logo, x, y, z, alto, ry = 0, acento = 0x2B7D59) {
+    const g = new THREE.Group();
+    const ancho = alto * logo.ar;
+    const marco = new THREE.Mesh(new G(ancho + .55, alto + .55, .1),
+        new THREE.MeshStandardMaterial({ color: 0x0a1a26, roughness: .5, metalness: .4,
+            emissive: acento, emissiveIntensity: .55 }));
+    g.add(marco);
+    // Panel claro: el logo SIIED es azul oscuro y necesita fondo claro
+    const panel = new THREE.Mesh(new G(ancho + .3, alto + .3, .06),
+        new THREE.MeshStandardMaterial({ color: 0xe6edf2, roughness: .7,
+            emissive: 0x93a7b4, emissiveIntensity: .22 }));
+    panel.position.z = .045; g.add(panel);
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto),
+        new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide }));
+    p.position.z = .09; g.add(p);
+    _tl.load(logo.url, t => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        p.material.map = t; p.material.needsUpdate = true;
+    });
+    g.position.set(x, y, z); g.rotation.y = ry;
+    e.add(g);
+    return g;
+}
+
 /* =============== helpers de decorado (portados) =============== */
 
 function casita(e, x, z, ry = 0) {
@@ -229,6 +261,12 @@ export function buildArena(e) {
     pad(e, -18, 0, 0x46d98b);
     polvo(e, H, 0x46d98b, 320, 12);
 
+    // Branding institucional en los muros
+    cartel(e, LOGOS.siied, H - .5, 2.3, 0, 3.6, -Math.PI / 2);
+    cartel(e, LOGOS.siied, -H + .5, 2.3, -10, 3, Math.PI / 2);
+    cartel(e, LOGOS.plan, 0, 2.2, -H + .5, 2.6, 0, 0x1f5f8a);
+    cartel(e, LOGOS.plan, 0, 2.2, H - .5, 2.6, Math.PI, 0x1f5f8a);
+
     const wps = [[-18, -12], [-18, 12], [18, -12], [18, 12], [0, -18], [0, 18],
         [-6, -18], [6, -18], [-6, 18], [6, 18], [-18, 0], [18, 0],
         [0, -6], [0, 6], [-6, 0], [6, 0], [-12, -5], [-12, 5], [12, -5], [12, 5]];
@@ -327,17 +365,31 @@ export function buildBarrio(e) {
     const plaza = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, .1, 24), lambert(0x35404a));
     plaza.position.set(0, .05, 0); e.add(plaza);
     fuente(e, 0, 0, .9);
+    // Tótem del kiosco: logo SIIED grande sobre el punto de entrega
+    cartel(e, LOGOS.siied, 0, 4.4, -6.6, 4.6, 0);
+    const kioscoLuz = new THREE.PointLight(0x46d98b, 30, 16, 1.8);
+    kioscoLuz.position.set(0, 3.5, -4); e.add(kioscoLuz);
 
     // Casitas por cuadrantes (hileras con huecos)
     const filas = [
-        { z: -16.5, ry: 0 }, { z: -13.5, ry: Math.PI }, { z: -7, ry: 0 },
+        { z: -17, ry: 0 }, { z: -13.5, ry: Math.PI }, { z: -7, ry: 0 },
         { z: 6.5, ry: Math.PI }, { z: 10, ry: 0 }, { z: 15.5, ry: Math.PI },
+    ];
+    // Zonas de exclusión de landmarks: no plantar casitas encima
+    const EXCL = [
+        [21, -15, 9],     // estadio (AABB ~11.5×11.5)
+        [-24, 16.8, 5.5], // iglesia
+        [-22, -7, 5],     // parque
+        [22, 15.8, 6],    // mall
+        [-24, 7, 5],      // bomberos
     ];
     for (const f of filas) {
         for (let x = -27; x <= 27; x += 4.4) {
             if (Math.abs(x) < 7 || Math.abs(x + 15) < 2.6 || Math.abs(x - 30) < 2.6 || Math.abs(x + 30) < 2.6) continue;
             if (Math.random() < .22) continue;
-            casita(e, x + Math.sin(f.z * 1.9 + x) * .3, f.z, f.ry);
+            const cx = x + Math.sin(f.z * 1.9 + x) * .3;
+            if (EXCL.some(([ex, ez, r]) => Math.hypot(cx - ex, f.z - ez) < r)) continue;
+            casita(e, cx, f.z, f.ry);
         }
     }
     // Landmarks
@@ -450,6 +502,10 @@ export function buildTorres(e) {
         if (obj) objetivos.push({ x, z, h, w, color: colores[ci] });
     });
 
+    // Branding: entrada del parque + valla en la avenida norte
+    cartel(e, LOGOS.siied, 0, 6.8, 14.5, 4.2, 0);
+    cartel(e, LOGOS.plan, -20, 4, -16.5, 3, 0, 0x8a5f1f);
+
     // Árboles del parque
     for (const [x, z] of [[-30, -2], [30, -3], [-30, 12], [30, 12], [-7, 12], [7, -12], [-30, 24], [30, 24], [0, 25]])
         arbol(e, x, z, .9 + Math.random() * .4);
@@ -525,6 +581,10 @@ export function buildPila(e) {
         haz.position.set(x, 10, z); e.add(haz);
         torres.push({ serie: s, x, z, slots: [], haz });
     });
+
+    // Branding: portal del patio de clasificación
+    cartel(e, LOGOS.siied, 0, 6.6, -19.5, 3.8, Math.PI);
+    cartel(e, LOGOS.plan, 0, 4.5, 19.5, 3, Math.PI, 0x1f5f8a);
 
     polvo(e, 30, 0x7cd8ff, 280, 14);
     const nubes = [nube(e, -40, 26, -55, 3), nube(e, 30, 30, -60, 4), nube(e, 0, 28, 60, 3.4)];

@@ -3,73 +3,10 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Don Datico — Misiones</title>
+<title>Don Datico · Misiones SIIED</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;overflow:hidden;background:#04121e;font-family:Inter,system-ui,sans-serif;color:#e8f0f8}
-  #game{position:fixed;inset:0;cursor:crosshair}
-
-  /* ---------- HUD ---------- */
-  #hud{display:none;pointer-events:none}
-  #obj{position:fixed;top:18px;left:50%;transform:translateX(-50%);text-align:center}
-  #objtext{font-family:Orbitron;font-size:14px;font-weight:700;color:#8ce8ff;letter-spacing:.08em;
-    text-shadow:0 0 12px rgba(70,217,139,.7);background:rgba(4,18,30,.55);padding:8px 22px;
-    border:1px solid rgba(70,217,139,.25);border-radius:24px}
-  #timer{position:fixed;top:18px;right:22px;font-family:Orbitron;font-size:14px;color:#8ce8ff;
-    background:rgba(4,18,30,.55);padding:8px 16px;border:1px solid rgba(70,217,139,.2);border-radius:10px}
-  #hp{position:fixed;bottom:22px;left:22px;width:230px}
-  #hpnum{font-family:Orbitron;font-size:10px;letter-spacing:.12em;color:#8ce8ff;margin-bottom:5px}
-  #hpbar{height:11px;background:rgba(255,255,255,.08);border:1px solid rgba(140,232,255,.3);
-    border-radius:6px;overflow:hidden}
-  #hpfill{height:100%;width:100%;background:linear-gradient(90deg,#2B7D59,#46d98b);transition:width .25s}
-  #feed{position:fixed;top:76px;left:50%;transform:translateX(-50%);text-align:center;font-size:13px;color:#ffe9b0}
-  #feed div{margin-top:4px;text-shadow:0 1px 4px #000;animation:fadein .25s}
-  #cross{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px}
-  #cross::before,#cross::after{content:'';position:absolute;background:rgba(140,232,255,.9);border-radius:2px}
-  #cross::before{left:50%;top:2px;bottom:2px;width:2px;transform:translateX(-50%)}
-  #cross::after{top:50%;left:2px;right:2px;height:2px;transform:translateY(-50%)}
-  #cross.hit::before,#cross.hit::after{background:#ffd98a}
-  #vign{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 110px rgba(232,76,60,0);transition:box-shadow .3s}
-  #vign.dmg{box-shadow:inset 0 0 130px rgba(232,76,60,.65)}
-  @keyframes fadein{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
-
-  /* ---------- Overlays / menú ---------- */
-  .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-    background:rgba(2,10,18,.82);backdrop-filter:blur(7px);z-index:10}
-  .card{background:linear-gradient(160deg,#0b2334,#071725);border:1px solid rgba(140,232,255,.22);
-    border-radius:20px;padding:34px 44px;text-align:center;max-width:760px;width:92%;
-    box-shadow:0 0 60px rgba(70,217,139,.12);max-height:92vh;overflow:auto}
-  .card h1{font-family:Orbitron;font-size:34px;color:#46d98b;text-shadow:0 0 24px rgba(70,217,139,.6);letter-spacing:.06em}
-  .card h2{font-family:Orbitron;font-size:22px;color:#8ce8ff;letter-spacing:.08em}
-  .card .sub{color:#7c9cb8;font-size:13px;margin:6px 0 18px}
-  .card .obj,.card .objmini{color:#8ce8ff;font-size:14px;margin:10px 0 16px}
-  .card .objmini{color:#7c9cb8;font-size:12px;font-family:Orbitron}
-  .difs{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
-  .dif{font-family:Orbitron;font-size:11px;letter-spacing:.1em;padding:7px 18px;border-radius:20px;
-    background:rgba(255,255,255,.05);border:1px solid rgba(140,232,255,.25);color:#9cc4dc;cursor:pointer}
-  .dif.on{background:rgba(70,217,139,.18);border-color:#46d98b;color:#46d98b}
-  .niveles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
-  .nivel{background:rgba(255,255,255,.04);border:1px solid rgba(140,232,255,.18);border-radius:14px;
-    padding:16px 10px;cursor:pointer;transition:.18s;color:#e8f0f8;text-align:center}
-  .nivel:hover{background:rgba(70,217,139,.12);border-color:#46d98b;transform:translateY(-3px)}
-  .nicon{font-size:30px;margin-bottom:6px}
-  .nname{font-family:Orbitron;font-size:12px;font-weight:700;color:#8ce8ff;letter-spacing:.04em}
-  .ndesc{font-size:11px;color:#8aa8be;margin-top:6px;line-height:1.45}
-  .nbest{font-size:10px;color:#46d98b;margin-top:7px;font-family:Orbitron;min-height:12px}
-  .ctrl{font-size:11px;color:#7c9cb8;margin-top:6px}
-  .ctrl.dim{opacity:.6}
-  .btn{font-family:Orbitron;font-size:14px;font-weight:700;letter-spacing:.08em;margin:8px 4px 0;
-    padding:12px 30px;border-radius:30px;border:1px solid #46d98b;cursor:pointer;color:#04121e;
-    background:linear-gradient(90deg,#46d98b,#7cd8ff);transition:.15s}
-  .btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(70,217,139,.4)}
-  .btn.ghost{background:transparent;color:#8ce8ff;border-color:rgba(140,232,255,.4)}
-  .fin.ok h2{color:#46d98b}.fin.ko h2{color:#e84c3c}
-  .big{font-size:56px;margin-bottom:6px}
-  .stats{font-size:13px;color:#b8cfe0;margin:8px 0 14px;font-family:Orbitron}
-  code{color:#7cd8ff}
-</style>
+<link rel="stylesheet" href="{% static 'indicadores/arena/arena.css' %}">
 <script type="importmap">
 {
     "imports": {
@@ -81,16 +18,51 @@
 </head>
 <body>
 <div id="game"></div>
+
 <div id="hud">
-  <div id="obj"><div id="objtext">—</div></div>
-  <div id="timer">00:00</div>
+  <div id="brand">
+    <img class="siied" src="{% static 'indicadores/images/unnamed.png' %}" alt="SIIED">
+    <img class="planea" src="{% static 'indicadores/images/planeación.png' %}" alt="Planeación">
+  </div>
+  <div id="obj"><div id="objtext">—</div><canvas id="compass" width="360" height="26"></canvas></div>
+  <div id="tr">
+    <div id="timer">00:00</div>
+    <div id="score">PUNTOS 000000</div>
+    <div id="fps">60 FPS</div>
+  </div>
   <div id="feed"></div>
-  <div id="hp"><div id="hpnum">INTEGRIDAD 100%</div><div id="hpbar"><div id="hpfill"></div></div></div>
-  <div id="cross"></div>
+  <div id="kfeed"></div>
+  <div id="hp"><div id="hpnum"><span>INTEGRIDAD 100%</span><span>DT-7</span></div><div id="hpbar"><div id="hpfill"></div></div></div>
+  <div id="ammo">
+    <div id="wname">LECTOR DT-7 · SIIED</div>
+    <div id="magnum">30<small>/30</small></div>
+    <div id="magbar"><div id="magfill"></div></div>
+    <div id="maghint"></div>
+  </div>
+  <div id="cross">
+    <div class="dot"></div>
+    <div class="arm t"></div><div class="arm b"></div><div class="arm l"></div><div class="arm r"></div>
+    <div id="hitm"></div>
+  </div>
+  <div id="darcs"></div>
+  <div id="bandera"></div>
 </div>
+<div id="wmarks"></div>
 <div id="vign"></div>
+
+<div id="loading">
+  <div class="logos">
+    <img class="siied" src="{% static 'indicadores/images/unnamed.png' %}" alt="SIIED">
+    <img class="planea" src="{% static 'indicadores/images/planeación.png' %}" alt="Planeación">
+  </div>
+  <div class="lt">DON DATICO · MISIONES</div>
+  <div id="loadbar"><div id="loadfill"></div></div>
+  <div class="lp" id="loadmsg">CARGANDO RECURSOS</div>
+</div>
+
 <script>
   window.GLB_URL = "{% static 'indicadores/models/dondaticolite.glb' %}";
+  window.DD_STATIC = "{% static '' %}";
 </script>
 <script type="module" src="{% static 'indicadores/arena/main.js' %}"></script>
 </body>
