@@ -376,17 +376,28 @@ class ICEDBaseForm(forms.Form):
         return cleaned
 
     def _condicion_visible(self, cleaned, cond):
-        """'campo=v1,v2 campo2=v3' → True si TODAS las condiciones cumplen.
+        """'campo=v1,v2 campo2=v3 campo3!=v4' → True si TODAS cumplen.
 
         Dentro de una condición, los valores separados por coma son OR
-        (válido para campos multi-selección y de opción única)."""
+        (válido para campos multi-selección y de opción única). El
+        operador `!=` niega el cumplimiento (igual que el JS
+        evaluateSingleCondition del wizard): 'p38!=ninguna' cumple
+        cuando 'ninguna' NO está seleccionada — incluido el caso en que
+        el campo referenciado está ausente o vacío."""
         for regla in (cond or '').split():
-            if '=' not in regla:
+            if '!=' in regla:
+                campo, esperados = regla.split('!=', 1)
+                negado = True
+            elif '=' in regla:
+                campo, esperados = regla.split('=', 1)
+                negado = False
+            else:
                 continue
-            campo, esperados = regla.split('=', 1)
             esperados = [e for e in esperados.split(',') if e]
             actual = cleaned.get(campo)
             cumple = self._valor_cumple(actual, esperados)
+            if negado:
+                cumple = not cumple
             if not cumple:
                 return False
         return True
