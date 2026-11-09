@@ -1262,14 +1262,17 @@ def validacion_revisar_iced(request, formulario_id):
         'puede_devolver': (
             es_org and formulario.equipo
             and formulario.estado == 'enviado'),
-        # El SIIED decide y corrige sobre el consolidado enviado o
-        # pre-validado; también puede devolverlo al organismo.
+        # El SIIED decide y corrige sobre el consolidado enviado,
+        # pre-validado o devuelto (si el organismo no corrige, el SIIED
+        # lo hace y cierra); también puede devolverlo al organismo.
         'puede_decidir': (
             es_sistema and es_consolidado
-            and formulario.estado in ('enviado', 'prevalidado')),
+            and formulario.estado in ('enviado', 'prevalidado',
+                                      'devuelto')),
         'puede_editar_respuestas': (
             es_sistema and es_consolidado
-            and formulario.estado in ('enviado', 'prevalidado')),
+            and formulario.estado in ('enviado', 'prevalidado',
+                                      'devuelto')),
         # Producto de cumplimiento: el del organismo existe desde la
         # pre-validación; el del SIIED solo tras la validación final.
         'puede_producto_org': (
@@ -1488,13 +1491,15 @@ def validacion_decidir_iced(request, formulario_id):
                             formulario_id=consolidado.pk)
         return redirect('indicadores:validacion_dashboard')
 
-    # Solo se puede decidir sobre formularios enviados o pre-validados
-    # por el organismo: evita aprobar borradores o re-decidir resueltos.
-    if formulario.estado not in ('enviado', 'prevalidado'):
+    # Solo se puede decidir sobre formularios enviados, pre-validados o
+    # devueltos por el SIIED (si el organismo no corrige, el SIIED
+    # cierra): evita aprobar borradores o re-decidir resueltos.
+    if formulario.estado not in ('enviado', 'prevalidado', 'devuelto'):
         messages.error(
             request,
             f'No se puede procesar la decisión: el formulario está en estado '
-            f'"{formulario.get_estado_display()}", no "Enviado" o "Pre-validado".'
+            f'"{formulario.get_estado_display()}", no "Enviado", '
+            f'"Pre-validado" o "Devuelto".'
         )
         return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
 

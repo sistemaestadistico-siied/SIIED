@@ -211,10 +211,12 @@
                             class="w-full bg-emerald-600 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Aprobar y publicar ICED
                     </button>
+                    {% if formulario.estado != 'devuelto' %}
                     <button type="button" onclick="decidir('devolver')"
                             class="w-full bg-amber-600 hover:bg-amber-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         🔄 Devolver al validador del organismo
                     </button>
+                    {% endif %}
                 </div>
                 {% endif %}
                 {% if puede_prevalidar %}

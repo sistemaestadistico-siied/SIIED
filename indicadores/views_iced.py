@@ -75,9 +75,9 @@ class ICEDWizardView(SessionWizardView):
     # Estados en los que el formulario aún puede editarse
     ESTADOS_EDITABLES = ('borrador', 'devuelto')
     # El validador SIIED corrige respuestas directamente sobre el
-    # consolidado (no hay devolución al organismo): puede editarlo aunque
-    # ya esté enviado o pre-validado por el organismo.
-    ESTADOS_EDITABLES_SIIED = ('enviado', 'prevalidado')
+    # consolidado en cualquier estado post-envío — incluido 'devuelto':
+    # si el organismo no corrige lo devuelto, lo hace el SIIED.
+    ESTADOS_EDITABLES_SIIED = ('enviado', 'prevalidado', 'devuelto')
 
     @staticmethod
     def _es_validador_sistema(user):
