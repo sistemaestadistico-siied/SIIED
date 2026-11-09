@@ -1,9 +1,9 @@
 # Informe de avances de desarrollo — SIIED
 
-**Periodo:** viernes 24 de octubre → miércoles 5 de noviembre de 2026
+**Periodo:** viernes 24 de octubre → domingo 9 de noviembre de 2026
 **Proyecto:** Sistema Integrado de Información Estadística Distrital (SIIED)
 **Repositorio:** [sistemaestadistico-siied/SIIED](https://github.com/sistemaestadistico-siied/SIIED)
-**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`11270fe`](https://github.com/sistemaestadistico-siied/SIIED/commit/11270fe) (15 commits funcionales)
+**Alcance:** commits [`c6b67f8`](https://github.com/sistemaestadistico-siied/SIIED/commit/c6b67f8) → [`07b43bb`](https://github.com/sistemaestadistico-siied/SIIED/commit/07b43bb) (75 commits funcionales)
 
 ---
 
@@ -37,17 +37,27 @@ de la analítica y el ciclo de validación del FICED.
   los resultados de formularios importados ya abren, la evidencia que cita
   el asistente es legible, la navegación del delegado es coherente y los
   resultados validados quedaron consultables por todo el organismo.
+- **6–7 de noviembre — plataforma de datos vivos**: «Subir datos» crece a
+  Excel/TSV, Google Sheets públicos y conexiones a bases de datos externas
+  como datasets vivos de Superset; correcciones de gestión de usuarios y
+  roles, y auditoría de credenciales (DROP por `database_id`).
+- **8–9 de noviembre — FICED: flujo real con devoluciones en cadena**: el
+  rechazo terminal desaparece — el formulario puede devolverse en cada
+  escalón con correos automáticos con marca institucional; auditoría de
+  conciliación y cálculo de puntajes (multi-equipo), y la guía de
+  diligenciamiento llega a v003 trazada al flujo real.
 
 ## 2. Métricas del periodo
 
 | Métrica | Valor |
 |---|---|
-| Commits funcionales | 15 |
-| Archivos tocados | 235 |
-| Líneas añadidas / eliminadas | +11 036 / −4 556 |
+| Commits funcionales | 75 |
+| Archivos tocados | 257 |
+| Líneas añadidas / eliminadas | +15 381 / −4 911 |
 | Migraciones nuevas | 2 (0134 quita `formula_ficha`; 0135 pre-validación FICED) |
-| Preguntas documentadas en manual FICED | 42 |
-| Métodos nuevos de API Superset (charts) | 4 |
+| Preguntas documentadas en guía FICED | 42 (v003, trazada al flujo real) |
+| Métodos nuevos de API Superset | 4 (charts) + conexiones BD/datasets vivos |
+| Correos automáticos del flujo FICED | 5 escalones notificados |
 | `manage.py check` | 0 issues |
 
 ## 3. Avances por día
@@ -249,23 +259,195 @@ evidencia— y se resolvieron los cinco problemas que lo bloqueaban:
   organismo. Lo enviado o en borrador de otros equipos sigue siendo
   privado ([`11270fe`](https://github.com/sistemaestadistico-siied/SIIED/commit/11270fe)).
 
+### 5 de noviembre (noche) — última ronda: validaciones FICED, reportes y marca ICED
+
+*FICED — 3 correcciones de validación*
+
+- URLs múltiples en celdas: el validador solo dividía por `;`/`,` y URLs
+  separadas por espacio fallaban como un solo token (P39 reportado). Ahora
+  divide por coma, punto y coma o whitespace
+  ([`87da13a`](https://github.com/sistemaestadistico-siied/SIIED/commit/87da13a)).
+- Condicionales `data-show-if` sobre campos JSON (checkbox-tabla): el
+  comparador evaluaba el JSON crudo contra el código esperado y borraba
+  valores; ahora parsea y busca el código en opciones con `seleccion=true`
+  (P24/P25/P30)
+  ([`940b97a`](https://github.com/sistemaestadistico-siied/SIIED/commit/940b97a)).
+- Respuestas compartidas visibles también en el consolidado del organismo —
+  la anotación estaba dentro de `if equipo:`
+  ([`82b391e`](https://github.com/sistemaestadistico-siied/SIIED/commit/82b391e)).
+
+*Reportes y exportes*
+
+- Excel de visitas: timestamps salían en UTC (5 h adelante de Bogotá) —
+  `tz_convert` a la zona de Django antes de quitar la tz
+  ([`32adb8f`](https://github.com/sistemaestadistico-siied/SIIED/commit/32adb8f)).
+- 2 errores 500 en producción: exportar producción mensual usaba un lookup
+  inexistente; exportar visitas fallaba con caracteres de control en
+  paths/user-agents de escáneres — sanitizado con
+  `ILLEGAL_CHARACTERS_RE` de openpyxl
+  ([`db32153`](https://github.com/sistemaestadistico-siied/SIIED/commit/db32153)).
+
+*Marca ICED alineada*
+
+- Nombre oficial corregido a «Índice de Capacidad Estadística Distrital» y
+  paleta unificada navy `#14405D` + verde `#2B7D59` en módulo, hoja de
+  vida y Hall de Capacidad
+  ([`79977c3`](https://github.com/sistemaestadistico-siied/SIIED/commit/79977c3),
+  [`e3b175c`](https://github.com/sistemaestadistico-siied/SIIED/commit/e3b175c),
+  [`85feb4d`](https://github.com/sistemaestadistico-siied/SIIED/commit/85feb4d)).
+
+### 6 de noviembre — gestión Superset y «Subir datos»
+
+*Superset: usuarios y roles*
+
+- `crear_usuario`: roles por ID y campo `active` correcto
+  ([`cdc8980`](https://github.com/sistemaestadistico-siied/SIIED/commit/cdc8980)).
+- Búsqueda de usuario: filtro rison con valor escapado
+  ([`e936fba`](https://github.com/sistemaestadistico-siied/SIIED/commit/e936fba)).
+- Auditoría rol analista: sync de rol en usuarios existentes + PUT fusionado
+  ([`5814d21`](https://github.com/sistemaestadistico-siied/SIIED/commit/5814d21)).
+- Prevalidadores de organismo no veían los FICED pendientes
+  ([`69e5beb`](https://github.com/sistemaestadistico-siied/SIIED/commit/69e5beb)).
+
+*Subir datos*
+
+- Excel habilitado + fix delimitador TSV
+  ([`2e9de0b`](https://github.com/sistemaestadistico-siied/SIIED/commit/2e9de0b)).
+- `analista_organismo`: queryset ya sliceado no se filtraba
+  ([`95d3a76`](https://github.com/sistemaestadistico-siied/SIIED/commit/95d3a76)).
+
+*ICED — P25/P29/P41*
+
+- P25: se retira el campo falso del link de BP que se almacenaba
+  ([`514b231`](https://github.com/sistemaestadistico-siied/SIIED/commit/514b231)).
+- P29: opción múltiple + texto corregido; P29.2 gana «Bimensual» y
+  «Cuatrimestral» en frecuencia
+  ([`2bd19db`](https://github.com/sistemaestadistico-siied/SIIED/commit/2bd19db),
+  [`596abe5`](https://github.com/sistemaestadistico-siied/SIIED/commit/596abe5)).
+- Parches de compatibilidad post-P25/P29
+  ([`28319d0`](https://github.com/sistemaestadistico-siied/SIIED/commit/28319d0)).
+- Fix condicional P41 + logo ICED legible sobre chip claro sin duplicar el
+  nombre
+  ([`077916c`](https://github.com/sistemaestadistico-siied/SIIED/commit/077916c),
+  [`263392b`](https://github.com/sistemaestadistico-siied/SIIED/commit/263392b)).
+
+### 7 de noviembre — datasets vivos, seguridad y guía FICED v002
+
+*Plataforma de datos vivos*
+
+- **Conexiones a bases de datos externas** desde Analítica — datasets vivos
+  de Superset alimentados por BD del organismo
+  ([`a371eaa`](https://github.com/sistemaestadistico-siied/SIIED/commit/a371eaa)).
+- **Google Sheet público como dataset vivo** (shillelagh)
+  ([`73b866e`](https://github.com/sistemaestadistico-siied/SIIED/commit/73b866e)).
+- Auditoría conexiones BD: guard `DROP` por `database_id` + hardening
+  ([`2dcb557`](https://github.com/sistemaestadistico-siied/SIIED/commit/2dcb557)).
+
+*FICED*
+
+- Guía de diligenciamiento **v002** (MEDE01.07.01.P001.G001) y
+  sincronización de manuales con el formulario real
+  ([`580c393`](https://github.com/sistemaestadistico-siied/SIIED/commit/580c393),
+  [`952e351`](https://github.com/sistemaestadistico-siied/SIIED/commit/952e351)).
+- Permisos de validadores alineados con el modelo correcto
+  ([`97f82c3`](https://github.com/sistemaestadistico-siied/SIIED/commit/97f82c3)).
+- P6 «Describa» sube de 3 000 a 8 000 caracteres; se quita la nota de ficha
+  técnica bajo Registro MOP
+  ([`4e69133`](https://github.com/sistemaestadistico-siied/SIIED/commit/4e69133),
+  [`203787c`](https://github.com/sistemaestadistico-siied/SIIED/commit/203787c)).
+- Nota de confirmación refleja el flujo validador organismo → facilitador
+  SIIED ([`4baae56`](https://github.com/sistemaestadistico-siied/SIIED/commit/4baae56)).
+
+*Libro Digital 3D y portal*
+
+- Ecosistema 3D: fixes de enlaces y de reconstrucción de escena
+  ([`9519650`](https://github.com/sistemaestadistico-siied/SIIED/commit/9519650)).
+- Usuario logueado visible en el nav del portal y del taller
+  ([`ad70501`](https://github.com/sistemaestadistico-siied/SIIED/commit/ad70501)).
+
+### 8 de noviembre — auditoría de conciliación ICED y catálogo de sistemas
+
+- **Puntaje 0 en preguntas de varios equipos** (P8, P9, P11…): corregido el
+  cálculo del consolidado
+  ([`6d7ee01`](https://github.com/sistemaestadistico-siied/SIIED/commit/6d7ee01)).
+- Auditoría conciliación/cálculo: 4 correcciones adicionales
+  ([`f9fcd29`](https://github.com/sistemaestadistico-siied/SIIED/commit/f9fcd29)).
+- **Sistemas de Consulta: nueva taxonomía de 8 categorías**
+  ([`bcdbc51`](https://github.com/sistemaestadistico-siied/SIIED/commit/bcdbc51)).
+- Editorial: `imagen_url` acepta rutas internas + error visible; idem en
+  URL de sistemas/proyectos
+  ([`7491515`](https://github.com/sistemaestadistico-siied/SIIED/commit/7491515),
+  [`88a4044`](https://github.com/sistemaestadistico-siied/SIIED/commit/88a4044)).
+
+### 9 de noviembre — FICED con devoluciones en cadena y notificaciones
+
+*Flujo de validación — 10 commits*
+
+- **Sin rechazo terminal**: las devoluciones ocurren en cadena entre
+  delegado → validador organismo → facilitador SIIED
+  ([`009f163`](https://github.com/sistemaestadistico-siied/SIIED/commit/009f163)).
+- **Correos automáticos en cada escalón** del flujo, con marca
+  institucional en todos los envíos; al validar, la medición se anuncia a
+  todos los correos del organismo
+  ([`4bffe4d`](https://github.com/sistemaestadistico-siied/SIIED/commit/4bffe4d),
+  [`318165e`](https://github.com/sistemaestadistico-siied/SIIED/commit/318165e),
+  [`dce56a2`](https://github.com/sistemaestadistico-siied/SIIED/commit/dce56a2)).
+- Rol renombrado a «facilitador del equipo SIIED» + plazo de devolución
+  ([`0dbae5f`](https://github.com/sistemaestadistico-siied/SIIED/commit/0dbae5f)).
+- El SIIED puede corregir y cerrar el consolidado devuelto; su dashboard
+  sigue mostrándolo
+  ([`52032d9`](https://github.com/sistemaestadistico-siied/SIIED/commit/52032d9),
+  [`bf52439`](https://github.com/sistemaestadistico-siied/SIIED/commit/bf52439)).
+- Consolidado congelado tras envío a la cola SIIED
+  ([`0115b3d`](https://github.com/sistemaestadistico-siied/SIIED/commit/0115b3d)).
+- Conciliación: opciones exclusivas ya no se suman con respuestas reales
+  ([`340b38e`](https://github.com/sistemaestadistico-siied/SIIED/commit/340b38e)).
+- Vaciado de campos condicionales con `!=` corregido (P41 bloqueado)
+  ([`998f050`](https://github.com/sistemaestadistico-siied/SIIED/commit/998f050)).
+- Producto de cumplimiento: negrita solo en el organismo + mención del
+  facilitador SIIED
+  ([`b8280d1`](https://github.com/sistemaestadistico-siied/SIIED/commit/b8280d1)).
+
+*Documentación*
+
+- **Guía de diligenciamiento v003**: retrazada al flujo real con
+  devoluciones en cadena y correos
+  ([`b8881f3`](https://github.com/sistemaestadistico-siied/SIIED/commit/b8881f3),
+  [`1110eb9`](https://github.com/sistemaestadistico-siied/SIIED/commit/1110eb9),
+  [`11fe5cf`](https://github.com/sistemaestadistico-siied/SIIED/commit/11fe5cf),
+  [`07b43bb`](https://github.com/sistemaestadistico-siied/SIIED/commit/07b43bb)).
+
+*Varios*
+
+- Templates del taller: fallback de nombre de usuario → `username`
+  ([`d742d7b`](https://github.com/sistemaestadistico-siied/SIIED/commit/d742d7b)).
+- Mensaje de edición SIIED sin la instrucción de recálculo (no aplica al
+  flujo) ([`b413246`](https://github.com/sistemaestadistico-siied/SIIED/commit/b413246)).
+
 ## 4. Avances por eje
 
 | Eje | Entregable |
 |---|---|
 | FICED | Validación organismo→SIIED en dos etapas, conciliación por equipos, productos de cumplimiento |
-| FICED — QA | 8 correcciones de diligenciamiento, condicionales que no bloquean, histórico verificable por el chat |
+| FICED — QA | 8+3 correcciones de diligenciamiento, condicionales (incl. sobre JSON) que no bloquean, histórico verificable por el chat |
 | FICED — producción | Carga completa de organismos, resultados de importados consultables, evidencia legible, navegación del delegado y resultados validados compartidos por organismo |
+| FICED — flujo | Devoluciones en cadena (sin rechazo terminal), correos automáticos con marca en cada escalón, rol «facilitador SIIED», consolidado congelado, guía v003 |
+| FICED — cálculo | Auditoría de conciliación: puntaje 0 multi-equipo corregido, opciones exclusivas no se suman |
 | Geo | GeoJSON materializado, descarga de capas por nivel, escala coroplética unificada |
-| Analítica/BI | Ciclo de vida de charts sincronizado con el admin; datasets plegables; embed bare |
+| Analítica/BI | Ciclo de vida de charts sincronizado con el admin; datasets plegables; embed bare; usuarios/roles Superset corregidos |
+| Datos vivos | Excel/TSV en «Subir datos», Google Sheet público, conexiones a BD externas con guard `DROP` |
 | Datos | `formula_ficha` retirado de todo el pipeline; `columnas_fuente` tolera comas en nombres |
-| UX | Acordeones con contadores, tabla P23 con scroll horizontal, manuales al día; rediseño limpio de módulo ICED público y hoja de vida de organismos |
+| Reportes | Fix zona horaria Excel visitas, 2 errores 500 en exportes sanitizados |
+| Catálogo | Sistemas de Consulta con taxonomía de 8 categorías |
+| Marca | Paleta ICED navy+verde y nombre oficial en módulo, hoja de vida y Hall |
+| UX | Acordeones con contadores, tabla P23 con scroll horizontal, manuales al día; rediseño limpio de módulo ICED público y hoja de vida de organismos; usuario logueado en el nav |
 
 ## 5. Estado actual
 
-- `main` sincronizado con `origin/main` (`11270fe`) — todo el trabajo pendiente empujado.
+- `main` en `07b43bb` — 60 commits funcionales adicionales sobre la base del informe anterior.
 - Migraciones 0134 y 0135 generadas; **pendiente aplicarlas en producción**.
-- **Pendiente despliegue en producción**: actualizar el servidor (`git pull` + reinicio del servicio) para publicar los 5 commits posteriores a la carga de FICED (resultados consultables, histórico legible, hub del módulo y visibilidad de validados).
+- **Pendiente despliegue en producción**: actualizar el servidor (`git pull` + reinicio del servicio) para publicar los commits posteriores a la carga de FICED — incluye ahora el flujo de devoluciones en cadena, los correos automáticos y las auditorías de conciliación/cálculo.
+- Verificación recomendada pre-despliegue: configuración SMTP/correos del flujo FICED en el servidor y revisión de destinatarios por organismo.
 - `manage.py check`: 0 issues.
 
 ## 6. Pantallazos sugeridos para anexar
@@ -273,14 +455,20 @@ evidencia— y se resolvieron los cinco problemas que lo bloqueaban:
 - Dashboard de validación mostrando la cola ICED con el botón correspondiente al rol.
 - Pantalla de conciliación con campos de decisión vs. complementarios.
 - Producto de cumplimiento del organismo (sin puntaje) y el de SIIED (con puntaje).
+- Correo automático de notificación del flujo FICED con la marca institucional.
+- Diálogo de devolución en cadena con plazo indicado.
 - Catálogo de datasets de SIIED BI con categorías plegadas.
+- «Subir datos» con Google Sheet / conexión a BD externa como dataset vivo.
+- Taxonomía de 8 categorías en Sistemas de Consulta.
 - Tabla P23 del FICED con scroll horizontal.
 - Página del módulo `/iced/` mostrando formularios validados de distintos equipos del organismo.
 - Histórico `/iced/historico/` con las respuestas de años anteriores renderizadas (opciones marcadas, tablas).
 
 ## 7. Próximos pasos naturales
 
-- Desplegar en producción los commits publicados (`git pull` + reinicio), aplicar migraciones 0134/0135 y validar el flujo FICED de extremo a extremo con datos reales.
+- Desplegar en producción los commits publicados (`git pull` + reinicio), aplicar migraciones 0134/0135 y validar el flujo FICED de extremo a extremo con datos reales — incluida una **devolución en cadena de prueba** para verificar los correos automáticos.
+- Configurar/verificar SMTP en el servidor (los 5 correos del flujo FICED dependen de ello) y los destinatarios por organismo.
 - Verificar la publicación del enlace público de Superset sin login (`SUPERSET_PUBLIC_URL`, dominios permitidos del SDK embebido) y poner `TableroBI.visibilidad='publico'`.
-- Comunicar a los organismos el nuevo separador `;` en `columnas_fuente` del wizard.
+- Probar un dataset vivo de BD externa y un Google Sheet público contra la instancia de Superset de producción.
+- Comunicar a los organismos el nuevo separador `;` en `columnas_fuente` del wizard y el rol «facilitador del equipo SIIED».
 - Rotación de secretos y verificación del fix del logo del navbar.
