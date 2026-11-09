@@ -6,7 +6,7 @@
 > - Proceso: INFORMACIÓN ESTRATÉGICA
 > - Nombre: GUÍA DE DILIGENCIAMIENTO DEL FORMULARIO DEL ÍNDICE DE CAPACIDAD ESTADÍSTICA DISTRITAL – ICED
 > - Código: MEDE01.07.01.P001.G001
-> - Versión: 002
+> - Versión: 003
 > - Vigencia de medición: FICED 2026
 
 ---
@@ -137,7 +137,7 @@ CÓDIGO NACIONAL DE BUENAS PRÁCTICAS (CNBP). Instrumento de autorregulación pa
 
 CONCILIACIÓN. Proceso mediante el cual el validador del organismo define la respuesta oficial por pregunta cuando varios equipos técnicos respondieron de manera diferente: unión en las preguntas de selección múltiple, elección en las de selección única y fusión en los textos y las tablas. (Alcaldía de Santiago de Cali, 2026)
 
-CONSOLIDADO. Formulario único del organismo generado por el aplicativo SIIED al conciliar las respuestas de los equipos técnicos; es el documento que el validador del organismo pre-valida y el equipo técnico SIIED califica. (Alcaldía de Santiago de Cali, 2026)
+CONSOLIDADO. Formulario único del organismo generado por el aplicativo SIIED al conciliar las respuestas de los equipos técnicos; es el documento que el validador del organismo pre-valida y el facilitador del equipo SIIED califica. (Alcaldía de Santiago de Cali, 2026)
 
 DELEGADO DEL ORGANISMO. Persona designada por el secretario o director del organismo para diligenciar en el aplicativo SIIED las preguntas del FICED asignadas a su equipo técnico. (Alcaldía de Santiago de Cali, 2026)
 
@@ -151,9 +151,9 @@ EQUIPO TÉCNICO (SUBROL). Categoría asignada al delegado en su perfil de usuari
 
 ESTADÍSTICAS ESTRATÉGICAS. Estadísticas necesarias para el análisis y la toma de decisiones sobre el desempeño de la economía, las cuentas nacionales, el mercado laboral y los índices de precios y costos. (Congreso de Colombia, 2023, Art. 5)
 
-ESTADO DEL FORMULARIO. Etapa del trámite en que se encuentra un FICED en el aplicativo: Borrador, Enviado, Devuelto, Pre-validado, Validado o Rechazado. (Alcaldía de Santiago de Cali, 2026)
+ESTADO DEL FORMULARIO. Etapa del trámite en que se encuentra un FICED en el aplicativo: Borrador, Enviado, Devuelto, Pre-validado o Validado. Ningún FICED queda rechazado: las correcciones siempre regresan como Devuelto. (Alcaldía de Santiago de Cali, 2026)
 
-FACILITADOR DEL SIIED. Integrante del equipo técnico SIIED que realiza la revisión final del consolidado, define la calificación y aprueba o rechaza el formulario. (Alcaldía de Santiago de Cali, 2026)
+FACILITADOR DEL SIIED. Integrante del equipo técnico SIIED que realiza la revisión final del consolidado, lo corrige cuando es necesario, define la calificación y lo aprueba; si el consolidado requiere correcciones del organismo, lo devuelve al validador del organismo con observaciones —nunca lo rechaza—. (Alcaldía de Santiago de Cali, 2026)
 
 FORMULARIO DEL ÍNDICE DE CAPACIDAD ESTADÍSTICA DISTRITAL (FICED). Instrumento en línea del aplicativo SIIED con el que se recolecta la información para el cálculo del ICED; se diligencia una sola vez por organismo y por vigencia de medición. (Alcaldía de Santiago de Cali, 2026)
 
@@ -219,11 +219,11 @@ Tabla 1. Roles que intervienen en el diligenciamiento del FICED.
 |---|---|
 | Delegado del organismo | Diligencia las preguntas asignadas a su equipo técnico (subrol) y envía su formulario. |
 | Validador del organismo | Revisa las respuestas de todos los equipos de su organismo sin ver puntajes, devuelve a corrección los formularios por equipo enviados, concilia los formularios en uno consolidado y lo pre-valida. Descarga el producto de cumplimiento del organismo. |
-| Facilitador del SIIED | Revisa el consolidado pre-validado, corrige directamente las respuestas con impacto en la calificación (no devuelve el formulario ni concilia), aprueba o rechaza y define la calificación final calculando los resultados. |
+| Facilitador del SIIED | Revisa el consolidado pre-validado o devuelto, corrige directamente las respuestas con impacto en la calificación (no concilia), aprueba —calculando los resultados— o devuelve el consolidado al validador del organismo con observaciones; nunca lo rechaza. |
 
 Fuente: elaboración propia.
 
-El flujo completo del trámite es el siguiente: los delegados envían sus formularios por equipo; el validador del organismo los revisa —puede devolverlos a corrección—, los concilia en un consolidado y lo pre-valida; el facilitador del SIIED revisa el consolidado y lo aprueba o lo rechaza, sin devoluciones. Cuando el formulario queda en estado "Validado", se publica el puntaje ICED oficial del organismo.
+El flujo completo del trámite es el siguiente: los delegados envían sus formularios por equipo; el validador del organismo los revisa —puede devolverlos a corrección—, los concilia en un consolidado y lo pre-valida; el facilitador del SIIED revisa el consolidado: puede corregirlo, aprobarlo o devolverlo al validador del organismo con observaciones —este último tiene tres (3) días hábiles para corregir y reenviarlo pre-validado—. El FICED nunca queda rechazado. Cada escalón genera correos automáticos con la marca del SIIED: al enviar un formulario de equipo se avisa al validador del organismo; al pre-validar el consolidado se avisa al facilitador del SIIED; las devoluciones llegan por correo con las observaciones; y cuando el formulario queda en estado "Validado", se publica el puntaje ICED oficial del organismo y un correo con la medición llega a todos los correos registrados del organismo, invitando a consultarla en el módulo ICED.
 
 #### 4.1.2. Equipos técnicos y asignación de preguntas
 
@@ -257,10 +257,9 @@ Tabla 3. Estados del trámite del formulario.
 |---|---|
 | Borrador | El delegado está diligenciando; el formulario aún se puede editar. |
 | Enviado | El delegado entregó su formulario; el validador del organismo lo revisa y lo concilia con los demás equipos. |
-| Devuelto | El validador del organismo devolvió el formulario del equipo con observaciones; vuelve a ser editable para corrección y reenvío. |
-| Pre-validado | El validador del organismo ya concilió y pre-validó el consolidado; el FICED está en la cola de revisión del equipo técnico SIIED. |
-| Validado | El equipo técnico SIIED aprobó el consolidado; se publica el puntaje ICED oficial del organismo. |
-| Rechazado | Decisión definitiva del equipo técnico SIIED, con el motivo registrado en las observaciones. |
+| Devuelto | Dos casos: el validador del organismo devolvió el formulario de un equipo con observaciones (vuelve editable al delegado para corrección y reenvío); o el facilitador del equipo SIIED devolvió el consolidado al validador del organismo, que tiene tres (3) días hábiles para corregir y reenviarlo. |
+| Pre-validado | El validador del organismo ya concilió y pre-validó el consolidado; el FICED está en la cola de revisión del facilitador del equipo SIIED. |
+| Validado | El facilitador del equipo SIIED aprobó el consolidado; se publica el puntaje ICED oficial del organismo y la medición se anuncia por correo a todo el organismo. |
 
 Fuente: elaboración propia.
 
@@ -899,7 +898,7 @@ Fuente: aplicativo SIIED, 2026.
 
 El último paso del formulario, "Revisión y Envío", permite verificar el estado de diligenciamiento antes de entregarlo. En esta sección se describe qué muestra ese paso y qué ocurre al enviar.
 
-En el paso "Revisión y Envío" el aplicativo presenta el resumen de completitud por módulo y una casilla de confirmación con la que el delegado declara que la información diligenciada es correcta y autoriza el envío. El aplicativo solicita una confirmación explícita antes de entregar. Una vez enviado, el formulario pasa al estado "Enviado", queda bloqueado para edición y pasa a la revisión del validador del organismo. Si el validador del organismo devuelve posteriormente el formulario de un equipo con observaciones, este vuelve al estado "Devuelto" y recupera su edición para la corrección y el reenvío; las correcciones entran al consolidado en una nueva conciliación.
+En el paso "Revisión y Envío" el aplicativo presenta el resumen de completitud por módulo y una casilla de confirmación con la que el delegado declara que la información diligenciada es correcta y autoriza el envío. El aplicativo solicita una confirmación explícita antes de entregar. Una vez enviado, el formulario pasa al estado "Enviado", queda bloqueado para edición y pasa a la revisión del validador del organismo, que recibe un correo automático de aviso. Si el validador del organismo devuelve posteriormente el formulario de un equipo con observaciones, este vuelve al estado "Devuelto" y recupera su edición para la corrección y el reenvío; las correcciones entran al consolidado en una nueva conciliación.
 
 Gráfica 17. Revisión y Envío con casilla de confirmación.
 [CAPTURA PENDIENTE: paso de revisión y envío con el resumen de completitud y la casilla de confirmación]
@@ -939,7 +938,7 @@ Fuente: aplicativo SIIED, 2026.
 
 #### 4.10.3. Pre-validación y envío al SIIED
 
-Con el consolidado creado, el validador lo abre con "Revisar ICED" y verifica las respuestas conciliadas sección por sección. Registra las observaciones que considere y presiona el botón "Pre-validar y enviar al SIIED". El consolidado pasa entonces al estado "Pre-validado" y entra a la cola de revisión del equipo técnico SIIED, que adelanta la revisión final: puede corregir respuestas con impacto en la calificación, aprobarlo (con el cálculo del puntaje) o rechazarlo con el motivo en observaciones; el equipo técnico SIIED no devuelve el formulario al organismo.
+Con el consolidado creado, el validador lo abre con "Revisar ICED" y verifica las respuestas conciliadas sección por sección. Registra las observaciones que considere y presiona el botón "Pre-validar y enviar al facilitador SIIED". El consolidado pasa entonces al estado "Pre-validado" y entra a la cola de revisión del facilitador del equipo SIIED, que recibe un correo automático de aviso y adelanta la revisión final: puede corregir respuestas con impacto en la calificación, aprobarlo (con el cálculo del puntaje) o devolverlo al validador del organismo con observaciones —que tiene tres (3) días hábiles para corregir y reenviarlo—; el FICED nunca queda rechazado.
 
 Gráfica 20. Pre-validar y enviar al SIIED.
 [CAPTURA PENDIENTE: botón de pre-validación en la revisión del consolidado]
@@ -1005,7 +1004,7 @@ Esta guía no contiene anexos. Las capturas de pantalla del aplicativo referenci
 
 # PRODUCTO 2 — NOTAS DE TRABAJO PARA EL EQUIPO SIIED
 
-> Este apartado no hace parte del documento oficial. Reúne los vacíos marcados, las observaciones al aplicativo y la propuesta de control de cambios de la versión 002.
+> Este apartado no hace parte del documento oficial. Reúne los vacíos marcados, las observaciones al aplicativo y la propuesta de control de cambios de las versiones 002 y 003.
 
 ## a) Lista consolidada de verificaciones pendientes
 
@@ -1015,7 +1014,7 @@ Esta tabla reúne todos los marcadores `[VERIFICAR]` y `[CAPTURA PENDIENTE]` dej
 |---|---|---|---|
 | `[VERIFICAR: descripción ETUAG_PSP]` | Tabla 2 | La descripción del subrol ETUAG_PSP está truncada en el manual del sistema ("Equipo de apoyo a la gestion y…"). | Definición del subrol en el perfil de usuario / equipo SIIED. |
 | `[CAPTURA PENDIENTE]` | Gráficas 2, 4, 9, 14, 17, 18, 19, 20, 21 | Nueve gráficas corresponden a pantallas no incluidas en el PDF de capturas (banner y panel de usuario, guía expandida, P19, D3–D4, revisión y envío, dashboard, conciliación, pre-validación y producto de cumplimiento). | Capturas nuevas del aplicativo con un usuario delegado y uno validador. |
-| Estado "Devuelto" | Tabla 3, 4.9, 4.10 | La devolución la realiza el validador del organismo sobre los formularios por equipo (vuelven editables al delegado); el equipo técnico SIIED no devuelve. Modelo confirmado con el desarrollador el 07/11/2026. | Equipo SIIED. |
+| Estado "Devuelto" | Tabla 3, 4.9, 4.10 | La devolución del formulario por equipo la realiza el validador del organismo (vuelve editable al delegado); el facilitador del equipo SIIED devuelve solo el CONSOLIDADO al validador del organismo, con plazo de tres (3) días hábiles. Modelo actualizado el 09/11/2026. | Equipo SIIED. |
 
 ## b) Observaciones al aplicativo para el desarrollador
 
@@ -1029,12 +1028,13 @@ Esta tabla reúne todos los marcadores `[VERIFICAR]` y `[CAPTURA PENDIENTE]` dej
 8. El nombre del subrol ETUAG_PSP aparece truncado en el manual del sistema generado por el aplicativo.
 9. Hay errores de digitación en nombres precargados de operaciones estadísticas del inventario del PED ("Estadísitcas", "Santiago de Cal"); son datos del inventario y no se corrigen en el formulario, pero conviene saneamiento en la fuente.
 10. La respuesta compartida de la pregunta 10 de la captura incluye una URL de Google Drive dentro del campo de actividad; se sugiere reforzar en pantalla que cada dato va en su columna.
-11. El manual del sistema debe precisar que la devolución es del validador del organismo hacia los equipos del propio organismo (estado Devuelto, editable por el delegado); el facilitador del SIIED no devuelve: corrige el consolidado y decide.
+11. El manual del sistema precisa que la devolución es del validador del organismo hacia los equipos del propio organismo (estado Devuelto, editable por el delegado); el facilitador del SIIED devuelve el consolidado al validador del organismo (tres días hábiles para responder), también puede corregirlo y aprobarlo; nunca lo rechaza.
 
-## c) Texto sugerido para el control de cambios de la versión 002
+## c) Texto sugerido para el control de cambios
 
-Texto propuesto para registrar en la hoja de control de cambios de DARUMA las diferencias de esta versión frente a la versión 001.
+Texto propuesto para registrar en la hoja de control de cambios de DARUMA las diferencias de cada versión frente a la anterior.
 
 | Versión | Fecha | Descripción del cambio |
 |---|---|---|
 | 002 | [FECHA] | Actualización de la guía para el diligenciamiento del FICED vigencia 2026 en el aplicativo SIIED: se reemplazan las instrucciones del archivo anterior por la operación en línea con módulos por equipo técnico; se incorporan los numerales de roles, equipos técnicos, flujo y estados del trámite, acceso y navegación, tipos de respuesta, preguntas compartidas, guardado y flujos condicionales; se actualiza la descripción del formulario a diez módulos y cuarenta y dos preguntas; se documenta pregunta por pregunta el comportamiento real del aplicativo; se agrega el numeral de revisión, conciliación, pre-validación y producto de cumplimiento del validador del organismo; se actualizan las definiciones con los términos propios del esquema por equipos; se conservan y corrigen las explicaciones conceptuales y el ejemplo del cálculo de la pregunta 21 de la versión 001. |
+| 003 | [FECHA] | Actualización del trámite del FICED: el facilitador del equipo SIIED devuelve el consolidado al validador del organismo con plazo de tres (3) días hábiles para corregir y reenviarlo; se elimina el estado "Rechazado" —el FICED nunca queda rechazado—; se documentan los correos automáticos en cada escalón (envío de equipo → validador del organismo; pre-validación → facilitador SIIED; devoluciones con observaciones; publicación de la medición a todos los correos del organismo con invitación al módulo ICED); se unifica la terminología "facilitador del equipo SIIED" para el rol de validación final. |
