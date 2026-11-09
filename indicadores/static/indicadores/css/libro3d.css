@@ -1,0 +1,159 @@
+/* ============================================================
+ * LIBRO DIGITAL DE DATOS 3D — estilos compartidos
+ * Tipografía unificada + motion estilo "fluid interfaces":
+ * feedback inmediato al pulsar, curvas con rebote suave,
+ * profundidad por sombras capadas y respeto a reduced-motion.
+ * ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700&display=swap');
+
+:root {
+    --sb-font: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+    --sb-body: 'Nunito', 'Inter', system-ui, sans-serif;
+    --sb-spring: cubic-bezier(.28, .84, .42, 1.12);   /* rebote suave, no exagerado */
+    --sb-ease: cubic-bezier(.22, .61, .36, 1);
+    --sb-amber: #b45309;
+    --sb-ink: #1e293b;
+}
+
+/* Fondo compartido de todos los templates del libro */
+.storybook-wrapper,
+.storybook-bg {
+    background: radial-gradient(120% 90% at 50% 0%, #fff6e8 0%, #fef3f2 38%, #f4fbf7 100%);
+}
+
+/* --- Tipografía: una sola familia storybook -------------------
+ * Los templates antiguos metían 'Comic Sans MS' inline; este
+ * selector lo reemplaza en TODO el libro sin tocar cada sitio.  */
+.storybook-wrapper [style*='Comic Sans'],
+.storybook-bg [style*='Comic Sans'] {
+    font-family: var(--sb-font) !important;
+    letter-spacing: .01em;
+}
+.storybook-font,
+.storybook-font-title,
+.storybook-title,
+.sb-title { font-family: var(--sb-font); }
+.sb-body { font-family: var(--sb-body); }
+
+/* Titulares: jerarquía clara sin sombras chillonas */
+.sb-h2 {
+    font-family: var(--sb-font);
+    font-weight: 800;
+    color: var(--sb-amber);
+    letter-spacing: .01em;
+}
+
+/* --- Feedback táctil: responder al pointer-down --------------
+ * Apple: la respuesta vive en la pulsación, no en el release.  */
+.sb-press {
+    transition: transform 120ms var(--sb-ease), box-shadow 160ms var(--sb-ease);
+}
+.sb-press:active { transform: scale(.97); }
+
+/* Lift con curva de rebote suave para tarjetas navegables */
+.sb-lift {
+    transition: transform 340ms var(--sb-spring), box-shadow 340ms var(--sb-ease);
+    will-change: transform;
+}
+.sb-lift:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 22px 44px -12px rgba(15, 23, 42, .18);
+}
+.sb-lift:active { transform: translateY(-2px) scale(.98); transition-duration: 120ms; }
+
+/* Pills/botones del libro con feedback continuo */
+.sb-pill {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .5rem 1rem; border-radius: 9999px;
+    background: #fff; border: 1px solid #f1f5f9;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+    font-weight: 600; font-size: .875rem; color: #475569;
+    transition: transform 120ms var(--sb-ease), box-shadow 200ms var(--sb-ease),
+                border-color 200ms var(--sb-ease);
+}
+.sb-pill:hover { border-color: #fde68a; box-shadow: 0 6px 16px -4px rgba(15, 23, 42, .1); }
+.sb-pill:active { transform: scale(.96); }
+
+/* Tarjeta storybook refinada: profundidad por capas, borde cálido */
+.storybook-card {
+    background: linear-gradient(180deg, #ffffff 0%, #fff7ec 100%);
+    border: 1px solid rgba(253, 186, 116, .45);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .05), 0 14px 34px -12px rgba(15, 23, 42, .12);
+}
+.storybook-hero {
+    background: linear-gradient(135deg, rgba(255, 214, 186, .4), rgba(255, 255, 255, .55));
+    border: 1px solid rgba(253, 186, 116, .4);
+    backdrop-filter: blur(6px);
+}
+.storybook-panel {
+    background: linear-gradient(135deg, rgba(255, 214, 186, .45), rgba(255, 255, 255, .75));
+    border: 1px solid rgba(253, 186, 116, .45);
+}
+
+/* Rebote decorativo (los iconos animados del índice) */
+@keyframes sb-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+.animate-bounce { animation: sb-bounce 2.2s var(--sb-ease) infinite; }
+
+/* --- DLC · La Operación Estadística --------------------------
+ * Panel de tono oscuro "arena": rompe el pastel del libro para
+ * anunciar el contenido extra sin perder la estética storybook. */
+.dlc-panel {
+    position: relative; overflow: hidden;
+    background:
+        radial-gradient(90% 140% at 85% -20%, rgba(124, 216, 255, .22), transparent 55%),
+        radial-gradient(80% 120% at 10% 120%, rgba(70, 217, 139, .18), transparent 55%),
+        linear-gradient(160deg, #0d2033, #10263d 55%, #0b1a29);
+    border: 1px solid rgba(124, 216, 255, .28);
+    border-radius: 28px;
+    box-shadow: 0 24px 60px -18px rgba(10, 25, 42, .55);
+}
+.dlc-panel::before {   /* rejilla sutil de datos */
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(124, 216, 255, .05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 216, 255, .05) 1px, transparent 1px);
+    background-size: 34px 34px;
+}
+.dlc-badge {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-family: var(--sb-font); font-size: .72rem; font-weight: 700;
+    letter-spacing: .18em; color: #7cd8ff;
+    padding: .35rem .9rem; border-radius: 9999px;
+    border: 1px solid rgba(124, 216, 255, .4); background: rgba(124, 216, 255, .08);
+}
+.dlc-title {
+    font-family: var(--sb-font); font-weight: 800; letter-spacing: .02em;
+    color: #eaf6ff; text-shadow: 0 0 26px rgba(124, 216, 255, .35);
+}
+.dlc-etapas {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: .5rem;
+}
+.dlc-etapa {
+    font-family: var(--sb-font); font-size: .78rem; font-weight: 600;
+    color: #9fdcf7; text-align: center;
+    padding: .55rem .35rem; border-radius: 12px;
+    border: 1px solid rgba(124, 216, 255, .18); background: rgba(255, 255, 255, .04);
+    transition: transform 200ms var(--sb-spring), border-color 200ms var(--sb-ease),
+                background 200ms var(--sb-ease);
+}
+.dlc-etapa:hover { transform: translateY(-3px); border-color: rgba(124, 216, 255, .5); background: rgba(124, 216, 255, .1); }
+.dlc-etapa .ic { display: block; font-size: 1.15rem; margin-bottom: .15rem; }
+.dlc-cta {
+    display: inline-flex; align-items: center; gap: .6rem;
+    font-family: var(--sb-font); font-weight: 800; font-size: 1rem;
+    letter-spacing: .06em; color: #06263a;
+    padding: .85rem 1.9rem; border-radius: 9999px;
+    background: linear-gradient(135deg, #46d98b, #7cd8ff);
+    box-shadow: 0 12px 30px -8px rgba(70, 217, 139, .5);
+    transition: transform 120ms var(--sb-ease), box-shadow 260ms var(--sb-ease), filter 260ms var(--sb-ease);
+}
+.dlc-cta:hover { filter: brightness(1.07); box-shadow: 0 16px 38px -8px rgba(70, 217, 139, .65); }
+.dlc-cta:active { transform: scale(.96); }
+
+/* --- Movimiento reducido: sin rebotes ni lifts ---------------- */
+@media (prefers-reduced-motion: reduce) {
+    .animate-bounce { animation: none; }
+    .sb-lift, .dlc-etapa { transition: none; }
+    .sb-lift:hover, .dlc-etapa:hover { transform: none; }
+}

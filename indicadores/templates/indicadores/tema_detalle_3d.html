@@ -1,11 +1,10 @@
 {% extends 'indicadores/base.html' %}
 {% block content %}
 {% load static %}
+<link rel="stylesheet" href="{% static 'indicadores/css/libro3d.css' %}">
 
 <style>
-    .storybook-wrapper { background: radial-gradient(circle at top, #fff6e8 0%, #fef3f2 35%, #f4fbf7 100%); }
     .storybook-panel { background: linear-gradient(135deg, rgba(221, 214, 254, 0.55), rgba(255, 255, 255, 0.8)); border: 1px solid rgba(168, 85, 247, 0.2); }
-    .storybook-font { font-family: 'Baloo 2', 'Nunito', system-ui; }
 </style>
 
 <!-- Fondo tipo libro de cuentos -->
@@ -31,9 +30,9 @@
         
         <!-- Breadcrumb -->
         <nav class="mb-8 flex items-center gap-2 flex-wrap text-sm font-semibold text-slate-500">
-            <a href="{% url 'indicadores:home' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">🏠 Inicio</a>
-            <a href="{% url 'indicadores:dominios_3d' %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">📚 Capítulos</a>
-            <a href="{% url 'indicadores:dominio_detalle_3d' dominio.slug %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100 text-slate-700">{{ dominio.nombre }}</a>
+            <a href="{% url 'indicadores:home' %}" class="sb-pill">🏠 Inicio</a>
+            <a href="{% url 'indicadores:dominios_3d' %}" class="sb-pill">📚 Capítulos</a>
+            <a href="{% url 'indicadores:dominio_detalle_3d' dominio.slug %}" class="sb-pill">{{ dominio.nombre }}</a>
             <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-slate-100 text-slate-500">{{ tema_actual.nombre }}</span>
         </nav>
 
@@ -59,7 +58,7 @@
                         <nav class="flex flex-col space-y-2">
                             {% for tema in temas_del_dominio %}
                                 <a href="{% url 'indicadores:tema_detalle_3d' dominio.slug tema.slug %}" 
-                                   class="px-3 py-2 rounded-xl text-sm font-semibold transition-all
+                                   class="sb-press px-3 py-2 rounded-xl text-sm font-semibold transition-colors
                                           {% if tema.slug == tema_actual.slug %}
                                               bg-purple-100 text-purple-800 border border-purple-200 shadow-sm
                                           {% else %}
@@ -90,11 +89,11 @@
                                 <div class="mb-8 bg-pink-50 rounded-2xl p-6 border-4 border-pink-300 shadow-inner">
                                     <div class="flex items-center gap-2 mb-3">
                                         <span class="text-3xl">📖</span>
-                                        <h3 class="text-xl font-black text-pink-800" style="font-family: 'Comic Sans MS', cursive;">
+                                        <h3 class="text-xl font-extrabold text-pink-800 sb-title">
                                             La Historia de Esta Sección
                                         </h3>
                                     </div>
-                                    <div class="prose max-w-none text-slate-700" style="font-family: 'Comic Sans MS', cursive; font-size: 1.1rem;">
+                                    <div class="prose max-w-none text-slate-700 sb-body" style="font-size: 1.05rem;">
                                         {{ tema_actual.descripcion|safe }}
                                     </div>
                                 </div>
@@ -102,10 +101,10 @@
 
                             <!-- Título de historias -->
                             <div class="mb-6 text-center">
-                                <h2 class="text-4xl font-black text-purple-900 mb-2" style="font-family: 'Comic Sans MS', cursive; text-shadow: 2px 2px 0px #FFB6C1;">
+                                <h2 class="sb-h2 text-4xl mb-2">
                                     🎪 Historias para Descubrir
                                 </h2>
-                                <p class="text-lg text-purple-700 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                                <p class="text-lg text-purple-700 font-bold sb-title">
                                     ¡Cada historia tiene datos increíbles!
                                 </p>
                             </div>
@@ -115,7 +114,7 @@
                                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
                                     {% for subtema in subtemas %}
                                         <a href="{% url 'indicadores:subtema_detalle_3d' dominio.slug tema_actual.slug subtema.slug %}" class="group block">
-                                            <div class="bg-white rounded-2xl border border-cyan-50 shadow-md hover:shadow-lg transition p-4 text-center flex flex-col items-center">
+                                            <div class="sb-lift bg-white rounded-2xl border border-cyan-50 shadow-md p-4 text-center flex flex-col items-center">
                                                 <div class="w-20 h-20 rounded-full bg-teal-400 flex items-center justify-center mb-3">
                                                     {% if subtema.imagen_url %}
                                                         <img src="{{ subtema.imagen_url }}" alt="{{ subtema.nombre }}" class="h-14 w-14 object-contain">
@@ -136,7 +135,7 @@
                             {% else %}
                                 <div class="bg-yellow-100 rounded-2xl p-8 text-center border-4 border-yellow-400">
                                     <span class="text-6xl mb-4 block">📚</span>
-                                    <p class="text-xl text-slate-600 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                                    <p class="text-xl text-slate-600 font-bold sb-title">
                                         No hay historias disponibles en esta sección todavía
                                     </p>
                                 </div>
@@ -154,7 +153,7 @@
         <div class="mt-12 text-center">
             <div class="inline-flex items-center gap-3 bg-white bg-opacity-70 rounded-full px-6 py-3 shadow-lg border-3 border-purple-600">
                 <span class="text-4xl">🎭</span>
-                <p class="text-lg font-bold text-purple-900" style="font-family: 'Comic Sans MS', cursive;">
+                <p class="text-lg font-bold text-purple-900 sb-title">
                     ¡Descubre datos mágicos en cada historia!
                 </p>
                 <span class="text-4xl">🌟</span>

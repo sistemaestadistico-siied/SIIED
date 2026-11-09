@@ -1,24 +1,7 @@
 {% extends 'indicadores/base.html' %}
 {% block content %}
 {% load static %}
-
-<style>
-    .storybook-bg {
-        background: radial-gradient(circle at top, #fff6e8 0%, #fef3f2 35%, #f4fbf7 100%);
-    }
-    .storybook-hero {
-        background: linear-gradient(135deg, rgba(255, 186, 145, 0.25), rgba(255, 255, 255, 0.4));
-        border: 1px solid rgba(253, 186, 116, 0.4);
-    }
-    .storybook-font-title {
-        font-family: 'Baloo 2', 'Nunito', system-ui;
-    }
-    .storybook-card {
-        background: linear-gradient(180deg, #ffffff 0%, #fff3e6 100%);
-        border: 1px solid rgba(253, 186, 116, 0.5);
-        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.08);
-    }
-</style>
+<link rel="stylesheet" href="{% static 'indicadores/css/libro3d.css' %}">
 
 <!-- Fondo tipo libro con gradiente suave -->
 <div class="min-h-screen relative overflow-hidden storybook-bg">
@@ -72,10 +55,8 @@
         
         <!-- Título del índice -->
         <div class="text-center mb-10">
-            <h2 class="text-5xl font-black text-amber-900 mb-3" style="font-family: 'Comic Sans MS', cursive; text-shadow: 2px 2px 0px #FFD700, 4px 4px 0px rgba(0,0,0,0.1);">
-                📑 Índice de Capítulos
-            </h2>
-            <p class="text-xl text-amber-700 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+            <h2 class="sb-h2 text-5xl mb-3">📑 Índice de Capítulos</h2>
+            <p class="text-xl text-amber-700 font-bold sb-title">
                 ¡Elige un capítulo para comenzar tu aventura!
             </p>
         </div>
@@ -84,7 +65,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {% for dominio in dominios %}
             <a href="{% url 'indicadores:dominio_detalle_3d' dominio.slug %}" class="group block">
-                <div class="storybook-card rounded-2xl p-6 text-center transition transform hover:-translate-y-2 hover:shadow-2xl">
+                <div class="storybook-card sb-lift rounded-2xl p-6 text-center">
                     <div class="w-32 h-32 mx-auto mb-4 rounded-full border-4 border-white shadow-lg flex items-center justify-center" style="background: linear-gradient(135deg, {{ dominio.color|default:'#2563eb' }}, {{ dominio.color|default:'#a855f7' }});">
                         {% if dominio.imagen_url %}
                             <img src="{{ dominio.imagen_url }}" alt="{{ dominio.nombre }}" class="w-24 h-24 object-contain drop-shadow-2xl">
@@ -101,19 +82,58 @@
             {% empty %}
             <div class="col-span-4">
                 <div class="bg-white rounded-2xl shadow-lg p-12 text-center border-4 border-amber-700">
-                    <p class="text-2xl text-slate-500 font-bold" style="font-family: 'Comic Sans MS', cursive;">
+                    <p class="text-2xl text-slate-500 font-bold sb-title">
                         📭 No hay capítulos disponibles todavía
                     </p>
                 </div>
             </div>
             {% endfor %}
         </div>
-        
+
+        <!-- ══════════ DLC · LA OPERACIÓN ESTADÍSTICA ══════════ -->
+        <section class="dlc-panel mt-16 p-7 sm:p-10">
+            <div class="relative grid lg:grid-cols-5 gap-8 items-center">
+                <div class="lg:col-span-3">
+                    <span class="dlc-badge">🎮 CONTENIDO EXTRA · DLC</span>
+                    <h3 class="dlc-title text-3xl sm:text-4xl mt-4">
+                        LA OPERACIÓN ESTADÍSTICA
+                    </h3>
+                    <p class="text-sky-200/80 text-sm sm:text-base mt-3 max-w-xl leading-relaxed">
+                        Don Datico sale del libro y entra a la Arena: una campaña jugable que
+                        recorre las <b class="text-sky-100">8 etapas de una operación estadística</b>
+                        —detectar necesidades, diseñar, recolectar, depurar NULLs y duplicados,
+                        analizar, difundir y resistir al Auditor final.
+                    </p>
+                    <div class="dlc-etapas mt-6">
+                        <div class="dlc-etapa"><span class="ic">📡</span>Detección</div>
+                        <div class="dlc-etapa"><span class="ic">📐</span>Diseño</div>
+                        <div class="dlc-etapa"><span class="ic">🗼</span>Construcción</div>
+                        <div class="dlc-etapa"><span class="ic">🌃</span>Recolección</div>
+                        <div class="dlc-etapa"><span class="ic">⚙️</span>Procesamiento</div>
+                        <div class="dlc-etapa"><span class="ic">🗂️</span>Análisis</div>
+                        <div class="dlc-etapa"><span class="ic">📰</span>Difusión</div>
+                        <div class="dlc-etapa"><span class="ic">⚔️</span>Evaluación</div>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 text-center">
+                    <div class="inline-block rounded-3xl border border-sky-300/25 bg-white/5 p-6 mb-6">
+                        <span class="text-7xl block animate-bounce">🎯</span>
+                        <p class="dlc-badge mt-3">DON DATICO ARENA</p>
+                    </div>
+                    <br>
+                    <a href="{% url 'indicadores:datico_arena' %}" class="dlc-cta">
+                        ENTRAR A LA ARENA ▸
+                    </a>
+                    <p class="text-sky-300/60 text-xs mt-4 sb-title">Campaña single-player · guardado local</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Decoración inferior: personajes leyendo -->
         <div class="mt-16 text-center">
             <div class="inline-flex items-center gap-4 bg-white bg-opacity-70 rounded-full px-8 py-4 shadow-lg border-4 border-amber-600">
                 <span class="text-5xl animate-bounce">📖</span>
-                <p class="text-xl font-bold text-amber-900" style="font-family: 'Comic Sans MS', cursive;">
+                <p class="text-xl font-bold text-amber-900 sb-title">
                     ¡Cada capítulo es una nueva aventura!
                 </p>
                 <span class="text-5xl animate-bounce" style="animation-delay: 0.2s;">🌟</span>
@@ -121,15 +141,5 @@
         </div>
     </div>
 </div>
-
-<style>
-    @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-    .animate-bounce {
-        animation: bounce 2s infinite;
-    }
-</style>
 
 {% endblock %}
