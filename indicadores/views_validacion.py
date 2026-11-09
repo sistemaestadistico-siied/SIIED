@@ -236,10 +236,13 @@ def validacion_dashboard(request):
         for f in iced_pendientes:
             f.n_equipos_org = cnt_equipos.get((f.organismo_id, f.periodo), 0)
 
-        # Los devueltos son formularios de equipo devueltos por el
-        # validador del organismo a sus delegados: son un asunto interno
-        # del organismo y el SIIED no los ve.
-        iced_devueltos = ICEDFormulario.objects.none()
+        # Los consolidados devueltos por el SIIED al organismo siguen
+        # visibles aquí mientras el organismo no responde (hay que
+        # hacerles seguimiento o cerrarlos). Los devueltos por EQUIPO
+        # son un asunto interno del organismo: el SIIED no los ve.
+        iced_devueltos = ICEDFormulario.objects.filter(
+            estado='devuelto', equipo='',
+        ).select_related('organismo').order_by('-fecha_actualizacion')
 
         iced_validados_recientes = ICEDFormulario.objects.filter(
             estado='validado'
