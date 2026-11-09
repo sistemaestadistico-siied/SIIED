@@ -1633,6 +1633,29 @@ for _s, _c in ICED_WIZARD_FORMS:
             _FIELD_ATTR.setdefault(_n, _PASO_CAMPO[_s])
 
 
+def _exclusivas_de(fld):
+    """Códigos de opción exclusiva de un campo multi-selección ('ninguna',
+    'ninguno', 'no_aplica'…): no pueden coexistir con opciones reales.
+    Checkbox-tabla la declara en data-config['exclusiva']; en
+    MultipleChoiceField se detectan por prefijo 'ningun'/'no_'."""
+    if isinstance(fld, forms.MultipleChoiceField):
+        return [str(c[0]) for c in fld.choices
+                if str(c[0]).startswith(('ningun', 'no_'))]
+    if fld.widget.attrs.get('data-iced-widget') == 'checkbox-tabla':
+        try:
+            excl = json.loads(
+                fld.widget.attrs.get('data-config') or '{}').get('exclusiva')
+        except (ValueError, TypeError):
+            excl = None
+        return [excl] if excl else []
+    return []
+
+
+_EXCLUSIVAS_POR_CAMPO = {
+    _n: _e for _n, _f in _FIELD_DEFS.items()
+    for _e in [_exclusivas_de(_f)] if _e}
+
+
 def _es_campo_decision(field_name):
     """True si el campo es una opción seleccionable (radio/select/checkbox/
     booleano): es la respuesta 'oficial' de la pregunta y define divergencia."""
@@ -1669,6 +1692,39 @@ def _union_opciones(valores):
             if it not in union:
                 union.append(it)
     return union
+
+
+def _depurar_exclusiva(field_name, valor):
+    """Evita que el consolidado quede con la opción exclusiva marcada junto
+    a opciones reales ('ninguna' + productos, 'ninguno' + mecanismos…).
+
+    La unión de multi-selección y la fusión OR de checkbox-tabla sumaban la
+    exclusiva como una opción más: si un equipo marcó 'ninguna' y otro marcó
+    opciones reales, ambas quedaban seleccionadas. Si hay al menos una
+    opción real marcada, la exclusiva se desmarca; solo sobrevive cuando es
+    la única respuesta (misma regla que usa el cálculo del puntaje).
+    """
+    excl = _EXCLUSIVAS_POR_CAMPO.get(field_name)
+    if not excl or _vacio(valor):
+        return valor
+    if isinstance(valor, dict):
+        marcados = {
+            c for c, fila in valor.items()
+            if (fila.get('seleccion') if isinstance(fila, dict)
+                else bool(fila))}
+        if marcados & set(excl) and marcados - set(excl):
+            for e in excl:
+                fila = valor.get(e)
+                if isinstance(fila, dict):
+                    fila['seleccion'] = False
+                elif fila:
+                    valor[e] = False
+        return valor
+    items = valor if isinstance(valor, list) else [valor]
+    reales = [i for i in items if i not in excl]
+    if reales and len(reales) != len(items):
+        return reales if isinstance(valor, list) else reales[0]
+    return valor
 
 
 def _parse_json_valor(v):
@@ -1931,8 +1987,8 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
                     # Selección múltiple: unión de las opciones marcadas
                     # por TODOS los equipos — todas son válidas y se suman,
                     # independientemente del equipo ganador elegido.
-                    v = _union_opciones(
-                        [p['por_equipo'][e].get(k) for e in equipos_resp])
+                    v = _depurar_exclusiva(k, _union_opciones(
+                        [p['por_equipo'][e].get(k) for e in equipos_resp]))
                     if v:
                         nuevos[attr][k] = v
                 elif _es_campo_decision(k):
@@ -1944,8 +2000,8 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
                 else:
                     # Textos/tablas/auxiliares: se fusionan de TODOS los
                     # equipos que respondieron (actividades, ¿cuál?, otros)
-                    v = _fusionar_valores(
-                        [p['por_equipo'][e].get(k) for e in equipos_resp])
+                    v = _depurar_exclusiva(k, _fusionar_valores(
+                        [p['por_equipo'][e].get(k) for e in equipos_resp]))
                     if not _vacio(v):
                         # Convención del wizard: los campos JSON se guardan
                         # como STRING. Si el consolidado guarda dicts el
