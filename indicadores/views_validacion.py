@@ -1521,10 +1521,11 @@ def validacion_decidir_iced(request, formulario_id):
         )
         level = messages.SUCCESS
 
-        # Notificar por correo al delegado (no bloquea la decisión si falla)
+        # Anunciar la medición a TODOS los correos del organismo (no
+        # bloquea la decisión si falla); el delegado va incluido.
         try:
-            from .notifications import notificar_delegado_iced
-            notificar_delegado_iced(formulario, 'validado', observaciones)
+            from .notifications import notificar_organismo_iced_validado
+            notificar_organismo_iced_validado(formulario)
         except Exception:
             logger.exception('Error notificando aprobación del ICED %s', formulario.pk)
 

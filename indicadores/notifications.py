@@ -801,6 +801,82 @@ def notificar_siied_iced_prevalidado(formulario):
     return _send_bulk_email(recipients, subject, html).get('success', False)
 
 
+def notificar_organismo_iced_validado(formulario):
+    """Anuncia la medición oficial del FICED a TODOS los correos del
+    organismo cuando el facilitador SIIED calcula y valida el
+    consolidado. Invita a verla en /iced/modulo/."""
+    destinatarios = {}  # email -> nombre (deduplicado)
+
+    # Correo institucional del organismo
+    email_org = getattr(formulario.organismo, 'email_contacto', None)
+    if email_org:
+        destinatarios[email_org.strip()] = (
+            formulario.organismo.nombre or 'Organismo')
+
+    # Todos los usuarios activos vinculados al organismo
+    from .models import PerfilRecolector
+    perfiles = PerfilRecolector.objects.filter(
+        organismo=formulario.organismo, activo=True,
+    ).select_related('user')
+    for p in perfiles:
+        if p.user.email:
+            destinatarios[p.user.email.strip()] = (
+                p.user.get_full_name() or p.user.username)
+
+    # Quien diligenció el consolidado (por si no está como perfil)
+    usuario = formulario.usuario_diligencia
+    if usuario and usuario.email:
+        destinatarios.setdefault(
+            usuario.email.strip(),
+            usuario.get_full_name() or usuario.username)
+
+    if not destinatarios:
+        logger.warning(
+            f"[NOTIF] notificar_organismo_iced_validado: sin correos para "
+            f"organismo {formulario.organismo_id}")
+        return False
+
+    organismo = formulario.organismo.nombre if formulario.organismo else ''
+    pct = (round(float(formulario.puntaje_global) * 100)
+           if formulario.puntaje_global else None)
+    nivel = formulario.nivel_global_display or ''
+    medicion = (
+        f"Puntaje global: <strong>{pct}%</strong> — nivel "
+        f"<strong>{nivel}</strong>." if pct is not None
+        else "La medición oficial ya está disponible en el módulo ICED.")
+
+    subject = (f"[SIIED] ICED {formulario.periodo} — medición oficial "
+               f"de {organismo}")
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <div style="background:#16a34a;padding:16px;border-radius:8px 8px 0 0;">
+            <h2 style="color:#fff;margin:0;">Medición oficial del FICED publicada</h2>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
+            <p><strong>Organismo:</strong> {organismo}</p>
+            <p><strong>Periodo:</strong> {formulario.periodo}</p>
+            <p>El facilitador del equipo SIIED completó el cálculo y la
+            validación final del ICED de su organismo. {medicion}</p>
+            <p>Los resultados y el detalle por dimensión ya pueden
+            consultarse en el módulo ICED.</p>
+            <p style="margin-top:20px;">
+                <a href="{_get_site_url()}/iced/modulo/"
+                   style="background:#16a34a;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
+                    Ver la medición en el módulo ICED
+                </a>
+            </p>
+            <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
+                Este es un mensaje automático del SIIED. Por favor no responda a este correo.
+            </p>
+        </div>
+    </div>
+    """
+
+    recipients = [(email, nombre) for email, nombre in
+                  sorted(destinatarios.items())]
+    return _send_bulk_email(recipients, subject, html).get('success', False)
+
+
 def notificar_delegado_iced(formulario, accion, observaciones=""):
     """Notifica al delegado la decisión del validador sobre su formulario ICED
     (accion: 'validado', 'devuelto' o 'rechazado')."""
