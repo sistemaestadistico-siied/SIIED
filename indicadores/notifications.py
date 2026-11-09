@@ -721,12 +721,28 @@ def notificar_delegado_iced(formulario, accion, observaciones=""):
     elif accion == 'devuelto':
         estado_texto = "devuelto para corrección"
         color = "#d97706"
-        resumen = (
-            f"Su formulario ICED {formulario.periodo} fue devuelto por el equipo técnico del SIIED. "
-            "Revise las observaciones, realice las correcciones indicadas y vuelva a enviarlo."
-        )
-        cta_url = f"{_get_site_url()}/iced/"
-        cta_texto = "Retomar formulario"
+        if formulario.equipo:
+            # Devuelto por el validador del organismo al equipo delegado.
+            resumen = (
+                f"Su formulario ICED {formulario.periodo} del equipo "
+                f"{formulario.equipo} fue devuelto por el validador del "
+                "organismo. Revise las observaciones, realice las "
+                "correcciones indicadas y vuelva a enviarlo."
+            )
+            cta_url = f"{_get_site_url()}/iced/"
+            cta_texto = "Retomar formulario"
+        else:
+            # Consolidado devuelto por el validador SIIED al validador
+            # del organismo (re-conciliar y re-prevalidar).
+            resumen = (
+                f"El consolidado ICED {formulario.periodo} de su "
+                "organismo fue devuelto por el equipo validador del "
+                "SIIED. Revise las observaciones, corrija las "
+                "respuestas conciliando de nuevo y reenvíe el "
+                "consolidado pre-validado."
+            )
+            cta_url = f"{_get_site_url()}/validacion/"
+            cta_texto = "Ir al panel de validación"
     elif accion == 'rechazado':
         estado_texto = "rechazado"
         color = "#dc2626"

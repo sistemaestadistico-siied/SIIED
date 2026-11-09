@@ -1249,16 +1249,18 @@ def validacion_revisar_iced(request, formulario_id):
                 or consolidado_ref.estado not in (
                     'enviado', 'en_revision', 'prevalidado', 'validado'))),
         'es_validador_sistema': es_sistema,
-        # El validador del organismo pre-valida el consolidado enviado.
+        # El validador del organismo pre-valida el consolidado enviado
+        # o el devuelto por el SIIED tras corregirlo.
         'puede_prevalidar': (
-            es_org and es_consolidado and formulario.estado == 'enviado'),
+            es_org and es_consolidado
+            and formulario.estado in ('enviado', 'devuelto')),
         # y devuelve al delegado los formularios por equipo ya enviados
         # para que los corrijan.
         'puede_devolver': (
             es_org and formulario.equipo
             and formulario.estado == 'enviado'),
         # El SIIED decide y corrige sobre el consolidado enviado o
-        # pre-validado; nunca devuelve al organismo.
+        # pre-validado; también puede devolverlo al organismo.
         'puede_decidir': (
             es_sistema and es_consolidado
             and formulario.estado in ('enviado', 'prevalidado')),
@@ -1323,9 +1325,13 @@ def validacion_decidir_iced(request, formulario_id):
     - 'devolver' (validador del organismo, sobre los formularios por
       equipo de su organismo): los regresa a los delegados para
       corrección; vuelven a ser editables.
-    - 'aprobar'/'rechazar' (validador SIIED, sobre enviado o prevalidado):
-      decisión final. El SIIED corrige respuestas directamente; no
-      devuelve formularios ni concilia.
+    - 'devolver' (validador SIIED, sobre el consolidado enviado o
+      pre-validado): lo regresa al validador del organismo para
+      corrección; queda 'devuelto' y vuelve a conciliarse/pre-validarse.
+      El SIIED no rechaza: ningún FICED queda en un estado terminal
+      distinto de 'validado'.
+    - 'aprobar' (validador SIIED, sobre enviado o prevalidado):
+      validación final — publica el ICED.
     """
     if request.method != 'POST':
         return redirect('indicadores:validacion_dashboard')
@@ -1347,31 +1353,14 @@ def validacion_decidir_iced(request, formulario_id):
                 'Solo puedes decidir sobre formularios de tu organismo.')
             return redirect('indicadores:validacion_dashboard')
 
-    # Devolver a corrección: validador del organismo sobre los
-    # formularios por equipo. El formulario pasa a estado 'devuelto',
-    # que el delegado puede editar y reenviar.
+    # Devolver a corrección — en cadena, cada nivel regresa el
+    # formulario un eslabón abajo:
+    #   a) validador del organismo → devuelve el formulario de un EQUIPO
+    #      al delegado (queda editable para corregir y reenviar).
+    #   b) validador SIIED → devuelve el CONSOLIDADO al validador del
+    #      organismo (queda 'devuelto': puede re-conciliar y
+    #      re-prevalidar). No existe rechazo terminal.
     if accion == 'devolver':
-        if not es_org:
-            messages.error(
-                request,
-                'La devolución de formularios corresponde al validador '
-                'del organismo.')
-            return redirect('indicadores:validacion_revisar_iced',
-                            formulario_id=formulario.pk)
-        if not formulario.equipo:
-            messages.error(
-                request,
-                'Solo se devuelven los formularios por equipo; el '
-                'consolidado se corrige conciliando de nuevo.')
-            return redirect('indicadores:validacion_revisar_iced',
-                            formulario_id=formulario.pk)
-        if formulario.estado != 'enviado':
-            messages.error(
-                request,
-                'Solo se puede devolver un formulario en estado '
-                '"Enviado".')
-            return redirect('indicadores:validacion_revisar_iced',
-                            formulario_id=formulario.pk)
         if not observaciones:
             messages.error(
                 request,
@@ -1379,13 +1368,56 @@ def validacion_decidir_iced(request, formulario_id):
                 'formulario.')
             return redirect('indicadores:validacion_revisar_iced',
                             formulario_id=formulario.pk)
-        formulario.estado = 'devuelto'
-        formulario.observaciones_validador = observaciones
-        formulario.save(update_fields=['estado', 'observaciones_validador'])
-        messages.info(
-            request,
-            f'🔄 Formulario del equipo {formulario.equipo} devuelto para '
-            f'corrección.')
+        if formulario.equipo:
+            # Formulario por equipo: solo lo devuelve el validador del
+            # organismo, al delegado que lo diligenció.
+            if not es_org:
+                messages.error(
+                    request,
+                    'La devolución de formularios por equipo corresponde '
+                    'al validador del organismo.')
+                return redirect('indicadores:validacion_revisar_iced',
+                                formulario_id=formulario.pk)
+            if formulario.estado != 'enviado':
+                messages.error(
+                    request,
+                    'Solo se puede devolver un formulario en estado '
+                    '"Enviado".')
+                return redirect('indicadores:validacion_revisar_iced',
+                                formulario_id=formulario.pk)
+            formulario.estado = 'devuelto'
+            formulario.observaciones_validador = observaciones
+            formulario.save(
+                update_fields=['estado', 'observaciones_validador'])
+            messages.info(
+                request,
+                f'🔄 Formulario del equipo {formulario.equipo} devuelto '
+                f'para corrección.')
+        else:
+            # Consolidado: el validador SIIED lo devuelve al validador
+            # del organismo para que corrija y re-prevalide.
+            if not es_sistema:
+                messages.error(
+                    request,
+                    'La devolución del consolidado corresponde al equipo '
+                    'validador del SIIED.')
+                return redirect('indicadores:validacion_revisar_iced',
+                                formulario_id=formulario.pk)
+            if formulario.estado not in ('enviado', 'prevalidado'):
+                messages.error(
+                    request,
+                    'Solo se puede devolver un consolidado en estado '
+                    '"Enviado" o "Pre-validado".')
+                return redirect('indicadores:validacion_revisar_iced',
+                                formulario_id=formulario.pk)
+            formulario.estado = 'devuelto'
+            formulario.observaciones_validador = observaciones
+            formulario.save(
+                update_fields=['estado', 'observaciones_validador'])
+            messages.info(
+                request,
+                f'🔄 Consolidado de {formulario.organismo.nombre} '
+                f'devuelto al validador del organismo.')
         try:
             from .notifications import notificar_delegado_iced
             notificar_delegado_iced(formulario, 'devuelto', observaciones)
@@ -1409,10 +1441,11 @@ def validacion_decidir_iced(request, formulario_id):
             return redirect('indicadores:validacion_conciliar_iced',
                             organismo_id=formulario.organismo_id,
                             periodo=formulario.periodo)
-        if formulario.estado != 'enviado':
+        if formulario.estado not in ('enviado', 'devuelto'):
             messages.error(
                 request,
-                'Solo se puede pre-validar un consolidado en estado "Enviado".')
+                'Solo se puede pre-validar un consolidado en estado '
+                '"Enviado" o "Devuelto".')
             return redirect('indicadores:validacion_revisar_iced',
                             formulario_id=formulario.pk)
         formulario.estado = 'prevalidado'
@@ -1486,27 +1519,9 @@ def validacion_decidir_iced(request, formulario_id):
         except Exception:
             logger.exception('Error notificando aprobación del ICED %s', formulario.pk)
 
-    elif accion == 'rechazar':
-        if not observaciones:
-            messages.error(request, 'Debes explicar el motivo del rechazo.')
-            return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
-        # Rechazo terminal: el formulario queda cerrado y no puede
-        # corregirse ni reenviarse (a diferencia de 'devuelto').
-        formulario.estado = 'rechazado'
-        formulario.observaciones_validador = observaciones
-        formulario.save(update_fields=['estado', 'observaciones_validador'])
-
-        msg = f'❌ Formulario ICED de {formulario.organismo.nombre} rechazado.'
-        level = messages.WARNING
-
-        # Notificar por correo al delegado (no bloquea la decisión si falla)
-        try:
-            from .notifications import notificar_delegado_iced
-            notificar_delegado_iced(formulario, 'rechazado', observaciones)
-        except Exception:
-            logger.exception('Error notificando rechazo del ICED %s', formulario.pk)
-
     else:
+        # 'rechazar' ya no existe: ningún FICED queda rechazado; el SIIED
+        # devuelve el consolidado al validador del organismo.
         messages.error(request, 'Acción no válida.')
         return redirect('indicadores:validacion_revisar_iced', formulario_id=formulario.pk)
 

@@ -182,7 +182,7 @@
                 </a>
                 <p class="text-[11px] text-slate-400 mt-2">
                     Como validador SIIED puedes corregir directamente cualquier respuesta
-                    del consolidado; el formulario no se devuelve al organismo.
+                    del consolidado, o devolverlo al validador del organismo.
                 </p>
             </div>
             {% endif %}
@@ -195,7 +195,7 @@
 
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-slate-700 mb-2">
-                        Observaciones <span class="text-slate-400 text-xs">(requeridas para rechazar)</span>
+                        Observaciones <span class="text-slate-400 text-xs">(requeridas para devolver)</span>
                     </label>
                     <textarea name="observaciones" rows="5" id="txt-obs"
                               class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
@@ -211,9 +211,9 @@
                             class="w-full bg-emerald-600 hover:bg-emerald-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
                         Aprobar y publicar ICED
                     </button>
-                    <button type="button" onclick="decidir('rechazar')"
-                            class="w-full bg-red-600 hover:bg-red-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
-                        Rechazar formulario
+                    <button type="button" onclick="decidir('devolver')"
+                            class="w-full bg-amber-600 hover:bg-amber-800 text-white font-semibold py-3 rounded-lg transition text-sm flex items-center justify-center gap-2">
+                        🔄 Devolver al validador del organismo
                     </button>
                 </div>
                 {% endif %}
@@ -274,7 +274,7 @@
             {% elif formulario.estado == 'devuelto' %}
             <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <p class="text-sm text-amber-800 font-semibold">
-                    🔄 Formulario devuelto al organismo
+                    🔄 Formulario devuelto para corrección
                 </p>
                 {% if formulario.observaciones_validador %}
                 <p class="text-xs text-amber-700 mt-2">
@@ -500,11 +500,10 @@ function decidir(accion) {
     var obs = document.getElementById('txt-obs').value.trim();
     var mensajes = {
         'aprobar': '¿Confirmas que apruebas y publicas este ICED?',
-        'devolver': '¿Confirmas que devuelves el formulario para correcciones?',
-        'rechazar': '¿Confirmas que rechazas este formulario ICED?'
+        'devolver': '¿Confirmas que devuelves el formulario para correcciones?'
     };
-    if ((accion === 'rechazar' || accion === 'devolver') && !obs) {
-        alert('Por favor escribe las observaciones antes de ' + (accion === 'rechazar' ? 'rechazar' : 'devolver') + '.');
+    if (accion === 'devolver' && !obs) {
+        alert('Por favor escribe las observaciones antes de devolver.');
         document.getElementById('txt-obs').focus();
         return;
     }
