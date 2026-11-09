@@ -266,16 +266,17 @@ MANUAL_POR_PASO = {
             'Si una sección dice "no tiene respuestas diligenciadas", '
             'use «Anterior» para volver y completarla — los pasos vacíos '
             'pueden ser causa de devolución.',
-            'Al confirmar el envío el formulario pasa al facilitador '
-            'del equipo SIIED; mientras esté enviado no se puede '
-            'editar.',
-            'Si el validador devuelve el formulario, sus observaciones '
-            'aparecen al retomar el FICED.',
+            'Al confirmar el envío el formulario pasa al validador de '
+            'su organismo (recibe un correo de aviso); mientras esté '
+            'enviado no se puede editar.',
+            'El validador de su organismo puede devolver el formulario '
+            'a su equipo con observaciones: llega un correo de aviso y '
+            'las observaciones aparecen al retomar el FICED.',
         ],
         'errores_comunes': [
             'Enviar sin revisar pasos con respuestas vacías.',
-            'Pensar que el envío es editable: solo un validador puede '
-            'devolverlo para corrección.',
+            'Pensar que el envío es editable: solo el validador del '
+            'organismo puede devolverlo para corrección.',
         ],
     },
 }
