@@ -639,12 +639,19 @@ class ICEDWizardView(SessionWizardView):
             return redirect('indicadores:validacion_revisar_iced',
                             formulario_id=formulario.pk)
 
-        # Notificar por correo a validadores/admins (no bloquea el envío si falla)
+        # Notificar por correo al siguiente nivel del flujo (no bloquea
+        # el envío si falla): formulario por equipo → validador del
+        # organismo; consolidado → facilitadores del SIIED.
         try:
-            from .notifications import notificar_validadores_nuevo_iced
-            notificar_validadores_nuevo_iced(formulario)
+            if formulario.equipo:
+                from .notifications import (
+                    notificar_validador_organismo_iced)
+                notificar_validador_organismo_iced(formulario)
+            else:
+                from .notifications import notificar_validadores_nuevo_iced
+                notificar_validadores_nuevo_iced(formulario)
         except Exception:
-            logger.exception('Error notificando a validadores el envío del ICED %s', formulario.pk)
+            logger.exception('Error notificando el envío del ICED %s', formulario.pk)
 
         messages.success(
             self.request,

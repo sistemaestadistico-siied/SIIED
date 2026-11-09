@@ -2062,6 +2062,14 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
                 f'{len(formularios)} equipo(s). El facilitador del equipo '
                 f'SIIED hará la validación final.'
             )
+            try:
+                from .notifications import (
+                    notificar_siied_iced_prevalidado)
+                notificar_siied_iced_prevalidado(consolidado)
+            except Exception:
+                logger.exception(
+                    'Error notificando pre-validación del ICED %s',
+                    consolidado.pk)
         else:
             msg = (
                 f'Consolidado generado con {conciliadas} preguntas de '

@@ -698,6 +698,109 @@ def notificar_validadores_nuevo_iced(formulario):
     return _send_bulk_email(recipients, subject, html).get('success', False)
 
 
+def notificar_validador_organismo_iced(formulario):
+    """Avisa al validador del organismo que un equipo técnico envió su
+    formulario ICED (primer escalón: equipo → validador del organismo)."""
+    from .models import PerfilRecolector
+    validadores = PerfilRecolector.objects.filter(
+        rol='validador_organismo', activo=True,
+        organismo=formulario.organismo,
+    ).select_related('user')
+    recipients = [
+        (p.user.email, p.user.get_full_name() or p.user.username)
+        for p in validadores if p.user.email
+    ]
+    if not recipients:
+        logger.warning(
+            f"[NOTIF] notificar_validador_organismo_iced: sin validadores "
+            f"para organismo {formulario.organismo_id}")
+        return False
+
+    organismo = formulario.organismo.nombre if formulario.organismo else ''
+    equipo = formulario.equipo or 'general'
+    delegado = formulario.usuario_diligencia
+    delegado_nombre = (
+        delegado.get_full_name() or delegado.username) if delegado else '—'
+    fecha_envio = (formulario.fecha_envio.strftime('%d/%m/%Y %H:%M')
+                   if formulario.fecha_envio else '—')
+
+    subject = (f"[SIIED] ICED {formulario.periodo}: equipo {equipo} "
+               f"envió su formulario — {organismo}")
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <div style="background:#8b5cf6;padding:16px;border-radius:8px 8px 0 0;">
+            <h2 style="color:#fff;margin:0;">Formulario de equipo enviado</h2>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
+            <p><strong>Organismo:</strong> {organismo}</p>
+            <p><strong>Periodo:</strong> {formulario.periodo}</p>
+            <p><strong>Equipo técnico:</strong> {equipo}</p>
+            <p><strong>Enviado por:</strong> {delegado_nombre}</p>
+            <p><strong>Fecha de envío:</strong> {fecha_envio}</p>
+            <p>El formulario del equipo está listo para su revisión. Cuando
+            todos los equipos hayan enviado, puede conciliar las respuestas
+            y pre-validar el consolidado.</p>
+            <p style="margin-top:20px;">
+                <a href="{_get_site_url()}/validacion/"
+                   style="background:#8b5cf6;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
+                    Ir al panel de validación
+                </a>
+            </p>
+            <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
+                Este es un mensaje automático del SIIED. Por favor no responda a este correo.
+            </p>
+        </div>
+    </div>
+    """
+    return _send_bulk_email(recipients, subject, html).get('success', False)
+
+
+def notificar_siied_iced_prevalidado(formulario):
+    """Avisa a los validadores SIIED (facilitadores) que el validador del
+    organismo pre-validó el consolidado — tercer escalón, queda en cola de
+    validación final."""
+    notify_emails = _get_notify_emails()
+    if not notify_emails:
+        logger.warning(
+            "[NOTIF] notificar_siied_iced_prevalidado: sin destinatarios")
+        return False
+
+    organismo = formulario.organismo.nombre if formulario.organismo else ''
+    prevalidador = formulario.prevalidado_por
+    prevalidador_nombre = (
+        prevalidador.get_full_name() or prevalidador.username
+    ) if prevalidador else 'Validador del organismo'
+
+    subject = (f"[SIIED] ICED {formulario.periodo} pre-validado: "
+               f"{organismo} listo para validación final")
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <div style="background:#6366f1;padding:16px;border-radius:8px 8px 0 0;">
+            <h2 style="color:#fff;margin:0;">Consolidado pre-validado por el organismo</h2>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
+            <p><strong>Organismo:</strong> {organismo}</p>
+            <p><strong>Periodo:</strong> {formulario.periodo}</p>
+            <p><strong>Pre-validado por:</strong> {prevalidador_nombre}</p>
+            <p>El consolidado está en la cola de validación final del
+            facilitador del equipo SIIED.</p>
+            <p style="margin-top:20px;">
+                <a href="{_get_site_url()}/validacion/iced/{formulario.pk}/"
+                   style="background:#6366f1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
+                    Revisar consolidado
+                </a>
+            </p>
+            <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
+                Este es un mensaje automático del SIIED. Por favor no responda a este correo.
+            </p>
+        </div>
+    </div>
+    """
+
+    recipients = [(email, "Facilitador SIIED") for email in notify_emails]
+    return _send_bulk_email(recipients, subject, html).get('success', False)
+
+
 def notificar_delegado_iced(formulario, accion, observaciones=""):
     """Notifica al delegado la decisión del validador sobre su formulario ICED
     (accion: 'validado', 'devuelto' o 'rechazado')."""
