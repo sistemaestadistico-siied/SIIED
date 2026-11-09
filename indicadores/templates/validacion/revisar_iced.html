@@ -51,7 +51,7 @@
                         {% endfor %}
                     </dd>
                 </div>
-                {% if es_validador_organismo %}
+                {% if puede_conciliar %}
                 <div>
                     <a href="{% url 'indicadores:validacion_conciliar_iced' formulario.organismo_id formulario.periodo %}"
                        class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
@@ -131,7 +131,7 @@
                 <strong>consolidado</strong> que genera el validador del organismo
                 al conciliar las respuestas de todos los equipos.
             </p>
-            {% if es_validador_organismo %}
+            {% if puede_conciliar %}
             <a href="{% url 'indicadores:validacion_conciliar_iced' formulario.organismo_id formulario.periodo %}"
                class="inline-block w-full text-center bg-amber-500 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition text-sm">
                 ⇄ Conciliar respuestas entre equipos

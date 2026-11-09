@@ -192,8 +192,15 @@ def validacion_dashboard(request):
                 ICEDFormulario.objects
                 .filter(organismo=org).exclude(equipo='')
                 .values_list('periodo', flat=True))
+            # Estado del consolidado por periodo: si ya está en la cola
+            # del SIIED la conciliación queda congelada.
+            consol_estados = dict(
+                ICEDFormulario.objects.filter(organismo=org, equipo='')
+                .values_list('periodo', 'estado'))
             for f in iced_pendientes:
                 f.n_equipos_org = cnt.get(f.periodo, 0)
+                f.puede_conciliar = consol_estados.get(f.periodo) not in (
+                    'enviado', 'en_revision', 'prevalidado', 'validado')
             # Los pre-validados siguen listados (acceso al producto de
             # cumplimiento) pero ya no cuentan como pendientes.
             iced_count = sum(
@@ -1222,6 +1229,11 @@ def validacion_revisar_iced(request, formulario_id):
 
     es_sistema = _es_validador_sistema(request)
     es_consolidado = not formulario.equipo
+    consolidado_ref = (
+        formulario if es_consolidado
+        else ICEDFormulario.objects.filter(
+            organismo=formulario.organismo, periodo=formulario.periodo,
+            equipo='').first())
     context = {
         'formulario': formulario,
         'resultado': resultado,
@@ -1229,6 +1241,13 @@ def validacion_revisar_iced(request, formulario_id):
         'respuestas_modulo_display': respuestas_modulo_display,
         'hermanos': hermanos,
         'es_validador_organismo': es_org,
+        # Conciliar deja de ofrecerse cuando el consolidado ya está en la
+        # cola del SIIED: sus correcciones las hace el validador SIIED.
+        'puede_conciliar': (
+            es_org and (
+                not consolidado_ref
+                or consolidado_ref.estado not in (
+                    'enviado', 'en_revision', 'prevalidado', 'validado'))),
         'es_validador_sistema': es_sistema,
         # El validador del organismo pre-valida el consolidado enviado.
         'puede_prevalidar': (
@@ -1758,6 +1777,18 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
 
     consolidado = ICEDFormulario.objects.filter(
         organismo=organismo, periodo=periodo, equipo='').first()
+
+    # Un consolidado ya en la cola del SIIED queda congelado: re-conciliar
+    # pisaría sus respuestas y re-sellaría la pre-validación sin aviso.
+    # Desde aquí solo lo corrige el validador SIIED (edicion/decisión).
+    if consolidado and consolidado.estado in (
+            'en_revision', 'prevalidado', 'validado'):
+        messages.info(
+            request,
+            f'El consolidado ya está {consolidado.get_estado_display().lower()}; '
+            'las correcciones las hace el validador SIIED sobre esa versión.')
+        return redirect('indicadores:validacion_revisar_iced',
+                        formulario_id=consolidado.pk)
 
     resp_por_equipo = {f.equipo: _respuestas_planas(f) for f in formularios}
     form_por_equipo = {f.equipo: f for f in formularios}
