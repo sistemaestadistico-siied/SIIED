@@ -41,10 +41,35 @@ def _get_api_key():
     return getattr(settings, 'BREVO_API_KEY', '')
 
 
+def _branded_email(html_content):
+    """Envuelve el cuerpo del correo con la marca institucional:
+    logo del SIIED (sin nombre) y logo de la Secretaría de Planeación
+    (lleva el nombre) servidos desde /static/. Se aplica a TODOS los
+    correos automáticos que salen por _send_email/_send_bulk_email."""
+    site = _get_site_url()
+    return f"""
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
+    <div style="text-align:center;padding:30px 20px 8px;">
+        <img src="{site}/static/indicadores/images/unnamed.png"
+             alt="SIIED — Sistema Integrado de Información Estadística Distrital"
+             style="height:140px;max-width:360px;object-fit:contain;">
+    </div>
+    <div style="text-align:center;padding:0 20px 22px;border-bottom:4px solid #16a34a;">
+        <img src="{site}/static/indicadores/images/planeaci%C3%B3n.png"
+             alt="Alcaldía de Santiago de Cali — Secretaría de Planeación"
+             style="height:84px;max-width:330px;object-fit:contain;">
+    </div>
+    {html_content}
+</div>
+    """
+
+
 def _send_email(to_email, to_name, subject, html_content):
     """Envia un email transaccional via Brevo API.
     Retorna dict con: success (bool), status_code, message_id, error."""
     result = {'success': False, 'status_code': None, 'message_id': None, 'error': None}
+
+    html_content = _branded_email(html_content)
 
     if not _is_valid_email(to_email):
         result['error'] = f"Email destinatario inválido: {to_email}"
@@ -185,6 +210,8 @@ def _send_bulk_email(recipients, subject, html_content):
     """Envia un email a múltiples destinatarios via Brevo API.
     Retorna dict con: success (bool), status_code, message_id, error, recipients_count."""
     result = {'success': False, 'status_code': None, 'message_id': None, 'error': None, 'recipients_count': len(recipients)}
+
+    html_content = _branded_email(html_content)
 
     # Filtrar emails inválidos
     valid_recipients = [(email, name) for email, name in recipients if _is_valid_email(email)]
