@@ -547,7 +547,14 @@
                         const bloqueadoPor = {};
                         reglasBloqueo.forEach(regla => {
                             const ctrl = inputsFila[regla.campo];
-                            if (!ctrl || ctrl.value !== regla.valor) return;
+                            if (!ctrl) return;
+                            // inverso: la regla aplica cuando el control NO
+                            // vale `valor` — columna que solo se habilita con
+                            // un valor concreto (p.ej. P23 razón no vigente).
+                            const aplica = regla.inverso
+                                ? ctrl.value !== regla.valor
+                                : ctrl.value === regla.valor;
+                            if (!aplica) return;
                             const excluir = regla.excluir || [];
                             columnas.forEach(c => {
                                 if (excluir.indexOf(c.name) !== -1) return;
@@ -819,7 +826,9 @@
 
             const cb = el('input', { type: 'checkbox' });
             cb.checked = !!row.seleccion;
-            const label = el('label', { class: 'iced-widget-opt-label-inline' }, [cb, ' ', opt.texto]);
+            // Texto en <span>: un text-node suelto dentro de un label flex
+            // se vuelve flex-item anónimo y Safari lo encoge/recorta.
+            const label = el('label', { class: 'iced-widget-opt-label-inline' }, [cb, el('span', {}, [opt.texto])]);
 
             cb.addEventListener('change', () => {
                 const current = readJson(targetName, {});
@@ -1071,7 +1080,15 @@
                 etapas.forEach(et => {
                     const cb = el('input', { type: 'checkbox', value: et.valor });
                     cb.checked = etapasSeleccionadas.includes(et.valor);
+                    // Texto en <span>: un text-node suelto dentro de un label
+                    // flex se vuelve flex-item anónimo y Safari lo encoge/
+                    // recorta; el span le da caja propia y permite ajuste.
+                    const lbl = el('label', { class: 'iced-rrhh-etapa-chip' },
+                        [cb, el('span', {}, [et.texto])]);
+                    // :has() no existe en Safari <15.4: clase .checked espejo
+                    lbl.classList.toggle('checked', cb.checked);
                     cb.addEventListener('change', () => {
+                        lbl.classList.toggle('checked', cb.checked);
                         const current = filas[i].etapas_proceso || [];
                         if (cb.checked && !current.includes(et.valor)) {
                             current.push(et.valor);
@@ -1082,7 +1099,6 @@
                         filas[i].etapas_proceso = current;
                         sync();
                     });
-                    const lbl = el('label', { class: 'iced-rrhh-etapa-chip' }, [cb, ' ', et.texto]);
                     etapasWrap.appendChild(lbl);
                 });
                 addField('Etapa del proceso en el que participa', etapasWrap, true);

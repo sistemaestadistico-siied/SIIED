@@ -378,9 +378,9 @@ export function mPila(e, ctx) {
  * Recorre el territorio y sintoniza cada punto de necesidad de
  * información (mantener E). Patrullas leves del ruido. */
 export function mDeteccion(e, ctx) {
-    const SPOTS = [            // cerca de los landmarks del barrio
-        [-22, 14, 'VECINOS·iglesia'], [19, -12, 'COMERCIANTES·estadio'],
-        [20, 13.5, 'MERCADO·mall'], [-20, -5, 'PARQUE'], [-22, 5, 'BOMBEROS'],
+    const SPOTS = [            // cerca de los landmarks del barrio (sobre avenidas/calles)
+        [-22, 14, 'VECINOS·iglesia'], [13, -11, 'COMERCIANTES·estadio'],
+        [16, 12.5, 'MERCADO·mall'], [-20, -5, 'PARQUE'], [-22, 5, 'BOMBEROS'],
     ];
     const sensores = SPOTS.map(([x, z, nombre]) => {
         const p = puntoLibre(e, x, z, 1) || [x, z];

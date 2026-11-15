@@ -72,6 +72,21 @@ def _build_field_maps():
                          'label': str(c.get('label') or c.get('name'))}
                         for c in columnas if isinstance(c, dict) and c.get('name')
                     ]
+                    # Opciones de columnas 'select' (p. ej. 'herramienta' en
+                    # p8/p9): alimentan el mapa valor→texto para que la
+                    # tabla de revisión muestre etiquetas y no códigos.
+                    for c in columnas:
+                        ops = c.get('opciones') if isinstance(c, dict) else None
+                        if not ops:
+                            continue
+                        mapa_col = _OPCIONES_CAMPO.setdefault(name, {})
+                        for o in ops:
+                            if isinstance(o, dict):
+                                clave = o.get('valor', o.get('codigo'))
+                                if clave:
+                                    mapa_col[str(clave)] = str(o.get('texto', clave))
+                            else:
+                                mapa_col[str(o)] = str(o)
 
 
 @register.filter(name='iced_field_label')
@@ -176,7 +191,7 @@ def _label(code, field_key=None):
 
 def _render_bool(value):
     v = str(value).lower()
-    if v in ('si', 'sí', '1', 'true'):
+    if v in ('si', 'sí', '1', 'true', 'on', 'yes'):
         return '<span class="text-emerald-700 font-semibold">✓ Sí</span>'
     if v in ('na', 'n/a', 'no aplica'):
         return '<span class="text-slate-500 font-semibold">— NA</span>'
@@ -298,6 +313,10 @@ def _render_tabla(value, max_rows=10, field_key=None):
                     val = ', '.join(str(x) for x in raw)
                 else:
                     val = str(raw or '')
+                # Códigos de columnas 'select' → su etiqueta legible
+                mapa_celda = _OPCIONES_CAMPO.get(field_key) if field_key else None
+                if mapa_celda and val in mapa_celda:
+                    val = mapa_celda[val]
                 otro = str(row.get(c + '_otro', '') or '').strip()
                 if val == 'Otro' and otro:
                     val = f'Otro: {otro}'
@@ -370,6 +389,7 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
 
     # Booleanos
     if field_key in ('p6_funciones_estadisticas', 'p7_procedimientos',
+                     'p8_no_se_incluyen', 'p9_no_se_incluyen',
                      'p15_herramientas_visualizacion', 'p33_tiene_observatorio',
                      'p41_indaga_satisfaccion'):
         return mark_safe(_render_bool(resp))
@@ -378,7 +398,9 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
     if field_key in _ESCALAS:
         return mark_safe(_render_escala(resp, field_key))
 
-    # Checkbox-tabla JSON
+    # Checkbox-tabla JSON — el widget puede guardar el formato clásico
+    # {codigo: {seleccion: true, ...}} o una lista de filas
+    # [{herramienta: ..., documento_seccion: ...}] (formato tabla).
     if field_key in ('p8_herramientas_planificacion', 'p9_herramientas_mejoramiento',
                      'p11_instancias_coordinacion', 'p13_herramientas_procesamiento',
                      'p14_gestores_bd', 'p15_1_herramientas_tableros',
@@ -388,6 +410,16 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
                      'p36_uso_indicadores', 'p37_usuarios',
                      'p38_productos_difusion', 'p39_medios_difusion',
                      'p40_elementos_web'):
+        parsed = _parse_json(resp)
+        inner = (parsed[0] if isinstance(parsed, list) and len(parsed) == 1
+                 and isinstance(parsed[0], dict) else parsed)
+        es_checkbox = isinstance(inner, dict) and (
+            any(isinstance(v, dict) and 'seleccion' in v for v in inner.values())
+            or any(v is True for v in inner.values()))
+        if es_checkbox:
+            return mark_safe(_render_checkbox_tabla(inner, field_key))
+        if isinstance(parsed, (list, dict)):
+            return mark_safe(_render_tabla(parsed, field_key=field_key))
         return mark_safe(_render_checkbox_tabla(resp, field_key))
 
     # Listas checkbox simples
@@ -397,6 +429,7 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
                      'p28_1_frecuencia_reuniones', 'p28_2_modelos_estadisticos',
                      'p29_1_metodologia', 'p29_2_frecuencia',
                      'p29_3_medios_divulgacion', 'p29_4_acciones',
+                     'p31_1_frecuencia',
                      'p33_observatorios', 'p41_1_mecanismos'):
         parsed = _parse_json(resp)
         if isinstance(parsed, list):
@@ -408,12 +441,20 @@ def render_iced_respuesta(preg_info, respuestas_dim=None):
         return mark_safe(f'<span class="font-medium">{escape(_label(str(resp), field_key))}</span>')
 
     # Tablas JSON
-    if field_key in ('p7_estructura_mop', 'p10_actividades',
+    if field_key in ('p7_estructura_mop', 'p8_herramientas_planificacion',
+                     'p9_herramientas_mejoramiento', 'p10_actividades',
                      'p16_reportes_tableros', 'p19_rrhh_list',
                      'p23_operaciones_estadisticas', 'p30_tabla_alcaldia',
+                     'p31_productos',
                      'p34_info_observatorios', 'p35_documentacion_observatorio',
                      'p41_2_matriz_satisfaccion'):
-        return mark_safe(_render_tabla(resp, field_key=field_key))
+        # Respuestas guardadas con el formato anterior (checkbox-tabla,
+        # {codigo: {seleccion, ...}}) de p8/p9 se muestran legibles igual.
+        parsed = _parse_json(resp)
+        if isinstance(parsed, dict):
+            return mark_safe(_render_checkbox_tabla(parsed, field_key))
+        return mark_safe(_render_tabla(parsed if parsed is not None else resp,
+                                     field_key=field_key))
 
     # Fallback genérico por estructura JSON (campos no clasificados arriba):
     # - dict con entradas {seleccion: ...}  -> checkbox-tabla

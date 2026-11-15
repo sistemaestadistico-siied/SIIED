@@ -1,0 +1,159 @@
+{% extends "validacion/base_validacion.html" %}
+{% load humanize %}
+{% block title %}Avances FICED — Panel de Validación{% endblock %}
+
+{% block validacion_content %}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header + filtro de vigencia -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Avances FICED</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Observabilidad del diligenciamiento por organismo y por equipo técnico.
+                Solo visible para el equipo SIIED.
+            </p>
+        </div>
+        {% if periodos %}
+        <form method="get" class="flex items-center gap-2">
+            <label for="periodo" class="text-sm font-medium text-slate-600">Vigencia</label>
+            <select name="periodo" id="periodo" onchange="this.form.submit()"
+                    class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                {% for p in periodos %}
+                <option value="{{ p }}" {% if p == periodo_sel %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
+    </div>
+
+    <!-- Resumen del periodo -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Organismos con avance</p>
+            <p class="text-3xl font-bold text-indigo-600 mt-1">{{ stats.con_formularios }}</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sin iniciar</p>
+            <p class="text-3xl font-bold text-slate-400 mt-1">{{ stats.sin_iniciar }}</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Formularios en el periodo</p>
+            <p class="text-3xl font-bold text-slate-800 mt-1">{{ stats.formularios }}</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Por estado</p>
+            <div class="flex flex-wrap gap-1.5 mt-2">
+                {% for est, n in stats.por_estado.items %}
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium estado-{{ est }}">{{ n }} {{ est }}</span>
+                {% empty %}
+                <span class="text-sm text-slate-400">—</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Leyenda de avance -->
+    <p class="text-xs text-slate-400 mb-4">
+        El porcentaje cuenta preguntas con al menos un campo respondido sobre las
+        asignadas oficialmente al equipo (o al consolidado). El chip muestra el
+        estado del formulario en el flujo.
+    </p>
+
+    <!-- Filas por organismo -->
+    <div class="space-y-5">
+        {% for fila in filas %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <!-- Cabecera del organismo -->
+            <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2
+                        {% if fila.n_formularios %}bg-slate-50 border-b border-slate-100{% endif %}">
+                <h2 class="font-bold text-slate-800 truncate">{{ fila.organismo.nombre }}</h2>
+                <div class="flex items-center gap-3 shrink-0">
+                    {% if fila.avance_medio is not None %}
+                    <div class="flex items-center gap-2">
+                        <div class="w-28 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-indigo-500 rounded-full" style="width: {{ fila.avance_medio }}%"></div>
+                        </div>
+                        <span class="text-xs font-semibold text-slate-600">{{ fila.avance_medio }}%</span>
+                    </div>
+                    <span class="text-xs text-slate-400">{{ fila.n_formularios }} formulario{{ fila.n_formularios|pluralize }}</span>
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Sin iniciar</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Equipos + consolidado -->
+            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                {% for eq in fila.equipos %}
+                <div class="rounded-xl border p-3 {% if eq.slot %}border-slate-200{% else %}border-dashed border-slate-200 bg-slate-50/50{% endif %}">
+                    <p class="text-xs font-bold text-slate-500 tracking-wide mb-2">{{ eq.codigo }}</p>
+                    {% if eq.slot %}
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-medium estado-{{ eq.slot.f.estado }}">
+                            {{ eq.slot.f.get_estado_display|truncatechars:16 }}
+                        </span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1">
+                        <div class="h-full {% if eq.slot.pct == 100 %}bg-emerald-500{% else %}bg-sky-500{% endif %} rounded-full"
+                             style="width: {{ eq.slot.pct }}%"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-500">
+                        {% if eq.slot.esperadas %}{{ eq.slot.respondidas }}/{{ eq.slot.esperadas }} preguntas
+                        {% else %}{{ eq.slot.f.completitud }}% módulos{% endif %}
+                    </p>
+                    <p class="text-[11px] text-slate-400 truncate mt-1">
+                        {{ eq.slot.f.usuario_diligencia.get_full_name|default:eq.slot.f.usuario_diligencia.username|default:"—" }}
+                        · {{ eq.slot.f.fecha_actualizacion|naturalday }}
+                    </p>
+                    <a href="{% url 'indicadores:validacion_revisar_iced' eq.slot.f.pk %}"
+                       class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 mt-1 inline-block">
+                        Revisar →
+                    </a>
+                    {% else %}
+                    <p class="text-[11px] text-slate-400">Sin formulario</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <!-- Consolidado -->
+                <div class="rounded-xl border p-3 {% if fila.consolidado %}border-indigo-200 bg-indigo-50/40{% else %}border-dashed border-slate-200 bg-slate-50/50{% endif %}">
+                    <p class="text-xs font-bold text-indigo-600 tracking-wide mb-2">CONSOLIDADO</p>
+                    {% if fila.consolidado %}
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-medium estado-{{ fila.consolidado.f.estado }}">
+                            {{ fila.consolidado.f.get_estado_display|truncatechars:16 }}
+                        </span>
+                    </div>
+                    <div class="w-full h-1.5 bg-indigo-100 rounded-full overflow-hidden mb-1">
+                        <div class="h-full {% if fila.consolidado.pct == 100 %}bg-emerald-500{% else %}bg-indigo-500{% endif %} rounded-full"
+                             style="width: {{ fila.consolidado.pct }}%"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-500">
+                        {% if fila.consolidado.esperadas %}{{ fila.consolidado.respondidas }}/{{ fila.consolidado.esperadas }} preguntas
+                        {% else %}{{ fila.consolidado.f.completitud }}% módulos{% endif %}
+                    </p>
+                    <p class="text-[11px] text-slate-400 truncate mt-1">
+                        {{ fila.consolidado.f.fecha_actualizacion|naturalday }}
+                        {% if fila.consolidado.f.prevalidado_por %}
+                        · pre-val. {{ fila.consolidado.f.prevalidado_por.get_full_name|default:fila.consolidado.f.prevalidado_por.username }}
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'indicadores:validacion_revisar_iced' fila.consolidado.f.pk %}"
+                       class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 mt-1 inline-block">
+                        Revisar →
+                    </a>
+                    {% else %}
+                    <p class="text-[11px] text-slate-400">Sin consolidado</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm py-16 text-center">
+            <p class="text-slate-500">No hay organismos activos registrados.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

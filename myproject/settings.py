@@ -181,6 +181,7 @@ TIME_ZONE = 'America/Bogota'
 # Se usa la API REST (https://api.brevo.com/v3/smtp/email) como método principal.
 BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
 BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL', 'sistemaestadistico@cali.gov.co')
+BREVO_SENDER_NAME = os.environ.get('BREVO_SENDER_NAME', 'SIIED - Sistema de Indicadores')
 SITE_URL = os.environ.get('SITE_URL', 'https://indicadores.cali.gov.co')  # URL base del sitio para links en emails
 BREVO_NOTIFY_EMAILS = _env_list('BREVO_NOTIFY_EMAILS', [])  # Correos adicionales (opcional). Admins y validadores se detectan automático de la BD.
 

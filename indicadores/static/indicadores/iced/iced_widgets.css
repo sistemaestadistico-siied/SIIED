@@ -90,6 +90,15 @@ select.iced-widget-input {
     cursor: pointer;
     color: var(--iced-text, #0f172a);
 }
+.iced-widget-opt-label-inline input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
+}
+.iced-widget-opt-label-inline span {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
 
 .iced-widget-num {
     font-weight: 600;
@@ -257,7 +266,20 @@ select.iced-widget-input {
     background: #f8fafc;
     transition: color 0.15s, background-color 0.15s, border-color 0.15s, outline-color 0.15s, opacity 0.15s, box-shadow 0.15s, transform 0.15s, fill 0.15s, stroke 0.15s;
 }
+.iced-rrhh-etapa-chip input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
+}
+.iced-rrhh-etapa-chip span {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+}
 
+/* :has() solo desde Safari 15.4 — la clase .checked la pone el JS como
+   fallback con el mismo efecto visual */
+.iced-rrhh-etapa-chip.checked,
 .iced-rrhh-etapa-chip:has(input:checked) {
     background: #e0e7ff;
     border-color: var(--iced-primary, #000866);

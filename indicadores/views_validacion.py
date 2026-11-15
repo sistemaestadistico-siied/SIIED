@@ -26,7 +26,7 @@ from .models import (
     PerfilRecolector, CargaSerieIndicador, CargaConjuntoDatos,
     Indicador, ConjuntoDatos, VariableConjuntoDatos,
     Grafico, DocumentoVector, RegistroCambio,
-    SELLO_CALIDAD_CHOICES, SELLO_NIVEL,
+    SELLO_CALIDAD_CHOICES, SELLO_NIVEL, Organismo,
 )
 from .models_iced import ICEDFormulario, ICEDPreguntaEquipo
 from .calcular_iced import (
@@ -1022,6 +1022,134 @@ def _campo_captura_dato(field):
 #  D->3 Metodologia, E->4 Accesibilidad)
 DIM_POR_MODULO = {'b': '1', 'c': '2', 'd': '3', 'e': '4'}
 
+EQUIPOS_ICED = [eq for eq, _ in ICEDFormulario.EQUIPO_CHOICES if eq]
+
+
+def _codigos_respondidos_iced(f):
+    """Códigos de pregunta del FICED con al menos un campo respondido.
+
+    Las respuestas viven en respuestas_{a..e} con claves de campo del
+    wizard ('p15_1_...'); `codigo_de_campo` las reduce al código de
+    pregunta ('15.1') comparable con la asignación por equipo."""
+    codigos = set()
+    for resp in (f.respuestas_a, f.respuestas_b, f.respuestas_c,
+                 f.respuestas_d, f.respuestas_e):
+        for campo, valor in (resp or {}).items():
+            # False = checkbox aparte desmarcado (p.ej. p8_no_se_incluyen):
+            # no cuenta como respuesta. Tampoco una tabla JSON cuyas
+            # filas tienen todas las celdas vacías (min_filas del widget).
+            if _vacio(valor) or valor is False:
+                continue
+            if isinstance(valor, str) and valor[:1] == '[':
+                try:
+                    parsed = _parse_json_valor(valor)
+                except (ValueError, TypeError):
+                    parsed = None
+                if isinstance(parsed, list) and parsed and all(
+                        not any(str(c or '').strip() for c in r.values())
+                        for r in parsed if isinstance(r, dict)):
+                    continue
+            if isinstance(valor, list) and valor and all(
+                    not any(str(c or '').strip() for c in r.values())
+                    for r in valor if isinstance(r, dict)):
+                continue
+            cod = ICEDPreguntaEquipo.codigo_de_campo(campo)
+            if cod:
+                codigos.add(cod)
+    return codigos
+
+
+@validador_required
+def validacion_avances_iced(request):
+    """Tablero de observabilidad FICED — exclusivo del equipo SIIED.
+
+    Por organismo y vigencia muestra, por cada equipo técnico y por el
+    consolidado: si el formulario existe, su estado en el flujo y el
+    avance real (preguntas respondidas / preguntas asignadas). Los
+    organismos activos sin ningún formulario también se listan como
+    «sin iniciar» para detectar a los que no han arrancado."""
+    if not _es_validador_sistema(request):
+        messages.error(
+            request,
+            'El tablero de avances FICED es exclusivo del equipo SIIED.')
+        return redirect('indicadores:validacion_dashboard')
+
+    # Preguntas asignadas por equipo (fuente: ICEDPreguntaEquipo)
+    esperadas = {eq: set() for eq in EQUIPOS_ICED}
+    for eq, cod in ICEDPreguntaEquipo.objects.values_list('equipo', 'codigo'):
+        esperadas.setdefault(eq, set()).add(str(cod))
+    esperadas_consol = set().union(*esperadas.values()) if esperadas else set()
+
+    periodos = list(
+        ICEDFormulario.objects.order_by('-periodo')
+        .values_list('periodo', flat=True).distinct())
+    periodo_sel = request.GET.get('periodo') or (periodos[0] if periodos else '')
+
+    formularios = (ICEDFormulario.objects
+                   .filter(periodo=periodo_sel)
+                   .select_related('organismo', 'usuario_diligencia',
+                                   'prevalidado_por')) if periodo_sel \
+        else ICEDFormulario.objects.none()
+
+    # Slots por organismo: {equipo: {f, respondidas, esperadas, pct}}
+    slots_por_org = {}
+    for f in formularios:
+        respondidas = _codigos_respondidos_iced(f)
+        esp = esperadas_consol if f.equipo == '' else esperadas.get(f.equipo, set())
+        n_ok = len(respondidas & esp)
+        slot = {
+            'f': f,
+            'respondidas': n_ok,
+            'esperadas': len(esp),
+            'respondidas_raw': len(respondidas),
+            'pct': round(n_ok / len(esp) * 100) if esp else f.completitud,
+        }
+        slots_por_org.setdefault(f.organismo_id, {})[f.equipo] = slot
+
+    filas = []
+    org_activos = Organismo.objects.filter(activo=True).order_by('nombre')
+    for org in org_activos:
+        slots_org = slots_por_org.get(org.id, {})
+        equipos = []
+        n_formularios = 0
+        pcts = []
+        for eq in EQUIPOS_ICED:
+            slot = slots_org.get(eq)
+            if slot:
+                n_formularios += 1
+                pcts.append(slot['pct'])
+            equipos.append({'codigo': eq, 'slot': slot})
+        consolidado = slots_org.get('')
+        if consolidado:
+            n_formularios += 1
+        filas.append({
+            'organismo': org,
+            'equipos': equipos,
+            'consolidado': consolidado,
+            'n_formularios': n_formularios,
+            'avance_medio': round(sum(pcts) / len(pcts)) if pcts else None,
+        })
+
+    # Resumen global del periodo
+    por_estado = dict(
+        formularios.values_list('estado')
+        .annotate(n=Count('id')).order_by())
+    stats = {
+        'con_formularios': sum(1 for r in filas if r['n_formularios']),
+        'sin_iniciar': sum(1 for r in filas if not r['n_formularios']),
+        'formularios': sum(por_estado.values()),
+        'por_estado': por_estado,
+    }
+
+    return render(request, 'validacion/avances_iced.html', {
+        'filas': filas,
+        'stats': stats,
+        'periodos': periodos,
+        'periodo_sel': periodo_sel,
+        'es_validador_organismo': _es_validador_organismo(request),
+        'es_validador_sistema': True,
+    })
+
 
 @validador_required
 def validacion_revisar_iced(request, formulario_id):
@@ -1049,10 +1177,18 @@ def validacion_revisar_iced(request, formulario_id):
         detalle = {}
         indicadores = {}
     else:
-        # Calcular puntajes en preview (sin persistir)
-        resultado = calcular_iced(formulario)
-        detalle = resultado.get('detalle', {})
-        indicadores = resultado.get('indicadores', {})
+        # Preview de puntajes SOLO sobre el consolidado del organismo: un
+        # formulario parcial de equipo no expone ningún cálculo previo —
+        # el puntaje se decide con la conciliación/validación del
+        # organismo completo, no equipo por equipo.
+        if formulario.equipo:
+            resultado = None
+            detalle = {}
+            indicadores = {}
+        else:
+            resultado = calcular_iced(formulario)
+            detalle = resultado.get('detalle', {})
+            indicadores = resultado.get('indicadores', {})
 
     # Respuestas normalizadas por módulo (para mostrar al validador)
     resp_a = _normalizar_respuestas(formulario.respuestas_a)
@@ -1197,7 +1333,8 @@ def validacion_revisar_iced(request, formulario_id):
                     'codigo': codigo or '',
                     'condicional': bool(
                         (getattr(fld.widget, 'attrs', {}) or {}).get('data-show-if')
-                    ) or any(s in name for s in ('especificar', 'otro', 'motivo')),
+                    ) or any(s in name for s in (
+                        'especificar', 'otro', 'motivo', 'no_se_incluyen')),
                 })
             if items or faltantes:
                 pasos.append({

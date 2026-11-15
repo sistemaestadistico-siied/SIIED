@@ -507,7 +507,17 @@
 
             {% if wizard.form.errors %}
             <div class="iced-form-errors-banner" style="background:#fef2f2; border:1px solid #fca5a5; border-left:4px solid #dc2626; color:#b91c1c; padding:0.75rem 1rem; border-radius:0.5rem; margin-bottom:1rem;">
-                <strong>⚠ Hay errores en este paso.</strong> Revise los campos marcados en rojo más abajo para corregirlos antes de continuar.
+                <strong>⚠ Hay errores en este paso.</strong> Corrija lo siguiente antes de continuar:
+                <ul style="margin:0.5rem 0 0 1.25rem; padding:0;">
+                    {% for f in wizard.form %}
+                        {% if f.errors %}
+                        <li style="margin-bottom:0.25rem;">
+                            <a href="#{{ f.id_for_label }}" style="color:#991b1b; font-weight:600; text-decoration:underline;">{{ f.label }}</a>:
+                            {{ f.errors|join:", " }}
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
             </div>
             {% endif %}
             {% if wizard.form.non_field_errors %}
@@ -536,10 +546,10 @@
                     </summary>
                     {% if paso.respuestas %}
                     <dl style="margin: 0.5rem 0 0.25rem; font-size: 0.85rem;">
-                        {% for campo, valor in paso.respuestas.items %}
+                        {% for item in paso.respuestas %}
                         <div style="display: flex; gap: 0.5rem; padding: 0.15rem 0; border-bottom: 1px dashed #f1f5f9;">
-                            <dt style="min-width: 40%; color: #475569; word-break: break-word;">{{ campo }}</dt>
-                            <dd style="margin: 0; color: #0f172a; word-break: break-word;">{{ valor }}</dd>
+                            <dt style="min-width: 40%; color: #475569; word-break: break-word;">{{ item.label }}</dt>
+                            <dd style="margin: 0; color: #0f172a; word-break: break-word;">{{ item|render_iced_respuesta }}</dd>
                         </div>
                         {% endfor %}
                     </dl>

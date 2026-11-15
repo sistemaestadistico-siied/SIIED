@@ -43,9 +43,11 @@ MANUAL_POR_PASO = {
             'planificación, capacitación y mecanismos de trazabilidad.'
         ),
         'tips': [
-            'P8/P9 (herramientas de planificación): marque la herramienta '
-            '(PEI, Plan de Acción, PMD...) y complete el documento y la '
-            'sección donde aparece la actividad estadística.',
+            'P8/P9 (herramientas de planificación): agregue una fila por '
+            'cada herramienta (Planes de trabajo, Planes de acción, '
+            'Programas, Proyectos) e indique el documento con su sección '
+            'o actividad — el campo admite hasta 10.000 caracteres por '
+            'fila. Si ninguna aplica, marque "No se incluyen".',
             'P10 (capacitación): si responde opciones 1-3, la tabla de '
             'actividades es obligatoria: actividad, fecha (selector de '
             'calendario) y organismo encargado.',
@@ -57,7 +59,9 @@ MANUAL_POR_PASO = {
             'y secciones.',
         ],
         'errores_comunes': [
-            'Marcar una herramienta en P8/P9 sin indicar documento '
+            'Dejar P8/P9 sin filas y sin marcar "No se incluyen" '
+            '(una de las dos es obligatoria).',
+            'Agregar una herramienta en P8/P9 sin indicar documento '
             'y sección.',
             'Responder "sí participa" en P10 y dejar la tabla de '
             'actividades vacía.',

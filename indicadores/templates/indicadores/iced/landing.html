@@ -264,7 +264,7 @@
                     <div class="iced-completitud">
                         <div class="iced-completitud-fill" style="width: {{ f.completitud }}%;"></div>
                     </div>
-                    {% if f.puntaje_global %}
+                    {% if f.puntaje_global and puede_ver_resultados %}
                     <span class="iced-puntaje-badge {{ f.nivel_global }}">
                         {{ f.puntaje_global|floatformat:4 }} — {{ f.nivel_global_display }}
                     </span>
@@ -287,7 +287,7 @@
                         Continuar ✎
                     </a>
                 {% endif %}
-                {% if f.puntaje_global %}
+                {% if f.puntaje_global and puede_ver_resultados %}
                     <a href="{% url 'indicadores:iced_resultado' formulario_id=f.pk %}" class="iced-btn iced-btn-outline">
                         Ver resultado
                     </a>

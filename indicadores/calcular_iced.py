@@ -463,6 +463,31 @@ def _distribuida_fija(valor, peso_por_opcion, exclusiva=None):
     return 0
 
 
+def _codigos_herramienta(resp, prefijo):
+    """Códigos seleccionados en P8/P9 (formset inline).
+
+    Nueva estructura: `[{herramienta, documento_seccion}, ...]` más el
+    checkbox `p{n}_no_se_incluyen` aparte. Devuelve la lista de códigos
+    (o 'no_se_incluyen' si el checkbox está marcado) para alimentar
+    `_distribuida_fija`."""
+    if resp.get(f'{prefijo}_no_se_incluyen') in (True, 'on', 'true', 'si'):
+        return ['no_se_incluyen']
+    campo = ('p8_herramientas_planificacion' if prefijo == 'p8'
+             else 'p9_herramientas_mejoramiento')
+    valor = resp.get(campo)
+    if isinstance(valor, str):
+        try:
+            valor = _cargar_json(valor)
+        except (ValueError, TypeError):
+            return []
+    if isinstance(valor, list):
+        return [f.get('herramienta') for f in valor
+                if isinstance(f, dict) and f.get('herramienta')]
+    # Formato legacy checkbox-tabla ({codigo: {seleccion, ...}}): se lo
+    # pasa tal cual a _distribuida_fija, que ya lo entiende.
+    return valor
+
+
 def _asignacion_progresiva(valor, exclusiva=None):
     """P38/P39: asignación progresiva por número de productos válidos."""
     k, tiene_ex = _seleccionadas(valor, exclusiva)
@@ -586,13 +611,15 @@ def _calcular_indicadores(resp_b, resp_c, resp_d, resp_e):
     ind['1.1.1'] = _bool(resp_b.get('p6_funciones_estadisticas'))
     ind['1.1.2'] = _bool(resp_b.get('p7_procedimientos'))
 
-    # P8: distribuida fija 25% por opción
-    peso_p8 = {o: 25 for o in ['planes_trabajo', 'planes_accion', 'programas', 'proyectos']}
-    ind['1.1.3'] = _distribuida_fija(resp_b.get('p8_herramientas_planificacion'), peso_p8, 'no_se_incluyen')
-
-    # P9: distribuida fija 25% por opción
-    peso_p9 = {o: 25 for o in ['planes_trabajo', 'planes_accion', 'programas', 'proyectos']}
-    ind['1.1.4'] = _distribuida_fija(resp_b.get('p9_herramientas_mejoramiento'), peso_p9, 'no_se_incluyen')
+    # P8/P9: distribuida fija 25% por opción. Las respuestas llegan como
+    # formset (lista de filas {herramienta, documento_seccion}) y
+    # 'no_se_incluyen' como checkbox aparte (bool en respuestas_b).
+    peso_p89 = {o: 25 for o in ['planes_trabajo', 'planes_accion',
+                              'programas', 'proyectos']}
+    ind['1.1.3'] = _distribuida_fija(
+        _codigos_herramienta(resp_b, 'p8'), peso_p89, 'no_se_incluyen')
+    ind['1.1.4'] = _distribuida_fija(
+        _codigos_herramienta(resp_b, 'p9'), peso_p89, 'no_se_incluyen')
 
     ind['1.2.1'] = _escala_ordinal(resp_b.get('p10_participacion'), 4)
 

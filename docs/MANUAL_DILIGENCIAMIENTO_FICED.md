@@ -24,7 +24,7 @@ organismo no ve puntajes**: solo el estado del trámite.
 |---|---|
 | **Delegado del organismo** | Diligencia las preguntas que le corresponden según su equipo técnico (subrol) y envía su formulario. |
 | **Validador del organismo** | Revisa las respuestas de todos los equipos de su organismo **sin ver puntajes**, **concilia** los formularios en uno solo y lo **pre-valida**. Descarga el producto de cumplimiento del organismo. |
-| **Validador SIIED** | Revisa el consolidado pre-validado, ve los puntajes, **corrige directamente cualquier respuesta** (no devuelve el formulario al organismo) y aprueba o rechaza la calificación final. |
+| **Validador SIIED (facilitador)** | Revisa el consolidado pre-validado y ve los puntajes. Puede **devolverlo en cadena** para corrección (llega al validador del organismo y de ahí al equipo responsable) o **corregir directamente** cualquier respuesta del consolidado. Cuando la información es correcta, **calcula y aprueba el puntaje oficial**. |
 
 Flujo completo:
 
@@ -32,10 +32,18 @@ Flujo completo:
 Delegados (por equipo)  ──envían──▶  Validador del organismo
                                         │ revisa · concilia · pre-valida
                                         ▼
-                                  Validador SIIED
-                                        │ corrige · puntaje · aprueba
+                                  Validador SIIED (facilitador)
+                                        │ revisa · puntaje · aprueba
                                         ▼
                               FICED validado → puntaje oficial publicado
+
+Corrección en cadena (cuando el SIIED detecta problemas):
+  Facilitador SIIED devuelve el consolidado
+      ──▶ validador del organismo revisa las observaciones
+      ──▶ devuelve el formulario del equipo responsable
+      ──▶ el equipo corrige y reenvía
+      ──▶ se concilia y pre-valida de nuevo
+      ──▶ el facilitador revisa y calcula/aprueba el puntaje
 ```
 
 ---
@@ -117,12 +125,18 @@ el portal**:
   procesamiento o difusión? Si respondes Sí, selecciona en la tabla los
   **macroprocesos, procesos, subprocesos y procedimientos** del MOP según su
   relación (elige primero macroproceso y proceso para habilitar subprocesos).
-- **P8 — Herramientas de planificación** (multi): señala en cuáles se incluyen
-  actividades estadísticas. **Por cada herramienta marcada describe el
-  documento y la sección específica** donde aparece la actividad — es la
-  evidencia clave.
-- **P9 — Herramientas de mejoramiento** (multi): misma estructura que P8;
-  describe documento y sección por cada una.
+- **P8 — Herramientas de planificación** (tabla, hasta 15 filas): agrega una
+  fila por cada herramienta —elige de la lista Planes de trabajo, Planes de
+  acción, Programas o Proyectos— y describe el **documento y la sección /
+  actividad** donde aparece la actividad estadística (es la evidencia clave;
+  admite texto largo, hasta **10.000 caracteres** por fila). Puedes repetir
+  herramienta si son varios documentos. Si ninguna herramienta incluye esas
+  actividades, marca la casilla **"No se incluyen"**: debes diligenciar al
+  menos una fila **o** marcar la casilla.
+- **P9 — Herramientas de mejoramiento** (tabla): misma estructura que P8,
+  pero para actividades de mejoramiento/fortalecimiento de la información
+  estadística — una fila por herramienta (o "No se incluyen"), con documento
+  y sección de hasta 10.000 caracteres por fila.
 - **P10 — Participación en fortalecimiento** (radio, 4 opciones): si
   respondes la opción 4 ("no participa"), explica el **motivo**; si eliges
   las opciones 1–3, llena la **tabla de actividades** (actividad, fecha con
@@ -130,6 +144,8 @@ el portal**:
   esa tabla **solo** si elegiste opciones 1, 2 o 3.
 - **P11 — Instancias de coordinación** (multi): selecciona las instancias
   internas y externas en las que participa y especifica cuáles en cada caso.
+  Si no participa en ninguna, marca **"No participa"** — la pregunta exige
+  al menos una opción.
 - **P12 — Trazabilidad** (radio, 3 opciones): mecanismo formal, mecanismos
   informales o ninguno. Con las opciones 1 o 2 **describe el mecanismo**;
   asegúrate de que la descripción coincida con el nivel elegido.
@@ -297,6 +313,10 @@ el portal**:
   **"Guardar borrador"** de cada módulo: puedes salir y continuar luego.
 - Mientras esté en **"Borrador"** (o **"Devuelto"**) puedes editar
   libremente.
+- Si al avanzar un módulo tiene errores, el aviso rojo del inicio **lista
+  cada campo con su mensaje y un enlace directo** al campo. Los campos
+  ocultos por las condiciones (p. ej. la tabla de P8 cuando marcaste
+  "No se incluyen") no bloquean el avance.
 
 ### 4.6 Enviar
 
@@ -313,10 +333,9 @@ el portal**:
 |---|---|
 | **Borrador** | Estás diligenciando; aún puedes editar. |
 | **Enviado** | Entregado; tu validador del organismo lo revisa y concilia. |
-| **Devuelto** | Tu validador del organismo lo devolvió con observaciones: puedes corregir y reenviar. |
+| **Devuelto** | Devuelto para corrección con observaciones — la solicitud puede venir en cadena desde el equipo SIIED a través de tu validador: puedes corregir y reenviar. |
 | **Pre-validado** | Tu organismo ya concilió y pre-validó; el FICED está en la cola del equipo SIIED. |
 | **Validado** | El SIIED aprobó: **aquí se publica el puntaje ICED oficial**. |
-| **Rechazado** | Decisión definitiva del SIIED (con motivo en observaciones). |
 
 > **El puntaje nunca aparece en tu vista mientras el FICED está en revisión.**
 > Solo cuando queda "Validado" se muestra el resultado (global, por dimensión
@@ -369,7 +388,20 @@ Cuando dos o más equipos respondieron la misma pregunta, usa el botón
 4. El consolidado pasa a estado **"Pre-validado"** y entra a la cola del
    equipo técnico SIIED, que hace la revisión final y la calificación.
 
-### 5.4 Producto de cumplimiento del organismo
+### 5.4 Flujo de corrección: devoluciones del equipo SIIED
+
+- Si el **facilitador del equipo SIIED** devuelve el consolidado, te llega
+  con observaciones: identifica qué preguntas y qué equipos afectan.
+- **Devuelve el formulario del equipo responsable** para que corrija
+  (queda en "Devuelto", editable de nuevo para ese equipo).
+- El equipo corrige y reenvía → tú vuelves a **conciliar y pre-validar** →
+  el consolidado retorna a la cola del SIIED, donde el facilitador lo
+  revisa y **calcula/aprueba el puntaje**.
+- Si el organismo no atiende la devolución, el facilitador puede
+  **corregir el consolidado directamente** — con impacto en la
+  calificación.
+
+### 5.5 Producto de cumplimiento del organismo
 
 Desde que el consolidado queda **pre-validado** puedes descargar el
 **producto de cumplimiento "Diligenciamiento del organismo"** desde la página
@@ -409,10 +441,13 @@ constata que tu organismo cumplió la tarea de diligenciar el FICED —
 
 ### Después del envío
 
-- Tu validador del organismo puede **devolver** el formulario de tu equipo
-  para corrección (queda en "Devuelto" con observaciones, editable de
-  nuevo). El equipo SIIED no devuelve: corrige el consolidado directamente,
-  con impacto en la calificación, y **aprueba** o **rechaza**.
+- La corrección va **en cadena**: el facilitador del equipo SIIED puede
+  devolver el consolidado a tu validador, quien a su vez **devuelve el
+  formulario de tu equipo** (queda en "Devuelto" con observaciones,
+  editable de nuevo). Corriges y reenvías → se vuelve a conciliar y
+  pre-validar → el facilitador revisa y **calcula el puntaje final**.
+  El facilitador también puede corregir el consolidado directamente si
+  el organismo no atiende la devolución.
 - El puntaje se publica únicamente cuando el FICED queda **Validado**.
 
 ---

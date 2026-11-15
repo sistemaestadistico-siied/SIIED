@@ -101,64 +101,64 @@ class MenuSubtema(models.Model):
 class OperacionEstadistica(models.Model):
     id = models.AutoField(primary_key=True)
     codigo = models.CharField(max_length=50, unique=True)
-    nombre = models.CharField(max_length=255)
+    nombre = models.TextField()
     descripcion = models.TextField(blank=True, null=True)
     tipo_operacion = models.CharField(max_length=100)
     periodicidad = models.CharField(max_length=50)
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField(blank=True, null=True)
-    entidad_recopiladora = models.CharField(max_length=255)
+    entidad_recopiladora = models.TextField()
     metodologia = models.TextField(blank=True, null=True)
     url = models.URLField(blank=True, null=True)
     activo = models.BooleanField(default=True)
 
     # Campos adicionales provenientes del CSV OOEE
     c_organismo = models.CharField(max_length=100, blank=True, null=True)
-    organismo = models.CharField(max_length=255, blank=True, null=True)
-    suborganismo = models.CharField(max_length=255, blank=True, null=True)
-    area_tem = models.CharField(max_length=255, blank=True, null=True)
-    tema = models.CharField(max_length=255, blank=True, null=True)
-    unidad_observ = models.CharField(max_length=255, blank=True, null=True)
+    organismo = models.TextField(blank=True, null=True)
+    suborganismo = models.TextField(blank=True, null=True)
+    area_tem = models.TextField(blank=True, null=True)
+    tema = models.TextField(blank=True, null=True)
+    unidad_observ = models.TextField(blank=True, null=True)
     objetivo = models.TextField(blank=True, null=True)
     descripcion_proceso = models.TextField(blank=True, null=True)
     principales_resultados = models.TextField(blank=True, null=True)
-    enfoque_diferencial = models.CharField(max_length=255, blank=True, null=True)
+    enfoque_diferencial = models.TextField(blank=True, null=True)
     desagregacion_resultados = models.TextField(blank=True, null=True)
-    doc_met = models.CharField(max_length=255, blank=True, null=True)
-    ficha_met = models.CharField(max_length=255, blank=True, null=True)
-    manual_op = models.CharField(max_length=255, blank=True, null=True)
-    diccionario_datos = models.CharField(max_length=255, blank=True, null=True)
-    doc_cons_valid = models.CharField(max_length=255, blank=True, null=True)
-    acciones_fortalecimiento = models.CharField(max_length=255, blank=True, null=True)
+    doc_met = models.TextField(blank=True, null=True)
+    ficha_met = models.TextField(blank=True, null=True)
+    manual_op = models.TextField(blank=True, null=True)
+    diccionario_datos = models.TextField(blank=True, null=True)
+    doc_cons_valid = models.TextField(blank=True, null=True)
+    acciones_fortalecimiento = models.TextField(blank=True, null=True)
     sicode = models.CharField(max_length=100, blank=True, null=True)
     cod_cg = models.CharField(max_length=100, blank=True, null=True)
     estr_org = models.CharField(max_length=100, blank=True, null=True)
     tipo_oe_i = models.CharField(max_length=100, blank=True, null=True)
     num = models.CharField(max_length=50, blank=True, null=True)
     p_bp = models.CharField(max_length=50, blank=True, null=True)
-    proyecto = models.CharField(max_length=255, blank=True, null=True)
-    fun_org = models.CharField(max_length=255, blank=True, null=True)
-    fun_sub = models.CharField(max_length=255, blank=True, null=True)
-    mop = models.CharField(max_length=255, blank=True, null=True)
-    pe = models.CharField(max_length=255, blank=True, null=True)
-    adda_1 = models.CharField(max_length=255, blank=True, null=True)
+    proyecto = models.TextField(blank=True, null=True)
+    fun_org = models.TextField(blank=True, null=True)
+    fun_sub = models.TextField(blank=True, null=True)
+    mop = models.TextField(blank=True, null=True)
+    pe = models.TextField(blank=True, null=True)
+    adda_1 = models.TextField(blank=True, null=True)
     cant_amda = models.IntegerField(blank=True, null=True)
     link_adda = models.URLField(blank=True, null=True)
     link_pe = models.URLField(blank=True, null=True)
     amda_clas = models.CharField(max_length=100, blank=True, null=True)
     anio_adda = models.IntegerField(blank=True, null=True)
     anio_act_pe = models.IntegerField(blank=True, null=True)
-    nombre_tematico = models.CharField(max_length=255, blank=True, null=True)
-    correo_tematico = models.CharField(max_length=255, blank=True, null=True)
+    nombre_tematico = models.TextField(blank=True, null=True)
+    correo_tematico = models.TextField(blank=True, null=True)
     celular_tematico = models.CharField(max_length=100, blank=True, null=True)
-    nombre_coordinador = models.CharField(max_length=255, blank=True, null=True)
-    correo_coordinador = models.CharField(max_length=255, blank=True, null=True)
+    nombre_coordinador = models.TextField(blank=True, null=True)
+    correo_coordinador = models.TextField(blank=True, null=True)
     celular_coordinador = models.CharField(max_length=100, blank=True, null=True)
-    grupo_productor = models.CharField(max_length=255, blank=True, null=True)
-    pdd = models.CharField(max_length=255, blank=True, null=True)
-    responsable_actualizacion = models.CharField(max_length=255, blank=True, null=True)
-    estado_actualizacion = models.CharField(max_length=255, blank=True, null=True)
-    pendiente = models.CharField(max_length=255, blank=True, null=True)
+    grupo_productor = models.TextField(blank=True, null=True)
+    pdd = models.TextField(blank=True, null=True)
+    responsable_actualizacion = models.TextField(blank=True, null=True)
+    estado_actualizacion = models.TextField(blank=True, null=True)
+    pendiente = models.TextField(blank=True, null=True)
     observaciones = models.TextField(blank=True, null=True)
 
     def __str__(self):
@@ -2347,6 +2347,10 @@ class DatasetBI(models.Model):
     ]
 
     nombre_tabla = models.CharField(max_length=200, unique=True)
+    titulo = models.CharField(
+        max_length=200, blank=True,
+        help_text='Nombre amigable para mostrar cuando el nombre tecnico '
+                  'no lo es (p.ej. la URL de un Google Sheet)')
     dataset_id = models.IntegerField(
         null=True, blank=True,
         help_text='ID del dataset en Superset (se llena tras el upload)')
@@ -2937,6 +2941,13 @@ class Organismo(models.Model):
     nombre_menu = models.CharField(
         max_length=100, blank=True,
         help_text="Nombre corto del organigrama para menús"
+    )
+    alias = models.TextField(
+        blank=True, null=True,
+        help_text="Nombres alternativos del organismo, uno por línea "
+                  "(nombre antiguo, grafía del inventario de OOEE, sigla…). "
+                  "Se usan para cruzar fuentes que guardan el nombre como "
+                  "texto libre y no un código."
     )
 
     class Meta:

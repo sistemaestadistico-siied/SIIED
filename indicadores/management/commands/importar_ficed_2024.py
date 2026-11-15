@@ -227,16 +227,19 @@ class Command(BaseCommand):
             'p7_info_definiciones': '',
             'p7_estructura_mop': json.dumps(self._parse_mop(bd), ensure_ascii=False),
         }
-        # P8 / P9 — checkbox-tabla {codigo: {seleccion, documento}}
+        # P8 / P9 — formset inline [{herramienta, documento_seccion}] +
+        # checkbox aparte p{n}_no_se_incluyen (formato actual del wizard)
+        herramientas = ['planes_trabajo', 'planes_accion',
+                        'programas', 'proyectos']
         for pref, campo in (('8', 'p8_herramientas_planificacion'),
                             ('9', 'p9_herramientas_mejoramiento')):
-            datos = {}
-            for i, code in enumerate(['planes_trabajo', 'planes_accion', 'programas', 'proyectos'], 1):
-                datos[code] = {'seleccion': bd.marcado(f'{pref}.{i}')}
-                if datos[code]['seleccion']:
-                    datos[code]['documento'] = bd.texto(f'{pref}.{i}.1')
-            datos['no_se_incluyen'] = {'seleccion': bd.marcado(f'{pref}.5')}
-            r[campo] = json.dumps(datos, ensure_ascii=False)
+            filas = []
+            for i, code in enumerate(herramientas, 1):
+                if bd.marcado(f'{pref}.{i}'):
+                    filas.append({'herramienta': code,
+                                  'documento_seccion': bd.texto(f'{pref}.{i}.1')})
+            r[campo] = json.dumps(filas, ensure_ascii=False)
+            r[f'{campo[:2]}_no_se_incluyen'] = bd.marcado(f'{pref}.5')
 
         # P10
         sel10 = bd.elegida('10', 4)
@@ -414,8 +417,7 @@ class Command(BaseCommand):
         # P31-P32
         sel31 = bd.elegida('31', 5)
         r['p31_tipo_analitica'] = str(sel31) if sel31 else ''
-        r['p31_descripcion_productos'] = ''
-        r['p31_url'] = ''
+        r['p31_productos'] = json.dumps([], ensure_ascii=False)
         sel32 = bd.elegida('32', 6)
         r['p32_analitica_datic'] = str(sel32) if sel32 else ''
         r['p32_caso_uso'] = bd.texto('32.7')

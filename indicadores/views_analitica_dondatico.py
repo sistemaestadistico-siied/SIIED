@@ -80,7 +80,7 @@ def _datasets_contexto(service):
     if ctx is not None:
         return ctx
     ctx = []
-    for d in service.listar_datasets()[:60]:
+    for d in (service.listar_datasets() or [])[:60]:
         info = service.info_dataset(d['id']) or {}
         ctx.append({
             'id': d['id'],
@@ -556,7 +556,8 @@ def dondatico_home(request):
     """Portada del submódulo: consulta, análisis y creación de tableros."""
     service = SupersetService()
     disponible = service.health_check()
-    datasets = service.listar_datasets()[:60] if disponible else []
+    datasets = ((service.listar_datasets() or [])[:60]
+                if disponible else [])
     perfil = getattr(request.user, 'perfil_recolector', None)
     if (perfil and perfil.rol == 'analista_organismo'
             and not request.user.is_staff):
@@ -714,7 +715,11 @@ def dondatico_generar(request):
     titulo = str(spec.get('titulo') or 'Tablero Don Datico')[:120]
 
     # 1) Dashboard vacío → 2) charts asociados → 3) layout
-    dash = service.crear_dashboard(titulo, publicar=False)
+    # owner_usuario: el activo se crea con la cuenta de servicio; sin
+    # declarar al usuario SIIED como owner no lo vería bajo «Mío» ni
+    # podría editarlo en la UI de Superset.
+    dash = service.crear_dashboard(
+        titulo, publicar=False, owner_usuario=request.user.username)
     if not dash['ok']:
         return JsonResponse(
             {'error': 'No se pudo crear el dashboard en Superset: '
@@ -798,7 +803,8 @@ def dondatico_generar(request):
 
         creado = service.crear_chart(
             titulo_chart, ds['id'], viz_type, params,
-            dashboards=[dashboard_id])
+            dashboards=[dashboard_id],
+            owner_usuario=request.user.username)
         charts_result.append({
             'titulo': titulo_chart, 'ok': creado['ok'],
             'chart_id': creado['chart_id'], 'viz': viz,

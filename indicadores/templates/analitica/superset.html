@@ -239,8 +239,15 @@
                     <i class="fas fa-chevron-down ds-cat-chevron text-slate-300 text-[10px] transition-transform"></i>
                 </summary>
                 <div class="px-3 pb-3">
-                {% for d in dataset_familias.propios %}
-                {% include 'analitica/_dataset_chip.html' with color='amber' %}
+                {% for g in propios_agrupados %}
+                    {% if propios_agrupados|length > 1 %}
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide mt-2 mb-1">
+                        <i class="fas fa-user mr-1"></i>{{ g.usuario }}
+                    </p>
+                    {% endif %}
+                    {% for d in g.datasets %}
+                    {% include 'analitica/_dataset_chip.html' with color='amber' %}
+                    {% endfor %}
                 {% empty %}
                 <p class="text-xs text-slate-400">Suba un CSV desde «Subir CSV»</p>
                 {% endfor %}
@@ -259,8 +266,18 @@
         </h2>
     </div>
 
+    {% for grupo in tableros_agrupados %}
+    <div class="mt-8 first:mt-0 mb-1">
+        <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wider">
+            <i class="fas fa-building text-sky-400 mr-1.5"></i>{{ grupo.organismo }}
+        </h3>
+    </div>
+    {% for sub in grupo.usuarios %}
+    <p class="text-xs text-slate-400 mt-4 mb-2">
+        <i class="fas fa-user mr-1"></i>{{ sub.usuario }}
+    </p>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for d in dashboards %}
+        {% for d in sub.dashboards %}
         <div class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
             <!-- Thumbnail o placeholder (el ícono queda debajo; si la imagen
                  falla — thumbnails deshabilitados en Superset — se muestra) -->
@@ -350,6 +367,8 @@
         </div>
         {% endfor %}
     </div>
+    {% endfor %}
+    {% endfor %}
 
     {% else %}
     <!-- Empty state -->

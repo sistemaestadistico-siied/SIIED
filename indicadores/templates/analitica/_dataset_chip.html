@@ -8,9 +8,9 @@ dataset (dueño o equipo SIIED), el botón ⋮ abre un menú con el selector
 de visibilidad y la eliminación en Superset — no solo del registro local.
 {% endcomment %}
 {% if d.puede_gestionar %}
-<div class="ds-chip relative flex items-center gap-0.5 mb-1 mr-1" data-name="{{ d.table_name|lower }}">
+<div class="ds-chip relative flex items-center gap-0.5 mb-1 mr-1" data-name="{{ d.display_name|default:d.table_name|lower }} {{ d.table_name|lower }}">
     <span title="{{ d.table_name }}"
-          class="font-mono text-xs bg-{{ color }}-50 text-{{ color }}-700 border border-{{ color }}-100 rounded px-2 py-1 break-all flex-1">{{ d.table_name }}</span>
+          class="font-mono text-xs bg-{{ color }}-50 text-{{ color }}-700 border border-{{ color }}-100 rounded px-2 py-1 break-all flex-1">{{ d.display_name|default:d.table_name }}</span>
     {% if d.icono_vis %}
     <i class="fas {{ d.icono_vis }} text-[10px] text-{{ color }}-400 shrink-0 w-3.5 text-center"
        title="{{ d.visibilidad_label }}"></i>
@@ -47,7 +47,7 @@ de visibilidad y la eliminación en Superset — no solo del registro local.
 </div>
 {% else %}
 <span class="ds-chip inline-flex items-center gap-1.5 font-mono text-xs bg-{{ color }}-50 text-{{ color }}-700 border border-{{ color }}-100 rounded px-2 py-1 mb-1 mr-1 break-all"
-      data-name="{{ d.table_name|lower }}" title="{{ d.table_name }}">{{ d.table_name }}
+      data-name="{{ d.display_name|default:d.table_name|lower }} {{ d.table_name|lower }}" title="{{ d.table_name }}">{{ d.display_name|default:d.table_name }}
     {% if d.icono_vis %}
     <i class="fas {{ d.icono_vis }} text-[9px] text-{{ color }}-400" title="{{ d.visibilidad_label }}"></i>
     {% endif %}

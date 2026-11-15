@@ -11,7 +11,10 @@ import os
 import re
 import csv
 import io
+import fcntl
+import time
 import logging
+import tempfile
 import importlib
 from urllib.parse import quote_plus
 
@@ -380,6 +383,7 @@ def analitica_superset(request):
     status = {}
 
     datasets = []
+    tableros_agrupados = []
     if superset_disponible:
         dashboards = service.listar_dashboards()
         status = service.get_status()
@@ -388,6 +392,8 @@ def analitica_superset(request):
         # Reconciliar: lo borrado directamente en Superset deja de estar
         # activo en el registro local (evita tableros/datasets fantasma).
         _reconciliar_registros_bi(dashboards, datasets)
+        dashboards = dashboards or []
+        datasets = datasets or []
 
         # Registrar TableroBI para dashboards creados a mano en Superset:
         # sin fila no hay visibilidad configurable ni acceso embed.
@@ -404,7 +410,9 @@ def analitica_superset(request):
 
         # Metadata local (origen/visibilidad/registro) sobre los activos.
         tableros = {
-            t.dashboard_id: t for t in TableroBI.objects.filter(
+            t.dashboard_id: t for t in TableroBI.objects
+            .select_related('organismo', 'creado_por')
+            .filter(
                 dashboard_id__in=[d['id'] for d in dashboards],
                 activo=True)}
         datasets_reg = {
@@ -421,10 +429,40 @@ def analitica_superset(request):
             # Link público por enlace (firma del dashboard_id): solo se
             # expone a quien gestiona el tablero — cualquiera con ese
             # link accede sin login, por fuera de la visibilidad.
-            if d['puede_gestionar']:
+            # Excepción: si el tablero ya es 'publico', /bi/<id>/ está
+            # abierto sin sesión — el link no revela nada adicional y
+            # cualquier usuario BI puede compartirlo.
+            # Requiere TableroBI activo: la vista pública lo exige
+            # (título + RLS); sin registro el enlace daria siempre 404.
+            if t is not None and (
+                    d['puede_gestionar'] or t.visibilidad == 'publico'):
                 d['link_publico'] = request.build_absolute_uri(
                     reverse('indicadores:bi_tablero_publico',
                             args=[d['id'], _bi_firma_link(d['id'])]))
+
+        # Agrupar tarjetas: organismo → usuario creador. Con muchos
+        # tableros la grilla plana se vuelve inmanejable.
+        _grupos = {}
+        for d in dashboards:
+            t = d.get('tablero')
+            if t and t.organismo:
+                org = t.organismo.nombre
+            else:
+                org = 'SIIED'
+            creador = t.creado_por if t else None
+            if creador:
+                usr = (creador.get_full_name() or creador.username)
+            elif d.get('owners'):
+                usr = d['owners'][0]
+            else:
+                usr = 'SIIED BI'
+            _grupos.setdefault(org, {}).setdefault(usr, []).append(d)
+        tableros_agrupados = [
+            {'organismo': org,
+             'usuarios': [
+                 {'usuario': usr, 'dashboards': ds}
+                 for usr, ds in sorted(usuarios.items())]}
+            for org, usuarios in sorted(_grupos.items())]
         if (perfil and perfil.rol == 'analista_organismo'
                 and not request.user.is_staff):
             # El analista BI del organismo solo ve los datasets visibles
@@ -445,6 +483,7 @@ def analitica_superset(request):
                                       if r else '')
             d['puede_gestionar'] = _puede_gestionar_bi(
                 request, r.usuario if r else None)
+            d['display_name'] = (getattr(r, 'titulo', '') or '') if r else ''
     else:
         messages.warning(
             request,
@@ -472,11 +511,34 @@ def analitica_superset(request):
         else:
             dataset_familias['propios'].append(d)
 
+    # 'Archivos propios' se despliega agrupado por dueño del dataset
+    # (igual que los tableros por usuario). Dueño preferido: registro
+    # local DatasetBI; si no hay, el primer owner que reporta Superset.
+    _usr_actual = (request.user.get_full_name() or
+                   getattr(request.user, 'username', '') or '')
+    _grupos_propios = {}
+    for d in dataset_familias['propios']:
+        r = d.get('datasetbi')
+        if r and r.usuario:
+            usr = r.usuario.get_full_name() or r.usuario.username
+        elif d.get('owners'):
+            usr = d['owners'][0]
+        else:
+            usr = 'Sin propietario registrado'
+        _grupos_propios.setdefault(usr, []).append(d)
+    propios_agrupados = [
+        {'usuario': usr, 'datasets': ds}
+        for usr, ds in sorted(
+            _grupos_propios.items(),
+            key=lambda kv: (kv[0] != _usr_actual, kv[0].lower()))]
+
     context = {
+        'tableros_agrupados': tableros_agrupados,
         'dashboards': dashboards,
         'superset_disponible': superset_disponible,
         'status': status,
         'dataset_familias': dataset_familias,
+        'propios_agrupados': propios_agrupados,
         'conjuntos_disponible': ConjuntoDatos.objects.count(),
         'superset_public_url': getattr(
             settings, 'SUPERSET_PUBLIC_URL',
@@ -511,15 +573,21 @@ def _superset_embed_view(request, target_path, page_title='SIIED BI',
     # Alpha/Gamma creadas por el sync del admin. Cuentas Admin (p.ej. la
     # de servicio) o pre-existentes tienen su propia contraseña.
     try:
-        roles = SupersetService().roles_de_usuario(request.user.username)
+        service = SupersetService()
+        roles = service.roles_de_usuario(request.user.username)
     except Exception:
-        roles = []
+        service, roles = None, []
     if {'Alpha', 'Gamma'} & set(roles):
         superset_password = getattr(settings, 'SUPERSET_SHARED_PASSWORD', '')
         login_hint = 'shared'
     elif roles:
         superset_password = ''
         login_hint = 'admin'
+    elif service is None or not service.api_disponible():
+        # API caída o credenciales rechazadas: no se puede verificar la
+        # cuenta — NO afirmar que no existe (falso negativo).
+        superset_password = ''
+        login_hint = 'error'
     else:
         superset_password = ''
         login_hint = 'none'
@@ -602,17 +670,28 @@ def _puede_gestionar_bi(request, dueno=None):
 
 
 def _reconciliar_registros_bi(dashboards, datasets):
-    """Desactiva los registros BI cuyo activo ya no existe en Superset.
+    """Sincroniza el registro BI con lo que existe en Superset.
 
-    Cubre los borrados hechos directamente en la UI de Superset: sin esto
-    el tablero/dataset seguía activo en SIIED BI / Don Datico BI / admin.
-    """
-    ids = [d.get('id') for d in dashboards]
-    TableroBI.objects.filter(activo=True).exclude(
-        dashboard_id__in=ids).update(activo=False)
-    nombres = [d.get('table_name') for d in datasets]
-    DatasetBI.objects.filter(activo=True).exclude(
-        nombre_tabla__in=nombres).update(activo=False)
+    - Desactiva los registros cuyo activo ya no aparece en el listado
+      (borrados hechos directamente en la UI de Superset): sin esto el
+      tablero/dataset seguía activo en SIIED BI / Don Datico BI / admin.
+    - Reactiva los que reaparecen: un listado roto por fallo de API (p.
+      ej. cuenta de servicio desactivada) apagaba todo el registro y
+      nada lo volvía a encender — los links públicos quedaban 404.
+    - dashboards/datasets = None → el listado falló: NO se toca nada de
+      ese lado. Distingue "instancia vacía" de "API caída"."""
+    if dashboards is not None:
+        ids = [d.get('id') for d in dashboards]
+        TableroBI.objects.filter(activo=True).exclude(
+            dashboard_id__in=ids).update(activo=False)
+        TableroBI.objects.filter(
+            activo=False, dashboard_id__in=ids).update(activo=True)
+    if datasets is not None:
+        nombres = [d.get('table_name') for d in datasets]
+        DatasetBI.objects.filter(activo=True).exclude(
+            nombre_tabla__in=nombres).update(activo=False)
+        DatasetBI.objects.filter(
+            activo=False, nombre_tabla__in=nombres).update(activo=True)
 
 
 def _volver_superset(request):
@@ -687,6 +766,26 @@ def analitica_tablero_eliminar(request, dashboard_id):
     return _volver_superset(request)
 
 
+def _aplicar_acceso_gamma(service, dataset_id, visibilidad):
+    """Sincroniza el datasource_access del rol Gamma con la visibilidad.
+
+    'publico' promete «todos los organismos»: los analistas de organismo
+    son Gamma en Superset, así que el permiso datasource_access sobre el
+    dataset se otorga a ese rol; con otra visibilidad se revoca. Falla
+    suave — la visibilidad SIIED queda guardada igual; solo se loguea.
+    """
+    if not dataset_id:
+        return
+    r = service.acceso_dataset_rol(
+        dataset_id, 'Gamma', otorgar=(visibilidad == 'publico'))
+    if 'error' in r:
+        logger.warning(
+            "Superset: no se pudo %s datasource_access a Gamma "
+            "(dataset %s): %s",
+            'otorgar' if visibilidad == 'publico' else 'revocar',
+            dataset_id, r['error'])
+
+
 @bi_required
 @require_POST
 def analitica_dataset_visibilidad(request, dataset_id):
@@ -718,6 +817,7 @@ def analitica_dataset_visibilidad(request, dataset_id):
             'visibilidad': visibilidad,
             'activo': True,
         })
+    _aplicar_acceso_gamma(service, dataset_id, visibilidad)
     messages.success(request, f'Visibilidad de «{nombre}» actualizada.')
     return _volver_superset(request)
 
@@ -868,6 +968,25 @@ def analitica_superset_subir_csv(request):
                 'superset_disponible': service.health_check(),
             })
 
+        # Normalizar a CSV UTF-8 con comas antes del upload: evita el
+        # 500 de Superset ante xlsx sin openpyxl, codificaciones
+        # latin-1/Windows-1252 o delimitador ';' típico de Excel en español.
+        try:
+            archivo = _normalizar_a_csv_utf8(archivo)
+        except Exception as e:
+            logger.warning("Archivo de subida no legible (%s): %s",
+                           request.user.username, e)
+            messages.error(
+                request,
+                f'No se pudo leer el archivo: {e}. Verifique que sea un '
+                'CSV, TSV o Excel válido e inténtelo de nuevo.')
+            return render(request, 'analitica/superset_subir_csv.html', {
+                'conjuntos': conjuntos,
+                'superset_disponible': service.health_check(),
+            })
+
+        # tipo=None: si el archivo hizo passthrough (.xlsx sin pandas
+        # local), subir_csv infiere 'excel' por la extensión.
         resultado = service.subir_csv(archivo, nombre_tabla)
 
         if resultado.get('success'):
@@ -879,8 +998,15 @@ def analitica_superset_subir_csv(request):
                 visibilidad = 'propio'
             # Id del dataset en Superset: permite eliminarlo después.
             ds_id = next(
-                (d['id'] for d in service.listar_datasets()
+                (d['id'] for d in (service.listar_datasets() or [])
                  if d.get('table_name') == nombre_tabla), None)
+            # El upload sube con la cuenta de servicio: sin declarar al
+            # usuario como owner, un Gamma no tendría datasource_access
+            # y sus charts fallarían al editar/consultar el dataset.
+            if ds_id:
+                service.asignar_owners_dataset(
+                    ds_id, request.user.username)
+                _aplicar_acceso_gamma(service, ds_id, visibilidad)
             DatasetBI.objects.update_or_create(
                 nombre_tabla=nombre_tabla,
                 defaults={
@@ -924,7 +1050,8 @@ def _crear_dataset_gsheet_bi(request, service, url_gsheet,
             request, 'La URL es demasiado larga (máx. 200 caracteres).')
         return render_form()
 
-    resultado = service.crear_dataset_gsheet(url_gsheet)
+    resultado = service.crear_dataset_gsheet(
+        url_gsheet, owner_usuario=request.user.username)
     if not resultado.get('success'):
         messages.error(
             request,
@@ -944,6 +1071,8 @@ def _crear_dataset_gsheet_bi(request, service, url_gsheet,
             'dataset_id': resultado.get('dataset_id'),
             'activo': True,
         })
+    _aplicar_acceso_gamma(
+        service, resultado.get('dataset_id'), visibilidad)
     messages.success(
         request,
         'Dataset de Google Sheet creado en Superset '
@@ -1112,7 +1241,8 @@ def analitica_superset_dataset_db(request):
             return redirect('indicadores:analitica_superset_dataset_db')
 
         resultado = service.crear_dataset_tabla(
-            conexion.superset_database_id, schema or None, tabla)
+            conexion.superset_database_id, schema or None, tabla,
+            owner_usuario=request.user.username)
         if resultado.get('success'):
             visibilidad = request.POST.get('visibilidad', 'interno')
             if visibilidad not in dict(DatasetBI.VISIBILIDAD_CHOICES):
@@ -1124,6 +1254,8 @@ def analitica_superset_dataset_db(request):
                 usuario=request.user,
                 organismo=getattr(perfil, 'organismo', None),
                 visibilidad=visibilidad)
+            _aplicar_acceso_gamma(
+                service, resultado.get('dataset_id'), visibilidad)
             messages.success(
                 request,
                 f'Dataset "{tabla}" creado sobre la conexión '
@@ -1205,6 +1337,96 @@ def _archivo_a_memoria(archivo_field, nombre=None):
         archivo_field.close()
     data.name = nombre or os.path.basename(archivo_field.name)
     return data
+
+
+def _normalizar_a_csv_utf8(archivo):
+    """Normaliza el archivo recibido a CSV UTF-8 delimitado por comas.
+
+    Superset responde 500 (página HTML) cuando el upload no puede parsear:
+    archivos latin-1/Windows-1252, delimitador ';' (exports de Excel
+    latinoamérica) o .xlsx mal formados.
+
+    Degrada con elegancia si el venv no tiene las dependencias opcionales:
+    sin pandas usa el csv del stdlib; sin openpyxl/xlrd o pandas deja
+    pasar el archivo original para que lo lea Superset directamente.
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        pd = None
+
+    nombre = getattr(archivo, 'name', '') or 'archivo'
+    if hasattr(archivo, 'seek'):
+        archivo.seek(0)
+    raw = archivo.read()
+    if isinstance(raw, str):
+        raw = raw.encode('utf-8')
+    ext = os.path.splitext(nombre)[1].lower()
+    base = os.path.splitext(os.path.basename(nombre))[0]
+
+    def _passthrough():
+        if hasattr(archivo, 'seek'):
+            archivo.seek(0)
+        return archivo
+
+    if ext in ('.xls', '.xlsx', '.xlsm'):
+        if pd is None:
+            return _passthrough()
+        try:
+            df = pd.read_excel(io.BytesIO(raw), sheet_name=0, dtype=object)
+        except ImportError:
+            # Falta openpyxl/xlrd en este venv: Superset los tiene
+            # instalados; que lo lea allá.
+            return _passthrough()
+        if df.empty:
+            raise ValueError('el archivo no contiene filas de datos')
+        buf = io.BytesIO(df.to_csv(index=False).encode('utf-8'))
+        buf.name = base + '.csv'
+        return buf
+
+    # CSV/TSV/otro texto: decodificar con lista de codificaciones candidatas.
+    encs = []
+    try:
+        import chardet
+        det = chardet.detect(raw[:100_000]).get('encoding')
+        if det:
+            encs.append(det)
+    except ImportError:
+        pass
+    encs += ['utf-8-sig', 'utf-8', 'cp1252', 'latin-1']
+
+    texto = None
+    for enc in encs:
+        try:
+            texto = raw.decode(enc)
+            break
+        except (UnicodeDecodeError, LookupError):
+            continue
+    if texto is None:
+        raise ValueError('no se pudo decodificar el contenido del archivo')
+
+    try:
+        delim = csv.Sniffer().sniff(texto[:10_000],
+                                  delimiters=',;\t|').delimiter
+    except csv.Error:
+        delim = ','
+
+    if pd is not None:
+        df = pd.read_csv(io.StringIO(texto), sep=delim,
+                         engine='python', dtype=str)
+        if df.empty:
+            raise ValueError('el archivo no contiene filas de datos')
+        salida = df.to_csv(index=False)
+    else:
+        # Sin pandas: re-emisión tolerante con csv del stdlib.
+        reader = csv.reader(io.StringIO(texto), delimiter=delim)
+        out_io = io.StringIO()
+        csv.writer(out_io).writerows(reader)
+        salida = out_io.getvalue()
+
+    buf = io.BytesIO(salida.encode('utf-8'))
+    buf.name = base + '.csv'
+    return buf
 
 
 # SQL de la vista plana de indicadores (la misma de vista_indicadores_datos).
@@ -1473,7 +1695,8 @@ def _sincronizar_datasets_siied(service):
                              '(registro huérfano — vuelva a cargarlo)'})
                 continue
             archivo = _archivo_a_memoria(conjunto.archivo_csv)
-            res = service.subir_csv(archivo, tabla)
+            res = service.subir_csv(
+                _normalizar_a_csv_utf8(archivo), tabla)
         except Exception as e:
             res = {'error': str(e)}
         resultados.append({
@@ -1490,7 +1713,8 @@ def _sincronizar_datasets_siied(service):
                 res = service.subir_csv(archivo, tabla)
             elif catalogo.archivo and os.path.exists(catalogo.archivo.path):
                 archivo = _archivo_a_memoria(catalogo.archivo)
-                res = service.subir_csv(archivo, tabla)
+                res = service.subir_csv(
+                    _normalizar_a_csv_utf8(archivo), tabla, tipo='csv')
             else:
                 resultados.append({
                     'fuente': fuente, 'tabla': tabla, 'ok': False,
@@ -1507,7 +1731,8 @@ def _sincronizar_datasets_siied(service):
     # --- Datasets virtuales de indicadores ---
     # Consultan las tablas en vivo (no copian datos): solo se crean los que
     # falten y nunca quedan desactualizados.
-    existentes = {d.get('table_name') for d in service.listar_datasets()}
+    existentes = {d.get('table_name') for d in
+                  (service.listar_datasets() or [])}
 
     if 'vista_indicadores_datos' not in existentes:
         res = service.crear_dataset_virtual(
@@ -1577,33 +1802,81 @@ def _sincronizar_datasets_siied(service):
     return resultados
 
 
-@analista_required
+# Segundos mínimos entre corridas de 'Sincronizar SIIED' (global, entre
+# usuarios y workers — ver el lock de archivo en la vista).
+_SYNC_COOLDOWN_SEG = 120
+
+
+@bi_required
 def analitica_superset_sincronizar(request):
-    """Sincroniza ConjuntoDatos y Catálogos de Consulta hacia Superset."""
+    """Sincroniza ConjuntoDatos y Catálogos de Consulta hacia Superset.
+
+    Acción idempotente sobre los datasets gestionados por el SIIED
+    (conjunto_*, catalogo_*, dominio_*…); no toca datasets propios
+    de los usuarios. Cualquier usuario BI (analista SIIED o analista
+    de organismo) puede lanzarla.
+    """
     if request.method != 'POST':
         return redirect('indicadores:analitica_superset')
-    service = SupersetService()
-    if not service.health_check():
-        messages.error(request, 'Superset no está disponible. '
-                                'No se pudo sincronizar los datasets.')
-        return redirect('indicadores:analitica_superset')
 
-    resultados = _sincronizar_datasets_siied(service)
-    ok = sum(1 for r in resultados if r['ok'])
-    skip = sum(1 for r in resultados if r.get('skip'))
-    for r in resultados:
-        if r['ok']:
-            messages.success(
-                request, f"{r['fuente']} → dataset «{r['tabla']}»")
-        elif r.get('skip'):
-            messages.info(request, f"{r['fuente']}: {r['error']}")
-        else:
-            messages.warning(request, f"{r['fuente']}: {r['error']}")
-    messages.info(
-        request,
-        f'Sincronización completada: {ok} dataset(s) actualizados'
-        f'{f", {skip} omitidos" if skip else ""}.')
-    return redirect('indicadores:analitica_superset')
+    # Throttle global: el sync sube todos los datasets gestionados — es
+    # pesado e idempotente, así que una corrida por vez y mínimo
+    # _SYNC_COOLDOWN_SEG entre corridas. Un archivo en tmp + flock
+    # exclusivo lo hace valer para todos los workers de gunicorn del
+    # host (la caché locmem sería por proceso y no bastaría).
+    lock_path = os.path.join(
+        tempfile.gettempdir(), 'siied_superset_sync.lock')
+    lock = open(lock_path, 'a+')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        lock.close()
+        messages.warning(
+            request, 'Ya hay una sincronización SIIED en curso. '
+                     'Espere a que termine e intente de nuevo.')
+        return redirect('indicadores:analitica_superset')
+    try:
+        lock.seek(0)
+        try:
+            ultimo = float(lock.read().strip() or 0)
+        except ValueError:
+            ultimo = 0
+        espera = _SYNC_COOLDOWN_SEG - (time.time() - ultimo)
+        if espera > 0:
+            messages.warning(
+                request,
+                'La sincronización ya se ejecutó recientemente. '
+                f'Puede reintentar en {int(espera)} s.')
+            return redirect('indicadores:analitica_superset')
+
+        service = SupersetService()
+        if not service.health_check():
+            messages.error(request, 'Superset no está disponible. '
+                                    'No se pudo sincronizar los datasets.')
+            return redirect('indicadores:analitica_superset')
+
+        resultados = _sincronizar_datasets_siied(service)
+        ok = sum(1 for r in resultados if r['ok'])
+        skip = sum(1 for r in resultados if r.get('skip'))
+        for r in resultados:
+            if r['ok']:
+                messages.success(
+                    request, f"{r['fuente']} → dataset «{r['tabla']}»")
+            elif r.get('skip'):
+                messages.info(request, f"{r['fuente']}: {r['error']}")
+            else:
+                messages.warning(request, f"{r['fuente']}: {r['error']}")
+        messages.info(
+            request,
+            f'Sincronización completada: {ok} dataset(s) actualizados'
+            f'{f", {skip} omitidos" if skip else ""}.')
+        return redirect('indicadores:analitica_superset')
+    finally:
+        lock.seek(0)
+        lock.truncate()
+        lock.write(str(time.time()))
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        lock.close()
 
 
 @bi_required
@@ -1777,7 +2050,7 @@ def bi_tablero(request, dashboard_id):
     if acceso is None:
         messages.error(
             request, 'Este tablero es exclusivo de otro organismo.')
-        return redirect('indicadores:index')
+        return redirect('indicadores:home')
 
     embed_uuid, guest_token = _bi_mint_tablero(tablero, *acceso)
 
@@ -1788,7 +2061,7 @@ def bi_tablero(request, dashboard_id):
         messages.error(
             request,
             'El tablero no está disponible en este momento.')
-        return redirect('indicadores:index')
+        return redirect('indicadores:home')
 
     return render(request, 'analitica/superset_embed.html', {
         'embed_uuid': embed_uuid,

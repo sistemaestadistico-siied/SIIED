@@ -42,6 +42,10 @@
             El acceso es de Superset con su cuenta administradora
             <code class="font-mono font-bold">{{ superset_username }}</code>
             — use la contraseña propia de esa cuenta (definida en el servidor).
+            {% elif login_hint == 'error' %}
+            No se pudo verificar su cuenta de Superset: el servicio no
+            responde. Si el problema persiste, avise al administrador
+            del SIIED.
             {% else %}
             El acceso es de Superset: su usuario
             <code class="font-mono font-bold">{{ superset_username }}</code>

@@ -45,6 +45,15 @@ from .calcular_iced import (
 )
 
 
+def _norm_organismo(nombre):
+    """Nombre de organismo normalizado para cruces de texto libre:
+    minúsculas, sin tildes y espacios colapsados."""
+    import unicodedata
+    s = unicodedata.normalize('NFKD', str(nombre or ''))
+    s = ''.join(c for c in s if not unicodedata.combining(c))
+    return ' '.join(s.casefold().split())
+
+
 # =============================================================================
 # WIZARD VIEW
 # =============================================================================
@@ -296,6 +305,9 @@ class ICEDWizardView(SessionWizardView):
         # Fuente primaria: datos de la sesión del wizard. Respaldo: respuestas
         # guardadas en BD (borradores reanudados en una sesión nueva).
         if self.steps.current == 'revision':
+            # Labels legibles por campo: los de cada form del paso (los
+            # campos ocultos/JSON no siempre tienen label → se usa la clave).
+            forms_por_paso = dict(ICED_WIZARD_FORMS)
             resumen = []
             for step_key in steps_list:
                 if step_key == 'revision':
@@ -306,7 +318,15 @@ class ICEDWizardView(SessionWizardView):
                     data = {}
                 if not data and formulario_actual:
                     data = self._respuestas_bd_para_paso(formulario_actual, step_key)
-                visibles = {k: v for k, v in data.items() if v not in (None, '', [], {})}
+                form_cls = forms_por_paso.get(step_key)
+                labels = {n: str(f.label) for n, f in
+                          (form_cls.base_fields.items() if form_cls else [])
+                          if f.label}
+                visibles = [
+                    {'label': labels.get(k, k), 'field_key': k,
+                     'respuesta': v}
+                    for k, v in data.items()
+                    if v not in (None, '', [], {})]
                 resumen.append({
                     'key': step_key,
                     'label': ICED_STEP_LABELS.get(step_key, step_key),
@@ -459,12 +479,29 @@ class ICEDWizardView(SessionWizardView):
         # respondió cada subrol durante la conciliación.
         otras = self._respuestas_otros_equipos()
         if otras:
-            anotados = set()
+            # Anclar el bloque 'otras respuestas' al ÚLTIMO campo de la
+            # familia de la pregunta, no al primero: los condicionales
+            # (p28_1, p28_2, p31_1…) se declaran después del campo padre
+            # y deben aparecer ANTES de lo que respondieron otros equipos.
+            # Un código raíz ('28') cubre toda la familia p28_*; uno con
+            # decimal ('28.1') solo su grupo p28_1_*.
+            ancla = {}
             for fname, fld in form.fields.items():
                 cod = ICEDPreguntaEquipo.codigo_de_campo(fname)
-                if cod and cod in otras and cod not in anotados:
-                    fld.otras_respuestas = otras[cod]
-                    anotados.add(cod)
+                if not cod:
+                    continue
+                if cod in otras:
+                    ancla[cod] = fld
+                raiz = cod.split('.', 1)[0]
+                if raiz in otras:
+                    ancla[raiz] = fld
+            # Si dos códigos anclan al mismo campo (ej. '28' y '28.2' en
+            # p28_2), sus entradas se concatenan en un solo bloque.
+            bloques = {}
+            for cod, fld in ancla.items():
+                bloques.setdefault(fld, []).extend(otras[cod])
+            for fld, entradas in bloques.items():
+                fld.otras_respuestas = entradas
 
         # P23: poblar el select de operaciones estadísticas desde el inventario
         if 'p23_operaciones_estadisticas' in form.fields:
@@ -504,10 +541,23 @@ class ICEDWizardView(SessionWizardView):
         organismo = self._get_organismo()
         filtrado = qs.none()
         if organismo:
-            filtrado = qs.filter(
-                Q(organismo__iexact=organismo.nombre) |
-                Q(c_organismo__iexact=organismo.codigo)
-            )
+            # El inventario guarda el organismo como texto libre y a veces
+            # con otra grafía (sin 'de', sin tildes, nombre antiguo…).
+            # Se matchea normalizado contra el nombre actual y los alias
+            # configurados en el organismo.
+            nombres_ok = {_norm_organismo(organismo.nombre)}
+            for alt in (organismo.alias or '').splitlines():
+                if alt.strip():
+                    nombres_ok.add(_norm_organismo(alt))
+            filtrado = qs.filter(c_organismo__iexact=organismo.codigo)
+            nombres_oe = list(
+                qs.exclude(organismo__isnull=True)
+                  .values_list('organismo', flat=True).distinct())
+            coincide = [
+                n for n in nombres_oe
+                if _norm_organismo(n) in nombres_ok]
+            if coincide:
+                filtrado = filtrado | qs.filter(organismo__in=coincide)
         propias = list(
             filtrado.order_by('nombre')
             .values_list('nombre', flat=True).distinct()
@@ -940,6 +990,9 @@ def iced_landing(request):
         'organismo': organismo,
         'formularios': formularios,
         'equipo_user': equipo_user,
+        # Los miembros de equipo técnico no ven puntajes/resultados (ni los
+        # del consolidado): solo estado del trámite.
+        'puede_ver_resultados': request.user.is_staff or not equipo_user,
         'equipo_user_label': (
             dict(ICEDFormulario.EQUIPO_CHOICES).get(equipo_user, equipo_user)
             if equipo_user else ''
@@ -1012,7 +1065,10 @@ def iced_resultado(request, formulario_id):
     # Los puntajes solo se publican cuando el FICED quedó validado por el
     # equipo SIIED (calificación final). En enviado/prevalidado el organismo
     # ve el estado del trámite, no puntajes parciales ni oficiales.
-    mostrar_puntaje = formulario.estado == 'validado'
+    # Además los miembros de equipo técnico no ven resultados: solo
+    # delegado/validador/staff.
+    es_equipo = bool(_get_user_equipo(request.user)) and not request.user.is_staff
+    mostrar_puntaje = formulario.estado == 'validado' and not es_equipo
 
     # Serializar dimensiones para JS (solo puntaje numérico)
     dims_json = {}

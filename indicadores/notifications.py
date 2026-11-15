@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.utils.html import escape
 
 
 def _get_site_url():
@@ -39,6 +40,22 @@ BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 
 def _get_api_key():
     return getattr(settings, 'BREVO_API_KEY', '')
+
+
+def _sender():
+    """Remitente único para TODOS los correos del sistema.
+
+    Tanto la API de Brevo como el fallback SMTP deben declarar el mismo
+    remitente: si difieren, el correo sale firmado 'via Brevo' o con la
+    cuenta SMTP en vez del buzón institucional.
+
+    Config: BREVO_SENDER_EMAIL / BREVO_SENDER_NAME (env o settings)."""
+    email = getattr(settings, 'BREVO_SENDER_EMAIL',
+                    getattr(settings, 'DEFAULT_FROM_EMAIL',
+                            'no-reply@siied.gov.co'))
+    name = getattr(settings, 'BREVO_SENDER_NAME',
+                   'SIIED - Sistema de Indicadores')
+    return {'name': name, 'email': email}
 
 
 def _branded_email(html_content):
@@ -80,11 +97,11 @@ def _send_email(to_email, to_name, subject, html_content):
     if not api_key:
         logger.warning(f"[NOTIF] {_send_email.__name__}: No hay API key de Brevo. Intentando send_mail de Django...")
         try:
-            sender = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@siied.gov.co')
+            snd = _sender()
             send_mail(
                 subject=subject,
                 message='',  # plaintext vacío; Brevo solo usaba HTML
-                from_email=sender,
+                from_email=f'{snd["name"]} <{snd["email"]}>',
                 recipient_list=[to_email],
                 html_message=html_content,
                 fail_silently=False,
@@ -97,10 +114,7 @@ def _send_email(to_email, to_name, subject, html_content):
         return result
 
     payload = {
-        "sender": {
-            "name": "SIIED - Sistema de Indicadores",
-            "email": getattr(settings, 'BREVO_SENDER_EMAIL', 'no-reply@siied.gov.co')
-        },
+        "sender": _sender(),
         "to": [{"email": to_email, "name": to_name}],
         "subject": subject,
         "htmlContent": html_content,
@@ -231,12 +245,12 @@ def _send_bulk_email(recipients, subject, html_content):
     if not api_key:
         logger.warning(f"[NOTIF] {_send_bulk_email.__name__}: No hay API key de Brevo. Intentando send_mail de Django...")
         try:
-            sender = getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@siied.gov.co')
+            snd = _sender()
             emails_list = [email for email, name in valid_recipients]
             send_mail(
                 subject=subject,
                 message='',
-                from_email=sender,
+                from_email=f'{snd["name"]} <{snd["email"]}>',
                 recipient_list=emails_list,
                 html_message=html_content,
                 fail_silently=False,
@@ -250,10 +264,7 @@ def _send_bulk_email(recipients, subject, html_content):
         return result
 
     payload = {
-        "sender": {
-            "name": "SIIED - Sistema de Indicadores",
-            "email": getattr(settings, 'BREVO_SENDER_EMAIL', 'no-reply@siied.gov.co')
-        },
+        "sender": _sender(),
         "to": [{"email": email, "name": name} for email, name in valid_recipients],
         "subject": subject,
         "htmlContent": html_content,
@@ -996,3 +1007,66 @@ def notificar_delegado_iced(formulario, accion, observaciones=""):
         subject,
         html
     ).get('success', False)
+
+
+def notificar_acceso_usuario(user, password_temporal):
+    """Correo de credenciales de acceso al SIIED (acción del admin).
+
+    La contraseña viaja en claro porque se genera en el momento del envío
+    — la almacenada es un hash irrecuperable. El llamador debe hacer
+    set_password(password_temporal) SOLO si esta función retorna True,
+    para no dejar una contraseña que nadie conoce si el envío falla."""
+    if not _is_valid_email(user.email):
+        return False
+
+    site = _get_site_url()
+    nombre = escape(user.get_full_name() or user.username)
+    subject = "[SIIED] Credenciales de acceso al sistema"
+
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+        <div style="background:#16a34a;padding:16px;border-radius:8px 8px 0 0;">
+            <h2 style="color:#fff;margin:0;">Su cuenta SIIED est&aacute; lista</h2>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
+            <p>Hola <strong>{nombre}</strong>,</p>
+            <p>Se ha habilitado su acceso al SIIED &mdash; Sistema Integrado de
+            Informaci&oacute;n Estad&iacute;stica Distrital de Santiago de Cali.
+            Estas son sus credenciales:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                <tr>
+                    <td style="padding:8px 12px;background:#f0fdf4;border:1px solid #d1fae5;color:#374151;width:45%;">
+                        Usuario</td>
+                    <td style="padding:8px 12px;border:1px solid #d1fae5;">
+                        <strong>{escape(user.username)}</strong></td>
+                </tr>
+                <tr>
+                    <td style="padding:8px 12px;background:#f0fdf4;border:1px solid #d1fae5;color:#374151;">
+                        Contrase&ntilde;a temporal</td>
+                    <td style="padding:8px 12px;border:1px solid #d1fae5;">
+                        <code style="font-size:15px;background:#fefce8;padding:2px 8px;border-radius:4px;">{escape(password_temporal)}</code></td>
+                </tr>
+            </table>
+            <p style="margin-top:20px;">
+                <a href="{site}/"
+                   style="background:#16a34a;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
+                    Ingresar al SIIED
+                </a>
+            </p>
+            <p style="color:#6b7280;font-size:13px;margin-top:16px;">
+                Conserve estas credenciales en un lugar seguro. Si usted no
+                esperaba esta cuenta o necesita restablecer la contrase&ntilde;a,
+                contacte al equipo SIIED.
+            </p>
+            <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
+                Este es un mensaje autom&aacute;tico del Sistema Integrado de
+                Indicadores Estad&iacute;sticos Distritales (SIIED).
+                Por favor no responda a este correo.
+            </p>
+        </div>
+    </div>
+    """
+
+    return _send_email(user.email,
+                       user.get_full_name() or user.username,
+                       subject, html).get('success', False)

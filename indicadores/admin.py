@@ -2593,7 +2593,7 @@ def _superset_eliminar_activo(request, obj, tipo):
             ds_id = obj.dataset_id
             if not ds_id:
                 ds_id = next(
-                    (d['id'] for d in service.listar_datasets()
+                    (d['id'] for d in (service.listar_datasets() or [])
                      if d.get('table_name') == obj.nombre_tabla), None)
             res = (service.eliminar_dataset(ds_id)
                    if ds_id else {'ok': True})
@@ -3618,3 +3618,62 @@ class MCPAuditLogAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+# =============================================================================
+# USUARIOS — acción masiva: enviar credenciales de acceso por correo
+# =============================================================================
+
+from django.contrib.auth.admin import UserAdmin as _BaseUserAdmin
+import secrets as _secrets
+from .notifications import notificar_acceso_usuario
+
+
+class SIIEDUserAdmin(_BaseUserAdmin):
+    """UserAdmin + acción 'Enviar correo de acceso'.
+
+    La contraseña almacenada es un hash irrecuperable: la acción genera
+    una temporal nueva, la envía por correo y SOLO la guarda si el envío
+    fue exitoso — nunca queda una contraseña que nadie conoce.
+    'delete_selected' sigue disponible: get_actions la agrega por
+    defecto cuando actions no es None."""
+
+    actions = ['enviar_correo_acceso']
+
+    @admin.action(
+        description='Enviar correo de acceso (genera contraseña temporal)')
+    def enviar_correo_acceso(self, request, queryset):
+        enviados, sin_correo, fallidos = [], [], []
+        for user in queryset:
+            if not user.email:
+                sin_correo.append(user.username)
+                continue
+            pwd = _secrets.token_urlsafe(9)
+            if notificar_acceso_usuario(user, pwd):
+                user.set_password(pwd)
+                user.save(update_fields=['password'])
+                enviados.append(user.username)
+            else:
+                fallidos.append(user.username)
+        if enviados:
+            self.message_user(
+                request,
+                f'Correo de acceso enviado a {len(enviados)} usuario(s): '
+                f'{", ".join(enviados)}.',
+                messages.SUCCESS)
+        if sin_correo:
+            self.message_user(
+                request,
+                'Sin correo electrónico registrado, no se envió: '
+                f'{", ".join(sin_correo)}.',
+                messages.WARNING)
+        if fallidos:
+            self.message_user(
+                request,
+                'Falló el envío, la contraseña NO se modificó: '
+                f'{", ".join(fallidos)}.',
+                messages.ERROR)
+
+
+admin.site.unregister(User)
+admin.site.register(User, SIIEDUserAdmin)

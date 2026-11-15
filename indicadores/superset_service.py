@@ -63,16 +63,25 @@ class SupersetService:
         }
 
     def _get_csrf_token(self):
-        """Obtiene CSRF token para operaciones de escritura"""
+        """Obtiene CSRF token para operaciones de escritura.
+
+        Si el JWT expiró, el csrf_token GET responde 401: re-login y un
+        solo reintento (mismo patrón que _api_request)."""
+        url = f"{self.base_url}/api/v1/security/csrf_token/"
         try:
-            headers = self._get_headers()
-            if not headers:
-                return None
-            url = f"{self.base_url}/api/v1/security/csrf_token/"
-            resp = self._session.get(url, headers=headers, timeout=10)
-            resp.raise_for_status()
-            self._csrf_token = resp.json().get('result')
-            return self._csrf_token
+            for intento in range(2):
+                headers = self._get_headers()
+                if not headers:
+                    return None
+                resp = self._session.get(
+                    url, headers=headers, timeout=10)
+                if resp.status_code == 401 and intento == 0:
+                    self._access_token = None
+                    continue
+                resp.raise_for_status()
+                self._csrf_token = resp.json().get('result')
+                return self._csrf_token
+            return None
         except requests.RequestException as e:
             logger.error(f"Superset: error obteniendo CSRF token: {e}")
             return None
@@ -114,8 +123,11 @@ class SupersetService:
                 'q': '(page_size:100,order_column:changed_on_delta_humanized,order_direction:desc)',
             }
         )
-        if not data:
-            return []
+        if data is None:
+            # Fallo de API (red/401): NO es lo mismo que "sin dashboards".
+            # Devolver [] aquí haría que la reconciliación desactivara
+            # todos los registros BI por un fallo transitorio.
+            return None
 
         dashboards = []
         for d in data.get('result', []):
@@ -235,8 +247,9 @@ class SupersetService:
                 'q': '(page_size:100,order_column:changed_on_delta_humanized,order_direction:desc)',
             }
         )
-        if not data:
-            return []
+        if data is None:
+            # Fallo de API: [] haría reconciliar (desactivar) en falso.
+            return None
 
         datasets = []
         for d in data.get('result', []):
@@ -247,6 +260,8 @@ class SupersetService:
                 'schema': d.get('schema', ''),
                 'database_name': (d.get('database') or {}).get('database_name', ''),
                 'changed_on': d.get('changed_on_delta_humanized', ''),
+                'owners': [o.get('username') or ''
+                           for o in (d.get('owners') or [])],
             })
         return datasets
 
@@ -299,6 +314,30 @@ class SupersetService:
             logger.error(f"Superset: error creando dataset virtual: {e}")
             return {'error': str(e)}
 
+    def _habilitar_file_upload(self, database_id):
+        """Activa 'Allow file uploads' en la conexión destino (best-effort).
+
+        Sin ese flag, POST /database/{id}/upload/ responde 500 con página
+        HTML — el error más común al subir CSV a Superset."""
+        try:
+            info = self._api_request('GET', f'database/{database_id}')
+            result = (info or {}).get('result') or {}
+            if result.get('allow_file_upload'):
+                return True
+            reg = self._write_request(
+                'PUT', f'database/{database_id}',
+                {'allow_file_upload': True})
+            if not reg or '_error' in reg:
+                logger.warning(
+                    f"Superset: no se pudo activar allow_file_upload en "
+                    f"database {database_id}")
+                return False
+            return True
+        except Exception as e:
+            logger.warning(
+                f"Superset: error verificando allow_file_upload: {e}")
+            return False
+
     def subir_csv(self, archivo, nombre_tabla, database_id=None, tipo=None):
         """
         Sube un archivo CSV/TSV/Excel como nuevo dataset en Superset.
@@ -313,6 +352,8 @@ class SupersetService:
             database_id = self._get_siied_database_id()
             if not database_id:
                 return {'error': 'No se encontró la base de datos SIIED en Superset'}
+
+        self._habilitar_file_upload(database_id)
 
         csrf_token = self._get_csrf_token()
         headers = self._get_headers()
@@ -347,8 +388,10 @@ class SupersetService:
                 ext = os.path.splitext(
                     getattr(archivo, 'name', ''))[1].lower()
                 form_data['delimiter'] = '\t' if ext == '.tsv' else ','
-            elif tipo == 'excel':
-                form_data['sheet_name'] = '0'
+            # Excel: NO enviar sheet_name. '0' llega como string a
+            # pd.read_excel y pandas busca una hoja literalmente llamada
+            # "0" -> DatabaseUploadFailed "Worksheet named '0' not found".
+            # Sin el parámetro, pandas lee la primera hoja por defecto.
             resp = self._session.post(
                 url,
                 headers=headers,
@@ -362,6 +405,13 @@ class SupersetService:
                 return {'success': True, 'table_name': nombre_tabla}
             else:
                 error_msg = resp.text[:500]
+                if '<html' in resp.text.lower():
+                    error_msg = (
+                        'Superset respondió una página de error interna '
+                        f'({resp.status_code}) en vez de JSON. Causas '
+                        'frecuentes: "Allow file uploads" deshabilitado '
+                        'en la conexión, el esquema "public" no existe '
+                        'o el CSV es inválido.')
                 logger.error(f"Superset: error subiendo CSV: {resp.status_code} {error_msg}")
                 return {'error': f'Error {resp.status_code}: {error_msg}'}
 
@@ -377,35 +427,94 @@ class SupersetService:
         data = self._api_request('GET', 'database/')
         for db in (data or {}).get('result', []):
             uri = (db.get('sqlalchemy_uri') or '')
-            if db.get('engine') == 'gsheets' or uri.startswith('gsheets'):
+            nombre = (db.get('database_name') or '').lower()
+            # El listado no siempre expone engine/sqlalchemy_uri — de
+            # ahí el fallback por nombre (la auto-provisión la registra
+            # como 'Google Sheets').
+            if (db.get('engine') == 'gsheets'
+                    or uri.startswith('gsheets')
+                    or nombre.replace(' ', '') in (
+                        'googlesheets', 'gsheets')):
                 return db.get('id')
+        # El listado viene paginado (~25): si hay muchas conexiones la
+        # gsheets puede quedar fuera. Consulta filtrada por nombre —
+        # no depende de la página ni de columnas del listado completo.
+        for nombre_db in ('Google Sheets', 'gsheets', 'google sheets'):
+            data = self._api_request(
+                'GET', 'database/',
+                params={'q': "(filters:!((col:database_name,opr:eq,"
+                             f"value:'{nombre_db}')))"})
+            for db in (data or {}).get('result', []):
+                if db.get('id'):
+                    return db['id']
         return None
 
-    def crear_dataset_gsheet(self, url_sheet):
+    def crear_dataset_gsheet(self, url_sheet, owner_usuario=None):
         """Crea un dataset Superset sobre una hoja de Google (shillelagh).
 
         El table_name del dataset ES la URL completa — así el engine
         resuelve también la pestaña (#gid=N) incluida en el enlace.
         La hoja debe ser pública ("cualquiera con el enlace") salvo que
-        la conexión gsheets tenga service account."""
-        if not re.match(
-                r'^https://docs\.google\.com/spreadsheets/d/[\w-]+',
-                url_sheet or ''):
+        la conexión gsheets tenga service account.
+
+        `owner_usuario`: username Superset que queda como owner — sin
+        él un usuario Gamma no tendría datasource_access y sus charts
+        fallarían con "This endpoint requires the datasource …"."""
+        # Normalizar a '.../spreadsheets/d/<id>' + '#gid=N': los params
+        # de /edit?usp=...&authuser=... no aportan y ensucian el dataset.
+        m = re.match(
+            r'^(https://docs\.google\.com/spreadsheets/d/[\w-]+)',
+            url_sheet or '')
+        if not m:
             return {'error': 'URL de Google Sheet inválida'}
+        # Conservar el fragmento #gid=N (pestaña) del enlace original.
+        url_sheet = m.group(1)
+        if '#' in m.string:
+            url_sheet += '#' + m.string.split('#', 1)[1]
 
         db_id = self._get_gsheets_database_id()
         if not db_id:
-            return {'error': 'No hay una base gsheets:// registrada en '
-                             'Superset (Data → Databases → + gsheets://)'}
+            # Auto-provisión: registrar la conexión gsheets:// (shillelagh)
+            # en vez de exigir el paso manual en Superset.
+            reg = self.crear_database('Google Sheets', 'gsheets://',
+                                    cache_timeout=0)
+            if 'error' in reg:
+                # Puede existir ya con ese nombre y el listado no
+                # reconocerla (engine/URI no expuestos) → rebuscar.
+                db_id = self._get_gsheets_database_id()
+                if not db_id:
+                    return {'error': 'No hay una base gsheets:// '
+                                     'registrada en Superset y no se '
+                                     'pudo crear automáticamente: '
+                                     f'{reg["error"]}'}
+            else:
+                db_id = reg.get('database_id') or \
+                    self._get_gsheets_database_id()
+            if not db_id:
+                return {'error': 'La base gsheets:// se creó pero no '
+                                 'aparece en el listado de Superset'}
 
+        # timeout=120: crear el dataset dispara un probe de shillelagh
+        # que descarga la hoja de Google en vivo — si el egress hacia
+        # Google es lento o está bloqueado, el default de 60s queda
+        # corto y el request muere silencioso (data=None).
         data = self._write_request('POST', 'dataset/', {
             'database': db_id,
             'table_name': url_sheet,
-        })
-        if not data or '_error' in data:
-            detalle = ((data or {}).get('_detalle')
-                       or (data or {}).get('_error'))
-            return {'error': detalle or 'error creando dataset de Google Sheet'}
+            'owners': self._owner_ids(owner_usuario),
+        }, timeout=120)
+        if data is None:
+            return {'error': 'la API de Superset no respondió '
+                             '(timeout/red o auth). Crear el dataset '
+                             'descarga la hoja en vivo — verifique '
+                             'que el servidor alcance google.com y '
+                             'que la hoja sea pública'}
+        detalle = data.get('_detalle') or data.get('_error')
+        if '_error' in data or not data:
+            if not isinstance(detalle, str):
+                detalle = str(detalle)[:300]
+            return {'error': detalle or 'Superset respondió sin JSON '
+                                       'al crear el dataset'}
 
         ds_id = data.get('id')
         if ds_id is None:
@@ -430,23 +539,135 @@ class SupersetService:
             return {'error': detalle or 'sin respuesta de Superset'}
         return {'success': True}
 
-    def crear_database(self, nombre, sqlalchemy_uri):
+    def crear_database(self, nombre, sqlalchemy_uri, cache_timeout=None):
         """Registra una conexión de BD externa (POST database/).
 
-        Nunca loguear sqlalchemy_uri — contiene la contraseña."""
-        data = self._write_request('POST', 'database/', {
+        Nunca loguear sqlalchemy_uri — contiene la contraseña.
+        cache_timeout=0 desactiva el caché de consultas: indispensable
+        en gsheets://, donde el dataset debe reflejar la hoja en vivo."""
+        payload = {
             'database_name': nombre,
             'sqlalchemy_uri': sqlalchemy_uri,
             'expose_in_sqllab': False,
-        })
-        if not data or '_error' in data:
-            detalle = ((data or {}).get('_detalle')
-                       or (data or {}).get('_error'))
+        }
+        if cache_timeout is not None:
+            payload['cache_timeout'] = cache_timeout
+        data = self._write_request('POST', 'database/', payload)
+        if data is None:
+            # Sin respuesta: la auth/CSRF falló antes del request — la
+            # cuenta de servicio no puede autenticarse (credenciales
+            # rechazadas, cuenta desactivada o rol sin acceso a la API).
+            return {'error': 'la cuenta de servicio no pudo autenticarse '
+                             'en la API de Superset (login o CSRF '
+                             'rechazado) — verifique SUPERSET_ADMIN_'
+                             'USERNAME/PASSWORD y que la cuenta esté '
+                             'activa con rol Admin'}
+        if '_error' in data:
+            detalle = data.get('_detalle') or data.get('_error')
+            if not isinstance(detalle, str):
+                # Superset responde {"message": {...}} o {"errors": [...]}
+                detalle = str(detalle)[:300]
             return {'error': detalle or 'error registrando conexión'}
         db_id = data.get('id')
         if db_id is None:
             db_id = (data.get('result') or {}).get('id')
         return {'success': True, 'database_id': db_id}
+
+    def _perm_view_menu_id(self, permission_name, view_menu_name,
+                           crear=False):
+        """Id del permission_view_menu (permiso + objeto) o None.
+
+        'datasource_access' sobre cada datasource lo crea Superset de
+        forma diferida; con `crear` se intenta dar de alta por POST si
+        aún no existe (la API lo permite con rol Admin)."""
+        def _f(col, val):
+            esc = val.replace('!', '!!').replace("'", "!'")
+            return f"(col:{col},opr:eq,value:'{esc}')"
+        data = self._api_request(
+            'GET', 'security/permissions_view_menus/',
+            params={'q': '(filters:!('
+                    + _f('permission_name', permission_name) + ','
+                    + _f('view_menu_name', view_menu_name) + '))'})
+        resultados = (data or {}).get('result') or []
+        if resultados:
+            return resultados[0].get('id')
+        if not crear:
+            return None
+        data = self._write_request(
+            'POST', 'security/permissions_view_menus/',
+            {'permission_name': permission_name,
+             'view_menu_name': view_menu_name})
+        if not data or '_error' in data:
+            return None
+        return data.get('id') or (data.get('result') or {}).get('id')
+
+    def acceso_dataset_rol(self, dataset_id, role_name='Gamma',
+                           otorgar=True):
+        """Otorga o revoca 'datasource_access' del dataset a un rol.
+
+        `DatasetBI.visibilidad` gobierna el selector del SIIED, pero
+        Superset tiene su propio ACL: un Gamma solo consulta un
+        datasource si es owner o si su rol tiene este permission_view_
+        menu. Esto es lo que hace efectivo «Público / todos los
+        organismos» también dentro de Superset."""
+        data = self._api_request('GET', f'dataset/{int(dataset_id)}')
+        perm = ((data or {}).get('result') or {}).get('perm')
+        if not perm:
+            return {'error': 'no se pudo leer el perm del dataset '
+                             f'{dataset_id}'}
+        pvm_id = self._perm_view_menu_id(
+            'datasource_access', perm, crear=True)
+        if not pvm_id:
+            return {'error': f"no existe el permiso 'datasource_access' "
+                             f"para {perm}"}
+        rol_id = self.obtener_rol_id(role_name)
+        if not rol_id:
+            return {'error': f"rol Superset '{role_name}' no existe"}
+        rol = self._api_request('GET', f'security/roles/{rol_id}')
+        permisos = ((rol or {}).get('result') or {}).get('permissions')
+        if not permisos:
+            # Guardia de seguridad: si el GET no devuelve la lista,
+            # un PUT con solo el nuevo permiso BORRARÍA todos los
+            # demás permisos del rol. Mejor fallar sin tocar nada.
+            return {'error': f"no se pudo leer la lista de permisos "
+                             f"del rol '{role_name}'; abortando para "
+                             f"no vaciarla"}
+        ids = {p.get('id') if isinstance(p, dict) else p
+               for p in permisos}
+        ids.discard(None)
+        if otorgar:
+            ids.add(pvm_id)
+        else:
+            ids.discard(pvm_id)
+        data = self._write_request(
+            'PUT', f'security/roles/{rol_id}',
+            {'name': role_name, 'permissions': sorted(ids)})
+        if data is None or '_error' in data:
+            detalle = ((data or {}).get('_detalle')
+                       or (data or {}).get('_error'))
+            return {'error': detalle or 'error actualizando permisos '
+                                      f'del rol {role_name}'}
+        return {'success': True}
+
+    def asignar_owners_dataset(self, dataset_id, usernames):
+        """PUT dataset/{id} owners — declara owners adicionales al dataset.
+
+        El endpoint de upload (database/{id}/upload/) no acepta owners en
+        el form-data, así que el archivo sube con la cuenta de servicio
+        como único dueño y se corrige después con este PUT. Sin owner,
+        un usuario Gamma no tiene datasource_access y sus charts fallan
+        con "This endpoint requires the datasource … permission".
+        """
+        ids = self._owner_ids(usernames)
+        if not ids:
+            return {'error': 'sin usuarios válidos para asignar como owners'}
+        data = self._write_request(
+            'PUT', f'dataset/{int(dataset_id)}', {'owners': ids})
+        if data is None or '_error' in data:
+            detalle = ((data or {}).get('_detalle')
+                       or (data or {}).get('_error'))
+            return {'error': detalle or 'error asignando owners al dataset'}
+        return {'success': True}
 
     def eliminar_database(self, database_id):
         """DELETE database/{id} — retira la conexión de Superset."""
@@ -474,12 +695,17 @@ class SupersetService:
         return [t.get('value') or t.get('label') for t in result
                 if isinstance(t, dict) and (t.get('value') or t.get('label'))]
 
-    def crear_dataset_tabla(self, database_id, schema, table_name):
-        """Dataset físico apuntando a una tabla de una conexión BD."""
+    def crear_dataset_tabla(self, database_id, schema, table_name,
+                            owner_usuario=None):
+        """Dataset físico apuntando a una tabla de una conexión BD.
+
+        `owner_usuario`: username Superset que queda como owner del
+        dataset (datasource_access implícito para usuarios Gamma)."""
         data = self._write_request('POST', 'dataset/', {
             'database': database_id,
             'schema': schema or None,
             'table_name': table_name,
+            'owners': self._owner_ids(owner_usuario),
         })
         if not data or '_error' in data:
             detalle = ((data or {}).get('_detalle')
@@ -544,6 +770,10 @@ class SupersetService:
         return [r.get('name') for r in (result[0].get('roles') or [])
                 if r.get('name')]
 
+    def api_disponible(self):
+        """True si la API responde con JSON válido (incluye auth admin)."""
+        return self._api_request('GET', 'security/roles/') is not None
+
     def _obtener_usuario(self, username):
         """Fila completa del usuario en Superset (result[0]) o None."""
         data = self._api_request(
@@ -601,25 +831,57 @@ class SupersetService:
         if not shared_password:
             return {'error': 'SUPERSET_SHARED_PASSWORD no configurado en settings.py'}
 
-        # La API exige el ID entero del rol, no el nombre.
-        rol_id = self.obtener_rol_id(role_name)
+        # La API exige el ID entero del rol, no el nombre. Se consulta una
+        # sola vez para distinguir dos fallas que antes daban el mismo
+        # mensaje engañoso ('Rol X no existe. Roles disponibles: ninguno'):
+        # API inaccesible/credenciales inválidas (data=None) vs rol
+        # realmente ausente en la instancia.
+        data_roles = self._api_request('GET', 'security/roles/')
+        if data_roles is None:
+            return {'error': 'No se pudo consultar Superset: el servicio no '
+                             'responde o las credenciales admin fueron '
+                             'rechazadas (o la cuenta de servicio está '
+                             'desactivada en Superset — reactivarla '
+                             'manualmente). Verifique SUPERSET_BASE_URL y '
+                             'SUPERSET_ADMIN_USERNAME/PASSWORD.'}
+        roles_api = (data_roles or {}).get('result') or []
+        rol_id = next(
+            (r.get('id') for r in roles_api
+             if (r.get('name') or '').lower() == role_name.lower()),
+            None)
         if rol_id is None:
-            disponibles = ', '.join(self.roles_disponibles()) or 'ninguno'
+            disponibles = ', '.join(
+                r.get('name') for r in roles_api if r.get('name')) or 'ninguno'
             return {'error': f"Rol Superset '{role_name}' no existe. "
                              f'Roles disponibles: {disponibles}'}
 
         usuario_actual = self._obtener_usuario(username)
         if usuario_actual:
-            # Ya existe: asegurar el rol correcto — el rol SIIED pudo
-            # cambiar (analista ↔ analista_organismo) desde la creación.
+            # Ya existe: asegurar rol correcto y cuenta activa — el rol
+            # SIIED pudo cambiar (analista ↔ analista_organismo) o el
+            # usuario pudo quedar desactivado (active=False) al pasar por
+            # un rol sin acceso BI.
             roles_actuales = [r.get('name') for r in
                               (usuario_actual.get('roles') or [])]
-            if role_name in roles_actuales:
+            if (role_name in roles_actuales
+                    and usuario_actual.get('active', True)):
                 logger.info(f"Superset: usuario '{username}' ya existe")
                 return {'success': True, 'message': 'Usuario ya existe',
                         'username': username}
+            nuevos_roles = [rol_id]
+            # La cuenta de servicio necesita Admin para autenticar este
+            # servicio: roles=[Alpha] sin Admin la deja activa pero con
+            # 403 en toda la API (mismo deadlock que active=False).
+            if (role_name.lower() != 'admin' and usuario_actual.get(
+                    'username', '').lower()
+                    == (self.admin_username or '').lower()):
+                admin_id = next(
+                    (r.get('id') for r in roles_api
+                     if (r.get('name') or '').lower() == 'admin'), None)
+                if admin_id and admin_id not in nuevos_roles:
+                    nuevos_roles.append(admin_id)
             r = self._actualizar_usuario(
-                usuario_actual, {'roles': [rol_id]})
+                usuario_actual, {'roles': nuevos_roles, 'active': True})
             if 'error' in r:
                 return r
             logger.info(
@@ -676,6 +938,21 @@ class SupersetService:
 
         Se usa cuando el perfil SIIED pasa a activo=False o cambia a un
         rol sin acceso BI — evita cuentas Alpha/Gamma huérfanas."""
+        # self.admin_username es la cuenta con la que este servicio se
+        # autentica (default 'admin' si el setting no está). Usar el getattr
+        # directo dejaba un hueco: si el setting estaba vacío, el guard no
+        # disparaba y la cuenta 'admin' podía desactivarse igual → deadlock.
+        if username and username.lower() == (self.admin_username or '').lower():
+            # Desactivar la cuenta de servicio mata la credencial con la
+            # que este servicio se autentica → deadlock: ya no puede
+            # verificar, crear ni reactivar ninguna cuenta.
+            logger.warning(
+                "Superset: se evitó desactivar la cuenta de servicio "
+                f"'{username}' (SUPERSET_ADMIN_USERNAME)")
+            return {'error': 'No se puede desactivar la cuenta admin de '
+                             'servicio (SUPERSET_ADMIN_USERNAME): el sync '
+                             'dejaría de poder autenticarse. Use una '
+                             'cuenta de servicio dedicada.'}
         usuario_actual = self._obtener_usuario(username)
         if not usuario_actual:
             return {'success': True, 'message': 'Usuario no existe en Superset'}
@@ -699,6 +976,10 @@ class SupersetService:
         csrf_token = self._get_csrf_token()
         headers = self._get_headers()
         if not headers or not csrf_token:
+            logger.error(
+                f"Superset API [{method} {endpoint}]: abortada — "
+                f"headers={bool(headers)} csrf={bool(csrf_token)}. "
+                "Falló auth/CSRF, no la request propiamente.")
             return None
         headers['X-CSRFToken'] = csrf_token
         headers['Referer'] = self.base_url
@@ -808,13 +1089,32 @@ class SupersetService:
             'error': None,
         }
 
+    def _owner_ids(self, usernames):
+        """IDs Superset de los usernames dados (omite los inexistentes).
+
+        Acepta str único o iterable. Se usa para que los activos creados
+        por la cuenta de servicio queden también a nombre del usuario
+        SIIED que los pidió — de otro modo no aparecen bajo «Mío» en la
+        UI de Superset ni el usuario puede editarlos."""
+        if isinstance(usernames, str):
+            usernames = [usernames]
+        ids = []
+        for un in (usernames or []):
+            u = self._obtener_usuario(un)
+            if u and u.get('id'):
+                ids.append(u['id'])
+        return ids
+
     def crear_chart(self, nombre, dataset_id, viz_type, params,
-                    dashboards=None):
+                    dashboards=None, owner_usuario=None):
         """Crea un chart (slice) en Superset.
 
         Equivalente a `generate_chart` del MCP. `params` es el dict de
         configuración del viz; se serializa a JSON. Retorna
-        {'ok', 'chart_id', 'error'}."""
+        {'ok', 'chart_id', 'error'}.
+
+        `owner_usuario`: username Superset que queda como owner del
+        chart además de la cuenta de servicio (visibilidad «Mío»)."""
         import json as _json
         payload = {
             'datasource_id': int(dataset_id),
@@ -823,7 +1123,7 @@ class SupersetService:
             'viz_type': viz_type,
             'params': _json.dumps(params or {}),
             'cache_timeout': None,
-            'owners': [],
+            'owners': self._owner_ids(owner_usuario),
         }
         if dashboards:
             payload['dashboards'] = [int(d) for d in dashboards]
@@ -837,8 +1137,12 @@ class SupersetService:
         return {'ok': bool(chart_id), 'chart_id': chart_id,
                 'error': None if chart_id else 'sin id en respuesta'}
 
-    def crear_dashboard(self, titulo, slug=None, publicar=False):
-        """Crea un dashboard vacío. Equivalente a `generate_dashboard`."""
+    def crear_dashboard(self, titulo, slug=None, publicar=False,
+                        owner_usuario=None):
+        """Crea un dashboard vacío. Equivalente a `generate_dashboard`.
+
+        `owner_usuario`: username Superset que queda como owner además
+        de la cuenta de servicio (lo ve bajo «Mío» y puede editarlo)."""
         import json as _json
         payload = {
             'dashboard_title': str(titulo)[:250],
@@ -847,6 +1151,7 @@ class SupersetService:
             'css': '',
             'json_metadata': _json.dumps({}),
             'position_json': _json.dumps({}),
+            'owners': self._owner_ids(owner_usuario),
         }
         data = self._write_request('POST', 'dashboard/', payload)
         if not data or '_error' in data:
@@ -1021,8 +1326,8 @@ class SupersetService:
             if can_auth:
                 dashboards = self.listar_dashboards()
                 datasets = self.listar_datasets()
-                dashboard_count = len(dashboards)
-                dataset_count = len(datasets)
+                dashboard_count = len(dashboards or [])
+                dataset_count = len(datasets or [])
 
         return {
             'superset_disponible': is_healthy,

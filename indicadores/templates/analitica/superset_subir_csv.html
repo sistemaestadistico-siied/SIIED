@@ -81,7 +81,11 @@
                     <p class="text-slate-600 font-medium mb-2">Seleccione un archivo CSV, TSV o Excel</p>
                     <p class="text-xs text-slate-400 mb-4">Formatos aceptados: .csv, .tsv, .xlsx, .xls (máx. 50MB)</p>
                     <input type="file" name="archivo_csv" accept=".csv,.tsv,.xlsx,.xls"
-                        Google Sheet -->
+                           class="block mx-auto text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
+                </div>
+            </div>
+
+            <!-- Panel: Google Sheet -->
             <div id="panel-gsheet" style="display: none;">
                 <p class="text-slate-600 font-medium mb-2">URL de la hoja de Google pública</p>
                 <p class="text-xs text-slate-400 mb-4">
@@ -92,10 +96,6 @@
                 <input type="url" name="url_gsheet"
                        placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0"
                        class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
-            </div>
-
-            <!-- Panel:    class="block mx-auto text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100">
-                </div>
             </div>
 
             <!-- Panel: conjunto de datos -->
@@ -170,13 +170,14 @@
     </form>
 
     <!-- Info box -->
-    ['archivd', 'ionjvlao', 'ssh=-g5].forEa b(functodn (k) {
-        vnreon d-2 p-5"tb;
-        <div class="flex items-star' + 3            <i class="fas fa-lightbulb text-sky-500 text-lg mt-0.5"></i>
-                <div class="text-sm t- + t800">n
-                    <p class="font-semibold mb-1">Consejo</p> o+am s datoarshivII    ' :u' )lád')
-ic                 de datos.</p>' + (t === 'archivo' ? '' : ');
-    })
+    <div class="bg-sky-50 border border-sky-200 rounded-2xl p-5 mt-6">
+        <div class="flex items-start gap-3">
+            <i class="fas fa-lightbulb text-sky-500 text-lg mt-0.5"></i>
+            <div class="text-sm text-sky-800">
+                <p class="font-semibold mb-1">Consejo</p>
+                <p>Si sus datos cambian con frecuencia, prefiera un Google Sheet público o un
+                conjunto de datos SIIED: el dataset se actualizará solo. Para datos estáticos
+                o puntuales, un archivo CSV/Excel es más sencillo.</p>
             </div>
         </div>
     </div>
@@ -185,15 +186,14 @@ ic                 de datos.</p>' + (t === 'archivo' ? '' : ');
 
 <script>
 function showTab(tab) {
-    document.getElementById('panel-archivo').style.display = tab === 'archivo' ? 'block' : 'none';
-    document.getElementById('panel-conjunto').style.display = tab === 'conjunto' ? 'block' : 'none';
-
-    document.getElementById('tab-archivo').className = tab === 'archivo'
-        ? 'px-4 py-2 text-sm font-medium border-b-2 border-sky-600 text-sky-700 transition-colors'
-        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors';
-    document.getElementById('tab-conjunto').className = tab === 'conjunto'
-        ? 'px-4 py-2 text-sm font-medium border-b-2 border-sky-600 text-sky-700 transition-colors ml-2'
-        : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors ml-2';
+    ['archivo', 'conjunto', 'gsheet'].forEach(function (t) {
+        var panel = document.getElementById('panel-' + t);
+        if (panel) panel.style.display = (t === tab) ? 'block' : 'none';
+        var btn = document.getElementById('tab-' + t);
+        if (btn) btn.className = (t === tab)
+            ? 'px-4 py-2 text-sm font-medium border-b-2 border-sky-600 text-sky-700 transition-colors' + (t === 'archivo' ? '' : ' ml-2')
+            : 'px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors' + (t === 'archivo' ? '' : ' ml-2');
+    });
 }
 </script>
 {% endblock %}

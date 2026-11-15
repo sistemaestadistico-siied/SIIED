@@ -225,7 +225,15 @@
                 </svg>
                 Formularios ICED — {% if es_validador_organismo %}Pendientes de conciliación / pre-validación{% else %}Pendientes de Validación SIIED{% endif %}
             </h2>
-            <span class="text-sm text-indigo-200">{{ iced_pendientes|length }} en cola</span>
+            <div class="flex items-center gap-4">
+                {% if es_validador_sistema %}
+                <a href="{% url 'indicadores:validacion_avances_iced' %}"
+                   class="text-xs font-semibold text-indigo-100 hover:text-white underline underline-offset-2 transition-colors">
+                    Avances por organismo →
+                </a>
+                {% endif %}
+                <span class="text-sm text-indigo-200">{{ iced_pendientes|length }} en cola</span>
+            </div>
         </div>
     </div>
     {% if iced_pendientes %}

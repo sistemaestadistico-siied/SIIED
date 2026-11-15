@@ -150,6 +150,12 @@ def _error_fecha_mmaaaa(fecha):
 # para las celdas de los widgets dinámicos (JSON).
 
 _MAX_CELDA_JSON = 500     # caracteres máximos por celda de widget
+# Tope por clave de columna: sobreescribe _MAX_CELDA_JSON para
+# columnas de texto extenso (clave → máximo de caracteres).
+_LARGOS_CELDA_JSON = {
+    # P8/P9 — 'Documento, sección / actividad': admite textos largos
+    'documento_seccion': 10000,
+}
 _MAX_FILAS_JSON = 50      # tope de filas por widget dinámico
 _MAX_TEXTO = 3000         # textos largos (descripciones, observaciones)
 _MAX_TEXTO_LARGO = 8000   # descripciones extendidas (p6_descripcion)
@@ -263,6 +269,7 @@ _CLAVES_TIPO = [
 # Reglas explícitas para campos escalares (texto plano del wizard)
 REGLAS_CAMPOS_FICED = {
     'p6_descripcion': 'texto_largo',
+    'p12_descripcion_mecanismo': 'texto_largo',
     'p25_proyectos_bp': 'codigos_bp',
     # Campo eliminado (el link pasó a help_text de p25_proyectos_bp), pero
     # la regla se conserva: respuestas de versiones anteriores aún la
@@ -288,6 +295,36 @@ def _tipo_por_nombre_campo(name):
     return 'texto'
 
 
+def _json_vacio(valor):
+    """True si la respuesta de un widget JSON está vacía.
+
+    Cubre los formatos de los widgets: '' / None, lista de filas ([]),
+    dict checkbox-tabla sin opciones con seleccion=true y dict plano
+    vacío. Un JSON no parseable cuenta como vacío (el error de formato
+    lo reporta _validar_filas_json aparte)."""
+    if not valor:
+        return True
+    data = valor
+    if isinstance(data, str):
+        s = data.strip()
+        if not s:
+            return True
+        if s[:1] in '[{':
+            try:
+                data = json.loads(s)
+            except (ValueError, TypeError):
+                return True
+        else:
+            return False
+    if isinstance(data, list):
+        return not data
+    if isinstance(data, dict):
+        return not any(
+            isinstance(info, dict) and info.get('seleccion')
+            for info in data.values())
+    return not bool(data)
+
+
 def _validar_filas_json(valor, etiqueta='Fila'):
     """Recorre el JSON de los widgets dinámicos y valida cada celda de
     texto según el tipo inferido por el nombre de la clave. Devuelve la
@@ -310,9 +347,10 @@ def _validar_filas_json(valor, etiqueta='Fila'):
             if err:
                 errores.append(f"{ctx}, '{clave}': {err}")
                 return
-        if len(v) > _MAX_CELDA_JSON:
+        max_celda = _LARGOS_CELDA_JSON.get(clave, _MAX_CELDA_JSON)
+        if len(v) > max_celda:
             errores.append(
-                f"{ctx}, '{clave}': máximo {_MAX_CELDA_JSON} caracteres")
+                f"{ctx}, '{clave}': máximo {max_celda} caracteres")
 
     def walk(obj, ctx):
         nonlocal n_filas
@@ -351,15 +389,21 @@ class ICEDBaseForm(forms.Form):
 
     def clean(self):
         cleaned = super().clean()
-        for name, valor in list(cleaned.items()):
-            if name not in self.fields:
-                continue
-            # Campos condicionales (data-show-if='campo=v1,v2 campo2=v3'):
-            # si la condición no se cumple, el campo está oculto en el
-            # formulario — descartar su valor y no validarlo.
-            cond = self.fields[name].widget.attrs.get('data-show-if')
+        # Campos condicionales (data-show-if='campo=v1,v2 campo2=v3'):
+        # si la condición no se cumple, el campo está oculto en el
+        # formulario — descartar su valor y no validarlo. Se recorre
+        # TODOS los campos con condición (no solo los que quedaron en
+        # cleaned_data): un campo oculto que falló la validación de
+        # campo (p. ej. max_length) ya fue removido de cleaned_data
+        # pero su error sobrevive en self._errors y bloqueaba el paso
+        # sin marca visible — el error también se descarta.
+        for name, field in self.fields.items():
+            cond = field.widget.attrs.get('data-show-if')
             if cond and not self._condicion_visible(cleaned, cond):
                 cleaned[name] = ''
+                self._errors.pop(name, None)
+        for name, valor in list(cleaned.items()):
+            if name not in self.fields:
                 continue
             if valor in (None, '', [], {}):
                 continue
@@ -410,6 +454,13 @@ class ICEDBaseForm(forms.Form):
         checkbox-tabla ({codigo: {seleccion: bool, ...}} o lista de
         códigos), que es lo que guardan campos como
         p24_lineamientos o p30_lineamientos_metodologicos."""
+        if isinstance(actual, bool):
+            # Checkbox Django: el POST manda 'on' cuando está marcado y el
+            # cleaned_data queda en True/False. 'campo!=on' debe negar
+            # correctamente sobre el bool (espejo del JS, que compara
+            # contra el value 'on' del input).
+            truthy = {'on', 'true', 'si', '1', 'yes'}
+            return actual == bool({e.lower() for e in esperados} & truthy)
         if isinstance(actual, (list, tuple)):
             return any(e in actual for e in esperados)
         if isinstance(actual, dict):
@@ -620,53 +671,88 @@ class ICEDModuloBForm(ICEDBaseForm):
         help_text="Agregue subprocesos seleccionando previamente el macroproceso y proceso, y los procedimientos correspondientes."
     )
 
-    # P8: Herramientas de planificación (generación/procesamiento/reporte/difusión)
-    P8_OPCIONES = [
-        ('planes_trabajo', 'Planes de trabajo'),
-        ('planes_accion', 'Planes de acción'),
-        ('programas', 'Programas'),
-        ('proyectos', 'Proyectos'),
-        ('no_se_incluyen', 'No se incluyen'),
-    ]
+    # P8: Herramientas de planificación (generación/procesamiento/reporte/difusión).
+    # 'No se incluyen' es la opción 8.5 del instrumento: va dentro del
+    # selector Herramienta, no como checkbox aparte.
     p8_herramientas_planificacion = forms.CharField(
         required=False,
-        widget=iced_widget('checkbox-tabla', {
-            'exclusiva': 'no_se_incluyen',
-            'columnas': [
-                {'name': 'documento', 'label': 'Documento', 'tipo': 'texto', 'placeholder': 'Nombre del documento'},
-                {'name': 'seccion', 'label': 'Sección / Actividad', 'tipo': 'texto', 'placeholder': 'Sección específica'},
-            ],
-            'opciones': [
-                {'codigo': 'planes_trabajo', 'texto': 'Planes de trabajo'},
-                {'codigo': 'planes_accion', 'texto': 'Planes de acción'},
-                {'codigo': 'programas', 'texto': 'Programas'},
-                {'codigo': 'proyectos', 'texto': 'Proyectos'},
-                {'codigo': 'no_se_incluyen', 'texto': 'No se incluyen'},
-            ],
+        widget=forms.HiddenInput(attrs={
+            'class': 'iced-json-field',
+            'data-iced-widget': 'tabla-simple',
+            'data-config': json.dumps({
+                'min_filas': 1,
+                'max_filas': 15,
+                # 'No se incluyen' apaga el documento (no aplica) y le
+                # escribe 'na' para que no quede texto de una selección
+                # anterior al cambiar de opción.
+                'control_bloqueo': {
+                    'campo': 'herramienta', 'valor': 'no_se_incluyen',
+                    'campos': ['documento_seccion'],
+                    'valor_bloqueado': 'na',
+                },
+                'columnas': [
+                    {'name': 'herramienta', 'label': 'Herramienta', 'tipo': 'select',
+                     'opciones': [
+                         {'valor': 'planes_trabajo', 'texto': 'Planes de trabajo'},
+                         {'valor': 'planes_accion', 'texto': 'Planes de acción'},
+                         {'valor': 'programas', 'texto': 'Programas'},
+                         {'valor': 'proyectos', 'texto': 'Proyectos'},
+                         {'valor': 'no_se_incluyen',
+                          'texto': 'No se incluyen'},
+                     ]},
+                    {'name': 'documento_seccion',
+                     'label': 'Documento, sección / actividad', 'tipo': 'texto',
+                     'placeholder': 'Ej: Plan de Acción 2026 — Cap. Gestión Estadística'},
+                ],
+            }, ensure_ascii=False),
         }),
         label="8. Señale dentro de cuáles herramientas de planificación se incluyen actividades específicas de generación, procesamiento, reporte o difusión de información estadística",
-        help_text="Para cada herramienta seleccionada, describa el documento y sección específica"
+        help_text=("Agregue una fila por cada herramienta: selecciónela en la lista e "
+                   "indique el documento con su sección o actividad. Puede repetir "
+                   "herramienta si son varios documentos. Si ninguna aplica, "
+                   "seleccione «No se incluyen».")
     )
 
-    # P9: Herramientas de planificación (mejoramiento/fortalecimiento)
+    # P9: Herramientas de planificación (mejoramiento/fortalecimiento).
+    # 'No se incluyen' es la opción 9.5 del instrumento: va dentro del
+    # selector Herramienta (igual que en P8).
     p9_herramientas_mejoramiento = forms.CharField(
         required=False,
-        widget=iced_widget('checkbox-tabla', {
-            'exclusiva': 'no_se_incluyen',
-            'columnas': [
-                {'name': 'documento', 'label': 'Documento', 'tipo': 'texto'},
-                {'name': 'seccion', 'label': 'Sección / Actividad', 'tipo': 'texto'},
-            ],
-            'opciones': [
-                {'codigo': 'planes_trabajo', 'texto': 'Planes de trabajo'},
-                {'codigo': 'planes_accion', 'texto': 'Planes de acción'},
-                {'codigo': 'programas', 'texto': 'Programas'},
-                {'codigo': 'proyectos', 'texto': 'Proyectos'},
-                {'codigo': 'no_se_incluyen', 'texto': 'No se incluyen'},
-            ],
+        widget=forms.HiddenInput(attrs={
+            'class': 'iced-json-field',
+            'data-iced-widget': 'tabla-simple',
+            'data-config': json.dumps({
+                'min_filas': 1,
+                'max_filas': 15,
+                # 'No se incluyen' apaga el documento (no aplica) y le
+                # escribe 'na' para que no quede texto de una selección
+                # anterior al cambiar de opción.
+                'control_bloqueo': {
+                    'campo': 'herramienta', 'valor': 'no_se_incluyen',
+                    'campos': ['documento_seccion'],
+                    'valor_bloqueado': 'na',
+                },
+                'columnas': [
+                    {'name': 'herramienta', 'label': 'Herramienta', 'tipo': 'select',
+                     'opciones': [
+                         {'valor': 'planes_trabajo', 'texto': 'Planes de trabajo'},
+                         {'valor': 'planes_accion', 'texto': 'Planes de acción'},
+                         {'valor': 'programas', 'texto': 'Programas'},
+                         {'valor': 'proyectos', 'texto': 'Proyectos'},
+                         {'valor': 'no_se_incluyen',
+                          'texto': 'No se incluyen'},
+                     ]},
+                    {'name': 'documento_seccion',
+                     'label': 'Documento, sección / actividad', 'tipo': 'texto',
+                     'placeholder': 'Ej: Plan de Acción 2026 — Cap. Gestión Estadística'},
+                ],
+            }, ensure_ascii=False),
         }),
         label="9. Señale dentro de cuáles herramientas de planificación se incluyen actividades específicas para el mejoramiento o fortalecimiento de la información estadística",
-        help_text="Para cada herramienta seleccionada, indique el documento y la sección o actividad específica"
+        help_text=("Agregue una fila por cada herramienta: selecciónela en la lista e "
+                   "indique el documento con su sección o actividad. Puede repetir "
+                   "herramienta si son varios documentos. Si ninguna aplica, "
+                   "seleccione «No se incluyen».")
     )
 
     # P10: Participación en actividades de fortalecimiento
@@ -704,15 +790,17 @@ class ICEDModuloBForm(ICEDBaseForm):
                     {'name': 'organismo', 'label': 'Organismo o entidad encargada', 'tipo': 'organismo',
                      'permitir_otro': True, 'excluir': ['METROCALI'],
                      'campo_otro': 'organismo_otro'},
+                    {'name': 'url_evidencia', 'label': 'URL de evidencia', 'tipo': 'url',
+                     'placeholder': 'https://...'},
                 ],
             }, ensure_ascii=False),
             'data-show-if': 'p10_participacion=1,2,3',
         }),
-        label="Relacione las actividades en las que participó, la fecha y el organismo encargado de la actividad",
+        label="Relacione las actividades en las que participó, la fecha, el organismo encargado y la URL de evidencia",
         help_text=("Complete esta tabla solo si seleccionó opciones 1, 2 o 3. "
-                   "Cada dato va en su columna: describa la actividad en la primera "
-                   "(sin enlaces ni URLs), la fecha en formato AAAA-MM-DD y el "
-                   "organismo o entidad encargada en la última.")
+                   "Cada dato va en su columna: describa la actividad en la primera, "
+                   "la fecha en formato AAAA-MM-DD, el organismo o entidad encargada "
+                   "y la URL del soporte (certificado, convocatoria, lista de asistencia, etc.) en la última.")
     )
 
     # P11: Instancias de coordinación
@@ -744,7 +832,7 @@ class ICEDModuloBForm(ICEDBaseForm):
         label="12. ¿El organismo cuenta con mecanismos para asegurar la trazabilidad y continuidad en los procesos de generación, procesamiento, reporte o difusión de información estadística?"
     )
     p12_descripcion_mecanismo = forms.CharField(
-        max_length=10000,
+        max_length=8000,
         required=False,
         widget=forms.Textarea(attrs={
             'class': 'iced-textarea',
@@ -754,6 +842,80 @@ class ICEDModuloBForm(ICEDBaseForm):
         }),
         label="Describa mediante qué mecanismo"
     )
+
+    def clean(self):
+        cleaned = super().clean()
+
+        def requerido(name, mensaje):
+            """Exige contenido salvo que el campo ya tenga error propio
+            (el error de formato es más útil que 'campo vacío').
+            Tolerante a campos eliminados por el filtro de equipos en
+            get_form: add_error sobre un campo inexistente lanza ValueError."""
+            if name not in self.fields or name in self.errors:
+                return
+            if _json_vacio(cleaned.get(name)):
+                self.add_error(name, mensaje)
+
+        # P6: si responde 'sí' debe describir las funciones
+        if cleaned.get('p6_funciones_estadisticas') == 'si':
+            requerido('p6_descripcion',
+                      'Describa las funciones relacionadas con la gestión '
+                      'de información estadística.')
+
+        # P7: si responde 'sí' debe relacionar la estructura MOP
+        if cleaned.get('p7_procedimientos') == 'si':
+            requerido('p7_estructura_mop',
+                      'Agregue al menos un subproceso con sus '
+                      'procedimientos de la estructura MOP.')
+
+        # P8/P9: al menos una fila. 'No se incluyen' es opción del
+        # selector y es excluyente: no puede convivir con herramientas
+        # reales en la misma tabla.
+        for name in ('p8_herramientas_planificacion',
+                     'p9_herramientas_mejoramiento'):
+            requerido(name,
+                      'Agregue al menos una herramienta de planificación '
+                      'o seleccione "No se incluyen".')
+            if name not in self.fields:
+                continue
+            filas = cleaned.get(name)
+            if isinstance(filas, str):
+                try:
+                    filas = json.loads(filas)
+                except (ValueError, TypeError):
+                    filas = []
+            if isinstance(filas, list):
+                codigos = [f.get('herramienta') for f in filas
+                           if isinstance(f, dict) and f.get('herramienta')]
+                if ('no_se_incluyen' in codigos
+                        and any(c != 'no_se_incluyen' for c in codigos)):
+                    self.add_error(
+                        name,
+                        '"No se incluyen" no puede combinarse con otras '
+                        'herramientas: elimine las filas restantes.')
+
+        # P10: 1-3 exige tabla de actividades; 4 (no) exige el motivo
+        part = cleaned.get('p10_participacion')
+        if part in ('1', '2', '3'):
+            requerido('p10_actividades',
+                      'Relacione al menos una actividad de '
+                      'fortalecimiento con su fecha, entidad y URL.')
+        elif part == '4':
+            requerido('p10_motivo_no',
+                      'Indique por qué el organismo no participa.')
+
+        # P11: al menos una instancia (incluye 'No participa')
+        requerido('p11_instancias_coordinacion',
+                  'Seleccione al menos una instancia de coordinación '
+                  'o "No participa".')
+
+        # P12: opciones 1-2 exigen describir el mecanismo
+        if cleaned.get('p12_trazabilidad') in ('1', '2'):
+            requerido('p12_descripcion_mecanismo',
+                      'Describa mediante qué mecanismo asegura la '
+                      'trazabilidad.')
+
+        return cleaned
 
 
 # =============================================================================
@@ -1242,7 +1404,9 @@ P31_CHOICES = [
 
 P31_1_CHOICES = [
     ('1', 'Mensualmente'),
+    ('5', 'Bimensualmente'),
     ('2', 'Trimestralmente'),
+    ('6', 'Cuatrimestralmente'),
     ('3', 'Semestralmente'),
     ('4', 'Anualmente'),
 ]
@@ -1287,6 +1451,11 @@ class ICEDModuloD1Form(ICEDBaseForm):
                 {'name': 'publicado_sicode', 'label': 'Publicado en SICODE', 'tipo': 'booleano'},
                 {'name': 'url_evidencia', 'label': 'URL de evidencia', 'tipo': 'url',
                  'placeholder': 'https://... (documentos, ficha, publicación)'},
+                {'name': 'razon_no_vigente', 'label': 'Razón de no vigencia',
+                 'tipo': 'textarea',
+                 'placeholder': 'Describa, si la conoce, la razón por la cual '
+                                'la operación estadística actualmente no se '
+                                'encuentra vigente.'},
             ],
             # El instrumento pide opción NA en las columnas Sí/No
             'opcion_na': True,
@@ -1296,13 +1465,24 @@ class ICEDModuloD1Form(ICEDBaseForm):
                 {
                     'campo': 'vigente',
                     'valor': 'no',
-                    'excluir': ['nombre_oe', 'vigente', 'url_evidencia'],
+                    'excluir': ['nombre_oe', 'vigente', 'url_evidencia',
+                                'razon_no_vigente'],
                     'valor_bloqueado': 'na',
                 },
                 {
                     'campo': 'vigente',
                     'valor': 'no',
                     'campos': ['url_evidencia'],
+                    'valor_bloqueado': '',
+                },
+                {
+                    # Regla INVERSA: la columna razón solo se habilita cuando
+                    # vigente='no'; con 'si'/NA/vacío queda deshabilitada y
+                    # limpia — es texto abierto, no admite 'na'.
+                    'campo': 'vigente',
+                    'valor': 'no',
+                    'inverso': True,
+                    'campos': ['razon_no_vigente'],
                     'valor_bloqueado': '',
                 },
             ],
@@ -1536,7 +1716,9 @@ class ICEDModuloD2Form(ICEDBaseForm):
     # P28.1: Frecuencia de reuniones (condicional: P27 != 4 y P28 incluye 'reuniones')
     P28_1_OPCIONES = [
         ('mensual', 'Mensualmente'),
+        ('bimensual', 'Bimensualmente'),
         ('trimestral', 'Trimestralmente'),
+        ('cuatrimestral', 'Cuatrimestralmente'),
         ('semestral', 'Semestralmente'),
         ('anual', 'Anualmente'),
     ]
@@ -1944,33 +2126,36 @@ class ICEDModuloD3Form(ICEDBaseForm):
         widget=forms.RadioSelect(attrs={'class': 'iced-radio'}),
         label="31. ¿Qué tipo de analítica y modelos utiliza su organismo para optimizar los procesos de recolección, análisis y toma de decisiones?"
     )
-    p31_descripcion_productos = forms.CharField(
-        max_length=2000,
+    p31_productos = forms.CharField(
         required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'iced-textarea iced-conditional',
-            'rows': 3,
+        widget=forms.HiddenInput(attrs={
+            'class': 'iced-json-field',
+            'data-iced-widget': 'tabla-simple',
+            'data-config': json.dumps({
+                'min_filas': 1,
+                'max_filas': 15,
+                'columnas': [
+                    {'name': 'producto', 'label': 'Producto obtenido',
+                     'tipo': 'texto',
+                     'placeholder': 'Describa el producto obtenido'},
+                    {'name': 'url', 'label': 'URL de evidencia',
+                     'tipo': 'url', 'placeholder': 'https://...'},
+                ],
+            }, ensure_ascii=False),
             'data-show-if': 'p31_tipo_analitica=2,3,4,5',
-            'placeholder': 'Describa los productos obtenidos'
         }),
-        label="Describa los productos obtenidos"
-    )
-    p31_url = forms.URLField(
-        required=False,
-        widget=forms.URLInput(attrs={
-            'class': 'iced-input iced-conditional',
-            'data-show-if': 'p31_tipo_analitica=2,3,4,5',
-            'placeholder': 'https://...'
-        }),
-        label="URL de evidencia"
+        label="Describa los productos obtenidos y su URL de evidencia",
+        help_text=("Agregue una fila por cada producto obtenido: describa el "
+                   "producto y pegue la URL de su evidencia.")
     )
 
     # P31.1: Frecuencia de uso de modelos avanzados (condicional: P31 in [2,3,4,5])
-    p31_1_frecuencia = forms.ChoiceField(
-        choices=[('', '---')] + P31_1_CHOICES,
+    # Multi-selección como P28.1/P29.2 — pueden aplicar varias frecuencias.
+    p31_1_frecuencia = forms.MultipleChoiceField(
+        choices=P31_1_CHOICES,
         required=False,
-        widget=forms.Select(attrs={
-            'class': 'iced-select iced-conditional',
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'iced-checkbox iced-conditional',
             'data-show-if': 'p31_tipo_analitica=2,3,4,5'
         }),
         label="31.1 ¿Con qué frecuencia se utilizan los modelos avanzados para apoyar la toma de decisiones?"
@@ -2274,7 +2459,7 @@ class ICEDModuloEForm(ICEDBaseForm):
                 {'name': 'url', 'label': 'Relacione URL', 'tipo': 'url', 'placeholder': 'https://... Separe con coma si son varios'},
             ],
             'opciones': [
-                {'codigo': 'web', 'texto': 'Página web (SIS, ADDA, Página Web organismo, SICODE)'},
+                {'codigo': 'web', 'texto': 'Página web (SIIED, ADDA, Página Web organismo, SICODE)'},
                 {'codigo': 'fisico', 'texto': 'Medio físico'},
                 {'codigo': 'electronico', 'texto': 'Medio electrónico'},
                 {'codigo': 'otro', 'texto': 'Otro'},
