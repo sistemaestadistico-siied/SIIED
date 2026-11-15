@@ -1059,6 +1059,14 @@ def _crear_dataset_gsheet_bi(request, service, url_gsheet,
             f'{resultado.get("error", "Error desconocido")}')
         return render_form()
 
+    # El listado muestra 'titulo'; para GSheet el table_name es la URL, así
+    # que sin nombre quedaría el link expuesto — por eso es obligatorio.
+    titulo = request.POST.get('titulo_gsheet', '').strip()[:200]
+    if not titulo:
+        messages.error(
+            request, 'Indique el nombre del dataset de Google Sheet.')
+        return render_form()
+
     visibilidad = request.POST.get('visibilidad', 'propio')
     if visibilidad not in dict(DatasetBI.VISIBILIDAD_CHOICES):
         visibilidad = 'propio'
@@ -1069,6 +1077,7 @@ def _crear_dataset_gsheet_bi(request, service, url_gsheet,
             'organismo': organismo_perfil,
             'visibilidad': visibilidad,
             'dataset_id': resultado.get('dataset_id'),
+            'titulo': titulo,
             'activo': True,
         })
     _aplicar_acceso_gamma(

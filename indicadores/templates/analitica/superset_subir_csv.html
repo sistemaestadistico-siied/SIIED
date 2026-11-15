@@ -96,6 +96,14 @@
                 <input type="url" name="url_gsheet"
                        placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0"
                        class="block w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                <input type="text" name="titulo_gsheet" maxlength="200"
+                       placeholder="Nombre del dataset (ej: Resumen operaciones 2026)"
+                       value="{{ request.POST.titulo_gsheet }}"
+                       class="block w-full mt-3 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                <p class="text-xs text-slate-400 mt-1">
+                    Obligatorio: es el nombre visible en el listado de datasets;
+                    sin él se expone el link de Google.
+                </p>
             </div>
 
             <!-- Panel: conjunto de datos -->
