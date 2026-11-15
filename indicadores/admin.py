@@ -2494,7 +2494,7 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
         }),
         ('Rol y Permisos', {
             'fields': ('rol', 'activo'),
-            'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos | analista = Analítica e IA (cuenta Superset Alpha) | analista_organismo = solo SIIED BI / Don Datico BI (cuenta Superset Gamma)'
+            'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos | analista = Analítica e IA (cuenta Superset Alpha) | analista_organismo = solo SIIED BI / Don Datico BI (cuenta Superset Alpha)'
         }),
         ('Vínculo a Organismo', {
             'fields': ('organismo', 'subrol_ficed'),
@@ -2526,7 +2526,7 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
     # tableros embebidos NO necesitan cuenta: van por guest token.
     _SUPERSET_ROLE_MAP = {
         'analista': 'Alpha',            # constructor: charts/datasets/dashboards
-        'analista_organismo': 'Gamma',  # consumidor BI del organismo
+        'analista_organismo': 'Alpha',  # constructor BI del organismo
     }
 
     def save_model(self, request, obj, form, change):
