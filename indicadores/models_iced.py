@@ -227,7 +227,7 @@ class ICEDRecursoHumano(models.Model):
         ('AA', 'Asistencial Administrativo'),
         ('TO', 'Técnico Operativo'),
         ('TA', 'Técnico Administrativo'),
-        ('PU1', 'Profesional Universitario 1'),
+        ('PU1', 'Profesional Universitario'),
         ('PE', 'Profesional Especializado'),
         ('AS', 'Asesor'),
     ]

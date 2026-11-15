@@ -528,7 +528,7 @@ class ICEDModuloAForm(ICEDBaseForm):
                     {'valor': 'AA', 'texto': 'Asistencial Administrativo'},
                     {'valor': 'TO', 'texto': 'Técnico Operativo'},
                     {'valor': 'TA', 'texto': 'Técnico Administrativo'},
-                    {'valor': 'PU1', 'texto': 'Profesional Universitario 1'},
+                    {'valor': 'PU1', 'texto': 'Profesional Universitario'},
                     {'valor': 'PE', 'texto': 'Profesional Especializado'},
                     {'valor': 'AS', 'texto': 'Asesor'},
                 ],
