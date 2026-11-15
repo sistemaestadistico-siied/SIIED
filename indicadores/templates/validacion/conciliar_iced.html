@@ -60,6 +60,30 @@
 <form method="post">
     {% csrf_token %}
     <div class="space-y-4">
+        {% if confirm_pp or confirm_obs %}
+        <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-5">
+            <p class="text-sm font-semibold text-indigo-900 mb-1">
+                Preguntas sin equipo que las responda
+            </p>
+            <p class="text-xs text-indigo-700 mb-3">
+                Este organismo fue marcado
+                {% if confirm_pp and confirm_obs %}sin equipo de políticas públicas (ETPP) ni de observatorios (ETOBS){% elif confirm_pp %}sin equipo de políticas públicas (ETPP){% else %}sin equipo de observatorios (ETOBS){% endif %}.
+                Marque la confirmación para dejar la respuesta explícita en el consolidado.
+            </p>
+            {% if confirm_pp %}
+            <label class="flex items-start gap-2 text-sm text-indigo-900 mb-2">
+                <input type="checkbox" name="confirmar_sin_pp" value="1" class="mt-1">
+                <span>El organismo <strong>no está involucrado</strong> con las políticas públicas vigentes → la P29 quedará registrada como “No está involucrado”.</span>
+            </label>
+            {% endif %}
+            {% if confirm_obs %}
+            <label class="flex items-start gap-2 text-sm text-indigo-900">
+                <input type="checkbox" name="confirmar_sin_obs" value="1" class="mt-1">
+                <span>El organismo <strong>no cuenta con un observatorio</strong> → la P33 quedará registrada como “No”.</span>
+            </label>
+            {% endif %}
+        </div>
+        {% endif %}
         {% for p in preguntas %}
         {% if p.asignados|length > 1 %}
         <div class="bg-white rounded-2xl border p-5 {% if p.divergente %}border-amber-300{% else %}border-slate-200{% endif %}">

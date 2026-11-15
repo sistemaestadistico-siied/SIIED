@@ -2950,6 +2950,20 @@ class Organismo(models.Model):
                   "texto libre y no un código."
     )
 
+    # FICED: organismos sin equipo ETPP/ETOBS no pueden responder P29/P33;
+    # el validador confirma el "no tiene" durante la conciliación.
+    sin_pp = models.BooleanField(
+        default=False,
+        help_text="FICED: sin equipo de políticas públicas (ETPP); el "
+                  "validador confirma P29 = 'No está involucrado' en la "
+                  "conciliación."
+    )
+    sin_obs = models.BooleanField(
+        default=False,
+        help_text="FICED: sin equipo de observatorios (ETOBS); el "
+                  "validador confirma P33 = 'No' en la conciliación."
+    )
+
     class Meta:
         verbose_name = "Organismo"
         verbose_name_plural = "Organismos"

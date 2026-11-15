@@ -2827,6 +2827,13 @@ class OrganismoAdmin(admin.ModelAdmin):
         ('Contacto', {
             'fields': ('email_contacto', 'responsable')
         }),
+        ('FICED', {
+            'fields': ('sin_pp', 'sin_obs'),
+            'description': ('Marcar cuando el organismo no tiene los equipos '
+                            'técnicos que responden las preguntas 29 y 33; '
+                            'el validador confirma el "no tiene" durante la '
+                            'conciliación.'),
+        }),
         ('URLs Generadas', {
             'fields': ('url_satisfaccion_rapida', 'url_formulario_completo'),
             'classes': ('collapse',)

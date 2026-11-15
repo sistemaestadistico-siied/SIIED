@@ -2036,6 +2036,19 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         for cod in [_codigo_de_campo(k)] if cod
     }
 
+    # Flags FICED del organismo: si está marcado sin equipo ETPP/ETOBS y
+    # ningún equipo respondió esa pregunta, el validador confirma el
+    # "no tiene" en el formulario y queda explícito en el consolidado.
+    def _consolidado_respondio(k):
+        return bool(consolidado and (consolidado.respuestas_d or {}).get(k))
+
+    confirm_pp = (getattr(organismo, 'sin_pp', False)
+                  and '29' not in codigos_respondidos
+                  and not _consolidado_respondio('p29_rol_politicas'))
+    confirm_obs = (getattr(organismo, 'sin_obs', False)
+                   and '33' not in codigos_respondidos
+                   and not _consolidado_respondio('p33_tiene_observatorio'))
+
     # field_key → atributo respuestas_* donde se guardó (para respuestas
     # huérfanas no presentes en los forms del wizard).
     attr_de = {}
@@ -2175,6 +2188,20 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
                             if isinstance(v, (dict, list)) else v)
             conciliadas += 1
 
+        # Organismo marcado sin ETPP/ETOBS: si el validador confirmó el
+        # "no tiene", la respuesta queda explícita en el consolidado —
+        # igual que si el equipo la hubiera diligenciado.
+        if (getattr(organismo, 'sin_pp', False)
+                and request.POST.get('confirmar_sin_pp')
+                and '29' not in codigos_respondidos
+                and 'p29_rol_politicas' not in nuevos['respuestas_d']):
+            nuevos['respuestas_d']['p29_rol_politicas'] = ['3']
+        if (getattr(organismo, 'sin_obs', False)
+                and request.POST.get('confirmar_sin_obs')
+                and '33' not in codigos_respondidos
+                and 'p33_tiene_observatorio' not in nuevos['respuestas_d']):
+            nuevos['respuestas_d']['p33_tiene_observatorio'] = 'no'
+
         # Campos sin código de pregunta (personas de contacto, campos
         # display auxiliares): no pasan por elección de equipo; se conserva
         # el primer valor no vacío encontrado entre los formularios.
@@ -2232,6 +2259,8 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         'consolidado': consolidado,
         'preguntas': preguntas,
         'n_divergentes': sum(1 for p in preguntas if p['divergente']),
+        'confirm_pp': confirm_pp,
+        'confirm_obs': confirm_obs,
     }
     return render(request, 'validacion/conciliar_iced.html', context)
 
