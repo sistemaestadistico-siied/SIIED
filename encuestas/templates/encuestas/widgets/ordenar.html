@@ -1,0 +1,45 @@
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4" id="ord_{{ p.pk }}">
+  <p class="text-sm font-semibold text-slate-800 mb-1">
+    {{ p.enunciado }}{% if p.obligatoria %} <span class="text-rose-500">*</span>{% endif %}
+  </p>
+  {% if p.ayuda %}<p class="text-xs text-slate-400 mb-2">{{ p.ayuda }}</p>{% endif %}
+  <p class="text-xs text-slate-400 mb-2">Toque las opciones en el orden deseado (primera = más importante).</p>
+  <input type="hidden" name="p_{{ p.pk }}" value="">
+  <ul class="space-y-2" data-orden>
+    {% for o in p.opciones.all %}
+    <li data-id="{{ o.id }}"
+        class="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer select-none text-sm">
+      <span class="ord-pos w-6 h-6 rounded-full bg-slate-200 text-slate-500 text-xs font-bold grid place-items-center shrink-0"></span>
+      <span>{{ o.texto }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+<script>
+(function () {
+  var root = document.getElementById('ord_{{ p.pk }}');
+  if (!root) return;
+  var input = root.querySelector('input[name="p_{{ p.pk }}"]');
+  var items = [].slice.call(root.querySelectorAll('[data-orden] li'));
+  items.forEach(function (li) {
+    li.addEventListener('click', function () {
+      var activo = li.classList.toggle('bg-teal-50');
+      li.classList.toggle('border-teal-400', activo);
+      li.classList.toggle('bg-slate-50', !activo);
+      li.classList.toggle('border-slate-200', !activo);
+      var sel = items.filter(function (x) { return x.classList.contains('bg-teal-50'); });
+      items.forEach(function (x) {
+        x.querySelector('.ord-pos').textContent = '';
+        x.querySelector('.ord-pos').classList.replace('bg-teal-600', 'bg-slate-200');
+        x.querySelector('.ord-pos').classList.replace('text-white', 'text-slate-500');
+      });
+      sel.forEach(function (x, i) {
+        x.querySelector('.ord-pos').textContent = i + 1;
+        x.querySelector('.ord-pos').classList.replace('bg-slate-200', 'bg-teal-600');
+        x.querySelector('.ord-pos').classList.replace('text-slate-500', 'text-white');
+      });
+      input.value = sel.map(function (x) { return x.dataset.id; }).join(',');
+    });
+  });
+})();
+</script>

@@ -1,0 +1,9 @@
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+  <label class="block text-sm font-semibold text-slate-800 mb-1">
+    {{ p.enunciado }}{% if p.obligatoria %} <span class="text-rose-500">*</span>{% endif %}
+  </label>
+  {% if p.ayuda %}<p class="text-xs text-slate-400 mb-2">{{ p.ayuda }}</p>{% endif %}
+  <input type="tel" name="p_{{ p.pk }}" value="{{ valor|default:'' }}"
+         placeholder="Ej. 604 555 1234"
+         class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+</div>

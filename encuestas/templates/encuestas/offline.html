@@ -176,6 +176,26 @@ function render(){
           h += campo(p, '', `<div class="escala" data-esc="${n}">` +
             Array.from({length: mx-mn+1}, (_,i)=>`<button type="button" data-v="${mn+i}" onclick="selEsc(this,'${n}')">${mn+i}</button>`).join('')
             + `</div><input type="hidden" name="${n}">`); break;
+        case 'url':
+          h += campo(p, '', `<input type="url" name="${n}" placeholder="https://…">`); break;
+        case 'telefono':
+          h += campo(p, '', `<input type="tel" name="${n}">`); break;
+        case 'fecha_hora':
+          h += campo(p, '', `<input type="datetime-local" name="${n}">`); break;
+        case 'catalogo':
+          h += campo(p, '', `<select name="${n}"><option value="">— elegir —</option>${
+            p.opciones.map(o => `<option value="${o.id}">${o.texto}</option>`).join('')}</select>`); break;
+        case 'matriz':
+          h += campo(p, '', `<table style="width:100%;font-size:.8rem"><thead><tr><th></th>${
+            (p.config.columnas||[]).map(c => `<th style="padding:4px;text-align:center">${c.texto}</th>`).join('')}</tr></thead><tbody>${
+            (p.config.filas||[]).map(f => `<tr><td style="padding:4px">${f.texto}</td>${
+              (p.config.columnas||[]).map(c => `<td style="text-align:center"><input type="radio" name="${n}_${f.id}" value="${c.id}" style="width:auto"></td>`).join('')}</tr>`).join('')}</tbody></table>`); break;
+        case 'ordenar':
+          h += campo(p, 'Toque las opciones en el orden deseado.',
+            `<div data-ord="${n}">${p.opciones.map(o =>
+              `<button type="button" class="opt ord-btn" data-id="${o.id}" onclick="selOrd(this,'${n}')" style="text-align:left"><span class="ord-pos" style="display:inline-block;min-width:1.4rem;font-weight:700"></span> ${o.texto}</button>`).join('')}</div><input type="hidden" name="${n}">`); break;
+        case 'archivo':
+          h += campo(p, '', `<div class="ayuda" style="color:#b45309">⚠ Los adjuntos no se capturan sin conexión; súbalo en la versión web.</div>`); break;
         default:
           h += campo(p, '', `<input type="text" name="${n}">`);
       }
@@ -191,6 +211,16 @@ function selEsc(btn, name){
   document.querySelector(`input[name="${name}"]`).value = btn.dataset.v;
 }
 
+function selOrd(btn, name){
+  btn.classList.toggle('sel');
+  const box = btn.closest('[data-ord]');
+  const sel = [...box.querySelectorAll('.ord-btn.sel')];
+  box.querySelectorAll('.ord-pos').forEach(s => s.textContent = '');
+  sel.forEach((b, i) => b.querySelector('.ord-pos').textContent = (i + 1));
+  document.querySelector(`input[name="${name}"]`).value =
+    sel.map(b => b.dataset.id).join(',');
+}
+
 /* === Recolección === */
 function recolectar(){
   const respuestas = {};
@@ -201,6 +231,15 @@ function recolectar(){
     let v = null;
     if(p.tipo === 'seleccion_multiple')
       v = [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(i => i.value);
+    else if(p.tipo === 'matriz'){
+      const mm = {};
+      (p.config.filas || []).forEach(f => {
+        const i = document.querySelector(
+          `input[name="${n}_${f.id}"]:checked`);
+        if(i) mm[f.id] = i.value;
+      });
+      v = Object.keys(mm).length ? mm : null;
+    }
     else if(p.tipo === 'seleccion_unica' || p.tipo === 'si_no'){
       const i = document.querySelector(`input[name="${n}"]:checked`);
       v = i ? i.value : '';

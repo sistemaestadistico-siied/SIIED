@@ -27,6 +27,34 @@ def ficha_valor(objeto, campo):
 
 
 @register.filter
+def cat_opciones(p):
+    """Opciones del catálogo configurado: `p|cat_opciones`."""
+    from ..tipos import tipo_de
+    tipo = tipo_de(p)
+    if not hasattr(tipo, 'opciones_catalogo'):
+        return []
+    return tipo().opciones_catalogo(p)
+
+
+@register.filter
+def matriz_col(valor, fila_id):
+    """Columna elegida en una fila de matriz: `valor|matriz_col:f.id`."""
+    if not isinstance(valor, dict):
+        return ''
+    celda = valor.get(str(fila_id))
+    return celda.get('columna_id', '') if isinstance(celda, dict) else ''
+
+
+@register.filter
+def json_attr(valor):
+    """JSON escapado para atributo HTML: `data-cfg='{{ cfg|json_attr }}'`."""
+    import json
+    from django.utils.html import escape
+    from django.utils.safestring import mark_safe
+    return mark_safe(escape(json.dumps(valor or {})))
+
+
+@register.filter
 def seleccionado(valor, opcion_id):
     """¿La opción (id) está dentro del valor guardado?"""
     if valor is None:

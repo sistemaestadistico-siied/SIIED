@@ -527,7 +527,8 @@ def _responder(request, f, *, modo, invitacion=None):
             else:
                 _actualizar_respondiente(request, envio)
             if accion == 'borrador':
-                errores = se.guardar_borrador(envio, request.POST)
+                errores = se.guardar_borrador(envio, request.POST,
+                                              request.FILES)
                 if errores:
                     for msgs in errores.values():
                         for m in msgs:
@@ -536,7 +537,7 @@ def _responder(request, f, *, modo, invitacion=None):
                     messages.info(request, 'Borrador guardado.')
             else:
                 try:
-                    se.enviar(envio, request.POST)
+                    se.enviar(envio, request.POST, request.FILES)
                 except se.ErroresEnvio as e:
                     for msgs in e.errores.values():
                         for m in msgs:

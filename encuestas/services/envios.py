@@ -16,7 +16,7 @@ from django.db import transaction
 
 from gestion.services.ventanas import ventana_abierta
 
-from ..models import (Asignacion, Envio, Formulario, Invitacion,
+from ..models import (Adjunto, Asignacion, Envio, Formulario, Invitacion,
                       Respondiente, RespuestaItem)
 from ..tipos import tipo_de
 
@@ -146,11 +146,12 @@ class ErroresEnvio(Exception):
         self.errores = errores  # {pregunta_id: [msg,...]}
 
 
-def _guardar_respuestas(envio, post, *, validar_obligatorias=True):
+def _guardar_respuestas(envio, post, files=None,
+                        *, validar_obligatorias=True):
     """Limpia y guarda las respuestas del POST.
 
-    `post` es QueryDict; los campos llegan como `p_{pk}`. Devuelve
-    (errores, n_guardadas)."""
+    `post` es QueryDict; los campos llegan como `p_{pk}` y los archivos
+    en `files` (`p_{pk}` también). Devuelve (errores, n_guardadas)."""
     errores = {}
 
     class _F:
@@ -166,37 +167,41 @@ def _guardar_respuestas(envio, post, *, validar_obligatorias=True):
             key = f'p_{p.pk}'
             if tipo.clave == 'informativo':
                 continue
-            if tipo.clave == 'seleccion_multiple':
-                bruto = post.getlist(key)
-            else:
-                bruto = post.get(key)
             fake = _F(p.pk)
-            valor = tipo().limpiar(bruto, p, fake)
+            valor = tipo().valor_desde_post(post, files, key, p, fake)
             if p.obligatoria and validar_obligatorias and valor is None:
                 errores.setdefault(p.pk, []).append(
                     'Esta pregunta es obligatoria.')
                 continue
             if errores.get(p.pk):
                 continue
+            # El tipo archivo devuelve el File object; se materializa
+            if isinstance(valor, dict) and 'archivo' in valor:
+                archivo = valor['archivo']
+                adj = Adjunto.objects.create(
+                    envio=envio, pregunta=p, archivo=archivo,
+                    nombre_original=archivo.name)
+                valor = {'nombre': archivo.name, 'adjunto_id': adj.pk}
             RespuestaItem.objects.update_or_create(
                 envio=envio, pregunta=p,
                 defaults={'valor': valor})
     return errores
 
 
-def guardar_borrador(envio, post):
+def guardar_borrador(envio, post, files=None):
     """Guarda respuestas sin exigir obligatorias (seguir luego)."""
     if envio.estado != 'borrador':
         raise ValidationError('El envío ya fue enviado.')
-    return _guardar_respuestas(envio, post, validar_obligatorias=False)
+    return _guardar_respuestas(envio, post, files,
+                               validar_obligatorias=False)
 
 
-def enviar(envio, post, *, respondiente=None):
+def enviar(envio, post, files=None, *, respondiente=None):
     """Valida obligatorias, guarda y marca el envío como enviado."""
     if envio.estado == 'enviado' and \
             not envio.formulario.permite_editar_tras_envio:
         raise ValidationError('Este envío ya fue enviado.')
-    errores = _guardar_respuestas(envio, post,
+    errores = _guardar_respuestas(envio, post, files,
                                   validar_obligatorias=True)
     if errores:
         raise ErroresEnvio(errores)

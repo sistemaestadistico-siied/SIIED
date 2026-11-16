@@ -126,6 +126,14 @@ def resumen(formulario):
                     texto = (item.get('texto') if isinstance(item, dict)
                              else str(item))
                     conteos[texto] = conteos.get(texto, 0) + 1
+            elif isinstance(v, dict) and p.tipo == 'matriz':
+                filas = {str(f['id']): f['texto']
+                         for f in p.config.get('filas', [])}
+                for fid, celda in v.items():
+                    if isinstance(celda, dict):
+                        t = (f"{filas.get(fid, fid)}: "
+                             f"{celda.get('columna_texto', '')}")
+                        conteos[t] = conteos.get(t, 0) + 1
             elif isinstance(v, dict):
                 texto = v.get('texto') or str(v)
                 conteos[texto] = conteos.get(texto, 0) + 1

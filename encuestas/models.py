@@ -437,3 +437,22 @@ class RespuestaItem(models.Model):
 
     def __str__(self):
         return f'envío {self.envio_id} · {self.pregunta_id}'
+
+
+def ruta_adjunto(instancia, nombre):
+    return (f'encuestas/adjuntos/{instancia.envio.formulario_id}/'
+            f'{instancia.envio_id}/{instancia.pregunta_id}_{nombre}')
+
+
+class Adjunto(models.Model):
+    """Archivo subido como respuesta del tipo `archivo` (evidencia)."""
+    envio = models.ForeignKey(Envio, on_delete=models.CASCADE,
+                              related_name='adjuntos')
+    pregunta = models.ForeignKey(Pregunta, on_delete=models.PROTECT,
+                                 related_name='adjuntos')
+    archivo = models.FileField(upload_to=ruta_adjunto)
+    nombre_original = models.CharField(max_length=300)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nombre_original

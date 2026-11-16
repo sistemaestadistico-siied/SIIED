@@ -1,0 +1,13 @@
+{% load encuestas_tags %}
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+  <label class="block text-sm font-semibold text-slate-800 mb-1">
+    {{ p.enunciado }}{% if p.obligatoria %} <span class="text-rose-500">*</span>{% endif %}
+  </label>
+  {% if p.ayuda %}<p class="text-xs text-slate-400 mb-2">{{ p.ayuda }}</p>{% endif %}
+  <select name="p_{{ p.pk }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+    <option value="">— Seleccione —</option>
+    {% for o in p|cat_opciones %}
+    <option value="{{ o.id }}" {% if valor|get:'id' == o.id %}selected{% endif %}>{{ o.texto }}</option>
+    {% endfor %}
+  </select>
+</div>

@@ -418,3 +418,124 @@ class FichaTests(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertEqual(
             self.f.ficha.objetivo_general, 'Nuevo objetivo')
+
+
+# =============================================================================
+# Tipos complejos (url, telefono, fecha_hora, matriz, ordenar, catalogo,
+# archivo)
+# =============================================================================
+
+class TiposComplejosTests(TestCase):
+    def setUp(self):
+        self.f = _formulario()
+        self.f.estado = 'publicado'
+        self.f.save()
+
+    def _enviar(self, post, files=None):
+        envio = Envio.objects.create(formulario=self.f, modo='auto',
+                                     estado='borrador')
+        return envio, se.enviar(envio, post, files)
+
+    def test_url_validacion(self):
+        p = _con_pregunta(self.f, tipo='url')
+        envio = Envio.objects.create(formulario=self.f, modo='auto')
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p.pk}': 'no-es-url'},
+            validar_obligatorias=False)
+        self.assertIn(p.pk, errs)
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p.pk}': 'https://x.co/d.pdf'},
+            validar_obligatorias=False)
+        self.assertNotIn(p.pk, errs)
+        self.assertEqual(envio.respuestas.get(pregunta=p).valor,
+                         'https://x.co/d.pdf')
+
+    def test_telefono_y_fecha_hora(self):
+        p1 = _con_pregunta(self.f, tipo='telefono')
+        p2 = _con_pregunta(self.f, tipo='fecha_hora')
+        envio = Envio.objects.create(formulario=self.f, modo='auto')
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p1.pk}': '+57 604 555 1234',
+                    f'p_{p2.pk}': '2026-11-20T14:30'},
+            validar_obligatorias=False)
+        self.assertEqual(errs, {})
+
+    def test_matriz(self):
+        p = _con_pregunta(self.f, tipo='matriz', obligatoria=True,
+                          config={
+                              'filas': [{'id': 'f1', 'texto': 'Salud'},
+                                        {'id': 'f2', 'texto': 'Educación'}],
+                              'columnas': [{'id': 'c1', 'texto': 'Bueno'},
+                                           {'id': 'c2', 'texto': 'Malo'}]})
+        envio = Envio.objects.create(formulario=self.f, modo='auto')
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p.pk}_f1': 'c1'},
+            validar_obligatorias=True)
+        self.assertIn(p.pk, errs)          # falta f2
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p.pk}_f1': 'c1', f'p_{p.pk}_f2': 'c2'},
+            validar_obligatorias=True)
+        self.assertNotIn(p.pk, errs)
+        v = envio.respuestas.get(pregunta=p).valor
+        self.assertEqual(v['f1']['columna_texto'], 'Bueno')
+        self.assertEqual(v['f2']['columna_texto'], 'Malo')
+        # Importación offline con el dict crudo
+        limpio, errs2 = __import__(
+            'encuestas.services.offline',
+            fromlist=['_limpiar_valor'])._limpiar_valor(
+                p, {'f1': 'c2'})
+        self.assertEqual(limpio['f1']['columna_id'], 'c2')
+
+    def test_ordenar(self):
+        p = _con_pregunta(self.f, tipo='ordenar', obligatoria=True)
+        for i, t in enumerate(['A', 'B', 'C']):
+            Opcion.objects.create(pregunta=p, orden=i, texto=t)
+        envio = Envio.objects.create(formulario=self.f, modo='auto')
+        o2, o3 = p.opciones.all()[1], p.opciones.all()[2]
+        o1 = p.opciones.all()[0]
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p.pk}': f'{o2.pk},{o3.pk},{o1.pk}'},
+            validar_obligatorias=True)
+        self.assertNotIn(p.pk, errs)
+        v = envio.respuestas.get(pregunta=p).valor
+        self.assertEqual([x['texto'] for x in v], ['B', 'C', 'A'])
+        self.assertEqual(v[0]['pos'], 1)
+
+    def test_catalogo(self):
+        from indicadores.models import Organismo
+        org = Organismo.objects.create(nombre='DANE')
+        p = _con_pregunta(self.f, tipo='catalogo',
+                          config={'catalogo': 'organismo'})
+        envio = Envio.objects.create(formulario=self.f, modo='auto')
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p.pk}': str(org.pk)},
+            validar_obligatorias=False)
+        self.assertNotIn(p.pk, errs)
+        v = envio.respuestas.get(pregunta=p).valor
+        self.assertEqual(v['texto'], 'DANE')
+        # id inválido → error
+        errs = se._guardar_respuestas(
+            envio, {f'p_{p.pk}': '999999'},
+            validar_obligatorias=False)
+        self.assertIn(p.pk, errs)
+
+    def test_archivo(self):
+        from io import BytesIO
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        p = _con_pregunta(self.f, tipo='archivo', obligatoria=True)
+        envio = Envio.objects.create(formulario=self.f, modo='auto')
+        arch = SimpleUploadedFile('evidencia.pdf', b'%PDF-1 fake',
+                                  content_type='application/pdf')
+        errs = se._guardar_respuestas(
+            envio, {}, {f'p_{p.pk}': arch}, validar_obligatorias=True)
+        self.assertNotIn(p.pk, errs)
+        from .models import Adjunto
+        self.assertEqual(envio.adjuntos.count(), 1)
+        v = envio.respuestas.get(pregunta=p).valor
+        self.assertEqual(v['nombre'], 'evidencia.pdf')
+        envio.adjuntos.get().archivo.delete()
+        # Extensión prohibida
+        arch2 = SimpleUploadedFile('virus.exe', b'x')
+        errs = se._guardar_respuestas(
+            envio, {}, {f'p_{p.pk}': arch2}, validar_obligatorias=True)
+        self.assertIn(p.pk, errs)

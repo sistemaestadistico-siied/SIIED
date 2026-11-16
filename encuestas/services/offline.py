@@ -45,17 +45,26 @@ def estructura_json(formulario):
     secciones = []
     for sec in formulario.secciones.prefetch_related(
             'preguntas__opciones'):
-        secciones.append({
-            'orden': sec.orden, 'titulo': sec.titulo,
-            'descripcion': sec.descripcion,
-            'preguntas': [{
+        preguntas = []
+        for p in sec.preguntas.all():
+            data = {
                 'id': p.pk, 'tipo': p.tipo, 'enunciado': p.enunciado,
                 'ayuda': p.ayuda, 'obligatoria': p.obligatoria,
                 'codigo': p.codigo, 'config': p.config,
                 'opciones': [{'id': o.id, 'texto': o.texto,
                               'es_otro': o.es_otro}
                              for o in p.opciones.all()],
-            } for p in sec.preguntas.all()],
+            }
+            if p.tipo == 'catalogo':
+                data['opciones'] = [
+                    {'id': o['id'], 'texto': str(list(o.values())[-1]),
+                     'es_otro': False}
+                    for o in tipo_de(p)().opciones_catalogo(p)]
+            preguntas.append(data)
+        secciones.append({
+            'orden': sec.orden, 'titulo': sec.titulo,
+            'descripcion': sec.descripcion,
+            'preguntas': preguntas,
         })
     return {
         'id': formulario.pk, 'slug': formulario.slug,
