@@ -214,12 +214,14 @@ el portal**:
 
 - **P23 — Tabla de OOEE del PED**: tabla compleja (hasta 30 filas) precargada
   con las operaciones estadísticas del Plan Estadístico Distrital. Por cada
-  una marca: **Vigente**, **Documento metodológico**, **Ficha metodológica**,
+  una marca: **Vigente** (solo Sí o No), **Documento metodológico**,
+  **Ficha metodológica**,
   **Manual operativo**, **Diccionario de datos**, **Documento de consistencia
   y validación**, **Acciones de fortalecimiento**, **Publicado en SICODE**
-  (todas Sí/No/NA) y **URL de evidencia**.
+  (Sí/No/NA) y **URL de evidencia**.
   - **Todas las operaciones precargadas deben diligenciarse**: en cada fila
-    es obligatorio responder **Vigente** y, si está vigente, responder
+    es obligatorio responder **Vigente** (Sí o No, no admite NA) y, si está
+    vigente, responder
     **Sí, No o NA en todas las columnas**. No se puede avanzar dejando filas
     sin responder.
   - **Instructivo:** si una operación **ya no se genera**, marca **NO en
@@ -425,10 +427,12 @@ Cuando dos o más equipos respondieron la misma pregunta, usa el botón
   consolidado.
 - Al terminar, presiona **"Consolidar respuestas oficiales"**: el sistema crea
   el formulario consolidado del organismo.
-- **No se puede consolidar mientras algún equipo tenga su formulario en
-  "Borrador"**: la página muestra el aviso *"Los formularios de … aún están
-  en borrador — deben enviarlos antes de poder conciliar"* y el botón queda
-  deshabilitado hasta que todos envíen.
+- **No se puede consolidar hasta que todos los equipos del organismo
+  hayan enviado su formulario**: la página muestra qué equipos faltan
+  (*"… aún no han diligenciado su formulario"*) o siguen sin enviarlo
+  (borrador o devueltos), y el botón queda deshabilitado hasta que todos
+  envíen. Si el organismo está marcado **sin ETPP** y/o **sin ETOBS**, esos
+  equipos no se exigen (se requieren los 3 o 4 restantes).
 - Si tu organismo está registrado **sin equipo de políticas públicas
   (ETPP)** y/o **sin equipo de observatorios (ETOBS)**, debes marcar la
   casilla de confirmación correspondiente antes de consolidar.

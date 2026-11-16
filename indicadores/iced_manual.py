@@ -168,7 +168,8 @@ MANUAL_POR_PASO = {
         ),
         'tips': [
             'P23: las operaciones estadísticas vienen precargadas y '
-            'TODAS deben diligenciarse: en cada fila responda Vigente y, '
+            'TODAS deben diligenciarse: en cada fila responda Vigente '
+            '(solo Sí o No, no admite NA) y, '
             'si está vigente, Sí/No/NA en cada columna (documentos '
             'metodológicos, ficha, manual, diccionario, consistencia, '
             'acciones de fortalecimiento, SICODE). Si Vigente = NO, '

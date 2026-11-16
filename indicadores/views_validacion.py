@@ -2147,18 +2147,44 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
             ),
         })
 
+    # Equipos que deben terminar su formulario antes de conciliar: los
+    # cinco equipos técnicos menos los que el organismo tiene eximidos
+    # (sin_pp → ETPP, sin_obs → ETOBS). Si falta el formulario de un
+    # equipo requerido — nunca lo creó — o existe pero no lo envió
+    # (borrador/devuelto), el consolidado saldría incompleto: se bloquea.
+    ESTADOS_LISTOS = ('enviado', 'prevalidado', 'validado')
+    equipos_requeridos = [
+        eq for eq in EQUIPOS_ICED
+        if not (eq == 'ETPP' and getattr(organismo, 'sin_pp', False))
+        and not (eq == 'ETOBS' and getattr(organismo, 'sin_obs', False))
+    ]
+    form_por_eq = {f.equipo: f for f in formularios}
+    equipos_faltantes = [
+        eq for eq in equipos_requeridos if eq not in form_por_eq]
     pendientes_borrador = [
-        f.equipo for f in formularios if f.estado == 'borrador']
+        f.equipo for f in formularios
+        if f.equipo in equipos_requeridos
+        and f.estado not in ESTADOS_LISTOS]
+    bloqueo_conciliar = equipos_faltantes or pendientes_borrador
 
     if request.method == 'POST':
-        # No conciliar con formularios en borrador: el bloque de
+        # No conciliar mientras falten equipos requeridos: el bloque de
         # preguntas de ese equipo iría vacío al consolidado.
+        if equipos_faltantes:
+            messages.error(
+                request,
+                'No puedes conciliar todavía: el/los equipo(s) '
+                + ', '.join(equipos_faltantes)
+                + ' no han diligenciado su formulario. Todos los equipos '
+                'del organismo deben terminarlo y enviarlo primero.')
+            return redirect(request.path)
         if pendientes_borrador:
             messages.error(
                 request,
                 'No puedes conciliar todavía: el/los formulario(s) de '
                 + ', '.join(pendientes_borrador)
-                + ' siguen en borrador. Deben enviarlos primero.')
+                + ' siguen sin enviarse (borrador o devueltos). Deben '
+                'enviarlos primero.')
             return redirect(request.path)
         # Organismo marcado sin ETPP/ETOBS: la confirmación del "no
         # tiene" es obligatoria para conciliar — sin ella la respuesta
@@ -2298,6 +2324,8 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         'confirm_pp': confirm_pp,
         'confirm_obs': confirm_obs,
         'pendientes_borrador': pendientes_borrador,
+        'equipos_faltantes': equipos_faltantes,
+        'bloqueo_conciliar': bloqueo_conciliar,
     }
     return render(request, 'validacion/conciliar_iced.html', context)
 

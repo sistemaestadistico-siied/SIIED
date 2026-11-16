@@ -38,6 +38,12 @@
             <span class="text-xs opacity-75">· {{ f.get_estado_display }}</span>
         </a>
         {% endfor %}
+        {% for eq in equipos_faltantes %}
+        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-dashed border-red-300 bg-red-50 text-red-700 text-sm font-medium">
+            {{ eq }}
+            <span class="text-xs opacity-75">· sin formulario</span>
+        </span>
+        {% endfor %}
         {% if consolidado %}
         <a href="{% url 'indicadores:validacion_revisar_iced' consolidado.pk %}"
            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-400 bg-emerald-100 text-emerald-900 text-sm font-semibold">
@@ -46,9 +52,14 @@
         </a>
         {% endif %}
     </div>
+    {% if equipos_faltantes %}
+    <p class="text-sm text-red-800 bg-red-50 border border-red-300 rounded-xl px-4 py-2 mt-4 font-medium">
+        ⚠️ {{ equipos_faltantes|join:", " }} aún no han diligenciado su formulario — todos los equipos del organismo deben terminarlo y enviarlo antes de poder conciliar.
+    </p>
+    {% endif %}
     {% if pendientes_borrador %}
     <p class="text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 mt-4 font-medium">
-        ⚠️ Los formularios de {{ pendientes_borrador|join:", " }} aún están en borrador — deben enviarlos antes de poder conciliar.
+        ⚠️ Los formularios de {{ pendientes_borrador|join:", " }} aún no se han enviado (borrador o devueltos) — deben enviarlos antes de poder conciliar.
     </p>
     {% endif %}
     {% if n_divergentes %}
@@ -180,8 +191,8 @@
 
     <div class="sticky bottom-4 mt-8 flex justify-end">
         <button type="submit"
-                {% if pendientes_borrador %}disabled{% endif %}
-                class="{% if pendientes_borrador %}bg-slate-300 text-slate-500 cursor-not-allowed{% else %}bg-emerald-500 hover:bg-emerald-700 text-white{% endif %} font-semibold px-8 py-3 rounded-xl shadow-md transition-all">
+                {% if bloqueo_conciliar %}disabled{% endif %}
+                class="{% if bloqueo_conciliar %}bg-slate-300 text-slate-500 cursor-not-allowed{% else %}bg-emerald-500 hover:bg-emerald-700 text-white{% endif %} font-semibold px-8 py-3 rounded-xl shadow-md transition-all">
             Consolidar respuestas oficiales
         </button>
     </div>

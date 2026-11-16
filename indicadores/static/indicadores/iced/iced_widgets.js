@@ -505,8 +505,10 @@
                             el('option', { value: '' }, ['—']),
                             el('option', { value: 'si' }, ['Sí']),
                             el('option', { value: 'no' }, ['No']),
-                            // NA solo si la tabla lo habilita (config.opcion_na, p.ej. P23)
-                            ...(config.opcion_na ? [el('option', { value: 'na' }, ['NA'])] : []),
+                            // NA solo si la tabla lo habilita (config.opcion_na,
+                            // p.ej. P23) y la columna no lo excluye (col.sin_na)
+                            ...(config.opcion_na && !col.sin_na
+                                ? [el('option', { value: 'na' }, ['NA'])] : []),
                         ]);
                         input.value = fila[col.name] || '';
                     } else if (col.tipo === 'fecha') {

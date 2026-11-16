@@ -1640,7 +1640,8 @@ class ICEDModuloD1Form(ICEDBaseForm):
             # nombre_oe se llena por inyección desde OperacionEstadistica (inventario)
             'columnas': [
                 {'name': 'nombre_oe', 'label': 'Nombre de la operación estadística', 'tipo': 'select', 'opciones': []},
-                {'name': 'vigente', 'label': 'Vigente', 'tipo': 'booleano'},
+                {'name': 'vigente', 'label': 'Vigente', 'tipo': 'booleano',
+                 'sin_na': True},
                 {'name': 'doc_metodologico', 'label': 'Documento metodológico', 'tipo': 'booleano'},
                 {'name': 'ficha_metodologica', 'label': 'Ficha metodológica', 'tipo': 'booleano'},
                 {'name': 'manual_operativo', 'label': 'Manual operativo', 'tipo': 'booleano'},
@@ -1868,13 +1869,13 @@ class ICEDModuloD1Form(ICEDBaseForm):
                 # diligencia nada, el paso no puede avanzar.
                 oe = str(fila.get('nombre_oe') or '').strip()
                 vigente = str(fila.get('vigente') or '').strip().lower()
-                if oe and not vigente:
+                if oe and vigente not in ('si', 'no'):
                     self.add_error(
                         name,
                         f'Fila {i} ({oe}): indique si la operación está '
-                        'vigente.')
+                        'vigente (Sí o No).')
                     break
-                if oe and vigente != 'no':
+                if oe and vigente == 'si':
                     faltan = [c for c in cols_sino
                               if not str(fila.get(c) or '').strip()]
                     if faltan:
