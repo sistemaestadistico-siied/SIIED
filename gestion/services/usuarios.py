@@ -317,3 +317,96 @@ def procesar_csv_usuarios(archivo, aplicar=False):
         resultado.append({'n': n, 'datos': datos, 'estado': estado,
                           'errores': errores})
     return resultado
+
+
+# ── Usuarios de Encuestas (diligenciador / encuestador) ───────────────
+
+ROLES_ENCUESTAS = ('diligenciador', 'encuestador')
+
+
+def crear_usuario_encuestas(*, username, email='', first_name='',
+                            last_name='', rol, activo=True,
+                            enviar_correo=True):
+    """Crea User + PerfilRecolector para operaciones estadísticas
+    (diligenciador responde a su nombre; encuestador captura por
+    varias personas, p. ej. captura offline). Sin organismo ni equipo.
+    Devuelve (user, correo_estado)."""
+    if rol not in ROLES_ENCUESTAS:
+        raise ValidationError(
+            {'rol': f'Rol de encuestas inválido: {rol}'})
+    if User.objects.filter(username=username).exists():
+        raise ValidationError({'username': 'Ese nombre de usuario ya existe.'})
+    if email and User.objects.filter(email=email).exists():
+        raise ValidationError(
+            {'email': f'Otro usuario ya usa el correo {email}.'})
+
+    with transaction.atomic():
+        user = User.objects.create_user(
+            username=username, email=email,
+            first_name=first_name, last_name=last_name)
+        user.is_active = activo
+        user.set_unusable_password()
+        user.save()
+        PerfilRecolector.objects.create(user=user, rol=rol, activo=activo)
+
+    estado = 'omitido'
+    if enviar_correo and activo:
+        estado = emitir_password_temporal(user)
+    return user, estado
+
+
+def validar_fila_encuestas(fila):
+    """Errores de una fila CSV de encuestas sin escribir."""
+    errores = []
+    username = fila.get('username', '').strip()
+    rol = fila.get('rol', '').strip() or 'diligenciador'
+    correo = fila.get('correo', '').strip()
+
+    if not username:
+        errores.append('username vacío')
+    elif User.objects.filter(username=username).exists():
+        errores.append('username ya existe')
+    if correo and User.objects.filter(email=correo).exists():
+        errores.append('correo ya usado por otro usuario')
+    if rol not in ROLES_ENCUESTAS:
+        errores.append(f'rol inválido: {rol or "(vacío)"} '
+                       '(esperado: diligenciador o encuestador)')
+
+    datos = {
+        'username': username,
+        'first_name': fila.get('nombres', ''),
+        'last_name': fila.get('apellidos', ''),
+        'email': correo,
+        'rol': rol,
+        'activo': fila.get('activo', '1').strip() in ('1', 'si', 'sí', 'true'),
+        'enviar_correo': fila.get('enviar_correo', '1').strip() in
+        ('1', 'si', 'sí', 'true'),
+    }
+    return datos, errores
+
+
+def procesar_csv_encuestas(archivo, aplicar=False):
+    """Dry-run o aplicación por fila del CSV de usuarios de encuestas.
+
+    Columnas: username, nombres, apellidos, correo, rol, activo,
+    enviar_correo."""
+    filas = _parsear_csv_usuarios(archivo)
+    resultado = []
+    for n, fila in filas:
+        datos, errores = validar_fila_encuestas(fila)
+        estado = 'ok'
+        if not errores and aplicar:
+            try:
+                user, correo_estado = crear_usuario_encuestas(**datos)
+                estado = 'creado'
+                if correo_estado == 'fallido':
+                    errores.append('correo falló: credenciales no enviadas')
+            except ValidationError as e:
+                estado = 'error'
+                errores.extend(m for msgs in e.message_dict.values()
+                               for m in msgs)
+        elif errores:
+            estado = 'error'
+        resultado.append({'n': n, 'datos': datos, 'estado': estado,
+                          'errores': errores})
+    return resultado

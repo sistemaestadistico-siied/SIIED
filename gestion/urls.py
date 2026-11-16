@@ -82,6 +82,14 @@ urlpatterns = [
          name='ficed_usuarios_plantilla'),
 
     # Encuestas (gestión)
+    path('encuestas/usuarios/', encuestas_views.usuarios,
+         name='encuestas_usuarios'),
+    path('encuestas/usuarios/plantilla/',
+         encuestas_views.usuarios_plantilla,
+         name='encuestas_usuarios_plantilla'),
+    path('encuestas/usuarios/carga-masiva/',
+         encuestas_views.carga_masiva_usuarios,
+         name='encuestas_carga_masiva'),
     path('encuestas/', encuestas_views.lista, name='encuestas_lista'),
     path('encuestas/crear/', encuestas_views.crear,
          name='encuestas_crear'),

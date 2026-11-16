@@ -836,3 +836,142 @@ def ficha(request, formulario_id):
         'metodos': fi.METODOS_CHOICES,
     })
     return render(request, 'gestion/encuestas/ficha.html', ctx)
+
+
+# =============================================================================
+# Gestión — usuarios de encuestas (diligenciador / encuestador)
+# =============================================================================
+
+@gestor_required
+def usuarios(request):
+    """Lista y crea cuentas de operación estadística.
+
+    `diligenciador` responde encuestas a su nombre; `encuestador`
+    captura para varias personas (incluida la captura offline).
+    La asignación a cada formulario se hace en su página de
+    distribución."""
+    from gestion.services.usuarios import (ROLES_ENCUESTAS,
+                                          crear_usuario_encuestas)
+    if request.method == 'POST':
+        op = request.POST.get('op', '')
+        if op == 'crear':
+            d = request.POST
+            try:
+                user, estado = crear_usuario_encuestas(
+                    username=d.get('username', '').strip(),
+                    email=d.get('email', '').strip(),
+                    first_name=d.get('first_name', '').strip(),
+                    last_name=d.get('last_name', '').strip(),
+                    rol=d.get('rol', ''),
+                    activo=d.get('activo') == '1',
+                    enviar_correo=d.get('enviar_correo') == '1')
+            except ValidationError as e:
+                for errs in e.message_dict.values():
+                    for m in errs:
+                        messages.error(request, m)
+            else:
+                registrar_accion(
+                    request, modulo='encuesta', accion='crear_usuario',
+                    objeto_tipo='User', objeto_id=user.pk,
+                    despues={'username': user.username,
+                             'rol': d.get('rol'),
+                             'correo': estado})
+                msg = f'Usuario {user.username} creado.'
+                if estado == 'enviado':
+                    msg += ' Credenciales enviadas por correo.'
+                elif estado == 'fallido':
+                    msg += (' ATENCIÓN: el correo falló — el usuario quedó '
+                            'sin contraseña usable; reintente el envío.')
+                messages.success(request, msg)
+            return redirect('gestion:encuestas_usuarios')
+        elif op == 'toggle':
+            perfil = get_object_or_404(
+                PerfilRecolector.objects.select_related('user'),
+                pk=request.POST.get('perfil'),
+                rol__in=ROLES_ENCUESTAS)
+            perfil.activo = not perfil.activo
+            perfil.save(update_fields=['activo'])
+            user = perfil.user
+            user.is_active = perfil.activo
+            user.save(update_fields=['is_active'])
+            registrar_accion(
+                request, modulo='encuesta',
+                accion='activar_usuario' if perfil.activo
+                       else 'desactivar_usuario',
+                objeto_tipo='User', objeto_id=user.pk,
+                despues={'activo': perfil.activo})
+            messages.success(
+                request,
+                f'{user.username} '
+                f'{"activado" if perfil.activo else "desactivado"}.')
+            return redirect('gestion:encuestas_usuarios')
+
+    perfiles = (PerfilRecolector.objects
+                .filter(rol__in=ROLES_ENCUESTAS)
+                .select_related('user')
+                .order_by('-activo', 'rol', 'user__username'))
+    ctx = _gestion_ctx(request)
+    ctx.update({'perfiles': perfiles,
+                'roles': [('diligenciador',
+                           'Diligenciador (responde a su nombre)'),
+                          ('encuestador',
+                           'Encuestador (captura por varias personas)')]})
+    return render(request, 'gestion/encuestas/usuarios.html', ctx)
+
+
+@gestor_required
+def usuarios_plantilla(request):
+    """Plantilla CSV descargable de usuarios de encuestas."""
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(['username', 'nombres', 'apellidos', 'correo', 'rol',
+                'activo', 'enviar_correo'])
+    w.writerow(['encuestador_zona1', 'Nombre', 'Apellido',
+                'encuestador@org.gov.co', 'encuestador', '1', '1'])
+    r = HttpResponse(out.getvalue(),
+                     content_type='text/csv; charset=utf-8')
+    r['Content-Disposition'] = (
+        'attachment; filename="plantilla_usuarios_encuestas.csv"')
+    return r
+
+
+@gestor_required
+def carga_masiva_usuarios(request):
+    """CSV → validación previa (dry-run) → aplicar por fila."""
+    from gestion.services.usuarios import procesar_csv_encuestas
+    ctx = _gestion_ctx(request)
+    ctx['ejemplo'] = ('username,nombres,apellidos,correo,rol,activo,'
+                      'enviar_correo')
+    if request.method == 'POST':
+        archivo = request.FILES.get('archivo')
+        aplicar = request.POST.get('aplicar') == '1'
+        if not archivo:
+            messages.error(request, 'Adjunte un archivo CSV.')
+        elif not archivo.name.lower().endswith('.csv'):
+            messages.error(request, 'El archivo debe ser .csv.')
+        else:
+            try:
+                filas = procesar_csv_encuestas(archivo, aplicar=aplicar)
+            except Exception as e:
+                messages.error(request, f'No se pudo leer el CSV: {e}')
+            else:
+                n_ok = sum(1 for f in filas
+                           if f['estado'] in ('ok', 'creado'))
+                n_err = sum(1 for f in filas if f['estado'] == 'error')
+                if aplicar:
+                    creados = [f for f in filas if f['estado'] == 'creado']
+                    registrar_accion(
+                        request, modulo='encuesta', accion='carga_masiva',
+                        objeto_tipo='User', objeto_id='csv',
+                        despues={'creados': len(creados),
+                                 'errores': n_err,
+                                 'usernames': [f['datos']['username']
+                                              for f in creados]},
+                        motivo=request.POST.get('motivo', '').strip())
+                    messages.success(
+                        request,
+                        f'{len(creados)} usuario(s) creados, '
+                        f'{n_err} fila(s) con error.')
+                ctx.update({'filas': filas, 'n_ok': n_ok, 'n_err': n_err,
+                            'aplicado': aplicar})
+    return render(request, 'gestion/encuestas/carga_masiva.html', ctx)
