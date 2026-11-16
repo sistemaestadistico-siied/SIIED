@@ -24,6 +24,39 @@
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
     transform: translateY(-2px);
   }
+  .workspace-card .btn-link:active { transform: scale(0.97); transition: transform 100ms ease-out; }
+  .workspace-card .estado {
+    display: inline-flex; align-items: center; gap: 0.375rem;
+    font-size: 0.8125rem; font-weight: 600; margin-bottom: 0.75rem;
+    padding: 0.25rem 0.625rem; border-radius: 999px; align-self: flex-start;
+    background: #f1f5f9; color: #334155;
+  }
+  .ws-nav {
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid rgba(148,163,184,0.25);
+  }
+  .ws-nav a {
+    display: inline-block; white-space: nowrap;
+    padding: 0.375rem 0.875rem; border-radius: 999px;
+    font-size: 0.8125rem; font-weight: 600; color: #334155; text-decoration: none;
+  }
+  .ws-nav a:hover { background: rgba(15,23,42,0.06); }
+  .ws-nav a:active { transform: scale(0.97); }
+  .ws-section { scroll-margin-top: 4rem; }
+  .ws-section h2 { letter-spacing: -0.01em; }
+  @media (prefers-reduced-motion: reduce) {
+    .workspace-card, .workspace-card:hover { transform: none; transition: box-shadow 0.2s; }
+    html { scroll-behavior: auto; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .ws-nav { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  }
   .workspace-card .icon {
     width: 3rem; height: 3rem;
     border-radius: 0.75rem;
@@ -67,21 +100,35 @@
           {% if rol %}<span class="role-badge">{{ perfil.get_rol_display|default:rol }}</span>{% endif %}
         </p>
       </div>
-      {% if perfil.institucion %}
-      <div class="text-right">
-        <p class="text-sm text-slate-500">Institución</p>
-        <p class="text-lg font-semibold text-slate-800">{{ perfil.institucion }}</p>
+      {% if organismo or perfil.institucion %}
+      <div class="sm:text-right">
+        <p class="text-sm text-slate-500">{% if organismo %}Organismo{% else %}Institución{% endif %}</p>
+        <p class="text-lg font-semibold text-slate-800">{{ organismo.nombre|default:perfil.institucion }}</p>
       </div>
       {% endif %}
     </div>
   </div>
 </div>
 
+<nav class="ws-nav -mt-8 mb-8" aria-label="Secciones del workspace">
+  <div class="container mx-auto px-6 py-2 flex gap-1 overflow-x-auto">
+    {% if puede_recoleccion %}<a href="#ws-recoleccion">Recolección</a>{% endif %}
+    {% if puede_reportes %}<a href="#ws-reportes">Reportes</a>{% endif %}
+    {% if es_delegado %}<a href="#ws-organismos">Portal de Organismos</a>{% endif %}
+    {% if es_validador %}<a href="#ws-validacion">Validación</a>{% endif %}
+    {% if es_analista %}<a href="#ws-analitica">Analítica e IA</a>{% elif es_bi %}<a href="#ws-bi">SIIED BI</a>{% endif %}
+    {% if puede_editorial %}<a href="#ws-editorial">Editorial</a>{% endif %}
+    <a href="#ws-datos">Datos abiertos</a>
+    {% if es_staff %}<a href="#ws-admin">Administración</a>{% endif %}
+    <a href="#ws-cuenta">Mi cuenta</a>
+  </div>
+</nav>
+
 <div class="container mx-auto px-6 pb-12">
 
   <!-- Recolección -->
   {% if puede_recoleccion %}
-  <div class="mb-10">
+  <div class="mb-10 ws-section" id="ws-recoleccion">
     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span>
       Módulo de Recolección
@@ -98,7 +145,7 @@
         <div class="icon" style="background:#f0f9ff;color:#0284c7;"><i class="fas fa-database"></i></div>
         <h3>Cargar Conjunto de datos</h3>
         <p>Sube conjuntos de datos con metadata de variables.</p>
-        {% if stats.mis_conjuntos_datos is not None %}<div class="stat" style="color:#0284c7;">{{ stats.mis_conjuntos_datos }}</div>{% endif %}
+        {% if stats.mis_conjunto_datos is not None %}<div class="stat" style="color:#0284c7;">{{ stats.mis_conjunto_datos }}</div>{% endif %}
         <a href="{% url 'indicadores:cargar_conjunto_datos' %}" class="btn-link" style="background:#f0f9ff;color:#0284c7;">Ir a cargar <i class="fas fa-arrow-right"></i></a>
       </div>
       <div class="workspace-card">
@@ -123,7 +170,7 @@
 
   <!-- Reportes -->
   {% if puede_reportes %}
-  <div class="mb-10">
+  <div class="mb-10 ws-section" id="ws-reportes">
     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <span style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block;"></span>
       Módulo de Reportes
@@ -160,12 +207,32 @@
 
   <!-- Delegado -->
   {% if es_delegado %}
-  <div class="mb-10">
+  <div class="mb-10 ws-section" id="ws-organismos">
     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>
-      Portal del Delegado
+      Portal de Organismos
     </h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#ecfeff;color:#0e7490;"><i class="fas fa-clipboard-list"></i></div>
+        <h3>FICED</h3>
+        <p>Formulario de capacidad estadística de tu equipo técnico.</p>
+        {% if stats.ficed_estado %}<span class="estado"><i class="fas fa-circle" style="font-size:0.45rem;"></i>{{ stats.ficed_equipo }} · {{ stats.ficed_estado }}</span>{% endif %}
+        <a href="{% url 'indicadores:delegado_ficed' %}" class="btn-link" style="background:#ecfeff;color:#0e7490;">Ir al FICED <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0fdf4;color:#15803d;"><i class="fas fa-people-group"></i></div>
+        <h3>Taller de Gestión de Datos</h3>
+        <p>Caracterización de fuentes de datos y retos de análisis de tu equipo.</p>
+        {% if stats.taller_estado %}<span class="estado"><i class="fas fa-circle" style="font-size:0.45rem;"></i>{{ stats.taller_estado }}</span>{% endif %}
+        <a href="{% url 'indicadores:taller_wizard' %}" class="btn-link" style="background:#f0fdf4;color:#15803d;">Ir al taller <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-list-check"></i></div>
+        <h3>Mis indicadores</h3>
+        <p>Indicadores asignados a tu organismo y su estado de actualización.</p>
+        <a href="{% url 'indicadores:delegado_mis_indicadores' %}" class="btn-link" style="background:#fef3c7;color:#b45309;">Ver indicadores <i class="fas fa-arrow-right"></i></a>
+      </div>
       <div class="workspace-card">
         <div class="icon" style="background:#fef3c7;color:#b45309;"><i class="fas fa-upload"></i></div>
         <h3>Cargar Serie</h3>
@@ -184,7 +251,19 @@
         <div class="icon" style="background:#fffbeb;color:#d97706;"><i class="fas fa-inbox"></i></div>
         <h3>Mis Cargas</h3>
         <p>Revisa el estado de tus cargas enviadas.</p>
-        <a href="{% url 'indicadores:delegado_dashboard' %}" class="btn-link" style="background:#fffbeb;color:#d97706;">Ver dashboard <i class="fas fa-arrow-right"></i></a>
+        <a href="{% url 'indicadores:delegado_historial' %}" class="btn-link" style="background:#fffbeb;color:#d97706;">Ver historial <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-file-excel"></i></div>
+        <h3>Plantillas</h3>
+        <p>Descarga las plantillas de carga de series y conjuntos de datos.</p>
+        <a href="{% url 'indicadores:delegado_plantillas' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Descargar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-book-open"></i></div>
+        <h3>Manual del delegado</h3>
+        <p>Guía paso a paso del portal de organismos.</p>
+        <a href="{% url 'indicadores:delegado_manual' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Abrir manual <i class="fas fa-arrow-right"></i></a>
       </div>
     </div>
   </div>
@@ -192,12 +271,24 @@
 
   <!-- Validador -->
   {% if es_validador %}
-  <div class="mb-10">
+  <div class="mb-10 ws-section" id="ws-validacion">
     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span>
-      Panel de Validación
+      Panel de Validación{% if es_validador_organismo and organismo %} <span class="text-sm font-medium text-slate-500">· {{ organismo.nombre }}</span>{% endif %}
     </h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#ecfeff;color:#0e7490;"><i class="fas fa-clipboard-list"></i></div>
+        <h3>Avances FICED</h3>
+        {% if es_validador_organismo %}
+        <p>Estado de los equipos técnicos de tu organismo; concilia y pre-valida el consolidado.</p>
+        {% if stats.ficed_por_conciliar is not None %}<div class="stat" style="color:#0e7490;">{{ stats.ficed_por_conciliar }}</div><p style="font-size:0.75rem;margin-top:-0.5rem;">formularios enviados por conciliar</p>{% endif %}
+        {% else %}
+        <p>Avance de todos los organismos; validación final y puntaje del FICED.</p>
+        {% if stats.ficed_prevalidados is not None %}<div class="stat" style="color:#0e7490;">{{ stats.ficed_prevalidados }}</div><p style="font-size:0.75rem;margin-top:-0.5rem;">consolidados pre-validados por revisar</p>{% endif %}
+        {% endif %}
+        <a href="{% url 'indicadores:validacion_avances_iced' %}" class="btn-link" style="background:#ecfeff;color:#0e7490;">Ver avances <i class="fas fa-arrow-right"></i></a>
+      </div>
       <div class="workspace-card">
         <div class="icon" style="background:#fee2e2;color:#991b1b;"><i class="fas fa-clipboard-check"></i></div>
         <h3>Validar Series</h3>
@@ -212,13 +303,103 @@
         {% if stats.validar_conjunto_datos is not None %}<div class="stat" style="color:#991b1b;">{{ stats.validar_conjunto_datos }}</div>{% endif %}
         <a href="{% url 'indicadores:validacion_dashboard' %}" class="btn-link" style="background:#fee2e2;color:#991b1b;">Ir a validación <i class="fas fa-arrow-right"></i></a>
       </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#fef9c3;color:#a16207;"><i class="fas fa-certificate"></i></div>
+        <h3>Sellos de calidad</h3>
+        <p>Sellos otorgados a indicadores y conjuntos de datos validados.</p>
+        <a href="{% url 'indicadores:validacion_sellos' %}" class="btn-link" style="background:#fef9c3;color:#a16207;">Ver sellos <i class="fas fa-arrow-right"></i></a>
+      </div>
+      {% if es_validador_sistema %}
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0fdf4;color:#15803d;"><i class="fas fa-layer-group"></i></div>
+        <h3>Fuentes del taller</h3>
+        <p>Validación final de las fuentes de datos del taller hacia la capa gold.</p>
+        <a href="{% url 'indicadores:validacion_fuentes_taller' %}" class="btn-link" style="background:#f0fdf4;color:#15803d;">Revisar fuentes <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#eef2ff;color:#4338ca;"><i class="fas fa-code-compare"></i></div>
+        <h3>Conciliación de datos</h3>
+        <p>Compara y concilia series contra la fuente oficial y sus equivalencias.</p>
+        <a href="{% url 'indicadores:validacion_conciliacion' %}" class="btn-link" style="background:#eef2ff;color:#4338ca;">Conciliar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#eef2ff;color:#4338ca;"><i class="fas fa-fingerprint"></i></div>
+        <h3>Normalización de identidad</h3>
+        <p>Códigos únicos de indicadores y conciliación de duplicados.</p>
+        <a href="{% url 'indicadores:validacion_normalizacion_identidad' %}" class="btn-link" style="background:#eef2ff;color:#4338ca;">Normalizar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      {% endif %}
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-book-open"></i></div>
+        <h3>Manual de validación</h3>
+        <p>Procedimiento de revisión, conciliación y aprobación.</p>
+        <a href="{% url 'indicadores:validacion_manual' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Abrir manual <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Analítica e IA (equipo SIIED) -->
+  {% if es_analista %}
+  <div class="mb-10 ws-section" id="ws-analitica">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block;"></span>
+      Analítica e IA
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-brain"></i></div>
+        <h3>Panel de Analítica</h3>
+        <p>Don Datico: parámetros, contextos, prompts y sugerencias.</p>
+        <a href="{% url 'indicadores:analitica_dashboard' %}" class="btn-link" style="background:#ede9fe;color:#6d28d9;">Abrir panel <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-chart-pie"></i></div>
+        <h3>SIIED BI</h3>
+        <p>Tableros Superset, datasets, conexiones y visibilidad por organismo.</p>
+        <a href="{% url 'indicadores:analitica_superset' %}" class="btn-link" style="background:#ede9fe;color:#6d28d9;">Abrir BI <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-wand-magic-sparkles"></i></div>
+        <h3>Don Datico BI</h3>
+        <p>Consulta, analiza y genera tableros con asistencia de IA.</p>
+        <a href="{% url 'indicadores:analitica_dondatico' %}" class="btn-link" style="background:#ede9fe;color:#6d28d9;">Abrir Don Datico <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0fdf4;color:#15803d;"><i class="fas fa-people-group"></i></div>
+        <h3>Analítica del taller</h3>
+        <p>Reportes, fuentes, retos, catálogo y ecosistema del Taller de Gestión de Datos.</p>
+        <a href="{% url 'indicadores:analitica_taller_reportes' %}" class="btn-link" style="background:#f0fdf4;color:#15803d;">Abrir taller <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% elif es_bi %}
+  <!-- SIIED BI (analista del organismo) -->
+  <div class="mb-10 ws-section" id="ws-bi">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block;"></span>
+      SIIED BI
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-chart-pie"></i></div>
+        <h3>Tableros y datasets</h3>
+        <p>Tableros y datasets de tu organismo y los datasets base del SIIED.</p>
+        <a href="{% url 'indicadores:analitica_superset' %}" class="btn-link" style="background:#ede9fe;color:#6d28d9;">Abrir BI <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-wand-magic-sparkles"></i></div>
+        <h3>Don Datico BI</h3>
+        <p>Consulta, analiza y genera tableros con asistencia de IA.</p>
+        <a href="{% url 'indicadores:analitica_dondatico' %}" class="btn-link" style="background:#ede9fe;color:#6d28d9;">Abrir Don Datico <i class="fas fa-arrow-right"></i></a>
+      </div>
     </div>
   </div>
   {% endif %}
 
   <!-- Editorial -->
   {% if puede_editorial %}
-  <div class="mb-10">
+  <div class="mb-10 ws-section" id="ws-editorial">
     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <span style="width:8px;height:8px;border-radius:50%;background:#9333ea;display:inline-block;"></span>
       Editorial
@@ -255,7 +436,7 @@
 
   <!-- Admin / Staff -->
   {% if es_staff %}
-  <div class="mb-10">
+  <div class="mb-10 ws-section" id="ws-admin">
     <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
       <span style="width:8px;height:8px;border-radius:50%;background:#6366f1;display:inline-block;"></span>
       Administración
@@ -280,9 +461,65 @@
         <p>Administra usuarios, indicadores y configuración.</p>
         <a href="{% url 'admin:index' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Ir al admin <i class="fas fa-arrow-right"></i></a>
       </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0fdf4;color:#15803d;"><i class="fas fa-people-group"></i></div>
+        <h3>Dashboard del taller</h3>
+        <p>Avance de inscripciones, informe, casos F2 y presentación del taller.</p>
+        <a href="{% url 'indicadores:taller_dashboard' %}" class="btn-link" style="background:#f0fdf4;color:#15803d;">Abrir dashboard <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f3f4f6;color:#4b5563;"><i class="fas fa-heart-pulse"></i></div>
+        <h3>Monitoreo</h3>
+        <p>Estado del sistema, caché, calidad de datos y visitas.</p>
+        <a href="{% url 'monitoring_dashboard_slash' %}" class="btn-link" style="background:#f3f4f6;color:#4b5563;">Ver monitoreo <i class="fas fa-arrow-right"></i></a>
+      </div>
     </div>
   </div>
   {% endif %}
+
+  <!-- Datos abiertos (todos) -->
+  <div class="mb-10 ws-section" id="ws-datos">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#0ea5e9;display:inline-block;"></span>
+      Datos abiertos
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0f9ff;color:#0369a1;"><i class="fas fa-book"></i></div>
+        <h3>Catálogo de datos</h3>
+        <p>Fuentes, conjuntos de datos y variables del ecosistema distrital.</p>
+        <a href="{% url 'indicadores:catalogo_datos' %}" class="btn-link" style="background:#f0f9ff;color:#0369a1;">Abrir catálogo <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f0f9ff;color:#0369a1;"><i class="fas fa-flask"></i></div>
+        <h3>Consulta y Tableros</h3>
+        <p>Consulta datos en lenguaje natural y guarda tus tableros.</p>
+        <a href="{% url 'indicadores:laboratorio_home' %}" class="btn-link" style="background:#f0f9ff;color:#0369a1;">Abrir laboratorio <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mi cuenta -->
+  <div class="mb-10 ws-section" id="ws-cuenta">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#64748b;display:inline-block;"></span>
+      Mi cuenta
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#f1f5f9;color:#334155;"><i class="fas fa-key"></i></div>
+        <h3>Cambiar contraseña</h3>
+        <p>Actualiza la contraseña de tu cuenta SIIED.</p>
+        <a href="{% url 'indicadores:cuenta_cambiar_contrasena' %}" class="btn-link" style="background:#f1f5f9;color:#334155;">Cambiar <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#f1f5f9;color:#334155;"><i class="fas fa-right-from-bracket"></i></div>
+        <h3>Cerrar sesión</h3>
+        <p>Sal de todos los módulos del SIIED.</p>
+        <a href="{% url 'indicadores:logout' %}" class="btn-link" style="background:#f1f5f9;color:#334155;">Cerrar sesión <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
 
 </div>
 {% endblock %}

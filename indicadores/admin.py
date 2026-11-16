@@ -2493,7 +2493,7 @@ class PerfilRecolectorAdmin(admin.ModelAdmin):
             'fields': ('user',)
         }),
         ('Rol y Permisos', {
-            'fields': ('rol', 'activo'),
+            'fields': ('rol', 'activo', 'debe_cambiar_password'),
             'description': 'delegado = Portal de Organismos | validador = Panel de Validación SIIED | recolector/consultor/ambos = módulos internos | analista = Analítica e IA (cuenta Superset Alpha) | analista_organismo = solo SIIED BI / Don Datico BI (cuenta Superset Alpha)'
         }),
         ('Vínculo a Organismo', {
@@ -3632,8 +3632,7 @@ class MCPAuditLogAdmin(admin.ModelAdmin):
 # =============================================================================
 
 from django.contrib.auth.admin import UserAdmin as _BaseUserAdmin
-import secrets as _secrets
-from .notifications import notificar_acceso_usuario
+from .cuentas import emitir_password_temporal
 
 
 class SIIEDUserAdmin(_BaseUserAdmin):
@@ -3651,17 +3650,10 @@ class SIIEDUserAdmin(_BaseUserAdmin):
         description='Enviar correo de acceso (genera contraseña temporal)')
     def enviar_correo_acceso(self, request, queryset):
         enviados, sin_correo, fallidos = [], [], []
+        destino = {'enviado': enviados, 'sin_correo': sin_correo,
+                   'fallido': fallidos}
         for user in queryset:
-            if not user.email:
-                sin_correo.append(user.username)
-                continue
-            pwd = _secrets.token_urlsafe(9)
-            if notificar_acceso_usuario(user, pwd):
-                user.set_password(pwd)
-                user.save(update_fields=['password'])
-                enviados.append(user.username)
-            else:
-                fallidos.append(user.username)
+            destino[emitir_password_temporal(user)].append(user.username)
         if enviados:
             self.message_user(
                 request,

@@ -106,6 +106,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'indicadores.middleware.PageVisitMiddleware',
     'indicadores.middleware.ChatRateLimitMiddleware',
+    'indicadores.middleware.CambioPasswordObligatorioMiddleware',
 ]
 
 ROOT_URLCONF = 'myproject.urls'

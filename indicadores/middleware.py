@@ -1,8 +1,11 @@
 import re
 import time
 import threading
+from urllib.parse import quote
 from django.http import JsonResponse
 from django.core.cache import cache
+from django.shortcuts import redirect
+from django.urls import reverse
 
 
 def _normalizar_path(path):
@@ -153,3 +156,40 @@ class ChatRateLimitMiddleware:
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+
+class CambioPasswordObligatorioMiddleware:
+    """Usuario con contraseña temporal (perfil.debe_cambiar_password):
+    toda petición autenticada se redirige al cambio de contraseña, salvo
+    esa vista, los logout y los estáticos. Peticiones fetch/JSON reciben
+    403 con la URL a la que deben ir."""
+
+    PREFIJOS_LIBRES = ('/static/', '/media/')
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from indicadores.cuentas import debe_cambiar_password
+
+        if debe_cambiar_password(getattr(request, 'user', None)):
+            url = reverse('indicadores:cuenta_cambiar_contrasena')
+            path = request.path
+            libre = (
+                path == url
+                or path.rstrip('/').endswith('logout')
+                or path.startswith(self.PREFIJOS_LIBRES)
+            )
+            if not libre:
+                acepta = request.headers.get('Accept', '')
+                if (request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                        or ('application/json' in acepta
+                            and 'text/html' not in acepta)):
+                    return JsonResponse({
+                        'ok': False,
+                        'error': 'Debe cambiar su contraseña temporal.',
+                        'redirect': url,
+                    }, status=403)
+                return redirect(
+                    f'{url}?next={quote(request.get_full_path())}')
+        return self.get_response(request)

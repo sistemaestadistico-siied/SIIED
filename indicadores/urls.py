@@ -21,6 +21,7 @@ from . import views_editorial
 from . import views_taller
 from . import views_catalogo
 from . import views_catalogo_variables
+from . import views_cuenta
 
 # Custom path converter for organismo codes with accented characters
 class OrganismoCodeConverter:
@@ -40,6 +41,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('acceso-modulos/', views.acceso_modulos, name='acceso_modulos'),
     path('logout/', views.auth_logout_global, name='logout'),
+    path('cuenta/cambiar-contrasena/', views_cuenta.cambiar_contrasena, name='cuenta_cambiar_contrasena'),
     path('dominio/', views.dominios, name='dominios'),
     path('modelo/', views.modelo_datos, name='modelo_datos'),
     path('presentacion/', views.presentacion, name='presentacion'),

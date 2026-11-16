@@ -1,0 +1,66 @@
+{% extends 'indicadores/base.html' %}
+
+{% block title %}Cambiar contraseña — SIIED{% endblock %}
+
+{% block content %}
+<div class="page-canvas flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="hcard-ico acc-cyan !mb-4 mx-auto" style="width:3.5rem;height:3.5rem;font-size:1.5rem;"><i class="fas fa-key"></i></div>
+            <h1 class="sect-title">Cambiar contraseña</h1>
+            {% if obligatorio %}
+            <p class="sect-sub text-sm">Ingresó con una contraseña temporal. Defina una propia para continuar.</p>
+            {% else %}
+            <p class="sect-sub text-sm">Actualice la contraseña de su cuenta SIIED.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white border border-slate-200 shadow-sm overflow-hidden" style="border-radius:1.25rem;">
+            <div class="p-8">
+                {% if messages %}
+                <div class="mb-6 space-y-3">
+                    {% for msg in messages %}
+                    <div class="p-4 rounded-xl text-sm border-l-4
+                        {% if msg.tags == 'error' %}bg-rose-50 text-rose-800 border-rose-400
+                        {% elif msg.tags == 'warning' %}bg-amber-50 text-amber-800 border-amber-400
+                        {% elif msg.tags == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-400
+                        {% else %}bg-sky-50 text-sky-800 border-sky-400{% endif %}">
+                        {{ msg }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if form.non_field_errors %}
+                <div class="mb-6 p-4 rounded-xl text-sm border-l-4 bg-rose-50 text-rose-800 border-rose-400">
+                    {{ form.non_field_errors|join:" " }}
+                </div>
+                {% endif %}
+
+                <form method="post" class="space-y-5" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                    {% for field in form %}
+                    <div>
+                        <label for="{{ field.id_for_label }}" class="block text-sm font-semibold text-slate-700 mb-2">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                        <p class="mt-2 text-sm text-rose-700">{{ field.errors|join:" " }}</p>
+                        {% elif field.help_text %}
+                        <div class="mt-2 text-xs text-slate-500 leading-relaxed">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="sbtn sbtn-solid w-full justify-center">
+                        <i class="fas fa-check"></i> Guardar contraseña
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center">
+                    <a href="{% url 'indicadores:logout' %}" class="text-slate-500 hover:text-slate-700 font-medium text-sm">Cerrar sesión</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

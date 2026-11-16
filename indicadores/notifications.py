@@ -1061,7 +1061,8 @@ def notificar_acceso_usuario(user, password_temporal):
                 </a>
             </p>
             <p style="color:#6b7280;font-size:13px;margin-top:16px;">
-                Conserve estas credenciales en un lugar seguro. Si usted no
+                Al ingresar por primera vez el sistema le pedir&aacute;
+                cambiar esta contrase&ntilde;a temporal por una propia. Si usted no
                 esperaba esta cuenta o necesita restablecer la contrase&ntilde;a,
                 contacte al equipo SIIED.
             </p>

@@ -4071,21 +4071,24 @@ def workspace_dashboard(request):
     rol = perfil.rol if perfil else None
     activo = perfil.activo if perfil else False
 
-    # Determinar acceso a módulos
+    # Acceso a módulos: mismas reglas que los decoradores de cada módulo
     es_staff = user.is_staff
-    if es_staff:
-        # Admin ve todo
-        puede_recoleccion = True
-        puede_reportes = True
-        es_delegado = True
-        es_validador = True
-        puede_editorial = True
-    else:
-        puede_recoleccion = rol in ('recolector', 'ambos')
-        puede_reportes = rol in ('consultor', 'ambos')
-        es_delegado = rol == 'delegado' and activo
-        es_validador = rol == 'validador' and activo
-        puede_editorial = rol == 'editor' and activo
+
+    def _p(metodo):
+        return es_staff or bool(perfil and getattr(perfil, metodo)())
+
+    puede_recoleccion = _p('puede_recolectar')
+    puede_reportes = _p('puede_consultar_reportes')
+    es_delegado = _p('es_delegado')
+    es_validador = _p('es_validador')
+    es_validador_sistema = _p('es_validador_sistema')
+    es_validador_organismo = bool(
+        perfil and perfil.es_validador_organismo())
+    puede_editorial = _p('puede_editar_contenidos')
+    es_analista = _p('es_analista')
+    es_bi = _p('es_bi')
+    es_gestor = _p('es_gestor')
+    organismo = perfil.organismo if perfil else None
 
     # Stats para cards (solo si tiene acceso, para no hacer queries innecesarias)
     stats = {}
@@ -4107,7 +4110,6 @@ def workspace_dashboard(request):
 
     if es_delegado:
         from .models import CargaSerieIndicador, CargaConjuntoDatos
-        organismo = perfil.organismo if perfil else None
         stats['delegado_series'] = CargaSerieIndicador.objects.filter(
             usuario=user, es_carga_delegado=True
         ).count() if organismo else 0
@@ -4115,7 +4117,7 @@ def workspace_dashboard(request):
             usuario=user, es_carga_delegado=True
         ).count() if organismo else 0
 
-    if es_validador:
+    if es_validador_sistema:
         from .models import CargaSerieIndicador, CargaConjuntoDatos
         stats['validar_series'] = CargaSerieIndicador.objects.filter(
             estado__in=['enviado', 'en_revision', 'correcciones_solicitadas']
@@ -4136,6 +4138,32 @@ def workspace_dashboard(request):
             estado__in=['pendiente', 'procesando']
         ).count()
 
+    if es_delegado and organismo and not es_staff:
+        from .models_iced import ICEDFormulario, equipo_desde_username
+        from .models_taller import InscripcionTaller
+        equipo = (equipo_desde_username(user.username)
+                  or perfil.subrol_ficed)
+        form_ficed = (ICEDFormulario.objects
+                      .filter(organismo=organismo, equipo=equipo)
+                      .order_by('-periodo').first())
+        stats['ficed_estado'] = (form_ficed.get_estado_display()
+                                 if form_ficed else 'Sin iniciar')
+        stats['ficed_equipo'] = equipo or 'Formulario completo'
+        insc = InscripcionTaller.objects.filter(user=user).first()
+        stats['taller_estado'] = (insc.get_estado_display()
+                                  if insc else 'Sin iniciar')
+
+    if es_validador_organismo and organismo:
+        from .models_iced import ICEDFormulario
+        stats['ficed_por_conciliar'] = (ICEDFormulario.objects
+            .filter(organismo=organismo, estado='enviado')
+            .exclude(equipo='').count())
+
+    if es_validador_sistema:
+        from .models_iced import ICEDFormulario
+        stats['ficed_prevalidados'] = ICEDFormulario.objects.filter(
+            equipo='', estado='prevalidado').count()
+
     if puede_editorial:
         from .models import ProductoAcademico, Evento, NoticiaBanner
         stats['productos_count'] = ProductoAcademico.objects.count()
@@ -4150,7 +4178,13 @@ def workspace_dashboard(request):
         'puede_reportes': puede_reportes,
         'es_delegado': es_delegado,
         'es_validador': es_validador,
+        'es_validador_sistema': es_validador_sistema,
+        'es_validador_organismo': es_validador_organismo,
         'puede_editorial': puede_editorial,
+        'es_analista': es_analista,
+        'es_bi': es_bi,
+        'es_gestor': es_gestor,
+        'organismo': organismo,
         'stats': stats,
     }
     return render(request, 'workspace/dashboard.html', context)

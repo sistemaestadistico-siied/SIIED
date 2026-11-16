@@ -2223,6 +2223,9 @@ class PerfilRecolector(models.Model):
         ('analista', 'Analista (Editorial + Reportes + Recolección + Validación + Analítica)'),
         ('analista_organismo', 'Analista BI del Organismo (SIIED BI / Don Datico BI)'),
         ('validador_organismo', 'Validador del Organismo (pre-validación)'),
+        ('gestor_formularios', 'Gestor de Talleres y Formularios'),
+        ('diligenciador', 'Diligenciador (responde encuestas a su nombre)'),
+        ('encuestador', 'Encuestador (diligencia encuestas por varias personas)'),
     ]
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_recolector')
@@ -2266,10 +2269,35 @@ class PerfilRecolector(models.Model):
         default='',
         help_text="Equipo técnico FICED del delegado (vacío = responde todo)"
     )
+
+    debe_cambiar_password = models.BooleanField(
+        default=False,
+        help_text="Tiene una contraseña temporal: debe cambiarla al ingresar"
+    )
     
     class Meta:
         verbose_name = "Perfil de Usuario"
         verbose_name_plural = "Perfiles de Usuarios"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['organismo'],
+                condition=models.Q(rol='validador_organismo', activo=True),
+                name='uniq_validador_organismo_activo',
+                violation_error_message=(
+                    'Este organismo ya tiene un validador del organismo '
+                    'activo. Desactive el actual antes de asignar otro.'),
+            ),
+            models.UniqueConstraint(
+                fields=['organismo', 'subrol_ficed'],
+                condition=(models.Q(rol='delegado', activo=True)
+                           & ~models.Q(subrol_ficed='')),
+                name='uniq_delegado_subrol_activo',
+                violation_error_message=(
+                    'Este organismo ya tiene un delegado activo para ese '
+                    'equipo técnico FICED. Desactive el actual antes de '
+                    'asignar otro.'),
+            ),
+        ]
     
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} - {self.get_rol_display()}"
@@ -2321,6 +2349,19 @@ class PerfilRecolector(models.Model):
     def puede_editar_contenidos(self):
         """Verifica si el usuario puede acceder al módulo editorial"""
         return self.activo and self.rol in ['editor', 'analista']
+
+    def es_gestor(self):
+        """Gestor de Talleres y Formularios: opera el módulo de gestión
+        (FICED, Taller y Encuestas) sobre todos los organismos."""
+        return self.activo and self.rol == 'gestor_formularios'
+
+    def es_diligenciador(self):
+        """Responde encuestas a su propio nombre."""
+        return self.activo and self.rol == 'diligenciador'
+
+    def es_encuestador(self):
+        """Diligencia encuestas por varias personas."""
+        return self.activo and self.rol == 'encuestador'
 
 
 # ============================================================================

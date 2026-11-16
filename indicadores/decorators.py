@@ -269,6 +269,30 @@ def taller_staff_required(view_func):
     return wrapper
 
 
+def gestor_required(view_func):
+    """
+    Módulo Gestión de Formularios (FICED, Taller y Encuestas).
+    Permite acceso a staff y al rol 'gestor_formularios' activo.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(
+                f"{reverse('indicadores:delegado_login')}"
+                f"?next={request.get_full_path()}")
+        if request.user.is_staff:
+            return view_func(request, *args, **kwargs)
+        if hasattr(request.user, 'perfil_recolector'):
+            perfil = request.user.perfil_recolector
+            if perfil.es_gestor():
+                return view_func(request, *args, **kwargs)
+        messages.error(
+            request,
+            'No tiene permisos para el módulo de Gestión de Formularios.')
+        return redirect('indicadores:acceso_modulos')
+    return wrapper
+
+
 def laboratorio_login_required(view_func):
     """
     Consulta y Tableros: la herramienta es de uso público, pero guardar y
