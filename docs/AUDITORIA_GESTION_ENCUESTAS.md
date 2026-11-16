@@ -131,17 +131,24 @@ crear → ficha (mínima NTC) → publicar (pregunta con dato + metadata)
 
 ## 4. Hallazgos priorizados
 
-| # | Severidad | Hallazgo | Fix sugerido |
-|---|-----------|----------|--------------|
-| 1 | Alta | Adjuntos servidos sin auth | Vista `descargar_adjunto` con `gestor_required` |
-| 2 | Alta | Invitación se quema en borrador | Marcar `usada` solo al `enviar` |
-| 3 | Alta | Token HMAC como bearer permanente | Documentar + expiración/rotación |
-| 4 | Media | XSS enunciados en offline.html | `textContent`/escape en el render JS |
-| 5 | Media | `version` nunca incrementa | `+1` en cada mutación estructural |
-| 6 | Media | Login sin rate-limit | Throttle por IP/username |
-| 7 | Media | `gracias` por pk secuencial | Requerir `Envio.token` |
-| 8 | Media | Bloqueo total tras respuestas | Separar `editar_formulario` del bloqueo |
-| 9 | Media | Sin supresión de datos personales | `eliminar_envio` / anonimizar |
-| 10 | Baja | Sin detalle de envío | Vista `envio_detalle` |
-| 11 | Baja | Sin rol lector de resultados | Permiso `ver_resultados` separado |
-| 12 | Baja | Sin diccionario de datos | CSV de diccionario por formulario |
+| # | Severidad | Hallazgo | Estado |
+|---|-----------|----------|--------|
+| 1 | Alta | Adjuntos servidos sin auth | ✅ `descargar_adjunto` con `gestor_required` + `FileResponse` (`e134ece`) |
+| 2 | Alta | Invitación se quema en borrador | ✅ `usada` solo al `enviar` (`e134ece`) |
+| 3 | Alta | Token HMAC como bearer permanente | ✅ Expira a 30 días, va en la firma; aviso de credencial en `pendientes` (`e134ece`) |
+| 4 | Media | XSS enunciados en offline.html | ✅ `esc()` en todas las interpolaciones `innerHTML` (`e134ece`) |
+| 5 | Media | `version` nunca incrementa | ✅ `+1` en cada mutación estructural (`e134ece`) |
+| 6 | Media | Login sin rate-limit | ✅ Throttle 10 intentos/5 min por IP+usuario vía cache (`e134ece`) |
+| 7 | Media | `gracias` por pk secuencial | ✅ Requiere `?t={envio.token}`; sin él 404 (`e134ece`) |
+| 8 | Media | Bloqueo total tras respuestas | ✅ `editar_formulario` (settings) fuera del bloqueo (`e134ece`) |
+| 9 | Media | Sin supresión de datos personales | ✅ `eliminar_envio`: borra respuestas + adjuntos + respondiente, con bitácora (`e134ece`) |
+| 10 | Baja | Sin detalle de envío | ✅ Vista `envio_detalle` + enlace en resultados (`e134ece`) |
+| 11 | Baja | Sin rol lector de resultados | ⏳ Pendiente — `ver_resultados` separado de gestión |
+| 12 | Baja | Sin diccionario de datos | ✅ `csv_diccionario` + `exportar?formato=diccionario` (`e134ece`) |
+
+### Post-auditoría
+
+- `0717356` — fix `VariableDoesNotExist` en `usuario_form` (ficed/taller):
+  `post.x|default:usuario.x` fallaba con `usuario=None` en modo crear;
+  ahora `{% firstof %}`.
+- `618ff5c` — hub marca los 3 submódulos como operativos.

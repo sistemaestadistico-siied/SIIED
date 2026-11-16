@@ -32,6 +32,11 @@ dedicado, auditoría de cada acción y un constructor de formularios propio.
 - **Auditoría completa** — `docs/AUDITORIA_GESTION_ENCUESTAS.md`
   (UX por rol, flujo de datos, seguridad + jurídica/metodológica;
   12 hallazgos priorizados).
+- **Fixes de la auditoría** — `e134ece`: adjuntos con permiso, invitación
+  solo al enviar, token offline con expiración (30 d), versionado real
+  (`version++` estructural), `gracias` con token, rate-limit en login,
+  escape XSS en offline, `eliminar_envio` (Ley 1581), `envio_detalle`,
+  diccionario de datos CSV. 96 tests verdes.
 
 ## 0. Estado actual (línea base verificada)
 
