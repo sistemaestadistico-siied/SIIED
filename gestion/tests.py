@@ -219,3 +219,207 @@ class VentanaTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, '2025-1')
         self.assertContains(r, 'Abierta')
+
+
+# =============================================================================
+# Fase 1 — Submódulo FICED
+# =============================================================================
+
+from django.core.exceptions import ValidationError
+from gestion.services.usuarios import (actualizar_usuario_ficed,
+                                      crear_usuario_ficed)
+from gestion.services.formularios_iced import (reabrir_formulario,
+                                              reiniciar_formulario,
+                                              restaurar_formulario)
+from indicadores.models_iced import ICEDFormulario
+
+
+class UsuariosFicedServiceTests(TestCase):
+    def setUp(self):
+        self.org = Organismo.objects.create(nombre='Org F', codigo='org-f')
+        self.org2 = Organismo.objects.create(nombre='Org F2', codigo='org-f2')
+
+    def test_crear_delegado_ok(self):
+        u, estado = crear_usuario_ficed(
+            username='del_etpp_orgf', rol='delegado', subrol='ETPP',
+            organismo=self.org, enviar_correo=False)
+        self.assertTrue(u.pk)
+        self.assertEqual(u.perfil_recolector.subrol_ficed, 'ETPP')
+        self.assertEqual(estado, 'omitido')
+        # Sin correo real: la clave quedó inutilizable
+        self.assertFalse(u.has_usable_password())
+
+    def test_delegado_exige_organismo(self):
+        with self.assertRaises(ValidationError):
+            crear_usuario_ficed(username='d2', rol='delegado',
+                                subrol='ETPP', organismo=None)
+
+    def test_validador_exige_organismo(self):
+        with self.assertRaises(ValidationError):
+            crear_usuario_ficed(username='v2', rol='validador_organismo',
+                                subrol='', organismo=None)
+
+    def test_subrol_solo_delegados(self):
+        with self.assertRaises(ValidationError):
+            crear_usuario_ficed(username='v3', rol='validador_organismo',
+                                subrol='ETPP', organismo=self.org)
+
+    def test_segundo_validador_rechazado(self):
+        crear_usuario_ficed(username='val1', rol='validador_organismo',
+                            subrol='', organismo=self.org)
+        with self.assertRaises(ValidationError):
+            crear_usuario_ficed(username='val2', rol='validador_organismo',
+                                subrol='', organismo=self.org)
+
+    def test_segundo_delegado_mismo_subrol_rechazado(self):
+        crear_usuario_ficed(username='d_etpp', rol='delegado', subrol='ETPP',
+                            organismo=self.org)
+        with self.assertRaises(ValidationError):
+            crear_usuario_ficed(username='d_etpp2', rol='delegado',
+                                subrol='ETPP', organismo=self.org)
+        # Otro subrol u otro organismo sí pueden
+        crear_usuario_ficed(username='d_etobs', rol='delegado', subrol='ETOBS',
+                            organismo=self.org)
+        crear_usuario_ficed(username='d_etpp2', rol='delegado', subrol='ETPP',
+                            organismo=self.org2)
+
+    def test_editar_marca_cambios(self):
+        u, _ = crear_usuario_ficed(username='d_e', rol='delegado',
+                                   subrol='ETGIE', organismo=self.org,
+                                   email='a@x.co', enviar_correo=False)
+        antes, despues, cambios, _ = actualizar_usuario_ficed(
+            u, subrol='ETSGC', aviso_correo=False)
+        self.assertEqual(antes['subrol_ficed'], 'ETGIE')
+        self.assertEqual(despues['subrol_ficed'], 'ETSGC')
+        self.assertTrue(any('Equipo' in c[0] for c in cambios))
+
+
+class FormulariosFicedServiceTests(TestCase):
+    def setUp(self):
+        self.org = Organismo.objects.create(nombre='Org R', codigo='org-r')
+        self.u = _usuario('del_r', rol='delegado', organismo=self.org)
+        self.f = ICEDFormulario.objects.create(
+            organismo=self.org, periodo='2026', equipo='ETPP',
+            estado='enviado', usuario_diligencia=self.u,
+            respuestas_a={'p1': 'x'})
+
+    def test_reabrir_enviado(self):
+        antes, despues = reabrir_formulario(self.f)
+        self.assertEqual(antes['estado'], 'enviado')
+        self.assertEqual(despues['estado'], 'borrador')
+        self.assertEqual(
+            ICEDFormulario.objects.get(pk=self.f.pk).estado, 'borrador')
+
+    def test_reabrir_bloquea_validado(self):
+        self.f.estado = 'validado'
+        self.f.save()
+        with self.assertRaises(ValidationError):
+            reabrir_formulario(self.f)
+
+    def test_reiniciar_borra_y_devuelve_copia(self):
+        copia = reiniciar_formulario(self.f)
+        self.assertFalse(ICEDFormulario.objects.filter(pk=self.f.pk).exists())
+        self.assertEqual(copia['respuestas_a'], {'p1': 'x'})
+        self.assertEqual(copia['equipo'], 'ETPP')
+
+    def test_reiniciar_bloqueado_por_consolidado(self):
+        ICEDFormulario.objects.create(
+            organismo=self.org, periodo='2026', equipo='',
+            estado='validado', usuario_diligencia=self.u)
+        with self.assertRaises(ValidationError):
+            reiniciar_formulario(self.f)
+
+    def test_restaurar_desde_copia(self):
+        copia = reiniciar_formulario(self.f)
+        nuevo = restaurar_formulario(copia)
+        self.assertEqual(nuevo.respuestas_a, {'p1': 'x'})
+        self.assertEqual(nuevo.estado, 'enviado')
+        # No restaura si ya existe uno nuevo
+        with self.assertRaises(ValidationError):
+            restaurar_formulario(copia)
+
+
+class VistasFicedTests(TestCase):
+    def setUp(self):
+        self.g = _usuario('gestor_f', rol='gestor_formularios')
+        self.client.force_login(self.g)
+        self.org = Organismo.objects.create(nombre='Org Gf', codigo='org-gf')
+        self.u = _usuario('del_gf', rol='delegado', organismo=self.org)
+
+    def test_dashboard_entra(self):
+        r = self.client.get(reverse('gestion:ficed_dashboard'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_usuarios_lista_y_matriz(self):
+        r = self.client.get(reverse('gestion:ficed_usuarios'))
+        self.assertEqual(r.status_code, 200)
+        r = self.client.get(reverse('gestion:ficed_usuarios'),
+                            {'vista': 'matriz'})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'sin asignar')
+
+    def test_crear_usuario_por_vista(self):
+        r = self.client.post(reverse('gestion:ficed_usuario_crear'), {
+            'username': 'nuevo_f', 'rol': 'delegado', 'subrol_ficed': 'ETPP',
+            'organismo': str(self.org.pk), 'activo': '1',
+            'first_name': 'N', 'last_name': 'U', 'email': ''})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(User.objects.filter(username='nuevo_f').exists())
+        self.assertTrue(AccionGestion.objects.filter(
+            accion='crear_usuario', modulo='ficed').exists())
+
+    def test_desactivar_y_reactivar(self):
+        u = self.u
+        url = reverse('gestion:ficed_usuario_accion', args=[u.pk])
+        self.client.post(url, {'accion': 'desactivar'})
+        u.refresh_from_db()
+        self.assertFalse(u.perfil_recolector.activo)
+        self.assertFalse(u.is_active)
+        self.client.post(url, {'accion': 'activar'})
+        u.refresh_from_db()
+        self.assertTrue(u.perfil_recolector.activo)
+
+    def test_organismo_flags(self):
+        r = self.client.post(
+            reverse('gestion:ficed_organismo_flags', args=[self.org.pk]),
+            {'sin_pp': '1', 'motivo': 'No publican'})
+        self.assertEqual(r.status_code, 302)
+        self.org.refresh_from_db()
+        self.assertTrue(self.org.sin_pp)
+        self.assertFalse(self.org.sin_obs)
+        self.assertTrue(AccionGestion.objects.filter(
+            accion='editar_organismo_flags',
+            objeto_id=str(self.org.pk)).exists())
+
+    def test_reiniciar_requiere_nombre_organismo(self):
+        f = ICEDFormulario.objects.create(
+            organismo=self.org, periodo='2026', equipo='ETGIE',
+            estado='borrador', usuario_diligencia=self.u)
+        url = reverse('gestion:ficed_formulario_accion', args=[f.pk])
+        self.client.post(url, {'accion': 'reiniciar',
+                               'confirmar': 'mal', 'motivo': 'x'})
+        self.assertTrue(ICEDFormulario.objects.filter(pk=f.pk).exists())
+        self.client.post(url, {'accion': 'reiniciar',
+                               'confirmar': self.org.nombre,
+                               'motivo': 'reinicio real'})
+        self.assertFalse(ICEDFormulario.objects.filter(pk=f.pk).exists())
+        reg = AccionGestion.objects.get(accion='reiniciar_formulario')
+        self.assertEqual(reg.antes['equipo'], 'ETGIE')
+        self.assertEqual(reg.motivo, 'reinicio real')
+
+    def test_ventana_guardar_y_prorroga(self):
+        r = self.client.post(reverse('gestion:ficed_ventana_guardar'), {
+            'referencia': '2026', 'fecha_apertura': '2026-01-01',
+            'fecha_cierre': '2026-03-31', 'activa': '1'})
+        self.assertEqual(r.status_code, 302)
+        v = VentanaDiligenciamiento.objects.get(modulo='ficed',
+                                                referencia='2026')
+        self.assertTrue(v.activa)
+        r = self.client.post(
+            reverse('gestion:ficed_prorroga', args=[v.pk]), {
+                'organismo': str(self.org.pk),
+                'fecha_cierre_extendida': '2026-05-31',
+                'motivo': 'Pedido'})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(ProrrogaVentana.objects.filter(
+            ventana=v, organismo=self.org).exists())

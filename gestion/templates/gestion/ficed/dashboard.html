@@ -1,0 +1,146 @@
+{% extends 'gestion/base_gestion.html' %}
+{% load humanize %}
+{% block title %}FICED — Avance por organismo{% endblock %}
+{% block gs_titulo %}FICED — Avance del periodo {{ periodo_sel }}{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span>FICED <span class="mx-1">›</span>Avance{% endblock %}
+
+{% block gs_extra_css %}
+.estado-borrador{background:#f1f5f9;color:#475569}
+.estado-enviado{background:#fef3c7;color:#92400e}
+.estado-prevalidado{background:#e0e7ff;color:#3730a3}
+.estado-validado{background:#d1fae5;color:#065f46}
+.estado-devuelto{background:#ffedd5;color:#9a3412}
+.estado-rechazado{background:#fee2e2;color:#991b1b}
+{% endblock %}
+
+{% block gs_contenido %}
+<!-- Subnavegación FICED -->
+<nav class="flex flex-wrap gap-2 mb-6 text-sm" aria-label="Secciones FICED">
+  <a href="{% url 'gestion:ficed_dashboard' %}" class="px-3 py-1.5 rounded-lg bg-teal-600 text-white font-semibold">Avance</a>
+  <a href="{% url 'gestion:ficed_usuarios' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Usuarios FICED</a>
+  <a href="{% url 'gestion:ficed_organismos' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Organismos</a>
+  <a href="{% url 'gestion:ficed_formularios' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Formularios</a>
+  <a href="{% url 'gestion:ficed_ventanas' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Ventanas</a>
+</nav>
+
+<!-- Filtros -->
+<form method="get" class="flex flex-wrap items-center gap-3 mb-6">
+  {% if periodos %}
+  <label class="text-sm font-medium text-slate-600" for="periodo">Vigencia</label>
+  <select name="periodo" id="periodo" onchange="this.form.submit()"
+          class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+    {% for p in periodos %}<option value="{{ p }}" {% if p == periodo_sel %}selected{% endif %}>{{ p }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <label class="text-sm font-medium text-slate-600" for="organismo">Organismo</label>
+  <select name="organismo" id="organismo" onchange="this.form.submit()"
+          class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+    <option value="">Todos</option>
+    {% for o in organismos %}<option value="{{ o.id }}" {% if filtros.organismo == o.id %}selected{% endif %}>{{ o.nombre }}</option>{% endfor %}
+  </select>
+  <label class="text-sm font-medium text-slate-600" for="estado">Consolidado</label>
+  <select name="estado" id="estado" onchange="this.form.submit()"
+          class="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white">
+    <option value="">Todos</option>
+    {% for c, t in estados %}<option value="{{ c }}" {% if filtros.estado == c %}selected{% endif %}>{{ t }}</option>{% endfor %}
+  </select>
+</form>
+
+<!-- Resumen -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Organismos con avance</p>
+    <p class="text-3xl font-bold text-teal-600 mt-1">{{ stats.con_formularios }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Sin iniciar</p>
+    <p class="text-3xl font-bold text-slate-400 mt-1">{{ stats.sin_iniciar }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Formularios</p>
+    <p class="text-3xl font-bold text-slate-800 mt-1">{{ stats.formularios }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Por estado</p>
+    <div class="flex flex-wrap gap-1.5 mt-2">
+      {% for est, n in stats.por_estado.items %}
+      <span class="px-2 py-0.5 rounded-full text-xs font-medium estado-{{ est }}">{{ n }} {{ est }}</span>
+      {% empty %}<span class="text-sm text-slate-400">—</span>{% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Filas por organismo -->
+<div class="space-y-5">
+  {% for fila in filas %}
+  <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2
+      {% if fila.n_formularios %}bg-slate-50 border-b border-slate-100{% endif %}">
+      <h2 class="font-bold text-slate-800 truncate">{{ fila.organismo.nombre }}</h2>
+      <div class="flex items-center gap-3 shrink-0">
+        {% if fila.avance_medio is not None %}
+        <div class="flex items-center gap-2">
+          <div class="w-28 h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div class="h-full bg-teal-500 rounded-full" style="width: {{ fila.avance_medio }}%"></div>
+          </div>
+          <span class="text-xs font-semibold text-slate-600">{{ fila.avance_medio }}%</span>
+        </div>
+        <span class="text-xs text-slate-400">{{ fila.n_formularios }} formulario{{ fila.n_formularios|pluralize }}</span>
+        {% else %}
+        <span class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">Sin iniciar</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      {% for eq in fila.equipos %}
+      <div class="rounded-xl border p-3 {% if eq.slot %}border-slate-200{% elif eq.requerido %}border-dashed border-slate-200 bg-slate-50/50{% else %}border-dashed border-slate-100 bg-slate-50/30 opacity-60{% endif %}">
+        <p class="text-xs font-bold text-slate-500 tracking-wide mb-2">{{ eq.codigo }}
+          {% if not eq.requerido %}<span class="font-normal text-slate-400">· no aplica</span>{% endif %}
+        </p>
+        {% if eq.slot %}
+        <div class="flex items-center justify-between mb-2">
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-medium estado-{{ eq.slot.f.estado }}">
+            {{ eq.slot.f.get_estado_display|truncatechars:16 }}
+          </span>
+        </div>
+        <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mb-1">
+          <div class="h-full {% if eq.slot.pct == 100 %}bg-emerald-500{% else %}bg-sky-500{% endif %} rounded-full" style="width: {{ eq.slot.pct }}%"></div>
+        </div>
+        <p class="text-[11px] text-slate-500">
+          {% if eq.slot.esperadas %}{{ eq.slot.respondidas }}/{{ eq.slot.esperadas }} preguntas
+          {% else %}{{ eq.slot.f.completitud }}% módulos{% endif %}
+        </p>
+        <p class="text-[11px] text-slate-400 truncate mt-1">
+          {{ eq.slot.f.usuario_diligencia.get_full_name|default:eq.slot.f.usuario_diligencia.username|default:"—" }}
+          · {{ eq.slot.f.fecha_actualizacion|naturalday }}
+        </p>
+        {% elif eq.requerido %}
+        <p class="text-[11px] text-slate-400">Sin formulario</p>
+        {% else %}
+        <p class="text-[11px] text-slate-300">—</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <!-- Consolidado -->
+      <div class="rounded-xl border p-3 {% if fila.consolidado %}border-teal-200 bg-teal-50/40{% else %}border-dashed border-slate-200 bg-slate-50/50{% endif %}">
+        <p class="text-xs font-bold {% if fila.consolidado %}text-teal-700{% else %}text-slate-400{% endif %} tracking-wide mb-2">CONSOLIDADO</p>
+        {% if fila.consolidado %}
+        <span class="px-2 py-0.5 rounded-full text-[11px] font-medium estado-{{ fila.consolidado.f.estado }}">
+          {{ fila.consolidado.f.get_estado_display|truncatechars:16 }}
+        </span>
+        <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mt-2 mb-1">
+          <div class="h-full {% if fila.consolidado.pct == 100 %}bg-emerald-500{% else %}bg-teal-500{% endif %} rounded-full" style="width: {{ fila.consolidado.pct }}%"></div>
+        </div>
+        <p class="text-[11px] text-slate-500">{{ fila.consolidado.respondidas }}/{{ fila.consolidado.esperadas }} preguntas</p>
+        {% else %}
+        <p class="text-[11px] text-slate-400">Sin conciliar</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-center text-slate-400 py-8">Sin organismos con estos filtros.</p>
+  {% endfor %}
+</div>
+{% endblock %}

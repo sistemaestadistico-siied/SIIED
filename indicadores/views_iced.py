@@ -166,6 +166,22 @@ class ICEDWizardView(SessionWizardView):
                     return redirect('indicadores:validacion_revisar_iced',
                                     formulario_id=formulario.pk)
                 return redirect('indicadores:iced_resultado', formulario_id=formulario.pk)
+
+        # Ventana de diligenciamiento: cerrada = se puede leer, no editar.
+        from gestion.services.ventanas import ventana_abierta
+        if formulario_id:
+            v_org = formulario.organismo
+            v_periodo = formulario.periodo
+        else:
+            v_org = _get_user_organismo(request.user)
+            v_periodo = str(timezone.now().year)
+        estado_v = ventana_abierta('ficed', v_periodo, v_org)
+        if not estado_v.abierta:
+            messages.warning(request, estado_v.mensaje)
+            if formulario_id:
+                return redirect('indicadores:iced_resultado',
+                                formulario_id=formulario.pk)
+            return redirect('indicadores:iced_landing')
         return super().dispatch(request, *args, **kwargs)
 
     @staticmethod
@@ -708,6 +724,15 @@ class ICEDWizardView(SessionWizardView):
                     'usuario_diligencia': self.request.user,
                 }
             )
+
+        # Ventana de diligenciamiento cerrada: no se guarda ni se envía.
+        from gestion.services.ventanas import ventana_abierta
+        estado_v = ventana_abierta(
+            'ficed', formulario.periodo, formulario.organismo)
+        if not estado_v.abierta:
+            messages.warning(self.request, estado_v.mensaje)
+            return redirect('indicadores:iced_resultado',
+                            formulario_id=formulario.pk)
 
         # Guardar respuestas de cada módulo
         # Mapeo de pasos a campos de respuesta (soporta múltiples formularios por módulo)

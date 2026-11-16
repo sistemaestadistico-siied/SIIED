@@ -1074,72 +1074,11 @@ def validacion_avances_iced(request):
             'El tablero de avances FICED es exclusivo del equipo SIIED.')
         return redirect('indicadores:validacion_dashboard')
 
-    # Preguntas asignadas por equipo (fuente: ICEDPreguntaEquipo)
-    esperadas = {eq: set() for eq in EQUIPOS_ICED}
-    for eq, cod in ICEDPreguntaEquipo.objects.values_list('equipo', 'codigo'):
-        esperadas.setdefault(eq, set()).add(str(cod))
-    esperadas_consol = set().union(*esperadas.values()) if esperadas else set()
-
-    periodos = list(
-        ICEDFormulario.objects.order_by('-periodo')
-        .values_list('periodo', flat=True).distinct())
+    # Cálculo compartido con el dashboard del gestor (misma regla).
+    from gestion.services.avance_iced import avance_iced, periodos_iced
+    periodos = periodos_iced()
     periodo_sel = request.GET.get('periodo') or (periodos[0] if periodos else '')
-
-    formularios = (ICEDFormulario.objects
-                   .filter(periodo=periodo_sel)
-                   .select_related('organismo', 'usuario_diligencia',
-                                   'prevalidado_por')) if periodo_sel \
-        else ICEDFormulario.objects.none()
-
-    # Slots por organismo: {equipo: {f, respondidas, esperadas, pct}}
-    slots_por_org = {}
-    for f in formularios:
-        respondidas = _codigos_respondidos_iced(f)
-        esp = esperadas_consol if f.equipo == '' else esperadas.get(f.equipo, set())
-        n_ok = len(respondidas & esp)
-        slot = {
-            'f': f,
-            'respondidas': n_ok,
-            'esperadas': len(esp),
-            'respondidas_raw': len(respondidas),
-            'pct': round(n_ok / len(esp) * 100) if esp else f.completitud,
-        }
-        slots_por_org.setdefault(f.organismo_id, {})[f.equipo] = slot
-
-    filas = []
-    org_activos = Organismo.objects.filter(activo=True).order_by('nombre')
-    for org in org_activos:
-        slots_org = slots_por_org.get(org.id, {})
-        equipos = []
-        n_formularios = 0
-        pcts = []
-        for eq in EQUIPOS_ICED:
-            slot = slots_org.get(eq)
-            if slot:
-                n_formularios += 1
-                pcts.append(slot['pct'])
-            equipos.append({'codigo': eq, 'slot': slot})
-        consolidado = slots_org.get('')
-        if consolidado:
-            n_formularios += 1
-        filas.append({
-            'organismo': org,
-            'equipos': equipos,
-            'consolidado': consolidado,
-            'n_formularios': n_formularios,
-            'avance_medio': round(sum(pcts) / len(pcts)) if pcts else None,
-        })
-
-    # Resumen global del periodo
-    por_estado = dict(
-        formularios.values_list('estado')
-        .annotate(n=Count('id')).order_by())
-    stats = {
-        'con_formularios': sum(1 for r in filas if r['n_formularios']),
-        'sin_iniciar': sum(1 for r in filas if not r['n_formularios']),
-        'formularios': sum(por_estado.values()),
-        'por_estado': por_estado,
-    }
+    filas, stats = avance_iced(periodo_sel)
 
     return render(request, 'validacion/avances_iced.html', {
         'filas': filas,

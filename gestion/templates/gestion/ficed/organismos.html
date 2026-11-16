@@ -1,0 +1,55 @@
+{% extends 'gestion/base_gestion.html' %}
+{% block title %}Organismos — FICED{% endblock %}
+{% block gs_titulo %}Organismos — flags FICED{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span>FICED <span class="mx-1">›</span>Organismos{% endblock %}
+
+{% block gs_contenido %}
+<nav class="flex flex-wrap gap-2 mb-6 text-sm" aria-label="Secciones FICED">
+  <a href="{% url 'gestion:ficed_dashboard' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Avance</a>
+  <a href="{% url 'gestion:ficed_usuarios' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Usuarios FICED</a>
+  <a href="{% url 'gestion:ficed_organismos' %}" class="px-3 py-1.5 rounded-lg bg-teal-600 text-white font-semibold">Organismos</a>
+  <a href="{% url 'gestion:ficed_formularios' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Formularios</a>
+  <a href="{% url 'gestion:ficed_ventanas' %}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 font-medium">Ventanas</a>
+</nav>
+
+<div class="bg-sky-50 border border-sky-100 rounded-2xl px-5 py-4 text-sm text-sky-800 mb-6">
+  <i class="fas fa-info-circle mr-2"></i>
+  <strong>Sin Plan de Publicación (sin_pp)</strong> exime el equipo <strong>ETPP</strong> y
+  <strong>Sin Observatorio (sin_obs)</strong> exime el equipo <strong>ETOBS</strong>:
+  esos equipos no se exigen en la conciliación y la confirmación de P29/P33 queda automática.
+</div>
+
+<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
+        <th class="px-4 py-3">Organismo</th>
+        <th class="px-4 py-3 text-center">Sin PP <span class="normal-case font-normal">(exime ETPP)</span></th>
+        <th class="px-4 py-3 text-center">Sin Observatorio <span class="normal-case font-normal">(exime ETOBS)</span></th>
+        <th class="px-4 py-3">Motivo</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in organismos %}
+      <tr class="border-b border-slate-100 last:border-0">
+        <td class="px-4 py-3 font-medium">{{ o.nombre }}</td>
+        <td class="px-4 py-3" colspan="4">
+          <form method="post" action="{% url 'gestion:ficed_organismo_flags' o.pk %}" class="flex items-center gap-4">
+            {% csrf_token %}
+            <label class="inline-flex items-center gap-1.5 text-sm">
+              <input type="checkbox" name="sin_pp" value="1" {% if o.sin_pp %}checked{% endif %} class="rounded border-slate-300"> sin_pp
+            </label>
+            <label class="inline-flex items-center gap-1.5 text-sm">
+              <input type="checkbox" name="sin_obs" value="1" {% if o.sin_obs %}checked{% endif %} class="rounded border-slate-300"> sin_obs
+            </label>
+            <input type="text" name="motivo" placeholder="Motivo (bitácora)" class="flex-1 px-2 py-1.5 border border-slate-300 rounded-lg text-xs" {% if not o.sin_pp and not o.sin_obs %}disabled{% endif %}>
+            <button type="submit" class="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 active:scale-[0.98] transition">Guardar</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
