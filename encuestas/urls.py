@@ -17,4 +17,10 @@ urlpatterns = [
          name='responder_asignado'),
     path('encuestador/<int:formulario_id>/', views.responder_encuestador,
          name='responder_encuestador'),
+    # Captura offline del encuestador
+    path('offline/<int:formulario_id>/', views.descargar_offline,
+         name='descargar_offline'),
+    path('offline/<int:formulario_id>/u/<int:usuario_id>/',
+         views.descargar_offline, name='descargar_offline_para'),
+    path('sincronizar/', views.sincronizar, name='sincronizar'),
 ]

@@ -34,6 +34,7 @@ from .models import (Asignacion, Envio, Formulario, Invitacion, Opcion,
 from .services import envios as se
 from .services import exportar as sx
 from .services import formularios as sf
+from .services import offline as so
 from .tipos import choices as tipos_choices, tipo_de
 
 
@@ -668,3 +669,82 @@ def pendientes(request):
                     .order_by('formulario__titulo'))
     return render(request, 'encuestas/pendientes.html', {
         'asignaciones': asignaciones})
+
+
+# =============================================================================
+# Captura offline del encuestador
+# =============================================================================
+
+@login_required
+def descargar_offline(request, formulario_id, usuario_id=None):
+    """Descarga la plantilla HTML autocontenida para captura en campo.
+
+    Un encuestador la descarga para sí mismo; el gestor puede generarla
+    para cualquier usuario con asignación de encuestador."""
+    f = get_object_or_404(Formulario, pk=formulario_id)
+    if usuario_id and request.user.perfil_recolector.es_gestor():
+        encuestador = get_object_or_404(User, pk=usuario_id)
+    else:
+        encuestador = request.user
+    if not Asignacion.objects.filter(
+            formulario=f, usuario=encuestador,
+            rol='encuestador').exists():
+        messages.error(
+            request,
+            f'{encuestador.username} no es encuestador de este formulario.')
+        return redirect('gestion:encuestas_distribucion',
+                        formulario_id=f.pk)
+
+    meta = {
+        'encuestador': encuestador.username,
+        'encuestador_id': encuestador.pk,
+        'sincro_token': so.sincro_token(f, encuestador),
+        'url_sync': request.build_absolute_uri(
+            reverse('encuestas:sincronizar')),
+    }
+    contenido = render(request, 'encuestas/offline.html', {
+        'f': f,
+        'formulario_json': json.dumps(so.estructura_json(f),
+                                      ensure_ascii=False)
+                            .replace('</', '<\\/'),
+        'meta_json': json.dumps(meta).replace('</', '<\\/'),
+    }).content
+    resp = HttpResponse(contenido, content_type='text/html; charset=utf-8')
+    resp['Content-Disposition'] = (
+        f'attachment; filename="{f.slug}_offline_{encuestador.username}.html"')
+    registrar_accion(
+        request, modulo='encuesta', accion='descargar_offline',
+        objeto_tipo='encuestas.Formulario', objeto_id=f.pk,
+        despues={'encuestador': encuestador.username})
+    return resp
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+
+@csrf_exempt
+@require_POST
+def sincronizar(request):
+    """Recibe el lote de envíos offline (sin sesión: el sincro_token
+    HMAC autentica la carga)."""
+    try:
+        d = json.loads(request.body.decode() or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+    f = get_object_or_404(Formulario, pk=d.get('formulario_id'))
+    encuestador = get_object_or_404(User, pk=d.get('encuestador_id'))
+    try:
+        resultados = so.importar_envios(
+            f, encuestador, d.get('sincro_token', ''),
+            d.get('envios') or [])
+    except ValidationError as e:
+        return JsonResponse({'error': '; '.join(e.messages)}, status=403)
+    n_ok = sum(1 for r in resultados if r['estado'] == 'importado')
+    # La bitácora sin sesión se registra con el encuestador como actor
+    from gestion.models import AccionGestion
+    AccionGestion.objects.create(
+        usuario=encuestador, modulo='encuesta', accion='sincronizar_offline',
+        objeto_tipo='encuestas.Formulario', objeto_id=f.pk,
+        despues={'importados': n_ok,
+                 'total': len(resultados)})
+    return JsonResponse({'resultados': resultados})

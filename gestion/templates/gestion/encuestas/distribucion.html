@@ -68,12 +68,19 @@
           <span>{{ a.usuario.username }} <span class="text-xs text-slate-400">({{ a.get_rol_display }})</span>
             {% if a.meta %}<span class="text-xs text-slate-400">· meta {{ a.meta }} — {{ a.envios_hechos }}</span>{% endif %}
           </span>
-          <form method="post" action="{% url 'gestion:encuestas_distribucion_accion' f.pk %}">
-            {% csrf_token %}
-            <input type="hidden" name="op" value="quitar_asignacion">
-            <input type="hidden" name="asignacion" value="{{ a.pk }}">
-            <button class="text-xs text-rose-600 font-semibold hover:underline">Quitar</button>
-          </form>
+          <span class="flex items-center gap-3">
+            {% if a.rol == 'encuestador' %}
+            <a href="{% url 'encuestas:descargar_offline_para' f.pk a.usuario_id %}"
+               class="text-xs text-teal-700 font-semibold hover:underline"
+               title="Plantilla HTML autocontenida que funciona sin internet">⬇ offline</a>
+            {% endif %}
+            <form method="post" action="{% url 'gestion:encuestas_distribucion_accion' f.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="op" value="quitar_asignacion">
+              <input type="hidden" name="asignacion" value="{{ a.pk }}">
+              <button class="text-xs text-rose-600 font-semibold hover:underline">Quitar</button>
+            </form>
+          </span>
         </li>
         {% empty %}
         <li class="text-sm text-slate-400">Sin asignaciones.</li>

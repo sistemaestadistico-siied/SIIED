@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests del módulo Encuestas."""
+import json
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import Client, TestCase
@@ -212,3 +214,112 @@ class VistasEncuestasTests(TestCase):
         r = self.client.get(
             reverse('encuestas:responder_publico', args=[f.slug]))
         self.assertContains(r, 'no está aceptando', status_code=200)
+
+
+# =============================================================================
+# Captura offline del encuestador
+# =============================================================================
+
+from .services import offline as so
+
+
+class OfflineTests(TestCase):
+    def setUp(self):
+        self.f = _formulario(
+            modos_diligenciamiento=['encuestador'],
+            modo_identificacion='identificado')
+        self.p = _con_pregunta(self.f, obligatoria=True, codigo='P1')
+        self.f.estado = 'publicado'
+        self.f.save()
+        self.u = User.objects.create_user('encuestador1', password='x')
+        Asignacion.objects.create(formulario=self.f, usuario=self.u,
+                                  rol='encuestador')
+
+    def _envio_payload(self, oid='uuid-1', respuestas=None):
+        return {
+            'offline_id': oid,
+            'respondiente': {
+                'nombres': 'Ana', 'apellidos': 'Ríos',
+                'documento': '123', 'autoriza_datos': True},
+            'respuestas': respuestas if respuestas is not None
+            else {str(self.p.pk): 'respuesta'},
+        }
+
+    def test_token_hmac_valido(self):
+        token = so.sincro_token(self.f, self.u)
+        self.assertTrue(so.verificar_sincro(token, self.f, self.u))
+        self.assertFalse(so.verificar_sincro('otro', self.f, self.u))
+        otro = User.objects.create_user('otro_e')
+        self.assertFalse(so.verificar_sincro(token, self.f, otro))
+
+    def test_importar_ok(self):
+        token = so.sincro_token(self.f, self.u)
+        res = so.importar_envios(self.f, self.u, token,
+                                 [self._envio_payload()])
+        self.assertEqual(res[0]['estado'], 'importado')
+        e = Envio.objects.get(offline_id='uuid-1')
+        self.assertEqual(e.estado, 'enviado')
+        self.assertEqual(e.modo, 'encuestador')
+        self.assertEqual(e.diligenciado_por, self.u)
+        self.assertEqual(e.respondiente.documento, '123')
+
+    def test_importar_dedup(self):
+        token = so.sincro_token(self.f, self.u)
+        so.importar_envios(self.f, self.u, token, [self._envio_payload()])
+        res = so.importar_envios(self.f, self.u, token,
+                                 [self._envio_payload()])
+        self.assertEqual(res[0]['estado'], 'duplicado')
+        self.assertEqual(Envio.objects.count(), 1)
+
+    def test_importar_respuesta_invalida(self):
+        token = so.sincro_token(self.f, self.u)
+        res = so.importar_envios(
+            self.f, self.u, token,
+            [self._envio_payload(oid='uuid-bad', respuestas={})])
+        self.assertEqual(res[0]['estado'], 'error')
+        self.assertFalse(Envio.objects.exists())
+        self.assertFalse(Respondiente.objects.exists())
+
+    def test_sin_asignacion_rechaza(self):
+        otro = User.objects.create_user('sin_asig')
+        token = so.sincro_token(self.f, otro)
+        with self.assertRaises(ValidationError):
+            so.importar_envios(self.f, otro, token,
+                               [self._envio_payload()])
+
+    def test_sincronizar_endpoint(self):
+        from django.http import QueryDict
+        token = so.sincro_token(self.f, self.u)
+        payload = json.dumps({
+            'sincro_token': token, 'formulario_id': self.f.pk,
+            'encuestador_id': self.u.pk,
+            'envios': [self._envio_payload(oid='uuid-end')]})
+        r = Client().post(reverse('encuestas:sincronizar'),
+                          data=payload, content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()['resultados'][0]['estado'], 'importado')
+
+    def test_sincronizar_token_malo(self):
+        payload = json.dumps({
+            'sincro_token': 'malo', 'formulario_id': self.f.pk,
+            'encuestador_id': self.u.pk,
+            'envios': [self._envio_payload()]})
+        r = Client().post(reverse('encuestas:sincronizar'),
+                          data=payload, content_type='application/json')
+        self.assertEqual(r.status_code, 403)
+
+    def test_descargar_offline(self):
+        self.client.force_login(self.u)
+        r = self.client.get(reverse('encuestas:descargar_offline',
+                                    args=[self.f.pk]))
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('attachment', r['Content-Disposition'])
+        self.assertIn(b'sincro_token', r.content)
+        self.assertIn(b'localStorage', r.content)
+
+    def test_descargar_sin_asignacion(self):
+        otro = User.objects.create_user('sin_a')
+        self.client.force_login(otro)
+        r = self.client.get(reverse('encuestas:descargar_offline',
+                                    args=[self.f.pk]))
+        self.assertEqual(r.status_code, 302)

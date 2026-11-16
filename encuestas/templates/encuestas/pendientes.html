@@ -18,6 +18,13 @@
         </div>
         <div class="flex items-center gap-2">
           {% if a.formulario.estado == 'publicado' %}
+          {% if a.rol == 'encuestador' %}
+          <a href="{% url 'encuestas:descargar_offline' a.formulario_id %}"
+             class="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 text-sm font-semibold hover:bg-teal-50 active:scale-[0.98] transition"
+             title="Descarga una página que funciona sin internet">
+            <i class="fas fa-cloud-arrow-down mr-1"></i>Captura offline
+          </a>
+          {% endif %}
           <a href="{% if a.rol == 'encuestador' %}{% url 'encuestas:responder_encuestador' a.formulario_id %}{% else %}{% url 'encuestas:responder_asignado' a.formulario_id %}{% endif %}"
              class="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 active:scale-[0.98] transition">
             {% if a.rol == 'encuestador' %}Capturar encuesta{% else %}Diligenciar{% endif %} →

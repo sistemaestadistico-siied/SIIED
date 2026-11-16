@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ f.titulo }} — Captura offline SIIED</title>
+<!--
+  Plantilla offline del Taller de Gestión de Datos / Encuestas SIIED.
+  Funciona SIN internet: las respuestas quedan en este dispositivo
+  (localStorage). Cuando vuelva la conexión, pulse «Sincronizar».
+  También puede exportar un respaldo .json.
+-->
+<style>
+*{box-sizing:border-box;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+body{margin:0;background:#f1f5f9;color:#1e293b;min-height:100vh}
+header{background:#0d9488;color:#fff;padding:14px 18px;position:sticky;top:0;z-index:5}
+h1{font-size:1.1rem;margin:0}
+.sub{font-size:.72rem;opacity:.85;margin-top:2px}
+.wrap{max-width:680px;margin:0 auto;padding:18px 14px 90px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:14px}
+label.q{display:block;font-weight:600;font-size:.9rem;margin-bottom:4px}
+.req{color:#e11d48}
+.ayuda{font-size:.72rem;color:#94a3b8;margin-bottom:6px}
+input[type=text],input[type=email],input[type=number],input[type=date],textarea,select{
+ width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:9px;font-size:.95rem}
+.opt{display:flex;gap:10px;align-items:center;padding:8px 0;font-size:.92rem}
+button{cursor:pointer;border:0;border-radius:10px;font-weight:600;font-size:.9rem;
+ padding:12px 18px;transition:transform .1s}
+button:active{transform:scale(.97)}
+.prim{background:#0d9488;color:#fff;width:100%;font-size:1rem}
+.sec{background:#fff;border:1px solid #cbd5e1;color:#334155}
+.danger{background:#fff1f2;color:#be123c;border:1px solid #fecdd3}
+.barra{position:fixed;bottom:0;left:0;right:0;background:#0f172a;color:#e2e8f0;
+ padding:10px 14px;display:flex;gap:8px;align-items:center;z-index:6;flex-wrap:wrap}
+.barra button{padding:8px 12px;font-size:.78rem}
+.chip{font-size:.72rem;background:#134e4a;padding:3px 9px;border-radius:99px}
+.chip.on{background:#065f46}.chip.off{background:#7f1d1d}
+.notif{position:fixed;top:64px;left:50%;transform:translateX(-50%);background:#0f172a;
+ color:#fff;padding:10px 18px;border-radius:10px;font-size:.85rem;z-index:9;display:none;max-width:90%}
+.sec-titulo{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+ color:#0d9488;margin:22px 0 4px}
+.pend-list{max-height:220px;overflow:auto;margin-top:10px}
+.pend-item{display:flex;justify-content:space-between;align-items:center;
+ padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px;font-size:.82rem}
+.escala{display:flex;gap:6px;flex-wrap:wrap}
+.escala button{width:44px;height:44px;background:#fff;border:1px solid #cbd5e1;font-size:1rem}
+.escala button.sel{background:#0d9488;color:#fff;border-color:#0d9488}
+.legal{font-size:.75rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="titulo"></h1>
+  <div class="sub">
+    Captura offline · <span id="encuestador"></span>
+    <span class="chip" id="net">…</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card" id="desc"></div>
+  <div id="identificacion"></div>
+  <div id="secciones"></div>
+  <button class="prim" onclick="guardar()">Guardar envío</button>
+
+  <div class="card" style="margin-top:18px">
+    <label class="q">Envíos en este dispositivo (<span id="n-pend">0</span>)</label>
+    <div class="pend-list" id="pend-lista"></div>
+  </div>
+</div>
+
+<div class="barra">
+  <button class="sec" onclick="descargarRespaldo()">⬇ Respaldo .json</button>
+  <button class="prim" style="width:auto;flex:1" onclick="sincronizar()" id="btn-sync">⇅ Sincronizar</button>
+  <span style="font-size:.7rem">SIIED · gestión de datos</span>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+/* === Datos incrustados (generados por el servidor al descargar) === */
+const FORM = {{ formulario_json }};
+const META = {{ meta_json }};
+const KEY = 'pendientes_' + FORM.slug;
+
+/* === Utilidades === */
+const $ = s => document.querySelector(s);
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() :
+  'xxxxxxxx-xxxx-4xxx'.replace(/x/g, () => Math.random()*16|0));
+
+function notificar(msg, ms=3000){
+  const n = $('#notif'); n.textContent = msg; n.style.display='block';
+  setTimeout(()=> n.style.display='none', ms);
+}
+function estadoRed(){
+  const on = navigator.onLine;
+  const c = $('#net');
+  c.textContent = on ? 'en línea' : 'sin conexión';
+  c.className = 'chip ' + (on ? 'on' : 'off');
+}
+window.addEventListener('online', estadoRed);
+window.addEventListener('offline', estadoRed);
+
+function pendientes(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+function setPendientes(l){ localStorage.setItem(KEY, JSON.stringify(l)); pintarPendientes(); }
+function quitarPendiente(oid){
+  setPendientes(pendientes().filter(p => p.offline_id !== oid));
+}
+
+/* === Render del formulario === */
+function campo(p, tipo, extra=''){
+  return `<div class="card"><label class="q">${p.enunciado} ${p.obligatoria?'<span class="req">*</span>':''}</label>
+    ${p.ayuda?`<div class="ayuda">${p.ayuda}</div>`:''}${extra}</div>`;
+}
+
+function render(){
+  $('#titulo').textContent = FORM.titulo;
+  $('#encuestador').textContent = META.encuestador;
+  $('#desc').innerHTML = FORM.descripcion ? `<p style="font-size:.85rem;color:#64748b">${FORM.descripcion}</p>`
+    : '<p style="font-size:.85rem;color:#94a3b8">Diligencie el formulario y pulse «Guardar envío». Sin internet funciona igual.</p>';
+  estadoRed();
+
+  /* identificación */
+  if(FORM.modo_identificacion === 'identificado'){
+    let h = '<div class="card"><label class="q">Datos de la persona encuestada</label><div style="display:grid;gap:10px">';
+    [['id_nombres','Nombres','text',1],['id_apellidos','Apellidos','text',1],
+     ['id_documento','Documento','text',1],['id_correo','Correo','email',0],
+     ['id_telefono','Teléfono','text',0],['id_territorio','Municipio / territorio','text',0]]
+     .forEach(([n,l,t,r]) => {
+       h += `<div><div style="font-size:.75rem;font-weight:600;color:#64748b;margin-bottom:2px">${l}${r?' *':''}</div>
+             <input type="${t}" name="${n}"></div>`; });
+    if(FORM.texto_tratamiento_datos){
+      h += `<div class="legal">${FORM.texto_tratamiento_datos}
+            <label class="opt"><input type="checkbox" name="id_autoriza" value="1" style="width:auto">
+            <b>Autoriza el tratamiento de datos *</b></label></div>`;
+    }
+    h += '</div></div>';
+    $('#identificacion').innerHTML = h;
+  }
+
+  /* preguntas */
+  let h = '';
+  FORM.secciones.forEach(s => {
+    if(FORM.secciones.length > 1 && s.titulo)
+      h += `<div class="sec-titulo">${s.titulo}</div>`;
+    s.preguntas.forEach(p => {
+      const n = 'p_' + p.id;
+      switch(p.tipo){
+        case 'informativo':
+          h += `<div class="card" style="background:#f0f9ff"><b style="font-size:.9rem">${p.enunciado}</b>${p.ayuda?`<div class="ayuda">${p.ayuda}</div>`:''}</div>`; break;
+        case 'texto_largo':
+          h += campo(p, '', `<textarea name="${n}" rows="4"></textarea>`); break;
+        case 'numero':
+          h += campo(p, '', `<input type="number" name="${n}" step="any">`); break;
+        case 'correo':
+          h += campo(p, '', `<input type="email" name="${n}">`); break;
+        case 'fecha':
+          h += campo(p, '', `<input type="date" name="${n}">`); break;
+        case 'si_no':
+          h += campo(p, '', `<div>
+            <label class="opt"><input type="radio" name="${n}" value="si" style="width:auto"> Sí</label>
+            <label class="opt"><input type="radio" name="${n}" value="no" style="width:auto"> No</label></div>`); break;
+        case 'seleccion_unica': case 'desplegable':
+          if(p.tipo === 'desplegable'){
+            h += campo(p, '', `<select name="${n}"><option value="">— elegir —</option>${
+              p.opciones.map(o => `<option value="${o.id}">${o.texto}</option>`).join('')}</select>`);
+          } else {
+            h += campo(p, '', p.opciones.map(o =>
+              `<label class="opt"><input type="radio" name="${n}" value="${o.id}" style="width:auto"> ${o.texto}${o.es_otro?' (¿cuál?)':''}</label>`).join(''));
+          } break;
+        case 'seleccion_multiple':
+          h += campo(p, '', p.opciones.map(o =>
+            `<label class="opt"><input type="checkbox" name="${n}" value="${o.id}" style="width:auto"> ${o.texto}${o.es_otro?' (¿cuál?)':''}</label>`).join('')); break;
+        case 'escala':
+          const mn = p.config.min ?? 1, mx = p.config.max ?? 5;
+          h += campo(p, '', `<div class="escala" data-esc="${n}">` +
+            Array.from({length: mx-mn+1}, (_,i)=>`<button type="button" data-v="${mn+i}" onclick="selEsc(this,'${n}')">${mn+i}</button>`).join('')
+            + `</div><input type="hidden" name="${n}">`); break;
+        default:
+          h += campo(p, '', `<input type="text" name="${n}">`);
+      }
+    });
+  });
+  $('#secciones').innerHTML = h;
+  pintarPendientes();
+}
+
+function selEsc(btn, name){
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.querySelector(`input[name="${name}"]`).value = btn.dataset.v;
+}
+
+/* === Recolección === */
+function recolectar(){
+  const respuestas = {};
+  let faltan = [];
+  FORM.secciones.forEach(s => s.preguntas.forEach(p => {
+    if(p.tipo === 'informativo') return;
+    const n = 'p_' + p.id;
+    let v = null;
+    if(p.tipo === 'seleccion_multiple')
+      v = [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(i => i.value);
+    else if(p.tipo === 'seleccion_unica' || p.tipo === 'si_no'){
+      const i = document.querySelector(`input[name="${n}"]:checked`);
+      v = i ? i.value : '';
+    } else {
+      const i = document.querySelector(`[name="${n}"]`);
+      v = i ? i.value.trim() : '';
+    }
+    if((Array.isArray(v) ? v.length : v) === 0 || v === '') v = null;
+    if(p.obligatoria && v === null) faltan.push(p.enunciado.slice(0,50));
+    if(v !== null) respuestas[p.id] = v;
+  }));
+  return {respuestas, faltan};
+}
+
+function recolectarRespondiente(){
+  if(FORM.modo_identificacion !== 'identificado') return null;
+  const g = n => (document.querySelector(`[name="${n}"]`) || {value:''}).value.trim();
+  const r = {
+    nombres: g('id_nombres'), apellidos: g('id_apellidos'),
+    documento: g('id_documento'), correo: g('id_correo'),
+    telefono: g('id_telefono'), territorio: g('id_territorio'),
+    autoriza_datos: !!document.querySelector('[name="id_autoriza"]:checked'),
+  };
+  const faltan = [];
+  if(!r.nombres || !r.apellidos || !r.documento) faltan.push('datos del respondiente');
+  if(FORM.texto_tratamiento_datos && !r.autoriza_datos) faltan.push('autorización de datos');
+  return {datos: r, faltan};
+}
+
+async function geoPosicion(){
+  return new Promise(res => {
+    if(!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition(
+      p => res({lat: p.coords.latitude, lon: p.coords.longitude}),
+      () => res(null), {timeout: 4000, maximumAge: 60000});
+  });
+}
+
+async function guardar(){
+  const {respuestas, faltan} = recolectar();
+  const rid = recolectarRespondiente();
+  const f = [...faltan, ...(rid ? rid.faltan : [])];
+  if(f.length){ notificar('Faltan: ' + f.join(' · '), 5000); return; }
+  const geo = await geoPosicion();
+  const envio = {
+    offline_id: uid(), creado: new Date().toISOString(),
+    respondiente: rid ? rid.datos : null, respuestas, geo,
+  };
+  const l = pendientes(); l.push(envio); setPendientes(l);
+  document.querySelectorAll('input,textarea,select').forEach(i => {
+    if(i.type === 'checkbox' || i.type === 'radio') i.checked = false;
+    else if(i.type !== 'hidden') i.value = '';
+    else i.value = '';
+  });
+  document.querySelectorAll('.escala button.sel').forEach(b => b.classList.remove('sel'));
+  window.scrollTo({top: 0, behavior: 'smooth'});
+  notificar('Envío guardado en este dispositivo ✔');
+}
+
+/* === Respaldo local === */
+function descargarRespaldo(){
+  const l = pendientes();
+  if(!l.length){ notificar('No hay envíos pendientes.'); return; }
+  const blob = new Blob([JSON.stringify({
+    sincro_token: META.sincro_token, formulario_id: FORM.id,
+    encuestador_id: META.encuestador_id, version: FORM.version,
+    generado: new Date().toISOString(), envios: l,
+  }, null, 1)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `respaldo_${FORM.slug}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* === Sincronización === */
+async function sincronizar(){
+  const l = pendientes();
+  if(!l.length){ notificar('Nada pendiente por sincronizar.'); return; }
+  if(!navigator.onLine){ notificar('Sin conexión — guarde respaldo .json.'); return; }
+  const btn = $('#btn-sync'); btn.disabled = true; btn.textContent = 'Sincronizando…';
+  try {
+    const r = await fetch(META.url_sync, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        sincro_token: META.sincro_token, formulario_id: FORM.id,
+        encuestador_id: META.encuestador_id, envios: l}),
+    });
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.error || 'Error del servidor');
+    let ok = 0, dup = 0, err = 0;
+    (d.resultados || []).forEach(res => {
+      if(res.estado === 'importado'){ ok++; quitarPendiente(res.offline_id); }
+      else if(res.estado === 'duplicado'){ dup++; quitarPendiente(res.offline_id); }
+      else err++;
+    });
+    notificar(`Sincronizado: ${ok} nuevos, ${dup} ya estaban, ${err} con error.`, 6000);
+  } catch(e){
+    notificar('Falló la sincronización: ' + e.message, 6000);
+  } finally {
+    btn.disabled = false; btn.textContent = '⇅ Sincronizar';
+  }
+}
+
+function pintarPendientes(){
+  const l = pendientes();
+  $('#n-pend').textContent = l.length;
+  $('#pend-lista').innerHTML = l.map((p,i) =>
+    `<div class="pend-item"><span>${p.respondiente ? (p.respondiente.nombres+' '+p.respondiente.apellidos).trim() || p.offline_id.slice(0,8) : p.offline_id.slice(0,8)}
+     <small style="color:#94a3b8"> · ${new Date(p.creado).toLocaleString()}</small></span>
+     <button class="danger" style="padding:4px 8px;font-size:.7rem" onclick="quitarPendiente('${p.offline_id}')">borrar</button></div>`
+  ).join('') || '<p style="font-size:.78rem;color:#94a3b8">Sin envíos pendientes.</p>';
+}
+
+render();
+</script>
+</body>
+</html>

@@ -268,6 +268,9 @@ class Envio(models.Model):
     token = models.CharField(
         max_length=40, db_index=True, blank=True,
         help_text='Sesión anónima para continuar un borrador público')
+    offline_id = models.CharField(
+        max_length=40, unique=True, null=True, blank=True,
+        help_text='UUID del cliente offline: deduplica envíos sincronizados')
     invitacion = models.ForeignKey(
         Invitacion, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='envios')
