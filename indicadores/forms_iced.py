@@ -362,9 +362,20 @@ def _json_vacio(valor):
             return False
         return not any(_fila_llena(r) for r in data)
     if isinstance(data, dict):
-        return not any(
-            isinstance(info, dict) and info.get('seleccion')
-            for info in data.values())
+        # checkbox-tabla: una opción 'llena' solo si está marcada;
+        # cualquier otra estructura (matriz-satisfaccion, urls, mapas
+        # planos) cuenta por contenido real, no por la clave.
+        def _v_lleno(v):
+            if isinstance(v, dict):
+                if 'seleccion' in v:
+                    return bool(v.get('seleccion'))
+                return any(_v_lleno(x) for x in v.values())
+            if isinstance(v, list):
+                return any(_v_lleno(x) for x in v)
+            if isinstance(v, str):
+                return bool(v.strip())
+            return v not in (None, False)
+        return not any(_v_lleno(v) for v in data.values())
     return not bool(data)
 
 
@@ -2822,7 +2833,35 @@ class ICEDModuloEForm(ICEDBaseForm):
         return _validar_urls_json(self.cleaned_data.get('p40_elementos_web'))
 
     def clean_p41_2_matriz_satisfaccion(self):
-        return _validar_urls_json(self.cleaned_data.get('p41_2_matriz_satisfaccion'))
+        valor = _validar_urls_json(
+            self.cleaned_data.get('p41_2_matriz_satisfaccion'))
+        if _json_vacio(valor):
+            return valor  # el obligatorio lo reporta la regla A
+        try:
+            data = json.loads(valor) if isinstance(valor, str) else valor
+        except (ValueError, TypeError):
+            return valor
+        if not isinstance(data, dict):
+            return valor
+        try:
+            cfg = json.loads(
+                self.fields['p41_2_matriz_satisfaccion']
+                .widget.attrs.get('data-config') or '{}')
+        except (ValueError, TypeError):
+            cfg = {}
+        matriz = data.get('matriz') or {}
+        sin_marcar = [
+            ind for ind in cfg.get('indicadores', [])
+            if not str(matriz.get(ind) or '').strip()]
+        if sin_marcar:
+            raise forms.ValidationError(
+                'Marque un nivel de satisfacción para cada indicador.')
+        urls = [u for u in (data.get('urls') or [])
+                if str(u or '').strip()]
+        if not urls:
+            raise forms.ValidationError(
+                'Indique al menos una URL de evidencia.')
+        return valor
 
     def _err(self, field, message):
         """add_error tolerante a campos eliminados por el filtro de equipos."""

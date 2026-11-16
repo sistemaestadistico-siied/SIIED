@@ -876,23 +876,48 @@
         scrollWrapper.appendChild(table);
         container.appendChild(scrollWrapper);
 
-        // URLs de evidencia
+        // URLs de evidencia: dinámicas — mínimo `urlsCount` filas y
+        // botón '+ Agregar URL' para anexar más (data.urls sigue array).
         const urlSection = el('div', { class: 'iced-widget-urls' });
-        urlSection.appendChild(el('label', { class: 'iced-widget-section-label' }, ['URLs de evidencia']));
-        for (let i = 0; i < urlsCount; i++) {
+        urlSection.appendChild(el('label', { class: 'iced-widget-section-label' }, ['URLs de evidencia *']));
+
+        const syncUrls = () => {
+            data.urls = [...urlSection.querySelectorAll('input[type="url"]')]
+                .map(i => i.value);
+            sync();
+        };
+
+        const btnMasUrl = el('button', {
+            type: 'button',
+            style: 'border:1px dashed #94a3b8; background:#f8fafc; color:#2563eb; border-radius:8px; font-size:0.75rem; font-weight:600; padding:2px 10px; cursor:pointer;'
+        }, ['+ Agregar URL']);
+
+        const addUrlRow = (valor) => {
+            const rowEl = el('div', { style: 'display:flex; gap:6px; align-items:flex-start; margin-bottom:4px;' });
+            const inpWrap = el('div', { style: 'flex:1; min-width:0;' });
+            const n = urlSection.querySelectorAll('input[type="url"]').length + 1;
             const inp = el('input', {
-                type: 'url',
-                class: 'iced-widget-input',
-                placeholder: 'URL ' + (i + 1),
+                type: 'url', class: 'iced-widget-input',
+                placeholder: 'URL ' + n, style: 'width:100%;'
             });
-            inp.value = data.urls[i] || '';
-            inp.addEventListener('input', () => {
-                data.urls[i] = inp.value;
-                sync();
-            });
-            urlSection.appendChild(inp);
-            urlSection.appendChild(attachUrlValidation(inp));
-        }
+            inp.value = valor || '';
+            inp.addEventListener('input', syncUrls);
+            inpWrap.appendChild(inp);
+            inpWrap.appendChild(attachUrlValidation(inp));
+            const btnX = el('button', {
+                type: 'button', title: 'Quitar URL',
+                style: 'border:none; background:none; color:#dc2626; font-size:1.1rem; line-height:1; padding:4px 2px; cursor:pointer;'
+            }, ['×']);
+            btnX.addEventListener('click', () => { rowEl.remove(); syncUrls(); });
+            rowEl.appendChild(inpWrap);
+            rowEl.appendChild(btnX);
+            urlSection.insertBefore(rowEl, btnMasUrl);
+            return inp;
+        };
+        btnMasUrl.addEventListener('click', () => addUrlRow('').focus());
+
+        data.urls.forEach(addUrlRow);  // ya está paddeado a urlsCount
+        urlSection.appendChild(btnMasUrl);
         container.appendChild(urlSection);
 
         sync();
@@ -1336,7 +1361,7 @@
                 const grpCargo = el('div', { style: 'display: flex; flex-direction: column; gap: 0.35rem;' });
                 grpCargo.appendChild(el('label', { style: 'font-size: 0.85rem; font-weight: 500;' }, ['Cargo *']));
                 const cats = filas[i].tipo_vinculacion === 'nombrado' ? catNombrado : catContratista;
-                const selCargo = el('select', { class: 'iced-widget-input' }, [
+                const selCargo = el('select', { class: 'iced-widget-input', required: true }, [
                     el('option', { value: '' }, ['— Seleccione —']),
                     ...cats.map(c => el('option', { value: c.valor }, [c.texto])),
                 ]);
