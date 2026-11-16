@@ -31,7 +31,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.http import require_GET, require_POST
 
-from .decorators import analista_required
+from .decorators import analista_required, taller_reportes_required
 from .models import Organismo
 from .models_taller import (
     FuenteRequerida, InscripcionTaller, RetoAnalisis,
@@ -140,7 +140,7 @@ def _detectar_duplicados(fuentes, umbral=0.78):
 # Reportes del taller (dashboard migrado)
 # ──────────────────────────────────────────────────────────────────────────
 
-@analista_required
+@taller_reportes_required
 def taller_reportes(request):
     """Reportes del taller de gestión de datos: el antiguo dashboard,
     renderizado dentro del módulo de Analítica."""
@@ -148,11 +148,11 @@ def taller_reportes(request):
     return render(request, 'analitica/taller_reportes.html', context)
 
 
-# Descargas reutilizadas del taller, re-gateadas con el permiso de analista
-# (los originales exigen is_staff; el analista puede no ser staff).
-taller_export_csv = analista_required(views_taller.dashboard_export.__wrapped__)
-taller_export_excel = analista_required(views_taller.dashboard_export_excel.__wrapped__)
-taller_export_variables = analista_required(views_taller.dashboard_export_variables.__wrapped__)
+# Descargas reutilizadas del taller: mismos permisos que los reportes
+# (staff + analista + gestor + validadores, decisión 7).
+taller_export_csv = taller_reportes_required(views_taller.dashboard_export.__wrapped__)
+taller_export_excel = taller_reportes_required(views_taller.dashboard_export_excel.__wrapped__)
+taller_export_variables = taller_reportes_required(views_taller.dashboard_export_variables.__wrapped__)
 taller_informe = analista_required(views_taller.dashboard_informe.__wrapped__)
 taller_casos_f2 = analista_required(views_taller.casos_f2.__wrapped__)
 taller_casos_f2_excel = analista_required(views_taller.casos_f2_excel.__wrapped__)

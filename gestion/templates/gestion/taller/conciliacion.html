@@ -1,0 +1,68 @@
+{% extends 'gestion/base_gestion.html' %}
+{% block title %}Conciliación de equipos — Taller{% endblock %}
+{% block gs_titulo %}Conciliación de equipos{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span>Taller <span class="mx-1">›</span>Conciliación{% endblock %}
+
+{% block gs_contenido %}
+{% include 'gestion/taller/_nav.html' with taller_nav='conciliacion' %}
+
+<div class="bg-amber-50 border border-amber-100 rounded-2xl px-5 py-4 text-sm text-amber-800 mb-6">
+  <i class="fas fa-link mr-2"></i>
+  Estas inscripciones tienen el equipo como <strong>texto libre</strong> («equipo_responsable»)
+  sin equipo normalizado. Asígneles el equipo real del organismo para que queden
+  consistentes en la estructura.
+</div>
+
+<form method="get" class="flex items-center gap-3 mb-6">
+  <select name="edicion" class="px-3 py-2 border border-slate-300 rounded-lg text-sm" onchange="this.form.submit()">
+    <option value="">Todas las ediciones</option>
+    {% for e in ediciones %}<option value="{{ e }}" {% if edicion_sel == e|stringformat:'i' %}selected{% endif %}>{{ e }}</option>{% endfor %}
+  </select>
+</form>
+
+<div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
+        <th class="px-4 py-3">Edición</th>
+        <th class="px-4 py-3">Persona / correo</th>
+        <th class="px-4 py-3">Organismo</th>
+        <th class="px-4 py-3">Texto digitado</th>
+        <th class="px-4 py-3">Equipo normalizado</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for i in inscripciones %}
+      <tr class="border-b border-slate-100 last:border-0">
+        <td class="px-4 py-3">{{ i.edicion }}</td>
+        <td class="px-4 py-3">
+          <div class="font-medium">{{ i.nombre_completo }}</div>
+          <div class="text-xs text-slate-400">{{ i.correo }}</div>
+        </td>
+        <td class="px-4 py-3">{{ i.organismo.nombre }}</td>
+        <td class="px-4 py-3 text-amber-700">«{{ i.equipo_responsable }}»</td>
+        <td class="px-4 py-3" colspan="2">
+          <form method="post" action="{% url 'gestion:taller_inscripcion_accion' i.pk %}" class="flex items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="asignar_equipo">
+            <input type="hidden" name="next" value="{% url 'gestion:taller_conciliacion' %}">
+            <select name="equipo" required class="px-2 py-1.5 border border-slate-300 rounded-lg text-xs max-w-72">
+              <option value="">— elegir equipo —</option>
+              {% for e in equipos %}
+              {% if e.suborganismo.organismo_id == i.organismo_id %}
+              <option value="{{ e.id }}">{{ e.suborganismo.nombre }} · {{ e.nombre }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+            <button class="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 active:scale-[0.98] transition">Asignar</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Todas las inscripciones tienen equipo normalizado. 🎉</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -269,6 +269,29 @@ def taller_staff_required(view_func):
     return wrapper
 
 
+def taller_reportes_required(view_func):
+    """
+    Dashboard/reportes del Taller de Gestión de Datos (decisión 7):
+    staff, analistas, gestor y validadores. La visibilidad por organismo
+    la aplica la vista como hoy (SIIED: todos; organismo: el suyo).
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('indicadores:analitica_login')
+        if request.user.is_staff:
+            return view_func(request, *args, **kwargs)
+        perfil = getattr(request.user, 'perfil_recolector', None)
+        if perfil and (perfil.es_analista() or perfil.es_gestor()
+                       or perfil.es_validador()
+                       or perfil.es_validador_organismo()):
+            return view_func(request, *args, **kwargs)
+        messages.error(
+            request, 'No tiene permisos para los reportes del taller.')
+        return redirect('indicadores:acceso_modulos')
+    return wrapper
+
+
 def gestor_required(view_func):
     """
     Módulo Gestión de Formularios (FICED, Taller y Encuestas).

@@ -83,7 +83,7 @@
       <i class="fas fa-gauge-high"></i>Panel</a>
     <a href="{% url 'gestion:ficed_dashboard' %}" class="{% if pestana_activa == 'ficed' %}on{% endif %}">
       <i class="fas fa-clipboard-list"></i>FICED</a>
-    <a href="#" class="opacity-50 pointer-events-none" title="En construcción">
+    <a href="{% url 'gestion:taller_usuarios' %}" class="{% if pestana_activa == 'taller' %}on{% endif %}">
       <i class="fas fa-people-group"></i>Taller</a>
     <a href="#" class="opacity-50 pointer-events-none" title="En construcción">
       <i class="fas fa-square-poll-vertical"></i>Encuestas</a>

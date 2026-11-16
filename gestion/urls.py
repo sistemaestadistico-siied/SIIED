@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_ficed
+from . import views, views_ficed, views_taller
 
 app_name = 'gestion'
 
@@ -34,4 +34,34 @@ urlpatterns = [
          name='ficed_ventana_guardar'),
     path('ficed/ventanas/<int:ventana_id>/prorroga/',
          views_ficed.prorroga_crear, name='ficed_prorroga'),
+
+    # Taller de Gestión de Datos
+    path('taller/', views_taller.dashboard, name='taller_dashboard'),
+    path('taller/estructura/', views_taller.estructura,
+         name='taller_estructura'),
+    path('taller/estructura/accion/', views_taller.estructura_accion,
+         name='taller_estructura_accion'),
+    path('taller/usuarios/', views_taller.usuarios,
+         name='taller_usuarios'),
+    path('taller/usuarios/crear/', views_taller.usuario_crear,
+         name='taller_usuario_crear'),
+    path('taller/usuarios/<int:user_id>/editar/',
+         views_taller.usuario_editar, name='taller_usuario_editar'),
+    path('taller/usuarios/<int:user_id>/accion/',
+         views_taller.usuario_accion, name='taller_usuario_accion'),
+    path('taller/api/suborganismos/<int:organismo_id>/',
+         views_taller.api_suborganismos, name='taller_api_subs'),
+    path('taller/api/equipos/<int:suborganismo_id>/',
+         views_taller.api_equipos, name='taller_api_equipos'),
+    path('taller/inscripciones/', views_taller.inscripciones,
+         name='taller_inscripciones'),
+    path('taller/inscripciones/<int:inscripcion_id>/accion/',
+         views_taller.inscripcion_accion, name='taller_inscripcion_accion'),
+    path('taller/conciliacion/', views_taller.conciliacion,
+         name='taller_conciliacion'),
+    path('taller/ventanas/', views_taller.ventanas, name='taller_ventanas'),
+    path('taller/ventanas/guardar/', views_taller.ventana_guardar,
+         name='taller_ventana_guardar'),
+    path('taller/ventanas/<int:ventana_id>/prorroga/',
+         views_taller.prorroga_crear, name='taller_prorroga'),
 ]

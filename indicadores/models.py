@@ -2274,7 +2274,21 @@ class PerfilRecolector(models.Model):
         default=False,
         help_text="Tiene una contraseña temporal: debe cambiarla al ingresar"
     )
-    
+
+    # Equipo permanente del Taller de Gestión de Datos (decisión 8):
+    # persiste entre ediciones; el gestor o el delegado lo confirma o
+    # actualiza en cada edición nueva. Cuentas separadas del FICED:
+    # una cuenta con equipo de taller no debe tener subrol_ficed.
+    equipo_taller = models.ForeignKey(
+        'EquipoOrganismo', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='miembros_permanentes',
+        help_text="Equipo de trabajo del Taller (Organismo → Suborganismo → Equipo)"
+    )
+    equipo_taller_edicion = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="Última edición del taller en que se confirmó este equipo"
+    )
+
     class Meta:
         verbose_name = "Perfil de Usuario"
         verbose_name_plural = "Perfiles de Usuarios"

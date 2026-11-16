@@ -423,3 +423,171 @@ class VistasFicedTests(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertTrue(ProrrogaVentana.objects.filter(
             ventana=v, organismo=self.org).exists())
+
+
+# =============================================================================
+# Fase 2 — Submódulo Taller
+# =============================================================================
+
+from gestion.services import taller as st
+from indicadores.models import EquipoOrganismo, Suborganismo
+from indicadores.models_taller import InscripcionTaller
+
+
+class TallerServiceTests(TestCase):
+    def setUp(self):
+        self.org = Organismo.objects.create(nombre='Org T', codigo='org-t')
+        self.org2 = Organismo.objects.create(nombre='Org T2', codigo='org-t2')
+        self.sub = Suborganismo.objects.create(
+            organismo=self.org, nombre='Sec Tecnica', codigo='sec-tec')
+        self.eq = EquipoOrganismo.objects.create(
+            suborganismo=self.sub, nombre='Equipo Datos', codigo='eq-datos')
+        self.sub2 = Suborganismo.objects.create(
+            organismo=self.org2, nombre='Sec 2', codigo='sec-2')
+        self.eq2 = EquipoOrganismo.objects.create(
+            suborganismo=self.sub2, nombre='Eq Otro', codigo='eq-otro')
+
+    def test_crear_usuario_taller_ok(self):
+        u, estado = st.crear_usuario_taller(
+            username='persona.x', rol='delegado', organismo=self.org,
+            equipo=self.eq, edicion=2026, enviar_correo=False)
+        p = u.perfil_recolector
+        self.assertEqual(p.equipo_taller, self.eq)
+        self.assertEqual(p.equipo_taller_edicion, 2026)
+        self.assertEqual(p.rol, 'delegado')
+
+    def test_equipo_de_otro_organismo_rechazado(self):
+        with self.assertRaises(ValidationError):
+            st.crear_usuario_taller(
+                username='persona.y', rol='delegado', organismo=self.org,
+                equipo=self.eq2, enviar_correo=False)
+
+    def test_separacion_cuentas_ficed(self):
+        u, _ = crear_usuario_ficed(username='del_ficed', rol='delegado',
+                                   subrol='ETPP', organismo=self.org,
+                                   enviar_correo=False)
+        with self.assertRaises(ValidationError):
+            st.asignar_equipo_taller(u.perfil_recolector, self.eq, 2026)
+
+    def test_asignar_equipo_confirma_edicion(self):
+        u, _ = st.crear_usuario_taller(
+            username='persona.z', rol='delegado', organismo=self.org,
+            enviar_correo=False)
+        antes, despues = st.asignar_equipo_taller(
+            u.perfil_recolector, self.eq, 2027)
+        self.assertIsNone(antes['equipo_taller_id'])
+        self.assertEqual(despues['equipo_taller_id'], self.eq.pk)
+        self.assertEqual(despues['equipo_taller_edicion'], 2027)
+
+    def test_desactivar_estructura(self):
+        st.desactivar_equipo(self.eq)
+        self.eq.refresh_from_db()
+        self.assertFalse(self.eq.activo)
+        st.desactivar_suborganismo(self.sub)
+        self.sub.refresh_from_db()
+        self.assertFalse(self.sub.activo)
+
+    def test_reabrir_inscripcion(self):
+        u = _usuario('del_t1', rol='delegado', organismo=self.org)
+        ins = InscripcionTaller.objects.create(
+            user=u, organismo=self.org, edicion=2026,
+            nombre_completo='X', correo='x@x.co',
+            estado='completada')
+        antes, despues = st.reabrir_inscripcion(ins)
+        self.assertEqual(despues['estado'], 'en_progreso')
+
+    def test_reiniciar_inscripcion_copia(self):
+        u = _usuario('del_t2', rol='delegado', organismo=self.org)
+        ins = InscripcionTaller.objects.create(
+            user=u, organismo=self.org, edicion=2026,
+            nombre_completo='Y', correo='y@x.co')
+        copia = st.reiniciar_inscripcion(ins)
+        self.assertFalse(InscripcionTaller.objects.filter(pk=ins.pk).exists())
+        self.assertEqual(copia['nombre_completo'], 'Y')
+
+    def test_reasignar_equipo_integridad(self):
+        u = _usuario('del_t3', rol='delegado', organismo=self.org)
+        ins = InscripcionTaller.objects.create(
+            user=u, organismo=self.org, edicion=2026,
+            nombre_completo='Z', correo='z@x.co',
+            equipo_responsable='escrito a mano')
+        # Equipo de otro organismo: rechazado
+        with self.assertRaises(ValidationError):
+            st.reasignar_inscripcion(ins, equipo=self.eq2)
+        # Equipo del organismo: ok
+        antes, despues = st.reasignar_inscripcion(ins, equipo=self.eq)
+        self.assertEqual(despues['equipo_id'], self.eq.pk)
+
+    def test_conciliacion_lista_sin_equipo(self):
+        u = _usuario('del_t4', rol='delegado', organismo=self.org)
+        InscripcionTaller.objects.create(
+            user=u, organismo=self.org, edicion=2026,
+            nombre_completo='W', correo='w@x.co',
+            equipo_responsable='texto sin normalizar')
+        InscripcionTaller.objects.create(
+            user=u, organismo=self.org, edicion=2026,
+            nombre_completo='V', correo='v@x.co', equipo=self.eq)
+        self.assertEqual(st.inscripciones_sin_equipo().count(), 1)
+
+
+class VistasTallerTests(TestCase):
+    def setUp(self):
+        self.g = _usuario('gestor_t', rol='gestor_formularios')
+        self.client.force_login(self.g)
+        self.org = Organismo.objects.create(nombre='Org Tv', codigo='org-tv')
+        self.sub = Suborganismo.objects.create(
+            organismo=self.org, nombre='Sub X', codigo='sub-x')
+        self.eq = EquipoOrganismo.objects.create(
+            suborganismo=self.sub, nombre='Eq X', codigo='eq-x')
+
+    def test_vistas_entran(self):
+        for url in ('gestion:taller_usuarios', 'gestion:taller_estructura',
+                    'gestion:taller_inscripciones', 'gestion:taller_ventanas',
+                    'gestion:taller_conciliacion'):
+            r = self.client.get(reverse(url))
+            self.assertEqual(r.status_code, 200, url)
+
+    def test_dashboard_redirige_a_analitica(self):
+        r = self.client.get(reverse('gestion:taller_dashboard'))
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('taller/reportes', r['Location'])
+
+    def test_gestor_accede_a_reportes(self):
+        r = self.client.get(reverse('indicadores:analitica_taller_reportes'))
+        self.assertEqual(r.status_code, 200)
+
+    def test_crear_usuario_taller_por_vista(self):
+        r = self.client.post(reverse('gestion:taller_usuario_crear'), {
+            'username': 'persona.nueva', 'rol': 'delegado',
+            'organismo': str(self.org.pk), 'equipo': str(self.eq.pk),
+            'edicion': '2026', 'activo': '1', 'first_name': 'P',
+            'last_name': 'N', 'email': ''})
+        self.assertEqual(r.status_code, 302)
+        p = User.objects.get(username='persona.nueva').perfil_recolector
+        self.assertEqual(p.equipo_taller_id, self.eq.pk)
+        self.assertTrue(AccionGestion.objects.filter(
+            accion='crear_usuario', modulo='taller').exists())
+
+    def test_crear_equipo_por_vista(self):
+        r = self.client.post(reverse('gestion:taller_estructura_accion'), {
+            'accion': 'crear_equipo', 'suborganismo': str(self.sub.pk),
+            'nombre': 'Eq Nuevo'})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(EquipoOrganismo.objects.filter(
+            suborganismo=self.sub, nombre='Eq Nuevo').exists())
+
+    def test_api_cascada(self):
+        r = self.client.get(
+            reverse('gestion:taller_api_subs', args=[self.org.pk]))
+        self.assertEqual(r.json()['suborganismos'][0]['nombre'], 'Sub X')
+        r = self.client.get(
+            reverse('gestion:taller_api_equipos', args=[self.sub.pk]))
+        self.assertEqual(r.json()['equipos'][0]['nombre'], 'Eq X')
+
+    def test_ventana_taller_guardar(self):
+        r = self.client.post(reverse('gestion:taller_ventana_guardar'), {
+            'referencia': '2026', 'fecha_apertura': '2026-01-01',
+            'fecha_cierre': '2026-12-31', 'activa': '1'})
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(VentanaDiligenciamiento.objects.filter(
+            modulo='taller', referencia='2026').exists())

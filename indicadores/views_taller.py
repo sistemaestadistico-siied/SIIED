@@ -799,6 +799,18 @@ def _inscripcion_activa(request):
 @delegado_required
 def wizard_inicio(request):
     inscripcion = _inscripcion_activa(request)
+    # Ventana por edición: cerrada = puede leer, no avanzar ni guardar.
+    from gestion.services.ventanas import ventana_abierta
+    if inscripcion:
+        _est_v = ventana_abierta('taller', str(inscripcion.edicion),
+                                 inscripcion.organismo)
+    else:
+        _est_v = ventana_abierta(
+            'taller', str(Inscripcion._meta.get_field('edicion').default),
+            None)
+    if not _est_v.abierta and request.method == 'POST':
+        messages.warning(request, _est_v.mensaje)
+        return redirect('indicadores:taller_wizard')
     if request.method == 'POST':
         if inscripcion and request.POST.get('accion') == 'continuar':
             # Si la inscripción está completada, ir al paso de fuentes
@@ -854,6 +866,18 @@ def wizard_paso(request, slug):
     else:
         fuente_sel = None
         instancia = paso.get_instance(inscripcion) if inscripcion else None
+
+    # Ventana por edición: cerrada = puede leer, no guardar ni avanzar.
+    if request.method == 'POST':
+        from gestion.services.ventanas import ventana_abierta
+        _est_v = ventana_abierta(
+            'taller',
+            str(inscripcion.edicion) if inscripcion
+            else str(Inscripcion._meta.get_field('edicion').default),
+            inscripcion.organismo if inscripcion else None)
+        if not _est_v.abierta:
+            messages.warning(request, _est_v.mensaje)
+            return redirect('indicadores:taller_wizard_paso', slug=slug)
 
     # --- Lista de fuentes para el selector (pasos F1 individuales y F3) ---
     fuentes_lista = None

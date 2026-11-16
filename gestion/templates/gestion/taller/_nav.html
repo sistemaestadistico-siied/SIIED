@@ -1,0 +1,8 @@
+<nav class="flex flex-wrap gap-2 mb-6 text-sm" aria-label="Secciones del Taller">
+  <a href="{% url 'gestion:taller_dashboard' %}" class="px-3 py-1.5 rounded-lg {% if taller_nav == 'dashboard' %}bg-teal-600 text-white font-semibold{% else %}border border-slate-300 hover:bg-slate-50 font-medium{% endif %}">Dashboard ↗</a>
+  <a href="{% url 'gestion:taller_usuarios' %}" class="px-3 py-1.5 rounded-lg {% if taller_nav == 'usuarios' %}bg-teal-600 text-white font-semibold{% else %}border border-slate-300 hover:bg-slate-50 font-medium{% endif %}">Usuarios Taller</a>
+  <a href="{% url 'gestion:taller_estructura' %}" class="px-3 py-1.5 rounded-lg {% if taller_nav == 'estructura' %}bg-teal-600 text-white font-semibold{% else %}border border-slate-300 hover:bg-slate-50 font-medium{% endif %}">Estructura</a>
+  <a href="{% url 'gestion:taller_inscripciones' %}" class="px-3 py-1.5 rounded-lg {% if taller_nav == 'inscripciones' %}bg-teal-600 text-white font-semibold{% else %}border border-slate-300 hover:bg-slate-50 font-medium{% endif %}">Inscripciones</a>
+  <a href="{% url 'gestion:taller_conciliacion' %}" class="px-3 py-1.5 rounded-lg {% if taller_nav == 'conciliacion' %}bg-teal-600 text-white font-semibold{% else %}border border-slate-300 hover:bg-slate-50 font-medium{% endif %}">Conciliación{% if n_sin_equipo %} <span class="ml-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">{{ n_sin_equipo }}</span>{% endif %}</a>
+  <a href="{% url 'gestion:taller_ventanas' %}" class="px-3 py-1.5 rounded-lg {% if taller_nav == 'ventanas' %}bg-teal-600 text-white font-semibold{% else %}border border-slate-300 hover:bg-slate-50 font-medium{% endif %}">Ventanas</a>
+</nav>
