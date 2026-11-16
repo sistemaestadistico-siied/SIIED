@@ -76,7 +76,7 @@ def dashboard(request):
 def usuarios(request):
     """Lista filtrable + vista matriz por organismo."""
     qs = (PerfilRecolector.objects
-          .filter(rol__in=ROLES_FICED)
+          .filter(rol__in=ROLES_FICED, equipo_taller__isnull=True)
           .select_related('user', 'organismo').order_by(
               'organismo__nombre', 'rol', 'user__username'))
 
@@ -154,7 +154,9 @@ def usuarios(request):
 
 def _usuario_gestionado(pk):
     return get_object_or_404(
-        User.objects.select_related('perfil_recolector__organismo'), pk=pk)
+        User.objects.select_related('perfil_recolector__organismo')
+        .filter(perfil_recolector__rol__in=ROLES_FICED,
+                perfil_recolector__equipo_taller__isnull=True), pk=pk)
 
 
 @gestor_required

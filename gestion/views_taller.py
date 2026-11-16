@@ -149,6 +149,7 @@ def estructura_accion(request):
 def usuarios(request):
     qs = (PerfilRecolector.objects
           .filter(rol__in=('delegado', 'analista'))
+          .exclude(rol='delegado', equipo_taller__isnull=True)
           .select_related('user', 'organismo',
                           'equipo_taller__suborganismo__organismo')
           .order_by('organismo__nombre', 'user__username'))
@@ -272,7 +273,10 @@ def usuario_crear(request):
 def usuario_editar(request, user_id):
     user = get_object_or_404(
         User.objects.select_related('perfil_recolector__organismo',
-                                    'perfil_recolector__equipo_taller'),
+                                    'perfil_recolector__equipo_taller')
+        .filter(perfil_recolector__rol__in=('delegado', 'analista'))
+        .exclude(perfil_recolector__rol='delegado',
+                 perfil_recolector__equipo_taller__isnull=True),
         pk=user_id)
     perfil = user.perfil_recolector
     inscripciones = user.inscripciones_taller.count()
@@ -314,7 +318,12 @@ def usuario_editar(request, user_id):
 @require_POST
 @gestor_required
 def usuario_accion(request, user_id):
-    user = get_object_or_404(User, pk=user_id)
+    user = get_object_or_404(
+        User.objects.filter(
+            perfil_recolector__rol__in=('delegado', 'analista'))
+        .exclude(perfil_recolector__rol='delegado',
+                 perfil_recolector__equipo_taller__isnull=True),
+        pk=user_id)
     accion = request.POST.get('accion', '')
     perfil = user.perfil_recolector
 
