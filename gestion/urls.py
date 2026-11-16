@@ -11,6 +11,13 @@ urlpatterns = [
     path('logout/', views.gestion_logout, name='logout'),
     path('', views.hub, name='hub'),
     path('bitacora/', views.bitacora, name='bitacora'),
+    path('ventanas/', views.ventanas, name='ventanas'),
+    path('ventanas/guardar/', views.ventana_guardar,
+         name='ventana_guardar'),
+    path('ventanas/<int:ventana_id>/prorroga/', views.ventana_prorroga,
+         name='ventana_prorroga'),
+    path('ventanas/<int:ventana_id>/borrar/', views.ventana_borrar,
+         name='ventana_borrar'),
 
     # FICED
     path('ficed/', views_ficed.dashboard, name='ficed_dashboard'),

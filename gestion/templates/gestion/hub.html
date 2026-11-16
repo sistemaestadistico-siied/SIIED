@@ -49,7 +49,7 @@
   <div class="bg-sky-50 border border-sky-100 rounded-2xl px-6 py-4 text-sm text-sky-800">
     <i class="fas fa-info-circle mr-2"></i>
     No hay ventanas configuradas: todos los módulos están abiertos (comportamiento actual).
-    Las ventanas se administran desde el panel de administración por ahora.
+    <a href="{% url 'gestion:ventanas' %}" class="font-semibold underline">Administrar ventanas →</a>
   </div>
   {% endif %}
 </section>
