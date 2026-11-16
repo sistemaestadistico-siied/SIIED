@@ -270,50 +270,65 @@ def ventana_borrar(request, ventana_id):
 
 @gestor_required
 def usuarios_diccionario(request):
-    """Diccionario CSV descargable con los valores válidos para las
-    cargas masivas de usuarios: organismos, roles por módulo,
-    subroles FICED y equipos (organismo → suborganismo → equipo)."""
+    """Diccionario CSV descargable con los valores válidos para la
+    carga masiva del módulo indicado con `?modulo=`:
+    ficed → organismos + roles + subroles;
+    taller → organismos + roles + equipos;
+    encuestas → roles."""
     import csv as _csv
     import io as _io
     from django.http import HttpResponse
     from indicadores.models import EquipoOrganismo, PerfilRecolector
 
+    modulo = request.GET.get('modulo', 'ficed')
+    if modulo not in ('ficed', 'taller', 'encuestas'):
+        modulo = 'ficed'
+
     out = _io.StringIO()
     w = _csv.writer(out)
     w.writerow(['seccion', 'codigo', 'nombre', 'detalle'])
 
-    for o in Organismo.objects.filter(activo=True).order_by('nombre'):
-        w.writerow(['organismo', o.codigo, o.nombre,
-                    'Use nombre o codigo en la columna organismo'])
+    if modulo in ('ficed', 'taller'):
+        for o in Organismo.objects.filter(activo=True).order_by('nombre'):
+            w.writerow(['organismo', o.codigo, o.nombre,
+                        'Use nombre o codigo en la columna organismo'])
 
-    roles = [
-        ('delegado', 'FICED y Taller — delegado del organismo'),
-        ('validador_organismo', 'FICED — pre-validación del organismo'),
-        ('validador', 'FICED — validador estadístico'),
-        ('analista', 'Taller'),
-        ('diligenciador', 'Encuestas — responde a su nombre'),
-        ('encuestador', 'Encuestas — captura por varias personas'),
-    ]
-    for codigo, detalle in roles:
+    roles = {
+        'ficed': [
+            ('delegado', 'Delegado del organismo'),
+            ('validador_organismo', 'Pre-validación del organismo'),
+            ('validador', 'Validador estadístico'),
+        ],
+        'taller': [
+            ('delegado', 'Delegado del organismo (requiere equipo)'),
+            ('analista', 'Analista SIIED'),
+        ],
+        'encuestas': [
+            ('diligenciador', 'Responde encuestas a su nombre'),
+            ('encuestador', 'Captura por varias personas'),
+        ],
+    }
+    for codigo, detalle in roles[modulo]:
         w.writerow(['rol', codigo, codigo, detalle])
 
-    for codigo, nombre in PerfilRecolector.SUBROL_FICED_CHOICES:
-        w.writerow(['subrol_ficed', codigo or '(vacio)',
-                    nombre or 'Todos los equipos',
-                    'FICED — solo aplica a delegados'])
+    if modulo == 'ficed':
+        for codigo, nombre in PerfilRecolector.SUBROL_FICED_CHOICES:
+            w.writerow(['subrol_ficed', codigo or '(vacio)',
+                        nombre or 'Todos los equipos',
+                        'Solo aplica a delegados'])
 
-    for eq in (EquipoOrganismo.objects
-               .filter(activo=True)
-               .select_related('suborganismo__organismo')
-               .order_by('suborganismo__organismo__nombre',
-                         'suborganismo__nombre', 'nombre')):
-        w.writerow(['equipo', eq.codigo, eq.nombre,
-                    f'{eq.suborganismo.organismo.nombre} / '
-                    f'{eq.suborganismo.nombre} — '
-                    'columna equipo del CSV de Taller'])
+    if modulo == 'taller':
+        for eq in (EquipoOrganismo.objects
+                   .filter(activo=True)
+                   .select_related('suborganismo__organismo')
+                   .order_by('suborganismo__organismo__nombre',
+                             'suborganismo__nombre', 'nombre')):
+            w.writerow(['equipo', eq.codigo, eq.nombre,
+                        f'{eq.suborganismo.organismo.nombre} / '
+                        f'{eq.suborganismo.nombre}'])
 
     r = HttpResponse(out.getvalue(),
                      content_type='text/csv; charset=utf-8')
     r['Content-Disposition'] = (
-        'attachment; filename="diccionario_usuarios.csv"')
+        f'attachment; filename="diccionario_usuarios_{modulo}.csv"')
     return r
