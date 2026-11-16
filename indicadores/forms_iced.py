@@ -2805,11 +2805,11 @@ class ICEDModuloEForm(ICEDBaseForm):
                 'Insatisfechos',
                 'Muy insatisfechos',
             ],
-            'urls': 2,
+            'urls': 1,
             'data-show-if': 'p38_productos_difusion!=ninguna p41_indaga_satisfaccion=si',
         }),
         label="41.2 De acuerdo con las mediciones de satisfacción realizadas, indique con una (X) la satisfacción de los usuarios frente a la calidad referente a:",
-        help_text="Matriz: 3 indicadores × 5 niveles de satisfacción. Luego relacione las evidencias disponibles con 2 URLs."
+        help_text="Matriz: 3 indicadores × 5 niveles de satisfacción. Relacione las evidencias disponibles (mínimo una URL; puede agregar más con '+ Agregar URL')."
     )
 
     # P42: Observaciones generales
