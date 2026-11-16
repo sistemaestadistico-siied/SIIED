@@ -1852,11 +1852,38 @@ class ICEDModuloD1Form(ICEDBaseForm):
                 filas = json.loads(filas)
             except (ValueError, TypeError):
                 filas = []
+        try:
+            cfg = json.loads(
+                self.fields[name].widget.attrs.get('data-config') or '{}')
+        except (ValueError, TypeError):
+            cfg = {}
+        cols_sino = [c['name'] for c in cfg.get('columnas', [])
+                     if c.get('tipo') == 'booleano'
+                     and c.get('name') != 'vigente']
         if isinstance(filas, list):
             for i, fila in enumerate(filas, 1):
                 if not isinstance(fila, dict):
                     continue
-                if (str(fila.get('vigente') or '').lower() == 'no'
+                # Las filas vienen precargadas con la operación: si no se
+                # diligencia nada, el paso no puede avanzar.
+                oe = str(fila.get('nombre_oe') or '').strip()
+                vigente = str(fila.get('vigente') or '').strip().lower()
+                if oe and not vigente:
+                    self.add_error(
+                        name,
+                        f'Fila {i} ({oe}): indique si la operación está '
+                        'vigente.')
+                    break
+                if oe and vigente != 'no':
+                    faltan = [c for c in cols_sino
+                              if not str(fila.get(c) or '').strip()]
+                    if faltan:
+                        self.add_error(
+                            name,
+                            f'Fila {i} ({oe}): responda Sí, No o NA en '
+                            'todas las columnas.')
+                        break
+                if (vigente == 'no'
                         and not str(fila.get('razon_no_vigente') or '').strip()):
                     self.add_error(
                         name,

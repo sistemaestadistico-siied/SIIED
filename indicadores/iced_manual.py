@@ -167,10 +167,13 @@ MANUAL_POR_PASO = {
             'nomenclaturas y mecanismos para identificar necesidades.'
         ),
         'tips': [
-            'P23: una fila por operación estadística. Marque los '
-            'documentos metodológicos existentes (ficha, manual, '
-            'diccionario, consistencia) y escriba las acciones de '
-            'fortalecimiento.',
+            'P23: las operaciones estadísticas vienen precargadas y '
+            'TODAS deben diligenciarse: en cada fila responda Vigente y, '
+            'si está vigente, Sí/No/NA en cada columna (documentos '
+            'metodológicos, ficha, manual, diccionario, consistencia, '
+            'acciones de fortalecimiento, SICODE). Si Vigente = NO, '
+            'las columnas quedan en NA y la razón de no vigencia es '
+            'obligatoria.',
             'P24/P24.1: seleccione nomenclaturas/estándares usados '
             '(CIUU, CIIU, DANE...) y de dónde provienen los conceptos.',
             'P25: si el organismo usa el Banco de Programas y Proyectos, '

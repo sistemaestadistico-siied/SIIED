@@ -916,8 +916,10 @@
         };
         btnMasUrl.addEventListener('click', () => addUrlRow('').focus());
 
-        data.urls.forEach(addUrlRow);  // ya está paddeado a urlsCount
+        // El botón debe estar en urlSection ANTES de crear filas: addUrlRow
+        // inserta cada fila antes de él (insertBefore exige que sea hijo).
         urlSection.appendChild(btnMasUrl);
+        data.urls.forEach(addUrlRow);  // ya está paddeado a urlsCount
         container.appendChild(urlSection);
 
         sync();

@@ -218,9 +218,14 @@ el portal**:
   **Manual operativo**, **Diccionario de datos**, **Documento de consistencia
   y validación**, **Acciones de fortalecimiento**, **Publicado en SICODE**
   (todas Sí/No/NA) y **URL de evidencia**.
+  - **Todas las operaciones precargadas deben diligenciarse**: en cada fila
+    es obligatorio responder **Vigente** y, si está vigente, responder
+    **Sí, No o NA en todas las columnas**. No se puede avanzar dejando filas
+    sin responder.
   - **Instructivo:** si una operación **ya no se genera**, marca **NO en
     Vigente** — el resto de columnas quedan automáticamente en **NA**
-    (excepto la URL, que se vacía).
+    (excepto la URL, que se vacía) y la **razón de no vigencia** es
+    obligatoria.
   - La URL de evidencia debe apuntar al documento/ficha/publicación
     correspondiente.
 - **P24 — Nomenclaturas y lineamientos** (multi): normas, estándares y
