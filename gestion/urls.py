@@ -80,6 +80,8 @@ urlpatterns = [
          name='ficed_carga_masiva'),
     path('ficed/usuarios/plantilla/', views_ficed.usuarios_plantilla,
          name='ficed_usuarios_plantilla'),
+    path('usuarios/diccionario/', views.usuarios_diccionario,
+         name='usuarios_diccionario'),
 
     # Encuestas (gestión)
     path('encuestas/usuarios/', encuestas_views.usuarios,

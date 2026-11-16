@@ -266,3 +266,54 @@ def ventana_borrar(request, ventana_id):
         request,
         f'Ventana {datos["modulo"]}/{datos["referencia"]} eliminada.')
     return redirect('gestion:ventanas')
+
+
+@gestor_required
+def usuarios_diccionario(request):
+    """Diccionario CSV descargable con los valores válidos para las
+    cargas masivas de usuarios: organismos, roles por módulo,
+    subroles FICED y equipos (organismo → suborganismo → equipo)."""
+    import csv as _csv
+    import io as _io
+    from django.http import HttpResponse
+    from indicadores.models import EquipoOrganismo, PerfilRecolector
+
+    out = _io.StringIO()
+    w = _csv.writer(out)
+    w.writerow(['seccion', 'codigo', 'nombre', 'detalle'])
+
+    for o in Organismo.objects.filter(activo=True).order_by('nombre'):
+        w.writerow(['organismo', o.codigo, o.nombre,
+                    'Use nombre o codigo en la columna organismo'])
+
+    roles = [
+        ('delegado', 'FICED y Taller — delegado del organismo'),
+        ('validador_organismo', 'FICED — pre-validación del organismo'),
+        ('validador', 'FICED — validador estadístico'),
+        ('analista', 'Taller'),
+        ('diligenciador', 'Encuestas — responde a su nombre'),
+        ('encuestador', 'Encuestas — captura por varias personas'),
+    ]
+    for codigo, detalle in roles:
+        w.writerow(['rol', codigo, codigo, detalle])
+
+    for codigo, nombre in PerfilRecolector.SUBROL_FICED_CHOICES:
+        w.writerow(['subrol_ficed', codigo or '(vacio)',
+                    nombre or 'Todos los equipos',
+                    'FICED — solo aplica a delegados'])
+
+    for eq in (EquipoOrganismo.objects
+               .filter(activo=True)
+               .select_related('suborganismo__organismo')
+               .order_by('suborganismo__organismo__nombre',
+                         'suborganismo__nombre', 'nombre')):
+        w.writerow(['equipo', eq.codigo, eq.nombre,
+                    f'{eq.suborganismo.organismo.nombre} / '
+                    f'{eq.suborganismo.nombre} — '
+                    'columna equipo del CSV de Taller'])
+
+    r = HttpResponse(out.getvalue(),
+                     content_type='text/csv; charset=utf-8')
+    r['Content-Disposition'] = (
+        'attachment; filename="diccionario_usuarios.csv"')
+    return r
