@@ -11,6 +11,12 @@ from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.utils.html import escape
+from django.utils import timezone
+
+
+def _fmt_fecha(dt):
+    """Fecha/hora de un datetime aware en hora local (America/Bogota)."""
+    return timezone.localtime(dt).strftime('%d/%m/%Y %H:%M')
 
 
 def _get_site_url():
@@ -345,7 +351,7 @@ def notificar_validadores_nueva_carga_serie(carga):
             <p><strong>Indicador:</strong> {indicador_nombre}</p>
             <p><strong>Organismo:</strong> {organismo or 'No asignado'}</p>
             <p><strong>Delegado:</strong> {delegado_nombre}</p>
-            <p><strong>Fecha de envío:</strong> {carga.fecha_carga.strftime('%d/%m/%Y %H:%M')}</p>
+            <p><strong>Fecha de envío:</strong> {_fmt_fecha(carga.fecha_carga)}</p>
             <p style="margin-top:20px;">
                 <a href="{_get_site_url()}/validacion/serie/{carga.id}/"
                    style="background:#6366f1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
@@ -389,7 +395,7 @@ def notificar_validadores_nueva_carga_conjunto_datos(carga):
             <p><strong>conjunto_datos:</strong> {conjunto_datos_nombre}</p>
             <p><strong>Organismo:</strong> {organismo or 'No asignado'}</p>
             <p><strong>Delegado:</strong> {delegado_nombre}</p>
-            <p><strong>Fecha de envío:</strong> {carga.fecha_carga.strftime('%d/%m/%Y %H:%M')}</p>
+            <p><strong>Fecha de envío:</strong> {_fmt_fecha(carga.fecha_carga)}</p>
             <p style="margin-top:20px;">
                 <a href="{_get_site_url()}/validacion/conjunto_datos/{carga.id}/"
                    style="background:#6366f1;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
@@ -432,7 +438,7 @@ def notificar_admins_nueva_carga_recoleccion_serie(carga):
             <p><strong>Código de evidencia:</strong> {codigo}</p>
             <p><strong>Indicador:</strong> {indicador_nombre}</p>
             <p><strong>Subido por:</strong> {recolector_nombre}</p>
-            <p><strong>Fecha:</strong> {carga.fecha_carga.strftime('%d/%m/%Y %H:%M')}</p>
+            <p><strong>Fecha:</strong> {_fmt_fecha(carga.fecha_carga)}</p>
             <p style="margin-top:20px;">
                 <a href="{_get_site_url()}/admin/wizard/"
                    style="background:#0891b2;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
@@ -475,7 +481,7 @@ def notificar_admins_nueva_carga_recoleccion_conjunto_datos(carga):
             <p><strong>Código de evidencia:</strong> {codigo}</p>
             <p><strong>conjunto_datos:</strong> {conjunto_datos_nombre}</p>
             <p><strong>Subido por:</strong> {recolector_nombre}</p>
-            <p><strong>Fecha:</strong> {carga.fecha_carga.strftime('%d/%m/%Y %H:%M')}</p>
+            <p><strong>Fecha:</strong> {_fmt_fecha(carga.fecha_carga)}</p>
             <p style="margin-top:20px;">
                 <a href="{_get_site_url()}/admin/wizard/"
                    style="background:#0891b2;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;">
@@ -519,7 +525,7 @@ def notificar_delegado_serie(carga, accion, observaciones=""):
         <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
             <p><strong>Código de evidencia:</strong> {codigo}</p>
             <p><strong>Indicador:</strong> {indicador_nombre}</p>
-            <p><strong>Fecha de carga:</strong> {carga.fecha_carga.strftime('%d/%m/%Y %H:%M')}</p>
+            <p><strong>Fecha de carga:</strong> {_fmt_fecha(carga.fecha_carga)}</p>
             {f'<div style="background:#fef3c7;border-left:4px solid {color};padding:12px;margin:16px 0;"><strong>Observaciones del validador:</strong><br>{observaciones}</div>' if observaciones else ''}
             <p style="margin-top:20px;">
                 <a href="{_get_site_url()}/delegado/serie/{carga.id}/"
@@ -564,7 +570,7 @@ def notificar_delegado_conjunto_datos(carga, accion, observaciones=""):
         <div style="border:1px solid #e5e7eb;border-top:none;padding:20px;border-radius:0 0 8px 8px;">
             <p><strong>Código de evidencia:</strong> {codigo}</p>
             <p><strong>conjunto_datos:</strong> {conjunto_datos_nombre}</p>
-            <p><strong>Fecha de carga:</strong> {carga.fecha_carga.strftime('%d/%m/%Y %H:%M')}</p>
+            <p><strong>Fecha de carga:</strong> {_fmt_fecha(carga.fecha_carga)}</p>
             {f'<div style="background:#fef3c7;border-left:4px solid {color};padding:12px;margin:16px 0;"><strong>Observaciones del validador:</strong><br>{observaciones}</div>' if observaciones else ''}
             <p style="margin-top:20px;">
                 <a href="{_get_site_url()}/delegado/conjunto_datos/{carga.id}/"
@@ -705,7 +711,7 @@ def notificar_validadores_nuevo_iced(formulario):
     organismo = formulario.organismo.nombre if formulario.organismo else 'No asignado'
     delegado = formulario.usuario_diligencia
     delegado_nombre = (delegado.get_full_name() or delegado.username) if delegado else 'No registrado'
-    fecha_envio = formulario.fecha_envio.strftime('%d/%m/%Y %H:%M') if formulario.fecha_envio else '—'
+    fecha_envio = _fmt_fecha(formulario.fecha_envio) if formulario.fecha_envio else '—'
 
     subject = f"[SIIED] Formulario ICED {formulario.periodo} enviado: {organismo}"
 
@@ -760,7 +766,7 @@ def notificar_validador_organismo_iced(formulario):
     delegado = formulario.usuario_diligencia
     delegado_nombre = (
         delegado.get_full_name() or delegado.username) if delegado else '—'
-    fecha_envio = (formulario.fecha_envio.strftime('%d/%m/%Y %H:%M')
+    fecha_envio = (_fmt_fecha(formulario.fecha_envio)
                    if formulario.fecha_envio else '—')
 
     subject = (f"[SIIED] ICED {formulario.periodo}: equipo {equipo} "

@@ -1190,6 +1190,7 @@ def reportes_visitas(request):
     Muestra estadísticas agregadas y permite filtrar por rango de fechas.
     """
     from django.db.models import Count
+    from django.db.models.functions import TruncDate
     from django.utils import timezone
     from datetime import timedelta
     from .models import PageVisit
@@ -1200,11 +1201,11 @@ def reportes_visitas(request):
     fecha_desde = request.GET.get('fecha_desde', '')
     fecha_hasta = request.GET.get('fecha_hasta', '')
 
-    # Rango por defecto: últimos 30 días
+    # Rango por defecto: últimos 30 días (fechas en hora local Bogotá)
     if not fecha_desde:
-        fecha_desde = (hoy - timedelta(days=30)).strftime('%Y-%m-%d')
+        fecha_desde = timezone.localtime(hoy - timedelta(days=30)).strftime('%Y-%m-%d')
     if not fecha_hasta:
-        fecha_hasta = hoy.strftime('%Y-%m-%d')
+        fecha_hasta = timezone.localtime(hoy).strftime('%Y-%m-%d')
 
     qs = PageVisit.objects.all()
     try:
@@ -1239,7 +1240,11 @@ def reportes_visitas(request):
 
     # Visitas por día
     visitas_por_dia_raw = list(
-        qs.extra(select={'dia': "DATE(timestamp)"})
+        # TruncDate en tz local: DATE(timestamp) en SQL agrupaba en UTC
+        # y las visitas de la noche quedaban en el día siguiente.
+        qs.annotate(
+            dia=TruncDate('timestamp',
+                          tzinfo=timezone.get_current_timezone()))
         .values('dia')
         .annotate(visitas=Count('id'), unicos=Count('ip_address', distinct=True))
         .order_by('dia')
@@ -1299,6 +1304,7 @@ def reportes_visitas_exportar_excel(request):
     Respeta los filtros de fecha del dashboard (GET params).
     """
     from django.db.models import Count
+    from django.db.models.functions import TruncDate
     from django.utils import timezone
     from datetime import timedelta
     from .models import PageVisit
@@ -1308,9 +1314,9 @@ def reportes_visitas_exportar_excel(request):
     fecha_hasta = request.GET.get('fecha_hasta', '')
 
     if not fecha_desde:
-        fecha_desde = (hoy - timedelta(days=30)).strftime('%Y-%m-%d')
+        fecha_desde = timezone.localtime(hoy - timedelta(days=30)).strftime('%Y-%m-%d')
     if not fecha_hasta:
-        fecha_hasta = hoy.strftime('%Y-%m-%d')
+        fecha_hasta = timezone.localtime(hoy).strftime('%Y-%m-%d')
 
     qs = PageVisit.objects.all()
     try:
@@ -1324,7 +1330,11 @@ def reportes_visitas_exportar_excel(request):
 
     # Hoja 1: Resumen diario
     visitas_por_dia_raw = list(
-        qs.extra(select={'dia': "DATE(timestamp)"})
+        # TruncDate en tz local: DATE(timestamp) en SQL agrupaba en UTC
+        # y las visitas de la noche quedaban en el día siguiente.
+        qs.annotate(
+            dia=TruncDate('timestamp',
+                          tzinfo=timezone.get_current_timezone()))
         .values('dia')
         .annotate(visitas=Count('id'), unicos=Count('ip_address', distinct=True))
         .order_by('dia')

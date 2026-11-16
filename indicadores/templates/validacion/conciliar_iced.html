@@ -46,6 +46,11 @@
         </a>
         {% endif %}
     </div>
+    {% if pendientes_borrador %}
+    <p class="text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2 mt-4 font-medium">
+        ⚠️ Los formularios de {{ pendientes_borrador|join:", " }} aún están en borrador — deben enviarlos antes de poder conciliar.
+    </p>
+    {% endif %}
     {% if n_divergentes %}
     <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 mt-4">
         {{ n_divergentes }} pregunta(s) tienen respuestas diferentes entre equipos — revisa y elige la respuesta oficial.
@@ -72,13 +77,13 @@
             </p>
             {% if confirm_pp %}
             <label class="flex items-start gap-2 text-sm text-indigo-900 mb-2">
-                <input type="checkbox" name="confirmar_sin_pp" value="1" class="mt-1">
+                <input type="checkbox" name="confirmar_sin_pp" value="1" class="mt-1" required>
                 <span>El organismo <strong>no está involucrado</strong> con las políticas públicas vigentes → la P29 quedará registrada como “No está involucrado”.</span>
             </label>
             {% endif %}
             {% if confirm_obs %}
             <label class="flex items-start gap-2 text-sm text-indigo-900">
-                <input type="checkbox" name="confirmar_sin_obs" value="1" class="mt-1">
+                <input type="checkbox" name="confirmar_sin_obs" value="1" class="mt-1" required>
                 <span>El organismo <strong>no cuenta con un observatorio</strong> → la P33 quedará registrada como “No”.</span>
             </label>
             {% endif %}
@@ -175,7 +180,8 @@
 
     <div class="sticky bottom-4 mt-8 flex justify-end">
         <button type="submit"
-                class="bg-emerald-500 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md transition-all">
+                {% if pendientes_borrador %}disabled{% endif %}
+                class="{% if pendientes_borrador %}bg-slate-300 text-slate-500 cursor-not-allowed{% else %}bg-emerald-500 hover:bg-emerald-700 text-white{% endif %} font-semibold px-8 py-3 rounded-xl shadow-md transition-all">
             Consolidar respuestas oficiales
         </button>
     </div>

@@ -2147,7 +2147,34 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
             ),
         })
 
+    pendientes_borrador = [
+        f.equipo for f in formularios if f.estado == 'borrador']
+
     if request.method == 'POST':
+        # No conciliar con formularios en borrador: el bloque de
+        # preguntas de ese equipo iría vacío al consolidado.
+        if pendientes_borrador:
+            messages.error(
+                request,
+                'No puedes conciliar todavía: el/los formulario(s) de '
+                + ', '.join(pendientes_borrador)
+                + ' siguen en borrador. Deben enviarlos primero.')
+            return redirect(request.path)
+        # Organismo marcado sin ETPP/ETOBS: la confirmación del "no
+        # tiene" es obligatoria para conciliar — sin ella la respuesta
+        # quedaría vacía y el consolidado iría al SIIED sin decisión.
+        faltan_confirmacion = []
+        if confirm_pp and not request.POST.get('confirmar_sin_pp'):
+            faltan_confirmacion.append('la P29 (sin equipo de políticas públicas)')
+        if confirm_obs and not request.POST.get('confirmar_sin_obs'):
+            faltan_confirmacion.append('la P33 (sin equipo de observatorios)')
+        if faltan_confirmacion:
+            messages.error(
+                request,
+                'Antes de conciliar debe confirmar el "no tiene" de '
+                + ' y '.join(faltan_confirmacion) + '.')
+            return redirect(request.path)
+
         consolidado, _ = ICEDFormulario.objects.get_or_create(
             organismo=organismo, periodo=periodo, equipo='',
             defaults={'usuario_diligencia': request.user},
@@ -2270,6 +2297,7 @@ def validacion_conciliar_iced(request, organismo_id, periodo):
         'n_divergentes': sum(1 for p in preguntas if p['divergente']),
         'confirm_pp': confirm_pp,
         'confirm_obs': confirm_obs,
+        'pendientes_borrador': pendientes_borrador,
     }
     return render(request, 'validacion/conciliar_iced.html', context)
 

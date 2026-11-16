@@ -68,6 +68,23 @@ select.iced-widget-input {
     cursor: pointer;
 }
 
+/* Multi-entrada por celda (documentos P8/P9, URLs): los inputs se
+   apilan y el botón '+' queda debajo del último input dentro de la
+   celda — sin desborde lateral de la tarjeta. */
+.iced-multiurl {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+}
+
+.iced-multiurl > button {
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
 /* Checkbox */
 .iced-widget-checkbox {
     width: 18px;
@@ -93,6 +110,8 @@ select.iced-widget-input {
 .iced-widget-opt-label-inline input[type="checkbox"] {
     flex: 0 0 auto;
     margin: 0;
+    width: auto;
+    padding: 0;
 }
 .iced-widget-opt-label-inline span {
     flex: 1 1 auto;
@@ -250,6 +269,9 @@ select.iced-widget-input {
 .iced-rrhh-etapas {
     display: flex;
     flex-wrap: wrap;
+    /* flex-start: sin esto el stretch por defecto estira todas
+       las píldoras a la altura de la más alta. */
+    align-items: flex-start;
     gap: 0.35rem;
     margin-top: 0.25rem;
 }
@@ -269,11 +291,17 @@ select.iced-widget-input {
 .iced-rrhh-etapa-chip input[type="checkbox"] {
     flex: 0 0 auto;
     margin: 0;
+    width: auto;
+    padding: 0;
 }
 .iced-rrhh-etapa-chip span {
-    flex: 1 1 auto;
+    /* 'anywhere' hacía que el ancho mínimo del chip fuera 1
+       carácter: con contenedor angosto el texto se apilaba letra
+       por letra. 'break-word' solo rompe palabras muy largas. */
+    flex: 0 1 auto;
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
     line-height: 1.25;
 }
 

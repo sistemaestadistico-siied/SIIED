@@ -8,7 +8,7 @@
 {% block floating_chat %}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'indicadores/iced/iced_widgets.css' %}">
+<link rel="stylesheet" href="{% static 'indicadores/iced/iced_widgets.css' %}?v=6">
 <style>
     :root {
         --iced-primary: #14405D;
@@ -834,7 +834,7 @@
     // Organismos activos para columnas tipo 'organismo' (P10.2, etc.)
     window.ORGANISMOS = {% if organismos_json %}{{ organismos_json|safe }}{% else %}[]{% endif %};
 </script>
-<script src="{% static 'indicadores/iced/iced_widgets.js' %}"></script>
+<script src="{% static 'indicadores/iced/iced_widgets.js' %}?v=4"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     

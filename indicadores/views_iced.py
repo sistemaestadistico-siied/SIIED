@@ -18,7 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, QueryDict
 
 from formtools.wizard.views import SessionWizardView
 
@@ -64,6 +64,20 @@ class ICEDWizardView(SessionWizardView):
     Diez pasos de módulos (A-E) + paso final de revisión y confirmación.
     """
     template_name = 'indicadores/iced/formulario_wizard.html'
+
+    # Paso del wizard → campo del modelo donde viven sus respuestas.
+    MODULO_RESPUESTAS = {
+        'identificacion': 'respuestas_a',
+        'entorno': 'respuestas_b',
+        'infraestructura_c1': 'respuestas_c',
+        'infraestructura_c2': 'respuestas_c',
+        'infraestructura_c3': 'respuestas_c',
+        'metodologia_d1': 'respuestas_d',
+        'metodologia_d2': 'respuestas_d',
+        'metodologia_d3': 'respuestas_d',
+        'metodologia_d4': 'respuestas_d',
+        'accesibilidad': 'respuestas_e',
+    }
 
     def _paso_tiene_campos(self, step_key):
         """True si el paso tiene al menos un campo visible para el equipo
@@ -259,6 +273,75 @@ class ICEDWizardView(SessionWizardView):
         )
         return super().render_revalidation_failure(failed_step, form, **kwargs)
 
+    def render_done(self, form, **kwargs):
+        """Re-valida todos los pasos contra la sesión antes de done().
+
+        Al reanudar un borrador en una sesión nueva la sesión no tiene
+        datos de los pasos anteriores, así que la revalidación rebotaba
+        el envío al primer paso y el usuario debía re-avanzar todo el
+        wizard. Se resiembra la sesión desde el borrador guardado en BD;
+        si algún paso sigue sin ser válido, el revalidation failure
+        normal apunta al paso que toca revisar.
+        """
+        self._resembrar_pasos_desde_borrador()
+        return super().render_done(form, **kwargs)
+
+    def _resembrar_pasos_desde_borrador(self):
+        """Carga en el storage de sesión los pasos faltantes desde la BD.
+
+        Solo resembrando datos válidos (form.is_valid()) — si una
+        respuesta guardada ya no valida, se deja el hueco para que la
+        revalidación devuelva al usuario a ese paso concreto.
+        """
+        import json as _json
+        from django.forms import MultipleChoiceField
+        formulario_id = self.kwargs.get('formulario_id')
+        if not formulario_id:
+            return
+        try:
+            formulario = ICEDFormulario.objects.get(pk=formulario_id)
+        except ICEDFormulario.DoesNotExist:
+            return
+        for step in self.get_form_list():
+            if step == self.steps.current:
+                continue
+            if self.storage.get_step_data(step) is not None:
+                continue
+            campo = self.MODULO_RESPUESTAS.get(step)
+            if not campo:
+                continue
+            respuestas = getattr(formulario, campo, None) or {}
+            if not respuestas:
+                continue
+            prefix = f'{step}-'
+            unbound = self.get_form(step=step)
+            data = QueryDict('', mutable=True)
+            for key, value in respuestas.items():
+                nombre = key[len(prefix):] if key.startswith(prefix) else key
+                field = unbound.fields.get(nombre)
+                # get_form liga con prefix=<step>: las claves deben llevar
+                # el prefijo ('entorno-p6_...') o el campo queda vacío.
+                destino = f'{prefix}{nombre}'
+                if isinstance(value, (list, tuple)):
+                    if isinstance(field, MultipleChoiceField):
+                        data.setlist(destino, [str(v) for v in value])
+                    else:
+                        # Campos JSON ocultos (p.ej. p19_rrhh_list): la
+                        # lista viene parseada del autosave; se devuelve
+                        # serializada para que el CharField la valide.
+                        data[destino] = _json.dumps(
+                            value, ensure_ascii=False)
+                elif isinstance(value, dict):
+                    data[destino] = _json.dumps(
+                        value, ensure_ascii=False)
+                elif value is None:
+                    data[destino] = ''
+                else:
+                    data[destino] = value
+            bound = self.get_form(step=step, data=data)
+            if bound.is_valid():
+                self.storage.set_step_data(step, self.process_step(bound))
+
     def get_context_data(self, form, **kwargs):
         context = super().get_context_data(form=form, **kwargs)
         context['page'] = 'iced'
@@ -376,19 +459,7 @@ class ICEDWizardView(SessionWizardView):
         if formulario_id:
             try:
                 formulario = ICEDFormulario.objects.get(pk=formulario_id)
-                modulo_map = {
-                    'identificacion': 'respuestas_a',
-                    'entorno': 'respuestas_b',
-                    'infraestructura_c1': 'respuestas_c',
-                    'infraestructura_c2': 'respuestas_c',
-                    'infraestructura_c3': 'respuestas_c',
-                    'metodologia_d1': 'respuestas_d',
-                    'metodologia_d2': 'respuestas_d',
-                    'metodologia_d3': 'respuestas_d',
-                    'metodologia_d4': 'respuestas_d',
-                    'accesibilidad': 'respuestas_e',
-                }
-                campo = modulo_map.get(step)
+                campo = self.MODULO_RESPUESTAS.get(step)
                 if campo:
                     respuestas = getattr(formulario, campo, {})
                     if respuestas:

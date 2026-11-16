@@ -295,6 +295,34 @@ def _tipo_por_nombre_campo(name):
     return 'texto'
 
 
+_MSG_OBLIGATORIO = 'Este campo es obligatorio.'
+
+
+def _err_sin_borrar(form, name, mensaje):
+    """add_error SIN eliminar el campo de cleaned_data.
+
+    add_error de Django borra cleaned_data[name]; los clean() de los
+    módulos leen esos valores y al quedar None disparaban un segundo
+    error de 'campo vacío' (p.ej. p30: 'cual' faltante → también salía
+    'debe seleccionar al menos un lineamiento')."""
+    form._errors.setdefault(name, form.error_class()).append(mensaje)
+
+
+def _remplazar_obligatorio_generico(form, name):
+    """Quita el 'obligatorio' genérico del clean base de un campo para
+    que la validación específica del módulo ponga su mensaje.
+
+    Retorna True si el campo queda sin errores reales (los genéricos se
+    quitaron o no había); False si tiene errores de formato que no se
+    deben tocar."""
+    if name not in form.errors:
+        return True
+    if all(str(e) == _MSG_OBLIGATORIO for e in form.errors[name]):
+        form._errors.pop(name, None)
+        return True
+    return False
+
+
 def _json_vacio(valor):
     """True si la respuesta de un widget JSON está vacía.
 
@@ -317,7 +345,22 @@ def _json_vacio(valor):
         else:
             return False
     if isinstance(data, list):
-        return not data
+        # Vacía también si todas las filas vienen sin datos (los
+        # widgets con min_filas crean filas auto todo-vacías).
+        def _fila_llena(r):
+            if not isinstance(r, dict):
+                return bool(r)
+            for v in r.values():
+                if isinstance(v, str):
+                    if v.strip():
+                        return True
+                elif isinstance(v, (list, dict)):
+                    if v:
+                        return True
+                elif v not in (None, False):
+                    return True
+            return False
+        return not any(_fila_llena(r) for r in data)
     if isinstance(data, dict):
         return not any(
             isinstance(info, dict) and info.get('seleccion')
@@ -402,6 +445,129 @@ class ICEDBaseForm(forms.Form):
             if cond and not self._condicion_visible(cleaned, cond):
                 cleaned[name] = ''
                 self._errors.pop(name, None)
+
+        # (A) Campos acompañantes visibles → obligatorios. Textos libres
+        # (especifique/motivo/descripción) y widgets JSON condicionales;
+        # los *_intro (HiddenInput sin data-iced-widget) son solo rótulos
+        # y quedan fuera.
+        for name, field in self.fields.items():
+            if name in self.errors:
+                continue
+            cond = field.widget.attrs.get('data-show-if')
+            if not cond or not self._condicion_visible(cleaned, cond):
+                continue
+            valor = cleaned.get(name)
+            # data-iced-widget primero: HiddenInput hereda de TextInput y
+            # un dict todo-en-falso contaría como 'lleno' vía str().
+            if field.widget.attrs.get('data-iced-widget'):
+                if _json_vacio(valor):
+                    _err_sin_borrar(self, name, _MSG_OBLIGATORIO)
+            elif isinstance(field.widget, (forms.TextInput, forms.Textarea)):
+                if not str(valor or '').strip():
+                    _err_sin_borrar(self, name, _MSG_OBLIGATORIO)
+
+        # (B) Checkbox-tabla: las columnas de detalle ('cual'/'especifique'
+        # y 'url') son obligatorias cuando la opción marcada las habilita
+        # — la misma regla del widget (con_detalle; o todas las opciones
+        # si no se define; nunca la exclusiva).
+        for name, field in self.fields.items():
+            if (name in self.errors
+                    or field.widget.attrs.get('data-iced-widget')
+                    != 'checkbox-tabla'):
+                continue
+            try:
+                cfg = json.loads(
+                    field.widget.attrs.get('data-config') or '{}')
+            except (ValueError, TypeError):
+                continue
+            columnas = [c['name'] for c in cfg.get('columnas', [])
+                        if c.get('name')]
+            if not columnas:
+                continue
+            valor = cleaned.get(name)
+            if isinstance(valor, str):
+                try:
+                    valor = json.loads(valor)
+                except (ValueError, TypeError):
+                    continue
+            con_det = cfg.get('con_detalle')
+            exclusiva = cfg.get('exclusiva')
+            # 'detalle_alguno': basta diligenciar una de las columnas
+            # (P11: instancias internas O externas).
+            alguno = bool(cfg.get('detalle_alguno'))
+            textos = {o.get('codigo'): o.get('texto', o.get('codigo'))
+                      for o in cfg.get('opciones', [])}
+
+            def _falta_detalle(cod, row, alguno=alguno):
+                if cod == exclusiva:
+                    return False
+                if con_det is not None and cod not in con_det:
+                    return False
+                vacias = [
+                    not str((row or {}).get(c) or '').strip()
+                    for c in columnas]
+                return all(vacias) if alguno else any(vacias)
+
+            def _revisar(cod, row):
+                if _falta_detalle(cod, row):
+                    _err_sin_borrar(
+                        self, name, 'Indique el detalle en la opción '
+                              f'"{textos.get(cod, cod)}".')
+
+            if isinstance(valor, dict):
+                for cod, row in valor.items():
+                    if isinstance(row, dict) and row.get('seleccion'):
+                        _revisar(cod, row)
+            elif isinstance(valor, list):
+                for row in valor:
+                    if isinstance(row, dict):
+                        cod = row.get('codigo') or row.get('herramienta')
+                        if cod:
+                            _revisar(cod, row)
+
+        # (C) "Otro (especifique)" dentro de widgets: si se elige 'otro'
+        # su texto libre es obligatorio (desplegables-multiples y
+        # columnas de tabla con permitir_otro/campo_otro).
+        for name, field in self.fields.items():
+            wtype = field.widget.attrs.get('data-iced-widget')
+            if name in self.errors or not wtype:
+                continue
+            try:
+                cfg = json.loads(
+                    field.widget.attrs.get('data-config') or '{}')
+            except (ValueError, TypeError):
+                continue
+            valor = cleaned.get(name)
+            if isinstance(valor, str):
+                try:
+                    valor = json.loads(valor)
+                except (ValueError, TypeError):
+                    continue
+            if not isinstance(valor, list):
+                continue
+            if wtype == 'desplegables-multiples' and cfg.get('permitir_otro'):
+                for i, v in enumerate(valor, 1):
+                    if (isinstance(v, dict) and v.get('valor') == '__otro__'
+                            and not str(v.get('otro') or '').strip()):
+                        _err_sin_borrar(
+                            self, name,
+                            f'Especifique el otro en el desplegable #{i}.')
+                continue
+            cols_otro = {
+                c['name']: (c.get('campo_otro') or c['name'] + '_otro',
+                            c.get('label') or c['name'])
+                for c in cfg.get('columnas', [])
+                if c.get('permitir_otro') and c.get('name')}
+            for i, row in enumerate(valor, 1):
+                if not isinstance(row, dict):
+                    continue
+                for col, (campo_otro, label) in cols_otro.items():
+                    if (str(row.get(col) or '') == 'Otro'
+                            and not str(row.get(campo_otro) or '').strip()):
+                        _err_sin_borrar(
+                            self, name,
+                            f'Fila {i}: especifique cuál en "{label}".')
+
         for name, valor in list(cleaned.items()):
             if name not in self.fields:
                 continue
@@ -672,8 +838,8 @@ class ICEDModuloBForm(ICEDBaseForm):
     )
 
     # P8: Herramientas de planificación (generación/procesamiento/reporte/difusión).
-    # Casillas por herramienta; cada una con su cuadro unificado de
-    # documento/sección y «+» a la derecha para agregar más documentos.
+    # Casillas por herramienta; cada una con su cuadro de
+    # documento/sección y «+» debajo para agregar más documentos.
     p8_herramientas_planificacion = forms.CharField(
         required=False,
         widget=iced_widget('checkbox-tabla', {
@@ -775,6 +941,7 @@ class ICEDModuloBForm(ICEDBaseForm):
         required=False,
         widget=iced_widget('checkbox-tabla', {
             'exclusiva': 'no_participa',
+            'detalle_alguno': True,
             'columnas': [
                 {'name': 'internas', 'label': 'Instancias internas', 'tipo': 'texto', 'placeholder': 'Instancias internas'},
                 {'name': 'externas', 'label': 'Instancias externas', 'tipo': 'texto', 'placeholder': 'Instancias externas'},
@@ -817,9 +984,16 @@ class ICEDModuloBForm(ICEDBaseForm):
             """Exige contenido salvo que el campo ya tenga error propio
             (el error de formato es más útil que 'campo vacío').
             Tolerante a campos eliminados por el filtro de equipos en
-            get_form: add_error sobre un campo inexistente lanza ValueError."""
-            if name not in self.fields or name in self.errors:
+            get_form: add_error sobre un campo inexistente lanza ValueError.
+            El 'obligatorio' genérico del base cede a este mensaje
+            específico."""
+            if name not in self.fields:
                 return
+            if name in self.errors:
+                if _remplazar_obligatorio_generico(self, name):
+                    pass  # el específico reemplaza al genérico
+                else:
+                    return
             if _json_vacio(cleaned.get(name)):
                 self.add_error(name, mensaje)
 
@@ -851,7 +1025,38 @@ class ICEDModuloBForm(ICEDBaseForm):
                     filas = json.loads(filas)
                 except (ValueError, TypeError):
                     filas = []
-            if isinstance(filas, list):
+            if isinstance(filas, dict):
+                # Formato checkbox-tabla {codigo: {seleccion, documento}}
+                codigos = [c for c, v in filas.items()
+                           if isinstance(v, dict) and v.get('seleccion')]
+                if not codigos:
+                    self.add_error(
+                        name,
+                        'Marque al menos una herramienta de planificación '
+                        'o "No se incluyen".')
+                elif ('no_se_incluyen' in codigos and len(codigos) > 1):
+                    self.add_error(
+                        name,
+                        '"No se incluyen" no puede combinarse con otras '
+                        'herramientas.')
+                else:
+                    # Cada herramienta marcada exige su documento/sección
+                    # (la exclusiva 'no_se_incluyen' no tiene input).
+                    etiquetas = {'planes_trabajo': 'Planes de trabajo',
+                                 'planes_accion': 'Planes de acción',
+                                 'programas': 'Programas',
+                                 'proyectos': 'Proyectos'}
+                    for c in codigos:
+                        if c == 'no_se_incluyen':
+                            continue
+                        if not str((filas[c] or {}).get('documento')
+                                   or '').strip():
+                            self.add_error(
+                                name,
+                                'Indique el documento, sección o actividad '
+                                f'de "{etiquetas.get(c, c)}".')
+                            break
+            elif isinstance(filas, list):
                 codigos = [f.get('herramienta') for f in filas
                            if isinstance(f, dict) and f.get('herramienta')]
                 if ('no_se_incluyen' in codigos
@@ -1007,7 +1212,6 @@ class ICEDModuloC1Form(ICEDBaseForm):
                     {'codigo': 'excel', 'texto': 'Microsoft Excel (con paneles personalizados)'},
                     {'codigo': 'ibm', 'texto': 'IBM Cognos Analytics'},
                     {'codigo': 'otros', 'texto': 'Otros'},
-                    {'codigo': 'ninguna', 'texto': 'Ninguna'},
                 ],
             }, ensure_ascii=False),
             'data-show-if': 'p15_herramientas_visualizacion=1',
@@ -1142,8 +1346,25 @@ class ICEDModuloC2Form(ICEDBaseForm):
         except (ValueError, TypeError):
             return valor
         if isinstance(filas, list):
+            obligatorios = {
+                'nombre_completo': 'el nombre completo',
+                'categoria_cargo': 'la categoría del cargo',
+                'nivel_formacion': 'el nivel de formación académica',
+                'inicio_participacion': 'el inicio de participación (MM/AAAA)',
+                'funciones_estadisticas': 'si describe actividades de '
+                    'producción o gestión de información estadística',
+            }
             for i, fila in enumerate(filas):
                 if isinstance(fila, dict):
+                    # Una tarjeta agregada no puede quedar vacía.
+                    for k, txt in obligatorios.items():
+                        if not str(fila.get(k) or '').strip():
+                            raise forms.ValidationError(
+                                f"Persona #{i+1}: indique {txt}.")
+                    if not fila.get('etapas_proceso'):
+                        raise forms.ValidationError(
+                            f"Persona #{i+1}: marque al menos una etapa "
+                            "del proceso.")
                     correo = (fila.get('correo') or '').strip()
                     if correo:
                         try:
@@ -1606,6 +1827,33 @@ class ICEDModuloD1Form(ICEDBaseForm):
         label="Especifique otro mecanismo"
     )
 
+    def clean(self):
+        cleaned = super().clean()
+        # P23: si la operación se marca Vigente=NO, la razón de no
+        # vigencia es obligatoria (el widget ya la habilita solo con
+        # 'no' vía regla inversa; aquí se exige su contenido).
+        name = 'p23_operaciones_estadisticas'
+        if name not in self.fields or name in self.errors:
+            return cleaned
+        filas = cleaned.get(name)
+        if isinstance(filas, str):
+            try:
+                filas = json.loads(filas)
+            except (ValueError, TypeError):
+                filas = []
+        if isinstance(filas, list):
+            for i, fila in enumerate(filas, 1):
+                if not isinstance(fila, dict):
+                    continue
+                if (str(fila.get('vigente') or '').lower() == 'no'
+                        and not str(fila.get('razon_no_vigente') or '').strip()):
+                    self.add_error(
+                        name,
+                        f'Fila {i}: si la operación no está vigente '
+                        '(Vigente = NO) debe indicar la razón de no vigencia.')
+                    break
+        return cleaned
+
 
 # =============================================================================
 # MÓDULO D2: METODOLOGÍA ESTADÍSTICA - DISEÑO Y FORMULACIÓN DE INDICADORES (P26-P30)
@@ -1923,6 +2171,7 @@ class ICEDModuloD2Form(ICEDBaseForm):
     def _err(self, field, message):
         """add_error tolerante a campos eliminados por el filtro de equipos."""
         if field in self.fields:
+            _remplazar_obligatorio_generico(self, field)
             self.add_error(field, message)
 
     def clean(self):
@@ -2048,16 +2297,8 @@ class ICEDModuloD2Form(ICEDBaseForm):
                     'p30_lineamientos_metodologicos',
                     '"No implementa ningún lineamiento" no puede combinarse con otras opciones.'
                 )
-            # Detalle 'cual' obligatorio para internacionales y otros
-            for cod in ('internacionales', 'otros'):
-                if cod in seleccionados:
-                    row = p30_data.get(cod) or {}
-                    if not (row.get('cual') or '').strip():
-                        self._err(
-                            'p30_lineamientos_metodologicos',
-                            f'Debe especificar cuál(es) en la opción '
-                            f'"{"Referentes internacionales" if cod == "internacionales" else "Otros lineamientos"}".'
-                        )
+            # Detalle 'cual' de internacionales/otros: lo cubre la regla
+            # genérica del base (con_detalle → obligatorio).
             # Tabla Alcaldía: requerida si se marcó alcaldia_cali
             if 'alcaldia_cali' in seleccionados:
                 tabla_raw = cleaned.get('p30_tabla_alcaldia')
@@ -2300,13 +2541,38 @@ class ICEDModuloD4Form(ICEDBaseForm):
                 {'name': 'nombre_documento', 'label': 'Nombre del documento', 'tipo': 'texto', 'requerido': True, 'placeholder': 'Nombre del documento'},
                 {'name': 'codigo_mop', 'label': 'Codificación en el MOP', 'tipo': 'texto', 'placeholder': 'Ej: MEDE01.05.02.P025.F001'},
                 {'name': 'url', 'label': 'URL', 'tipo': 'url', 'placeholder': 'https://...'},
-                {'name': 'descripcion', 'label': 'Descripción', 'tipo': 'textarea', 'rows': 4, 'requerido': True, 'placeholder': 'Describa el documento con el nivel de detalle requerido'},
+                {'name': 'descripcion', 'label': 'Descripción', 'tipo': 'textarea', 'rows': 4, 'requerido': True},
             ],
             'data-show-if': 'p33_tiene_observatorio=si',
         }),
         label="35. Relacione la documentación metodológica existente del observatorio (URL y/o Codificación en el MOP)",
         help_text="Agregue una fila por cada documento metodológico. Tipo, nombre y descripción son obligatorios; codificación MOP y URL son opcionales. Puede agregar hasta 10 documentos."
     )
+
+    def clean_p34_info_observatorios(self):
+        """Si la fila marca 'produce_documentos', el campo '¿Cuáles?'
+        (cuales_documentos) no puede quedar vacío."""
+        valor = self.cleaned_data.get('p34_info_observatorios')
+        if not valor:
+            return valor
+        try:
+            filas = json.loads(valor) if isinstance(valor, str) else valor
+        except (ValueError, TypeError):
+            return valor
+        if isinstance(filas, list):
+            for i, fila in enumerate(filas):
+                if not isinstance(fila, dict):
+                    continue
+                produce = fila.get('produce_documentos')
+                si = produce is True or str(produce).strip().lower() in (
+                    'si', 'sí', 'true', '1')
+                if si and not str(
+                        fila.get('cuales_documentos') or '').strip():
+                    raise forms.ValidationError(
+                        f"Observatorio #{i+1}: indique en '¿Cuáles?' "
+                        "qué documentos, investigaciones y/o reportes "
+                        "produce.")
+        return valor
 
     def clean_p35_documentacion_observatorio(self):
         valor = _validar_urls_json(self.cleaned_data.get('p35_documentacion_observatorio'))
@@ -2332,6 +2598,13 @@ class ICEDModuloD4Form(ICEDBaseForm):
                     raise forms.ValidationError(
                         f"Documento #{i+1}: falta {', '.join(faltantes)}."
                     )
+                # La evidencia es 'y/o': URL o codificación MOP —
+                # al menos una de las dos debe venir diligenciada.
+                if (not (fila.get('url') or '').strip()
+                        and not (fila.get('codigo_mop') or '').strip()):
+                    raise forms.ValidationError(
+                        f"Documento #{i+1}: indique la URL o la "
+                        "codificación en el MOP (al menos una).")
         return valor
 
 
@@ -2554,6 +2827,7 @@ class ICEDModuloEForm(ICEDBaseForm):
     def _err(self, field, message):
         """add_error tolerante a campos eliminados por el filtro de equipos."""
         if field in self.fields:
+            _remplazar_obligatorio_generico(self, field)
             self.add_error(field, message)
 
     def clean(self):
@@ -2573,6 +2847,14 @@ class ICEDModuloEForm(ICEDBaseForm):
                 difunde = False
         if difunde and not cleaned.get('p41_indaga_satisfaccion'):
             self._err('p41_indaga_satisfaccion', 'Este campo es obligatorio.')
+        # P36 y P37 son siempre visibles (sin condición): deben marcar
+        # al menos una opción — incluso la exclusiva ('Ninguno' en P37
+        # es una respuesta válida; lo que no vale es dejarlas vacías).
+        for campo in ('p36_uso_indicadores', 'p37_usuarios'):
+            if campo not in self.fields:
+                continue  # filtrado por equipo
+            if _json_vacio(cleaned.get(campo)):
+                self._err(campo, 'Seleccione al menos una opción.')
         return cleaned
 
 
