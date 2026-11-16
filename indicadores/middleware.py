@@ -4,6 +4,7 @@ import threading
 from urllib.parse import quote
 from django.http import JsonResponse
 from django.core.cache import cache
+from django.db import connection
 from django.shortcuts import redirect
 from django.urls import reverse
 
@@ -67,6 +68,8 @@ def _log_visit_async(path, categoria, user_id, ip, user_agent, referer):
         )
     except Exception:
         pass  # Silenciar errores de logging para no afectar al usuario
+    finally:
+        connection.close()
 
 
 class PageVisitMiddleware:
