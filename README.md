@@ -16,6 +16,8 @@ Desarrollada por el equipo de estadística del Departamento Administrativo de Pl
 | **Catálogo de consulta** | Directorios y listados de referencia (instituciones, establecimientos, nomencladores) con búsqueda y descarga |
 | **Sistemas y Proyectos de información** | Directorio de visualizadores, geovisores, observatorios y plataformas sectoriales del Distrito |
 | **Infraestructura de información** | Repositorio documental navegable: normas, metodologías, guías y procesos estadísticos |
+| **Gestión de Formularios** (`/gestion/`) | Backoffice propio para FICED, Taller de Gestión de Datos y Encuestas: usuarios, organismos, ventanas, carga CSV, constructor de formularios y distribución — sin admin de Django |
+| **Encuestas** (`/encuestas/`) | Constructor de encuestas/sondeos/censos con ficha metodológica DANE (metadata mínima NTC PE 1000), tipos complejos (matriz, ranking, catálogo, adjunto), distribución por modos y captura offline del encuestador |
 | **Inventario de operaciones** | Registro de operaciones estadísticas (OOEE) con enlaces ADDA/AMDA |
 | **Dominios 3D / Visor comparativo** | Visualizaciones inmersivas y comparación entre indicadores |
 | **Backoffice** | Wizard de creación de indicadores, recolección de datos, flujos de validación, gestión editorial y panel de configuración del chat |
@@ -89,6 +91,10 @@ indicadores/          # App principal
 ├── tools*.py         # Tools disponibles para el LLM
 ├── templates/        # Plantillas (Tailwind + componentes compartidos)
 └── static/           # CSS, imágenes, JS
+gestion/              # Backoffice FICED/Taller/Encuestas (roles, usuarios,
+│                     # organismos, ventanas, bitácora, carga CSV)
+encuestas/            # Formularios: modelos, tipos de pregunta, envíos,
+│                     # ficha metodológica DANE, captura offline, exportación
 docs/                 # Documentación técnica e insumos de importación
 requirements*.txt     # base / dev / ml / production
 ```

@@ -6,6 +6,33 @@ dedicado, auditoría de cada acción y un constructor de formularios propio.
 
 ---
 
+## 0.1 Estado de implementación (nov-2026)
+
+- **F0 Cimientos** — roles `gestor_formularios`, `diligenciador`,
+  `encuestador`; contraseña temporal obligatoria; bitácora
+  (`registrar_accion`); ventanas y prórrogas. `c5436ea`, `e4a6256`
+- **F1 FICED** — dashboard, usuarios con subrol, organismos,
+  formularios, ventanas, carga CSV. `e245a85`, `cf6fcc2`
+- **F2 Taller** — inscripciones por equipo, ediciones, reportes.
+  `dc0e862`
+- **F3 Encuestas** — constructor, distribución (modos, asignaciones,
+  invitaciones, enlace público), resultados, CSV larga/pivot.
+  `69b21aa`, `4d3e464`
+- **Captura offline encuestador** — plantilla HTML autocontenida,
+  token HMAC por formulario+usuario, respaldo JSON, sincronización con
+  dedupe `offline_id`. `4f7ded1` (migración `0002_envio_offline`)
+- **Ficha metodológica DANE/SEN** — `FichaMetodologica` OneToOne con
+  campos de la guía SEN 2023; metadata mínima exigida antes de publicar
+  (NTC PE 1000 §4.4.2). `465fc54` (migración `0003_ficha_metodologica`)
+- **Tipos complejos** — url, teléfono, fecha-hora, matriz (filas ×
+  columnas), ranking, catálogo del sistema (Organismo/Suborganismo/
+  EquipoOrganismo), archivo adjunto (`Adjunto`, migración `0004`).
+  Hook `valor_desde_post` por tipo; render en web y en el offline.
+  `fa57f36`
+- **Auditoría completa** — `docs/AUDITORIA_GESTION_ENCUESTAS.md`
+  (UX por rol, flujo de datos, seguridad + jurídica/metodológica;
+  12 hallazgos priorizados).
+
 ## 0. Estado actual (línea base verificada)
 
 | Tema | Hoy | Implicación |
@@ -375,7 +402,14 @@ asignado).
 
 ---
 
-## 6. Fase 4 — Tipos avanzados (posterior)
+## 6. Fase 4 — Tipos avanzados
+
+**Implementado** (`fa57f36`): matriz (filas × columnas), archivo adjunto
+(`Adjunto`), catálogo del sistema (Organismo/Suborganismo/EquipoOrganismo),
+URL, teléfono, fecha-hora, ranking de opciones; hook `valor_desde_post`;
+modo offline del encuestador (`4f7ded1`).
+
+**Pendiente**:
 
 - **Lógica condicional**: mostrar u ocultar preguntas y secciones según
   respuestas, y saltos de sección. Se evalúa también en el servidor.
@@ -383,13 +417,11 @@ asignado).
   fecha, URL, organismo), filas fijas o dinámicas (mín/máx), bloqueo por
   columna de control. Es la generalización del `tabla-compleja` de FICED
   (`iced_widgets.js`, `control_bloqueo`, `opcion_na`, `sin_na`).
-- Matriz (filas × escala), carga de archivos, validaciones cruzadas,
-  respuestas precargadas desde catálogos (OOEE, MOP, organismos), cuotas y
-  guardado parcial con reanudación.
+- Validaciones cruzadas, respuestas precargadas desde catálogos (OOEE,
+  MOP, organismos), cuotas y guardado parcial con reanudación pública.
+- Catálogo de selección múltiple.
 - Largo plazo (no es meta): evaluar si FICED puede describirse con el
   constructor.
-- **Al final del módulo, a analizar**: modo sin conexión para el encuestador
-  de campo (cola local + sincronización).
 
 ---
 
@@ -425,4 +457,4 @@ F0 Cimientos ──▶ F1 FICED ──▶ F2 Taller
 | 9 | Cuentas FICED vs Taller | Separadas. FICED: nombre predeterminado institucional; Taller: personal |
 | 10 | Primer ingreso | Cambio obligatorio de la contraseña temporal; la temporal no vence hasta que el usuario la cambia |
 | 11 | Validador del organismo | El gestor lo crea, le asigna el rol y el organismo |
-| 12 | Encuestador sin conexión | Feature a analizar al final del módulo |
+| 12 | Encuestador sin conexión | **Implementado**: plantilla HTML autocontenida con token HMAC por formulario+usuario, `localStorage`, respaldo JSON y sincronización con dedupe (`4f7ded1`, migración `0002`) |
