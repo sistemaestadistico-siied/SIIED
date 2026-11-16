@@ -19,17 +19,17 @@
       {% endif %}
       <div>
         <label class="block text-xs font-semibold text-slate-500 mb-1" for="first_name">Nombres</label>
-        <input type="text" name="first_name" id="first_name" value="{{ post.first_name|default:usuario.first_name }}"
+        <input type="text" name="first_name" id="first_name" value="{% firstof post.first_name usuario.first_name %}"
                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
       </div>
       <div>
         <label class="block text-xs font-semibold text-slate-500 mb-1" for="last_name">Apellidos</label>
-        <input type="text" name="last_name" id="last_name" value="{{ post.last_name|default:usuario.last_name }}"
+        <input type="text" name="last_name" id="last_name" value="{% firstof post.last_name usuario.last_name %}"
                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
       </div>
       <div class="sm:col-span-2">
         <label class="block text-xs font-semibold text-slate-500 mb-1" for="email">Correo institucional</label>
-        <input type="email" name="email" id="email" value="{{ post.email|default:usuario.email }}"
+        <input type="email" name="email" id="email" value="{% firstof post.email usuario.email %}"
                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
         <p class="text-xs text-slate-400 mt-1">A este correo llegan las credenciales y los avisos de cambio.</p>
       </div>
