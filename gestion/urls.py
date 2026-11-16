@@ -94,8 +94,13 @@ urlpatterns = [
          encuestas_views.resultados, name='encuestas_resultados'),
     path('encuestas/<int:formulario_id>/exportar/',
          encuestas_views.exportar, name='encuestas_exportar'),
+    path('encuestas/envio/<int:envio_id>/',
+         encuestas_views.envio_detalle, name='encuestas_envio_detalle'),
     path('encuestas/envio/<int:envio_id>/accion/',
          encuestas_views.envio_accion, name='encuestas_envio_accion'),
+    path('encuestas/adjunto/<int:adjunto_id>/',
+         encuestas_views.descargar_adjunto,
+         name='encuestas_adjunto'),
     path('taller/ventanas/<int:ventana_id>/prorroga/',
          views_taller.prorroga_crear, name='taller_prorroga'),
 ]

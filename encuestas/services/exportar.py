@@ -150,3 +150,33 @@ def resumen(formulario):
             'pregunta': p, 'respondidas': respondidas,
             'filas': filas[:20], 'n_opciones': len(filas)})
     return resumen, envios
+
+
+def csv_diccionario(formulario):
+    """Diccionario de datos del cuestionario (metadato NTC PE 1000):
+    variable, tipo, etiqueta, ayuda, obligatoriedad y dominio."""
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(['variable', 'seccion', 'tipo', 'etiqueta', 'ayuda',
+                'obligatoria', 'dominio'])
+    for p in preguntas_exportables(formulario):
+        dominio = ''
+        if p.tipo == 'matriz':
+            filas = [f['texto'] for f in p.config.get('filas', [])]
+            cols = [c['texto'] for c in p.config.get('columnas', [])]
+            dominio = f"filas: {' | '.join(filas)}; columnas: {' | '.join(cols)}"
+        elif p.tipo == 'catalogo':
+            dominio = f"catalogo: {p.config.get('catalogo', '')}"
+        elif p.tipo == 'archivo':
+            exts = ','.join(p.config.get('extensiones', [])) or 'todas'
+            dominio = f"extensiones: {exts}"
+        elif p.tipo in ('escala', 'numero'):
+            mn, mx = p.config.get('min'), p.config.get('max')
+            if mn is not None or mx is not None:
+                dominio = f"rango: {mn}–{mx}"
+        elif p.opciones.exists():
+            dominio = ' | '.join(p.opciones.values_list('texto', flat=True))
+        w.writerow([p.codigo or f'p{p.pk}', p.seccion.titulo, p.tipo,
+                    p.enunciado, p.ayuda,
+                    'sí' if p.obligatoria else 'no', dominio])
+    return out.getvalue()

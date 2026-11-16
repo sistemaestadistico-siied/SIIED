@@ -17,6 +17,7 @@ Seguridad:
 import hashlib
 import hmac
 import json
+from datetime import date
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -27,17 +28,29 @@ from ..tipos import tipo_de
 _SALIDA = 'encuestas-offline-v1'
 
 
-def sincro_token(formulario, usuario):
-    """HMAC que ata la plantilla offline al encuestador y al formulario."""
-    base = f'{_SALIDA}|{usuario.pk}|{formulario.pk}|{formulario.version}'
+DIAS_VALIDEZ_TOKEN = 30
+
+
+def sincro_token(formulario, usuario, expira):
+    """HMAC que ata la plantilla offline al encuestador, al formulario y
+    a la fecha de expiración — la credencial no es permanente."""
+    base = (f'{_SALIDA}|{usuario.pk}|{formulario.pk}|{formulario.version}'
+            f'|{expira}')
     return hmac.new(
         settings.SECRET_KEY.encode(), base.encode(),
         hashlib.sha256).hexdigest()[:40]
 
 
-def verificar_sincro(token, formulario, usuario):
-    return hmac.compare_digest(
-        token or '', sincro_token(formulario, usuario))
+def verificar_sincro(token, formulario, usuario, expira):
+    """Valida el HMAC *y* que la expiración (incluida en la firma) no
+    haya pasado. La fecha viaja en el payload firmado."""
+    if not hmac.compare_digest(
+            token or '', sincro_token(formulario, usuario, expira)):
+        return False
+    try:
+        return date.fromisoformat(expira) >= date.today()
+    except (TypeError, ValueError):
+        return False
 
 
 def estructura_json(formulario):
@@ -99,13 +112,15 @@ def _limpiar_valor(pregunta, bruto):
     return valor, errores
 
 
-def importar_envios(formulario, usuario, token, envios):
+def importar_envios(formulario, usuario, token, envios, expira=''):
     """Importa un lote de envíos del respaldo offline.
 
     Devuelve [{offline_id, estado: 'importado'|'duplicado'|'error',
                detalle}]. Nunca revienta por una entrada mala."""
-    if not verificar_sincro(token, formulario, usuario):
-        raise ValidationError('Token de sincronización inválido.')
+    if not verificar_sincro(token, formulario, usuario, expira):
+        raise ValidationError(
+            'Token de sincronización inválido o vencido. '
+            'Descargue una plantilla nueva.')
     if not Asignacion.objects.filter(
             formulario=formulario, usuario=usuario,
             rol='encuestador').exists():

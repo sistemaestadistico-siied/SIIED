@@ -1,0 +1,59 @@
+{% extends 'gestion/base_gestion.html' %}
+{% block title %}Envío #{{ envio.pk }} — {{ f.titulo }}{% endblock %}
+{% block gs_titulo %}Envío #{{ envio.pk }}{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span><a href="{% url 'gestion:encuestas_lista' %}">Encuestas</a><span class="mx-1">›</span><a href="{% url 'gestion:encuestas_resultados' f.pk %}">Resultados</a><span class="mx-1">›</span>Envío #{{ envio.pk }}{% endblock %}
+{% block gs_contenido %}
+<div class="max-w-3xl">
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <a href="{% url 'gestion:encuestas_resultados' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50">← Resultados</a>
+  {% if envio.estado != 'anulado' %}
+  <form method="post" action="{% url 'gestion:encuestas_envio_accion' envio.pk %}">
+    {% csrf_token %}
+    <button name="op" value="anular" class="px-3 py-1.5 rounded-lg border border-amber-200 text-amber-700 text-xs font-semibold hover:bg-amber-50">Anular</button>
+    <button name="op" value="eliminar" onclick="return confirm('Elimina respuestas, adjuntos y datos del respondiente. ¿Continuar?')"
+            class="px-3 py-1.5 rounded-lg border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50">Eliminar datos</button>
+    <input type="hidden" name="motivo" value="supresión solicitada">
+  </form>
+  {% endif %}
+</div>
+
+<div class="bg-white rounded-2xl border border-slate-200 p-5 mb-5">
+  <div class="grid grid-cols-2 gap-3 text-sm">
+    <div><span class="text-xs font-semibold text-slate-500 uppercase">Estado</span><br><span class="gs-chip bg-slate-100 text-slate-600">{{ envio.get_estado_display }}</span></div>
+    <div><span class="text-xs font-semibold text-slate-500 uppercase">Modo</span><br>{{ envio.get_modo_display }}</div>
+    <div><span class="text-xs font-semibold text-slate-500 uppercase">Creado</span><br>{{ envio.creado|date:'d/m/Y H:i' }}</div>
+    <div><span class="text-xs font-semibold text-slate-500 uppercase">Enviado</span><br>{{ envio.enviado|date:'d/m/Y H:i'|default:'—' }}</div>
+    <div><span class="text-xs font-semibold text-slate-500 uppercase">Versión</span><br>v{{ envio.version }}</div>
+    {% if envio.diligenciado_por %}<div><span class="text-xs font-semibold text-slate-500 uppercase">Diligenciado por</span><br>{{ envio.diligenciado_por.get_full_name|default:envio.diligenciado_por.username }}</div>{% endif %}
+    {% if envio.invitacion %}<div><span class="text-xs font-semibold text-slate-500 uppercase">Invitación</span><br>{{ envio.invitacion.correo }}</div>{% endif %}
+  </div>
+  {% if envio.respondiente %}
+  <p class="text-xs font-semibold text-slate-500 uppercase mt-4 mb-1">Respondiente</p>
+  <p class="text-sm text-slate-700">{{ envio.respondiente.nombres }} {{ envio.respondiente.apellidos }} — {{ envio.respondiente.documento }} · {{ envio.respondiente.correo }}</p>
+  {% endif %}
+</div>
+
+<div class="space-y-4">
+  {% for it in items %}
+  <div class="bg-white border border-slate-200 rounded-2xl p-5">
+    <p class="text-sm font-semibold text-slate-800 mb-1">
+      {% if it.p.codigo %}<span class="gs-chip bg-slate-100 text-slate-500 mr-1">{{ it.p.codigo }}</span>{% endif %}
+      {{ it.p.enunciado }}
+    </p>
+    <p class="text-sm text-slate-600 whitespace-pre-wrap">{{ it.valor }}</p>
+  </div>
+  {% empty %}
+  <p class="text-slate-400">Sin respuestas registradas.</p>
+  {% endfor %}
+</div>
+
+{% if adjuntos %}
+<div class="bg-white rounded-2xl border border-slate-200 p-5 mt-5">
+  <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Adjuntos</p>
+  {% for a in adjuntos %}
+  <p><a href="{% url 'gestion:encuestas_adjunto' a.pk %}" class="text-teal-700 text-sm font-semibold hover:underline"><i class="fas fa-paperclip mr-1"></i>{{ a.nombre_original }}</a></p>
+  {% endfor %}
+</div>
+{% endif %}
+</div>
+{% endblock %}

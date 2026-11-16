@@ -18,7 +18,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.http import HttpResponse, JsonResponse
+from django.http import (FileResponse, Http404, HttpResponse,
+                         JsonResponse)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -29,13 +30,13 @@ from gestion.services import registrar_accion, serializar
 from indicadores.decorators import gestor_required
 from indicadores.models import Organismo, PerfilRecolector
 
-from .models import (Asignacion, Envio, Formulario, Invitacion, Opcion,
-                     Pregunta, Respondiente, RespuestaItem, Seccion)
+from .models import (Adjunto, Asignacion, Envio, Formulario, Invitacion,
+                     Opcion, Pregunta, Respondiente, RespuestaItem, Seccion)
 from .services import envios as se
 from .services import exportar as sx
 from .services import formularios as sf
 from .services import offline as so
-from .tipos import choices as tipos_choices, tipo_de
+from .tipos import TIPOS, choices as tipos_choices, tipo_de
 
 
 # =============================================================================
@@ -185,6 +186,8 @@ def constructor(request, formulario_id):
         'estructura': _estructura_json(f),
         'tipos_pregunta': [{'clave': c, 'etiqueta': e}
                            for c, e in tipos_choices()],
+        'tipos_con_opciones': [
+            k for k, t in TIPOS.items() if t.tiene_opciones],
     })
     return render(request, 'gestion/encuestas/constructor.html', ctx)
 
@@ -212,7 +215,7 @@ def api_estructura(request, formulario_id):
     d = _jpost(request)
     op = d.get('op', '')
     try:
-        if f.estructura_bloqueada:
+        if f.estructura_bloqueada and op != 'editar_formulario':
             raise ValidationError(
                 'La estructura está bloqueada: el formulario ya recibió '
                 'respuestas.')
@@ -303,6 +306,10 @@ def api_estructura(request, formulario_id):
     except ValidationError as e:
         return JsonResponse({'error': '; '.join(e.messages)}, status=400)
 
+    if op != 'editar_formulario':
+        # Cada cambio estructural incrementa la version del instrumento.
+        f.version += 1
+        f.save(update_fields=['version'])
     registrar_accion(
         request, modulo='encuesta', accion=f'editar_estructura_{op}',
         objeto_tipo='encuestas.Formulario', objeto_id=f.pk,
@@ -489,8 +496,45 @@ def envio_accion(request, envio_id):
                          antes=antes, despues={'estado': 'anulado'},
                          motivo=request.POST.get('motivo', '').strip())
         messages.success(request, f'Envío {envio.pk} anulado.')
+    elif op == 'eliminar':
+        antes = serializar(envio)
+        se.eliminar_envio(envio)
+        registrar_accion(request, modulo='encuesta', accion='eliminar_envio',
+                         objeto_tipo='encuestas.Envio', objeto_id=envio.pk,
+                         antes=antes,
+                         motivo=request.POST.get('motivo', '').strip())
+        messages.success(request, f'Envío {envio.pk} eliminado.')
     return redirect('gestion:encuestas_resultados',
                     formulario_id=envio.formulario_id)
+
+
+@gestor_required
+def envio_detalle(request, envio_id):
+    """Detalle de un envio: metadata + respuestas una a una (gestor)."""
+    envio = get_object_or_404(
+        Envio.objects.select_related(
+            'formulario', 'respondiente', 'invitacion',
+            'diligenciado_por'),
+        pk=envio_id)
+    respuestas = list(
+        envio.respuestas.select_related('pregunta')
+        .order_by('pregunta__seccion__orden', 'pregunta__orden'))
+    items = [{'p': r.pregunta, 'valor': sx._texto_valor(r.valor)}
+             for r in respuestas]
+    ctx = _gestion_ctx(request)
+    ctx.update({'f': envio.formulario, 'envio': envio,
+                'items': items,
+                'adjuntos': list(envio.adjuntos.all())})
+    return render(request, 'gestion/encuestas/envio_detalle.html', ctx)
+
+
+@gestor_required
+def descargar_adjunto(request, adjunto_id):
+    """Descarga un adjunto solo siendo gestor."""
+    adj = get_object_or_404(Adjunto.objects.select_related('envio'),
+                            pk=adjunto_id)
+    return FileResponse(adj.archivo.open('rb'), as_attachment=True,
+                        filename=adj.nombre_original)
 
 
 # =============================================================================
@@ -566,13 +610,17 @@ def _responder(request, f, *, modo, invitacion=None):
 
 
 def _gracias_url(f, envio):
-    return reverse('encuestas:gracias', args=[envio.pk])
+    return (f"{reverse('encuestas:gracias', args=[envio.pk])}"
+            f"?t={envio.token}")
 
 
 @require_GET
 def gracias(request, envio_id):
     envio = get_object_or_404(Envio.objects.select_related('formulario'),
                               pk=envio_id)
+    # Sin el token del envio no se confirma su existencia (404 uniforme).
+    if request.GET.get('t') != envio.token:
+        raise Http404
     return render(request, 'encuestas/gracias.html', {
         'f': envio.formulario, 'envio': envio})
 
@@ -696,10 +744,13 @@ def descargar_offline(request, formulario_id, usuario_id=None):
         return redirect('gestion:encuestas_distribucion',
                         formulario_id=f.pk)
 
+    expira = (timezone.now().date()
+              + timezone.timedelta(days=so.DIAS_VALIDEZ_TOKEN)).isoformat()
     meta = {
         'encuestador': encuestador.username,
         'encuestador_id': encuestador.pk,
-        'sincro_token': so.sincro_token(f, encuestador),
+        'sincro_token': so.sincro_token(f, encuestador, expira),
+        'sincro_expira': expira,
         'url_sync': request.build_absolute_uri(
             reverse('encuestas:sincronizar')),
     }
@@ -737,7 +788,8 @@ def sincronizar(request):
     try:
         resultados = so.importar_envios(
             f, encuestador, d.get('sincro_token', ''),
-            d.get('envios') or [])
+            d.get('envios') or [],
+            expira=d.get('sincro_expira', ''))
     except ValidationError as e:
         return JsonResponse({'error': '; '.join(e.messages)}, status=403)
     n_ok = sum(1 for r in resultados if r['estado'] == 'importado')

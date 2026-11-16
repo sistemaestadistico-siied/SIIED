@@ -7,6 +7,9 @@ from django.core.exceptions import ValidationError
 from django.test import Client, TestCase
 from django.urls import reverse
 
+_EXP = '2099-01-01'
+
+
 from .models import (Asignacion, Envio, Formulario, Invitacion, Opcion,
                      Pregunta, Respondiente, RespuestaItem, Seccion)
 from .services import envios as se
@@ -276,16 +279,15 @@ class OfflineTests(TestCase):
         }
 
     def test_token_hmac_valido(self):
-        token = so.sincro_token(self.f, self.u)
-        self.assertTrue(so.verificar_sincro(token, self.f, self.u))
-        self.assertFalse(so.verificar_sincro('otro', self.f, self.u))
+        token = so.sincro_token(self.f, self.u, _EXP)
+        self.assertTrue(so.verificar_sincro(token, self.f, self.u, _EXP))
+        self.assertFalse(so.verificar_sincro('otro', self.f, self.u, _EXP))
         otro = User.objects.create_user('otro_e')
-        self.assertFalse(so.verificar_sincro(token, self.f, otro))
+        self.assertFalse(so.verificar_sincro(token, self.f, otro, _EXP))
 
     def test_importar_ok(self):
-        token = so.sincro_token(self.f, self.u)
-        res = so.importar_envios(self.f, self.u, token,
-                                 [self._envio_payload()])
+        token = so.sincro_token(self.f, self.u, _EXP)
+        res = so.importar_envios(self.f, self.u, token, [self._envio_payload()], expira=_EXP)
         self.assertEqual(res[0]['estado'], 'importado')
         e = Envio.objects.get(offline_id='uuid-1')
         self.assertEqual(e.estado, 'enviado')
@@ -294,34 +296,31 @@ class OfflineTests(TestCase):
         self.assertEqual(e.respondiente.documento, '123')
 
     def test_importar_dedup(self):
-        token = so.sincro_token(self.f, self.u)
-        so.importar_envios(self.f, self.u, token, [self._envio_payload()])
-        res = so.importar_envios(self.f, self.u, token,
-                                 [self._envio_payload()])
+        token = so.sincro_token(self.f, self.u, _EXP)
+        so.importar_envios(self.f, self.u, token, [self._envio_payload()], expira=_EXP)
+        res = so.importar_envios(self.f, self.u, token, [self._envio_payload()], expira=_EXP)
         self.assertEqual(res[0]['estado'], 'duplicado')
         self.assertEqual(Envio.objects.count(), 1)
 
     def test_importar_respuesta_invalida(self):
-        token = so.sincro_token(self.f, self.u)
-        res = so.importar_envios(
-            self.f, self.u, token,
-            [self._envio_payload(oid='uuid-bad', respuestas={})])
+        token = so.sincro_token(self.f, self.u, _EXP)
+        res = so.importar_envios(self.f, self.u, token, [self._envio_payload(oid='uuid-bad', respuestas={})], expira=_EXP)
         self.assertEqual(res[0]['estado'], 'error')
         self.assertFalse(Envio.objects.exists())
         self.assertFalse(Respondiente.objects.exists())
 
     def test_sin_asignacion_rechaza(self):
         otro = User.objects.create_user('sin_asig')
-        token = so.sincro_token(self.f, otro)
+        token = so.sincro_token(self.f, otro, _EXP)
         with self.assertRaises(ValidationError):
-            so.importar_envios(self.f, otro, token,
-                               [self._envio_payload()])
+            so.importar_envios(self.f, otro, token, [self._envio_payload()], expira=_EXP)
 
     def test_sincronizar_endpoint(self):
         from django.http import QueryDict
-        token = so.sincro_token(self.f, self.u)
+        token = so.sincro_token(self.f, self.u, _EXP)
         payload = json.dumps({
-            'sincro_token': token, 'formulario_id': self.f.pk,
+            'sincro_token': token, 'sincro_expira': _EXP,
+            'formulario_id': self.f.pk,
             'encuestador_id': self.u.pk,
             'envios': [self._envio_payload(oid='uuid-end')]})
         r = Client().post(reverse('encuestas:sincronizar'),

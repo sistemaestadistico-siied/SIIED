@@ -21,7 +21,7 @@
           {% if a.rol == 'encuestador' %}
           <a href="{% url 'encuestas:descargar_offline' a.formulario_id %}"
              class="px-4 py-2 rounded-lg border border-teal-600 text-teal-700 text-sm font-semibold hover:bg-teal-50 active:scale-[0.98] transition"
-             title="Descarga una página que funciona sin internet">
+             title="Descarga una página que funciona sin internet. Es personal: la credencial de sincronización viaja dentro — no la comparta.">
             <i class="fas fa-cloud-arrow-down mr-1"></i>Captura offline
           </a>
           {% endif %}

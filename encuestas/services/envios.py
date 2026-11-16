@@ -13,6 +13,7 @@ import hashlib
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from gestion.services.ventanas import ventana_abierta
 
@@ -133,9 +134,6 @@ def crear_envio(formulario, *, modo, usuario=None, respondiente=None,
         user_agent=(request.META.get('HTTP_USER_AGENT', '')[:500]
                     if request else ''),
         version=formulario.version)
-    if invitacion:
-        invitacion.estado = 'usada'
-        invitacion.save(update_fields=['estado'])
     return envio
 
 
@@ -207,6 +205,10 @@ def enviar(envio, post, files=None, *, respondiente=None):
         raise ErroresEnvio(errores)
     envio.estado = 'enviado'
     envio.save()
+    if envio.invitacion_id:
+        envio.invitacion.estado = 'usada'
+        envio.invitacion.usada = timezone.now()
+        envio.invitacion.save(update_fields=['estado', 'usada'])
     return envio
 
 
@@ -215,3 +217,17 @@ def anular(envio):
     envio.estado = 'anulado'
     envio.save(update_fields=['estado'])
     return envio
+
+
+def eliminar_envio(envio):
+    """Supresión efectiva (Ley 1581/2012): elimina respuestas, adjuntos
+    (incluido el archivo físico) y el respondiente asociado. El envío
+    en sí se borra, quedando trazabilidad en la bitácora del gestor."""
+    for adj in envio.adjuntos.all():
+        adj.archivo.delete(save=False)
+    envio.respuestas.all().delete()
+    envio.adjuntos.all().delete()
+    respondiente = envio.respondiente
+    envio.delete()
+    if respondiente and not respondiente.envio_set.exists():
+        respondiente.delete()

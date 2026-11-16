@@ -38,6 +38,18 @@ def gestion_login(request):
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
+        # Throttle por IP + usuario: 10 intentos fallidos / 5 min
+        from django.core.cache import cache
+        ip = (request.META.get('HTTP_X_FORWARDED_FOR', '')
+              .split(',')[0].strip()
+              or request.META.get('REMOTE_ADDR', ''))
+        clave = f'login_gestion:{ip}:{username}'
+        if (cache.get(clave) or 0) >= 10:
+            messages.error(
+                request,
+                'Demasiados intentos. Espere unos minutos e intente de nuevo.')
+            return render(request, 'gestion/login.html',
+                          {'next': siguiente})
         user = authenticate(request, username=username, password=password)
         if user is not None:
             perfil = _perfil(user)
@@ -52,6 +64,7 @@ def gestion_login(request):
                 'Tu cuenta no tiene permisos de gestión de formularios. '
                 'Contacta al administrador.')
         else:
+            cache.set(clave, (cache.get(clave) or 0) + 1, 300)
             messages.error(request, 'Usuario o contraseña incorrectos.')
 
     return render(request, 'gestion/login.html', {'next': siguiente})
