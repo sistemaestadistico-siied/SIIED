@@ -43,6 +43,7 @@
       </p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
+      <a href="{% url 'gestion:encuestas_ficha' f.pk %}" class="px-3 py-1.5 rounded-lg border border-violet-300 text-violet-700 text-xs font-semibold hover:bg-violet-50" title="Metadata metodológica de la operación (DANE)">Ficha</a>
       <a href="{% url 'gestion:encuestas_constructor' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Constructor</a>
       <a href="{% url 'gestion:encuestas_distribucion' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Distribución</a>
       <a href="{% url 'gestion:encuestas_resultados' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Resultados</a>

@@ -102,6 +102,126 @@ class Formulario(models.Model):
         return self.estado == 'publicado'
 
 
+class FichaMetodologica(models.Model):
+    """Ficha metodológica de la operación estadística (guía SEN/DANE
+    2023, NTC PE 1000 §4.4 y §11.2).
+
+    Metadata del FORMULARIO (no de las respuestas). Todos los campos
+    son opcionales: la guía permite omitir lo que no aplique; el mínimo
+    exigible antes de publicar está en `services.ficha.MINIMA`.
+
+    Relación con `Formulario.tipo`: `tipo` es la etiqueta amigable
+    (encuesta/sondeo/censo) mientras `tipo_operacion` usa la tipología
+    estadística del SEN."""
+    TIPO_OP_CHOICES = [
+        ('censo', 'Censo'),
+        ('muestreo_prob', 'Encuesta por muestreo probabilístico'),
+        ('muestreo_no_prob', 'Encuesta por muestreo no probabilístico'),
+        ('registros_admin', 'A partir de registros administrativos'),
+        ('derivada', 'Derivada'),
+    ]
+    PERIODICIDAD_CHOICES = [
+        ('unica', 'Única'), ('continua', 'Continua'),
+        ('mensual', 'Mensual'), ('trimestral', 'Trimestral'),
+        ('semestral', 'Semestral'), ('anual', 'Anual'),
+        ('bienal', 'Bienal'), ('otra', 'Otra'),
+    ]
+    MARCO_CHOICES = [
+        ('', 'Sin marco'), ('lista', 'De lista'), ('areas', 'De áreas'),
+        ('dual', 'Dual'), ('geoestadistico', 'Geoestadístico'),
+    ]
+    METODOS_CHOICES = [
+        ('autodiligenciamiento', 'Autodiligenciamiento (formulario electrónico)'),
+        ('dmc', 'Dispositivo móvil de captura / encuestador de campo'),
+        ('telefonica', 'Entrevista telefónica'),
+        ('invitacion_publica', 'Invitación pública'),
+        ('papel', 'Cuestionario en papel'),
+        ('otro', 'Otro'),
+    ]
+
+    formulario = models.OneToOneField(
+        Formulario, on_delete=models.CASCADE, related_name='ficha')
+
+    # Identificación de la operación
+    sigla = models.CharField(
+        max_length=20, blank=True,
+        help_text='Sigla de la operación (debe corresponder a SICODE si '
+                  'aplica)')
+    entidad_responsable = models.CharField(max_length=200, blank=True)
+    tipo_operacion = models.CharField(
+        max_length=20, choices=TIPO_OP_CHOICES, blank=True)
+    responsable_operacion = models.CharField(
+        max_length=200, blank=True,
+        help_text='Nombre y cargo del responsable de la operación')
+
+    # Objetivos y alcance
+    antecedentes = models.TextField(blank=True)
+    objetivo_general = models.TextField(blank=True)
+    objetivos_especificos = models.TextField(blank=True)
+    alcance_tematico = models.TextField(blank=True)
+    variables_principales = models.TextField(blank=True)
+    indicadores = models.TextField(
+        blank=True, help_text='Nombre, sigla, fórmula e interpretación')
+    parametros = models.TextField(blank=True)
+    estandares = models.TextField(
+        blank=True,
+        help_text='Clasificaciones y estándares empleados con su versión '
+                  '(ej. DIVIPOLA, CIIU, CNO)')
+    temas_subtemas = models.CharField(max_length=300, blank=True)
+    palabras_clave = models.CharField(max_length=300, blank=True)
+
+    # Diseño
+    universo = models.TextField(blank=True)
+    poblacion_objetivo = models.TextField(blank=True)
+    unidad_observacion = models.CharField(
+        max_length=200, blank=True,
+        help_text='Elemento sobre el que se mide (persona, hogar, '
+                  'empresa, predio…)')
+    unidad_muestreo = models.CharField(max_length=200, blank=True)
+    unidad_analisis = models.CharField(max_length=200, blank=True)
+    marco_tipo = models.CharField(max_length=15, choices=MARCO_CHOICES,
+                                  default='', blank=True)
+    marco_descripcion = models.TextField(blank=True)
+    fuentes_datos = models.TextField(
+        blank=True, help_text='Fuentes primarias o secundarias')
+
+    # Muestra (si aplica)
+    tamano_muestra = models.TextField(blank=True)
+    diseno_muestral = models.TextField(blank=True)
+    precision = models.TextField(
+        blank=True, help_text='Error estándar relativo correspondiente')
+    mantenimiento_muestra = models.TextField(blank=True)
+    informacion_auxiliar = models.TextField(blank=True)
+
+    # Recolección
+    cobertura_geografica = models.TextField(
+        blank=True, help_text='Extensión territorial: nacional, '
+                              'departamental, municipal…')
+    periodo_referencia = models.CharField(
+        max_length=200, blank=True,
+        help_text='Tiempo al que corresponde la observación')
+    periodo_recoleccion = models.CharField(
+        max_length=200, blank=True,
+        help_text='Intervalo del levantamiento de datos')
+    periodicidad = models.CharField(
+        max_length=15, choices=PERIODICIDAD_CHOICES, blank=True)
+    metodos_recoleccion = models.JSONField(
+        default=list, blank=True,
+        help_text='Métodos empleados (lista de claves METODOS_CHOICES)')
+    desagregacion = models.TextField(
+        blank=True,
+        help_text='Desagregación geográfica y temática de resultados')
+    difusion = models.TextField(
+        blank=True,
+        help_text='Productos estadísticos y medios de difusión previstos')
+
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Ficha de {self.formulario.slug}'
+
+
 class Seccion(models.Model):
     """Página del formulario (puede ser una sola)."""
     formulario = models.ForeignKey(Formulario, on_delete=models.CASCADE,

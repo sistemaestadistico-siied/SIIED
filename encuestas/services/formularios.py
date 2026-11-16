@@ -12,7 +12,8 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.text import slugify
 
-from ..models import Formulario, Opcion, Pregunta, Seccion
+from ..models import (FichaMetodologica, Formulario, Opcion, Pregunta,
+                      Seccion)
 
 
 def slug_unico(base):
@@ -36,7 +37,8 @@ def crear_formulario(*, titulo, tipo, creador=None, descripcion=''):
 
 
 def publicar(f):
-    """borrador → publicado. Requiere al menos una pregunta con dato."""
+    """borrador → publicado. Requiere al menos una pregunta con dato
+    y la metadata mínima de la ficha metodológica (NTC PE 1000)."""
     if f.estado == 'publicado':
         return f
     if f.estado == 'archivado':
@@ -46,6 +48,8 @@ def publicar(f):
     if n_preguntas == 0:
         raise ValidationError('No puede publicarse sin al menos una '
                               'pregunta con datos.')
+    from . import ficha as sficha
+    sficha.validar_para_publicar(f)
     f.estado = 'publicado'
     f.save(update_fields=['estado', 'actualizado'])
     return f
@@ -110,6 +114,13 @@ def duplicar(f, titulo=None):
                     Opcion.objects.create(
                         pregunta=np, orden=o.orden, texto=o.texto,
                         valor=o.valor, es_otro=o.es_otro)
+        # La ficha metodológica viaja con la copia (misma operación)
+        ficha = getattr(f, 'ficha', None)
+        if ficha:
+            from django.forms.models import model_to_dict
+            datos = {k: v for k, v in model_to_dict(ficha).items()
+                     if k not in ('id', 'formulario')}
+            FichaMetodologica.objects.create(formulario=nuevo, **datos)
     return nuevo
 
 

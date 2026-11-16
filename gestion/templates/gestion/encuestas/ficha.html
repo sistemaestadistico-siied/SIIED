@@ -1,0 +1,123 @@
+{% extends 'gestion/base_gestion.html' %}
+{% load encuestas_tags %}
+{% block title %}Ficha metodológica — {{ f.titulo }}{% endblock %}
+{% block gs_titulo %}Ficha metodológica: {{ f.titulo }}{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span><a href="{% url 'gestion:encuestas_lista' %}">Encuestas</a><span class="mx-1">›</span>Ficha metodológica{% endblock %}
+
+{% block gs_contenido %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <div class="flex gap-2">
+    <a href="{% url 'gestion:encuestas_constructor' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50">← Constructor</a>
+    <a href="{% url 'gestion:encuestas_distribucion' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50">Distribución</a>
+    <a href="{% url 'gestion:encuestas_resultados' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50">Resultados</a>
+  </div>
+</div>
+
+<div class="bg-sky-50 border border-sky-100 rounded-2xl px-5 py-4 text-sm text-sky-800 mb-6">
+  <i class="fas fa-book mr-2"></i>
+  Documentación metodológica de la <strong>operación estadística</strong> según la
+  <strong>Guía de Ficha Metodológica del SEN/DANE</strong> (NTC PE 1000 §4.4).
+  Los campos <span class="text-rose-600 font-bold">*</span> son el mínimo exigido
+  <strong>antes de publicar</strong> — la documentación debe existir antes de la recolección.
+</div>
+
+<div class="grid lg:grid-cols-4 gap-6 items-start">
+  <div class="lg:col-span-3">
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+      {% for nombre_bloque, campos in bloques %}
+      <fieldset class="bg-white border border-slate-200 rounded-2xl p-6">
+        <legend class="px-2 text-sm font-bold text-slate-700 uppercase tracking-wider">{{ nombre_bloque }}</legend>
+        <div class="grid sm:grid-cols-2 gap-4">
+          {% for campo, tipo in campos %}
+          <div class="{% if tipo == 'textarea' or tipo == 'multi' %}sm:col-span-2{% endif %}">
+            <label class="block text-xs font-semibold text-slate-500 mb-1">
+              {{ etiquetas|get:campo }}
+              {% if campo in minima_campos %}<span class="text-rose-500">*</span>{% endif %}
+            </label>
+
+            {% if tipo == 'select' %}
+            {% if campo == 'tipo_operacion' %}
+            <select name="f_{{ campo }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+              <option value="">—</option>
+              {% for c, t in tipos_op.items %}<option value="{{ c }}" {% if fi.tipo_operacion == c %}selected{% endif %}>{{ t }}</option>{% endfor %}
+            </select>
+            {% elif campo == 'periodicidad' %}
+            <select name="f_{{ campo }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+              <option value="">—</option>
+              {% for c, t in periodicidades.items %}<option value="{{ c }}" {% if fi.periodicidad == c %}selected{% endif %}>{{ t }}</option>{% endfor %}
+            </select>
+            {% elif campo == 'marco_tipo' %}
+            <select name="f_{{ campo }}" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+              {% for c, t in marcos.items %}<option value="{{ c }}" {% if fi.marco_tipo == c %}selected{% endif %}>{{ t }}</option>{% endfor %}
+            </select>
+            {% endif %}
+
+            {% elif tipo == 'multi' %}
+            <div class="grid sm:grid-cols-2 gap-2">
+              {% for c, t in metodos %}
+              <label class="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" name="f_{{ campo }}" value="{{ c }}"
+                       {% if c in fi.metodos_recoleccion %}checked{% endif %} class="rounded border-slate-300"> {{ t }}
+              </label>
+              {% endfor %}
+            </div>
+
+            {% elif tipo == 'textarea' %}
+            <textarea name="f_{{ campo }}" rows="2"
+                      class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">{{ fi|ficha_valor:campo }}</textarea>
+            {% else %}
+            <input type="text" name="f_{{ campo }}" value="{{ fi|ficha_valor:campo }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+      {% endfor %}
+
+      <button type="submit" class="px-6 py-2.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 active:scale-[0.98] transition">
+        Guardar ficha
+      </button>
+    </form>
+  </div>
+
+  <aside class="space-y-4">
+    <div class="bg-white border border-slate-200 rounded-2xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Completitud mínima</p>
+      <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden mb-2">
+        <div class="h-full {% if completitud == 100 %}bg-emerald-500{% else %}bg-teal-500{% endif %} rounded-full"
+             style="width: {{ completitud }}%"></div>
+      </div>
+      <p class="text-2xl font-bold text-slate-800">{{ completitud }}%</p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-2xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Mínima pendiente</p>
+      {% if faltantes_minima %}
+      <ul class="text-sm text-rose-600 space-y-1">
+        {% for it in faltantes_minima %}<li>· {{ it }}</li>{% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-sm text-emerald-600 font-semibold"><i class="fas fa-check mr-1"></i>Completa — puede publicar.</p>
+      {% endif %}
+    </div>
+
+    {% if pendientes_rec %}
+    <div class="bg-white border border-slate-200 rounded-2xl p-5">
+      <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Recomendada pendiente</p>
+      <ul class="text-xs text-slate-500 space-y-1">
+        {% for it in pendientes_rec %}<li>· {{ it }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-xs text-slate-500">
+      <p class="font-semibold text-slate-600 mb-1">Referencia</p>
+      Guía para la elaboración de la Ficha Metodológica de las Operaciones
+      Estadísticas (SEN/DANE, 2023) · NTC PE 1000 (2020) · Lineamientos del
+      Proceso Estadístico v2 (GSBPM 5.1).
+    </div>
+  </aside>
+</div>
+{% endblock %}

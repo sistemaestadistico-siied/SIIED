@@ -32,6 +32,24 @@ def _con_pregunta(f, tipo='texto_corto', enunciado='¿X?',
     return p
 
 
+def _ficha_minima(f, **kw):
+    """Ficha metodológica con la metadata mínima para publicar."""
+    from .services import ficha as sficha
+    datos = dict(
+        tipo_operacion='censo', entidad_responsable='SIIED',
+        objetivo_general='Medir X.', unidad_observacion='Persona',
+        poblacion_objetivo='Usuarios del sistema',
+        cobertura_geografica='Departamental',
+        periodo_referencia='2026', periodo_recoleccion='nov-dic 2026',
+        metodos_recoleccion=['autodiligenciamiento'])
+    datos.update(kw)
+    fi = sficha.ficha_de(f)
+    for k, v in datos.items():
+        setattr(fi, k, v)
+    fi.save()
+    return fi
+
+
 class CicloVidaTests(TestCase):
     def test_crear_y_estructura(self):
         f = _formulario()
@@ -40,15 +58,27 @@ class CicloVidaTests(TestCase):
 
     def test_publicar_exige_pregunta(self):
         f = _formulario()
+        _ficha_minima(f)
         with self.assertRaises(ValidationError):
             sf.publicar(f)
         _con_pregunta(f)
         sf.publicar(f)
         self.assertEqual(f.estado, 'publicado')
 
+    def test_publicar_exige_ficha(self):
+        """Sin ficha mínima no se puede publicar (NTC §4.4.2)."""
+        f = _formulario()
+        _con_pregunta(f)
+        with self.assertRaises(ValidationError):
+            sf.publicar(f)
+        _ficha_minima(f)
+        sf.publicar(f)
+        self.assertEqual(f.estado, 'publicado')
+
     def test_cerrar_y_reabrir(self):
         f = _formulario()
         _con_pregunta(f)
+        _ficha_minima(f)
         sf.publicar(f)
         sf.cerrar(f)
         self.assertFalse(f.acepta_respuestas)
@@ -323,3 +353,68 @@ class OfflineTests(TestCase):
         r = self.client.get(reverse('encuestas:descargar_offline',
                                     args=[self.f.pk]))
         self.assertEqual(r.status_code, 302)
+
+
+# =============================================================================
+# Ficha metodológica (DANE/SEN)
+# =============================================================================
+
+from .services import ficha as sficha
+
+
+class FichaTests(TestCase):
+    def setUp(self):
+        self.f = _formulario()
+
+    def test_faltantes_sin_ficha(self):
+        fi = sficha.ficha_de(self.f)
+        self.assertEqual(len(sficha.faltantes_minimos(fi)),
+                         len(sficha.MINIMA))
+        self.assertEqual(sficha.completitud_minima(fi), 0)
+
+    def test_muestreo_exige_campos_extra(self):
+        fi = _ficha_minima(self.f)
+        self.assertEqual(sficha.faltantes_minimos(fi), [])
+        fi.tipo_operacion = 'muestreo_prob'
+        fi.save()
+        faltan = sficha.faltantes_minimos(fi)
+        self.assertIn('Tamaño de muestra', faltan)
+        self.assertIn('Diseño muestral', faltan)
+        self.assertIn('Unidad de muestreo', faltan)
+
+    def test_completitud(self):
+        fi = _ficha_minima(self.f)
+        self.assertEqual(sficha.completitud_minima(fi), 100)
+
+    def test_actualizar_desde_post(self):
+        from django.http import QueryDict
+        fi = sficha.ficha_de(self.f)
+        q = QueryDict('', mutable=True)
+        q['f_objetivo_general'] = 'Objetivo nuevo'
+        q.setlist('f_metodos_recoleccion', ['autodiligenciamiento', 'dmc'])
+        sficha.actualizar_ficha(fi, q)
+        self.assertEqual(fi.objetivo_general, 'Objetivo nuevo')
+        self.assertEqual(fi.metodos_recoleccion,
+                         ['autodiligenciamiento', 'dmc'])
+
+    def test_duplicar_clona_ficha(self):
+        _ficha_minima(self.f, sigla='EPS-1')
+        nuevo = sf.duplicar(self.f)
+        self.assertEqual(nuevo.ficha.sigla, 'EPS-1')
+        self.assertEqual(nuevo.ficha.objetivo_general, 'Medir X.')
+
+    def test_vista_ficha_gestor(self):
+        g = User.objects.create_user('gestor_ficha', password='x')
+        from indicadores.models import PerfilRecolector
+        PerfilRecolector.objects.create(user=g,
+                                        rol='gestor_formularios')
+        self.client.force_login(g)
+        r = self.client.get(reverse('gestion:encuestas_ficha',
+                                    args=[self.f.pk]))
+        self.assertEqual(r.status_code, 200)
+        r = self.client.post(
+            reverse('gestion:encuestas_ficha', args=[self.f.pk]),
+            {'f_objetivo_general': 'Nuevo objetivo'})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(
+            self.f.ficha.objetivo_general, 'Nuevo objetivo')

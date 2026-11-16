@@ -748,3 +748,38 @@ def sincronizar(request):
         despues={'importados': n_ok,
                  'total': len(resultados)})
     return JsonResponse({'resultados': resultados})
+
+
+# =============================================================================
+# Ficha metodológica (DANE/SEN — metadata de la operación)
+# =============================================================================
+
+@gestor_required
+def ficha(request, formulario_id):
+    from .services import ficha as sficha
+    f = get_object_or_404(Formulario, pk=formulario_id)
+    fi = sficha.ficha_de(f)
+    if request.method == 'POST':
+        antes = serializar(fi)
+        sficha.actualizar_ficha(fi, request.POST)
+        registrar_accion(
+            request, modulo='encuesta', accion='editar_ficha',
+            objeto_tipo='encuestas.Formulario', objeto_id=f.pk,
+            antes={k: str(v)[:120] for k, v in antes.items()},
+            despues={'faltantes_minima': sficha.faltantes_minimos(fi)})
+        messages.success(request, 'Ficha metodológica actualizada.')
+        return redirect('gestion:encuestas_ficha', formulario_id=f.pk)
+    ctx = _gestion_ctx(request)
+    ctx.update({
+        'f': f, 'fi': fi,
+        'bloques': sficha.BLOQUES,
+        'minima_campos': {c for c, _ in sficha.MINIMA},
+        'faltantes_minima': sficha.faltantes_minimos(fi),
+        'pendientes_rec': sficha.pendientes_recomendados(fi),
+        'completitud': sficha.completitud_minima(fi),
+        'tipos_op': dict(fi.TIPO_OP_CHOICES),
+        'periodicidades': dict(fi.PERIODICIDAD_CHOICES),
+        'marcos': dict(fi.MARCO_CHOICES),
+        'metodos': fi.METODOS_CHOICES,
+    })
+    return render(request, 'gestion/encuestas/ficha.html', ctx)

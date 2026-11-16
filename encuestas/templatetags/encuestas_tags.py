@@ -21,6 +21,12 @@ def get(diccionario, clave):
 
 
 @register.filter
+def ficha_valor(objeto, campo):
+    """Atributo de un objeto por nombre: `fi|ficha_valor:'objetivo'`."""
+    return getattr(objeto, campo, '')
+
+
+@register.filter
 def seleccionado(valor, opcion_id):
     """¿La opción (id) está dentro del valor guardado?"""
     if valor is None:

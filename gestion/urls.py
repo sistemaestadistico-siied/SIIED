@@ -80,6 +80,8 @@ urlpatterns = [
          encuestas_views.api_estructura, name='encuestas_api_estructura'),
     path('encuestas/<int:formulario_id>/vista-previa/',
          encuestas_views.vista_previa, name='encuestas_vista_previa'),
+    path('encuestas/<int:formulario_id>/ficha/',
+         encuestas_views.ficha, name='encuestas_ficha'),
     path('encuestas/<int:formulario_id>/distribucion/',
          encuestas_views.distribucion, name='encuestas_distribucion'),
     path('encuestas/<int:formulario_id>/distribucion/accion/',
