@@ -15,7 +15,7 @@ def widget_partial(pregunta):
 @register.filter
 def get(diccionario, clave):
     """Acceso a dict desde plantilla: `valores|get:p.pk`."""
-    if diccionario is None:
+    if not hasattr(diccionario, 'get'):
         return None
     return diccionario.get(clave)
 

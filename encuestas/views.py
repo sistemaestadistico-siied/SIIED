@@ -318,6 +318,10 @@ def vista_previa(request, formulario_id):
         'f': f,
         'es_vista_previa': True,
         'tipo_de': tipo_de,
+        'valores': {},
+        'envio': None,
+        'modo': 'publico',
+        'invitacion': None,
     })
     return render(request, 'encuestas/responder.html', ctx)
 
