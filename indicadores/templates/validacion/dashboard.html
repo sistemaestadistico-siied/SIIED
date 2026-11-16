@@ -251,6 +251,12 @@
                     <span class="px-3 py-1 rounded-full text-xs font-medium estado-enviado">
                         {{ f.get_estado_display }}
                     </span>
+                    {% if not f.equipo and f.observaciones_validador %}
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800"
+                          title="El organismo corrigió y reenvió este FICED tras una devolución — pendiente su validación final">
+                        🔄 Corregido tras devolución
+                    </span>
+                    {% endif %}
                     {% if f.equipo %}
                     <span class="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded-full font-semibold">
                         Equipo {{ f.equipo }}

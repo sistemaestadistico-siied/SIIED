@@ -714,15 +714,23 @@ class ICEDWizardView(SessionWizardView):
 
         # Notificar por correo al siguiente nivel del flujo (no bloquea
         # el envío si falla): formulario por equipo → validador del
-        # organismo; consolidado → facilitadores del SIIED.
+        # organismo; consolidado → validador del organismo (él pre-valida)
+        # o facilitadores del SIIED si el organismo no tiene validador.
         try:
             if formulario.equipo:
                 from .notifications import (
                     notificar_validador_organismo_iced)
                 notificar_validador_organismo_iced(formulario)
             else:
-                from .notifications import notificar_validadores_nuevo_iced
-                notificar_validadores_nuevo_iced(formulario)
+                # Consolidado (organismo sin equipos): el siguiente actor
+                # es el validador del organismo — lo concilia/pre-valida.
+                # Solo si el organismo no tiene validador propio se avisa
+                # directo a los facilitadores del SIIED.
+                from .notifications import (
+                    notificar_validador_organismo_iced,
+                    notificar_validadores_nuevo_iced)
+                if not notificar_validador_organismo_iced(formulario):
+                    notificar_validadores_nuevo_iced(formulario)
         except Exception:
             logger.exception('Error notificando el envío del ICED %s', formulario.pk)
 

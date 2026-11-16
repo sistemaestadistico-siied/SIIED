@@ -672,87 +672,54 @@ class ICEDModuloBForm(ICEDBaseForm):
     )
 
     # P8: Herramientas de planificación (generación/procesamiento/reporte/difusión).
-    # 'No se incluyen' es la opción 8.5 del instrumento: va dentro del
-    # selector Herramienta, no como checkbox aparte.
+    # Casillas por herramienta; cada una con su cuadro unificado de
+    # documento/sección y «+» a la derecha para agregar más documentos.
     p8_herramientas_planificacion = forms.CharField(
         required=False,
-        widget=forms.HiddenInput(attrs={
-            'class': 'iced-json-field',
-            'data-iced-widget': 'tabla-simple',
-            'data-config': json.dumps({
-                'min_filas': 1,
-                'max_filas': 15,
-                # 'No se incluyen' apaga el documento (no aplica) y le
-                # escribe 'na' para que no quede texto de una selección
-                # anterior al cambiar de opción.
-                'control_bloqueo': {
-                    'campo': 'herramienta', 'valor': 'no_se_incluyen',
-                    'campos': ['documento_seccion'],
-                    'valor_bloqueado': 'na',
-                },
-                'columnas': [
-                    {'name': 'herramienta', 'label': 'Herramienta', 'tipo': 'select',
-                     'opciones': [
-                         {'valor': 'planes_trabajo', 'texto': 'Planes de trabajo'},
-                         {'valor': 'planes_accion', 'texto': 'Planes de acción'},
-                         {'valor': 'programas', 'texto': 'Programas'},
-                         {'valor': 'proyectos', 'texto': 'Proyectos'},
-                         {'valor': 'no_se_incluyen',
-                          'texto': 'No se incluyen'},
-                     ]},
-                    {'name': 'documento_seccion',
-                     'label': 'Documento, sección / actividad', 'tipo': 'texto',
-                     'placeholder': 'Ej: Plan de Acción 2026 — Cap. Gestión Estadística'},
-                ],
-            }, ensure_ascii=False),
+        widget=iced_widget('checkbox-tabla', {
+            'exclusiva': 'no_se_incluyen',
+            'columnas': [
+                {'name': 'documento', 'label': 'Documento, sección / actividad',
+                 'tipo': 'texto-multi', 'boton': '+ Agregar',
+                 'placeholder': 'Ej: Plan de Acción 2026 — Cap. Gestión Estadística'},
+            ],
+            'opciones': [
+                {'codigo': 'planes_trabajo', 'texto': 'Planes de trabajo'},
+                {'codigo': 'planes_accion', 'texto': 'Planes de acción'},
+                {'codigo': 'programas', 'texto': 'Programas'},
+                {'codigo': 'proyectos', 'texto': 'Proyectos'},
+                {'codigo': 'no_se_incluyen', 'texto': 'No se incluyen'},
+            ],
         }),
         label="8. Señale dentro de cuáles herramientas de planificación se incluyen actividades específicas de generación, procesamiento, reporte o difusión de información estadística",
-        help_text=("Agregue una fila por cada herramienta: selecciónela en la lista e "
-                   "indique el documento con su sección o actividad. Puede repetir "
-                   "herramienta si son varios documentos. Si ninguna aplica, "
-                   "seleccione «No se incluyen».")
+        help_text=("Marque las herramientas aplicables e indique el documento "
+                   "con su sección o actividad; use «+» para agregar más "
+                   "documentos de la misma herramienta.")
     )
 
     # P9: Herramientas de planificación (mejoramiento/fortalecimiento).
-    # 'No se incluyen' es la opción 9.5 del instrumento: va dentro del
-    # selector Herramienta (igual que en P8).
+    # Mismo esquema de casillas que P8 (opción exclusiva 'No se incluyen').
     p9_herramientas_mejoramiento = forms.CharField(
         required=False,
-        widget=forms.HiddenInput(attrs={
-            'class': 'iced-json-field',
-            'data-iced-widget': 'tabla-simple',
-            'data-config': json.dumps({
-                'min_filas': 1,
-                'max_filas': 15,
-                # 'No se incluyen' apaga el documento (no aplica) y le
-                # escribe 'na' para que no quede texto de una selección
-                # anterior al cambiar de opción.
-                'control_bloqueo': {
-                    'campo': 'herramienta', 'valor': 'no_se_incluyen',
-                    'campos': ['documento_seccion'],
-                    'valor_bloqueado': 'na',
-                },
-                'columnas': [
-                    {'name': 'herramienta', 'label': 'Herramienta', 'tipo': 'select',
-                     'opciones': [
-                         {'valor': 'planes_trabajo', 'texto': 'Planes de trabajo'},
-                         {'valor': 'planes_accion', 'texto': 'Planes de acción'},
-                         {'valor': 'programas', 'texto': 'Programas'},
-                         {'valor': 'proyectos', 'texto': 'Proyectos'},
-                         {'valor': 'no_se_incluyen',
-                          'texto': 'No se incluyen'},
-                     ]},
-                    {'name': 'documento_seccion',
-                     'label': 'Documento, sección / actividad', 'tipo': 'texto',
-                     'placeholder': 'Ej: Plan de Acción 2026 — Cap. Gestión Estadística'},
-                ],
-            }, ensure_ascii=False),
+        widget=iced_widget('checkbox-tabla', {
+            'exclusiva': 'no_se_incluyen',
+            'columnas': [
+                {'name': 'documento', 'label': 'Documento, sección / actividad',
+                 'tipo': 'texto-multi', 'boton': '+ Agregar',
+                 'placeholder': 'Ej: Plan de Acción 2026 — Cap. Gestión Estadística'},
+            ],
+            'opciones': [
+                {'codigo': 'planes_trabajo', 'texto': 'Planes de trabajo'},
+                {'codigo': 'planes_accion', 'texto': 'Planes de acción'},
+                {'codigo': 'programas', 'texto': 'Programas'},
+                {'codigo': 'proyectos', 'texto': 'Proyectos'},
+                {'codigo': 'no_se_incluyen', 'texto': 'No se incluyen'},
+            ],
         }),
         label="9. Señale dentro de cuáles herramientas de planificación se incluyen actividades específicas para el mejoramiento o fortalecimiento de la información estadística",
-        help_text=("Agregue una fila por cada herramienta: selecciónela en la lista e "
-                   "indique el documento con su sección o actividad. Puede repetir "
-                   "herramienta si son varios documentos. Si ninguna aplica, "
-                   "seleccione «No se incluyen».")
+        help_text=("Marque las herramientas aplicables e indique el documento "
+                   "con su sección o actividad; use «+» para agregar más "
+                   "documentos de la misma herramienta.")
     )
 
     # P10: Participación en actividades de fortalecimiento
@@ -1092,7 +1059,7 @@ class ICEDModuloC2Form(ICEDBaseForm):
     p18_estructura_rrhh = forms.ChoiceField(
         choices=P18_CHOICES,
         widget=forms.RadioSelect(attrs={'class': 'iced-radio'}),
-        label="18. ¿Existe en su estructura organizacional una persona, grupo o varios grupos internos de trabajo que produzcan, coordinen o centralicen los indicadores o estadísticas relevantes para la toma de decisiones?",
+        label="18. ¿Existe una persona, grupo o varios grupos internos de trabajo que produzcan, coordinen o centralicen los indicadores o estadísticas relevantes para la toma de decisiones?",
         help_text="<strong>Nota:</strong> Indicadores o estadísticas relevantes hace referencia a las que permiten evaluar los resultados, hacer seguimiento y formular políticas, planes y proyectos."
     )
 
@@ -1403,12 +1370,12 @@ P31_CHOICES = [
 ]
 
 P31_1_CHOICES = [
-    ('1', 'Mensualmente'),
-    ('5', 'Bimensualmente'),
-    ('2', 'Trimestralmente'),
-    ('6', 'Cuatrimestralmente'),
-    ('3', 'Semestralmente'),
-    ('4', 'Anualmente'),
+    ('1', 'Mensual'),
+    ('5', 'Bimensual'),
+    ('2', 'Trimestral'),
+    ('6', 'Cuatrimestral'),
+    ('3', 'Semestral'),
+    ('4', 'Anual'),
 ]
 
 P32_CHOICES = [
@@ -1715,12 +1682,12 @@ class ICEDModuloD2Form(ICEDBaseForm):
 
     # P28.1: Frecuencia de reuniones (condicional: P27 != 4 y P28 incluye 'reuniones')
     P28_1_OPCIONES = [
-        ('mensual', 'Mensualmente'),
-        ('bimensual', 'Bimensualmente'),
-        ('trimestral', 'Trimestralmente'),
-        ('cuatrimestral', 'Cuatrimestralmente'),
-        ('semestral', 'Semestralmente'),
-        ('anual', 'Anualmente'),
+        ('mensual', 'Mensual'),
+        ('bimensual', 'Bimensual'),
+        ('trimestral', 'Trimestral'),
+        ('cuatrimestral', 'Cuatrimestral'),
+        ('semestral', 'Semestral'),
+        ('anual', 'Anual'),
     ]
     p28_1_frecuencia_reuniones = forms.MultipleChoiceField(
         choices=P28_1_OPCIONES,

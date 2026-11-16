@@ -54,7 +54,8 @@ def _sender():
                     getattr(settings, 'DEFAULT_FROM_EMAIL',
                             'no-reply@siied.gov.co'))
     name = getattr(settings, 'BREVO_SENDER_NAME',
-                   'SIIED - Sistema de Indicadores')
+                   'SIIED - Sistema Integrado de Información '
+                   'Estadística Distrital')
     return {'name': name, 'email': email}
 
 

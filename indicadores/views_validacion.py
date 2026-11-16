@@ -1599,6 +1599,15 @@ def validacion_decidir_iced(request, formulario_id):
         formulario.save(update_fields=[
             'estado', 'prevalidado_por', 'fecha_prevalidacion',
             'observaciones_prevalidador'])
+        # Avisar a los facilitadores SIIED que el consolidado quedó
+        # pre-validado (mismo aviso que al conciliar desde equipos).
+        try:
+            from .notifications import notificar_siied_iced_prevalidado
+            notificar_siied_iced_prevalidado(formulario)
+        except Exception:
+            logger.exception(
+                'Error notificando pre-validación del ICED %s',
+                formulario.pk)
         messages.success(
             request,
             f'FICED de {formulario.organismo.nombre} pre-validado. '

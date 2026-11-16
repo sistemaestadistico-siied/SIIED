@@ -156,6 +156,65 @@
         return wrap;
     }
 
+    // Igual que campoUrlMulti pero para texto plano (tipo 'texto-multi'):
+    // varias entradas por opción con botón '+' (ej. documentos de P8/P9);
+    // se guarda un solo string unido por '; ' (compatible con backend).
+    function campoTextoMulti(get, set, placeholder, btnLabel) {
+        const wrap = el('div', { class: 'iced-multiurl' });
+        wrap._esMultiUrl = true;
+
+        const join = () =>
+            [...wrap.querySelectorAll('input')].map(i => i.value.trim())
+                .filter(Boolean).join('; ');
+
+        const btnMas = el('button', {
+            type: 'button',
+            style: 'border:1px dashed #94a3b8; background:#f8fafc; color:#2563eb; border-radius:8px; font-size:0.75rem; font-weight:600; padding:2px 10px; cursor:pointer;'
+        }, [btnLabel || '+ Agregar']);
+
+        const addRow = (valor) => {
+            const rowEl = el('div', { style: 'display:flex; gap:6px; align-items:flex-start; margin-bottom:4px;' });
+            const inp = el('input', {
+                type: 'text', class: 'iced-widget-input',
+                placeholder: placeholder || '', style: 'flex:1; min-width:0;'
+            });
+            inp.value = valor || '';
+            inp.addEventListener('input', () => set(join()));
+            const btnX = el('button', {
+                type: 'button', title: 'Quitar',
+                style: 'border:none; background:none; color:#dc2626; font-size:1.1rem; line-height:1; padding:4px 2px; cursor:pointer;'
+            }, ['×']);
+            btnX.addEventListener('click', () => { rowEl.remove(); set(join()); });
+            rowEl.appendChild(inp);
+            rowEl.appendChild(btnX);
+            wrap.insertBefore(rowEl, btnMas);
+            return inp;
+        };
+
+        btnMas.addEventListener('click', () => addRow('').focus());
+        wrap.appendChild(btnMas);
+
+        const rebuild = () => {
+            wrap.querySelectorAll('div').forEach(d => d.remove());
+            const partes = String(get() || '').split(';').map(p => p.trim()).filter(Boolean);
+            if (!partes.length) partes.push('');
+            partes.forEach(addRow);
+        };
+        rebuild();
+
+        let deshab = false;
+        Object.defineProperty(wrap, 'disabled', {
+            get: () => deshab,
+            set: v => {
+                deshab = !!v;
+                wrap.querySelectorAll('input').forEach(i => { i.disabled = deshab; });
+                btnMas.disabled = deshab;
+                btnMas.style.opacity = deshab ? '0.4' : '1';
+            },
+        });
+        return wrap;
+    }
+
     // Evita que la rueda del mouse cambie el valor de inputs numéricos enfocados
     // (ej: porcentajes de P21). Al hacer wheel sobre un input[type=number] se
     // desenfoca, así el valor no cambia y la página sigue desplazándose.
@@ -197,7 +256,23 @@
     // }
 
     function renderCheckboxTabla(container, config, targetName) {
-        const data = readJson(targetName, {});
+        let data = readJson(targetName, {});
+        // Formato previo (tabla-simple / importador): [{herramienta,
+        // documento_seccion}] → dict {herramienta: {seleccion:true,
+        // documento:'…; …'}} para no perder respuestas ya guardadas.
+        if (Array.isArray(data)) {
+            const conv = {};
+            data.forEach(it => {
+                const h = it && it.herramienta;
+                if (!h) return;
+                const doc = it.documento || it.documento_seccion || '';
+                if (!conv[h]) conv[h] = { seleccion: true };
+                conv[h].documento = [conv[h].documento, doc]
+                    .filter(Boolean).join('; ');
+            });
+            data = conv;
+            writeJson(targetName, conv);
+        }
         const opciones = config.opciones || [];
         const exclusiva = config.exclusiva;
         const conDetalle = config.con_detalle; // Array de códigos que tienen input
@@ -290,6 +365,20 @@
                                 writeJson(targetName, current);
                             },
                             col.placeholder);
+                        multi.disabled = !row.seleccion;
+                        tdChildren = [multi];
+                    } else if (col.tipo === 'texto-multi') {
+                        // Multi-texto: botón '+' para añadir más entradas
+                        // (documentos de P8/P9); un solo string con '; '.
+                        const multi = campoTextoMulti(
+                            () => (readJson(targetName, {})[opt.codigo] || {})[col.name] || '',
+                            v => {
+                                const current = readJson(targetName, {});
+                                if (!current[opt.codigo]) current[opt.codigo] = {};
+                                current[opt.codigo][col.name] = v;
+                                writeJson(targetName, current);
+                            },
+                            col.placeholder, col.boton);
                         multi.disabled = !row.seleccion;
                         tdChildren = [multi];
                     } else {
