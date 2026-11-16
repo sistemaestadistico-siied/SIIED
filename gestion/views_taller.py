@@ -557,3 +557,69 @@ def prorroga_crear(request, ventana_id):
         motivo=motivo)
     messages.success(request, f'Prórroga para {organismo.nombre}.')
     return redirect('gestion:taller_ventanas')
+
+
+# =============================================================================
+# Carga masiva de usuarios por CSV
+# =============================================================================
+
+@gestor_required
+def carga_masiva(request):
+    """CSV → validación previa (dry-run) → aplicar por fila."""
+    ctx = {'pestana_activa': 'taller',
+           'ejemplo': 'username,nombres,apellidos,correo,organismo,'
+                      'equipo,rol,edicion,activo,enviar_correo'}
+    if request.method == 'POST':
+        archivo = request.FILES.get('archivo')
+        aplicar = request.POST.get('aplicar') == '1'
+        if not archivo:
+            messages.error(request, 'Adjunte un archivo CSV.')
+        elif not archivo.name.lower().endswith('.csv'):
+            messages.error(request, 'El archivo debe ser .csv.')
+        else:
+            try:
+                filas = st.procesar_csv_usuarios_taller(archivo,
+                                                        aplicar=aplicar)
+            except Exception as e:
+                messages.error(request, f'No se pudo leer el CSV: {e}')
+            else:
+                n_ok = sum(1 for f in filas
+                           if f['estado'] in ('ok', 'creado'))
+                n_err = sum(1 for f in filas if f['estado'] == 'error')
+                if aplicar:
+                    creados = [f for f in filas if f['estado'] == 'creado']
+                    registrar_accion(
+                        request, modulo='taller', accion='carga_masiva',
+                        objeto_tipo='User', objeto_id='csv',
+                        despues={'creados': len(creados),
+                                 'errores': n_err,
+                                 'usernames': [f['datos']['username']
+                                              for f in creados]},
+                        motivo=request.POST.get('motivo', '').strip())
+                    messages.success(
+                        request,
+                        f'{len(creados)} usuario(s) creados, '
+                        f'{n_err} fila(s) con error.')
+                ctx.update({'filas': filas, 'n_ok': n_ok, 'n_err': n_err,
+                            'aplicado': aplicar})
+    return render(request, 'gestion/taller/carga_masiva.html', ctx)
+
+
+@gestor_required
+def usuarios_plantilla(request):
+    """Plantilla CSV descargable de usuarios del taller."""
+    import csv as _csv
+    import io as _io
+    from django.http import HttpResponse
+    out = _io.StringIO()
+    w = _csv.writer(out)
+    w.writerow(['username', 'nombres', 'apellidos', 'correo',
+                'organismo', 'equipo', 'rol', 'edicion', 'activo',
+                'enviar_correo'])
+    w.writerow(['ana.gomez', 'Ana', 'Gómez', 'ana@org.gov.co',
+                'ETPP', 'Equipos TIC', 'delegado', '2026', '1', '1'])
+    r = HttpResponse(out.getvalue(),
+                     content_type='text/csv; charset=utf-8')
+    r['Content-Disposition'] = (
+        'attachment; filename="plantilla_usuarios_taller.csv"')
+    return r

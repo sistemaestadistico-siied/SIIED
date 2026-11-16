@@ -46,6 +46,9 @@
        class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium hover:bg-slate-50">
       {% if vista == 'matriz' %}<i class="fas fa-list mr-1"></i>Vista lista{% else %}<i class="fas fa-table-cells mr-1"></i>Vista matriz{% endif %}
     </a>
+    <a href="{% url 'gestion:ficed_carga_masiva' %}" class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium hover:bg-slate-50">
+      <i class="fas fa-file-csv mr-1"></i>Carga masiva
+    </a>
     <a href="{% url 'gestion:ficed_usuario_crear' %}" class="px-3 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 active:scale-[0.98] transition">
       <i class="fas fa-plus mr-1"></i>Nuevo usuario
     </a>

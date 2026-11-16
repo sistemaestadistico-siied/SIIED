@@ -261,3 +261,101 @@ def inscripciones_sin_equipo(edicion=None):
     if edicion:
         qs = qs.filter(edicion=edicion)
     return qs
+
+
+# ── Carga masiva de usuarios por CSV ──────────────────────────────────
+
+def _equipo_csv(texto, cache):
+    """EquipoOrganismo por pk, código o nombre exacto."""
+    from indicadores.models import EquipoOrganismo
+    key = (texto or '').strip().lower()
+    if not key:
+        return None
+    if key not in cache:
+        q = EquipoOrganismo.objects.filter(activo=True)
+        if key.isdigit():
+            cache[key] = q.filter(pk=int(key)).first()
+        else:
+            cache[key] = (q.filter(nombre__iexact=texto.strip()).first()
+                          or q.filter(codigo__iexact=texto.strip()).first())
+    return cache[key]
+
+
+def validar_fila_taller(fila, cache_org, cache_eq):
+    """Errores de una fila de CSV taller sin escribir."""
+    from .usuarios import _organismo_csv
+    errores = []
+    username = fila.get('username', '').strip()
+    rol = fila.get('rol', '').strip() or 'delegado'
+    organismo = _organismo_csv(fila.get('organismo', ''), cache_org)
+    equipo = _equipo_csv(fila.get('equipo', ''), cache_eq)
+    correo = fila.get('correo', '').strip()
+    edicion_txt = fila.get('edicion', '').strip()
+    edicion = None
+    if edicion_txt:
+        try:
+            edicion = int(edicion_txt)
+        except ValueError:
+            errores.append(f'edición inválida: {edicion_txt}')
+
+    if not username:
+        errores.append('username vacío')
+    elif User.objects.filter(username=username).exists():
+        errores.append('username ya existe')
+    if correo and User.objects.filter(email=correo).exists():
+        errores.append('correo ya usado por otro usuario')
+    if rol not in ROLES_TALLER:
+        errores.append(f'rol inválido: {rol or "(vacío)"}')
+    if fila.get('organismo') and not organismo:
+        errores.append(f'organismo no encontrado: {fila["organismo"]}')
+    if fila.get('equipo') and not equipo:
+        errores.append(f'equipo no encontrado: {fila["equipo"]}')
+    try:
+        _validar_taller(rol, organismo, equipo, '')
+    except ValidationError as e:
+        errores.extend(m for msgs in e.message_dict.values() for m in msgs)
+
+    datos = {
+        'username': username,
+        'first_name': fila.get('nombres', ''),
+        'last_name': fila.get('apellidos', ''),
+        'email': correo,
+        'rol': rol,
+        'organismo': organismo,
+        'equipo': equipo,
+        'edicion': edicion,
+        'activo': fila.get('activo', '1').strip() in ('1', 'si', 'sí', 'true'),
+        'enviar_correo': fila.get('enviar_correo', '1').strip() in
+        ('1', 'si', 'sí', 'true'),
+    }
+    return datos, errores
+
+
+def procesar_csv_usuarios_taller(archivo, aplicar=False):
+    """Dry-run o aplicación por fila del CSV de usuarios del taller.
+
+    Columnas: username, nombres, apellidos, correo, organismo, equipo,
+    rol, edicion, activo, enviar_correo. Devuelve filas {n, datos,
+    estado: 'ok'|'creado'|'error', errores}."""
+    from .usuarios import _parsear_csv_usuarios
+    filas = _parsear_csv_usuarios(archivo)
+    cache_org, cache_eq = {}, {}
+    resultado = []
+    for n, fila in filas:
+        datos, errores = validar_fila_taller(fila, cache_org, cache_eq)
+        estado = 'ok'
+        if not errores and aplicar:
+            try:
+                user, correo_estado = crear_usuario_taller(**datos)
+                estado = 'creado'
+                if correo_estado == 'fallido':
+                    errores.append('correo falló: credenciales no enviadas')
+            except ValidationError as e:
+                estado = 'error'
+                errores.extend(m for msgs in e.message_dict.values()
+                               for m in msgs)
+        elif errores:
+            estado = 'error'
+        resultado.append({'n': n, 'datos': datos, 'estado': estado,
+                          'errores': errores})
+    return resultado

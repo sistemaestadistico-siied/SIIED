@@ -606,3 +606,24 @@ def carga_masiva(request):
                 ctx.update({'filas': filas, 'n_ok': n_ok, 'n_err': n_err,
                             'aplicado': aplicar})
     return render(request, 'gestion/ficed/carga_masiva.html', ctx)
+
+
+@gestor_required
+def usuarios_plantilla(request):
+    """Plantilla CSV descargable de usuarios FICED."""
+    import csv as _csv
+    import io as _io
+    from django.http import HttpResponse
+    out = _io.StringIO()
+    w = _csv.writer(out)
+    w.writerow(['username', 'nombres', 'apellidos', 'correo',
+                'organismo', 'rol', 'subrol_ficed', 'activo',
+                'enviar_correo'])
+    w.writerow(['delegado_etpp_org', 'Nombre', 'Apellido',
+                'delegado@org.gov.co', 'ETPP', 'delegado', 'ETPP',
+                '1', '1'])
+    r = HttpResponse(out.getvalue(),
+                     content_type='text/csv; charset=utf-8')
+    r['Content-Disposition'] = (
+        'attachment; filename="plantilla_usuarios_ficed.csv"')
+    return r

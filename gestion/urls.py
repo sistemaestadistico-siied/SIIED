@@ -50,6 +50,10 @@ urlpatterns = [
          name='taller_estructura'),
     path('taller/estructura/accion/', views_taller.estructura_accion,
          name='taller_estructura_accion'),
+    path('taller/usuarios/carga-masiva/', views_taller.carga_masiva,
+         name='taller_carga_masiva'),
+    path('taller/usuarios/plantilla/', views_taller.usuarios_plantilla,
+         name='taller_usuarios_plantilla'),
     path('taller/usuarios/', views_taller.usuarios,
          name='taller_usuarios'),
     path('taller/usuarios/crear/', views_taller.usuario_crear,
@@ -74,6 +78,8 @@ urlpatterns = [
 
     path('ficed/usuarios/carga-masiva/', views_ficed.carga_masiva,
          name='ficed_carga_masiva'),
+    path('ficed/usuarios/plantilla/', views_ficed.usuarios_plantilla,
+         name='ficed_usuarios_plantilla'),
 
     # Encuestas (gestión)
     path('encuestas/', encuestas_views.lista, name='encuestas_lista'),
