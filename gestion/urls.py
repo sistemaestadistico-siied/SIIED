@@ -1,5 +1,7 @@
 from django.urls import path
 
+from encuestas import views as encuestas_views
+
 from . import views, views_ficed, views_taller
 
 app_name = 'gestion'
@@ -62,6 +64,33 @@ urlpatterns = [
     path('taller/ventanas/', views_taller.ventanas, name='taller_ventanas'),
     path('taller/ventanas/guardar/', views_taller.ventana_guardar,
          name='taller_ventana_guardar'),
+
+    # Encuestas (gestión)
+    path('encuestas/', encuestas_views.lista, name='encuestas_lista'),
+    path('encuestas/crear/', encuestas_views.crear,
+         name='encuestas_crear'),
+    path('encuestas/<int:formulario_id>/accion/',
+         encuestas_views.accion, name='encuestas_accion'),
+    path('encuestas/<int:formulario_id>/constructor/',
+         encuestas_views.constructor, name='encuestas_constructor'),
+    path('encuestas/<int:formulario_id>/api/estructura/',
+         encuestas_views.api_estructura, name='encuestas_api_estructura'),
+    path('encuestas/<int:formulario_id>/vista-previa/',
+         encuestas_views.vista_previa, name='encuestas_vista_previa'),
+    path('encuestas/<int:formulario_id>/distribucion/',
+         encuestas_views.distribucion, name='encuestas_distribucion'),
+    path('encuestas/<int:formulario_id>/distribucion/accion/',
+         encuestas_views.distribucion_accion,
+         name='encuestas_distribucion_accion'),
+    path('encuestas/invitacion/<int:invitacion_id>/enviada/',
+         encuestas_views.invitacion_marcar_enviada,
+         name='encuestas_invitacion_enviada'),
+    path('encuestas/<int:formulario_id>/resultados/',
+         encuestas_views.resultados, name='encuestas_resultados'),
+    path('encuestas/<int:formulario_id>/exportar/',
+         encuestas_views.exportar, name='encuestas_exportar'),
+    path('encuestas/envio/<int:envio_id>/accion/',
+         encuestas_views.envio_accion, name='encuestas_envio_accion'),
     path('taller/ventanas/<int:ventana_id>/prorroga/',
          views_taller.prorroga_crear, name='taller_prorroga'),
 ]

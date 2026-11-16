@@ -1,0 +1,14 @@
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+  <p class="text-sm font-semibold text-slate-800 mb-1">
+    {{ p.enunciado }}{% if p.obligatoria %} <span class="text-rose-500">*</span>{% endif %}
+  </p>
+  {% if p.ayuda %}<p class="text-xs text-slate-400 mb-2">{{ p.ayuda }}</p>{% endif %}
+  <div class="flex flex-wrap gap-2 mt-2" role="radiogroup">
+    {% for n in escala_rango %}
+    {% endfor %}
+    <input type="number" name="p_{{ p.pk }}" value="{{ valor|default:'' }}"
+           min="{{ p.config.min|default:1 }}" max="{{ p.config.max|default:5 }}"
+           class="w-24 px-3 py-2 border border-slate-300 rounded-lg text-sm text-center">
+    <span class="text-xs text-slate-400 self-center">({{ p.config.min|default:1 }} a {{ p.config.max|default:5 }})</span>
+  </div>
+</div>

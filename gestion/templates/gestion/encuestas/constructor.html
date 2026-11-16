@@ -1,0 +1,255 @@
+{% extends 'gestion/base_gestion.html' %}
+{% block title %}Constructor — {{ f.titulo }}{% endblock %}
+{% block gs_titulo %}Constructor: {{ f.titulo }}{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span><a href="{% url 'gestion:encuestas_lista' %}">Encuestas</a><span class="mx-1">›</span>Constructor{% endblock %}
+
+{% block gs_contenido %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <div class="flex items-center gap-2 text-sm">
+    <span class="gs-chip
+      {% if f.estado == 'publicado' %}bg-emerald-50 text-emerald-700
+      {% elif f.estado == 'cerrado' %}bg-amber-50 text-amber-700
+      {% else %}bg-sky-50 text-sky-700{% endif %}">{{ f.get_estado_display }}</span>
+    {% if estructura.bloqueada %}
+    <span class="gs-chip bg-rose-50 text-rose-700"><i class="fas fa-lock"></i>Estructura bloqueada (hay respuestas)</span>
+    {% endif %}
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url 'gestion:encuestas_vista_previa' f.pk %}" target="_blank"
+       class="px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50"><i class="fas fa-eye mr-1"></i>Vista previa</a>
+    <a href="{% url 'gestion:encuestas_distribucion' f.pk %}"
+       class="px-3 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700">Distribución →</a>
+  </div>
+</div>
+
+{% if estructura.bloqueada %}
+<div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-xl px-5 py-3 mb-6 text-sm">
+  El formulario ya recibió respuestas: la estructura no se puede modificar.
+  Duplique el formulario si necesita editarlo.
+</div>
+{% endif %}
+
+<div id="app" data-api="{% url 'gestion:encuestas_api_estructura' f.pk %}" data-bloqueada="{{ estructura.bloqueada|lower }}">
+  {% for sec in estructura.secciones %}
+  <section class="bg-white border border-slate-200 rounded-2xl mb-6 overflow-hidden" data-seccion="{{ sec.id }}">
+    <div class="px-5 py-4 bg-slate-50 border-b border-slate-100 flex flex-wrap items-center gap-3">
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Sección {{ sec.orden }}</span>
+      <input type="text" value="{{ sec.titulo }}" data-op="editar_seccion" data-campo="titulo" data-id="{{ sec.id }}"
+             placeholder="Título de la sección" class="flex-1 min-w-40 px-2 py-1 border border-transparent hover:border-slate-300 rounded text-sm font-semibold bg-transparent">
+      <input type="text" value="{{ sec.descripcion }}" data-op="editar_seccion" data-campo="descripcion" data-id="{{ sec.id }}"
+             placeholder="Descripción (opcional)" class="flex-1 min-w-40 px-2 py-1 border border-transparent hover:border-slate-300 rounded text-xs bg-transparent text-slate-500">
+      {% if not estructura.bloqueada %}
+      <button class="borrar-sec text-xs text-rose-600 hover:underline" data-id="{{ sec.id }}">Borrar sección</button>
+      {% endif %}
+    </div>
+
+    <div class="divide-y divide-slate-100">
+      {% for p in sec.preguntas %}
+      <article class="px-5 py-4" data-pregunta="{{ p.id }}">
+        <div class="flex flex-wrap items-start gap-3">
+          <div class="flex-1 min-w-64">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="gs-chip bg-slate-100 text-slate-500">{{ p.codigo|default:'—' }}</span>
+              <span class="text-xs text-slate-400">{{ p.tipo }}</span>
+              {% if p.obligatoria %}<span class="gs-chip bg-rose-50 text-rose-600">obligatoria</span>{% endif %}
+            </div>
+            <p class="font-semibold text-slate-800 mt-1">{{ p.enunciado }}</p>
+            {% if p.ayuda %}<p class="text-xs text-slate-400">{{ p.ayuda }}</p>{% endif %}
+            {% if p.opciones %}
+            <ul class="mt-2 space-y-1 text-sm text-slate-600">
+              {% for o in p.opciones %}
+              <li class="flex items-center gap-2">
+                <span class="text-slate-300">—</span>{{ o.texto }}
+                {% if o.es_otro %}<span class="text-xs text-slate-400">(¿Cuál?)</span>{% endif %}
+                {% if not estructura.bloqueada %}
+                <button class="borrar-opc text-xs text-rose-500 hover:underline" data-id="{{ o.id }}">×</button>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+          {% if not estructura.bloqueada %}
+          <div class="flex gap-1">
+            <button class="editar-p px-2 py-1 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50"
+                    data-id="{{ p.id }}" data-seccion="{{ sec.id }}">Editar</button>
+            <button class="borrar-p px-2 py-1 rounded-lg border border-rose-200 text-rose-700 text-xs font-semibold hover:bg-rose-50"
+                    data-id="{{ p.id }}">Borrar</button>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if not estructura.bloqueada %}
+        <form class="nueva-opc flex gap-2 mt-2" data-pregunta="{{ p.id }}">
+          <input type="text" name="texto" placeholder="Nueva opción…" class="flex-1 px-2 py-1 border border-slate-300 rounded text-xs">
+          <label class="text-xs text-slate-500 flex items-center gap-1"><input type="checkbox" name="es_otro" value="1"> ¿Cuál?</label>
+          <button class="px-2 py-1 rounded-lg bg-teal-600 text-white text-xs font-semibold">+</button>
+        </form>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+
+    {% if not estructura.bloqueada %}
+    <div class="px-5 py-4 bg-slate-50/60 border-t border-slate-100">
+      <form class="nueva-p flex flex-wrap items-end gap-2" data-seccion="{{ sec.id }}">
+        <div class="flex-1 min-w-48">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Pregunta</label>
+          <input type="text" name="enunciado" required placeholder="Enunciado…" class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm">
+        </div>
+        <div class="w-36">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo</label>
+          <select name="tipo" class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm">
+            {% for t in tipos_pregunta %}<option value="{{ t.clave }}">{{ t.etiqueta }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="w-20">
+          <label class="block text-xs font-semibold text-slate-500 mb-1">Código</label>
+          <input type="text" name="codigo" placeholder="P1" class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm">
+        </div>
+        <label class="text-xs text-slate-600 flex items-center gap-1 pb-2">
+          <input type="checkbox" name="obligatoria" value="1" class="rounded border-slate-300"> Obligatoria
+        </label>
+        <button class="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 active:scale-[0.98] transition">+ Agregar</button>
+      </form>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  {% if not estructura.bloqueada %}
+  <button id="nueva-seccion" class="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 text-slate-500 text-sm font-semibold hover:border-teal-400 hover:text-teal-600 transition">
+    + Nueva sección
+  </button>
+  {% endif %}
+</div>
+
+<template id="editor-pregunta">
+  <form class="editor-p bg-teal-50/50 border border-teal-200 rounded-xl p-4 mt-3 space-y-3">
+    <input type="hidden" name="pregunta_id">
+    <input type="hidden" name="seccion_id">
+    <div class="grid sm:grid-cols-2 gap-3">
+      <div class="sm:col-span-2">
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Enunciado</label>
+        <input name="enunciado" class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Ayuda</label>
+        <input name="ayuda" class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Código</label>
+        <input name="codigo" class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo</label>
+        <select name="tipo" class="w-full px-2 py-1.5 border border-slate-300 rounded text-sm">
+          {% for t in tipos_pregunta %}<option value="{{ t.clave }}">{{ t.etiqueta }}</option>{% endfor %}
+        </select>
+      </div>
+      <label class="text-xs text-slate-600 flex items-center gap-1 pt-5">
+        <input type="checkbox" name="obligatoria" value="1" class="rounded border-slate-300"> Obligatoria
+      </label>
+    </div>
+    <div class="flex gap-2">
+      <button class="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-xs font-semibold">Guardar</button>
+      <button type="button" class="cancelar px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold">Cancelar</button>
+    </div>
+  </form>
+</template>
+
+<script>
+(function(){
+  const api = document.getElementById('app').dataset.api;
+  const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  async function op(payload){
+    const r = await fetch(api, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if(!r.ok){ alert(d.error || 'Error al guardar'); return false; }
+    location.reload();
+    return true;
+  }
+
+  // Edición inline de secciones
+  document.querySelectorAll('[data-op="editar_seccion"]').forEach(inp => {
+    inp.addEventListener('change', () => op({
+      op: 'editar_seccion', seccion_id: inp.dataset.id,
+      [inp.dataset.campo]: inp.value}));
+  });
+
+  // Nueva sección
+  const ns = document.getElementById('nueva-seccion');
+  if (ns) ns.addEventListener('click', e => {
+    e.preventDefault(); op({op: 'agregar_seccion'});
+  });
+  document.querySelectorAll('.borrar-sec').forEach(b =>
+    b.addEventListener('click', e => {
+      e.preventDefault();
+      if (confirm('¿Borrar la sección y todas sus preguntas?'))
+        op({op: 'borrar_seccion', seccion_id: b.dataset.id});
+    }));
+
+  // Nueva pregunta
+  document.querySelectorAll('form.nueva-p').forEach(f => {
+    f.addEventListener('submit', e => {
+      e.preventDefault();
+      op({op: 'agregar_pregunta', seccion_id: f.dataset.seccion,
+          enunciado: f.enunciado.value, tipo: f.tipo.value,
+          codigo: f.codigo.value, obligatoria: f.obligatoria.checked});
+    });
+  });
+
+  // Borrar pregunta / opción
+  document.querySelectorAll('.borrar-p').forEach(b =>
+    b.addEventListener('click', e => {
+      e.preventDefault();
+      if (confirm('¿Borrar la pregunta?'))
+        op({op: 'borrar_pregunta', pregunta_id: b.dataset.id});
+    }));
+  document.querySelectorAll('.borrar-opc').forEach(b =>
+    b.addEventListener('click', e => {
+      e.preventDefault();
+      if (confirm('¿Borrar la opción?'))
+        op({op: 'borrar_opcion', opcion_id: b.dataset.id});
+    }));
+
+  // Nueva opción
+  document.querySelectorAll('form.nueva-opc').forEach(f => {
+    f.addEventListener('submit', e => {
+      e.preventDefault();
+      op({op: 'agregar_opcion', pregunta_id: f.dataset.pregunta,
+          texto: f.texto.value, es_otro: f.es_otro.checked});
+    });
+  });
+
+  // Editor de pregunta
+  const tpl = document.getElementById('editor-pregunta');
+  document.querySelectorAll('.editar-p').forEach(b => {
+    b.addEventListener('click', e => {
+      e.preventDefault();
+      const art = b.closest('article[data-pregunta]');
+      const ed = tpl.content.firstElementChild.cloneNode(true);
+      ed.pregunta_id.value = b.dataset.id;
+      ed.seccion_id.value = b.dataset.seccion;
+      const enun = art.querySelector('p.font-semibold').textContent.trim();
+      ed.enunciado.value = enun;
+      art.appendChild(ed);
+      ed.addEventListener('submit', ev => {
+        ev.preventDefault();
+        op({op: 'editar_pregunta', pregunta_id: ed.pregunta_id.value,
+            enunciado: ed.enunciado.value, ayuda: ed.ayuda.value,
+            codigo: ed.codigo.value, tipo: ed.tipo.value,
+            obligatoria: ed.obligatoria.checked});
+      });
+      ed.querySelector('.cancelar').addEventListener('click', ev => {
+        ev.preventDefault(); ed.remove();
+      });
+    });
+  });
+})();
+</script>
+{% endblock %}

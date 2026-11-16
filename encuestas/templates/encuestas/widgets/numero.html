@@ -1,0 +1,10 @@
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+  <label class="block text-sm font-semibold text-slate-800 mb-1">
+    {{ p.enunciado }}{% if p.obligatoria %} <span class="text-rose-500">*</span>{% endif %}
+  </label>
+  {% if p.ayuda %}<p class="text-xs text-slate-400 mb-2">{{ p.ayuda }}</p>{% endif %}
+  <input type="number" name="p_{{ p.pk }}" value="{{ valor|default:'' }}" step="any"
+         {% if p.config.min is not None %}min="{{ p.config.min }}"{% endif %}
+         {% if p.config.max is not None %}max="{{ p.config.max }}"{% endif %}
+         class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm">
+</div>

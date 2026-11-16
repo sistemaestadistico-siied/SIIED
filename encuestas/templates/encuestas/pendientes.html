@@ -1,0 +1,38 @@
+{% extends 'indicadores/base.html' %}
+{% block title %}Mis encuestas pendientes{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-teal-50/40 py-10">
+  <div class="container mx-auto px-4 max-w-3xl">
+    <h1 class="text-3xl font-bold text-slate-900 tracking-tight mb-2">Mis encuestas</h1>
+    <p class="text-slate-500 mb-8">Formularios que tiene asignados para diligenciar o capturar.</p>
+
+    <div class="space-y-4">
+      {% for a in asignaciones %}
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="font-bold text-slate-800">{{ a.formulario.titulo }}</p>
+          <p class="text-xs text-slate-400 mt-0.5">
+            {{ a.formulario.get_tipo_display }} · {{ a.get_rol_display }}
+            {% if a.meta %} · meta: {{ a.meta }} — lleva {{ a.envios_hechos }}{% endif %}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          {% if a.formulario.estado == 'publicado' %}
+          <a href="{% if a.rol == 'encuestador' %}{% url 'encuestas:responder_encuestador' a.formulario_id %}{% else %}{% url 'encuestas:responder_asignado' a.formulario_id %}{% endif %}"
+             class="px-4 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 active:scale-[0.98] transition">
+            {% if a.rol == 'encuestador' %}Capturar encuesta{% else %}Diligenciar{% endif %} →
+          </a>
+          {% else %}
+          <span class="gs-chip bg-slate-100 text-slate-500">{{ a.formulario.get_estado_display }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="bg-white rounded-2xl border border-slate-200 p-10 text-center text-slate-400">
+        No tiene encuestas asignadas por ahora.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

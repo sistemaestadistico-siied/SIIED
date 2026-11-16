@@ -1,0 +1,91 @@
+{% extends 'gestion/base_gestion.html' %}
+{% load humanize %}
+{% block title %}Resultados — {{ f.titulo }}{% endblock %}
+{% block gs_titulo %}Resultados: {{ f.titulo }}{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span><a href="{% url 'gestion:encuestas_lista' %}">Encuestas</a><span class="mx-1">›</span>Resultados{% endblock %}
+
+{% block gs_contenido %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <div class="flex gap-2">
+    <a href="{% url 'gestion:encuestas_constructor' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50">← Constructor</a>
+    <a href="{% url 'gestion:encuestas_distribucion' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-semibold hover:bg-slate-50">Distribución</a>
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url 'gestion:encuestas_exportar' f.pk %}?formato=pivot" class="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700">CSV tabla</a>
+    <a href="{% url 'gestion:encuestas_exportar' f.pk %}?formato=largo" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">CSV largo</a>
+  </div>
+</div>
+
+<div class="grid grid-cols-3 gap-4 mb-8">
+  <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Enviados</p>
+    <p class="text-3xl font-bold text-teal-600 mt-1">{{ n_enviados }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Borradores</p>
+    <p class="text-3xl font-bold text-amber-500 mt-1">{{ n_borrador }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Anulados</p>
+    <p class="text-3xl font-bold text-slate-400 mt-1">{{ n_anulados }}</p>
+  </div>
+</div>
+
+<div class="space-y-6">
+  {% for item in resumen %}
+  <div class="bg-white border border-slate-200 rounded-2xl p-5">
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <p class="font-semibold text-slate-800">
+        {% if item.pregunta.codigo %}<span class="gs-chip bg-slate-100 text-slate-500 mr-1">{{ item.pregunta.codigo }}</span>{% endif %}
+        {{ item.pregunta.enunciado }}
+      </p>
+      <span class="text-xs text-slate-400 shrink-0">{{ item.respondidas }} respuesta(s)</span>
+    </div>
+    <div class="space-y-1.5">
+      {% for f2 in item.filas %}
+      <div class="flex items-center gap-3 text-sm">
+        <div class="w-48 truncate text-slate-600" title="{{ f2.texto }}">{{ f2.texto }}</div>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div class="h-full bg-teal-500 rounded-full" style="width: {{ f2.pct }}%"></div>
+        </div>
+        <div class="w-16 text-right text-xs text-slate-500">{{ f2.n }} · {{ f2.pct }}%</div>
+      </div>
+      {% empty %}
+      <p class="text-sm text-slate-400">Sin respuestas.</p>
+      {% endfor %}
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-center text-slate-400 py-10 bg-white border border-slate-200 rounded-2xl">Sin preguntas con datos.</p>
+  {% endfor %}
+</div>
+
+{% if envios %}
+<div class="mt-8 bg-white border border-slate-200 rounded-2xl overflow-hidden">
+  <div class="px-5 py-3 bg-slate-50 border-b border-slate-100">
+    <h3 class="font-bold text-slate-800 text-sm">Envíos</h3>
+  </div>
+  <table class="w-full text-sm">
+    <tbody>
+      {% for e in envios %}
+      <tr class="border-b border-slate-100 last:border-0">
+        <td class="px-4 py-3">#{{ e.pk }}</td>
+        <td class="px-4 py-3">{{ e.respondiente|default:"Anónimo" }}</td>
+        <td class="px-4 py-3 text-slate-500">{{ e.get_modo_display }} · {{ e.enviado|naturalday }}</td>
+        <td class="px-4 py-3 text-slate-500">{{ e.diligenciado_por.username|default:"—" }}</td>
+        <td class="px-4 py-3 text-right">
+          <form method="post" action="{% url 'gestion:encuestas_envio_accion' e.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="op" value="anular">
+            <input type="hidden" name="motivo" value="">
+            <button class="text-xs font-semibold text-rose-600 hover:underline"
+                    onclick="return confirm('¿Anular el envío {{ e.pk }}? No se contará en resultados.')">Anular</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

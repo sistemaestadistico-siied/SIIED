@@ -1,0 +1,17 @@
+{% load encuestas_tags %}
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+  <p class="text-sm font-semibold text-slate-800 mb-1">
+    {{ p.enunciado }}{% if p.obligatoria %} <span class="text-rose-500">*</span>{% endif %}
+  </p>
+  {% if p.ayuda %}<p class="text-xs text-slate-400 mb-2">{{ p.ayuda }}</p>{% endif %}
+  <div class="space-y-2 mt-2">
+    {% for o in p.opciones.all %}
+    <label class="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
+      <input type="checkbox" name="p_{{ p.pk }}" value="{{ o.id }}"
+             {% if valor|seleccionado:o.id %}checked{% endif %}
+             class="rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+      {{ o.texto }}
+    </label>
+    {% endfor %}
+  </div>
+</div>

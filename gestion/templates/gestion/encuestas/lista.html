@@ -1,0 +1,76 @@
+{% extends 'gestion/base_gestion.html' %}
+{% load humanize %}
+{% block title %}Encuestas{% endblock %}
+{% block gs_titulo %}Encuestas, sondeos y censos{% endblock %}
+{% block gs_miga %}<span class="mx-1">›</span>Encuestas{% endblock %}
+
+{% block gs_contenido %}
+<div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <form method="get" class="flex flex-wrap items-center gap-2">
+    <input type="text" name="q" value="{{ filtros.q }}" placeholder="Buscar…"
+           class="px-3 py-2 border border-slate-300 rounded-lg text-sm w-56">
+    <select name="tipo" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+      <option value="">Todos los tipos</option>
+      {% for c, t in tipos %}<option value="{{ c }}" {% if filtros.tipo == c %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select>
+    <select name="estado" class="px-3 py-2 border border-slate-300 rounded-lg text-sm">
+      <option value="">Todos los estados</option>
+      {% for c, t in estados %}<option value="{{ c }}" {% if filtros.estado == c %}selected{% endif %}>{{ t }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="px-3 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 active:scale-[0.98] transition">Filtrar</button>
+  </form>
+  <a href="{% url 'gestion:encuestas_crear' %}" class="px-3 py-2 rounded-lg bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 active:scale-[0.98] transition">
+    <i class="fas fa-plus mr-1"></i>Nuevo formulario
+  </a>
+</div>
+
+<div class="space-y-3">
+  {% for f in pagina %}
+  <div class="bg-white border border-slate-200 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <p class="font-bold text-slate-800 truncate">{{ f.titulo }}</p>
+        <span class="gs-chip bg-slate-100 text-slate-500">{{ f.get_tipo_display }}</span>
+        <span class="gs-chip
+          {% if f.estado == 'publicado' %}bg-emerald-50 text-emerald-700
+          {% elif f.estado == 'cerrado' %}bg-amber-50 text-amber-700
+          {% elif f.estado == 'archivado' %}bg-slate-100 text-slate-400
+          {% else %}bg-sky-50 text-sky-700{% endif %}">{{ f.get_estado_display }}</span>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">
+        <code class="bg-slate-50 px-1 rounded">/encuestas/e/{{ f.slug }}/</code>
+        · {{ f.secciones.count }} sección(es) · actualizado {{ f.actualizado|naturalday }}
+      </p>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      <a href="{% url 'gestion:encuestas_constructor' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Constructor</a>
+      <a href="{% url 'gestion:encuestas_distribucion' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Distribución</a>
+      <a href="{% url 'gestion:encuestas_resultados' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Resultados</a>
+      <a href="{% url 'gestion:encuestas_vista_previa' f.pk %}" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50" target="_blank">Vista previa</a>
+      <form method="post" action="{% url 'gestion:encuestas_accion' f.pk %}" class="inline">
+        {% csrf_token %}
+        {% if f.estado == 'borrador' %}
+        <button name="accion" value="publicar" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 active:scale-[0.98] transition">Publicar</button>
+        {% elif f.estado == 'publicado' %}
+        <button name="accion" value="cerrar" class="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 active:scale-[0.98] transition">Cerrar</button>
+        {% elif f.estado == 'cerrado' %}
+        <button name="accion" value="reabrir" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 active:scale-[0.98] transition">Reabrir</button>
+        <button name="accion" value="archivar" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Archivar</button>
+        {% endif %}
+        <button name="accion" value="duplicar" class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold hover:bg-slate-50">Duplicar</button>
+      </form>
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-center text-slate-400 py-10 bg-white border border-slate-200 rounded-2xl">Sin formularios con estos filtros.</p>
+  {% endfor %}
+</div>
+
+{% if pagina.paginator.num_pages > 1 %}
+<nav class="flex justify-center gap-2 mt-6 text-sm">
+  {% if pagina.has_previous %}<a href="?page={{ pagina.previous_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50">‹ Anterior</a>{% endif %}
+  <span class="px-3 py-1.5 text-slate-500">Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+  {% if pagina.has_next %}<a href="?page={{ pagina.next_page_number }}" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50">Siguiente ›</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

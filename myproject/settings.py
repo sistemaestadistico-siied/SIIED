@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     'whitenoise.runserver_nostatic',  # Para desarrollo local
     'indicadores',
     'gestion',
+    'encuestas',
 ]
 
 MIDDLEWARE = [

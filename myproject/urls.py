@@ -69,6 +69,9 @@ urlpatterns = [
     # Módulo Gestión de Talleres y Formularios
     path('gestion/', include('gestion.urls', namespace='gestion')),
 
+    # Respuesta de encuestas (público, encuestador y diligenciador)
+    path('encuestas/', include('encuestas.urls', namespace='encuestas')),
+
     # URLs de la aplicación indicadores
     path('', include('indicadores.urls', namespace='indicadores')),
 ]

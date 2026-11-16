@@ -1,0 +1,19 @@
+{% load encuestas_tags %}
+<div class="bg-white rounded-xl border border-slate-200 p-5 mb-4">
+  <p class="text-sm font-semibold text-slate-800 mb-1">
+    {{ p.enunciado }}{% if p.obligatoria %} <span class="text-rose-500">*</span>{% endif %}
+  </p>
+  {% if p.ayuda %}<p class="text-xs text-slate-400 mb-2">{{ p.ayuda }}</p>{% endif %}
+  <div class="flex gap-3 mt-2">
+    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+      <input type="radio" name="p_{{ p.pk }}" value="si"
+             {% if valor|seleccionado:'si' %}checked{% endif %}
+             class="border-slate-300 text-teal-600 focus:ring-teal-500"> Sí
+    </label>
+    <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+      <input type="radio" name="p_{{ p.pk }}" value="no"
+             {% if valor|seleccionado:'no' %}checked{% endif %}
+             class="border-slate-300 text-teal-600 focus:ring-teal-500"> No
+    </label>
+  </div>
+</div>
