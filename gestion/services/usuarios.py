@@ -216,3 +216,104 @@ def relevo_usuario_ficed(user, *, first_name, last_name, email,
 def restablecer_password(user):
     """Nueva temporal por correo; el perfil queda marcado para cambiarla."""
     return emitir_password_temporal(user)
+
+
+# =============================================================================
+# Carga masiva CSV (§3.2)
+# =============================================================================
+
+def _parsear_csv_usuarios(archivo):
+    """Lee el CSV de carga. Columnas esperadas (encabezados libres por
+    nombre): username, nombres, apellidos, correo, organismo, rol,
+    subrol_ficed, activo, enviar_correo."""
+    import csv
+    import io
+    texto = archivo.read().decode('utf-8-sig')
+    lector = csv.DictReader(io.StringIO(texto))
+    filas = []
+    for n, fila in enumerate(lector, start=2):  # fila 1 = encabezados
+        filas.append((n, {k.strip().lower(): (v or '').strip()
+                          for k, v in fila.items() if k}))
+    return filas
+
+
+def _organismo_csv(texto, cache):
+    key = (texto or '').strip().lower()
+    if not key:
+        return None
+    if key not in cache:
+        from indicadores.models import Organismo
+        cache[key] = (Organismo.objects
+                      .filter(nombre__iexact=texto.strip()).first()
+                      or Organismo.objects
+                      .filter(codigo__iexact=texto.strip()).first())
+    return cache[key]
+
+
+def validar_fila_usuario(fila, cache_org):
+    """Errores de una fila sin escribir. Devuelve (datos, errores)."""
+    errores = []
+    username = fila.get('username', '').strip()
+    rol = fila.get('rol', '').strip() or 'delegado'
+    subrol = fila.get('subrol_ficed', '').strip().upper()
+    organismo = _organismo_csv(fila.get('organismo', ''), cache_org)
+    correo = fila.get('correo', '').strip()
+
+    if not username:
+        errores.append('username vacío')
+    elif User.objects.filter(username=username).exists():
+        errores.append('username ya existe')
+    if correo and User.objects.filter(email=correo).exists():
+        errores.append('correo ya usado por otro usuario')
+    if rol not in ROLES_FICED:
+        errores.append(f'rol inválido: {rol or "(vacío)"}')
+    if fila.get('organismo') and not organismo:
+        errores.append(f'organismo no encontrado: {fila["organismo"]}')
+    if subrol and subrol not in _SUBROLES:
+        errores.append(f'equipo inválido: {subrol}')
+    try:
+        _validar(rol, subrol, organismo)
+    except ValidationError as e:
+        errores.extend(m for msgs in e.message_dict.values() for m in msgs)
+
+    datos = {
+        'username': username,
+        'first_name': fila.get('nombres', ''),
+        'last_name': fila.get('apellidos', ''),
+        'email': correo,
+        'rol': rol, 'subrol': subrol,
+        'organismo': organismo,
+        'activo': fila.get('activo', '1').strip() in ('1', 'si', 'sí', 'true'),
+        'enviar_correo': fila.get('enviar_correo', '1').strip() in
+        ('1', 'si', 'sí', 'true'),
+    }
+    return datos, errores
+
+
+def procesar_csv_usuarios(archivo, aplicar=False):
+    """Dry-run o aplicación por fila. Devuelve filas con resultado.
+
+    Cada fila: {n, datos, estado: 'ok'|'creado'|'error', errores: []}.
+    En `aplicar`, los errores son por fila: las válidas se crean."""
+    filas = _parsear_csv_usuarios(archivo)
+    cache_org = {}
+    resultado = []
+    for n, fila in filas:
+        datos, errores = validar_fila_usuario(fila, cache_org)
+        estado = 'ok'
+        if not errores and aplicar:
+            try:
+                user, correo_estado = crear_usuario_ficed(
+                    **datos)
+                estado = 'creado'
+                if correo_estado == 'fallido':
+                    errores.append('correo falló: credenciales no enviadas')
+            except ValidationError as e:
+                estado = 'error'
+                errores.extend(m for msgs in e.message_dict.values()
+                               for m in msgs)
+        elif errores:
+            estado = 'error'
+        resultado.append({'n': n, 'datos': datos, 'estado': estado,
+                          'errores': errores})
+    return resultado

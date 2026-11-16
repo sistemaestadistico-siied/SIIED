@@ -65,6 +65,9 @@ urlpatterns = [
     path('taller/ventanas/guardar/', views_taller.ventana_guardar,
          name='taller_ventana_guardar'),
 
+    path('ficed/usuarios/carga-masiva/', views_ficed.carga_masiva,
+         name='ficed_carga_masiva'),
+
     # Encuestas (gestión)
     path('encuestas/', encuestas_views.lista, name='encuestas_lista'),
     path('encuestas/crear/', encuestas_views.crear,

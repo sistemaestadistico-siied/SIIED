@@ -28,7 +28,8 @@ from .services.formularios_iced import (copia_formulario, reabrir_formulario,
                                         restaurar_formulario)
 from .services.usuarios import (ROLES_FICED, actualizar_usuario_ficed,
                                  crear_usuario_ficed, relevo_usuario_ficed,
-                                 restablecer_password)
+                                 restablecer_password,
+                                 procesar_csv_usuarios)
 
 ROLES_ETQ = dict(PerfilRecolector.ROL_CHOICES)
 SUBROLES_ETQ = dict(PerfilRecolector.SUBROL_FICED_CHOICES)
@@ -561,3 +562,47 @@ def prorroga_crear(request, ventana_id):
         request,
         f'Prórroga para {organismo.nombre} hasta {extendida:%d/%m/%Y}.')
     return redirect('gestion:ficed_ventanas')
+
+
+# =============================================================================
+# Carga masiva de usuarios por CSV (§3.2)
+# =============================================================================
+
+@gestor_required
+def carga_masiva(request):
+    """CSV → validación previa (dry-run) → aplicar por fila."""
+    ctx = {'pestana_activa': 'ficed',
+           'ejemplo': 'username,nombres,apellidos,correo,organismo,rol,'
+                      'subrol_ficed,activo,enviar_correo'}
+    if request.method == 'POST':
+        archivo = request.FILES.get('archivo')
+        aplicar = request.POST.get('aplicar') == '1'
+        if not archivo:
+            messages.error(request, 'Adjunte un archivo CSV.')
+        elif not archivo.name.lower().endswith('.csv'):
+            messages.error(request, 'El archivo debe ser .csv.')
+        else:
+            try:
+                filas = procesar_csv_usuarios(archivo, aplicar=aplicar)
+            except Exception as e:
+                messages.error(request, f'No se pudo leer el CSV: {e}')
+            else:
+                n_ok = sum(1 for f in filas if f['estado'] in ('ok', 'creado'))
+                n_err = sum(1 for f in filas if f['estado'] == 'error')
+                if aplicar:
+                    creados = [f for f in filas if f['estado'] == 'creado']
+                    registrar_accion(
+                        request, modulo='ficed', accion='carga_masiva',
+                        objeto_tipo='User', objeto_id='csv',
+                        despues={'creados': len(creados),
+                                 'errores': n_err,
+                                 'usernames': [f['datos']['username']
+                                              for f in creados]},
+                        motivo=request.POST.get('motivo', '').strip())
+                    messages.success(
+                        request,
+                        f'{len(creados)} usuario(s) creados, '
+                        f'{n_err} fila(s) con error.')
+                ctx.update({'filas': filas, 'n_ok': n_ok, 'n_err': n_err,
+                            'aplicado': aplicar})
+    return render(request, 'gestion/ficed/carga_masiva.html', ctx)
