@@ -278,7 +278,7 @@ def gestor_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect(
-                f"{reverse('indicadores:delegado_login')}"
+                f"{reverse('gestion:login')}"
                 f"?next={request.get_full_path()}")
         if request.user.is_staff:
             return view_func(request, *args, **kwargs)

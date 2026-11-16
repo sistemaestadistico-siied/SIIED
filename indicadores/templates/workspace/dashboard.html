@@ -117,6 +117,7 @@
     {% if es_delegado %}<a href="#ws-organismos">Portal de Organismos</a>{% endif %}
     {% if es_validador %}<a href="#ws-validacion">Validación</a>{% endif %}
     {% if es_analista %}<a href="#ws-analitica">Analítica e IA</a>{% elif es_bi %}<a href="#ws-bi">SIIED BI</a>{% endif %}
+    {% if es_gestor %}<a href="#ws-gestion">Gestión</a>{% endif %}
     {% if puede_editorial %}<a href="#ws-editorial">Editorial</a>{% endif %}
     <a href="#ws-datos">Datos abiertos</a>
     {% if es_staff %}<a href="#ws-admin">Administración</a>{% endif %}
@@ -392,6 +393,30 @@
         <h3>Don Datico BI</h3>
         <p>Consulta, analiza y genera tableros con asistencia de IA.</p>
         <a href="{% url 'indicadores:analitica_dondatico' %}" class="btn-link" style="background:#ede9fe;color:#6d28d9;">Abrir Don Datico <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Gestión de Formularios (gestor / staff) -->
+  {% if es_gestor %}
+  <div class="mb-10 ws-section" id="ws-gestion">
+    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <span style="width:8px;height:8px;border-radius:50%;background:#0d9488;display:inline-block;"></span>
+      Gestión de Formularios
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="workspace-card">
+        <div class="icon" style="background:#ccfbf1;color:#0f766e;"><i class="fas fa-sliders"></i></div>
+        <h3>Panel de gestión</h3>
+        <p>FICED, Taller de Gestión de Datos y encuestas: usuarios, organismos, equipos y ventanas de diligenciamiento.</p>
+        <a href="{% url 'gestion:hub' %}" class="btn-link" style="background:#ccfbf1;color:#0f766e;">Abrir panel <i class="fas fa-arrow-right"></i></a>
+      </div>
+      <div class="workspace-card">
+        <div class="icon" style="background:#ccfbf1;color:#0f766e;"><i class="fas fa-list-check"></i></div>
+        <h3>Bitácora</h3>
+        <p>Auditoría de todas las acciones del módulo: quién, cuándo y qué cambió.</p>
+        <a href="{% url 'gestion:bitacora' %}" class="btn-link" style="background:#ccfbf1;color:#0f766e;">Ver bitácora <i class="fas fa-arrow-right"></i></a>
       </div>
     </div>
   </div>

@@ -1,0 +1,57 @@
+{% extends 'indicadores/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Formularios — Ingreso{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center py-12 px-4">
+  <div class="w-full max-w-md">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-100 text-teal-700 text-2xl mb-4">
+        <i class="fas fa-sliders"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Gestión de Formularios</h1>
+      <p class="text-sm text-slate-500 mt-1">FICED · Taller de Gestión de Datos · Encuestas</p>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6">
+      {% for message in messages %}
+      <div class="mb-3 p-4 rounded-xl border-l-4 text-sm font-medium
+        {% if message.tags == 'error' %}bg-rose-50 text-rose-800 border-rose-400
+        {% elif message.tags == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-400
+        {% else %}bg-sky-50 text-sky-800 border-sky-400{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label class="block text-sm font-semibold text-slate-700 mb-1" for="username">Usuario</label>
+      <input type="text" name="username" id="username" required autofocus autocomplete="username"
+             class="w-full mb-4 px-4 py-2.5 rounded-lg border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-sm">
+
+      <label class="block text-sm font-semibold text-slate-700 mb-1" for="password">Contraseña</label>
+      <input type="password" name="password" id="password" required autocomplete="current-password"
+             class="w-full mb-6 px-4 py-2.5 rounded-lg border border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none text-sm">
+
+      <button type="submit"
+              class="w-full py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 active:scale-[0.98] text-white font-semibold text-sm transition">
+        Ingresar
+      </button>
+    </form>
+
+    <p class="text-center text-xs text-slate-400 mt-6">
+      Acceso para gestores de talleres y formularios y el equipo SIIED.
+    </p>
+    <div class="text-center mt-4">
+      <a href="{% url 'indicadores:acceso_modulos' %}" class="text-sm text-teal-700 hover:underline font-medium">
+        <i class="fas fa-arrow-left mr-1"></i>Volver a módulos
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

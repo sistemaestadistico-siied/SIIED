@@ -1,0 +1,96 @@
+{% extends 'gestion/base_gestion.html' %}
+{% block title %}Gestión de Formularios{% endblock %}
+{% block gs_titulo %}Gestión de Formularios{% endblock %}
+
+{% block gs_contenido %}
+<!-- Ventanas de diligenciamiento -->
+<section class="mb-10">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-bold text-slate-800 tracking-tight">Ventanas de diligenciamiento</h2>
+    <span class="text-xs text-slate-500">Hoy: {{ hoy|date:"d/m/Y" }}</span>
+  </div>
+  {% if ventanas %}
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50">
+          <th class="px-4 py-3">Módulo</th>
+          <th class="px-4 py-3">Referencia</th>
+          <th class="px-4 py-3">Apertura</th>
+          <th class="px-4 py-3">Cierre</th>
+          <th class="px-4 py-3">Estado</th>
+          <th class="px-4 py-3">Prórrogas vigentes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in ventanas %}
+        <tr class="border-b border-slate-100 last:border-0">
+          <td class="px-4 py-3 font-medium">{{ v.get_modulo_display }}</td>
+          <td class="px-4 py-3">{{ v.referencia }}</td>
+          <td class="px-4 py-3">{{ v.fecha_apertura|date:"d/m/Y" }}</td>
+          <td class="px-4 py-3">{{ v.fecha_cierre|date:"d/m/Y" }}</td>
+          <td class="px-4 py-3">
+            {% if v.estado == 'abierta' %}
+            <span class="gs-chip bg-emerald-50 text-emerald-700"><i class="fas fa-circle text-[0.45rem]"></i>Abierta</span>
+            {% else %}
+            <span class="gs-chip bg-rose-50 text-rose-700"><i class="fas fa-circle text-[0.45rem]"></i>Cerrada</span>
+            {% endif %}
+            {% if not v.activa %}
+            <span class="gs-chip bg-slate-100 text-slate-500">inactiva</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">{{ v.n_prorrogas }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="bg-sky-50 border border-sky-100 rounded-2xl px-6 py-4 text-sm text-sky-800">
+    <i class="fas fa-info-circle mr-2"></i>
+    No hay ventanas configuradas: todos los módulos están abiertos (comportamiento actual).
+    Las ventanas se administran desde el panel de administración por ahora.
+  </div>
+  {% endif %}
+</section>
+
+<!-- Submódulos -->
+<section class="mb-10">
+  <h2 class="text-lg font-bold text-slate-800 tracking-tight mb-4">Submódulos</h2>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="gs-card">
+      <div class="icon" style="background:#ecfeff;color:#0e7490;"><i class="fas fa-clipboard-list"></i></div>
+      <h3>FICED</h3>
+      <p>Usuarios por equipo técnico, validadores del organismo, avance de formularios, organismos y ventanas por periodo.</p>
+      <span class="gs-chip bg-amber-50 text-amber-700 self-start mb-3">En construcción — Fase 1</span>
+    </div>
+    <div class="gs-card">
+      <div class="icon" style="background:#f0fdf4;color:#15803d;"><i class="fas fa-people-group"></i></div>
+      <h3>Taller de Gestión de Datos</h3>
+      <p>Estructura Organismo → Suborganismo → Equipo, inscripciones por edición y usuarios del taller.</p>
+      <span class="gs-chip bg-amber-50 text-amber-700 self-start mb-3">En construcción — Fase 2</span>
+    </div>
+    <div class="gs-card">
+      <div class="icon" style="background:#ede9fe;color:#6d28d9;"><i class="fas fa-square-poll-vertical"></i></div>
+      <h3>Encuestas</h3>
+      <p>Constructor de formularios, asignación a diligenciadores y encuestadores, resultados y exportación.</p>
+      <span class="gs-chip bg-amber-50 text-amber-700 self-start mb-3">En construcción — Fase 3</span>
+    </div>
+  </div>
+</section>
+
+<!-- Bitácora -->
+<section>
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-bold text-slate-800 tracking-tight">Auditoría</h2>
+    <a href="{% url 'gestion:bitacora' %}" class="text-sm font-semibold text-teal-700 hover:underline">
+      Ver bitácora completa <i class="fas fa-arrow-right ml-1"></i>
+    </a>
+  </div>
+  <p class="text-sm text-slate-500">
+    Todas las acciones del módulo —crear y editar usuarios, asignar roles y equipos,
+    enviar correos, abrir o cerrar ventanas, otorgar prórrogas— quedan registradas
+    con autor, fecha, motivo y estado anterior/posterior.
+  </p>
+</section>
+{% endblock %}

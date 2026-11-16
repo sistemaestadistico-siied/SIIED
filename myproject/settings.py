@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     'formtools',  # Para el wizard de creación de indicadores
     'whitenoise.runserver_nostatic',  # Para desarrollo local
     'indicadores',
+    'gestion',
 ]
 
 MIDDLEWARE = [

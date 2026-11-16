@@ -66,6 +66,9 @@ urlpatterns = [
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('admin/', admin.site.urls),
     
+    # Módulo Gestión de Talleres y Formularios
+    path('gestion/', include('gestion.urls', namespace='gestion')),
+
     # URLs de la aplicación indicadores
     path('', include('indicadores.urls', namespace='indicadores')),
 ]
