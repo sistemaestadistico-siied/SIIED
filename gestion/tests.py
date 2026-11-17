@@ -14,14 +14,15 @@ from .models import AccionGestion, ProrrogaVentana, VentanaDiligenciamiento
 from .services import registrar_accion, ventana_abierta
 
 
-def _usuario(username, rol=None, organismo=None, staff=False):
+def _usuario(username, rol=None, organismo=None, staff=False, subrol=''):
     user = User.objects.create_user(username, f'{username}@x.co', 'Clave-Test-1')
     if staff:
         user.is_staff = True
         user.save()
     if rol:
         PerfilRecolector.objects.create(
-            user=user, rol=rol, institucion='X', organismo=organismo)
+            user=user, rol=rol, institucion='X', organismo=organismo,
+            subrol_ficed=subrol)
     return user
 
 
@@ -344,7 +345,8 @@ class VistasFicedTests(TestCase):
         self.g = _usuario('gestor_f', rol='gestor_formularios')
         self.client.force_login(self.g)
         self.org = Organismo.objects.create(nombre='Org Gf', codigo='org-gf')
-        self.u = _usuario('del_gf', rol='delegado', organismo=self.org)
+        self.u = _usuario('del_gf', rol='delegado', organismo=self.org,
+                          subrol='ETPP')
 
     def test_dashboard_entra(self):
         r = self.client.get(reverse('gestion:ficed_dashboard'))
