@@ -111,7 +111,7 @@
           {% else %}{{ eq.slot.f.completitud }}% módulos{% endif %}
         </p>
         <p class="text-[11px] text-slate-400 truncate mt-1">
-          {{ eq.slot.f.usuario_diligencia.get_full_name|default:eq.slot.f.usuario_diligencia.username|default:"—" }}
+          {% if eq.slot.f.usuario_diligencia %}{{ eq.slot.f.usuario_diligencia.get_full_name|default:eq.slot.f.usuario_diligencia.username }}{% else %}—{% endif %}
           · {{ eq.slot.f.fecha_actualizacion|naturalday }}
         </p>
         {% elif eq.requerido %}

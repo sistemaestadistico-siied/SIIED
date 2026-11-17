@@ -138,7 +138,7 @@
                 </tr>
                 <tr>
                     <td style="padding: 0.35rem 0; font-weight: 600;">Diligenciado por:</td>
-                    <td style="padding: 0.35rem 0;">{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username }}</td>
+                    <td style="padding: 0.35rem 0;">{% if formulario.usuario_diligencia %}{{ formulario.usuario_diligencia.get_full_name|default:formulario.usuario_diligencia.username }}{% else %}—{% endif %}</td>
                 </tr>
             </table>
         </div>
