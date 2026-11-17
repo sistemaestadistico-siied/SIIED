@@ -113,6 +113,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'myproject.urls'
 
+# Destino por defecto de @login_required (sin login_url explícito).
+# Sin esto Django usa '/accounts/login/' — ruta inexistente en el proyecto.
+LOGIN_URL = 'indicadores:delegado_login'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',

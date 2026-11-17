@@ -1064,6 +1064,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }),
             })
             .then(async r => {
+                // 403/401 = sesión expirada o token CSRF rotado (Django lo
+                // rota en cada login). Devuelve HTML, no JSON: recargar
+                // renueva el token y lleva al login si la sesión murió.
+                if (r.status === 401 || r.status === 403) {
+                    window.location.reload();
+                    return;
+                }
                 const data = await r.json();
                 if (!r.ok || !data.ok) {
                     if (data.redirect) {
