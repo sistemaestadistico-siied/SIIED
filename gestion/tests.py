@@ -362,7 +362,7 @@ class VistasFicedTests(TestCase):
 
     def test_crear_usuario_por_vista(self):
         r = self.client.post(reverse('gestion:ficed_usuario_crear'), {
-            'username': 'nuevo_f', 'rol': 'delegado', 'subrol_ficed': 'ETPP',
+            'username': 'nuevo_f', 'rol': 'delegado', 'subrol_ficed': 'ETGIE',
             'organismo': str(self.org.pk), 'activo': '1',
             'first_name': 'N', 'last_name': 'U', 'email': ''})
         self.assertEqual(r.status_code, 302)
