@@ -90,7 +90,9 @@ def hub(request):
                 .order_by('modulo', '-fecha_cierre'))
     hoy = timezone.localdate()
     for v in ventanas:
-        v.estado = 'abierta' if v.esta_abierta(hoy=hoy) else 'cerrada'
+        v.estado = ('abierta' if v.esta_abierta(hoy=hoy)
+              else ('programada' if v.activa and v.fecha_apertura > hoy
+                    else 'cerrada'))
         v.n_prorrogas = v.prorrogas.filter(
             fecha_cierre_extendida__gte=hoy).count()
     return render(request, 'gestion/hub.html', {
@@ -158,7 +160,9 @@ def ventanas(request):
           .order_by('modulo', '-fecha_cierre'))
     hoy = timezone.localdate()
     for v in qs:
-        v.estado = 'abierta' if v.esta_abierta(hoy=hoy) else 'cerrada'
+        v.estado = ('abierta' if v.esta_abierta(hoy=hoy)
+              else ('programada' if v.activa and v.fecha_apertura > hoy
+                    else 'cerrada'))
         v.prorrogas_vigentes = [p for p in v.prorrogas.all()
                                 if p.fecha_cierre_extendida >= hoy]
     from encuestas.models import Formulario

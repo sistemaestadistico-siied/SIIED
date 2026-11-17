@@ -499,7 +499,9 @@ def ventanas(request):
           .order_by('-fecha_cierre'))
     hoy = timezone.localdate()
     for v in qs:
-        v.estado = 'abierta' if v.esta_abierta(hoy=hoy) else 'cerrada'
+        v.estado = ('abierta' if v.esta_abierta(hoy=hoy)
+              else ('programada' if v.activa and v.fecha_apertura > hoy
+                    else 'cerrada'))
         v.prorrogas_vigentes = [p for p in v.prorrogas.all()
                                 if p.fecha_cierre_extendida >= hoy]
     return render(request, 'gestion/taller/ventanas.html', {
